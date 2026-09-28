@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Jose.Credentials;
 
@@ -44,4 +45,16 @@ public abstract class JoseEncodingOptions
     /// The default value is <c>true</c>.
     /// </summary>
     public bool AddKeyIdHeader { get; init; } = true;
+
+    /// <summary>
+    /// Gets or sets any additional headers to include in the JOSE header.
+    /// The default value is <c>null</c>.
+    /// </summary>
+    public IEnumerable<KeyValuePair<string, object>>? ExtraHeaders { get; init; }
+
+    /// <summary>
+    /// Gets or sets the options that control JSON serialization behavior when encoding a strongly-typed payload.
+    /// The default value is <c>null</c>.
+    /// </summary>
+    public JsonSerializerOptions? JsonOptions { get; init; }
 }

@@ -39,117 +39,10 @@ partial class JoseSerializer
     public JoseEncoder CreateEncoder(JoseSigningOptions signingOptions) =>
         new JoseSigningEncoder(this, signingOptions);
 
-    /// <inheritdoc />
-    public string Encode<T>(
-        T payload,
-        JoseSigningOptions signingOptions,
-        JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-
-        using var _ = SerializeToUtf8(payload, jsonOptions, out var payloadBytes);
-
-        Encode(tokenBuffer, payloadBytes, signingOptions, extraHeaders);
-
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
-
-    /// <inheritdoc />
-    public void Encode<T>(
-        IBufferWriter<char> tokenWriter,
-        T payload,
-        JoseSigningOptions signingOptions,
-        JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        using var _ = SerializeToUtf8(payload, jsonOptions, out var bytes);
-
-        Encode(tokenWriter, bytes, signingOptions, extraHeaders);
-    }
-
-    /// <inheritdoc />
-    public string Encode(
-        string payload,
-        JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-
-        Encode(tokenBuffer, payload.AsSpan(), signingOptions, extraHeaders);
-
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
-
-    /// <inheritdoc />
-    public void Encode(
-        IBufferWriter<char> tokenWriter,
-        string payload,
-        JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        Encode(tokenWriter, payload.AsSpan(), signingOptions, extraHeaders);
-    }
-
-    /// <inheritdoc />
-    public string Encode(
-        ReadOnlySpan<char> payload,
-        JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-
-        Encode(tokenBuffer, payload, signingOptions, extraHeaders);
-
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
-
-    /// <inheritdoc />
-    public void Encode(
-        IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<char> payload,
-        JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        var byteCount = SecureEncoding.UTF8.GetByteCount(payload);
-        using var payloadLease = BufferFactory.Rent(
-            byteCount,
-            isSensitive: false,
-            out Span<byte> payloadBytes
-        );
-
-        var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, payloadBytes);
-        Debug.Assert(bytesWritten == byteCount);
-
-        Encode(tokenWriter, payloadBytes, signingOptions, extraHeaders);
-    }
-
-    /// <inheritdoc />
-    public string Encode(
-        ReadOnlySpan<byte> payload,
-        JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
-    {
-        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
-
-        Encode(tokenBuffer, payload, signingOptions, extraHeaders);
-
-        return tokenBuffer.AsReadOnlySequence.ToString();
-    }
-
-    /// <inheritdoc />
-    public void Encode(
+    internal void Encode(
         IBufferWriter<char> tokenWriter,
         ReadOnlySpan<byte> payload,
-        JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
+        JoseSigningOptions signingOptions
     )
     {
         /*
@@ -167,7 +60,6 @@ partial class JoseSerializer
             secretKey.KeyId,
             tokenWriter,
             signingOptions,
-            extraHeaders,
             out var encodedHeaderPart
         );
 
@@ -194,10 +86,10 @@ partial class JoseSerializer
         string? keyId,
         IBufferWriter<char> tokenWriter,
         JoseSigningOptions signingOptions,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders,
         out ReadOnlySpan<char> encodedHeaderPart
     )
     {
+        var extraHeaders = signingOptions.ExtraHeaders;
         var header =
             extraHeaders != null
                 ? new Dictionary<string, object>(extraHeaders)

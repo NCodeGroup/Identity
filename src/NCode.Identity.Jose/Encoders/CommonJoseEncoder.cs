@@ -19,10 +19,8 @@
 
 using System.Buffers;
 using System.Diagnostics;
-using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Buffers;
-using NCode.Identity.Jose.Credentials;
 using Nerdbank.Streams;
 
 namespace NCode.Identity.Jose.Encoders;
@@ -39,6 +37,11 @@ public abstract class CommonJoseEncoder : JoseEncoder
     protected JoseSerializer JoseSerializer { get; }
 
     /// <summary>
+    /// Gets the <see cref="JoseEncodingOptions"/> that this encoder was created with.
+    /// </summary>
+    protected abstract JoseEncodingOptions EncodingOptions { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JoseEncoder"/> class.
     /// </summary>
     /// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
@@ -48,78 +51,61 @@ public abstract class CommonJoseEncoder : JoseEncoder
     }
 
     /// <inheritdoc />
-    public override string Encode<T>(
-        T payload,
-        JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
+    public override string Encode<T>(T payload)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        using var _ = JoseSerializer.SerializeToUtf8(payload, jsonOptions, out var payloadBytes);
+        using var _ = JoseSerializer.SerializeToUtf8(
+            payload,
+            EncodingOptions.JsonOptions,
+            out var payloadBytes
+        );
 
-        Encode(tokenBuffer, payloadBytes, extraHeaders);
+        Encode(tokenBuffer, payloadBytes);
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
 
     /// <inheritdoc />
-    public override void Encode<T>(
-        IBufferWriter<char> tokenWriter,
-        T payload,
-        JsonSerializerOptions? jsonOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
+    public override void Encode<T>(IBufferWriter<char> tokenWriter, T payload)
     {
-        using var _ = JoseSerializer.SerializeToUtf8(payload, jsonOptions, out var bytes);
+        using var _ = JoseSerializer.SerializeToUtf8(
+            payload,
+            EncodingOptions.JsonOptions,
+            out var bytes
+        );
 
-        Encode(tokenWriter, bytes, extraHeaders);
+        Encode(tokenWriter, bytes);
     }
 
     /// <inheritdoc />
-    public override string Encode(
-        string payload,
-        JoseSigningCredentials signingCredentials,
-        JoseSigningOptions? signingOptions = null,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
+    public override string Encode(string payload)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        Encode(tokenBuffer, payload.AsSpan(), extraHeaders);
+        Encode(tokenBuffer, payload.AsSpan());
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
 
     /// <inheritdoc />
-    public override void Encode(
-        IBufferWriter<char> tokenWriter,
-        string payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
+    public override void Encode(IBufferWriter<char> tokenWriter, string payload)
     {
-        Encode(tokenWriter, payload.AsSpan(), extraHeaders);
+        Encode(tokenWriter, payload.AsSpan());
     }
 
     /// <inheritdoc />
-    public override string Encode(
-        ReadOnlySpan<char> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
+    public override string Encode(ReadOnlySpan<char> payload)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        Encode(tokenBuffer, payload, extraHeaders);
+        Encode(tokenBuffer, payload);
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }
 
     /// <inheritdoc />
-    public override void Encode(
-        IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<char> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
+    public override void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<char> payload)
     {
         var byteCount = SecureEncoding.UTF8.GetByteCount(payload);
         using var _ = BufferFactory.Rent(
@@ -131,18 +117,15 @@ public abstract class CommonJoseEncoder : JoseEncoder
         var bytesWritten = SecureEncoding.UTF8.GetBytes(payload, payloadBytes);
         Debug.Assert(bytesWritten == byteCount);
 
-        Encode(tokenWriter, payloadBytes, extraHeaders);
+        Encode(tokenWriter, payloadBytes);
     }
 
     /// <inheritdoc />
-    public override string Encode(
-        ReadOnlySpan<byte> payload,
-        IEnumerable<KeyValuePair<string, object>>? extraHeaders = null
-    )
+    public override string Encode(ReadOnlySpan<byte> payload)
     {
         using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
 
-        Encode(tokenBuffer, payload, extraHeaders);
+        Encode(tokenBuffer, payload);
 
         return tokenBuffer.AsReadOnlySequence.ToString();
     }

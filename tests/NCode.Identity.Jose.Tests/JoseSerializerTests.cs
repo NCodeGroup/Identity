@@ -299,14 +299,13 @@ public class JoseSerializerTests : BaseTests
             compressionAlgorithm
         );
 
-        var encryptingOptions = new JoseEncryptionOptions(encryptingCredentials);
+        var encryptingOptions = new JoseEncryptionOptions(encryptingCredentials)
+        {
+            JsonOptions = JsonSerializerOptions,
+            ExtraHeaders = originalExtraHeaders,
+        };
 
-        var token = JoseSerializer.Encode(
-            originalPayload,
-            encryptingOptions,
-            JsonSerializerOptions,
-            originalExtraHeaders
-        );
+        var token = JoseSerializer.CreateEncoder(encryptingOptions).Encode(originalPayload);
 
         var originalJson = JsonSerializer.Serialize(
             originalPayload,
@@ -569,17 +568,15 @@ public class JoseSerializerTests : BaseTests
         {
             EncodePayload = encodePayload,
             DetachPayload = detachPayload,
+            JsonOptions = JsonSerializerOptions,
+            ExtraHeaders = extraHeaders,
         };
 
-        var token = JoseSerializer.Encode(
-            payload,
-            signingOptions,
-            JsonSerializerOptions,
-            extraHeaders
-        );
+        var encoder = JoseSerializer.CreateEncoder(signingOptions);
+        var token = encoder.Encode(payload);
 
         var json = JsonSerializer.Serialize(payload, JoseSerializerOptions.JsonSerializerOptions);
-        var token2 = JoseSerializer.Encode(json, signingOptions, extraHeaders);
+        var token2 = encoder.Encode(json);
 
         JsonElement deserializedHeaders;
         if (detachPayload)

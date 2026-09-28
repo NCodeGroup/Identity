@@ -19,6 +19,7 @@
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
@@ -41,11 +42,7 @@ public class DefaultAuthenticatePasswordGrantHandler(
         CancellationToken cancellationToken
     )
     {
-        Logger.LogWarning(
-            "The resource owner password credential grant type is not supported. "
-                + "Please register an implementation of `ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>` "
-                + "that can handle the resource owner password credential grant type."
-        );
+        Logger.PasswordGrantNotSupported();
 
         var errorFactory = command.OpenIdContext.ErrorFactory;
         var error = errorFactory.UnsupportedGrantType(

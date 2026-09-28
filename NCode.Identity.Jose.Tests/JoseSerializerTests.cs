@@ -68,7 +68,7 @@ public class JoseSerializerTests : BaseTests
         await ServiceProvider.DisposeAsync();
     }
 
-    private (object controlKey, SecretKey secretKey) CreateRandomRsaKey(string keyId)
+    private static (object controlKey, SecretKey secretKey) CreateRandomRsaKey(string keyId)
     {
         var metadata = new KeyMetadata { KeyId = keyId };
         var nativeKey = RSA.Create();
@@ -76,7 +76,10 @@ public class JoseSerializerTests : BaseTests
         return (nativeKey, secretKey);
     }
 
-    private (object controlKey, SecretKey secretKey) CreateRandomEccKey(string keyId, ECCurve curve)
+    private static (object controlKey, SecretKey secretKey) CreateRandomEccKey(
+        string keyId,
+        ECCurve curve
+    )
     {
         var metadata = new KeyMetadata { KeyId = keyId };
         using var eccKey = ECDiffieHellman.Create(curve);
@@ -109,7 +112,7 @@ public class JoseSerializerTests : BaseTests
         return CreateRandomEccKey(keyId, curve);
     }
 
-    private (object controlKey, SecretKey secretKey) CreateRandomSymmetricKey(
+    private static (object controlKey, SecretKey secretKey) CreateRandomSymmetricKey(
         string keyId,
         int bitCount
     )
@@ -122,7 +125,7 @@ public class JoseSerializerTests : BaseTests
         return (bytes, secretKey);
     }
 
-    private (object controlKey, SecretKey secretKey) CreateRandomPassword(string keyId)
+    private static (object controlKey, SecretKey secretKey) CreateRandomPassword(string keyId)
     {
         var metadata = new KeyMetadata { KeyId = keyId };
         var password = Guid.NewGuid().ToString("N");
@@ -227,6 +230,8 @@ public class JoseSerializerTests : BaseTests
                 yield return [algorithmType, encryptionType, compressionType];
         }
     }
+
+    private static readonly string[] expected = new[] { "b64" };
 
     [Theory]
     [MemberData(nameof(EncodeDecodeJweTestData))]
@@ -662,7 +667,7 @@ public class JoseSerializerTests : BaseTests
             Assert.Equal(false, b64Header);
 
             var criticalHeader = Assert.Contains("crit", headerToVerify);
-            Assert.Equal(new[] { "b64" }, criticalHeader);
+            Assert.Equal(expected, criticalHeader);
         }
 
         var typHeader = Assert.Contains("typ", headerToVerify);

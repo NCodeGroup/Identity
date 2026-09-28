@@ -62,7 +62,7 @@ public class DefaultValidateAuthorizationRequestHandler
     }
 
     [AssertionMethod]
-    private void ValidateRequestMessage(IAuthorizationRequestMessage requestMessage)
+    private static void ValidateRequestMessage(IAuthorizationRequestMessage requestMessage)
     {
         var errorFactory = requestMessage.OpenIdEnvironment.ErrorFactory;
 
@@ -80,7 +80,7 @@ public class DefaultValidateAuthorizationRequestHandler
     }
 
     [AssertionMethod]
-    private void ValidateRequestObject(
+    private static void ValidateRequestObject(
         IAuthorizationRequestMessage requestMessage,
         IAuthorizationRequestObject requestObject
     )
@@ -159,7 +159,7 @@ public class DefaultValidateAuthorizationRequestHandler
     }
 
     [AssertionMethod]
-    private void ValidateRequest(
+    private static void ValidateRequest(
         OpenIdEnvironment openIdEnvironment,
         OpenIdClient openIdClient,
         IAuthorizationRequest request

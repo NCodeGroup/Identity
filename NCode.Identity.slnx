@@ -8,10 +8,6 @@
         <File Path=".editorconfig" />
         <File Path="README.md" />
     </Folder>
-    <Folder Name="/src/" />
-    <Folder Name="/tests/">
-        <Project Path="tests/NCode.Identity.Abstractions.Tests/NCode.Identity.Abstractions.Tests.csproj" />
-    </Folder>
     <Project Path="src/NCode.Identity.Abstractions/NCode.Identity.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.Jose.Abstractions/NCode.Identity.Jose.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.Jose/NCode.Identity.Jose.csproj" />
@@ -40,4 +36,5 @@
     <Project Path="tests/NCode.Identity.OpenId.Core.Tests/NCode.Identity.OpenId.Core.Tests.csproj" />
     <Project Path="tests/NCode.Identity.OpenId.IntegrationTests/NCode.Identity.OpenId.IntegrationTests.csproj" />
     <Project Path="tests/NCode.Identity.Secrets.Abstractions.Tests/NCode.Identity.Secrets.Abstractions.Tests.csproj" />
+    <Project Path="tests/NCode.Identity.Secrets.Tests/NCode.Identity.Secrets.Tests.csproj" />
 </Solution>

@@ -121,8 +121,14 @@ public class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProtec
         where T : AsymmetricSecretKey
     {
         var protectedPkcs8PrivateKey = ExportProtectedPkcs8PrivateKey(asymmetricAlgorithm);
-        var certificateRawData = certificate?.Export(X509ContentType.Cert); // this will not include the private key
-        return factory(protectedPkcs8PrivateKey, certificateRawData);
+        // this will not include the private key; keep the local as byte[]? and only wrap a real certificate so that
+        // a missing certificate stays a null ReadOnlyMemory<byte>? — a null byte[] would otherwise convert to a
+        // non-null empty memory (which would make HasCertificate incorrectly report true).
+        var certificateRawData = certificate?.Export(X509ContentType.Cert);
+        return factory(
+            protectedPkcs8PrivateKey,
+            certificateRawData is null ? null : (ReadOnlyMemory<byte>?)certificateRawData
+        );
     }
 
     private ReadOnlyMemory<byte> ExportProtectedPkcs8PrivateKey(

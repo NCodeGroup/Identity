@@ -53,8 +53,14 @@ rationale.
   with `Debug.Assert` is a security bug: the malformed value is accepted in Release. Use an explicit `if (!ok) throw`
   for anything derived from input; reserve `Debug.Assert` for facts the surrounding code already guarantees (a buffer
   length you just allocated, an unreachable `default` branch).
-- 👁 Prefer **auto-properties over fields** for state (static or instance). Use a field only when a property genuinely
-  cannot express it (a `ref`/`Interlocked`/`fixed`/`stackalloc` target).
+- 👁 Prefer **auto-properties over fields** for state (static or instance) — **including `private` members**. Use a
+  field only for a low-level need a property cannot express (a `ref` / `Interlocked` / `fixed` / `stackalloc` target).
+  **A `System.Threading.Lock` does _not_ qualify** — declare it as a get-only auto-property
+  (`private Lock Gate { get; } = new();`): the property compiles to a `readonly` backing field and `lock(Gate)` still
+  lowers to `Gate.EnterScope()`.
+- 👁 **Pick the narrowest accessor shape:** `{ get; }` for read-only state, `{ get; init; }` for immutable DTOs, and
+  `{ get; set; }` only when mutation is genuinely required. Use an **expression-bodied member** for a simple computed
+  property (`internal TokenGeneratorSettings Settings => SettingsOrNull ??= LoadSettings();`).
 - 👁 Use **primary constructors** wherever possible — including converting existing single-purpose constructors.
   When a constructor's body only assigns its parameters to members, hoist the parameters onto the type declaration
   and feed them directly into get-only / `init` auto-properties (`public Foo Bar { get; } = bar;`); delete the now-empty

@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.Settings;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
@@ -168,16 +169,22 @@ public class DefaultValidateAuthorizationRequestHandler
         var errorFactory = openIdEnvironment.ErrorFactory;
         var settings = openIdClient.Settings;
 
+        ValidateProtocolRules(errorFactory, request);
+        ValidateConfiguredConstraints(errorFactory, settings, request);
+        ValidateSupportedValues(errorFactory, settings, request);
+    }
+
+    [AssertionMethod]
+    private static void ValidateProtocolRules(
+        IOpenIdErrorFactory errorFactory,
+        IAuthorizationRequest request
+    )
+    {
         var requestedScopes = request.Scopes;
         var hasOpenIdScope = requestedScopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
 
         var isImplicit = request.GrantType == OpenIdConstants.GrantTypes.Implicit;
         var isHybrid = request.GrantType == OpenIdConstants.GrantTypes.Hybrid;
-
-        var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
-        var codeChallengeMethodIsPlain =
-            !hasCodeChallenge
-            || request.CodeChallengeMethod == OpenIdConstants.CodeChallengeMethods.Plain;
 
         if (requestedScopes.Count == 0)
             throw errorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
@@ -230,8 +237,19 @@ public class DefaultValidateAuthorizationRequestHandler
                     "The nonce parameter is required when using the implicit or hybrid flows for openid requests."
                 )
                 .AsException();
+    }
 
-        // perform configurable checks...
+    [AssertionMethod]
+    private static void ValidateConfiguredConstraints(
+        IOpenIdErrorFactory errorFactory,
+        IReadOnlySettingCollection settings,
+        IAuthorizationRequest request
+    )
+    {
+        var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
+        var codeChallengeMethodIsPlain =
+            !hasCodeChallenge
+            || request.CodeChallengeMethod == OpenIdConstants.CodeChallengeMethods.Plain;
 
         if (
             request.OriginalRequestObject is null
@@ -268,7 +286,15 @@ public class DefaultValidateAuthorizationRequestHandler
             throw errorFactory
                 .UnauthorizedClient("The configuration prohibits the plain PKCE method.")
                 .AsException();
+    }
 
+    [AssertionMethod]
+    private static void ValidateSupportedValues(
+        IOpenIdErrorFactory errorFactory,
+        IReadOnlySettingCollection settings,
+        IAuthorizationRequest request
+    )
+    {
         // acr_values_supported
         if (settings.TryGetValue(OpenIdSettingKeys.AcrValuesSupported, out var acrValuesSupported))
         {
@@ -382,7 +408,7 @@ public class DefaultValidateAuthorizationRequestHandler
         }
 
         // scopes_supported
-        if (requestedScopes.Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported)).Any())
+        if (request.Scopes.Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported)).Any())
         {
             throw errorFactory.InvalidScope().AsException();
         }

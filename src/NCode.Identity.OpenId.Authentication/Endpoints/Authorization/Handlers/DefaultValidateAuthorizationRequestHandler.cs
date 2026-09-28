@@ -289,7 +289,7 @@ public class DefaultValidateAuthorizationRequestHandler
     }
 
     [AssertionMethod]
-    private static void ValidateSupportedValues(
+    internal static void ValidateSupportedValues(
         IOpenIdErrorFactory errorFactory,
         IReadOnlySettingCollection settings,
         IAuthorizationRequest request
@@ -299,7 +299,7 @@ public class DefaultValidateAuthorizationRequestHandler
         if (settings.TryGetValue(OpenIdSettingKeys.AcrValuesSupported, out var acrValuesSupported))
         {
             var acrValues = request.AcrValues;
-            if (acrValues.Count > 0 && !acrValues.Except(acrValuesSupported).Any())
+            if (acrValues.Count > 0 && acrValues.Except(acrValuesSupported).Any())
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.AcrValues).AsException();
         }
 
@@ -312,7 +312,7 @@ public class DefaultValidateAuthorizationRequestHandler
         )
         {
             var claimsLocales = request.ClaimsLocales;
-            if (claimsLocales.Count > 0 && !claimsLocales.Except(claimsLocalesSupported).Any())
+            if (claimsLocales.Count > 0 && claimsLocales.Except(claimsLocalesSupported).Any())
                 throw errorFactory
                     .NotSupported(OpenIdConstants.Parameters.ClaimsLocales)
                     .AsException();
@@ -327,7 +327,7 @@ public class DefaultValidateAuthorizationRequestHandler
         )
         {
             var claimCount =
-                request.Claims?.UserInfo?.Count ?? 0 + request.Claims?.IdToken?.Count ?? 0;
+                (request.Claims?.UserInfo?.Count ?? 0) + (request.Claims?.IdToken?.Count ?? 0);
             if (claimCount > 0 && !claimsParameterSupported)
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.Claims).AsException();
         }

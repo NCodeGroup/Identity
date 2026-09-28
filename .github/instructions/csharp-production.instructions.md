@@ -310,16 +310,30 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
 - 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`**, defined off a `private const int Base` as
   `Base + n`, and referenced from the attribute (`EventId = EventIds.SubjectValidationFailed`) — never a bare magic
   number at the call site.
-- 👁 **Each log-emitting package reserves a disjoint 1000-wide Event-ID band** in the registry below. An `EventId` only
-  has to be unique within an `ILogger<T>` category, but a family-wide band makes it **globally unique across packages**,
-  so an operator's log filter or alert keys on a stable number regardless of which assembly emitted it. IDs are
-  **append-only** — never renumber or reuse a shipped value (same discipline as enum members and the public API §2). A
-  new log-emitting package claims the next free band and **adds a row here**:
+- 👁 **Every runtime package is pre-assigned a disjoint 1000-wide Event-ID band** in the registry below; a package
+  starts using its band when it adds its first log. An `EventId` only has to be unique within an `ILogger<T>` category,
+  but a family-wide band makes it **globally unique across packages**, so an operator's log filter or alert keys on a
+  stable number regardless of which assembly emitted it. IDs are **append-only** — never renumber or reuse a shipped
+  value (same discipline as enum members and the public API §2), and a band, once assigned, is never renumbered.
+  `*.Abstractions` packages are pure contracts (§2) with no behavior, so they never log and get no band. A **new**
+  runtime package added to the family claims the next free band and **adds a row here**:
 
   | Band | Package |
   | --- | --- |
   | `1000`–`1999` | `NCode.Identity.OpenId.Core` |
   | `2000`–`2999` | `NCode.Identity.OpenId.Authentication` |
+  | `3000`–`3999` | `NCode.Identity.OpenId.Management` |
+  | `4000`–`4999` | `NCode.Identity.OpenId.Persistence` |
+  | `5000`–`5999` | `NCode.Identity.OpenId.Persistence.EntityFramework` |
+  | `6000`–`6999` | `NCode.Identity.Secrets` |
+  | `7000`–`7999` | `NCode.Identity.Secrets.Persistence` |
+  | `8000`–`8999` | `NCode.Identity.Jose` |
+  | `9000`–`9999` | `NCode.Identity.JsonWebTokens` |
+  | `10000`–`10999` | `NCode.Identity` |
+  | `11000`–`11999` | `NCode.Registration` |
+  | `12000`–`12999` | `NCode.Identity.Server` |
+  | `13000`–`13999` | `NCode.Identity.OpenId.Playground` |
+
 
 
 ## 12. Configuration & options

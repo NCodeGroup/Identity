@@ -34,19 +34,19 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
     private static KeyManagementAlgorithm Algorithm => DirectKeyManagementAlgorithm.Singleton;
 
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsDir()
     {
         Assert.Equal("dir", Algorithm.Code);
     }
 
     [Fact]
-    public void KeyType_Valid()
+    public void KeyType_ReturnsSymmetricSecretKey()
     {
         Assert.Equal(typeof(SymmetricSecretKey), Algorithm.KeyType);
     }
 
     [Fact]
-    public void KeyBitSizes_Valid()
+    public void KeyBitSizes_ReturnsExpected()
     {
         var result = Assert.Single(Algorithm.KeyBitSizes);
         Assert.Equal(8, result.MinSize);
@@ -55,7 +55,7 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void GetLegalCekByteSizes_Valid()
+    public void GetLegalCekByteSizes_ReturnsExpected()
     {
         var kekSizeBits = Random.Shared.Next();
         var result = Assert.Single(Algorithm.GetLegalCekByteSizes(kekSizeBits));
@@ -65,7 +65,7 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void GetEncryptedContentKeySizeBytes_Valid()
+    public void GetEncryptedContentKeySizeBytes_ReturnsExpected()
     {
         var kekSizeBits = Random.Shared.Next();
         var cekSizeBytes = Random.Shared.Next();
@@ -74,7 +74,7 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void NewKey_Valid()
+    public void NewKey_CopiesKeyToDestination()
     {
         var kekSizeBytes = Random.Shared.Next(32, 512);
         Span<byte> kek = new byte[kekSizeBytes];
@@ -90,7 +90,7 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void NewKey_InvalidDestinationSize()
+    public void NewKey_WhenDestinationInvalidSize_Throws()
     {
         var kekSizeBytes = Random.Shared.Next(32, 512);
         Span<byte> kek = new byte[kekSizeBytes];
@@ -112,7 +112,7 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void WrapKey_Valid()
+    public void WrapKey_WhenCalled_Throws()
     {
         Span<byte> kek = new byte[1];
         var secretKey = SecretKeyFactory.CreateSymmetric(default, kek);
@@ -133,7 +133,7 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void TryUnwrapKey_Valid()
+    public void TryUnwrapKey_WhenGivenValidInput_UnwrapsKey()
     {
         var kekSizeBytes = Random.Shared.Next(32, 512);
         Span<byte> kek = new byte[kekSizeBytes];
@@ -158,7 +158,7 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void TryUnwrapKey_InvalidSize()
+    public void TryUnwrapKey_WhenEncryptedCekInvalidSize_Throws()
     {
         var kekSizeBytes = Random.Shared.Next(32, 512);
         Span<byte> kek = new byte[kekSizeBytes];

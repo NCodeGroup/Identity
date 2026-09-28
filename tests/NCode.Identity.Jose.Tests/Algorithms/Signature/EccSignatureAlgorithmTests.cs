@@ -28,7 +28,7 @@ namespace NCode.Identity.Jose.Tests.Algorithms.Signature;
 public class EccSignatureAlgorithmTests : BaseTests
 {
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsCode()
     {
         const string code = nameof(code);
         var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
@@ -38,7 +38,7 @@ public class EccSignatureAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void KeyType_Valid()
+    public void KeyType_ReturnsEccSecretKey()
     {
         const string code = nameof(code);
         var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
@@ -56,7 +56,10 @@ public class EccSignatureAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetKeyBitSizesTestData))]
-    public void KeyBitSizes_Valid(HashAlgorithmName hashAlgorithmName, int expected)
+    public void KeyBitSizes_WhenGivenHashAlgorithm_ReturnsExpected(
+        HashAlgorithmName hashAlgorithmName,
+        int expected
+    )
     {
         const string code = nameof(code);
 
@@ -77,7 +80,10 @@ public class EccSignatureAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetSignatureSizeBitsTestData))]
-    public void GetSignatureSizeBytes_Valid(HashAlgorithmName hashAlgorithmName, int expected)
+    public void GetSignatureSizeBytes_WhenGivenHashAlgorithm_ReturnsExpected(
+        HashAlgorithmName hashAlgorithmName,
+        int expected
+    )
     {
         const string code = nameof(code);
 
@@ -97,7 +103,7 @@ public class EccSignatureAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetRoundTripTestData))]
-    public void RoundTrip_Valid(ECCurve curve, HashAlgorithmName hashAlgorithmName)
+    public void RoundTrip_SignsAndVerifies(ECCurve curve, HashAlgorithmName hashAlgorithmName)
     {
         const string keyId = nameof(keyId);
         const string code = nameof(code);

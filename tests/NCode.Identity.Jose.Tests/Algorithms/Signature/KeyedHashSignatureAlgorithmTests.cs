@@ -29,7 +29,7 @@ namespace NCode.Identity.Jose.Tests.Algorithms.Signature;
 public class KeyedHashSignatureAlgorithmTests : BaseTests
 {
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsCode()
     {
         const string code = nameof(code);
         var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
@@ -39,7 +39,7 @@ public class KeyedHashSignatureAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void KeyType_Valid()
+    public void KeyType_ReturnsSymmetricSecretKey()
     {
         const string code = nameof(code);
         var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
@@ -52,7 +52,7 @@ public class KeyedHashSignatureAlgorithmTests : BaseTests
     [InlineData(256)]
     [InlineData(384)]
     [InlineData(512)]
-    public void KeyBitSizes_Valid(int hashSizeBits)
+    public void KeyBitSizes_WhenGivenHashSize_ReturnsExpected(int hashSizeBits)
     {
         const string code = nameof(code);
 
@@ -69,7 +69,7 @@ public class KeyedHashSignatureAlgorithmTests : BaseTests
     [InlineData(256)]
     [InlineData(384)]
     [InlineData(512)]
-    public void GetSignatureSizeBytes_Valid(int hashSizeBits)
+    public void GetSignatureSizeBytes_WhenGivenHashSize_ReturnsExpected(int hashSizeBits)
     {
         const string code = nameof(code);
 
@@ -99,7 +99,7 @@ public class KeyedHashSignatureAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetRoundTripTestData))]
-    public void RoundTrip_Valid(
+    public void RoundTrip_SignsAndVerifies(
         int keySizeBits,
         int signatureSizeBits,
         KeyedHashFunctionDelegate keyedHashFunction

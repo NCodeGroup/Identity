@@ -27,7 +27,7 @@ namespace NCode.Identity.Jose.Tests.Extensions;
 public class SecretKeyExtensionsTests : BaseTests
 {
     [Fact]
-    public void Validate_Valid()
+    public void Validate_SymmetricKeyWithLegalSize_ReturnsSameKey()
     {
         const int keySizeBytes = 32;
         const int keySizeBits = keySizeBytes * 8;

@@ -24,7 +24,7 @@ namespace NCode.Identity.Jose.Tests.Algorithms;
 public class AlgorithmCollectionTests : BaseTests
 {
     [Fact]
-    public void Algorithms_Valid()
+    public void Algorithms_ReturnsExpected()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockAlgorithm2 = CreateStrictMock<Algorithm>();
@@ -51,7 +51,7 @@ public class AlgorithmCollectionTests : BaseTests
     }
 
     [Fact]
-    public void TryGetSignatureAlgorithm_Valid()
+    public void TryGetSignatureAlgorithm_ReturnsExpected()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockAlgorithm2 = CreateStrictMock<SignatureAlgorithm>();
@@ -84,7 +84,7 @@ public class AlgorithmCollectionTests : BaseTests
     }
 
     [Fact]
-    public void TryGetKeyManagementAlgorithm_Valid()
+    public void TryGetKeyManagementAlgorithm_ReturnsExpected()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockAlgorithm2 = CreateStrictMock<KeyManagementAlgorithm>();
@@ -117,7 +117,7 @@ public class AlgorithmCollectionTests : BaseTests
     }
 
     [Fact]
-    public void TryGetAuthenticatedEncryptionAlgorithm_Valid()
+    public void TryGetAuthenticatedEncryptionAlgorithm_ReturnsExpected()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockAlgorithm2 = CreateStrictMock<AuthenticatedEncryptionAlgorithm>();
@@ -162,7 +162,7 @@ public class AlgorithmCollectionTests : BaseTests
     }
 
     [Fact]
-    public void TryGetCompressionAlgorithm_Valid()
+    public void TryGetCompressionAlgorithm_ReturnsExpected()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockAlgorithm2 = CreateStrictMock<CompressionAlgorithm>();

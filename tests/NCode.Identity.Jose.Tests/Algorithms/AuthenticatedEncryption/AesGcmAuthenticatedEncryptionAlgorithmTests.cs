@@ -27,7 +27,10 @@ public class AesGcmAuthenticatedEncryptionAlgorithmTests
     [InlineData(1, 1)]
     [InlineData(7, 7)]
     [InlineData(9, 9)]
-    public void GetCipherTextSizeBytes_Valid(int plainTextSizeBytes, int expected)
+    public void GetCipherTextSizeBytes_WhenGivenSizes_ReturnsExpected(
+        int plainTextSizeBytes,
+        int expected
+    )
     {
         const int cekSizeBits = -1; // dont care
 
@@ -41,7 +44,10 @@ public class AesGcmAuthenticatedEncryptionAlgorithmTests
     [InlineData(1, 1)]
     [InlineData(7, 7)]
     [InlineData(9, 9)]
-    public void GetMaxPlainTextSizeBytes_Valid(int cipherTextSizeBytes, int expected)
+    public void GetMaxPlainTextSizeBytes_WhenGivenSizes_ReturnsExpected(
+        int cipherTextSizeBytes,
+        int expected
+    )
     {
         const int cekSizeBits = -1; // dont care
 
@@ -59,7 +65,11 @@ public class AesGcmAuthenticatedEncryptionAlgorithmTests
     [InlineData(256, 36, 12)]
     [InlineData(256, 37, 14)]
     [InlineData(256, 38, 16)]
-    public void RoundTrip_Valid(int cekSizeBits, int plainTextSizeBytes, int aadSizeBytes)
+    public void RoundTrip_EncryptsAndDecrypts(
+        int cekSizeBits,
+        int plainTextSizeBytes,
+        int aadSizeBytes
+    )
     {
         var cekSizeBytes = cekSizeBits >> 3;
 

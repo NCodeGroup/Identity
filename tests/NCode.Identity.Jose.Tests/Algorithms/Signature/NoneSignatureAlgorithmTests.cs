@@ -29,25 +29,25 @@ public class NoneSignatureAlgorithmTests
     private static SignatureAlgorithm Algorithm => NoneSignatureAlgorithm.Singleton;
 
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsNone()
     {
         Assert.Equal("none", Algorithm.Code);
     }
 
     [Fact]
-    public void KeyType_Valid()
+    public void KeyType_ReturnsSecretKey()
     {
         Assert.Equal(typeof(SecretKey), Algorithm.KeyType);
     }
 
     [Fact]
-    public void KeyBitSizes_Valid()
+    public void KeyBitSizes_ReturnsEmpty()
     {
         Assert.Empty(Algorithm.KeyBitSizes);
     }
 
     [Fact]
-    public void SignatureSizeBits_Valid()
+    public void SignatureSizeBits_ReturnsZero()
     {
         var keySizeBits = Random.Shared.Next();
         var result = Algorithm.GetSignatureSizeBytes(keySizeBits);
@@ -55,7 +55,7 @@ public class NoneSignatureAlgorithmTests
     }
 
     [Fact]
-    public void TrySign_Valid()
+    public void TrySign_WhenCalled_ReturnsZero()
     {
         var result = Algorithm.TrySign(
             null!,

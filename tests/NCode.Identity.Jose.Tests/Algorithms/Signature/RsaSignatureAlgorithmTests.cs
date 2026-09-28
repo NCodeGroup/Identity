@@ -29,7 +29,7 @@ namespace NCode.Identity.Jose.Tests.Algorithms.Signature;
 public class RsaSignatureAlgorithmTests : BaseTests
 {
     [Fact]
-    public void Code_Valid()
+    public void Code_ReturnsCode()
     {
         const string code = nameof(code);
 
@@ -38,7 +38,7 @@ public class RsaSignatureAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void KeyType_Valid()
+    public void KeyType_ReturnsRsaSecretKey()
     {
         const string code = nameof(code);
 
@@ -47,7 +47,7 @@ public class RsaSignatureAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void KeyBitSizes_Valid()
+    public void KeyBitSizes_ReturnsExpected()
     {
         const string code = nameof(code);
 
@@ -70,7 +70,7 @@ public class RsaSignatureAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetSignatureSizeBitsTestData))]
-    public void GetSignatureSizeBytes_Valid(int keySizeBits)
+    public void GetSignatureSizeBytes_WhenGivenKeySize_ReturnsExpected(int keySizeBits)
     {
         const string code = nameof(code);
 
@@ -101,7 +101,7 @@ public class RsaSignatureAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetRoundTripTestData))]
-    public void RoundTrip_Valid(
+    public void RoundTrip_SignsAndVerifies(
         int keySizeBits,
         HashAlgorithmName hashAlgorithmName,
         RSASignaturePadding padding

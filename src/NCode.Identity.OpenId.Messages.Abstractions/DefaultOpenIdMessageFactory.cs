@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Messages;
 /// Provides a default implementation of the <see cref="IOpenIdMessageFactory"/> abstraction.
 /// </summary>
 /// <typeparam name="T">The type of the <see cref="OpenIdMessage"/> to create.</typeparam>
-public class DefaultOpenIdMessageFactory<T> : IOpenIdMessageFactory
+internal class DefaultOpenIdMessageFactory<T> : IOpenIdMessageFactory
     where T : OpenIdMessage, new()
 {
     /// <inheritdoc />

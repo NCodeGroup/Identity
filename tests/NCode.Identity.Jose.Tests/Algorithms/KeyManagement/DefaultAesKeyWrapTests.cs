@@ -29,7 +29,7 @@ public class DefaultAesKeyWrapTests
     private DefaultAesKeyWrap AesKeyWrap { get; } = new();
 
     [Fact]
-    public void LegalCekByteSizes_Valid()
+    public void LegalCekByteSizes_ReturnsExpected()
     {
         var result = Assert.Single(AesKeyWrap.LegalCekByteSizes);
         Assert.Equal(16, result.MinSize);
@@ -42,7 +42,7 @@ public class DefaultAesKeyWrapTests
     [InlineData(16 + 8, 24 + 8, 3)]
     [InlineData(16 + 16, 24 + 16, 4)]
     [InlineData(16 + 24, 24 + 24, 5)]
-    public void GetCipherTextSizeBytes_Valid(
+    public void GetCipherTextSizeBytes_WhenGivenValidSizes_ReturnsExpected(
         int contentKeySizeBytes,
         int expectedResult,
         int expectedBlocks
@@ -54,7 +54,7 @@ public class DefaultAesKeyWrapTests
     }
 
     [Fact]
-    public void GetCipherTextSizeBytes_CekTooSmall()
+    public void GetCipherTextSizeBytes_WhenCekTooSmall_Throws()
     {
         const int contentKeySizeBytes = 16 - 1;
 
@@ -66,7 +66,7 @@ public class DefaultAesKeyWrapTests
     }
 
     [Fact]
-    public void GetCipherTextSizeBytes_CekInvalid()
+    public void GetCipherTextSizeBytes_WhenCekInvalid_Throws()
     {
         const int contentKeySizeBytes = 16 + 1;
 
@@ -82,7 +82,7 @@ public class DefaultAesKeyWrapTests
     [InlineData(16 + 8, 8 + 8, 2)]
     [InlineData(16 + 16, 8 + 16, 3)]
     [InlineData(16 + 24, 8 + 24, 4)]
-    public void GetUnwrapKeySizeBytes_Valid(
+    public void GetUnwrapKeySizeBytes_WhenGivenValidSizes_ReturnsExpected(
         int encryptedContentKeySizeBytes,
         int expectedResult,
         int expectedBlocks
@@ -109,7 +109,7 @@ public class DefaultAesKeyWrapTests
     [InlineData(32, 16 + 8)]
     [InlineData(32, 16 + 16)]
     [InlineData(32, 16 + 24)]
-    public void RoundTrip_Valid(int kekSizeBytes, int cekSizeBytes)
+    public void RoundTrip_EncryptsAndDecrypts(int kekSizeBytes, int cekSizeBytes)
     {
         Span<byte> kek = new byte[kekSizeBytes];
         Span<byte> cek = new byte[cekSizeBytes];

@@ -24,7 +24,7 @@ namespace NCode.Identity.Jose.Tests.Extensions;
 public class DictionaryExtensionsTests
 {
     [Fact]
-    public void TryGetValue_Valid()
+    public void TryGetValue_KeyExistsWithCorrectType_ReturnsTrueWithValue()
     {
         const string key = nameof(key);
 
@@ -50,7 +50,7 @@ public class DictionaryExtensionsTests
     }
 
     [Fact]
-    public void TryGetValue_KeyInvalid()
+    public void TryGetValue_KeyDoesNotExist_ReturnsFalse()
     {
         const string key = nameof(key);
         const string otherKey = nameof(otherKey);
@@ -63,7 +63,7 @@ public class DictionaryExtensionsTests
     }
 
     [Fact]
-    public void TryGetValue_TypeInvalid()
+    public void TryGetValue_ValueTypeDoesNotMatch_ReturnsFalse()
     {
         const string key = nameof(key);
 

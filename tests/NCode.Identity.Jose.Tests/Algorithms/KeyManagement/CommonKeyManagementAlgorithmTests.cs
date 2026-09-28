@@ -35,13 +35,13 @@ public class CommonKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void Type_Valid()
+    public void Type_ReturnsKeyManagement()
     {
         Assert.Equal(AlgorithmType.KeyManagement, Algorithm.Type);
     }
 
     [Fact]
-    public void NewKey_Valid()
+    public void NewKey_GeneratesRandomKey()
     {
         const int kekSizeBytes = 32;
         const int kekSizeBits = kekSizeBytes << 3;
@@ -67,7 +67,7 @@ public class CommonKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateContentKeySize_Valid()
+    public void ValidateContentKeySize_WhenValidSize_Succeeds()
     {
         const int kekSizeBytes = 32;
         const int kekSizeBits = kekSizeBytes << 3;
@@ -82,7 +82,7 @@ public class CommonKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void ValidateContentKeySize_InvalidSize()
+    public void ValidateContentKeySize_WhenInvalidSize_Throws()
     {
         const int kekSizeBytes = 32;
         const int kekSizeBits = kekSizeBytes << 3;

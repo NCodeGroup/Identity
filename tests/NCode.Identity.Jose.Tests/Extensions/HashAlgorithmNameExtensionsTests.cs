@@ -35,7 +35,10 @@ public class HashAlgorithmNameExtensionsTests
 
     [Theory]
     [MemberData(nameof(GetHashSizeBitsTestData))]
-    public void GetHashSizeBits_Valid(HashAlgorithmName hashAlgorithmName, int? expected)
+    public void GetHashSizeBits_WithVariousAlgorithms_ReturnsOrThrows(
+        HashAlgorithmName hashAlgorithmName,
+        int? expected
+    )
     {
         if (expected.HasValue)
         {

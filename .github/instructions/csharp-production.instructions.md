@@ -215,7 +215,10 @@ rationale.
 Drawn from _Clean Code_ (R. C. Martin) and _Refactoring_ (Fowler / Beck). All 👁:
 
 - Small functions that do **one thing** at a single level of abstraction.
-- **Few parameters** (0–2; avoid >3); a recurring parameter group (data clump) becomes a type.
+- **Few parameters** (0–2; avoid >3); a recurring parameter group (data clump) becomes a type. **I/O-channel
+  parameters don't count toward the budget** — a trailing `CancellationToken` and a Try-pattern `out` result are
+  plumbing, not data. A clump that mirrors a well-known BCL shape (e.g. `ClaimsIdentity(authenticationType,
+  nameType, roleType)`) is acceptable, and a private single-call-site helper isn't worth a parameter object.
 - **Command–Query Separation** — a method acts _or_ answers, never both; a query does not mutate.
 - **Don't pass or return `null`** where an empty/absent form exists (empty collections; model absence).
 - **Intention-revealing, honest, searchable names** — no `Manager` / `Helper` catch-alls, no encodings.

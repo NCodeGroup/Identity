@@ -27,7 +27,7 @@ namespace NCode.Identity.Jose.Tests.Collections;
 public class CompositeCollectionDataSourceTests : BaseTests
 {
     [Fact]
-    public async Task Collection_Initial_Valid()
+    public async Task Collection_InitialState_ReturnsAllAlgorithmsFromDataSources()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockAlgorithm2 = CreateStrictMock<Algorithm>();
@@ -82,7 +82,7 @@ public class CompositeCollectionDataSourceTests : BaseTests
     }
 
     [Fact]
-    public async Task Collection_Changed_Valid()
+    public async Task Collection_AfterChangeToken_ReturnsUpdatedCollection()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockAlgorithm2 = CreateStrictMock<Algorithm>();
@@ -128,7 +128,7 @@ public class CompositeCollectionDataSourceTests : BaseTests
     }
 
     [Fact]
-    public async Task DisposeAsync_Valid()
+    public async Task DisposeAsync_AfterDispose_ThrowsObjectDisposedException()
     {
         var mockAlgorithm1 = CreateStrictMock<Algorithm>();
         var mockDataSource1 = CreateStrictMock<ICollectionDataSource<Algorithm>>();

@@ -24,7 +24,7 @@ namespace NCode.Identity.Jose.Tests.Internal;
 public class DisposableExtensionsTests : BaseTests
 {
     [Fact]
-    public void DisposeAll_Valid()
+    public void DisposeAll_MultipleDisposables_DisposesAll()
     {
         var mockDisposable1 = CreateStrictMock<IDisposable>();
         var mockDisposable2 = CreateStrictMock<IDisposable>();
@@ -45,7 +45,7 @@ public class DisposableExtensionsTests : BaseTests
     }
 
     [Fact]
-    public void DisposeAll_ThrowsSingle_Valid()
+    public void DisposeAll_OneThrowsException_ThrowsFirstException()
     {
         var mockDisposable1 = CreateStrictMock<IDisposable>();
         var mockDisposable2 = CreateStrictMock<IDisposable>();
@@ -66,7 +66,7 @@ public class DisposableExtensionsTests : BaseTests
     }
 
     [Fact]
-    public void DisposeAll_ThrowsMultiple_Valid()
+    public void DisposeAll_MultipleThrowExceptions_ThrowsAggregateException()
     {
         var mockDisposable1 = CreateStrictMock<IDisposable>();
         var mockDisposable2 = CreateStrictMock<IDisposable>();

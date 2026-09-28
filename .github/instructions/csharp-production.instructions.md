@@ -109,6 +109,12 @@ rationale.
   a `FrozenSet<T>` / `FrozenDictionary<K,V>` (concrete, immutable, O(1) — **not** `IReadOnlyDictionary<K,V>`, which is an
   interface); a set-once sequence you iterate is an `ImmutableArray<T>` (`Foo { get; } = [.. items];`); a genuinely
   mutable working set stays a `List<T>`. Prefer `params IEnumerable<T>` over `params T[]` (C# 13) and buffer inside.
+- 👁 **Signatures speak in read-only interfaces; storage stays concrete.** A method **parameter** or a computed method
+  **return value** that does not hand back ownership takes / returns the narrowest read-only interface
+  (`IReadOnlyList<T>`, `IReadOnlyCollection<T>`, `IReadOnlySet<T>`), so callers aren't coupled to a concrete type. This
+  does **not** relax the rule above: a set-once collection **property** on a data type still exposes its concrete
+  immutable type (`FrozenSet<T>` / `ImmutableArray<T>`), and the backing storage is always concrete. Locals stay
+  concrete via `var` over an explicit initializer (`var map = new Dictionary<string, T>();`).
 - 👁 **No behavior-selecting flag arguments** (the "boolean trap"). A `bool`/`enum` parameter whose only job is to
   switch a method between two behaviors becomes **two intention-revealing methods**. A `bool` carried as data the
   method does not branch on is fine.
@@ -176,17 +182,23 @@ rationale.
   a **service** (`TryAddSingleton<IFoo, DefaultFoo>`) for a capability you call for an answer; a **strategy collection**
   (`TryAddEnumerable`) for many implementations the caller iterates or selects; the **mediator** (`ICommandHandler<T>`)
   only for a genuine pipeline seam where the sender must stay ignorant of the handlers.
+- 👁 **A package registers its own services from one `DefaultRegistration.cs`** `extension(IServiceBuilder<TMarker>)`
+  block, using `TryAdd*` so a consumer can override a default. Register a stateless capability as a singleton; register
+  a long-running loop as an `AddHostedService<T>` over a `BackgroundService`. Wire-up stays out of the type that does
+  the work, so the work stays constructor-injectable and testable.
 
 ## 5. Formatting & build gates
 
 - ⏳ **CSharpier** formatting (`dotnet csharpier check .`, wired into [`build/dod.ps1`](../../build/dod.ps1)). Run
   `dotnet csharpier format .` before committing. CSharpier 1.x formats XML too; generated output is excluded via
-  [`.csharpierignore`](../../.csharpierignore).
+  [`.csharpierignore`](../../.csharpierignore). The house style CSharpier enforces: **file-scoped namespaces**,
+  4-space indentation, and a **trailing comma** on every multi-line object / collection / enum member list.
 - ⏳ **Code-style analyzers run on build.** `EnforceCodeStyleInBuild` makes the `IDExxxx` rules execute during
   `dotnet build`; combined with warnings-as-errors, rules set to `warning` in [`.editorconfig`](../../.editorconfig)
   become build errors on shipping code.
 - ✅ **Banned APIs** (`Microsoft.CodeAnalysis.BannedApiAnalyzers`, `RS0030`) from
-  [`BannedSymbols.txt`](../../BannedSymbols.txt) — no `Newtonsoft.Json` (use `System.Text.Json`) and no
+  [`BannedSymbols.txt`](../../BannedSymbols.txt) — no `Newtonsoft.Json` (use `System.Text.Json`), no legacy
+  `JwtSecurityTokenHandler` / `JwtSecurityToken` (use `JsonWebTokenHandler`), and no
   sync-over-async. Add house rules to that file as they emerge.
 - ⏳ **Warnings-as-errors**, and **NuGet vulnerability advisories (`NU190x`) as errors in CI**.
 - ✅ The whole gate is [`build/dod.ps1`](../../build/dod.ps1) — the single Definition of Done that CI runs.
@@ -234,14 +246,20 @@ Production code **must** be unit-test-friendly. These are 👁 review-only excep
   closed set of singletons, constructor-inject `IEnumerable<T>` instead.
 - 👁 **Facade un-mockable dependencies.** A static or framework/external dependency that cannot be easily mocked — the
   clock (`DateTimeOffset.UtcNow`), `Guid.NewGuid()`, crypto RNG, `Activity` — gets a thin `internal interface`
-  facade + `internal sealed` forwarding impl, registered in DI and injected, so callers become unit-testable by
-  mocking the facade. Mark the passthrough impl `[ExcludeFromCodeCoverage]`.
+  facade + `internal sealed` forwarding impl **under a `Facades/` folder**, registered in DI and injected, so callers
+  become unit-testable by mocking the facade. Mark the passthrough impl `[ExcludeFromCodeCoverage]` (it only delegates).
+- 👁 **`internal virtual` is the sanctioned local override seam.** When extracting a collaborator behind an interface is
+  overkill, mark a helper whose logic needs isolation — or a **factory method** that allocates an object handed to a
+  dependency — `internal virtual`, so a test subclass can stub/override it (`DynamicProxyGenAssembly2` lets Moq proxy
+  it). Reach for an extracted interface collaborator when the seam is reused or substantial; use `internal virtual` for
+  a one-off override point.
 - ✅/👁 **`internal` for test access.** Each package exposes its internals to its `.Tests` project via
   `InternalsVisibleTo` **plus `DynamicProxyGenAssembly2`** (so Moq/Castle can proxy `internal` types and members).
   Keep test-only reach `internal`, never widen the public surface for tests.
 - 👁 **Test the unit through its public surface; privates are covered transitively.** A `private` method is not a seam;
   drive it through the public method that uses it. A `private` branch the public tests cannot reach is dead code to
-  delete. If a private grows complex enough to isolate, **extract a collaborator** behind an interface and test that.
+  delete. If a private grows complex enough to isolate, **extract a collaborator** behind an interface — or promote it
+  to an `internal virtual` override seam (see above) — and test that.
 - 👁 **Tested-or-excluded.** Every type/member that can carry `[ExcludeFromCodeCoverage]` is **either** exercised by
   tests **or** annotated with it (with a one-line reason when non-obvious). Exclude thin passthrough infrastructure
   (facades), pure DI/registration wiring, and framework-event adapters; **test** anything with behavior.
@@ -279,3 +297,19 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   summary; never collapse them onto one line.
 - 👁 **A property summary follows the Microsoft convention** — open with **"Gets or sets"**, **"Gets"**, or **"Sets"**
   according to its accessors.
+
+## 11. Logging
+
+- 👁 **Log through source-generated `[LoggerMessage]` methods**, never `ILogger.Log*` calls with an interpolated
+  message — the generator gives allocation-free, strongly-typed, structured logging. Group the partial methods for a
+  component in a `Logging/Log.cs` partial class.
+- 👁 **Event IDs are named `const`s in `Logging/EventIds.cs`**, grouped by feature area in disjoint numeric ranges
+  (1xxx / 2xxx / 3xxx …) so an ID is stable and searchable — never a bare magic number at the call site.
+
+## 12. Configuration & options
+
+- 👁 **Configuration is a strongly-typed options class** in an `Options/` folder, bound with
+  `services.Configure<T>(configuration.GetSection(...))` — never `IConfiguration` read ad hoc deep in the code.
+- 👁 **Inject `IOptions<T>` for start-up-fixed configuration and `IOptionsMonitor<T>` for values that may change at
+  runtime.** An options class is a data type (§2): `sealed`, `init` / get-only members, concrete collections,
+  correct-by-default (§2 — no knob weakens a security control below its safe baseline).

@@ -1,18 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <IsPackable>false</IsPackable>
-        <LangVersion>latest</LangVersion>
-        <Nullable>enable</Nullable>
+        <TargetFramework>net10.0-windows</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
-        <NoWarn>1591</NoWarn>
-        <RootNamespace>NCode.Identity.OpenId.IntegrationTests</RootNamespace>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <DocumentationFile />
+        <LangVersion>latest</LangVersion>
+        <RootNamespace>NCode.Jose.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+        <PackageReference Include="jose-jwt" />
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+        <PackageReference Include="Microsoft.Extensions.Logging" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="Moq" />
         <PackageReference Include="xunit" />
         <PackageReference Include="xunit.runner.visualstudio">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -25,6 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Identity.OpenId.Playground\NCode.Identity.OpenId.Playground.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
     </ItemGroup>
 </Project>

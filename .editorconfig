@@ -67,8 +67,7 @@ dotnet_diagnostic.CA1711.severity = none
 
 # ── Test projects only ──────────────────────────────────────────────────────
 # The following rules are legitimate on shipping code but pure noise in xUnit tests.
-# Pattern note: '**.cs' (not '**/*.cs') so files directly in a *Tests project dir also match.
-[*Tests/**.cs]
+[tests/**/*.cs]
 # Test method names use the Method_State_Expected underscore idiom by convention.
 dotnet_diagnostic.CA1707.severity = none
 # Test base classes have no finalizer, so Dispose() calling GC.SuppressFinalize would be pointless.

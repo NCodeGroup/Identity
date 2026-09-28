@@ -26,31 +26,23 @@ namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 /// <summary>
 /// Provides an implementation of <see cref="AuthenticatedEncryptionAlgorithm"/> that uses the <c>AES GCM</c> cryptographic algorithm for authenticated encryption (AEAD).
 /// </summary>
+/// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+/// <param name="cekSizeBits">Contains the legal size, in bits, of the content encryption key (CEK).</param>
 [PublicAPI]
-public class AesGcmAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncryptionAlgorithm
+public class AesGcmAuthenticatedEncryptionAlgorithm(string code, int cekSizeBits)
+    : CommonAuthenticatedEncryptionAlgorithm
 {
     /// <inheritdoc />
-    public override string Code { get; }
+    public override string Code { get; } = code;
 
     /// <inheritdoc />
-    public override int ContentKeySizeBytes { get; }
+    public override int ContentKeySizeBytes { get; } = (cekSizeBits + 7) >> 3;
 
     /// <inheritdoc />
     public override int NonceSizeBytes => AesGcm.NonceByteSizes.MinSize;
 
     /// <inheritdoc />
     public override int AuthenticationTagSizeBytes => AesCcm.TagByteSizes.MaxSize;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AesGcmAuthenticatedEncryptionAlgorithm"/> class.
-    /// </summary>
-    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="cekSizeBits">Contains the legal size, in bits, of the content encryption key (CEK).</param>
-    public AesGcmAuthenticatedEncryptionAlgorithm(string code, int cekSizeBits)
-    {
-        Code = code;
-        ContentKeySizeBytes = (cekSizeBits + 7) >> 3;
-    }
 
     /// <inheritdoc />
     public override int GetCipherTextSizeBytes(int plainTextSizeBytes) => plainTextSizeBytes;

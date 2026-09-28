@@ -31,25 +31,16 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>ECDH-ES with AES</c> cryptographic algorithm for key management.
 /// </summary>
+/// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
+/// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+/// <param name="kekSizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
 [PublicAPI]
-public class EcdhWithAesKeyManagementAlgorithm : EcdhKeyManagementAlgorithm
+public class EcdhWithAesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, int kekSizeBits)
+    : EcdhKeyManagementAlgorithm(code, isDirectAgreement: false)
 {
-    private IAesKeyWrap AesKeyWrap { get; }
+    private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;
 
-    private int KekSizeBytes { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EcdhWithAesKeyManagementAlgorithm"/> class.
-    /// </summary>
-    /// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
-    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="kekSizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
-    public EcdhWithAesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, int kekSizeBits)
-        : base(code, isDirectAgreement: false)
-    {
-        AesKeyWrap = aesKeyWrap;
-        KekSizeBytes = (kekSizeBits + 7) >> 3;
-    }
+    private int KekSizeBytes { get; } = (kekSizeBits + 7) >> 3;
 
     /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) =>

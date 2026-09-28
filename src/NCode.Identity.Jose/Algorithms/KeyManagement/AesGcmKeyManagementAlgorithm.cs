@@ -35,8 +35,11 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>AES GCM</c> cryptographic algorithm for key management.
 /// </summary>
+/// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+/// <param name="kekSizeBits">Contains the legal size, in bits, of the key encryption key (KEK).</param>
 [PublicAPI]
-public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
+public class AesGcmKeyManagementAlgorithm(string code, int kekSizeBits)
+    : CommonKeyManagementAlgorithm
 {
     private const int IvSizeBytes = 96 >> 3;
     private const int TagSizeBytes = 128 >> 3;
@@ -45,25 +48,14 @@ public class AesGcmKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     [new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)];
 
     /// <inheritdoc />
-    public override string Code { get; }
+    public override string Code { get; } = code;
 
     /// <inheritdoc />
     public override Type KeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AesGcmKeyManagementAlgorithm"/> class.
-    /// </summary>
-    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="kekSizeBits">Contains the legal size, in bits, of the key encryption key (KEK).</param>
-    public AesGcmKeyManagementAlgorithm(string code, int kekSizeBits)
-    {
-        Code = code;
-
-        KeyBitSizes = [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)];
-    }
+    public override IEnumerable<KeySizes> KeyBitSizes { get; } =
+    [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)];
 
     /// <inheritdoc />
     public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>

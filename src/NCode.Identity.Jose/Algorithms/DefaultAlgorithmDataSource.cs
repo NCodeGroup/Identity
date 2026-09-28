@@ -30,18 +30,11 @@ namespace NCode.Identity.Jose.Algorithms;
 /// <summary>
 /// Provides the default implementation for a data source collection of <see cref="Algorithm"/> instances supported by this library.
 /// </summary>
-public sealed class DefaultAlgorithmDataSource : ICollectionDataSource<Algorithm>
+/// <param name="aesKeyWrap">Provides the common implementation for <c>AES Key Wrap</c> functionality.</param>
+public sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
+    : ICollectionDataSource<Algorithm>
 {
-    private IAesKeyWrap AesKeyWrap { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultAlgorithmDataSource"/> class.
-    /// </summary>
-    /// <param name="aesKeyWrap">Provides the common implementation for <c>AES Key Wrap</c> functionality.</param>
-    public DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
-    {
-        AesKeyWrap = aesKeyWrap;
-    }
+    private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken.Singleton;

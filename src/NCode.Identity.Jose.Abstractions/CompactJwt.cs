@@ -26,35 +26,25 @@ namespace NCode.Identity.Jose;
 /// <summary>
 /// Represents a Json Web Token (JWT) in compact form with support for either JWS or JWE protection.
 /// </summary>
+/// <param name="protectionType">Contains a value indicating how the JWT is protected, either 'JWS' or 'JWE'.</param>
+/// <param name="segments">Contains the substrings from the JWT separated by '.' (aka dot).</param>
+/// <param name="deserializedHeader">Contains the deserialized header from the JWT.</param>
 [PublicAPI]
-public readonly struct CompactJwt
+public readonly struct CompactJwt(
+    string protectionType,
+    StringSegments segments,
+    JsonElement deserializedHeader
+)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="CompactJwt"/> struct.
-    /// </summary>
-    /// <param name="protectionType">Contains a value indicating how the JWT is protected, either 'JWS' or 'JWE'.</param>
-    /// <param name="segments">Contains the substrings from the JWT separated by '.' (aka dot).</param>
-    /// <param name="deserializedHeader">Contains the deserialized header from the JWT.</param>
-    public CompactJwt(
-        string protectionType,
-        StringSegments segments,
-        JsonElement deserializedHeader
-    )
-    {
-        ProtectionType = protectionType;
-        Segments = segments;
-        DeserializedHeader = deserializedHeader;
-    }
-
     /// <summary>
     /// Gets a value indicating how the JWT is protected, either 'JWS' or 'JWE'.
     /// </summary>
-    public string ProtectionType { get; }
+    public string ProtectionType { get; } = protectionType;
 
     /// <summary>
     /// Gets the segment collection from the JWT.
     /// </summary>
-    public StringSegments Segments { get; }
+    public StringSegments Segments { get; } = segments;
 
     /// <summary>
     /// Gets the encoded header from the JWT.
@@ -65,7 +55,7 @@ public readonly struct CompactJwt
     /// <summary>
     /// Gets the deserialized header from the JWT.
     /// </summary>
-    public JsonElement DeserializedHeader { get; }
+    public JsonElement DeserializedHeader { get; } = deserializedHeader;
 
     /// <summary>
     /// Returns the original Json Web Token (JWT) in compact form.

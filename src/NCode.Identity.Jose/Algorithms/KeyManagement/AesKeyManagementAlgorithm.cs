@@ -32,33 +32,24 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>AES</c> cryptographic algorithm for key management.
 /// </summary>
+/// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
+/// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+/// <param name="kekSizeBits">Contains the legal size, in bits, of the key encryption key (KEK).</param>
 [PublicAPI]
-public class AesKeyManagementAlgorithm : CommonKeyManagementAlgorithm
+public class AesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, int kekSizeBits)
+    : CommonKeyManagementAlgorithm
 {
-    private IAesKeyWrap AesKeyWrap { get; }
+    private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;
 
     /// <inheritdoc />
-    public override string Code { get; }
+    public override string Code { get; } = code;
 
     /// <inheritdoc />
     public override Type KeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AesKeyManagementAlgorithm"/> class.
-    /// </summary>
-    /// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
-    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="kekSizeBits">Contains the legal size, in bits, of the key encryption key (KEK).</param>
-    public AesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, int kekSizeBits)
-    {
-        AesKeyWrap = aesKeyWrap;
-        Code = code;
-
-        KeyBitSizes = [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)];
-    }
+    public override IEnumerable<KeySizes> KeyBitSizes { get; } =
+    [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)];
 
     /// <inheritdoc />
     public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>

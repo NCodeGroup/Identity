@@ -25,8 +25,9 @@ namespace NCode.Identity.Jose;
 /// <summary>
 /// Contains the credentials and set of options that are required when signing a JWS token.
 /// </summary>
+/// <param name="signingCredentials">The <see cref="JoseSigningCredentials"/> that are used to sign the JWS token.</param>
 [PublicAPI]
-public class JoseSigningOptions : JoseEncodingOptions
+public class JoseSigningOptions(JoseSigningCredentials signingCredentials) : JoseEncodingOptions
 {
     /// <inheritdoc />
     public override JoseCredentials Credentials => SigningCredentials;
@@ -34,7 +35,7 @@ public class JoseSigningOptions : JoseEncodingOptions
     /// <summary>
     /// Gets the <see cref="JoseSigningCredentials"/> that are used to sign the JWS token.
     /// </summary>
-    public JoseSigningCredentials SigningCredentials { get; }
+    public JoseSigningCredentials SigningCredentials { get; } = signingCredentials;
 
     /// <summary>
     /// Gets or sets a value indicating whether the payload should be base64url encoded (default).
@@ -48,13 +49,4 @@ public class JoseSigningOptions : JoseEncodingOptions
     /// See RFC 7515 Appendix F for more information.
     /// </summary>
     public bool DetachPayload { get; init; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JoseSigningOptions"/> class.
-    /// </summary>
-    /// <param name="signingCredentials">The <see cref="JoseSigningCredentials"/> that are used to sign the JWS token.</param>
-    public JoseSigningOptions(JoseSigningCredentials signingCredentials)
-    {
-        SigningCredentials = signingCredentials;
-    }
 }

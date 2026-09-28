@@ -28,8 +28,15 @@ namespace NCode.Identity.Jose.Algorithms.Signature;
 /// <summary>
 /// Provides an implementation of <see cref="SignatureAlgorithm"/> that uses an <c>RSA</c> cryptographic algorithm for digital signatures.
 /// </summary>
+/// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+/// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
+/// <param name="padding">Contains a <see cref="RSASignaturePadding"/> value that specifies the type of <c>RSA</c> padding to use.</param>
 [PublicAPI]
-public class RsaSignatureAlgorithm : SignatureAlgorithm
+public class RsaSignatureAlgorithm(
+    string code,
+    HashAlgorithmName hashAlgorithmName,
+    RSASignaturePadding padding
+) : SignatureAlgorithm
 {
     /*
         Digital Signature with RSASSA-PKCS1-v1_5
@@ -40,7 +47,7 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     [new(minSize: 2048, maxSize: 16384, skipSize: 64)];
 
     /// <inheritdoc />
-    public override string Code { get; }
+    public override string Code { get; } = code;
 
     /// <inheritdoc />
     public override Type KeyType => typeof(RsaSecretKey);
@@ -49,26 +56,9 @@ public class RsaSignatureAlgorithm : SignatureAlgorithm
     public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
     /// <inheritdoc />
-    public override HashAlgorithmName HashAlgorithmName { get; }
+    public override HashAlgorithmName HashAlgorithmName { get; } = hashAlgorithmName;
 
-    private RSASignaturePadding Padding { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="RsaSignatureAlgorithm"/> class.
-    /// </summary>
-    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
-    /// <param name="padding">Contains a <see cref="RSASignaturePadding"/> value that specifies the type of <c>RSA</c> padding to use.</param>
-    public RsaSignatureAlgorithm(
-        string code,
-        HashAlgorithmName hashAlgorithmName,
-        RSASignaturePadding padding
-    )
-    {
-        Code = code;
-        HashAlgorithmName = hashAlgorithmName;
-        Padding = padding;
-    }
+    private RSASignaturePadding Padding { get; } = padding;
 
     /// <inheritdoc />
     public override int GetSignatureSizeBytes(int keySizeBits) => (keySizeBits + 7) >> 3;

@@ -28,23 +28,15 @@ namespace NCode.Identity.OpenId.Results;
 /// <summary>
 /// Provides an implementation of <see cref="IResult"/> that when executed, will render an <see cref="IOpenIdResponse"/> as a JSON response.
 /// </summary>
+/// <param name="response">The <see cref="IOpenIdResponse"/> that contains information about the <c>OAuth</c> or <c>OpenID Connect</c> operation.</param>
 [PublicAPI]
-public class OpenIdResult<T> : IResult
+public class OpenIdResult<T>(T response) : IResult
     where T : class, IOpenIdResponse
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdResult{T}"/> class.
-    /// </summary>
-    /// <param name="response">The <see cref="IOpenIdResponse"/> that contains information about the <c>OAuth</c> or <c>OpenID Connect</c> operation.</param>
-    public OpenIdResult(T response)
-    {
-        Response = response;
-    }
-
-    /// <summary>
     /// Gets the response that contains the information about the <c>OAuth</c> or <c>OpenID Connect</c> operation.
     /// </summary>
-    public T Response { get; }
+    public T Response { get; } = response;
 
     /// <inheritdoc />
     public async Task ExecuteAsync(HttpContext httpContext)

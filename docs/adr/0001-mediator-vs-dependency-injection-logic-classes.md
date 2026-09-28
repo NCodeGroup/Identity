@@ -110,9 +110,12 @@ the mediator only at the claims-contribution seam.
 
 ### "You chose wrong" smells
 
-- **Mediator smell:** a command has exactly one handler forever, returns a value, no consumer is ever
-  expected to add another handler, and nothing needs priority/pre-post → it is a service wearing a
-  costume. Collapse it to a `TryAddSingleton` service.
+- **Mediator smell:** a command returns a value, the sender knows exactly what it wants and could
+  depend on the capability directly, no consumer is _expected_ — now or later — to add, reorder, or
+  override a handler, and nothing needs priority/pre-post → it is a service wearing a costume.
+  Collapse it to a `TryAddSingleton` service. The discriminator is _intent_, not head count: a genuine
+  pipeline seam stays a mediator command even while it has a single handler today (see the
+  token/authorize/challenge seams above).
 - **Service smell:** you find yourself `switch`-ing over key/grant/claim _types_ inside one class, or
   consumers keep asking "how do I add my own X to this step?" → you hard-coded a seam. Promote it to a
   strategy collection, or to the mediator if it needs pipeline semantics.

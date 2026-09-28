@@ -35,7 +35,6 @@ NCode.Identity.OpenId.Messages.OpenIdError.Exception.get -> System.Exception?
 NCode.Identity.OpenId.Messages.OpenIdError.Exception.set -> void
 NCode.Identity.OpenId.Messages.OpenIdError.OpenIdError() -> void
 NCode.Identity.OpenId.Messages.OpenIdError.OpenIdError(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, string! errorCode) -> void
-NCode.Identity.OpenId.Messages.OpenIdError.OpenIdError(NCode.Identity.OpenId.Messages.OpenIdError! other) -> void
 NCode.Identity.OpenId.Messages.OpenIdError.State.get -> string?
 NCode.Identity.OpenId.Messages.OpenIdError.State.set -> void
 NCode.Identity.OpenId.Messages.OpenIdError.StatusCode.get -> int?

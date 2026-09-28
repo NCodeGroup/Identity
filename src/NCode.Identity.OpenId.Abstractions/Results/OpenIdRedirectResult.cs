@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Results;
 /// URL and is <c>AJAX</c> aware.
 /// </summary>
 [PublicAPI]
-public class OpenIdRedirectResult : IResult
+public sealed class OpenIdRedirectResult : IResult
 {
     /// <summary>
     /// Gets or sets the URL used for the redirect operation.

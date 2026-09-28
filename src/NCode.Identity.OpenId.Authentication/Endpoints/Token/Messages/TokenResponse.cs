@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="ITokenResponse"/> abstraction.
 /// </summary>
-public class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
+public sealed class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="TokenResponse"/> class.
@@ -35,7 +35,7 @@ public class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
     }
 
     /// <inheritdoc />
-    protected TokenResponse(TokenResponse other)
+    private TokenResponse(TokenResponse other)
         : base(other)
     {
         // nothing

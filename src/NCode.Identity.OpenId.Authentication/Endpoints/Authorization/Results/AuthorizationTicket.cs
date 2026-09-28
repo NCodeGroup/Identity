@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// <summary>
 /// Provides a default implementation of the <see cref="IAuthorizationTicket"/> abstraction.
 /// </summary>
-public class AuthorizationTicket : OpenIdMessage<AuthorizationTicket>, IAuthorizationTicket
+public sealed class AuthorizationTicket : OpenIdMessage<AuthorizationTicket>, IAuthorizationTicket
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AuthorizationTicket"/> class.
@@ -36,7 +36,7 @@ public class AuthorizationTicket : OpenIdMessage<AuthorizationTicket>, IAuthoriz
     }
 
     /// <inheritdoc />
-    protected AuthorizationTicket(AuthorizationTicket other)
+    private AuthorizationTicket(AuthorizationTicket other)
         : base(other)
     {
         // nothing

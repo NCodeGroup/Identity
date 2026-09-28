@@ -34,7 +34,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 [Index(nameof(TenantId), nameof(ClientId), IsUnique = false)]
 [Index(nameof(TenantId), nameof(NormalizedSubjectId), IsUnique = false)]
 [Index(nameof(ExpiresWhen), IsUnique = false)]
-public class GrantEntity : ISupportConcurrencyToken
+public sealed class GrantEntity : ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the surrogate identifier for this entity.

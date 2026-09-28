@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public class ServerSecretsResource : ISupportServerId, ISupportConcurrencyToken
+public sealed class ServerSecretsResource : ISupportServerId, ISupportConcurrencyToken
 {
     /// <inheritdoc cref="ISupportServerId.ServerId"/>
     public required string ServerId { get; init; }

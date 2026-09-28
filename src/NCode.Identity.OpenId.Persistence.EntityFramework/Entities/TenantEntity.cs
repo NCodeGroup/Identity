@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// </summary>
 [Index(nameof(NormalizedTenantId), IsUnique = true)]
 [Index(nameof(NormalizedDomainName), IsUnique = true)]
-public class TenantEntity : ISupportConcurrencyToken
+public sealed class TenantEntity : ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the surrogate identifier for this entity.

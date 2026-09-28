@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="IRequestClaim"/> abstraction.
 /// </summary>
-public class RequestClaim : IRequestClaim
+public sealed class RequestClaim : IRequestClaim
 {
     /// <inheritdoc />
     [JsonPropertyName(OpenIdConstants.Parameters.Essential)]

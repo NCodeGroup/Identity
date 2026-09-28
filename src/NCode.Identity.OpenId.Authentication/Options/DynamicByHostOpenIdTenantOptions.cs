@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Options;
 /// Contains the options for dynamic tenant resolution based on the host name.
 /// </summary>
 [PublicAPI]
-public class DynamicByHostOpenIdTenantOptions
+public sealed class DynamicByHostOpenIdTenantOptions
 {
     /// <summary>
     /// Gets or sets the regex pattern to extract the domain name.

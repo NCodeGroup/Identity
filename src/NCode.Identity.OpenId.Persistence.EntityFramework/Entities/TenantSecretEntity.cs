@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// Represents an entity framework data contract for a relationship between a <see cref="TenantEntity"/> and a <see cref="SecretEntity"/>.
 /// </summary>
 [Index(nameof(TenantId), nameof(SecretId), IsUnique = true)]
-public class TenantSecretEntity : ISupportTenantEntity, ISupportSecretEntity
+public sealed class TenantSecretEntity : ISupportTenantEntity, ISupportSecretEntity
 {
     /// <summary>
     /// Gets or sets the surrogate identifier for this entity.

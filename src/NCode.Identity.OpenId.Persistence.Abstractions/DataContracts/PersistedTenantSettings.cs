@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public class PersistedTenantSettings : PersistedTenantResource<JsonElement>
+public sealed class PersistedTenantSettings : PersistedTenantResource<JsonElement>
 {
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]

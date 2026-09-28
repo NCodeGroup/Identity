@@ -29,7 +29,7 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public class PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcurrencyToken
+public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets the prefix for the resource type.

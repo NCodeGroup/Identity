@@ -28,7 +28,7 @@ namespace NCode.Identity.JsonWebTokens;
 /// An opaque context that is used when validating a Json Web Token (JWT).
 /// </summary>
 [PublicAPI]
-public class ValidateJwtContext
+public sealed class ValidateJwtContext
 {
     /// <summary>
     /// Gets the <see cref="SecretKey"/> that was used to decode the Json Web Token (JWT).

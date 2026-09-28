@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Authentication.Options;
@@ -39,7 +40,7 @@ public class DefaultOpenIdTenantProviderSelector(
 
     private OpenIdOptions OpenIdOptions { get; } = optionsAccessor.Value;
 
-    private IEnumerable<IOpenIdTenantProvider> TenantProviders { get; } = tenantProviders;
+    private ImmutableArray<IOpenIdTenantProvider> TenantProviders { get; } = [.. tenantProviders];
 
     /// <inheritdoc />
     public IOpenIdTenantProvider SelectProvider(IPropertyBag propertyBag)

@@ -116,9 +116,9 @@ NCode.Identity.JsonWebTokens.ValidateJwtResult.Parameters.get -> NCode.Identity.
 NCode.Identity.JsonWebTokens.ValidateJwtResult.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 NCode.Identity.JsonWebTokens.Validators
 NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!)
-NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateAudience(params string![]! validAudiences) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
+NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateAudience(params System.Collections.Generic.IEnumerable<string!>! validAudiences) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
 NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateCertificateLifeTime() -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
-NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateIssuer(params string![]! validIssuers) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
+NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateIssuer(params System.Collections.Generic.IEnumerable<string!>! validIssuers) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
 NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateTokenLifeTime() -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
 NCode.Identity.JsonWebTokens.Validators.extension(NCode.Identity.JsonWebTokens.ValidateJwtParameters!).ValidateTokenLifeTime(System.Action<NCode.Identity.JsonWebTokens.Options.ValidateTokenLifeTimeOptions!>! configureOptions) -> NCode.Identity.JsonWebTokens.ValidateJwtParameters!
 static NCode.Identity.JsonWebTokens.DefaultClaimsIdentityFactory.CreateClaim(string! propertyName, System.Text.Json.JsonElement jsonElement, string! issuer, System.Security.Claims.ClaimsIdentity! subject) -> System.Security.Claims.Claim!

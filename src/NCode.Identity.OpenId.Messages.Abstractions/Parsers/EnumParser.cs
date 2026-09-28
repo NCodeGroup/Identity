@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -45,7 +46,7 @@ public class EnumParser<T> : ParameterParser<T>
     private static bool HasFlagsAttribute { get; } =
         typeof(T).IsDefined(typeof(FlagsAttribute), false);
 
-    private static T[] Values { get; } = Enum.GetValues<T>();
+    private static ImmutableArray<T> Values { get; } = [.. Enum.GetValues<T>()];
 
     private static Dictionary<string, T> NameMap { get; } =
         Values.ToDictionary(ConvertToString, value => value, StringComparer.OrdinalIgnoreCase);

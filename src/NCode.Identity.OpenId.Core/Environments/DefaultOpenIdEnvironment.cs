@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.DataProtection;
@@ -41,8 +42,8 @@ public class DefaultOpenIdEnvironment(
 {
     private IOpenIdMessageFactorySelector OpenIdMessageFactorySelector { get; } =
         openIdMessageFactorySelector;
-    private IEnumerable<IOpenIdJsonConverterProvider> JsonConverterProviders { get; } =
-        jsonConverterProviders;
+    private ImmutableArray<IOpenIdJsonConverterProvider> JsonConverterProviders { get; } =
+    [.. jsonConverterProviders];
 
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
 

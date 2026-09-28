@@ -43,7 +43,7 @@ public static class Validators
         /// </summary>
         /// <param name="validIssuers">The collection of allowable values for the <c>iss></c> claim.</param>
         /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
-        public ValidateJwtParameters ValidateIssuer(params string[] validIssuers) =>
+        public ValidateJwtParameters ValidateIssuer(params IEnumerable<string> validIssuers) =>
             parameters.ValidateClaim(
                 JoseClaimNames.Payload.Iss,
                 usePayload: true,
@@ -57,7 +57,7 @@ public static class Validators
         /// </summary>
         /// <param name="validAudiences">The collection of allowable values for the <c>aud></c> claim.</param>
         /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
-        public ValidateJwtParameters ValidateAudience(params string[] validAudiences) =>
+        public ValidateJwtParameters ValidateAudience(params IEnumerable<string> validAudiences) =>
             parameters.ValidateClaim(
                 JoseClaimNames.Payload.Aud,
                 usePayload: true,

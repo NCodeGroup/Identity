@@ -72,6 +72,15 @@ Fast mechanical checks (grep production `.cs`, adapt as needed):
 - **Nested types**: a `class`/`struct`/`interface`/`enum`/`record` declaration indented inside another type.
 - `enum ` on a public surface · `IList<` returns · `bool ` parameters that switch behavior · `async void` · empty
   `catch` · `.Result` / `.Wait()` / `.GetAwaiter().GetResult()` (banned) · `Newtonsoft` (banned).
+- **Primary-constructor candidates** (§1): grep `^\s+(public|internal|protected)\s+[A-Z]\w*\(` — one identifier
+  immediately before `(` is a **constructor** (a method has `type name(`). Any type whose single ctor body is only
+  `X = x;` assignments (or param-derived initializers) should be a primary constructor — **including** an `abstract`
+  class with a `protected` pure-assignment ctor. Non-candidates: multiple ctors / `this()` delegation, a body with a
+  guard/loop/branch or side-effecting call, a shared intermediate local used by ≥2 members, exceptions, records.
+- **Unbuffered stored collections** (§2): a ctor/method that assigns a collection parameter (or DI `IEnumerable<T>`)
+  straight to a field/property with no `.ToArray()` / `.ToFrozenSet()` / `.ToFrozenDictionary()` / `[.. x]`.
+- **Before sealing, confirm it's a leaf** (§2): grep `:\s*TypeName\b` for real inheritance — a `TypeName? Bar { get; }`
+  **property** is composition (has-a), not a base class, and is still sealable.
 - `RequestServices` / `GetService` / `GetServices` — confirm each site is the sanctioned singleton service-location
   exception or `[ExcludeFromCodeCoverage]` framework glue.
 

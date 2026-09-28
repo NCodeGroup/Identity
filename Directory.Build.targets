@@ -46,6 +46,15 @@
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
   </ItemGroup>
 
+  <!-- Bans the null-forgiving operator (!) on shipping code: NX0001-NX0004 warn on any UNJUSTIFIED '!'
+       (annotate a genuine exception with a '// !' justification comment). Analyzer-only; not on test projects. -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageReference Include="Nullable.Extended.Analyzer">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
   <!-- Tracks the public API surface (RS0016/RS0017/RS0024): each packable project lists its surface in the sibling
        PublicAPI.Shipped.txt / PublicAPI.Unshipped.txt (auto-registered as AdditionalFiles by the analyzer). A public
        change that isn't recorded fails the build. Pre-1.0: Shipped stays empty and the whole surface lives in

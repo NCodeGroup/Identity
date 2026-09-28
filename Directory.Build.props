@@ -17,7 +17,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- CS1573: missing XML param docs are not fatal. -->
     <WarningsNotAsErrors>CS1573</WarningsNotAsErrors>
     <!-- Fail builds on the CI server for security vulnerability advisories, but not locally. -->

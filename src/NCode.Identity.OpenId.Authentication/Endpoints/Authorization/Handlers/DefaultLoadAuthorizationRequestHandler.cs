@@ -83,7 +83,7 @@ public class DefaultLoadAuthorizationRequestHandler(
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(
         OpenIdEnvironment openIdEnvironment,
         OpenIdClient openIdClient,
-        IAuthorizationRequestMessage requestMessage,
+        AuthorizationRequestMessage requestMessage,
         CancellationToken cancellationToken
     )
     {

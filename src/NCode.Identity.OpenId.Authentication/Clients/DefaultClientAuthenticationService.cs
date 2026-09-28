@@ -72,9 +72,10 @@ public class DefaultClientAuthenticationService : IClientAuthenticationService
 
             if (
                 results.Count > 0
+                && results[0].Client is { } firstClient
                 && !string.Equals(
                     result.Client.ClientId,
-                    results[0].Client!.ClientId,
+                    firstClient.ClientId,
                     StringComparison.Ordinal
                 )
             )

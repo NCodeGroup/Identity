@@ -64,98 +64,98 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
         // nothing
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.AcrValues" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.AcrValues" />
     public List<string>? AcrValues
     {
         get => GetKnownParameter(OpenIdCommonParameters.AcrValues);
         set => SetKnownParameter(OpenIdCommonParameters.AcrValues, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.Claims" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.Claims" />
     public IRequestClaims? Claims
     {
         get => GetKnownParameter(OpenIdAuthenticationParameters.Claims);
         set => SetKnownParameter(OpenIdAuthenticationParameters.Claims, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.ClaimsLocales" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.ClaimsLocales" />
     public List<string>? ClaimsLocales
     {
         get => GetKnownParameter(OpenIdCommonParameters.ClaimsLocales);
         set => SetKnownParameter(OpenIdCommonParameters.ClaimsLocales, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.ClientId" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.ClientId" />
     public string? ClientId
     {
         get => GetKnownParameter(OpenIdCommonParameters.ClientId);
         set => SetKnownParameter(OpenIdCommonParameters.ClientId, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.CodeChallenge" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.CodeChallenge" />
     public string? CodeChallenge
     {
         get => GetKnownParameter(OpenIdCommonParameters.CodeChallenge);
         set => SetKnownParameter(OpenIdCommonParameters.CodeChallenge, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.CodeChallengeMethod" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.CodeChallengeMethod" />
     public string? CodeChallengeMethod
     {
         get => GetKnownParameter(OpenIdCommonParameters.CodeChallengeMethod);
         set => SetKnownParameter(OpenIdCommonParameters.CodeChallengeMethod, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.CodeVerifier" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.CodeVerifier" />
     public string? CodeVerifier
     {
         get => GetKnownParameter(OpenIdCommonParameters.CodeVerifier);
         set => SetKnownParameter(OpenIdCommonParameters.CodeVerifier, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.DisplayType" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.DisplayType" />
     public string? DisplayType
     {
         get => GetKnownParameter(OpenIdCommonParameters.DisplayType);
         set => SetKnownParameter(OpenIdCommonParameters.DisplayType, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.IdTokenHint" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.IdTokenHint" />
     public string? IdTokenHint
     {
         get => GetKnownParameter(OpenIdCommonParameters.IdTokenHint);
         set => SetKnownParameter(OpenIdCommonParameters.IdTokenHint, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.LoginHint" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.LoginHint" />
     public string? LoginHint
     {
         get => GetKnownParameter(OpenIdCommonParameters.LoginHint);
         set => SetKnownParameter(OpenIdCommonParameters.LoginHint, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.MaxAge" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.MaxAge" />
     public TimeSpan? MaxAge
     {
         get => GetKnownParameter(OpenIdCommonParameters.MaxAge);
         set => SetKnownParameter(OpenIdCommonParameters.MaxAge, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.Nonce" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.Nonce" />
     public string? Nonce
     {
         get => GetKnownParameter(OpenIdCommonParameters.Nonce);
         set => SetKnownParameter(OpenIdCommonParameters.Nonce, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.PromptTypes" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.PromptTypes" />
     public List<string>? PromptTypes
     {
         get => GetKnownParameter(OpenIdCommonParameters.PromptType);
         set => SetKnownParameter(OpenIdCommonParameters.PromptType, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.RedirectUri" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.RedirectUri" />
     public Uri? RedirectUri
     {
         get => GetKnownParameter(OpenIdCommonParameters.RedirectUri);
@@ -176,35 +176,35 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
         set => SetKnownParameter(OpenIdCommonParameters.RequestUri, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.ResponseMode" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.ResponseMode" />
     public string? ResponseMode
     {
         get => GetKnownParameter(OpenIdCommonParameters.ResponseMode);
         set => SetKnownParameter(OpenIdCommonParameters.ResponseMode, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.ResponseTypes" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.ResponseTypes" />
     public List<string>? ResponseTypes
     {
         get => GetKnownParameter(OpenIdCommonParameters.ResponseTypes);
         set => SetKnownParameter(OpenIdCommonParameters.ResponseTypes, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.Scopes" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.Scopes" />
     public List<string>? Scopes
     {
         get => GetKnownParameter(OpenIdCommonParameters.Scopes);
         set => SetKnownParameter(OpenIdCommonParameters.Scopes, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.State" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.State" />
     public string? State
     {
         get => GetKnownParameter(OpenIdCommonParameters.State);
         set => SetKnownParameter(OpenIdCommonParameters.State, value);
     }
 
-    /// <inheritdoc cref="IAuthorizationRequestMessage.UiLocales" />
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.UiLocales" />
     public List<string>? UiLocales
     {
         get => GetKnownParameter(OpenIdCommonParameters.UiLocales);

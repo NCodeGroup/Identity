@@ -54,14 +54,20 @@ public class EccJsonWebKeyConverter(IEccCurveSpecificationRegistry curveSpecific
         var parameters = ecdsa.ExportParameters(includePrivateParameters: false);
 
         var metadata = secretKey.Metadata;
+        var x =
+            parameters.Q.X
+            ?? throw new InvalidOperationException("The ECC key is missing its X coordinate.");
+        var y =
+            parameters.Q.Y
+            ?? throw new InvalidOperationException("The ECC key is missing its Y coordinate.");
         return new EccJsonWebKey
         {
             KeyId = NullIfEmpty(metadata.KeyId),
             Use = NullIfEmpty(metadata.Use),
             Algorithm = NullIfEmpty(metadata.Algorithm),
             Curve = curveSpecification.CurveName,
-            X = Base64Url.Encode(parameters.Q.X!),
-            Y = Base64Url.Encode(parameters.Q.Y!),
+            X = Base64Url.Encode(x),
+            Y = Base64Url.Encode(y),
         };
     }
 }

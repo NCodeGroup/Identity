@@ -37,13 +37,19 @@ public class RsaJsonWebKeyConverter : JsonWebKeyConverter<RsaSecretKey>
         var parameters = rsa.ExportParameters(includePrivateParameters: false);
 
         var metadata = secretKey.Metadata;
+        var modulus =
+            parameters.Modulus
+            ?? throw new InvalidOperationException("The RSA key is missing its modulus.");
+        var exponent =
+            parameters.Exponent
+            ?? throw new InvalidOperationException("The RSA key is missing its exponent.");
         return new RsaJsonWebKey
         {
             KeyId = NullIfEmpty(metadata.KeyId),
             Use = NullIfEmpty(metadata.Use),
             Algorithm = NullIfEmpty(metadata.Algorithm),
-            Modulus = Base64Url.Encode(parameters.Modulus!),
-            Exponent = Base64Url.Encode(parameters.Exponent!),
+            Modulus = Base64Url.Encode(modulus),
+            Exponent = Base64Url.Encode(exponent),
         };
     }
 }

@@ -46,8 +46,9 @@
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
   </ItemGroup>
 
-  <!-- Bans the null-forgiving operator (!) on shipping code: NX0001-NX0004 warn on any UNJUSTIFIED '!'
-       (annotate a genuine exception with a '// !' justification comment). Analyzer-only; not on test projects. -->
+  <!-- Bans the null-forgiving operator (!) on shipping code: NX0001-NX0004 flag every '!'. The analyzer accepts a
+       '// !' justification comment, but project policy is stricter: DO NOT use that escape hatch — eliminate the '!'
+       by restructuring (?? throw, [MemberNotNullWhen], 'is { } local', early-out narrowing). Not on test projects. -->
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <PackageReference Include="Nullable.Extended.Analyzer">
       <PrivateAssets>all</PrivateAssets>

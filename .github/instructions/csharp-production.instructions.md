@@ -39,9 +39,10 @@ rationale.
   `const string Expected = "hello";`, `const int Count = 5;`, `const char Separator = ',';`.
 - ✅ **Use UTF-8 string literals (`u8`)** when building `byte[]`/`ReadOnlySpan<byte>` from valid UTF-8 text:
   `"Hello"u8.ToArray()`. Use explicit byte arrays only for invalid UTF-8 sequences or error-condition tests.
-- ✅ Nullable reference types are **on** and nullable warnings are **errors**. ⏳ The **null-forgiving operator (`!`)
-  is discouraged** — restructure so the compiler proves non-null (`?? throw`, `[MemberNotNullWhen]`, early-out
-  narrowing) instead of asserting it.
+- ✅ Nullable reference types are **on** and nullable warnings are **errors**. 🚫 The **null-forgiving operator (`!`)
+  is banned** — always restructure so the compiler proves non-null (`?? throw`, `[MemberNotNullWhen]`, an
+  `is { } local` pattern, early-out narrowing) instead of asserting it. Even though the analyzer accepts a `// !`
+  justification comment, **do not use that escape hatch**: eliminate the `!`, never annotate it.
 - 👁 Prefer **auto-properties over fields** for state (static or instance). Use a field only when a property genuinely
   cannot express it (a `ref`/`Interlocked`/`fixed`/`stackalloc` target).
 - 👁 Use **primary constructors** except where they can't work (for example when one member's initializer must

@@ -90,12 +90,16 @@ carries a `// Future:` note rather than an implementation.
   for the `SaveChangesAsync` the stores use. That is resolved on its own terms in
   [ADR-0012](0012-interceptor-managed-concurrency-tokens.md); the secret stores rely on the (now working)
   interceptor for row tokens and eagerly assign the token on insert so `POST` needs no re-read.
-- **Individual secret `GET`/`PUT`/`DELETE` authorize against the bare `PersistedSecret`, which is not
-  owner-scoped.** Tenant/client-level operations authorize against the owner resource (which carries
-  `TenantId`/`ClientId`, so `TenantAdminHandler` scopes them), but a single secret loaded by id does not carry
-  its owner, so a scoped admin is not yet constrained to their own tenant's/client's secrets by id. This is
-  masked today by the development-only `GlobalAdmin` bypass (`#if DEBUG`); it **must** be tightened — authorize
-  the individual secret operations against the owner — when real ACLs replace the bypass.
+- **Individual secret `GET`/`PUT`/`DELETE` are authorized against an owner-scoped wrapper.** A
+  `PersistedSecret` loaded by id does not itself carry its owner, so authorizing the bare entity would leave
+  `TenantAdminHandler` (which only evaluates `ISupportTenantId` resources) unable to scope it — a scoped admin
+  would fall through to the `GlobalAdmin`-only path. The tenant individual-secret operations therefore wrap the
+  loaded secret in `TenantOwnedResource<PersistedSecret>`, carrying the route `tenantId` (trustworthy because
+  `GetSecretOrDefaultAsync(tenantId, secretId)` only returns a secret owned by that tenant), so the handler
+  scopes them exactly like the owner/collection operations. The wrapper delegates `ConcurrencyToken` to the
+  wrapped secret, leaving the `GET` ETag / `If-None-Match` flow unchanged. Server secret operations stay
+  unwrapped and remain `GlobalAdmin`-only by design (servers are not tenant-scoped). Client secret endpoints,
+  when they land, should follow the same wrapper pattern with the owning `clientId`.
 
 ## References
 

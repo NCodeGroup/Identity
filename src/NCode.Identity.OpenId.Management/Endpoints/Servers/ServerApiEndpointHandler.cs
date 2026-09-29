@@ -23,8 +23,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
+using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
@@ -58,12 +60,14 @@ internal class ServerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     ISecretGenerator secretGenerator,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    ILogger<ServerApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private ILogger<ServerApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
@@ -73,7 +77,9 @@ internal class ServerApiEndpointHandler(
     {
         var servers = endpoints.MapGroup("/servers");
 
+        servers.MapPost("", CreateServerAsync);
         servers.MapGet("/{serverId}", GetServerAsync);
+        servers.MapDelete("/{serverId}", DeleteServerAsync);
 
         servers.MapGet("/{serverId}/settings", GetSettingsAsync);
         servers.MapPatch("/{serverId}/settings", UpdateSettingsAsync);
@@ -183,6 +189,126 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
+    /// Handles <c>POST api/servers</c>, creating a new OpenID Server.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="request">The <see cref="CreateServerRequest"/> describing the server to create.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/create")]
+    internal virtual async ValueTask<IResult> CreateServerAsync(
+        HttpContext httpContext,
+        [FromBody] CreateServerRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IServerStore>();
+
+        var server = new PersistedServer
+        {
+            ServerId = request.ServerId,
+            ConcurrencyToken = string.Empty,
+            Settings = new PersistedServerSettings
+            {
+                ServerId = request.ServerId,
+                ConcurrencyToken = string.Empty,
+                Value = SerializeToElement(ToJsonObject(request.Settings)),
+            },
+            Secrets = new PersistedServerSecrets
+            {
+                ServerId = request.ServerId,
+                ConcurrencyToken = string.Empty,
+                Value = [],
+            },
+        };
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            server,
+            Operations.Create
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var existing = await store.GetOrDefaultAsync(request.ServerId, cancellationToken);
+        if (existing is not null)
+        {
+            return TypedResults.Problem(
+                detail: $"A server with ServerId='{request.ServerId}' already exists.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await store.AddAsync(server, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        // The store assigns the row token on insert (ADR-0012), so no re-read is needed.
+        httpContext.Response.Headers.ETag = server.ConcurrencyToken;
+        return TypedResults.Created($"/servers/{server.ServerId}", ToServerResource(server));
+    }
+
+    /// <summary>
+    /// Handles <c>DELETE api/servers/{serverId}</c>, removing a server. The removal is rejected with
+    /// <c>409 Conflict</c> while the server still has secrets.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/delete")]
+    internal virtual async ValueTask<IResult> DeleteServerAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IServerStore>();
+
+        var server = await store.GetOrDefaultAsync(serverId, cancellationToken);
+        if (server is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            server,
+            Operations.Delete
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        try
+        {
+            var removed = await store.RemoveAsync(serverId, cancellationToken);
+            if (!removed)
+            {
+                return TypedResults.NotFound();
+            }
+        }
+        catch (InvalidOperationException exception)
+        {
+            Logger.ResourceConflict(exception);
+            return TypedResults.Problem(
+                detail: "The server cannot be deleted while it still has dependent secrets.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
     /// Handles <c>GET api/servers/{serverId}/settings</c>, returning the settings for the specified OpenID Server.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
@@ -268,8 +394,9 @@ internal class ServerApiEndpointHandler(
         }
         catch (JsonPatchException exception)
         {
+            Logger.JsonPatchFailed(exception);
             return TypedResults.Problem(
-                detail: exception.Message,
+                detail: "The JSON Patch document could not be applied.",
                 statusCode: StatusCodes.Status400BadRequest
             );
         }
@@ -371,8 +498,9 @@ internal class ServerApiEndpointHandler(
         catch (Exception exception)
             when (exception is ArgumentException or InvalidOperationException)
         {
+            Logger.SecretGenerationFailed(exception);
             return TypedResults.Problem(
-                detail: exception.Message,
+                detail: "The secret could not be generated from the supplied parameters.",
                 statusCode: StatusCodes.Status400BadRequest
             );
         }
@@ -383,8 +511,9 @@ internal class ServerApiEndpointHandler(
         }
         catch (InvalidOperationException exception)
         {
+            Logger.ResourceConflict(exception);
             return TypedResults.Problem(
-                detail: exception.Message,
+                detail: "A secret with the specified identifier already exists.",
                 statusCode: StatusCodes.Status409Conflict
             );
         }

@@ -23,8 +23,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
+using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -57,12 +59,14 @@ internal class TenantApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     ISecretGenerator secretGenerator,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    ILogger<TenantApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private ILogger<TenantApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
@@ -72,7 +76,10 @@ internal class TenantApiEndpointHandler(
     {
         var tenants = endpoints.MapGroup("/tenants");
 
+        tenants.MapPost("", CreateTenantAsync);
         tenants.MapGet("/{tenantId}", GetTenantAsync);
+        tenants.MapPatch("/{tenantId}", UpdateTenantAsync);
+        tenants.MapDelete("/{tenantId}", DeleteTenantAsync);
 
         tenants.MapGet("/{tenantId}/settings", GetSettingsAsync);
         tenants.MapPatch("/{tenantId}/settings", UpdateSettingsAsync);
@@ -185,6 +192,214 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
+    /// Handles <c>POST api/tenants</c>, creating a new OpenID Tenant.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="request">The <see cref="CreateTenantRequest"/> describing the tenant to create.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/tenants/create")]
+    internal virtual async ValueTask<IResult> CreateTenantAsync(
+        HttpContext httpContext,
+        [FromBody] CreateTenantRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var tenant = new PersistedTenant
+        {
+            TenantId = request.TenantId,
+            ConcurrencyToken = string.Empty,
+            DomainName = request.DomainName,
+            IsDisabled = request.IsDisabled,
+            DisplayName = request.DisplayName,
+            Settings = new PersistedTenantSettings
+            {
+                TenantId = request.TenantId,
+                ConcurrencyToken = string.Empty,
+                Value = SerializeToElement(ToJsonObject(request.Settings)),
+            },
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = request.TenantId,
+                ConcurrencyToken = string.Empty,
+                Value = [],
+            },
+        };
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            tenant,
+            Operations.Create
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var existing = await store.GetOrDefaultAsync(request.TenantId, cancellationToken);
+        if (existing is not null)
+        {
+            return TypedResults.Problem(
+                detail: $"A tenant with TenantId='{request.TenantId}' already exists.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await store.AddAsync(tenant, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        // The store assigns the row token on insert (ADR-0012), so no re-read is needed.
+        httpContext.Response.Headers.ETag = tenant.ConcurrencyToken;
+        return TypedResults.Created($"/tenants/{tenant.TenantId}", ToTenantResource(tenant));
+    }
+
+    /// <summary>
+    /// Handles <c>PATCH api/tenants/{tenantId}</c>, applying a JSON Patch document to a tenant's metadata.
+    /// Honors an <c>If-Match</c> precondition.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="request">The JSON Patch document to apply to the tenant metadata.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/tenants/update")]
+    internal virtual async ValueTask<IResult> UpdateTenantAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromBody] JsonPatchDocument<UpdateTenantRequest> request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            tenant,
+            Operations.Update
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (
+            !string.IsNullOrEmpty(ifMatch)
+            && !string.Equals(ifMatch, tenant.ConcurrencyToken, StringComparison.Ordinal)
+        )
+        {
+            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+        }
+
+        var model = new UpdateTenantRequest
+        {
+            DomainName = tenant.DomainName,
+            DisplayName = tenant.DisplayName,
+            IsDisabled = tenant.IsDisabled,
+        };
+
+        try
+        {
+            request.ApplyTo(model);
+        }
+        catch (JsonPatchException exception)
+        {
+            Logger.JsonPatchFailed(exception);
+            return TypedResults.Problem(
+                detail: "The JSON Patch document could not be applied.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        if (string.IsNullOrEmpty(model.DisplayName))
+        {
+            return TypedResults.Problem(
+                detail: "The 'displayName' is required.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        tenant.DomainName = model.DomainName;
+        tenant.IsDisabled = model.IsDisabled;
+        tenant.DisplayName = model.DisplayName;
+
+        await store.UpdateAsync(tenant, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Handles <c>DELETE api/tenants/{tenantId}</c>, removing a tenant. The removal is rejected with
+    /// <c>409 Conflict</c> while the tenant still has clients or secrets.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/tenants/delete")]
+    internal virtual async ValueTask<IResult> DeleteTenantAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            tenant,
+            Operations.Delete
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        try
+        {
+            var removed = await store.RemoveAsync(tenantId, cancellationToken);
+            if (!removed)
+            {
+                return TypedResults.NotFound();
+            }
+        }
+        catch (InvalidOperationException exception)
+        {
+            Logger.ResourceConflict(exception);
+            return TypedResults.Problem(
+                detail: "The tenant cannot be deleted while it still has dependent clients or secrets.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
     /// Handles <c>GET api/tenants/{tenantId}/settings</c>, returning the settings for the specified OpenID Tenant.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
@@ -267,8 +482,9 @@ internal class TenantApiEndpointHandler(
         }
         catch (JsonPatchException exception)
         {
+            Logger.JsonPatchFailed(exception);
             return TypedResults.Problem(
-                detail: exception.Message,
+                detail: "The JSON Patch document could not be applied.",
                 statusCode: StatusCodes.Status400BadRequest
             );
         }
@@ -370,8 +586,9 @@ internal class TenantApiEndpointHandler(
         catch (Exception exception)
             when (exception is ArgumentException or InvalidOperationException)
         {
+            Logger.SecretGenerationFailed(exception);
             return TypedResults.Problem(
-                detail: exception.Message,
+                detail: "The secret could not be generated from the supplied parameters.",
                 statusCode: StatusCodes.Status400BadRequest
             );
         }
@@ -382,8 +599,9 @@ internal class TenantApiEndpointHandler(
         }
         catch (InvalidOperationException exception)
         {
+            Logger.ResourceConflict(exception);
             return TypedResults.Problem(
-                detail: exception.Message,
+                detail: "A secret with the specified identifier already exists.",
                 statusCode: StatusCodes.Status409Conflict
             );
         }

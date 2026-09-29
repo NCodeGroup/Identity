@@ -166,8 +166,9 @@ internal class ServerStore(
         CancellationToken cancellationToken
     )
     {
-        // Row-level ConcurrencyToken is filled by ConcurrencyTokenSaveChangesInterceptor on save (ADR-0012);
-        // the sub-resource version columns are plain and stay manual.
+        // Assign the row token up front so create can return it without a re-read; the interceptor leaves a
+        // pre-seeded insert token intact (ADR-0012). The sub-resource version columns stay manual.
+        persistedServer.ConcurrencyToken = NextConcurrencyToken();
         persistedServer.Settings.ConcurrencyToken = NextConcurrencyToken();
         persistedServer.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
@@ -178,7 +179,7 @@ internal class ServerStore(
             Id = NextId(),
             ServerId = persistedServer.ServerId,
             NormalizedServerId = Normalize(persistedServer.ServerId),
-            ConcurrencyToken = string.Empty,
+            ConcurrencyToken = persistedServer.ConcurrencyToken,
             SettingsConcurrencyToken = persistedServer.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedServer.Secrets.ConcurrencyToken,
             SettingsJson = persistedServer.Settings.Value,
@@ -395,6 +396,31 @@ internal class ServerStore(
 
         // The server is tracked; mutating the token marks it Modified via change detection.
         serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RemoveAsync(string serverId, CancellationToken cancellationToken)
+    {
+        var serverEntity = await GetEntityOrDefaultAsync(serverId, cancellationToken);
+        if (serverEntity is null)
+        {
+            return false;
+        }
+
+        var hasSecrets = await DbContext.ServerSecrets.AnyAsync(
+            serverSecret => serverSecret.ServerId == serverEntity.Id,
+            cancellationToken
+        );
+        if (hasSecrets)
+        {
+            throw new InvalidOperationException(
+                $"The OpenId Server with ServerId='{serverId}' cannot be removed because it still has one or more secrets."
+            );
+        }
+
+        DbContext.Servers.Remove(serverEntity);
 
         return true;
     }

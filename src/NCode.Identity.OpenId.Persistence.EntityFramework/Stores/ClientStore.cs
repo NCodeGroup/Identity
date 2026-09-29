@@ -143,8 +143,9 @@ internal class ClientStore(
     {
         var tenantEntity = await GetTenantEntityAsync(persistedClient, cancellationToken);
 
-        // Row-level ConcurrencyToken is filled by the interceptor on save (ADR-0012);
-        // the sub-resource version columns are plain and stay manual.
+        // Assign the row token up front so create can return it without a re-read; the interceptor leaves a
+        // pre-seeded insert token intact (ADR-0012). The sub-resource version columns stay manual.
+        persistedClient.ConcurrencyToken = NextConcurrencyToken();
         persistedClient.Settings.ConcurrencyToken = NextConcurrencyToken();
         persistedClient.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
@@ -156,7 +157,7 @@ internal class ClientStore(
             TenantId = tenantEntity.Id,
             ClientId = persistedClient.ClientId,
             NormalizedClientId = Normalize(persistedClient.ClientId),
-            ConcurrencyToken = string.Empty,
+            ConcurrencyToken = persistedClient.ConcurrencyToken,
             SettingsConcurrencyToken = persistedClient.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedClient.Secrets.ConcurrencyToken,
             IsDisabled = persistedClient.IsDisabled,
@@ -376,6 +377,31 @@ internal class ClientStore(
 
         // The client is tracked; mutating the token marks it Modified via change detection.
         clientEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RemoveAsync(string clientId, CancellationToken cancellationToken)
+    {
+        var clientEntity = await GetEntityOrDefaultAsync(clientId, cancellationToken);
+        if (clientEntity is null)
+        {
+            return false;
+        }
+
+        var hasSecrets = await DbContext.ClientSecrets.AnyAsync(
+            clientSecret => clientSecret.ClientId == clientEntity.Id,
+            cancellationToken
+        );
+        if (hasSecrets)
+        {
+            throw new InvalidOperationException(
+                $"The OpenId Client with ClientId='{clientId}' cannot be removed because it still has one or more secrets."
+            );
+        }
+
+        DbContext.Clients.Remove(clientEntity);
 
         return true;
     }

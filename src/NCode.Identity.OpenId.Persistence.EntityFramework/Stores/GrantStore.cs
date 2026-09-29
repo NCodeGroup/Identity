@@ -141,14 +141,13 @@ internal class GrantStore(
                 );
         }
 
-        persistedGrant.ConcurrencyToken = NextConcurrencyToken();
-
+        // Row-level ConcurrencyToken is filled by the interceptor on save (ADR-0012).
         var grantEntity = new GrantEntity
         {
             Id = NextId(),
             GrantType = persistedGrant.GrantType,
             HashedKey = persistedGrant.HashedKey,
-            ConcurrencyToken = persistedGrant.ConcurrencyToken,
+            ConcurrencyToken = string.Empty,
             TenantId = tenantEntity?.Id,
             ClientId = clientEntity?.Id,
             SubjectId = persistedGrant.SubjectId,
@@ -196,15 +195,11 @@ internal class GrantStore(
             );
         }
 
-        var nextConcurrencyToken = NextConcurrencyToken();
-
-        grantEntity.ConcurrencyToken = nextConcurrencyToken;
+        // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-0012).
         grantEntity.ExpiresWhen = persistedGrant.ExpiresWhen;
         grantEntity.RevokedWhen = persistedGrant.RevokedWhen;
         grantEntity.ConsumedWhen = persistedGrant.ConsumedWhen;
 
         DbContext.Grants.Update(grantEntity);
-
-        persistedGrant.ConcurrencyToken = nextConcurrencyToken;
     }
 }

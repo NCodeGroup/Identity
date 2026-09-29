@@ -33,10 +33,27 @@ internal class ConcurrencyTokenSaveChangesInterceptor : SaveChangesInterceptor
         InterceptionResult<int> result
     )
     {
-        var entries = eventData.Context?.ChangeTracker.Entries();
+        RegenerateConcurrencyTokens(eventData.Context);
+        return base.SavingChanges(eventData, result);
+    }
+
+    /// <inheritdoc />
+    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+        DbContextEventData eventData,
+        InterceptionResult<int> result,
+        CancellationToken cancellationToken = default
+    )
+    {
+        RegenerateConcurrencyTokens(eventData.Context);
+        return base.SavingChangesAsync(eventData, result, cancellationToken);
+    }
+
+    private static void RegenerateConcurrencyTokens(DbContext? context)
+    {
+        var entries = context?.ChangeTracker.Entries();
         if (entries is null)
         {
-            return base.SavingChanges(eventData, result);
+            return;
         }
 
         foreach (var entry in entries.Where(IsMutated))
@@ -47,8 +64,6 @@ internal class ConcurrencyTokenSaveChangesInterceptor : SaveChangesInterceptor
                 property.CurrentValue = Guid.NewGuid().ToString("N");
             }
         }
-
-        return base.SavingChanges(eventData, result);
     }
 
     private static bool IsMutated(EntityEntry entity)

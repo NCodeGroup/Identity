@@ -72,7 +72,7 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     /// </summary>
     [Unicode(false)]
     [MaxLength(SecretMaxLengths.Use)]
-    public required string? Use { get; init; }
+    public required string? Use { get; set; }
 
     /// <summary>
     /// Gets or sets the intended algorithm for use with this secret. This property is optional and may be
@@ -80,7 +80,7 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     /// </summary>
     [Unicode(false)]
     [MaxLength(SecretMaxLengths.Algorithm)]
-    public required string? Algorithm { get; init; }
+    public required string? Algorithm { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="DateTimeOffset"/> when this secret was created.
@@ -90,7 +90,7 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the <see cref="DateTimeOffset"/> when this secret expires and is no longer valid.
     /// </summary>
-    public required DateTimeOffset ExpiresWhen { get; init; }
+    public required DateTimeOffset ExpiresWhen { get; set; }
 
     /// <summary>
     /// Gets or sets a value that specifies the type of secret.

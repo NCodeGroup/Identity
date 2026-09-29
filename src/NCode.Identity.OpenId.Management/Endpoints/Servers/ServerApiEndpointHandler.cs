@@ -165,12 +165,14 @@ internal class ServerApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="request">The <see cref="CreateServerRequest"/> describing the server to create.</param>
+    /// <param name="mediator">The <see cref="IMediator"/> used to run the create precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/servers/create")]
     internal virtual async ValueTask<IResult> CreateServerAsync(
         HttpContext httpContext,
         [FromBody] CreateServerRequest request,
+        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -195,24 +197,16 @@ internal class ServerApiEndpointHandler(
             },
         };
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            server,
-            Operations.Create
+        // Preconditions (authorization + uniqueness) are asserted by the mediator pipeline (ADR-0013).
+        var disposition = new OperationDisposition<ManagementError>();
+        await mediator.SendAsync(
+            new ValidateCreateServerCommand(httpContext, server, disposition),
+            cancellationToken
         );
 
-        if (!authorizationResult.Succeeded)
+        if (disposition.HasError)
         {
-            return AuthorizationFailed(httpContext);
-        }
-
-        var existing = await store.GetOrDefaultAsync(request.ServerId, cancellationToken);
-        if (existing is not null)
-        {
-            return TypedResults.Problem(
-                detail: $"A server with ServerId='{request.ServerId}' already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
+            return ToErrorResult(disposition.Error);
         }
 
         await store.AddAsync(server, cancellationToken);

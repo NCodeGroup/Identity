@@ -89,6 +89,48 @@ public static class DefaultRegistration
             );
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateCreateClientCommand>,
+                    DefaultAuthorizeCreateClientHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateCreateClientCommand>,
+                    DefaultClientIsUniqueHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateCreateClientCommand>,
+                    DefaultClientTenantExistsHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateUpdateClientCommand>,
+                    DefaultAuthorizeUpdateClientHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateUpdateClientCommand>,
+                    DefaultClientIfMatchHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateCreateServerCommand>,
+                    DefaultAuthorizeCreateServerHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateCreateServerCommand>,
+                    DefaultServerIsUniqueHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
                     ICommandHandler<ValidateDeleteClientCommand>,
                     DefaultAuthorizeDeleteClientHandler
                 >()

@@ -37,11 +37,22 @@ internal class GlobalAdminHandler : AuthorizationHandler<IAuthorizationRequireme
         {
             context.Succeed(requirement);
         }
+#if DEBUG
         else
         {
-            // TODO: remove, this is just for testing/development purposes
+            // ============================================================================
+            // SECURITY WARNING — DEVELOPMENT-ONLY AUTHORIZATION BYPASS
+            // ----------------------------------------------------------------------------
+            // This branch unconditionally succeeds EVERY authorization requirement so the
+            // management API can be exercised before real ACLs / roles / AuthZ exist. It is
+            // intentional and remains for the entire development lifecycle. It is compiled
+            // ONLY into DEBUG builds (#if DEBUG) so it can never leak into a Release package.
+            // DO NOT remove the #if DEBUG guard, and remove this branch entirely once proper
+            // authorization is in place.
+            // ============================================================================
             context.Succeed(requirement);
         }
+#endif
 
         return Task.CompletedTask;
     }

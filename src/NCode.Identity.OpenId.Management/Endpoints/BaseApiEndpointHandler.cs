@@ -16,7 +16,6 @@
 
 #endregion
 
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
@@ -29,7 +28,6 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// Provides common functionality for OpenID management API endpoint handlers, including resource-based
 /// authorization and standard <c>GET</c> response processing.
 /// </summary>
-[PublicAPI]
 internal abstract class BaseApiEndpointHandler
 {
     /// <summary>
@@ -37,6 +35,23 @@ internal abstract class BaseApiEndpointHandler
     /// </summary>
     protected abstract IAuthorizationService AuthorizationService { get; }
 
+    /// <summary>
+    /// Returns the appropriate <see cref="IResult"/> for a failed authorization: <c>403 Forbidden</c> when the
+    /// user is authenticated (but lacks permission) and <c>401 Unauthorized</c> when the user is anonymous.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <returns>The <see cref="IResult"/> representing the authorization failure.</returns>
+    protected internal virtual IResult AuthorizationFailed(HttpContext httpContext)
+    {
+        var isAuthenticated = httpContext.User.Identity?.IsAuthenticated ?? false;
+        return isAuthenticated ? TypedResults.Forbid() : TypedResults.Unauthorized();
+    }
+
+    /// <summary>
+    /// Maps a collection of <see cref="PersistedSecret"/> instances to their <see cref="SecretResource"/> representations.
+    /// </summary>
+    /// <param name="secrets">The collection of <see cref="PersistedSecret"/> instances to map.</param>
+    /// <returns>The mapped read-only collection of <see cref="SecretResource"/> instances.</returns>
     internal virtual IReadOnlyCollection<SecretResource> ToSecretsResource(
         IReadOnlyCollection<PersistedSecret> secrets
     )
@@ -44,6 +59,11 @@ internal abstract class BaseApiEndpointHandler
         return secrets.Select(ToSecretResource).ToList();
     }
 
+    /// <summary>
+    /// Maps a single <see cref="PersistedSecret"/> instance to its <see cref="SecretResource"/> representation.
+    /// </summary>
+    /// <param name="secret">The <see cref="PersistedSecret"/> instance to map.</param>
+    /// <returns>The mapped <see cref="SecretResource"/>.</returns>
     internal virtual SecretResource ToSecretResource(PersistedSecret secret)
     {
         return new SecretResource
@@ -130,11 +150,6 @@ internal abstract class BaseApiEndpointHandler
             return TypedResults.Json(response);
         }
 
-        if (user.Identity?.IsAuthenticated ?? false)
-        {
-            return TypedResults.Forbid();
-        }
-
-        return TypedResults.Unauthorized();
+        return AuthorizationFailed(httpContext);
     }
 }

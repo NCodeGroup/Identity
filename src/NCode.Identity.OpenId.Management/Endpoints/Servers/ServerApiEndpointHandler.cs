@@ -28,23 +28,22 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
+using SystemTextJsonPatch.Exceptions;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
 
 /*
 
-GET api/server/settings
-PUT api/server/settings
+GET   api/servers/{serverId}
 
-GET api/server/secrets
-POST api/server/secrets
-GET api/server/secrets/{secretId}
-PUT api/server/secrets/{secretId}
+GET   api/servers/{serverId}/settings
+PATCH api/servers/{serverId}/settings
 
-GET api/tenants
-GET api/tenants/{tenantId}
-GET api/tenants/{tenantId}/settings
-GET api/tenants/{tenantId}/secrets
+GET    api/servers/{serverId}/secrets
+POST   api/servers/{serverId}/secrets
+GET    api/servers/{serverId}/secrets/{secretId}
+PUT    api/servers/{serverId}/secrets/{secretId}
+DELETE api/servers/{serverId}/secrets/{secretId}
 
 */
 
@@ -74,11 +73,22 @@ internal class ServerApiEndpointHandler(
         servers.MapGet("/{serverId}/secrets", GetSecretsAsync);
     }
 
+    /// <summary>
+    /// Serializes the specified <see cref="JsonObject"/> into a detached <see cref="JsonElement"/>.
+    /// </summary>
+    /// <param name="jsonObject">The <see cref="JsonObject"/> to serialize.</param>
+    /// <returns>The serialized <see cref="JsonElement"/>.</returns>
     internal virtual JsonElement SerializeToElement(JsonObject jsonObject)
     {
         return JsonSerializer.SerializeToElement(jsonObject);
     }
 
+    /// <summary>
+    /// Converts the specified <see cref="JsonElement"/> into a mutable <see cref="JsonObject"/>, returning an empty
+    /// object when the element is <c>null</c> or not a JSON object.
+    /// </summary>
+    /// <param name="element">The <see cref="JsonElement"/> to convert.</param>
+    /// <returns>The resulting <see cref="JsonObject"/>.</returns>
     internal virtual JsonObject ToJsonObject(JsonElement element)
     {
         switch (element.ValueKind)
@@ -92,6 +102,11 @@ internal class ServerApiEndpointHandler(
         }
     }
 
+    /// <summary>
+    /// Maps a <see cref="PersistedServer"/> to its <see cref="ServerResource"/> representation.
+    /// </summary>
+    /// <param name="server">The <see cref="PersistedServer"/> to map.</param>
+    /// <returns>The mapped <see cref="ServerResource"/>.</returns>
     internal virtual ServerResource ToServerResource(PersistedServer server)
     {
         return new ServerResource
@@ -101,6 +116,11 @@ internal class ServerApiEndpointHandler(
         };
     }
 
+    /// <summary>
+    /// Maps a <see cref="PersistedServerSettings"/> to its <see cref="ServerSettingsResource"/> representation.
+    /// </summary>
+    /// <param name="settings">The <see cref="PersistedServerSettings"/> to map.</param>
+    /// <returns>The mapped <see cref="ServerSettingsResource"/>.</returns>
     internal virtual ServerSettingsResource ToServerSettingsResource(
         PersistedServerSettings settings
     )
@@ -113,6 +133,11 @@ internal class ServerApiEndpointHandler(
         };
     }
 
+    /// <summary>
+    /// Maps a <see cref="PersistedServerSecrets"/> to its <see cref="ServerSecretsResource"/> representation.
+    /// </summary>
+    /// <param name="secrets">The <see cref="PersistedServerSecrets"/> to map.</param>
+    /// <returns>The mapped <see cref="ServerSecretsResource"/>.</returns>
     internal virtual ServerSecretsResource ToServerSecretsResource(PersistedServerSecrets secrets)
     {
         return new ServerSecretsResource
@@ -123,7 +148,14 @@ internal class ServerApiEndpointHandler(
         };
     }
 
-    [EndpointName("api/server/get")]
+    /// <summary>
+    /// Handles <c>GET api/servers/{serverId}</c>, returning the specified OpenID Server resource.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/get")]
     internal virtual async ValueTask<IResult> GetServerAsync(
         HttpContext httpContext,
         [FromRoute] string serverId,
@@ -138,7 +170,14 @@ internal class ServerApiEndpointHandler(
         return await ProcessGetAsync(httpContext, server, Operations.Read, ToServerResource);
     }
 
-    [EndpointName("api/server/settings/get")]
+    /// <summary>
+    /// Handles <c>GET api/servers/{serverId}/settings</c>, returning the settings for the specified OpenID Server.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/settings/get")]
     internal virtual async ValueTask<IResult> GetSettingsAsync(
         HttpContext httpContext,
         [FromRoute] string serverId,
@@ -158,7 +197,17 @@ internal class ServerApiEndpointHandler(
         );
     }
 
-    [EndpointName("api/server/settings/update")]
+    /// <summary>
+    /// Handles <c>PATCH api/servers/{serverId}/settings</c>, applying a JSON Patch document to the settings for the
+    /// specified OpenID Server. Honors an <c>If-Match</c> precondition and returns the refreshed <c>ETag</c>.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="request">The JSON Patch document to apply to the settings.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
         [FromRoute] string serverId,
@@ -177,37 +226,61 @@ internal class ServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var user = httpContext.User;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            user,
+            httpContext.User,
             serverSettings,
             Operations.Update
         );
 
-        if (authorizationResult.Succeeded)
+        if (!authorizationResult.Succeeded)
         {
-            var jsonObject = ToJsonObject(serverSettings.Value);
+            return AuthorizationFailed(httpContext);
+        }
 
+        // Enforce the optimistic-concurrency precondition supplied by the caller. Without this check the
+        // row we just loaded would always pass the store's concurrency comparison, silently overwriting
+        // any changes made between the caller's read and this write (lost update).
+        if (
+            !string.IsNullOrEmpty(ifMatch)
+            && !string.Equals(ifMatch, serverSettings.ConcurrencyToken, StringComparison.Ordinal)
+        )
+        {
+            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+        }
+
+        var jsonObject = ToJsonObject(serverSettings.Value);
+
+        try
+        {
             request.ApplyTo(jsonObject);
-
-            serverSettings.Value = SerializeToElement(jsonObject);
-
-            await store.UpdateSettingsAsync(serverSettings, cancellationToken);
-
-            await storeManager.SaveChangesAsync(cancellationToken);
-
-            return TypedResults.NoContent();
         }
-
-        if (user.Identity?.IsAuthenticated ?? false)
+        catch (JsonPatchException exception)
         {
-            return TypedResults.Forbid();
+            return TypedResults.Problem(
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest
+            );
         }
 
-        return TypedResults.Unauthorized();
+        serverSettings.Value = SerializeToElement(jsonObject);
+
+        await store.UpdateSettingsAsync(serverSettings, cancellationToken);
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        httpContext.Response.Headers.ETag = serverSettings.ConcurrencyToken;
+
+        return TypedResults.NoContent();
     }
 
-    [EndpointName("api/server/secrets/get")]
+    /// <summary>
+    /// Handles <c>GET api/servers/{serverId}/secrets</c>, returning the secrets for the specified OpenID Server.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/secrets/get")]
     internal virtual async ValueTask<IResult> GetSecretsAsync(
         HttpContext httpContext,
         [FromRoute] string serverId,

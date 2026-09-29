@@ -20,22 +20,37 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
+namespace NCode.Identity.OpenId.Management.Contracts.Tenants;
 
 /// <summary>
-/// Represents the request body to create a new OpenID Server.
+/// Represents the request body to create a new OpenID Tenant.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class CreateServerRequest
+public sealed class CreateTenantRequest
 {
     /// <summary>
-    /// Gets the natural identifier to assign to the server.
+    /// Gets the natural identifier to assign to the tenant.
     /// </summary>
-    public required string ServerId { get; init; }
+    public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets the initial JSON settings for the server.
+    /// Gets the optional domain name used to locate the tenant, or <c>null</c> when not applicable.
+    /// </summary>
+    public string? DomainName { get; init; }
+
+    /// <summary>
+    /// Gets the display name for the tenant.
+    /// </summary>
+    public required string DisplayName { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the tenant is created in a disabled state.
+    /// </summary>
+    public required bool IsDisabled { get; init; }
+
+    /// <summary>
+    /// Gets the initial JSON settings for the tenant.
     /// </summary>
     public required JsonElement Settings { get; init; }
 }

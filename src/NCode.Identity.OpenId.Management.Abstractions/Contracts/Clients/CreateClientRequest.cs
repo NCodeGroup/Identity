@@ -17,29 +17,35 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Persistence;
-using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
+namespace NCode.Identity.OpenId.Management.Contracts.Clients;
 
 /// <summary>
-/// Represents the REST resource for a <see cref="PersistedClient"/> instance.
+/// Represents the request body to create a new OpenID Client.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class ClientResource : ISupportClientId, ISupportTenantId, ISupportConcurrencyToken
+public sealed class CreateClientRequest
 {
-    /// <inheritdoc cref="ISupportTenantId.TenantId"/>
-    public required string TenantId { get; init; }
-
-    /// <inheritdoc cref="ISupportClientId.ClientId"/>
+    /// <summary>
+    /// Gets the natural identifier to assign to the client.
+    /// </summary>
     public required string ClientId { get; init; }
 
-    /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
-    public required string ConcurrencyToken { get; init; }
+    /// <summary>
+    /// Gets the identifier of the OpenID Tenant that owns the client.
+    /// </summary>
+    public required string TenantId { get; init; }
 
-    /// <inheritdoc cref="PersistedClient.IsDisabled"/>
+    /// <summary>
+    /// Gets a value indicating whether the client is created in a disabled state.
+    /// </summary>
     public required bool IsDisabled { get; init; }
+
+    /// <summary>
+    /// Gets the initial JSON settings for the client.
+    /// </summary>
+    public required JsonElement Settings { get; init; }
 }

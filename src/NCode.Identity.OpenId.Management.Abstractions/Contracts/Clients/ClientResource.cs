@@ -1,6 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-// Copyright @ 2025 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,27 +17,29 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
+namespace NCode.Identity.OpenId.Management.Contracts.Clients;
 
 /// <summary>
-/// Represents the REST resource for a <see cref="PersistedServerSettings"/> instance.
+/// Represents the REST resource for a <see cref="PersistedClient"/> instance.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class ServerSettingsResource : ISupportServerId, ISupportConcurrencyToken
+public sealed class ClientResource : ISupportClientId, ISupportTenantId, ISupportConcurrencyToken
 {
-    /// <inheritdoc cref="ISupportServerId.ServerId"/>
-    public required string ServerId { get; init; }
+    /// <inheritdoc cref="ISupportTenantId.TenantId"/>
+    public required string TenantId { get; init; }
+
+    /// <inheritdoc cref="ISupportClientId.ClientId"/>
+    public required string ClientId { get; init; }
 
     /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }
 
-    /// <inheritdoc cref="PersistedServerResource{TValue}.Value"/>
-    public required JsonElement Settings { get; init; }
+    /// <inheritdoc cref="PersistedClient.IsDisabled"/>
+    public required bool IsDisabled { get; init; }
 }

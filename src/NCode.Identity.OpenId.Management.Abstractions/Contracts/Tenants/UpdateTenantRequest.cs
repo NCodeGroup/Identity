@@ -17,30 +17,34 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
+namespace NCode.Identity.OpenId.Management.Contracts.Tenants;
 
 /// <summary>
-/// Represents the request body to update the metadata of an existing server secret. Key material is immutable
-/// once generated (rotation is create-new + delete-old). See ADR-0011.
+/// Represents the mutable metadata of an OpenID Tenant that a JSON Patch document may modify. Settings and
+/// secrets are managed through their own endpoints.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class UpdateSecretRequest
+public sealed class UpdateTenantRequest
 {
     /// <summary>
-    /// Gets the intended use for the secret, or <c>null</c> for any compatible use.
+    /// Gets or sets the optional domain name used to locate the tenant, or <c>null</c> when not applicable.
     /// </summary>
-    public string? Use { get; init; }
+    [JsonPropertyName("domainName")]
+    public string? DomainName { get; set; }
 
     /// <summary>
-    /// Gets the intended algorithm for the secret, or <c>null</c> for any compatible algorithm.
+    /// Gets or sets the display name for the tenant.
     /// </summary>
-    public string? Algorithm { get; init; }
+    [JsonPropertyName("displayName")]
+    public string? DisplayName { get; set; }
 
     /// <summary>
-    /// Gets the <see cref="DateTimeOffset"/> when the secret expires and is no longer valid.
+    /// Gets or sets a value indicating whether the tenant is disabled.
     /// </summary>
-    public required DateTimeOffset ExpiresWhen { get; init; }
+    [JsonPropertyName("isDisabled")]
+    public bool IsDisabled { get; set; }
 }

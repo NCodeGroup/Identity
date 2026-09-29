@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2026 NCode Group
+// Copyright @ 2025 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,34 +18,28 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Management.Endpoints.Secrets;
+using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
+namespace NCode.Identity.OpenId.Management.Contracts.Servers;
 
 /// <summary>
-/// Represents the REST resource for a <see cref="PersistedClientSecrets"/> instance.
+/// Represents the REST resource for a <see cref="PersistedServerSecrets"/> instance.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class ClientSecretsResource
-    : ISupportClientId,
-        ISupportTenantId,
-        ISupportConcurrencyToken
+public sealed class ServerSecretsResource : ISupportServerId, ISupportConcurrencyToken
 {
-    /// <inheritdoc cref="ISupportTenantId.TenantId"/>
-    public required string TenantId { get; init; }
-
-    /// <inheritdoc cref="ISupportClientId.ClientId"/>
-    public required string ClientId { get; init; }
+    /// <inheritdoc cref="ISupportServerId.ServerId"/>
+    public required string ServerId { get; init; }
 
     /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }
 
     /// <summary>
-    /// Gets the collection of secrets only known to an OpenID Client instance.
+    /// Gets or sets the collection of secrets only known to an OpenID Server instance.
     /// </summary>
     public required IReadOnlyCollection<SecretResource> Secrets { get; init; }
 }

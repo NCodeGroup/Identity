@@ -17,35 +17,30 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
+namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 
 /// <summary>
-/// Represents the request body to create a new OpenID Client.
+/// Represents the request body to update the metadata of an existing server secret. Key material is immutable
+/// once generated (rotation is create-new + delete-old). See ADR-0011.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class CreateClientRequest
+public sealed class UpdateSecretRequest
 {
     /// <summary>
-    /// Gets the natural identifier to assign to the client.
+    /// Gets the intended use for the secret, or <c>null</c> for any compatible use.
     /// </summary>
-    public required string ClientId { get; init; }
+    public string? Use { get; init; }
 
     /// <summary>
-    /// Gets the identifier of the OpenID Tenant that owns the client.
+    /// Gets the intended algorithm for the secret, or <c>null</c> for any compatible algorithm.
     /// </summary>
-    public required string TenantId { get; init; }
+    public string? Algorithm { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the client is created in a disabled state.
+    /// Gets the <see cref="DateTimeOffset"/> when the secret expires and is no longer valid.
     /// </summary>
-    public required bool IsDisabled { get; init; }
-
-    /// <summary>
-    /// Gets the initial JSON settings for the client.
-    /// </summary>
-    public required JsonElement Settings { get; init; }
+    public required DateTimeOffset ExpiresWhen { get; init; }
 }

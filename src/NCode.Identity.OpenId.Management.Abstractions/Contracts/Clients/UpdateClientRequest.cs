@@ -20,30 +20,18 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
+namespace NCode.Identity.OpenId.Management.Contracts.Clients;
 
 /// <summary>
-/// Represents the mutable metadata of an OpenID Tenant that a JSON Patch document may modify. Settings and
+/// Represents the mutable metadata of an OpenID Client that a JSON Patch document may modify. Settings and
 /// secrets are managed through their own endpoints.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class UpdateTenantRequest
+public sealed class UpdateClientRequest
 {
     /// <summary>
-    /// Gets or sets the optional domain name used to locate the tenant, or <c>null</c> when not applicable.
-    /// </summary>
-    [JsonPropertyName("domainName")]
-    public string? DomainName { get; set; }
-
-    /// <summary>
-    /// Gets or sets the display name for the tenant.
-    /// </summary>
-    [JsonPropertyName("displayName")]
-    public string? DisplayName { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the tenant is disabled.
+    /// Gets or sets a value indicating whether the client is disabled.
     /// </summary>
     [JsonPropertyName("isDisabled")]
     public bool IsDisabled { get; set; }

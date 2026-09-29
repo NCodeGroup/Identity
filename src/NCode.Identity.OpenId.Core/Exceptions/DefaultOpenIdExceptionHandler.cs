@@ -81,10 +81,12 @@ internal class DefaultOpenIdExceptionHandler(ILogger<DefaultOpenIdExceptionHandl
         OpenIdEnvironment openIdEnvironment,
         Exception exception
     ) =>
-        openIdEnvironment
-            .CreateError(OpenIdConstants.ErrorCodes.ServerError)
-            .WithDescription("An unexpected error occurred while processing the request.")
-            .WithStatusCode(StatusCodes.Status500InternalServerError)
-            .WithException(exception)
-            .AsHttpResult();
+        exception is OpenIdException openIdException
+            ? openIdException.Error.AsHttpResult()
+            : openIdEnvironment
+                .CreateError(OpenIdConstants.ErrorCodes.ServerError)
+                .WithDescription("An unexpected error occurred while processing the request.")
+                .WithStatusCode(StatusCodes.Status500InternalServerError)
+                .WithException(exception)
+                .AsHttpResult();
 }

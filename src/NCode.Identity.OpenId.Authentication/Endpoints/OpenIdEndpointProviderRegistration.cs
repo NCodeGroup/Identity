@@ -1,0 +1,51 @@
+#region Copyright Preamble
+
+// Copyright @ 2025 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Endpoints;
+using NCode.Registration;
+
+namespace NCode.Identity.OpenId.Authentication.Endpoints;
+
+/// <summary>
+/// Provides extension methods to register OpenID endpoint providers.
+/// </summary>
+internal static class OpenIdEndpointProviderRegistration
+{
+    /// <param name="builder">The <see cref="IServiceBuilder"/> to configure.</param>
+    extension(IServiceBuilder builder)
+    {
+        /// <summary>
+        /// Registers an <see cref="IOpenIdEndpointProvider"/> implementation so that it is mapped into the
+        /// OpenID route group by the <see cref="OpenIdEndpointGroupProvider"/> instead of directly onto the
+        /// root <see cref="IEndpointProvider"/> collection.
+        /// </summary>
+        public void AddOpenIdEndpointProvider<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T
+        >()
+            where T : class, IOpenIdEndpointProvider
+        {
+            var serviceCollection = builder.ServiceCollection;
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IOpenIdEndpointProvider, T>()
+            );
+        }
+    }
+}

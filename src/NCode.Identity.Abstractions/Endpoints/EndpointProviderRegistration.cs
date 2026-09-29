@@ -46,5 +46,19 @@ public static class EndpointProviderRegistration
             var serviceCollection = builder.ServiceCollection;
             serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IEndpointProvider, T>());
         }
+
+        /// <summary>
+        /// Registers an <see cref="IEndpointGroupProvider"/> implementation.
+        /// </summary>
+        public void AddEndpointGroupProvider<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T
+        >()
+            where T : class, IEndpointGroupProvider
+        {
+            var serviceCollection = builder.ServiceCollection;
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IEndpointGroupProvider, T>()
+            );
+        }
     }
 }

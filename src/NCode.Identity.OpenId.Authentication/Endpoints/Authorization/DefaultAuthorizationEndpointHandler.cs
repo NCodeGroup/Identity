@@ -52,7 +52,7 @@ internal class DefaultAuthorizationEndpointHandler(
     IClientAuthenticationService clientAuthenticationService,
     IAuthorizationEndpointLogic authorizationEndpointLogic,
     IKnownParameterCollectionProvider knownParameterCollectionProvider
-) : IEndpointProvider
+) : IOpenIdEndpointProvider
 {
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;

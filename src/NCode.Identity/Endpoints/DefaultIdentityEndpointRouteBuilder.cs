@@ -24,14 +24,26 @@ namespace NCode.Identity.Endpoints;
 /// <summary>
 /// Provides a default implementation of the <see cref="IIdentityEndpointRouteBuilder"/> abstraction.
 /// </summary>
-internal class DefaultIdentityEndpointRouteBuilder(IEnumerable<IEndpointProvider> endpointProviders)
-    : IIdentityEndpointRouteBuilder
+internal class DefaultIdentityEndpointRouteBuilder(
+    IEnumerable<IEndpointGroupProvider> endpointGroupProviders,
+    IEnumerable<IEndpointProvider> endpointProviders
+) : IIdentityEndpointRouteBuilder
 {
+    private ImmutableArray<IEndpointGroupProvider> EndpointGroupProviders { get; } =
+    [.. endpointGroupProviders];
+
     private ImmutableArray<IEndpointProvider> EndpointProviders { get; } = [.. endpointProviders];
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
+        // Grouped families (e.g. OpenID) own their own route group and conventions.
+        foreach (var endpointGroupProvider in EndpointGroupProviders)
+        {
+            endpointGroupProvider.Map(endpoints);
+        }
+
+        // Ungrouped providers map directly onto the root.
         foreach (var endpointProvider in EndpointProviders)
         {
             endpointProvider.Map(endpoints);

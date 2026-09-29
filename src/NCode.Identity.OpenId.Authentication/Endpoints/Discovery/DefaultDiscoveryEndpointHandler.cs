@@ -34,7 +34,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
 /// Provides a default implementation of the required services and handlers used by the discovery endpoint.
 /// </summary>
 internal class DefaultDiscoveryEndpointHandler(IOpenIdContextFactory contextFactory)
-    : IEndpointProvider
+    : IOpenIdEndpointProvider
 {
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
 

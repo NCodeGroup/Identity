@@ -39,7 +39,7 @@ internal static class DefaultRegistration
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<OpenIdAuthenticationEndpoints> AddJwksEndpoint()
         {
-            builder.AddEndpointProvider<DefaultJwksEndpointHandler>();
+            builder.AddOpenIdEndpointProvider<DefaultJwksEndpointHandler>();
 
             var serviceCollection = builder.ServiceCollection;
 

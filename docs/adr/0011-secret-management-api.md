@@ -83,17 +83,26 @@ carries a `// Future:` note rather than an implementation.
 - BYOK is a known follow-up; the DTO and store are shaped so import is an additive change, not a
   breaking one.
 - `ISecretGenerator` is new public surface in `NCode.Identity.Secrets.Persistence(.Abstractions)` and is
-  reusable for client/tenant secret management when those endpoint groups land.
-- The store methods **assign concurrency tokens manually** (they do not rely on
-  `ConcurrencyTokenSaveChangesInterceptor`). That interceptor only overrides the synchronous
-  `SavingChanges`, so it never fires for the `SaveChangesAsync` the stores use — a latent, provider-independent
-  gap that every store already works around by setting its own tokens. Fixing the interceptor to also handle
-  the async path is a separate, cross-cutting decision (it would double-assign the manually managed tokens).
+  reusable for client/tenant secret management when those endpoint groups land — the tenant secret endpoints
+  now consume it identically to the server ones.
+- Discovering that the secret store initially had no per-secret write path surfaced a latent, provider-independent
+  bug: `ConcurrencyTokenSaveChangesInterceptor` only overrode the synchronous `SavingChanges`, so it never fired
+  for the `SaveChangesAsync` the stores use. That is resolved on its own terms in
+  [ADR-0012](0012-interceptor-managed-concurrency-tokens.md); the secret stores rely on the (now working)
+  interceptor for row tokens and eagerly assign the token on insert so `POST` needs no re-read.
+- **Individual secret `GET`/`PUT`/`DELETE` authorize against the bare `PersistedSecret`, which is not
+  owner-scoped.** Tenant/client-level operations authorize against the owner resource (which carries
+  `TenantId`/`ClientId`, so `TenantAdminHandler` scopes them), but a single secret loaded by id does not carry
+  its owner, so a scoped admin is not yet constrained to their own tenant's/client's secrets by id. This is
+  masked today by the development-only `GlobalAdmin` bypass (`#if DEBUG`); it **must** be tightened — authorize
+  the individual secret operations against the owner — when real ACLs replace the bypass.
 
 ## References
 
 - [ADR-0002](0002-ephemeral-development-keys.md) — development key generation and the data-protection boundary.
 - [ADR-0010](0010-supported-settings-unset-means-unrestricted.md) — the settings cascade the sibling
   settings endpoints read.
+- [ADR-0012](0012-interceptor-managed-concurrency-tokens.md) — how the secret (and every) store's concurrency
+  token is generated.
 - `NCode.Identity.Secrets.Persistence.Logic.DefaultSecretSerializer` — the inverse unprotect path.
 - `NCode.Identity.OpenId.Persistence.Stores.IServerStore` — the extended store contract.

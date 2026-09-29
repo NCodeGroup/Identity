@@ -96,3 +96,32 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
     [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]  // lets Moq proxy internal types/members
     [assembly: InternalsVisibleTo("NCode.Identity.Jose.Tests")] // the matching test assembly
     ```
+
+- 👁 **A strict `.Verifiable()` setup must be consumed on every path that uses the shared scaffold.** If a collaborator
+  member is read only on _some_ code paths, move its setup **out** of the shared fixture and into just the tests that
+  exercise that path (have the fixture hand back the mock). Do **not** drop `.Verifiable()` to dodge an "unmet setup"
+  failure — that discards the isolation guarantee.
+- 👁 **A source-generated `ILogger<T>` needs only a loose mock.** `[LoggerMessage]` methods check `IsEnabled` first, and
+  a loose mock returns `false`, so `Log` is never called and no setup is needed — a sanctioned value-provider loose mock
+  (`CreateLooseMock<ILogger<T>>()`).
+
+## Persistence & integration tests
+
+- 👁 **Store / EF behavior is tested against a real provider, not a mocked store.** Anything that depends on
+  `SaveChanges` side effects — concurrency-token generation, cascade deletes, `SaveChangesInterceptor`s, value
+  converters — must run against an actual `DbContext` (EF **InMemory** covers most cases). Endpoint tests that mock the
+  store cannot observe these effects: a `SavingChanges`-only interceptor sat dead for exactly this reason (the codebase
+  saves via `SaveChangesAsync`; see
+  [ADR-0012](../../docs/adr/0012-interceptor-managed-concurrency-tokens.md)). Keep both layers — mock the store for
+  endpoint logic, and exercise the store itself against a real provider.
+- 👁 **EF InMemory does not enforce `[ConcurrencyCheck]`.** It honors a change-tracker interceptor but does **not** put
+  the token in the `UPDATE … WHERE` clause, so it cannot detect a concurrent-write conflict. A true
+  optimistic-concurrency test uses a **relational** provider — SQLite in-memory (a shared, open `SqliteConnection` +
+  `EnsureCreated`) with two `DbContext`s to stand in for the racing writers.
+- 👁 **Data-protection integration tests are not hermetic under a shared host.** A `WebApplicationFactory`
+  `IClassFixture` that protects/unprotects secrets (confidential clients, encrypted key material) leaks
+  keyring/serializer state between tests, and the second run fails (`invalid_client`). Give each such test its own
+  `using var factory = new PlaygroundApplicationFactory();`.
+- 👁 **Validate new tests in Release before running `dod.ps1`.** The gate builds and tests in **Release**, where
+  `Debug.Assert` and `#if DEBUG` blocks disappear; run `dotnet test <proj> --configuration Release` first to catch
+  Debug-vs-Release differences fast (a `#if DEBUG` auth bypass, a stripped assertion).

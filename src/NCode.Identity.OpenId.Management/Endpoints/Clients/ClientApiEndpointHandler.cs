@@ -31,6 +31,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
@@ -319,12 +320,14 @@ internal class ClientApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
+    /// <param name="mediator">The <see cref="IMediator"/> used to run the delete precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/clients/delete")]
     internal virtual async ValueTask<IResult> DeleteClientAsync(
         HttpContext httpContext,
         [FromRoute] string clientId,
+        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -337,34 +340,20 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            client,
-            Operations.Delete
+        // Preconditions (authorization + no-dependents) are asserted by the mediator pipeline, which decides
+        // on facts it queries rather than on caught exceptions (ADR-0013).
+        var disposition = new OperationDisposition<ManagementError>();
+        await mediator.SendAsync(
+            new ValidateDeleteClientCommand(httpContext, client, disposition),
+            cancellationToken
         );
 
-        if (!authorizationResult.Succeeded)
+        if (disposition.HasError)
         {
-            return AuthorizationFailed(httpContext);
+            return ToErrorResult(disposition.Error);
         }
 
-        try
-        {
-            var removed = await store.RemoveAsync(clientId, cancellationToken);
-            if (!removed)
-            {
-                return TypedResults.NotFound();
-            }
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "The client cannot be deleted while it still has dependent secrets.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
-
+        await store.RemoveAsync(clientId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
         return TypedResults.NoContent();

@@ -424,4 +424,22 @@ internal class ServerStore(
 
         return true;
     }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> HasDependentsAsync(
+        string serverId,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverEntity = await GetEntityOrDefaultAsync(serverId, cancellationToken);
+        if (serverEntity is null)
+        {
+            return false;
+        }
+
+        return await DbContext.ServerSecrets.AnyAsync(
+            serverSecret => serverSecret.ServerId == serverEntity.Id,
+            cancellationToken
+        );
+    }
 }

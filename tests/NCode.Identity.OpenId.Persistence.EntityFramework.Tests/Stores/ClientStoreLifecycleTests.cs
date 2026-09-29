@@ -175,4 +175,24 @@ public sealed class ClientStoreLifecycleTests : IDisposable
 
         Assert.False(removed);
     }
+
+    [Fact]
+    public async Task HasDependentsAsync_WhenNoSecrets_ReturnsFalse()
+    {
+        await SeedClientAsync();
+
+        var result = await _store.HasDependentsAsync(ClientId, CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task HasDependentsAsync_WhenHasSecrets_ReturnsTrue()
+    {
+        await SeedClientAsync(CreateSecret("secret-1"));
+
+        var result = await _store.HasDependentsAsync(ClientId, CancellationToken.None);
+
+        Assert.True(result);
+    }
 }

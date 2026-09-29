@@ -405,4 +405,22 @@ internal class ClientStore(
 
         return true;
     }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> HasDependentsAsync(
+        string clientId,
+        CancellationToken cancellationToken
+    )
+    {
+        var clientEntity = await GetEntityOrDefaultAsync(clientId, cancellationToken);
+        if (clientEntity is null)
+        {
+            return false;
+        }
+
+        return await DbContext.ClientSecrets.AnyAsync(
+            clientSecret => clientSecret.ClientId == clientEntity.Id,
+            cancellationToken
+        );
+    }
 }

@@ -63,6 +63,30 @@ public static class DefaultRegistration
                     DefaultTenantHasNoDependentsHandler
                 >()
             );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateDeleteClientCommand>,
+                    DefaultAuthorizeDeleteClientHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateDeleteClientCommand>,
+                    DefaultClientHasNoDependentsHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateDeleteServerCommand>,
+                    DefaultAuthorizeDeleteServerHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateDeleteServerCommand>,
+                    DefaultServerHasNoDependentsHandler
+                >()
+            );
 
             builder.AddEndpointProvider<ServerApiEndpointHandler>();
             builder.AddEndpointProvider<TenantApiEndpointHandler>();

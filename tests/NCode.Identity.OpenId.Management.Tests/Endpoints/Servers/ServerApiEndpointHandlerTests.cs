@@ -31,6 +31,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Operations;
@@ -48,6 +49,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<IServerStore> MockServerStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
+    private Mock<IMediator> MockMediator { get; }
     private ServerApiEndpointHandler Handler { get; }
 
     public ServerApiEndpointHandlerTests()
@@ -58,6 +60,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockServerStore = MockRepository.Create<IServerStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
+        MockMediator = MockRepository.Create<IMediator>();
 
         Handler = new ServerApiEndpointHandler(
             MockStoreManagerFactory.Object,
@@ -922,6 +925,102 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             httpContext,
             ServerId,
             "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region DeleteServerAsync Tests
+
+    [Fact]
+    public async Task DeleteServerAsync_WhenPreconditionsPass_ReturnsNoContent()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateServer("server-ct"))
+            .Verifiable();
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(It.IsAny<ValidateDeleteServerCommand>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockServerStore
+            .Setup(x => x.RemoveAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.DeleteServerAsync(
+            httpContext,
+            ServerId,
+            MockMediator.Object,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task DeleteServerAsync_WhenPipelineReportsConflict_ReturnsProblem()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateServer("server-ct"))
+            .Verifiable();
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(It.IsAny<ValidateDeleteServerCommand>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (ValidateDeleteServerCommand command, CancellationToken _) =>
+                    command.Disposition.Error = new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status409Conflict,
+                        Detail = "conflict",
+                    }
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.DeleteServerAsync(
+            httpContext,
+            ServerId,
+            MockMediator.Object,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteServerAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedServer?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.DeleteServerAsync(
+            httpContext,
+            ServerId,
+            MockMediator.Object,
             CancellationToken.None
         );
 

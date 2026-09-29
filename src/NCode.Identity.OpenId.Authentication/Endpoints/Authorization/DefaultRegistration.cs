@@ -51,7 +51,7 @@ internal static class DefaultRegistration
         public IServiceBuilder<OpenIdAuthenticationEndpoints> AddAuthorizationEndpoint()
         {
             // Endpoints
-            builder.AddEndpointProvider<DefaultAuthorizationEndpointHandler>();
+            builder.AddOpenIdEndpointProvider<DefaultAuthorizationEndpointHandler>();
 
             // Messages
             builder.AddMessageFactory<AuthorizationRequestMessage>();

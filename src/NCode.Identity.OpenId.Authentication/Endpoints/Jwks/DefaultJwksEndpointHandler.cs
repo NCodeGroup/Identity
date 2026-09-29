@@ -41,7 +41,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 internal class DefaultJwksEndpointHandler(
     IOpenIdContextFactory contextFactory,
     IEnumerable<IJsonWebKeyConverter> jsonWebKeyConverters
-) : IEndpointProvider
+) : IOpenIdEndpointProvider
 {
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private ImmutableArray<IJsonWebKeyConverter> JsonWebKeyConverters { get; } =

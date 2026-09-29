@@ -42,7 +42,7 @@ internal class DefaultContinueEndpointHandler(
     IOpenIdContextFactory contextFactory,
     IPersistedGrantService persistedGrantService,
     IContinueProviderSelector continueProviderSelector
-) : IEndpointProvider
+) : IOpenIdEndpointProvider
 {
     private ILogger<DefaultContinueEndpointHandler> Logger { get; } = logger;
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;

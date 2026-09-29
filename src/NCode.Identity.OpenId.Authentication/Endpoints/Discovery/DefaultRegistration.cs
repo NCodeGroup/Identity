@@ -42,7 +42,7 @@ internal static class DefaultRegistration
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<OpenIdAuthenticationEndpoints> AddDiscoveryEndpoint()
         {
-            builder.AddEndpointProvider<DefaultDiscoveryEndpointHandler>();
+            builder.AddOpenIdEndpointProvider<DefaultDiscoveryEndpointHandler>();
 
             var serviceCollection = builder.ServiceCollection;
 

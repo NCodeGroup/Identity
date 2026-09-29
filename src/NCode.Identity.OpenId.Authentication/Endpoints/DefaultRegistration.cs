@@ -18,6 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
@@ -44,6 +45,8 @@ internal static class DefaultRegistration
         public IServiceBuilder<OpenIdAuthenticationLibrary> AddEndpoints()
         {
             var newBuilder = builder.NewBuilder<OpenIdAuthenticationEndpoints>();
+
+            newBuilder.AddEndpointGroupProvider<OpenIdEndpointGroupProvider>();
 
             newBuilder.AddAuthorizationEndpoint();
             newBuilder.AddContinueEndpoint();

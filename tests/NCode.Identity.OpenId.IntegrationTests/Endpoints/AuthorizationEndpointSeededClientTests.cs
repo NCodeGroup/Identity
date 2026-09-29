@@ -17,6 +17,7 @@
 #endregion
 
 using System.Net;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
@@ -99,9 +100,12 @@ public class AuthorizationEndpointSeededClientTests(PlaygroundApplicationFactory
 
         using var response = await client.GetAsync("/oauth2/authorize" + query);
 
-        // An unregistered redirect_uri is not safe to redirect to: the request must fail rather than
-        // open-redirect to the attacker-controlled URI.
-        Assert.True((int)response.StatusCode >= 400);
-        Assert.NotEqual(HttpStatusCode.Redirect, response.StatusCode);
+        // An unregistered redirect_uri is not safe to redirect to: the request must fail with a
+        // standard OpenID error response rather than open-redirect to the attacker-controlled URI.
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(document.RootElement.TryGetProperty("error", out var error));
+        Assert.False(string.IsNullOrEmpty(error.GetString()));
     }
 }

@@ -48,7 +48,7 @@ internal class DefaultTokenEndpointProvider(
     IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService,
     IKnownParameterCollectionProvider knownParameterCollectionProvider
-) : IEndpointProvider
+) : IOpenIdEndpointProvider
 {
     private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } =

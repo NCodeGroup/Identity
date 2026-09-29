@@ -17,47 +17,34 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Endpoints;
 using NCode.Registration;
 
-namespace NCode.Identity.Endpoints;
-
-// TODO
+namespace NCode.Identity.OpenId.Authentication.Endpoints;
 
 /// <summary>
-/// Provides extension methods to configure identity endpoint providers.
+/// Provides extension methods to register OpenID endpoint providers.
 /// </summary>
-[PublicAPI]
-public static class EndpointProviderRegistration
+internal static class OpenIdEndpointProviderRegistration
 {
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure.</param>
     extension(IServiceBuilder builder)
     {
         /// <summary>
-        /// Registers an <see cref="IEndpointProvider"/> implementation.
+        /// Registers an <see cref="IOpenIdEndpointProvider"/> implementation so that it is mapped into the
+        /// OpenID route group by the <see cref="OpenIdEndpointGroupProvider"/> instead of directly onto the
+        /// root <see cref="IEndpointProvider"/> collection.
         /// </summary>
-        public void AddEndpointProvider<
+        public void AddOpenIdEndpointProvider<
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T
         >()
-            where T : class, IEndpointProvider
-        {
-            var serviceCollection = builder.ServiceCollection;
-            serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IEndpointProvider, T>());
-        }
-
-        /// <summary>
-        /// Registers an <see cref="IEndpointGroupProvider"/> implementation.
-        /// </summary>
-        public void AddEndpointGroupProvider<
-            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T
-        >()
-            where T : class, IEndpointGroupProvider
+            where T : class, IOpenIdEndpointProvider
         {
             var serviceCollection = builder.ServiceCollection;
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IEndpointGroupProvider, T>()
+                ServiceDescriptor.Singleton<IOpenIdEndpointProvider, T>()
             );
         }
     }

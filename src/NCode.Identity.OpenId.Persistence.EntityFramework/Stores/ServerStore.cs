@@ -110,10 +110,11 @@ internal class ServerStore(
         CancellationToken cancellationToken
     )
     {
-        return await DbContext
-            .Servers.Include(server => server.Secrets)
-                .ThenInclude(serverSecret => serverSecret.Secret)
-            .SingleOrDefaultAsync(predicate, cancellationToken);
+        return GetLocalOrDefault(predicate)
+            ?? await DbContext
+                .Servers.Include(server => server.Secrets)
+                    .ThenInclude(serverSecret => serverSecret.Secret)
+                .SingleOrDefaultAsync(predicate, cancellationToken);
     }
 
     /// <inheritdoc />

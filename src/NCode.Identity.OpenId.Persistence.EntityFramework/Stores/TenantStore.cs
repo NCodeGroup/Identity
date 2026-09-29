@@ -112,10 +112,11 @@ internal class TenantStore(
         CancellationToken cancellationToken
     )
     {
-        return await DbContext
-            .Tenants.Include(tenant => tenant.Secrets)
-                .ThenInclude(tenantSecret => tenantSecret.Secret)
-            .SingleOrDefaultAsync(predicate, cancellationToken);
+        return GetLocalOrDefault(predicate)
+            ?? await DbContext
+                .Tenants.Include(tenant => tenant.Secrets)
+                    .ThenInclude(tenantSecret => tenantSecret.Secret)
+                .SingleOrDefaultAsync(predicate, cancellationToken);
     }
 
     /// <inheritdoc />

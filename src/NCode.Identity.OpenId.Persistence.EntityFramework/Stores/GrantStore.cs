@@ -76,10 +76,11 @@ internal class GrantStore(
         CancellationToken cancellationToken
     )
     {
-        return await DbContext
-            .Grants.Include(entity => entity.Tenant)
-            .Include(entity => entity.Client)
-            .SingleOrDefaultAsync(predicate, cancellationToken);
+        return GetLocalOrDefault(predicate)
+            ?? await DbContext
+                .Grants.Include(entity => entity.Tenant)
+                .Include(entity => entity.Client)
+                .SingleOrDefaultAsync(predicate, cancellationToken);
     }
 
     /// <inheritdoc />

@@ -62,9 +62,8 @@ internal class DefaultValidateRefreshTokenGrantHandler
                 .AsException("The refresh token belongs to a different client.");
 
         if (
-            !settings
-                .GetValue(OpenIdSettingKeys.ScopesSupported)
-                .Contains(OpenIdConstants.ScopeTypes.OfflineAccess)
+            settings.TryGetValue(OpenIdSettingKeys.ScopesSupported, out var scopesSupported)
+            && !scopesSupported.Contains(OpenIdConstants.ScopeTypes.OfflineAccess)
         )
             throw errorFactory
                 .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
@@ -86,9 +85,9 @@ internal class DefaultValidateRefreshTokenGrantHandler
                 );
 
         // scopes_supported
-        var hasInvalidScopes = effectiveScopes
-            .Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported))
-            .Any();
+        var hasInvalidScopes =
+            settings.TryGetValue(OpenIdSettingKeys.ScopesSupported, out var scopesSupportedCeiling)
+            && effectiveScopes.Except(scopesSupportedCeiling).Any();
         if (hasInvalidScopes)
             throw errorFactory
                 .InvalidScope()

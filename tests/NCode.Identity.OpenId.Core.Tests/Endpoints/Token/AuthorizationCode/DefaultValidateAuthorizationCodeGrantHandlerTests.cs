@@ -171,8 +171,8 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
 
         IReadOnlyCollection<string> scopesSupported = [];
         mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.ScopesSupported))
-            .Returns(scopesSupported);
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.ScopesSupported, out scopesSupported))
+            .Returns(true);
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(command, CancellationToken.None)
@@ -192,8 +192,8 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
 
         IReadOnlyCollection<string> scopesSupported = ["api"];
         mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.ScopesSupported))
-            .Returns(scopesSupported);
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.ScopesSupported, out scopesSupported))
+            .Returns(true);
 
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         mockMediator

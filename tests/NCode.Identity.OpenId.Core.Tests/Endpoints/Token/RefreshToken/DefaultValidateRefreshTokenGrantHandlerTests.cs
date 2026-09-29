@@ -65,8 +65,8 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
         mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
 
         mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.ScopesSupported))
-            .Returns(scopesSupported);
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.ScopesSupported, out scopesSupported))
+            .Returns(true);
 
         var command = new ValidateTokenGrantCommand<RefreshTokenGrant>(
             mockContext.Object,

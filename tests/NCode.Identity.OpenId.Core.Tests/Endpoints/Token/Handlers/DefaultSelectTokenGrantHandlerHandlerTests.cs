@@ -80,8 +80,8 @@ public class DefaultSelectTokenGrantHandlerHandlerTests : BaseTests
     {
         IReadOnlyCollection<string> supported = grantTypes;
         mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.GrantTypesSupported))
-            .Returns(supported);
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out supported))
+            .Returns(true);
     }
 
     #endregion

@@ -111,9 +111,9 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(ICryptoService crypt
                 );
 
         // scopes_supported
-        var hasInvalidScopes = effectiveScopes
-            .Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported))
-            .Any();
+        var hasInvalidScopes =
+            settings.TryGetValue(OpenIdSettingKeys.ScopesSupported, out var scopesSupported)
+            && effectiveScopes.Except(scopesSupported).Any();
         if (hasInvalidScopes)
             // invalid_scope
             throw errorFactory

@@ -50,8 +50,9 @@ internal class DefaultValidateTokenRequestHandler
         // scopes_supported
         var requestedScopes = tokenRequest.Scopes;
         var hasInvalidScopes =
-            requestedScopes?.Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported)).Any()
-            ?? false;
+            requestedScopes is not null
+            && settings.TryGetValue(OpenIdSettingKeys.ScopesSupported, out var scopesSupported)
+            && requestedScopes.Except(scopesSupported).Any();
         if (hasInvalidScopes)
             // invalid_scope
             throw errorFactory

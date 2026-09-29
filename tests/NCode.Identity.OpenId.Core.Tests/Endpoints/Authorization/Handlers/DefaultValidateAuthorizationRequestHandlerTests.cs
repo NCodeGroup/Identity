@@ -45,8 +45,8 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         IReadOnlyCollection<string> scopesSupported = [];
         mockRequest.SetupGet(x => x.Scopes).Returns(emptyScopes);
         mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.ScopesSupported))
-            .Returns(scopesSupported);
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.ScopesSupported, out scopesSupported))
+            .Returns(true);
 
         return (mockSettings, mockRequest);
     }

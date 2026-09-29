@@ -408,7 +408,10 @@ internal class DefaultValidateAuthorizationRequestHandler
         }
 
         // scopes_supported
-        if (request.Scopes.Except(settings.GetValue(OpenIdSettingKeys.ScopesSupported)).Any())
+        if (
+            settings.TryGetValue(OpenIdSettingKeys.ScopesSupported, out var scopesSupported)
+            && request.Scopes.Except(scopesSupported).Any()
+        )
         {
             throw errorFactory.InvalidScope().AsException();
         }

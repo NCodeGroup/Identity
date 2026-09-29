@@ -1,0 +1,81 @@
+#region Copyright Preamble
+
+// Copyright @ 2025 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using JetBrains.Annotations;
+using NCode.Identity.Settings;
+
+namespace NCode.Identity.OpenId.Authentication.Settings;
+
+/// <summary>
+/// Provides the built-in, off-the-shelf baseline for the <c>*_supported</c> server settings so that a host
+/// which configures nothing still gets a sensible, spec-compliant ceiling. Registered by default and
+/// replaceable/extendable by hosts.
+/// </summary>
+[PublicAPI]
+internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
+{
+    /// <inheritdoc />
+    public void Configure(ISettingCollection settings)
+    {
+        settings.Set(
+            OpenIdSettingKeys.GrantTypesSupported,
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+        );
+
+        settings.Set(
+            OpenIdSettingKeys.PromptValuesSupported,
+            [
+                OpenIdConstants.PromptTypes.None,
+                OpenIdConstants.PromptTypes.Login,
+                OpenIdConstants.PromptTypes.Consent,
+                OpenIdConstants.PromptTypes.SelectAccount,
+                OpenIdConstants.PromptTypes.CreateAccount,
+            ]
+        );
+
+        settings.Set(
+            OpenIdSettingKeys.ResponseModesSupported,
+            [
+                OpenIdConstants.ResponseModes.Query,
+                OpenIdConstants.ResponseModes.Fragment,
+                OpenIdConstants.ResponseModes.FormPost,
+            ]
+        );
+
+        settings.Set(
+            OpenIdSettingKeys.ResponseTypesSupported,
+            [
+                OpenIdConstants.ResponseTypes.Code,
+                OpenIdConstants.ResponseTypes.IdToken,
+                OpenIdConstants.ResponseTypes.Token,
+            ]
+        );
+
+        settings.Set(
+            OpenIdSettingKeys.ScopesSupported,
+            [
+                OpenIdConstants.ScopeTypes.OpenId,
+                OpenIdConstants.ScopeTypes.Profile,
+                OpenIdConstants.ScopeTypes.Email,
+                OpenIdConstants.ScopeTypes.Address,
+                OpenIdConstants.ScopeTypes.Phone,
+                OpenIdConstants.ScopeTypes.OfflineAccess,
+            ]
+        );
+    }
+}

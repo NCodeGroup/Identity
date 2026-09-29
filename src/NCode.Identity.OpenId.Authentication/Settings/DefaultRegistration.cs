@@ -50,6 +50,10 @@ internal static class DefaultRegistration
                 >()
             );
 
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IDefaultSettingsProvider, DefaultSettingsProvider>()
+            );
+
             return builder;
         }
     }

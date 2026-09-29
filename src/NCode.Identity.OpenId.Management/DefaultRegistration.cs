@@ -65,6 +65,30 @@ public static class DefaultRegistration
             );
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateCreateTenantCommand>,
+                    DefaultAuthorizeCreateTenantHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateCreateTenantCommand>,
+                    DefaultTenantIsUniqueHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateUpdateTenantCommand>,
+                    DefaultAuthorizeUpdateTenantHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateUpdateTenantCommand>,
+                    DefaultTenantIfMatchHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
                     ICommandHandler<ValidateDeleteClientCommand>,
                     DefaultAuthorizeDeleteClientHandler
                 >()

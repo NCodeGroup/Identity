@@ -168,12 +168,14 @@ internal class TenantApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="request">The <see cref="CreateTenantRequest"/> describing the tenant to create.</param>
+    /// <param name="mediator">The <see cref="IMediator"/> used to run the create precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/tenants/create")]
     internal virtual async ValueTask<IResult> CreateTenantAsync(
         HttpContext httpContext,
         [FromBody] CreateTenantRequest request,
+        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -201,24 +203,16 @@ internal class TenantApiEndpointHandler(
             },
         };
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            tenant,
-            Operations.Create
+        // Preconditions (authorization + uniqueness) are asserted by the mediator pipeline (ADR-0013).
+        var disposition = new OperationDisposition<ManagementError>();
+        await mediator.SendAsync(
+            new ValidateCreateTenantCommand(httpContext, tenant, disposition),
+            cancellationToken
         );
 
-        if (!authorizationResult.Succeeded)
+        if (disposition.HasError)
         {
-            return AuthorizationFailed(httpContext);
-        }
-
-        var existing = await store.GetOrDefaultAsync(request.TenantId, cancellationToken);
-        if (existing is not null)
-        {
-            return TypedResults.Problem(
-                detail: $"A tenant with TenantId='{request.TenantId}' already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
+            return ToErrorResult(disposition.Error);
         }
 
         await store.AddAsync(tenant, cancellationToken);
@@ -237,6 +231,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="request">The JSON Patch document to apply to the tenant metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current tenant.</param>
+    /// <param name="mediator">The <see cref="IMediator"/> used to run the update precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/tenants/update")]
@@ -245,6 +240,7 @@ internal class TenantApiEndpointHandler(
         [FromRoute] string tenantId,
         [FromBody] JsonPatchDocument<UpdateTenantRequest> request,
         [FromHeader(Name = "If-Match")] string? ifMatch,
+        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -257,23 +253,16 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            tenant,
-            Operations.Update
+        // Preconditions (authorization + If-Match) are asserted by the mediator pipeline (ADR-0013).
+        var disposition = new OperationDisposition<ManagementError>();
+        await mediator.SendAsync(
+            new ValidateUpdateTenantCommand(httpContext, tenant, ifMatch, disposition),
+            cancellationToken
         );
 
-        if (!authorizationResult.Succeeded)
+        if (disposition.HasError)
         {
-            return AuthorizationFailed(httpContext);
-        }
-
-        if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, tenant.ConcurrencyToken, StringComparison.Ordinal)
-        )
-        {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+            return ToErrorResult(disposition.Error);
         }
 
         var model = new UpdateTenantRequest

@@ -67,6 +67,34 @@ NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.Server
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.ServerSettingsResource() -> void
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.Settings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.DisplayName.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.DisplayName.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.DomainName.get -> string?
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.DomainName.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.IsDisabled.get -> bool
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.IsDisabled.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.TenantResource() -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource!>!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.Secrets.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.TenantSecretsResource() -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.TenantSettingsResource() -> void
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary.ConfigureMethod.get -> string!
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary.DisplayName.get -> string!

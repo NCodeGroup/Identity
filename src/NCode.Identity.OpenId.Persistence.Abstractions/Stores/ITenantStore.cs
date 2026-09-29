@@ -19,6 +19,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.Stores;
@@ -83,6 +84,88 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask UpdateSettingsAsync(
         PersistedTenantSettings persistedTenantSettings,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Attempts to get the <see cref="PersistedTenantSettings"/> instance from the store with the specified identifier.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedTenantSettings"/> if found; otherwise <c>null</c>.</returns>
+    ValueTask<PersistedTenantSettings?> GetSettingsOrDefaultAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Attempts to get the <see cref="PersistedTenantSecrets"/> instance from the store with the specified identifier.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedTenantSecrets"/> if found; otherwise <c>null</c>.</returns>
+    ValueTask<PersistedTenantSecrets?> GetSecretsOrDefaultAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Attempts to get a single <see cref="PersistedSecret"/> for an OpenId Tenant by its identifier.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
+    /// <param name="secretId">The identifier of the secret to retrieve.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedSecret"/> if found; otherwise <c>null</c>.</returns>
+    ValueTask<PersistedSecret?> GetSecretOrDefaultAsync(
+        string tenantId,
+        string secretId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Adds a new secret to an OpenId Tenant and bumps the tenant's secrets concurrency token so that any
+    /// running tenant instance refreshes its secret collection.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
+    /// <param name="persistedSecret">The <see cref="PersistedSecret"/> to add.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask AddSecretAsync(
+        string tenantId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Updates the metadata of an existing secret for an OpenId Tenant (key material is immutable) and bumps
+    /// the tenant's secrets concurrency token so that any running tenant instance refreshes its secret collection.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
+    /// <param name="persistedSecret">The <see cref="PersistedSecret"/> whose metadata is updated. Its
+    /// <see cref="PersistedSecret.ConcurrencyToken"/> is checked for optimistic concurrency.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask UpdateSecretAsync(
+        string tenantId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Removes a secret from an OpenId Tenant and bumps the tenant's secrets concurrency token so that any
+    /// running tenant instance refreshes its secret collection.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
+    /// <param name="secretId">The identifier of the secret to remove.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
+    /// if a secret was removed; otherwise <c>false</c> when no matching secret existed.</returns>
+    ValueTask<bool> RemoveSecretAsync(
+        string tenantId,
+        string secretId,
         CancellationToken cancellationToken
     );
 }

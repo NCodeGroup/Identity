@@ -183,6 +183,15 @@ NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.DomainNam
 NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.IsDisabled.set -> void
 NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.UpdateTenantRequest() -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.Disposition.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.HttpContext.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.Tenant.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.Tenant.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.ValidateCreateTenantCommand() -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.ValidateCreateTenantCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! Tenant, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.Disposition.init -> void
@@ -192,6 +201,17 @@ NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.T
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.Tenant.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.ValidateDeleteTenantCommand() -> void
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.ValidateDeleteTenantCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! Tenant, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.Disposition.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.HttpContext.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.IfMatch.get -> string?
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.IfMatch.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.Tenant.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.Tenant.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.ValidateUpdateTenantCommand() -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.ValidateUpdateTenantCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! Tenant, string? IfMatch, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
 NCode.Identity.OpenId.Management.ManagementError
 NCode.Identity.OpenId.Management.ManagementError.Detail.get -> string!
 NCode.Identity.OpenId.Management.ManagementError.Detail.init -> void

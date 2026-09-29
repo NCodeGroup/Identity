@@ -777,4 +777,141 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     #endregion
+
+    #region CreateTenantAsync / UpdateTenantAsync Tests
+
+    private static CreateTenantRequest CreateTenantRequest() =>
+        new()
+        {
+            TenantId = TenantId,
+            DomainName = null,
+            DisplayName = "Tenant One",
+            IsDisabled = false,
+            Settings = EmptyObject(),
+        };
+
+    [Fact]
+    public async Task CreateTenantAsync_WhenPreconditionsPass_ReturnsCreated()
+    {
+        SetupStore();
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(It.IsAny<ValidateCreateTenantCommand>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedTenant>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateTenantAsync(
+            httpContext,
+            CreateTenantRequest(),
+            MockMediator.Object,
+            CancellationToken.None
+        );
+
+        Assert.IsType<Created<TenantResource>>(result);
+    }
+
+    [Fact]
+    public async Task CreateTenantAsync_WhenPipelineReportsConflict_ReturnsProblem()
+    {
+        SetupStore();
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(It.IsAny<ValidateCreateTenantCommand>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (ValidateCreateTenantCommand command, CancellationToken _) =>
+                    command.Disposition.Error = new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status409Conflict,
+                        Detail = "conflict",
+                    }
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateTenantAsync(
+            httpContext,
+            CreateTenantRequest(),
+            MockMediator.Object,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateTenantAsync_WhenPreconditionsPass_ReturnsNoContent()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(It.IsAny<ValidateUpdateTenantCommand>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.UpdateAsync(It.IsAny<PersistedTenant>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateTenantAsync(
+            httpContext,
+            TenantId,
+            new JsonPatchDocument<UpdateTenantRequest>(),
+            ifMatch: null,
+            MockMediator.Object,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateTenantAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateTenantAsync(
+            httpContext,
+            TenantId,
+            new JsonPatchDocument<UpdateTenantRequest>(),
+            ifMatch: null,
+            MockMediator.Object,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
 }

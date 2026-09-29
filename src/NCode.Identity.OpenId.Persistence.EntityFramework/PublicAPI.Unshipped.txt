@@ -82,7 +82,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity.
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity.TenantId.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Algorithm.get -> string?
-NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Algorithm.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Algorithm.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ConcurrencyToken.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.CreatedWhen.get -> System.DateTimeOffset
@@ -90,7 +90,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.CreatedW
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.EncodedValue.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.EncodedValue.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ExpiresWhen.get -> System.DateTimeOffset
-NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ExpiresWhen.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Id.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Id.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.KeySizeBits.get -> int
@@ -103,7 +103,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.SecretId
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.SecretType.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.SecretType.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Use.get -> string?
-NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Use.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Use.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity.ConcurrencyToken.set -> void

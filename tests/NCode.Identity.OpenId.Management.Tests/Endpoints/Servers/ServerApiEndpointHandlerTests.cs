@@ -23,9 +23,13 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Operations;
@@ -42,6 +46,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IServerStore> MockServerStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
+    private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private ServerApiEndpointHandler Handler { get; }
 
     public ServerApiEndpointHandlerTests()
@@ -51,10 +56,13 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockServerStore = MockRepository.Create<IServerStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
+        MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
 
         Handler = new ServerApiEndpointHandler(
             MockStoreManagerFactory.Object,
-            MockAuthorizationService.Object
+            MockAuthorizationService.Object,
+            MockSecretGenerator.Object,
+            TimeProvider.System
         );
     }
 
@@ -524,6 +532,404 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    #endregion
+
+    #region Secret Helpers
+
+    private static PersistedSecret CreatePersistedSecret(
+        string secretId = "secret-1",
+        string concurrencyToken = "secret-ct"
+    ) =>
+        new()
+        {
+            SecretId = secretId,
+            ConcurrencyToken = concurrencyToken,
+            Use = "sig",
+            Algorithm = "RS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            SecretType = SecretTypes.Symmetric,
+            KeySizeBits = 256,
+            EncodedValue = "encoded",
+        };
+
+    private static CreateSecretRequest CreateSecretRequest() =>
+        new()
+        {
+            SecretId = "secret-1",
+            SecretType = SecretTypes.Symmetric,
+            KeySizeBits = 256,
+            Use = "sig",
+            Algorithm = "RS256",
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+    #endregion
+
+    #region CreateSecretAsync Tests
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateServer("server-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var generated = CreatePersistedSecret();
+        MockSecretGenerator
+            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Returns(generated)
+            .Verifiable();
+        MockServerStore
+            .Setup(x => x.AddSecretAsync(ServerId, generated, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            ServerId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<SecretResource>>(result);
+        Assert.Equal("secret-1", created.Value?.SecretId);
+        Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenServerNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedServer?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            ServerId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenForbidden_ReturnsForbid()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateServer("server-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            ServerId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenGeneratorRejectsInput_ReturnsBadRequest()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateServer("server-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockSecretGenerator
+            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Throws(new ArgumentException("bad size"))
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            ServerId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenDuplicate_ReturnsConflict()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateServer("server-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var generated = CreatePersistedSecret();
+        MockSecretGenerator
+            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Returns(generated)
+            .Verifiable();
+        MockServerStore
+            .Setup(x => x.AddSecretAsync(ServerId, generated, It.IsAny<CancellationToken>()))
+            .Throws(new InvalidOperationException("duplicate"))
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            ServerId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region GetSecretAsync Tests
+
+    [Fact]
+    public async Task GetSecretAsync_WhenFoundAndAuthorized_ReturnsJson()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSecretAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SecretResource>>(result);
+        Assert.Equal("secret-1", json.Value?.SecretId);
+    }
+
+    [Fact]
+    public async Task GetSecretAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync((PersistedSecret?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSecretAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region UpdateSecretAsync Tests
+
+    private static UpdateSecretRequest UpdateSecretRequest() =>
+        new()
+        {
+            Use = "enc",
+            Algorithm = "RS512",
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(2),
+        };
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenAuthorized_ReturnsNoContent()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockServerStore
+            .Setup(x =>
+                x.UpdateSecretAsync(
+                    ServerId,
+                    It.IsAny<PersistedSecret>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            UpdateSecretRequest(),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync((PersistedSecret?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            UpdateSecretRequest(),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenIfMatchMismatch_ReturnsPreconditionFailed()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            UpdateSecretRequest(),
+            ifMatch: "stale-token",
+            CancellationToken.None
+        );
+
+        var statusCode = Assert.IsType<StatusCodeHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, statusCode.StatusCode);
+    }
+
+    #endregion
+
+    #region DeleteSecretAsync Tests
+
+    [Fact]
+    public async Task DeleteSecretAsync_WhenAuthorized_ReturnsNoContent()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockServerStore
+            .Setup(x => x.RemoveSecretAsync(ServerId, "secret-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.DeleteSecretAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task DeleteSecretAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync((PersistedSecret?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.DeleteSecretAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
     }
 
     #endregion

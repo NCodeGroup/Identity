@@ -5,6 +5,20 @@ NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdManagementLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Algorithm.get -> string?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Algorithm.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.CreateSecretRequest() -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.KeySizeBits.get -> int
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.KeySizeBits.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.SecretId.get -> string?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.SecretId.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.SecretType.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.SecretType.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Use.get -> string?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Use.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Algorithm.get -> string?
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Algorithm.init -> void
@@ -23,6 +37,14 @@ NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.SecretType.get
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.SecretType.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Use.get -> string?
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Use.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest
+NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.Algorithm.get -> string?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.Algorithm.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.UpdateSecretRequest() -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.Use.get -> string?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.Use.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource.ConcurrencyToken.init -> void

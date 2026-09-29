@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -270,5 +271,135 @@ internal class ServerStore(
         DbContext.Servers.Update(serverEntity);
 
         persistedServerSettings.ConcurrencyToken = nextConcurrencyToken;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedSecret?> GetSecretOrDefaultAsync(
+        string serverId,
+        string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedServerId = Normalize(serverId);
+        var normalizedSecretId = Normalize(secretId);
+
+        var secretEntity = await DbContext
+            .ServerSecrets.Where(serverSecret =>
+                serverSecret.Server.NormalizedServerId == normalizedServerId
+                && serverSecret.Secret.NormalizedSecretId == normalizedSecretId
+            )
+            .Select(serverSecret => serverSecret.Secret)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return secretEntity is null ? null : MapToPersistedSecret(secretEntity);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask AddSecretAsync(
+        string serverId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+
+        var normalizedSecretId = Normalize(persistedSecret.SecretId);
+        var alreadyExists = serverEntity.Secrets.Any(serverSecret =>
+            serverSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (alreadyExists)
+        {
+            throw new InvalidOperationException(
+                $"A secret with SecretId='{persistedSecret.SecretId}' already exists for OpenId Server with ServerId='{serverId}'."
+            );
+        }
+
+        persistedSecret.ConcurrencyToken = NextConcurrencyToken();
+        var secretEntity = MapToSecretEntity(persistedSecret);
+        await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
+
+        var serverSecretEntity = new ServerSecretEntity
+        {
+            Id = NextId(),
+            Server = serverEntity,
+            ServerId = serverEntity.Id,
+            Secret = secretEntity,
+            SecretId = secretEntity.Id,
+        };
+        await DbContext.ServerSecrets.AddAsync(serverSecretEntity, cancellationToken);
+
+        serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+        DbContext.Servers.Update(serverEntity);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask UpdateSecretAsync(
+        string serverId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+
+        var normalizedSecretId = Normalize(persistedSecret.SecretId);
+        var serverSecretEntity = serverEntity.Secrets.SingleOrDefault(serverSecret =>
+            serverSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (serverSecretEntity is null)
+        {
+            throw new InvalidOperationException(
+                $"A secret with SecretId='{persistedSecret.SecretId}' was not found for OpenId Server with ServerId='{serverId}'."
+            );
+        }
+
+        var secretEntity = serverSecretEntity.Secret;
+        if (
+            !string.Equals(
+                persistedSecret.ConcurrencyToken,
+                secretEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            throw new DbUpdateConcurrencyException(
+                $"The secret with SecretId='{persistedSecret.SecretId}' has been modified by another process. Please reload and try again."
+            );
+        }
+
+        // Only metadata is mutable; key material is immutable once generated (see ADR-0011).
+        secretEntity.Use = persistedSecret.Use;
+        secretEntity.Algorithm = persistedSecret.Algorithm;
+        secretEntity.ExpiresWhen = persistedSecret.ExpiresWhen.ToUniversalTime();
+        DbContext.Secrets.Update(secretEntity);
+
+        serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+        DbContext.Servers.Update(serverEntity);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RemoveSecretAsync(
+        string serverId,
+        string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+
+        var normalizedSecretId = Normalize(secretId);
+        var serverSecretEntity = serverEntity.Secrets.SingleOrDefault(serverSecret =>
+            serverSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (serverSecretEntity is null)
+        {
+            return false;
+        }
+
+        DbContext.ServerSecrets.Remove(serverSecretEntity);
+        DbContext.Secrets.Remove(serverSecretEntity.Secret);
+
+        serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+        DbContext.Servers.Update(serverEntity);
+
+        return true;
     }
 }

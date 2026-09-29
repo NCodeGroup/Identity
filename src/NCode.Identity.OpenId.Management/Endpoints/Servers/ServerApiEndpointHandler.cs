@@ -24,8 +24,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Endpoints;
+using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
@@ -52,10 +56,14 @@ DELETE api/servers/{serverId}/secrets/{secretId}
 /// </summary>
 internal class ServerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
-    IAuthorizationService authorizationService
+    IAuthorizationService authorizationService,
+    ISecretGenerator secretGenerator,
+    TimeProvider timeProvider
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
@@ -71,6 +79,10 @@ internal class ServerApiEndpointHandler(
         servers.MapPatch("/{serverId}/settings", UpdateSettingsAsync);
 
         servers.MapGet("/{serverId}/secrets", GetSecretsAsync);
+        servers.MapPost("/{serverId}/secrets", CreateSecretAsync);
+        servers.MapGet("/{serverId}/secrets/{secretId}", GetSecretAsync);
+        servers.MapPut("/{serverId}/secrets/{secretId}", UpdateSecretAsync);
+        servers.MapDelete("/{serverId}/secrets/{secretId}", DeleteSecretAsync);
     }
 
     /// <summary>
@@ -298,5 +310,233 @@ internal class ServerApiEndpointHandler(
             Operations.Read,
             ToServerSecretsResource
         );
+    }
+
+    /// <summary>
+    /// Handles <c>POST api/servers/{serverId}/secrets</c>, generating a new server-side secret and persisting it.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="request">The <see cref="CreateSecretRequest"/> describing the secret to generate.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/secrets/create")]
+    internal virtual async ValueTask<IResult> CreateSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        [FromBody] CreateSecretRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IServerStore>();
+
+        var server = await store.GetOrDefaultAsync(serverId, cancellationToken);
+        if (server is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            server,
+            Operations.Create
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var secretId = string.IsNullOrEmpty(request.SecretId)
+            ? Guid.NewGuid().ToString("N")
+            : request.SecretId;
+
+        PersistedSecret generatedSecret;
+        try
+        {
+            generatedSecret = SecretGenerator.GenerateSecret(
+                new GenerateSecretRequest
+                {
+                    SecretId = secretId,
+                    SecretType = request.SecretType,
+                    KeySizeBits = request.KeySizeBits,
+                    Use = request.Use,
+                    Algorithm = request.Algorithm,
+                    CreatedWhen = TimeProvider.GetUtcNow(),
+                    ExpiresWhen = request.ExpiresWhen,
+                }
+            );
+        }
+        catch (Exception exception)
+            when (exception is ArgumentException or InvalidOperationException)
+        {
+            return TypedResults.Problem(
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        try
+        {
+            await store.AddSecretAsync(serverId, generatedSecret, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return TypedResults.Problem(
+                detail: exception.Message,
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        // Re-read so the response reflects the authoritative persisted state (the concurrency token is assigned
+        // during save by the store, not before). See ADR-0011.
+        var persisted = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
+        if (persisted is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        httpContext.Response.Headers.ETag = persisted.ConcurrencyToken;
+        return TypedResults.Created(
+            $"/servers/{serverId}/secrets/{secretId}",
+            ToSecretResource(persisted)
+        );
+    }
+
+    /// <summary>
+    /// Handles <c>GET api/servers/{serverId}/secrets/{secretId}</c>, returning a single server secret.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="secretId">The identifier of the secret.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/secrets/get-one")]
+    internal virtual async ValueTask<IResult> GetSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        [FromRoute] string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IServerStore>();
+
+        var secret = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
+
+        return await ProcessGetAsync(httpContext, secret, Operations.Read, ToSecretResource);
+    }
+
+    /// <summary>
+    /// Handles <c>PUT api/servers/{serverId}/secrets/{secretId}</c>, updating a secret's metadata. Key material
+    /// is immutable. Honors an <c>If-Match</c> precondition.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="secretId">The identifier of the secret.</param>
+    /// <param name="request">The <see cref="UpdateSecretRequest"/> with the new metadata.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current secret.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/secrets/update")]
+    internal virtual async ValueTask<IResult> UpdateSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        [FromRoute] string secretId,
+        [FromBody] UpdateSecretRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IServerStore>();
+
+        var secret = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
+        if (secret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            secret,
+            Operations.Update
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (
+            !string.IsNullOrEmpty(ifMatch)
+            && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
+        )
+        {
+            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+        }
+
+        var updated = new PersistedSecret
+        {
+            SecretId = secret.SecretId,
+            ConcurrencyToken = secret.ConcurrencyToken,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            CreatedWhen = secret.CreatedWhen,
+            ExpiresWhen = request.ExpiresWhen,
+            SecretType = secret.SecretType,
+            KeySizeBits = secret.KeySizeBits,
+            EncodedValue = secret.EncodedValue,
+        };
+
+        await store.UpdateSecretAsync(serverId, updated, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Handles <c>DELETE api/servers/{serverId}/secrets/{secretId}</c>, removing a server secret.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="secretId">The identifier of the secret.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/secrets/delete")]
+    internal virtual async ValueTask<IResult> DeleteSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        [FromRoute] string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IServerStore>();
+
+        var secret = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
+        if (secret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            secret,
+            Operations.Delete
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        await store.RemoveSecretAsync(serverId, secretId, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
     }
 }

@@ -52,6 +52,8 @@ public static class DefaultRegistration
         /// <list type="bullet">
         /// <item><description><see cref="ISecretSerializer"/> - Serializes and deserializes secret keys
         /// for persistent storage.</description></item>
+        /// <item><description><see cref="ISecretGenerator"/> - Generates data-protected secret key material
+        /// server-side.</description></item>
         /// </list>
         /// <para>
         /// Services are registered using <c>TryAddSingleton</c> semantics, meaning existing registrations
@@ -65,6 +67,7 @@ public static class DefaultRegistration
 
             var serviceCollection = builder.ServiceCollection;
             serviceCollection.TryAddSingleton<ISecretSerializer, DefaultSecretSerializer>();
+            serviceCollection.TryAddSingleton<ISecretGenerator, DefaultSecretGenerator>();
 
             return newBuilder;
         }

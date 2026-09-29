@@ -165,6 +165,21 @@ NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.DomainNam
 NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.IsDisabled.set -> void
 NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.UpdateTenantRequest() -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.Disposition.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.HttpContext.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.Tenant.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.Tenant.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.ValidateDeleteTenantCommand() -> void
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.ValidateDeleteTenantCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! Tenant, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
+NCode.Identity.OpenId.Management.ManagementError
+NCode.Identity.OpenId.Management.ManagementError.Detail.get -> string!
+NCode.Identity.OpenId.Management.ManagementError.Detail.init -> void
+NCode.Identity.OpenId.Management.ManagementError.ManagementError() -> void
+NCode.Identity.OpenId.Management.ManagementError.StatusCode.get -> int
+NCode.Identity.OpenId.Management.ManagementError.StatusCode.init -> void
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary.ConfigureMethod.get -> string!
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary.DisplayName.get -> string!

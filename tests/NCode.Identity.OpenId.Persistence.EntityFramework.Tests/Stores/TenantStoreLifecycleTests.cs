@@ -185,4 +185,35 @@ public sealed class TenantStoreLifecycleTests : IDisposable
 
         Assert.False(removed);
     }
+
+    [Fact]
+    public async Task HasDependentsAsync_WhenNoDependents_ReturnsFalse()
+    {
+        await SeedTenantAsync();
+
+        var result = await _store.HasDependentsAsync(TenantId, CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task HasDependentsAsync_WhenHasClients_ReturnsTrue()
+    {
+        await SeedTenantAsync();
+        await SeedClientAsync();
+
+        var result = await _store.HasDependentsAsync(TenantId, CancellationToken.None);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task HasDependentsAsync_WhenHasSecrets_ReturnsTrue()
+    {
+        await SeedTenantAsync(CreateSecret("secret-1"));
+
+        var result = await _store.HasDependentsAsync(TenantId, CancellationToken.None);
+
+        Assert.True(result);
+    }
 }

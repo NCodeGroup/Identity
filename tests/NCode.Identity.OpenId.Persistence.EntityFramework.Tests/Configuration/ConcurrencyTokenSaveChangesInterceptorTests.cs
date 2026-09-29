@@ -128,5 +128,22 @@ public class ConcurrencyTokenSaveChangesInterceptorTests
         Assert.NotEqual(firstToken, entity.ConcurrencyToken);
     }
 
+    [Fact]
+    public async Task SavingChangesAsync_WhenEntityAddedWithToken_KeepsCallerToken()
+    {
+        await using var context = CreateContext();
+        var entity = new TestEntity
+        {
+            Id = 1,
+            ConcurrencyToken = "caller-token",
+            Name = "first",
+        };
+        context.Add(entity);
+
+        await context.SaveChangesAsync();
+
+        Assert.Equal("caller-token", entity.ConcurrencyToken);
+    }
+
     #endregion
 }

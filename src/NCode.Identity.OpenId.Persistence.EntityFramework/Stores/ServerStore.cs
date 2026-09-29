@@ -309,7 +309,9 @@ internal class ServerStore(
             );
         }
 
-        // Secret row-level ConcurrencyToken is filled by the interceptor on save (ADR-0012).
+        // A created secret cannot have a concurrency conflict, so assign its token up front and return it on
+        // the DTO; the interceptor leaves a pre-seeded insert token intact (ADR-0012).
+        persistedSecret.ConcurrencyToken = NextConcurrencyToken();
         var secretEntity = MapToSecretEntity(persistedSecret);
         await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
 

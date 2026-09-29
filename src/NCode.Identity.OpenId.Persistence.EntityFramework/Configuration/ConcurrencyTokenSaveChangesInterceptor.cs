@@ -58,10 +58,15 @@ internal class ConcurrencyTokenSaveChangesInterceptor : SaveChangesInterceptor
 
         foreach (var entry in entries.Where(IsMutated))
         {
-            var properties = entry.Properties.Where(IsConcurrencyToken);
-            foreach (var property in properties)
+            // On insert a caller may legitimately pre-seed the token (a new row cannot have a concurrency
+            // conflict), so respect it; on update/delete always force a new value so the row version changes.
+            var forceRegenerate = entry.State is not EntityState.Added;
+            foreach (var property in entry.Properties.Where(IsConcurrencyToken))
             {
-                property.CurrentValue = Guid.NewGuid().ToString("N");
+                if (forceRegenerate || string.IsNullOrEmpty((string?)property.CurrentValue))
+                {
+                    property.CurrentValue = Guid.NewGuid().ToString("N");
+                }
             }
         }
     }

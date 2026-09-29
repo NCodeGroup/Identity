@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -281,5 +282,166 @@ internal class TenantStore(
         DbContext.Tenants.Update(tenantEntity);
 
         persistedTenantSettings.ConcurrencyToken = nextConcurrencyToken;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedTenantSettings?> GetSettingsOrDefaultAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEntity = await GetEntityOrDefaultAsync(tenantId, cancellationToken);
+        if (tenantEntity is null)
+        {
+            return null;
+        }
+
+        return await MapSettingsAsync(tenantEntity, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedTenantSecrets?> GetSecretsOrDefaultAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEntity = await GetEntityOrDefaultAsync(tenantId, cancellationToken);
+        if (tenantEntity is null)
+        {
+            return null;
+        }
+
+        return await MapSecretsAsync(tenantEntity, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedSecret?> GetSecretOrDefaultAsync(
+        string tenantId,
+        string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedTenantId = Normalize(tenantId);
+        var normalizedSecretId = Normalize(secretId);
+
+        var secretEntity = await DbContext
+            .TenantSecrets.Where(tenantSecret =>
+                tenantSecret.Tenant.NormalizedTenantId == normalizedTenantId
+                && tenantSecret.Secret.NormalizedSecretId == normalizedSecretId
+            )
+            .Select(tenantSecret => tenantSecret.Secret)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return secretEntity is null ? null : MapToPersistedSecret(secretEntity);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask AddSecretAsync(
+        string tenantId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEntity = await GetEntityAsync(tenantId, cancellationToken);
+
+        var normalizedSecretId = Normalize(persistedSecret.SecretId);
+        var alreadyExists = tenantEntity.Secrets.Any(tenantSecret =>
+            tenantSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (alreadyExists)
+        {
+            throw new InvalidOperationException(
+                $"A secret with SecretId='{persistedSecret.SecretId}' already exists for OpenId Tenant with TenantId='{tenantId}'."
+            );
+        }
+
+        // A created secret cannot have a concurrency conflict, so assign its token up front and return it on
+        // the DTO; the interceptor leaves a pre-seeded insert token intact (ADR-0012).
+        persistedSecret.ConcurrencyToken = NextConcurrencyToken();
+        var secretEntity = MapToSecretEntity(persistedSecret);
+        await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
+
+        var tenantSecretEntity = new TenantSecretEntity
+        {
+            Id = NextId(),
+            Tenant = tenantEntity,
+            TenantId = tenantEntity.Id,
+            Secret = secretEntity,
+            SecretId = secretEntity.Id,
+        };
+        await DbContext.TenantSecrets.AddAsync(tenantSecretEntity, cancellationToken);
+
+        // The tenant is tracked; mutating the token marks it Modified via change detection.
+        tenantEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask UpdateSecretAsync(
+        string tenantId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEntity = await GetEntityAsync(tenantId, cancellationToken);
+
+        var normalizedSecretId = Normalize(persistedSecret.SecretId);
+        var tenantSecretEntity = tenantEntity.Secrets.SingleOrDefault(tenantSecret =>
+            tenantSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (tenantSecretEntity is null)
+        {
+            throw new InvalidOperationException(
+                $"A secret with SecretId='{persistedSecret.SecretId}' was not found for OpenId Tenant with TenantId='{tenantId}'."
+            );
+        }
+
+        var secretEntity = tenantSecretEntity.Secret;
+        if (
+            !string.Equals(
+                persistedSecret.ConcurrencyToken,
+                secretEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            throw new DbUpdateConcurrencyException(
+                $"The secret with SecretId='{persistedSecret.SecretId}' has been modified by another process. Please reload and try again."
+            );
+        }
+
+        // Only metadata is mutable; key material is immutable once generated (see ADR-0011). The secret's
+        // row-level ConcurrencyToken is regenerated by the interceptor on save (ADR-0012).
+        secretEntity.Use = persistedSecret.Use;
+        secretEntity.Algorithm = persistedSecret.Algorithm;
+        secretEntity.ExpiresWhen = persistedSecret.ExpiresWhen.ToUniversalTime();
+
+        tenantEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RemoveSecretAsync(
+        string tenantId,
+        string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEntity = await GetEntityAsync(tenantId, cancellationToken);
+
+        var normalizedSecretId = Normalize(secretId);
+        var tenantSecretEntity = tenantEntity.Secrets.SingleOrDefault(tenantSecret =>
+            tenantSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (tenantSecretEntity is null)
+        {
+            return false;
+        }
+
+        DbContext.TenantSecrets.Remove(tenantSecretEntity);
+        DbContext.Secrets.Remove(tenantSecretEntity.Secret);
+
+        // The tenant is tracked; mutating the token marks it Modified via change detection.
+        tenantEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+
+        return true;
     }
 }

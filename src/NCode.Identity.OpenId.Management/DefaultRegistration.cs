@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
+using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Management;
@@ -47,6 +48,7 @@ public static class DefaultRegistration
             serviceCollection.AddAuthorizationHandler<TenantAdminHandler>();
 
             builder.AddEndpointProvider<ServerApiEndpointHandler>();
+            builder.AddEndpointProvider<TenantApiEndpointHandler>();
 
             return builder.NewBuilder<OpenIdManagementLibrary>();
         }

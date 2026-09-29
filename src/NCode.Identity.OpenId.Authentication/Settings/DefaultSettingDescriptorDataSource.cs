@@ -325,11 +325,6 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.GrantTypesSupported,
-                Default =
-                [
-                    OpenIdConstants.GrantTypes.AuthorizationCode,
-                    OpenIdConstants.GrantTypes.Implicit,
-                ],
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -413,14 +408,6 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.PromptValuesSupported,
-                Default =
-                [
-                    OpenIdConstants.PromptTypes.None,
-                    OpenIdConstants.PromptTypes.Login,
-                    OpenIdConstants.PromptTypes.Consent,
-                    OpenIdConstants.PromptTypes.SelectAccount,
-                    OpenIdConstants.PromptTypes.CreateAccount,
-                ],
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -574,12 +561,6 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ResponseModesSupported,
-                Default =
-                [
-                    OpenIdConstants.ResponseModes.Query,
-                    OpenIdConstants.ResponseModes.Fragment,
-                    OpenIdConstants.ResponseModes.FormPost,
-                ],
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -589,12 +570,6 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ResponseTypesSupported,
-                Default =
-                [
-                    OpenIdConstants.ResponseTypes.Code,
-                    OpenIdConstants.ResponseTypes.IdToken,
-                    OpenIdConstants.ResponseTypes.Token,
-                ],
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -605,15 +580,6 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ScopesSupported,
-                Default =
-                [
-                    OpenIdConstants.ScopeTypes.OpenId,
-                    OpenIdConstants.ScopeTypes.Profile,
-                    OpenIdConstants.ScopeTypes.Email,
-                    OpenIdConstants.ScopeTypes.Address,
-                    OpenIdConstants.ScopeTypes.Phone,
-                    OpenIdConstants.ScopeTypes.OfflineAccess,
-                ],
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,

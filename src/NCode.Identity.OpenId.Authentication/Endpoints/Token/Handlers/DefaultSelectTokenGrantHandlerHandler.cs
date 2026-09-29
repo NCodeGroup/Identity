@@ -64,7 +64,10 @@ internal class DefaultSelectTokenGrantHandlerHandler(IEnumerable<ITokenGrantHand
         }
 
         // grant_types_supported
-        if (!settings.GetValue(OpenIdSettingKeys.GrantTypesSupported).Contains(grantType))
+        if (
+            settings.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out var grantTypesSupported)
+            && !grantTypesSupported.Contains(grantType)
+        )
         {
             // unauthorized_client
             throw errorFactory

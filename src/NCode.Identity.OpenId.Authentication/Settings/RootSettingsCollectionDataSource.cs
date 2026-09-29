@@ -36,6 +36,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; }
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
     private ISettingCollectionFactory SettingCollectionFactory { get; }
+    private IEnumerable<IDefaultSettingsProvider> DefaultSettingsProviders { get; }
 
     private Lock SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
@@ -54,13 +55,15 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         IConfigurationSection configurationSection,
         IAlgorithmCollectionProvider algorithmCollectionProvider,
         ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
-        ISettingCollectionFactory settingCollectionFactory
+        ISettingCollectionFactory settingCollectionFactory,
+        IEnumerable<IDefaultSettingsProvider> defaultSettingsProviders
     )
     {
         ConfigurationSection = configurationSection;
         AlgorithmCollectionProvider = algorithmCollectionProvider;
         SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
         SettingCollectionFactory = settingCollectionFactory;
+        DefaultSettingsProviders = defaultSettingsProviders;
 
         Collection = LoadCollection();
 
@@ -187,9 +190,18 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
         LoadDefaults(settings);
         LoadSupportedAlgorithms(settings);
+        LoadDefaultSettingsProviders(settings);
         LoadFromConfiguration(settings);
 
         return settings.AsEnumerable();
+    }
+
+    private void LoadDefaultSettingsProviders(ISettingCollection settings)
+    {
+        foreach (var provider in DefaultSettingsProviders)
+        {
+            provider.Configure(settings);
+        }
     }
 
     private void LoadDefaults(ISettingCollection settings)

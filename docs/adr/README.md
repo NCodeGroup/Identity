@@ -30,3 +30,4 @@ consequences. ADRs are immutable once **Accepted** — if a decision changes, ad
 | [0007](./0007-provenance-sourcelink-and-symbols.md)                    | Provenance — SourceLink to GitHub and a portable symbol package           | Accepted |
 | [0008](./0008-conventions-and-lessons-live-in-the-repository.md)       | Conventions and lessons live in the repository, not in volatile memory    | Accepted |
 | [0009](./0009-endpoint-families-own-their-route-group.md)              | Endpoint families own their route group and cross-cutting endpoint filters | Accepted |
+| [0010](./0010-supported-settings-unset-means-unrestricted.md)          | `*_supported` settings: unset means unrestricted; a replaceable baseline supplies defaults | Accepted |

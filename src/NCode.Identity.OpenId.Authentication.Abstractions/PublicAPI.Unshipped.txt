@@ -550,6 +550,8 @@ NCode.Identity.OpenId.Authentication.Servers.IOpenIdServerProvider
 NCode.Identity.OpenId.Authentication.Servers.IOpenIdServerProvider.GetAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Servers.OpenIdServer!>
 NCode.Identity.OpenId.Authentication.Servers.OpenIdServer
 NCode.Identity.OpenId.Authentication.Servers.OpenIdServer.OpenIdServer() -> void
+NCode.Identity.OpenId.Authentication.Settings.IDefaultSettingsProvider
+NCode.Identity.OpenId.Authentication.Settings.IDefaultSettingsProvider.Configure(NCode.Identity.Settings.ISettingCollection! settings) -> void
 NCode.Identity.OpenId.Authentication.Settings.OpenIdSettingKeys
 NCode.Identity.OpenId.Authentication.Settings.OpenIdSettingNames
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication

@@ -69,7 +69,9 @@ public class DefaultValidateTokenRequestHandlerTests : BaseTests
     )
     {
         IReadOnlyCollection<string> supported = scopes;
-        mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.ScopesSupported)).Returns(supported);
+        mockSettings
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.ScopesSupported, out supported))
+            .Returns(true);
     }
 
     #endregion

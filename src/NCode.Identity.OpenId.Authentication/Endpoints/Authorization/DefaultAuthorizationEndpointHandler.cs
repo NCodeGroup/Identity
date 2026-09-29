@@ -220,9 +220,10 @@ internal class DefaultAuthorizationEndpointHandler(
 
             effectiveResponseMode = responseModeStringValues.ToString();
             if (
-                !settings
-                    .GetValue(OpenIdSettingKeys.ResponseModesSupported)
-                    .Contains(effectiveResponseMode)
+                settings.TryGetValue(
+                    OpenIdSettingKeys.ResponseModesSupported,
+                    out var responseModesSupported
+                ) && !responseModesSupported.Contains(effectiveResponseMode)
             )
             {
                 throw errorFactory

@@ -108,4 +108,15 @@ public interface IClientStore : IStore<PersistedClient>
         string secretId,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Removes an OpenId Client from the store. The removal is rejected while the client still has dependent
+    /// child resources (any secrets); those dependents must be removed first.
+    /// </summary>
+    /// <param name="clientId">The identifier of the OpenId Client to remove.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
+    /// if the client was removed; otherwise <c>false</c> when no matching client existed.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the client still has dependent child resources.</exception>
+    ValueTask<bool> RemoveAsync(string clientId, CancellationToken cancellationToken);
 }

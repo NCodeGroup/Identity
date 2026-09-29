@@ -23,8 +23,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
+using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -57,12 +59,14 @@ internal class ClientApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     ISecretGenerator secretGenerator,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    ILogger<ClientApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private ILogger<ClientApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
@@ -72,7 +76,10 @@ internal class ClientApiEndpointHandler(
     {
         var clients = endpoints.MapGroup("/clients");
 
+        clients.MapPost("", CreateClientAsync);
         clients.MapGet("/{clientId}", GetClientAsync);
+        clients.MapPatch("/{clientId}", UpdateClientAsync);
+        clients.MapDelete("/{clientId}", DeleteClientAsync);
 
         clients.MapGet("/{clientId}/settings", GetSettingsAsync);
         clients.MapPatch("/{clientId}/settings", UpdateSettingsAsync);
@@ -186,6 +193,213 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
+    /// Handles <c>POST api/clients</c>, creating a new OpenID Client.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="request">The <see cref="CreateClientRequest"/> describing the client to create.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/clients/create")]
+    internal virtual async ValueTask<IResult> CreateClientAsync(
+        HttpContext httpContext,
+        [FromBody] CreateClientRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IClientStore>();
+
+        var client = new PersistedClient
+        {
+            TenantId = request.TenantId,
+            ClientId = request.ClientId,
+            ConcurrencyToken = string.Empty,
+            IsDisabled = request.IsDisabled,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = request.TenantId,
+                ClientId = request.ClientId,
+                ConcurrencyToken = string.Empty,
+                Value = SerializeToElement(ToJsonObject(request.Settings)),
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = request.TenantId,
+                ClientId = request.ClientId,
+                ConcurrencyToken = string.Empty,
+                Value = [],
+            },
+        };
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            client,
+            Operations.Create
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var existing = await store.GetOrDefaultAsync(request.ClientId, cancellationToken);
+        if (existing is not null)
+        {
+            return TypedResults.Problem(
+                detail: $"A client with ClientId='{request.ClientId}' already exists.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        try
+        {
+            await store.AddAsync(client, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            // The owning tenant does not exist.
+            Logger.MissingDependency(exception);
+            return TypedResults.Problem(
+                detail: "The specified tenant does not exist.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        // The store assigns the row token on insert (ADR-0012), so no re-read is needed.
+        httpContext.Response.Headers.ETag = client.ConcurrencyToken;
+        return TypedResults.Created($"/clients/{client.ClientId}", ToClientResource(client));
+    }
+
+    /// <summary>
+    /// Handles <c>PATCH api/clients/{clientId}</c>, applying a JSON Patch document to a client's metadata.
+    /// Honors an <c>If-Match</c> precondition.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="clientId">The identifier of the OpenID Client.</param>
+    /// <param name="request">The JSON Patch document to apply to the client metadata.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current client.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/clients/update")]
+    internal virtual async ValueTask<IResult> UpdateClientAsync(
+        HttpContext httpContext,
+        [FromRoute] string clientId,
+        [FromBody] JsonPatchDocument<UpdateClientRequest> request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IClientStore>();
+
+        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
+        if (client is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            client,
+            Operations.Update
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (
+            !string.IsNullOrEmpty(ifMatch)
+            && !string.Equals(ifMatch, client.ConcurrencyToken, StringComparison.Ordinal)
+        )
+        {
+            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+        }
+
+        var model = new UpdateClientRequest { IsDisabled = client.IsDisabled };
+
+        try
+        {
+            request.ApplyTo(model);
+        }
+        catch (JsonPatchException exception)
+        {
+            Logger.JsonPatchFailed(exception);
+            return TypedResults.Problem(
+                detail: "The JSON Patch document could not be applied.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        client.IsDisabled = model.IsDisabled;
+
+        await store.UpdateAsync(client, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Handles <c>DELETE api/clients/{clientId}</c>, removing a client. The removal is rejected with
+    /// <c>409 Conflict</c> while the client still has secrets.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="clientId">The identifier of the OpenID Client.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/clients/delete")]
+    internal virtual async ValueTask<IResult> DeleteClientAsync(
+        HttpContext httpContext,
+        [FromRoute] string clientId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IClientStore>();
+
+        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
+        if (client is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            client,
+            Operations.Delete
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        try
+        {
+            var removed = await store.RemoveAsync(clientId, cancellationToken);
+            if (!removed)
+            {
+                return TypedResults.NotFound();
+            }
+        }
+        catch (InvalidOperationException exception)
+        {
+            Logger.ResourceConflict(exception);
+            return TypedResults.Problem(
+                detail: "The client cannot be deleted while it still has dependent secrets.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
     /// Handles <c>GET api/clients/{clientId}/settings</c>, returning the settings for the specified OpenID Client.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
@@ -270,8 +484,9 @@ internal class ClientApiEndpointHandler(
         }
         catch (JsonPatchException exception)
         {
+            Logger.JsonPatchFailed(exception);
             return TypedResults.Problem(
-                detail: exception.Message,
+                detail: "The JSON Patch document could not be applied.",
                 statusCode: StatusCodes.Status400BadRequest
             );
         }
@@ -373,8 +588,9 @@ internal class ClientApiEndpointHandler(
         catch (Exception exception)
             when (exception is ArgumentException or InvalidOperationException)
         {
+            Logger.SecretGenerationFailed(exception);
             return TypedResults.Problem(
-                detail: exception.Message,
+                detail: "The secret could not be generated from the supplied parameters.",
                 statusCode: StatusCodes.Status400BadRequest
             );
         }
@@ -385,8 +601,9 @@ internal class ClientApiEndpointHandler(
         }
         catch (InvalidOperationException exception)
         {
+            Logger.ResourceConflict(exception);
             return TypedResults.Problem(
-                detail: exception.Message,
+                detail: "A secret with the specified identifier already exists.",
                 statusCode: StatusCodes.Status409Conflict
             );
         }

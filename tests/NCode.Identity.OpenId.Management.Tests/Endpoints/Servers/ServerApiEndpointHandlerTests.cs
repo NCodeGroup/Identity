@@ -23,6 +23,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -62,7 +63,8 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockSecretGenerator.Object,
-            TimeProvider.System
+            TimeProvider.System,
+            NullLogger<ServerApiEndpointHandler>.Instance
         );
     }
 

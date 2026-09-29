@@ -172,8 +172,9 @@ internal class TenantStore(
         CancellationToken cancellationToken
     )
     {
-        // Row-level ConcurrencyToken is filled by the interceptor on save (ADR-0012);
-        // the sub-resource version columns are plain and stay manual.
+        // Assign the row token up front so create can return it without a re-read; the interceptor leaves a
+        // pre-seeded insert token intact (ADR-0012). The sub-resource version columns stay manual.
+        persistedTenant.ConcurrencyToken = NextConcurrencyToken();
         persistedTenant.Settings.ConcurrencyToken = NextConcurrencyToken();
         persistedTenant.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
@@ -186,7 +187,7 @@ internal class TenantStore(
             NormalizedTenantId = Normalize(persistedTenant.TenantId),
             DomainName = persistedTenant.DomainName,
             NormalizedDomainName = Normalize(persistedTenant.DomainName),
-            ConcurrencyToken = string.Empty,
+            ConcurrencyToken = persistedTenant.ConcurrencyToken,
             SettingsConcurrencyToken = persistedTenant.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedTenant.Secrets.ConcurrencyToken,
             IsDisabled = persistedTenant.IsDisabled,
@@ -441,6 +442,35 @@ internal class TenantStore(
 
         // The tenant is tracked; mutating the token marks it Modified via change detection.
         tenantEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RemoveAsync(string tenantId, CancellationToken cancellationToken)
+    {
+        var tenantEntity = await GetEntityOrDefaultAsync(tenantId, cancellationToken);
+        if (tenantEntity is null)
+        {
+            return false;
+        }
+
+        var hasClients = await DbContext.Clients.AnyAsync(
+            client => client.TenantId == tenantEntity.Id,
+            cancellationToken
+        );
+        var hasSecrets = await DbContext.TenantSecrets.AnyAsync(
+            tenantSecret => tenantSecret.TenantId == tenantEntity.Id,
+            cancellationToken
+        );
+        if (hasClients || hasSecrets)
+        {
+            throw new InvalidOperationException(
+                $"The OpenId Tenant with TenantId='{tenantId}' cannot be removed because it still has one or more clients or secrets."
+            );
+        }
+
+        DbContext.Tenants.Remove(tenantEntity);
 
         return true;
     }

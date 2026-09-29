@@ -217,6 +217,7 @@ public sealed class ServerStoreSecretsTests : IDisposable
         Assert.Equal("enc", reloaded.Use);
         Assert.Equal("RS512", reloaded.Algorithm);
         Assert.Equal(current.EncodedValue, reloaded.EncodedValue);
+        Assert.NotEqual(current.ConcurrencyToken, reloaded.ConcurrencyToken);
 
         var tokenAfter = await GetServerSecretsTokenAsync();
         Assert.NotEqual(tokenBefore, tokenAfter);

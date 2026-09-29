@@ -29,7 +29,7 @@ inside the server's data-protection boundary from birth.
 
 The management API creates secrets by **server-side generation only** for now:
 
-- **`POST api/servers/{serverId}/secrets`** takes *metadata* (`secretType`, `keySizeBits`, optional
+- **`POST api/servers/{serverId}/secrets`** takes _metadata_ (`secretType`, `keySizeBits`, optional
   `use`, `algorithm`, `expiresWhen`, optional `secretId`). The server generates fresh key material for
   that `(secretType, keySizeBits)`, data-protects it, base64url-encodes it into `EncodedValue`, and
   persists it. The response is a `SecretResource` (metadata only). Symmetric key material never leaves
@@ -63,7 +63,7 @@ carries a `// Future:` note rather than an implementation.
   stable `secretId` makes rotation ambiguous (old tokens signed by the replaced key look valid by id
   but fail verification). Immutable material + explicit create/delete keeps rotation auditable.
 - **Expose generation on `ISecretSerializer`.** Rejected: the serializer's job is encode/decode of
-  *existing* material; generating brand-new keys is a distinct concern that earns its own contract.
+  _existing_ material; generating brand-new keys is a distinct concern that earns its own contract.
 - **Do generation inside the Management project.** Rejected: it would pull the data-protection package
   and BCL crypto into the management layer and duplicate the protect/encode logic that already lives
   next to its inverse in the secrets-persistence package.
@@ -79,6 +79,11 @@ carries a `// Future:` note rather than an implementation.
   breaking one.
 - `ISecretGenerator` is new public surface in `NCode.Identity.Secrets.Persistence(.Abstractions)` and is
   reusable for client/tenant secret management when those endpoint groups land.
+- The store methods **assign concurrency tokens manually** (they do not rely on
+  `ConcurrencyTokenSaveChangesInterceptor`). That interceptor only overrides the synchronous
+  `SavingChanges`, so it never fires for the `SaveChangesAsync` the stores use — a latent, provider-independent
+  gap that every store already works around by setting its own tokens. Fixing the interceptor to also handle
+  the async path is a separate, cross-cutting decision (it would double-assign the manually managed tokens).
 
 ## References
 

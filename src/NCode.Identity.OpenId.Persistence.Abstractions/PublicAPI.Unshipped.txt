@@ -121,7 +121,11 @@ NCode.Identity.OpenId.Persistence.ISupportTenantId.TenantId.get -> string!
 NCode.Identity.OpenId.Persistence.OpenIdMaxLengths
 NCode.Identity.OpenId.Persistence.OpenIdResourceTypes
 NCode.Identity.OpenId.Persistence.Stores.IClientStore
+NCode.Identity.OpenId.Persistence.Stores.IClientStore.AddSecretAsync(string! clientId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.GetOrDefaultAsync(string! clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient?>
+NCode.Identity.OpenId.Persistence.Stores.IClientStore.GetSecretsOrDefaultAsync(string! clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecrets?>
+NCode.Identity.OpenId.Persistence.Stores.IClientStore.RemoveSecretAsync(string! clientId, string! secretId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Persistence.Stores.IClientStore.UpdateSecretAsync(string! clientId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.UpdateSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSettings! persistedClientSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! grantType, string! hashedKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant?>

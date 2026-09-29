@@ -5,6 +5,36 @@ NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdManagementLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.ClientId.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.ClientId.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.ClientResource() -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.IsDisabled.get -> bool
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.IsDisabled.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.ClientId.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.ClientId.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.ClientSecretsResource() -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource!>!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.Secrets.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.ClientId.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.ClientId.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.ClientSettingsResource() -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest
 NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Algorithm.get -> string?
 NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Algorithm.init -> void

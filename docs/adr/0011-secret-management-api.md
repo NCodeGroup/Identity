@@ -49,8 +49,10 @@ Generation lives in a new **`ISecretGenerator`** contract in `NCode.Identity.Sec
 `IDataProtectorFactory<PersistedSecret>`), so the crypto/protection concern stays in the secrets stack
 and every management layer (server, tenant, client) is a thin DI consumer. Per-secret persistence is a
 set of new store methods (`GetSecretOrDefaultAsync`, `AddSecretAsync`, `UpdateSecretAsync`,
-`RemoveSecretAsync` — on `IServerStore` today, on the tenant/client stores as those land) that also bump
+`RemoveSecretAsync` — on `IServerStore`, `ITenantStore`, and `IClientStore`) that also bump
 the owner's `SecretsConcurrencyToken` so the running server/tenant/client secret provider refreshes.
+The client store carries no dedicated per-secret read getter; its endpoints resolve a single secret
+from the owner-scoped `GetSecretsOrDefaultAsync` (which also supplies the owning `TenantId`).
 
 Key material import (BYOK) is **explicitly deferred**, not rejected — the request/DTO shape leaves room
 for an additive `EncodedValue`/PEM import field guarded by a future decision. Code that would host it
@@ -83,8 +85,8 @@ carries a `// Future:` note rather than an implementation.
 - BYOK is a known follow-up; the DTO and store are shaped so import is an additive change, not a
   breaking one.
 - `ISecretGenerator` is new public surface in `NCode.Identity.Secrets.Persistence(.Abstractions)` and is
-  reusable for client/tenant secret management when those endpoint groups land — the tenant secret endpoints
-  now consume it identically to the server ones.
+  reusable for client/tenant secret management — the tenant and client secret endpoints now consume it
+  identically to the server ones.
 - Discovering that the secret store initially had no per-secret write path surfaced a latent, provider-independent
   bug: `ConcurrencyTokenSaveChangesInterceptor` only overrode the synchronous `SavingChanges`, so it never fired
   for the `SaveChangesAsync` the stores use. That is resolved on its own terms in
@@ -98,8 +100,10 @@ carries a `// Future:` note rather than an implementation.
   `GetSecretOrDefaultAsync(tenantId, secretId)` only returns a secret owned by that tenant), so the handler
   scopes them exactly like the owner/collection operations. The wrapper delegates `ConcurrencyToken` to the
   wrapped secret, leaving the `GET` ETag / `If-None-Match` flow unchanged. Server secret operations stay
-  unwrapped and remain `GlobalAdmin`-only by design (servers are not tenant-scoped). Client secret endpoints,
-  when they land, should follow the same wrapper pattern with the owning `clientId`.
+  unwrapped and remain `GlobalAdmin`-only by design (servers are not tenant-scoped). The client secret
+  endpoints follow the same wrapper pattern: because a client is addressed by a flat `clientId` route with
+  no tenant segment, the handler resolves the owning `TenantId` from `GetSecretsOrDefaultAsync` and wraps
+  the loaded secret in `TenantOwnedResource<PersistedSecret>` before authorizing.
 
 ## References
 

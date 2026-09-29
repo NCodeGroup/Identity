@@ -1,0 +1,642 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Security.Claims;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using NCode.Identity.OpenId.Management.Endpoints.Secrets;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Persistence.Stores;
+using SystemTextJsonPatch;
+using SystemTextJsonPatch.Operations;
+using Xunit;
+
+namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
+
+public sealed class ClientApiEndpointHandlerTests : IDisposable
+{
+    private const string TenantId = "tenant-1";
+    private const string ClientId = "client-1";
+
+    private MockRepository MockRepository { get; }
+    private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
+    private Mock<IStoreManager> MockStoreManager { get; }
+    private Mock<IClientStore> MockClientStore { get; }
+    private Mock<IAuthorizationService> MockAuthorizationService { get; }
+    private Mock<ISecretGenerator> MockSecretGenerator { get; }
+    private ClientApiEndpointHandler Handler { get; }
+
+    public ClientApiEndpointHandlerTests()
+    {
+        MockRepository = new MockRepository(MockBehavior.Strict);
+        MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
+        MockStoreManager = MockRepository.Create<IStoreManager>();
+        MockClientStore = MockRepository.Create<IClientStore>();
+        MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
+        MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
+
+        Handler = new ClientApiEndpointHandler(
+            MockStoreManagerFactory.Object,
+            MockAuthorizationService.Object,
+            MockSecretGenerator.Object,
+            TimeProvider.System
+        );
+    }
+
+    public void Dispose()
+    {
+        MockRepository.Verify();
+    }
+
+    #region Helpers
+
+    private void SetupStore()
+    {
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+
+        MockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(MockClientStore.Object)
+            .Verifiable();
+
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+    }
+
+    private void SetupAuthorization(AuthorizationResult result)
+    {
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+    }
+
+    private void SetupAuthorizationCapture(Action<object?> capture)
+    {
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .Callback(
+                (ClaimsPrincipal _, object? resource, IEnumerable<IAuthorizationRequirement> _) =>
+                    capture(resource)
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+    }
+
+    private static HttpContext CreateHttpContext(bool authenticated)
+    {
+        var identity = authenticated
+            ? new ClaimsIdentity(authenticationType: "test")
+            : new ClaimsIdentity();
+        return new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+    }
+
+    private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
+
+    private static PersistedClientSettings CreateSettings(string concurrencyToken) =>
+        new()
+        {
+            TenantId = TenantId,
+            ClientId = ClientId,
+            ConcurrencyToken = concurrencyToken,
+            Value = EmptyObject(),
+        };
+
+    private static PersistedClientSecrets CreateSecretsCollection(
+        string concurrencyToken,
+        params PersistedSecret[] secrets
+    ) =>
+        new()
+        {
+            TenantId = TenantId,
+            ClientId = ClientId,
+            ConcurrencyToken = concurrencyToken,
+            Value = secrets,
+        };
+
+    private static PersistedClient CreateClient(string concurrencyToken) =>
+        new()
+        {
+            TenantId = TenantId,
+            ClientId = ClientId,
+            ConcurrencyToken = concurrencyToken,
+            IsDisabled = false,
+            Settings = CreateSettings("settings-ct"),
+            Secrets = CreateSecretsCollection("secrets-ct"),
+        };
+
+    private static PersistedSecret CreatePersistedSecret(
+        string secretId = "secret-1",
+        string concurrencyToken = "secret-ct"
+    ) =>
+        new()
+        {
+            SecretId = secretId,
+            ConcurrencyToken = concurrencyToken,
+            Use = "sig",
+            Algorithm = "RS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            SecretType = SecretTypes.Symmetric,
+            KeySizeBits = 256,
+            EncodedValue = "encoded",
+        };
+
+    private static CreateSecretRequest CreateSecretRequest() =>
+        new()
+        {
+            SecretId = "secret-1",
+            SecretType = SecretTypes.Symmetric,
+            KeySizeBits = 256,
+            Use = "sig",
+            Algorithm = "RS256",
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+    private static UpdateSecretRequest UpdateSecretRequest() =>
+        new()
+        {
+            Use = "enc",
+            Algorithm = "RS512",
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(2),
+        };
+
+    private static JsonPatchDocument<JsonObject> CreateAddPatch(string name, string value)
+    {
+        var patch = new JsonPatchDocument<JsonObject>();
+        patch.Operations.Add(
+            new Operation<JsonObject>("add", $"/{name}", from: null, value: value)
+        );
+        return patch;
+    }
+
+    #endregion
+
+    #region GetClientAsync Tests
+
+    [Fact]
+    public async Task GetClientAsync_WhenAuthorized_ReturnsClient()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetClientAsync(httpContext, ClientId, CancellationToken.None);
+
+        var json = Assert.IsType<JsonHttpResult<ClientResource>>(result);
+        Assert.Equal(ClientId, json.Value?.ClientId);
+        Assert.Equal(TenantId, json.Value?.TenantId);
+    }
+
+    [Fact]
+    public async Task GetClientAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetClientAsync(httpContext, ClientId, CancellationToken.None);
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region GetSettingsAsync Tests
+
+    [Fact]
+    public async Task GetSettingsAsync_WhenAuthorized_ReturnsSettings()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSettingsAsync(httpContext, ClientId, CancellationToken.None);
+
+        var json = Assert.IsType<JsonHttpResult<ClientSettingsResource>>(result);
+        Assert.Equal(ClientId, json.Value?.ClientId);
+    }
+
+    [Fact]
+    public async Task GetSettingsAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSettingsAsync(httpContext, ClientId, CancellationToken.None);
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region UpdateSettingsAsync Tests
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockClientStore
+            .Setup(x =>
+                x.UpdateSettingsAsync(
+                    It.IsAny<PersistedClientSettings>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ClientId,
+            CreateAddPatch("name", "value"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ClientId,
+            CreateAddPatch("name", "value"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region GetSecretsAsync Tests
+
+    [Fact]
+    public async Task GetSecretsAsync_WhenAuthorized_ReturnsSecrets()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSecretsCollection("secrets-ct", CreatePersistedSecret()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSecretsAsync(httpContext, ClientId, CancellationToken.None);
+
+        var json = Assert.IsType<JsonHttpResult<ClientSecretsResource>>(result);
+        Assert.Equal(ClientId, json.Value?.ClientId);
+        Assert.Single(json.Value!.Secrets);
+    }
+
+    [Fact]
+    public async Task GetSecretsAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClientSecrets?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSecretsAsync(httpContext, ClientId, CancellationToken.None);
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region CreateSecretAsync Tests
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var generated = CreatePersistedSecret();
+        MockSecretGenerator
+            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Returns(generated)
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, generated, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            ClientId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<SecretResource>>(result);
+        Assert.Equal("secret-1", created.Value?.SecretId);
+        Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenClientNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            ClientId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region GetSecretAsync / UpdateSecretAsync / DeleteSecretAsync Tests
+
+    [Fact]
+    public async Task GetSecretAsync_WhenAuthorized_ReturnsSecret()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSecretsCollection("secrets-ct", CreatePersistedSecret()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSecretAsync(
+            httpContext,
+            ClientId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SecretResource>>(result);
+        Assert.Equal("secret-1", json.Value?.SecretId);
+    }
+
+    [Fact]
+    public async Task GetSecretAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSecretsCollection("secrets-ct"))
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSecretAsync(
+            httpContext,
+            ClientId,
+            "missing",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetSecretAsync_AuthorizesAgainstTenantScopedResource()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSecretsCollection("secrets-ct", CreatePersistedSecret()))
+            .Verifiable();
+        object? capturedResource = null;
+        SetupAuthorizationCapture(resource => capturedResource = resource);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        await Handler.GetSecretAsync(httpContext, ClientId, "secret-1", CancellationToken.None);
+
+        var scoped = Assert.IsType<TenantOwnedResource<PersistedSecret>>(capturedResource);
+        Assert.Equal(TenantId, scoped.TenantId);
+        Assert.Equal("secret-1", scoped.Value.SecretId);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenAuthorized_ReturnsNoContent()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSecretsCollection("secrets-ct", CreatePersistedSecret()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockClientStore
+            .Setup(x =>
+                x.UpdateSecretAsync(
+                    ClientId,
+                    It.IsAny<PersistedSecret>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            ClientId,
+            "secret-1",
+            UpdateSecretRequest(),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task DeleteSecretAsync_WhenAuthorized_ReturnsNoContent()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSecretsCollection("secrets-ct", CreatePersistedSecret()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockClientStore
+            .Setup(x => x.RemoveSecretAsync(ClientId, "secret-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.DeleteSecretAsync(
+            httpContext,
+            ClientId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task DeleteSecretAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSecretsCollection("secrets-ct"))
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.DeleteSecretAsync(
+            httpContext,
+            ClientId,
+            "missing",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task DeleteSecretAsync_AuthorizesAgainstTenantScopedResource()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSecretsCollection("secrets-ct", CreatePersistedSecret()))
+            .Verifiable();
+        object? capturedResource = null;
+        SetupAuthorizationCapture(resource => capturedResource = resource);
+        MockClientStore
+            .Setup(x => x.RemoveSecretAsync(ClientId, "secret-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.DeleteSecretAsync(
+            httpContext,
+            ClientId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        var scoped = Assert.IsType<TenantOwnedResource<PersistedSecret>>(capturedResource);
+        Assert.Equal(TenantId, scoped.TenantId);
+        Assert.Equal("secret-1", scoped.Value.SecretId);
+    }
+
+    #endregion
+}

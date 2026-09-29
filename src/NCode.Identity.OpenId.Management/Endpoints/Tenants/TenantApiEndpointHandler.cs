@@ -418,8 +418,14 @@ internal class TenantApiEndpointHandler(
         var store = storeManager.GetStore<ITenantStore>();
 
         var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
+        var scoped = TenantOwnedResource.ForOrDefault(tenantId, secret);
 
-        return await ProcessGetAsync(httpContext, secret, Operations.Read, ToSecretResource);
+        return await ProcessGetAsync(
+            httpContext,
+            scoped,
+            Operations.Read,
+            x => ToSecretResource(x.Value)
+        );
     }
 
     /// <summary>
@@ -454,7 +460,7 @@ internal class TenantApiEndpointHandler(
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
-            secret,
+            TenantOwnedResource.For(tenantId, secret),
             Operations.Update
         );
 
@@ -517,7 +523,7 @@ internal class TenantApiEndpointHandler(
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
-            secret,
+            TenantOwnedResource.For(tenantId, secret),
             Operations.Delete
         );
 

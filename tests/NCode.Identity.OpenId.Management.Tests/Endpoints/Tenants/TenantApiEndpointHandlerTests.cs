@@ -102,6 +102,24 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
+    private void SetupAuthorizationCapture(Action<object?> capture)
+    {
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .Callback(
+                (ClaimsPrincipal _, object? resource, IEnumerable<IAuthorizationRequirement> _) =>
+                    capture(resource)
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+    }
+
     private static HttpContext CreateHttpContext(bool authenticated)
     {
         var identity = authenticated
@@ -596,6 +614,64 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetSecretAsync_AuthorizesAgainstTenantScopedResource()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(TenantId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        object? capturedResource = null;
+        SetupAuthorizationCapture(resource => capturedResource = resource);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        await Handler.GetSecretAsync(httpContext, TenantId, "secret-1", CancellationToken.None);
+
+        var scoped = Assert.IsType<TenantOwnedResource<PersistedSecret>>(capturedResource);
+        Assert.Equal(TenantId, scoped.TenantId);
+        Assert.Equal("secret-1", scoped.Value.SecretId);
+    }
+
+    [Fact]
+    public async Task DeleteSecretAsync_AuthorizesAgainstTenantScopedResource()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(TenantId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        object? capturedResource = null;
+        SetupAuthorizationCapture(resource => capturedResource = resource);
+        MockTenantStore
+            .Setup(x => x.RemoveSecretAsync(TenantId, "secret-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.DeleteSecretAsync(
+            httpContext,
+            TenantId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        var scoped = Assert.IsType<TenantOwnedResource<PersistedSecret>>(capturedResource);
+        Assert.Equal(TenantId, scoped.TenantId);
+        Assert.Equal("secret-1", scoped.Value.SecretId);
     }
 
     #endregion

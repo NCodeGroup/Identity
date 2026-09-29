@@ -32,6 +32,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
@@ -228,12 +229,14 @@ internal class ServerApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="mediator">The <see cref="IMediator"/> used to run the delete precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/servers/delete")]
     internal virtual async ValueTask<IResult> DeleteServerAsync(
         HttpContext httpContext,
         [FromRoute] string serverId,
+        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -246,34 +249,20 @@ internal class ServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            server,
-            Operations.Delete
+        // Preconditions (authorization + no-dependents) are asserted by the mediator pipeline, which decides
+        // on facts it queries rather than on caught exceptions (ADR-0013).
+        var disposition = new OperationDisposition<ManagementError>();
+        await mediator.SendAsync(
+            new ValidateDeleteServerCommand(httpContext, server, disposition),
+            cancellationToken
         );
 
-        if (!authorizationResult.Succeeded)
+        if (disposition.HasError)
         {
-            return AuthorizationFailed(httpContext);
+            return ToErrorResult(disposition.Error);
         }
 
-        try
-        {
-            var removed = await store.RemoveAsync(serverId, cancellationToken);
-            if (!removed)
-            {
-                return TypedResults.NotFound();
-            }
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "The server cannot be deleted while it still has dependent secrets.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
-
+        await store.RemoveAsync(serverId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
         return TypedResults.NoContent();

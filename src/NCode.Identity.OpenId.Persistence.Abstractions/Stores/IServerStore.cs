@@ -142,4 +142,14 @@ public interface IServerStore : IStore<PersistedServer>
     /// if the server was removed; otherwise <c>false</c> when no matching server existed.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the server still has dependent child resources.</exception>
     ValueTask<bool> RemoveAsync(string serverId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Determines whether an OpenId Server still has dependent child resources (any secrets) that would block
+    /// its removal.
+    /// </summary>
+    /// <param name="serverId">The identifier of the OpenId Server.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
+    /// when the server has dependent child resources; otherwise <c>false</c> (including when no such server exists).</returns>
+    ValueTask<bool> HasDependentsAsync(string serverId, CancellationToken cancellationToken);
 }

@@ -20,7 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
+namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 
 /// <summary>
 /// Represents the REST resource for a <see cref="PersistedSecret"/> instance.

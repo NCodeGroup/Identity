@@ -17,22 +17,27 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Serialization;
+using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Persistence;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
+namespace NCode.Identity.OpenId.Management.Contracts.Tenants;
 
 /// <summary>
-/// Represents the mutable metadata of an OpenID Client that a JSON Patch document may modify. Settings and
-/// secrets are managed through their own endpoints.
+/// Represents the REST resource for a <see cref="PersistedTenantSettings"/> instance.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class UpdateClientRequest
+public sealed class TenantSettingsResource : ISupportTenantId, ISupportConcurrencyToken
 {
-    /// <summary>
-    /// Gets or sets a value indicating whether the client is disabled.
-    /// </summary>
-    [JsonPropertyName("isDisabled")]
-    public bool IsDisabled { get; set; }
+    /// <inheritdoc cref="ISupportTenantId.TenantId"/>
+    public required string TenantId { get; init; }
+
+    /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
+    public required string ConcurrencyToken { get; init; }
+
+    /// <inheritdoc cref="PersistedTenantResource{TValue}.Value"/>
+    public required JsonElement Settings { get; init; }
 }

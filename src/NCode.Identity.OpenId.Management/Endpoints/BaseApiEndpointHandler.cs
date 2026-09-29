@@ -20,7 +20,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Management.Endpoints.Secrets;
+using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 

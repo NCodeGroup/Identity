@@ -19,38 +19,31 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Persistence;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
+namespace NCode.Identity.OpenId.Management.Contracts.Clients;
 
 /// <summary>
-/// Represents the request body to create a new OpenID Tenant.
+/// Represents the REST resource for a <see cref="PersistedClientSettings"/> instance.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class CreateTenantRequest
+public sealed class ClientSettingsResource
+    : ISupportClientId,
+        ISupportTenantId,
+        ISupportConcurrencyToken
 {
-    /// <summary>
-    /// Gets the natural identifier to assign to the tenant.
-    /// </summary>
+    /// <inheritdoc cref="ISupportTenantId.TenantId"/>
     public required string TenantId { get; init; }
 
-    /// <summary>
-    /// Gets the optional domain name used to locate the tenant, or <c>null</c> when not applicable.
-    /// </summary>
-    public string? DomainName { get; init; }
+    /// <inheritdoc cref="ISupportClientId.ClientId"/>
+    public required string ClientId { get; init; }
 
-    /// <summary>
-    /// Gets the display name for the tenant.
-    /// </summary>
-    public required string DisplayName { get; init; }
+    /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
+    public required string ConcurrencyToken { get; init; }
 
-    /// <summary>
-    /// Gets a value indicating whether the tenant is created in a disabled state.
-    /// </summary>
-    public required bool IsDisabled { get; init; }
-
-    /// <summary>
-    /// Gets the initial JSON settings for the tenant.
-    /// </summary>
+    /// <inheritdoc cref="PersistedClientResource{TValue}.Value"/>
     public required JsonElement Settings { get; init; }
 }

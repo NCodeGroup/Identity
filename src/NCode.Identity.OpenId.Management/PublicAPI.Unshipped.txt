@@ -5,50 +5,6 @@ NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdManagementLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.ClientId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.ClientId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.ClientResource() -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.IsDisabled.get -> bool
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.IsDisabled.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientResource.TenantId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.ClientId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.ClientId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.ClientSecretsResource() -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource!>!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.Secrets.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSecretsResource.TenantId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.ClientId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.ClientId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.ClientSettingsResource() -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.Settings.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ClientSettingsResource.TenantId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.CreateClientRequest
-NCode.Identity.OpenId.Management.Endpoints.Clients.CreateClientRequest.ClientId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Clients.CreateClientRequest.ClientId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.CreateClientRequest.CreateClientRequest() -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.CreateClientRequest.IsDisabled.get -> bool
-NCode.Identity.OpenId.Management.Endpoints.Clients.CreateClientRequest.IsDisabled.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.CreateClientRequest.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Endpoints.Clients.CreateClientRequest.Settings.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.CreateClientRequest.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Clients.CreateClientRequest.TenantId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.UpdateClientRequest
-NCode.Identity.OpenId.Management.Endpoints.Clients.UpdateClientRequest.IsDisabled.get -> bool
-NCode.Identity.OpenId.Management.Endpoints.Clients.UpdateClientRequest.IsDisabled.set -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.UpdateClientRequest.UpdateClientRequest() -> void
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.Client.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient!
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.Client.init -> void
@@ -78,74 +34,6 @@ NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.I
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.IfMatch.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.ValidateUpdateClientCommand() -> void
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.ValidateUpdateClientCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! Client, string? IfMatch, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Algorithm.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Algorithm.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.CreateSecretRequest() -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.ExpiresWhen.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.KeySizeBits.get -> int
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.KeySizeBits.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.SecretId.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.SecretId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.SecretType.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.SecretType.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Use.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Use.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Algorithm.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Algorithm.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.CreatedWhen.get -> System.DateTimeOffset
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.CreatedWhen.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.ExpiresWhen.get -> System.DateTimeOffset
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.ExpiresWhen.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.KeySizeBits.get -> int
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.KeySizeBits.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.SecretId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.SecretId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.SecretResource() -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.SecretType.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.SecretType.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Use.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource.Use.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest
-NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.Algorithm.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.Algorithm.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
-NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.ExpiresWhen.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.UpdateSecretRequest() -> void
-NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.Use.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Secrets.UpdateSecretRequest.Use.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.CreateServerRequest
-NCode.Identity.OpenId.Management.Endpoints.Servers.CreateServerRequest.CreateServerRequest() -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.CreateServerRequest.ServerId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Servers.CreateServerRequest.ServerId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.CreateServerRequest.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Endpoints.Servers.CreateServerRequest.Settings.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource.ServerId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource.ServerId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerResource.ServerResource() -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSecretsResource
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSecretsResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSecretsResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSecretsResource.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource!>!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSecretsResource.Secrets.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSecretsResource.ServerId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSecretsResource.ServerId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSecretsResource.ServerSecretsResource() -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.ServerId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.ServerId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.ServerSettingsResource() -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.Settings.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand
 NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
 NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.Disposition.init -> void
@@ -164,54 +52,6 @@ NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.S
 NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.Server.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.ValidateDeleteServerCommand() -> void
 NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.ValidateDeleteServerCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! Server, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest.CreateTenantRequest() -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest.DisplayName.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest.DisplayName.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest.DomainName.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest.DomainName.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest.IsDisabled.get -> bool
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest.IsDisabled.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest.Settings.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.CreateTenantRequest.TenantId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.DisplayName.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.DisplayName.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.DomainName.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.DomainName.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.IsDisabled.get -> bool
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.IsDisabled.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.TenantId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantResource.TenantResource() -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretResource!>!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.Secrets.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.TenantId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSecretsResource.TenantSecretsResource() -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.Settings.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.TenantId.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantSettingsResource.TenantSettingsResource() -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest
-NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.DisplayName.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.DisplayName.set -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.DomainName.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.DomainName.set -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.IsDisabled.get -> bool
-NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.IsDisabled.set -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.UpdateTenantRequest.UpdateTenantRequest() -> void
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.Disposition.init -> void

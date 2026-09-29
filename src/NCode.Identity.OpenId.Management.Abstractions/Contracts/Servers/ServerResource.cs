@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -18,28 +18,22 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
+namespace NCode.Identity.OpenId.Management.Contracts.Servers;
 
 /// <summary>
-/// Represents the REST resource for a <see cref="PersistedServerSecrets"/> instance.
+/// Represents the REST resource for a <see cref="PersistedServer"/> instance.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class ServerSecretsResource : ISupportServerId, ISupportConcurrencyToken
+public sealed class ServerResource : ISupportServerId, ISupportConcurrencyToken
 {
     /// <inheritdoc cref="ISupportServerId.ServerId"/>
     public required string ServerId { get; init; }
 
     /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }
-
-    /// <summary>
-    /// Gets or sets the collection of secrets only known to an OpenID Server instance.
-    /// </summary>
-    public required IReadOnlyCollection<SecretResource> Secrets { get; init; }
 }

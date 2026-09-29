@@ -19,7 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
+namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 
 /// <summary>
 /// Represents the request body to create a new server secret. The key material is generated server-side; the

@@ -474,4 +474,31 @@ internal class TenantStore(
 
         return true;
     }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> HasDependentsAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEntity = await GetEntityOrDefaultAsync(tenantId, cancellationToken);
+        if (tenantEntity is null)
+        {
+            return false;
+        }
+
+        var hasClients = await DbContext.Clients.AnyAsync(
+            client => client.TenantId == tenantEntity.Id,
+            cancellationToken
+        );
+        if (hasClients)
+        {
+            return true;
+        }
+
+        return await DbContext.TenantSecrets.AnyAsync(
+            tenantSecret => tenantSecret.TenantId == tenantEntity.Id,
+            cancellationToken
+        );
+    }
 }

@@ -31,6 +31,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
@@ -89,35 +90,6 @@ internal class TenantApiEndpointHandler(
         tenants.MapGet("/{tenantId}/secrets/{secretId}", GetSecretAsync);
         tenants.MapPut("/{tenantId}/secrets/{secretId}", UpdateSecretAsync);
         tenants.MapDelete("/{tenantId}/secrets/{secretId}", DeleteSecretAsync);
-    }
-
-    /// <summary>
-    /// Serializes the specified <see cref="JsonObject"/> into a detached <see cref="JsonElement"/>.
-    /// </summary>
-    /// <param name="jsonObject">The <see cref="JsonObject"/> to serialize.</param>
-    /// <returns>The serialized <see cref="JsonElement"/>.</returns>
-    internal virtual JsonElement SerializeToElement(JsonObject jsonObject)
-    {
-        return JsonSerializer.SerializeToElement(jsonObject);
-    }
-
-    /// <summary>
-    /// Converts the specified <see cref="JsonElement"/> into a mutable <see cref="JsonObject"/>, returning an empty
-    /// object when the element is <c>null</c> or not a JSON object.
-    /// </summary>
-    /// <param name="element">The <see cref="JsonElement"/> to convert.</param>
-    /// <returns>The resulting <see cref="JsonObject"/>.</returns>
-    internal virtual JsonObject ToJsonObject(JsonElement element)
-    {
-        switch (element.ValueKind)
-        {
-            case JsonValueKind.Null:
-            case JsonValueKind.Object:
-                return JsonObject.Create(element) ?? new JsonObject();
-
-            default:
-                return new JsonObject();
-        }
     }
 
     /// <summary>
@@ -348,12 +320,14 @@ internal class TenantApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="mediator">The <see cref="IMediator"/> used to run the delete precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/tenants/delete")]
     internal virtual async ValueTask<IResult> DeleteTenantAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
+        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -366,34 +340,20 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            tenant,
-            Operations.Delete
+        // Preconditions (authorization + no-dependents) are asserted by the mediator pipeline, which decides
+        // on facts it queries rather than on caught exceptions (ADR-0013).
+        var disposition = new OperationDisposition<ManagementError>();
+        await mediator.SendAsync(
+            new ValidateDeleteTenantCommand(httpContext, tenant, disposition),
+            cancellationToken
         );
 
-        if (!authorizationResult.Succeeded)
+        if (disposition.HasError)
         {
-            return AuthorizationFailed(httpContext);
+            return ToErrorResult(disposition.Error);
         }
 
-        try
-        {
-            var removed = await store.RemoveAsync(tenantId, cancellationToken);
-            if (!removed)
-            {
-                return TypedResults.NotFound();
-            }
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "The tenant cannot be deleted while it still has dependent clients or secrets.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
-
+        await store.RemoveAsync(tenantId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
         return TypedResults.NoContent();

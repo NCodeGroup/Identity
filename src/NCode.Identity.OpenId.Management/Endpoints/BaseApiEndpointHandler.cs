@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
@@ -36,6 +38,35 @@ internal abstract class BaseApiEndpointHandler
     protected abstract IAuthorizationService AuthorizationService { get; }
 
     /// <summary>
+    /// Serializes the specified <see cref="JsonObject"/> into a detached <see cref="JsonElement"/>.
+    /// </summary>
+    /// <param name="jsonObject">The <see cref="JsonObject"/> to serialize.</param>
+    /// <returns>The serialized <see cref="JsonElement"/>.</returns>
+    internal virtual JsonElement SerializeToElement(JsonObject jsonObject)
+    {
+        return JsonSerializer.SerializeToElement(jsonObject);
+    }
+
+    /// <summary>
+    /// Converts the specified <see cref="JsonElement"/> into a mutable <see cref="JsonObject"/>, returning an empty
+    /// object when the element is <c>null</c> or not a JSON object.
+    /// </summary>
+    /// <param name="element">The <see cref="JsonElement"/> to convert.</param>
+    /// <returns>The resulting <see cref="JsonObject"/>.</returns>
+    internal virtual JsonObject ToJsonObject(JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Null:
+            case JsonValueKind.Object:
+                return JsonObject.Create(element) ?? new JsonObject();
+
+            default:
+                return new JsonObject();
+        }
+    }
+
+    /// <summary>
     /// Returns the appropriate <see cref="IResult"/> for a failed authorization: <c>403 Forbidden</c> when the
     /// user is authenticated (but lacks permission) and <c>401 Unauthorized</c> when the user is anonymous.
     /// </summary>
@@ -45,6 +76,17 @@ internal abstract class BaseApiEndpointHandler
     {
         var isAuthenticated = httpContext.User.Identity?.IsAuthenticated ?? false;
         return isAuthenticated ? TypedResults.Forbid() : TypedResults.Unauthorized();
+    }
+
+    /// <summary>
+    /// Maps a precondition <see cref="ManagementError"/> produced by a validation pipeline to its
+    /// <see cref="IResult"/> response, using the error's fixed status and safe detail message.
+    /// </summary>
+    /// <param name="error">The <see cref="ManagementError"/> to map.</param>
+    /// <returns>The <see cref="IResult"/> representing the failure.</returns>
+    protected internal virtual IResult ToErrorResult(ManagementError error)
+    {
+        return TypedResults.Problem(detail: error.Detail, statusCode: error.StatusCode);
     }
 
     /// <summary>

@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" />
+        <PackageReference Include="NCode.Mediator" />
         <PackageReference Include="SystemTextJsonPatch" />
     </ItemGroup>
 

@@ -179,4 +179,14 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// if the tenant was removed; otherwise <c>false</c> when no matching tenant existed.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the tenant still has dependent child resources.</exception>
     ValueTask<bool> RemoveAsync(string tenantId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Determines whether an OpenId Tenant still has dependent child resources (any clients or secrets) that
+    /// would block its removal.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
+    /// when the tenant has dependent child resources; otherwise <c>false</c> (including when no such tenant exists).</returns>
+    ValueTask<bool> HasDependentsAsync(string tenantId, CancellationToken cancellationToken);
 }

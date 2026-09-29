@@ -18,11 +18,13 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
+using NCode.Mediator;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Management;
@@ -47,6 +49,20 @@ public static class DefaultRegistration
             serviceCollection.AddAuthorization();
             serviceCollection.AddAuthorizationHandler<GlobalAdminHandler>();
             serviceCollection.AddAuthorizationHandler<TenantAdminHandler>();
+
+            serviceCollection.AddMediator();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateDeleteTenantCommand>,
+                    DefaultAuthorizeDeleteTenantHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateDeleteTenantCommand>,
+                    DefaultTenantHasNoDependentsHandler
+                >()
+            );
 
             builder.AddEndpointProvider<ServerApiEndpointHandler>();
             builder.AddEndpointProvider<TenantApiEndpointHandler>();

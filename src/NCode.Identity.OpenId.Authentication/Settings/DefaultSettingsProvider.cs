@@ -32,9 +32,14 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
     /// <inheritdoc />
     public void Configure(ISettingCollection settings)
     {
+        // client_credentials and password are intentionally opt-in (host-enabled), not default-on.
         settings.Set(
             OpenIdSettingKeys.GrantTypesSupported,
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            [
+                OpenIdConstants.GrantTypes.AuthorizationCode,
+                OpenIdConstants.GrantTypes.Implicit,
+                OpenIdConstants.GrantTypes.RefreshToken,
+            ]
         );
 
         settings.Set(

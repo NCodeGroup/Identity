@@ -10,7 +10,7 @@ Server, tenant, and client settings are merged into a single effective collectio
 reads. Collection-valued `*_supported` settings (`grant_types_supported`, `scopes_supported`,
 `response_types_supported`, `response_modes_supported`, `prompt_values_supported`, the various
 `*_alg_values_supported`, …) merge with `OnMerge = Intersect`, so the cascade is
-`root ∩ server-store ∩ tenant ∩ client` — each scope can only *narrow*. This is the intended
+`root ∩ server-store ∩ tenant ∩ client` — each scope can only _narrow_. This is the intended
 operator-control model: the server operator defines a ceiling and downstream scopes stay within it.
 
 The root ceiling for the capability lists was materialized from **hardcoded descriptor `Default`
@@ -18,7 +18,7 @@ values** (e.g. `grant_types_supported = [authorization_code, implicit]`). Becaus
 narrows, a hardcoded root default becomes an immovable ceiling: a tenant or client can never use a
 value the library did not bake in, and an extension that adds a new capability (a new grant handler,
 a custom scope) is dead on arrival. The frozen literal conflated three separate concerns — what the
-server is *capable* of, what the operator *policy* allows, and what a child scope narrows to.
+server is _capable_ of, what the operator _policy_ allows, and what a child scope narrows to.
 
 ## Decision
 
@@ -32,11 +32,11 @@ For the `*_supported` collection settings, **absence is the sentinel for "no res
   scope below it.
 - **True capability is enforced by the registries**, not by the literal: an unknown `grant_type` is
   rejected by grant-handler lookup, an unknown algorithm by the algorithm providers. The
-  `*_supported` lists are therefore *policy*, decoupled from capability.
+  `*_supported` lists are therefore _policy_, decoupled from capability.
 
 The hardcoded policy literals are removed from `SettingDescriptor.Default` and moved into a
 **replaceable baseline contributor**, `IDefaultSettingsProvider`, applied in the root settings
-`Set` (replace/upsert) pipeline *before* configuration. A host that configures nothing still gets the
+`Set` (replace/upsert) pipeline _before_ configuration. A host that configures nothing still gets the
 standard spec-compliant baseline; a host may extend it (root layer is replace/union, so
 `baseline ∪ additions`), override it via `OpenId:Server:Settings:*`, or clear a key to get ⊤.
 
@@ -49,7 +49,7 @@ unset scalar has no sensible ⊤.
   "add" a grant type the server has no handler for; union breaks the discovery/security invariant that
   the server advertises the maximum. The fix belongs at the root ceiling, not the merge direction.
 - **Derive the root ceiling from registrations (like the algorithm lists already do).** Kept for the
-  *discovery advertising* path, but insufficient for *operator policy*: scopes and other arbitrary
+  _discovery advertising_ path, but insufficient for _operator policy_: scopes and other arbitrary
   strings have no DI capability to derive from, and enforcement capability is already covered by the
   registries. Absence-as-⊤ subsumes it uniformly.
 - **Keep a hardcoded conservative default.** Rejected as the primary mechanism: it is exactly the
@@ -60,7 +60,7 @@ unset scalar has no sensible ⊤.
 - Extensions and custom scopes/grants are no longer blocked by library literals; a host opts into a
   capability by registering it and (optionally) listing it, and narrows by setting an explicit ceiling.
 - The operator-control model is unchanged and arguably clearer: restriction happens only where a
-  ceiling is *explicitly set*.
+  ceiling is _explicitly set_.
 - Posture shift: when neither the baseline nor any scope sets a `*_supported` list, that dimension is
   **permissive**. The default-on baseline keeps the out-of-the-box server safe and spec-compliant.
 - Enforcement reads must use `TryGetValue` (restrict-only-if-present); `GetValue` throws on an unset,

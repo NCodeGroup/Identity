@@ -328,8 +328,8 @@ internal class ServerStore(
         };
         await DbContext.ServerSecrets.AddAsync(serverSecretEntity, cancellationToken);
 
+        // The server is tracked; mutating the token marks it Modified via change detection.
         serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
-        DbContext.Servers.Update(serverEntity);
     }
 
     /// <inheritdoc />
@@ -367,13 +367,17 @@ internal class ServerStore(
         }
 
         // Only metadata is mutable; key material is immutable once generated (see ADR-0011).
+        // Concurrency tokens are assigned manually: ConcurrencyTokenSaveChangesInterceptor only runs on the
+        // synchronous SavingChanges, but the stores persist via SaveChangesAsync.
+        var nextSecretToken = NextConcurrencyToken();
         secretEntity.Use = persistedSecret.Use;
         secretEntity.Algorithm = persistedSecret.Algorithm;
         secretEntity.ExpiresWhen = persistedSecret.ExpiresWhen.ToUniversalTime();
-        DbContext.Secrets.Update(secretEntity);
+        secretEntity.ConcurrencyToken = nextSecretToken;
 
         serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
-        DbContext.Servers.Update(serverEntity);
+
+        persistedSecret.ConcurrencyToken = nextSecretToken;
     }
 
     /// <inheritdoc />
@@ -397,8 +401,8 @@ internal class ServerStore(
         DbContext.ServerSecrets.Remove(serverSecretEntity);
         DbContext.Secrets.Remove(serverSecretEntity.Secret);
 
+        // The server is tracked; mutating the token marks it Modified via change detection.
         serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
-        DbContext.Servers.Update(serverEntity);
 
         return true;
     }

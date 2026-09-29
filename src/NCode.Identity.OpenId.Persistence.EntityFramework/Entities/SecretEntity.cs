@@ -62,7 +62,7 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     [Unicode(false)]
     [MaxLength(MaxLengths.ConcurrencyToken)]
     [ConcurrencyCheck]
-    public required string ConcurrencyToken { get; init; }
+    public required string ConcurrencyToken { get; set; }
 
     /// <summary>
     /// Gets or sets the intended use for this secret. This property is optional and may be <c>null</c> to

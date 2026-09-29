@@ -84,7 +84,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Algorithm.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.Algorithm.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.ConcurrencyToken.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.CreatedWhen.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity.EncodedValue.get -> string!

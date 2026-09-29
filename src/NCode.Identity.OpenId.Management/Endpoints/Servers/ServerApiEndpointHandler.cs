@@ -391,8 +391,7 @@ internal class ServerApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        // Re-read so the response reflects the authoritative persisted state (the concurrency token is assigned
-        // during save by the store, not before). See ADR-0011.
+        // Re-read so the response reflects the authoritative persisted state. See ADR-0011.
         var persisted = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
         if (persisted is null)
         {

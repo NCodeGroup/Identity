@@ -391,17 +391,11 @@ internal class ServerApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        // Re-read so the response reflects the authoritative persisted state. See ADR-0011.
-        var persisted = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
-        if (persisted is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        httpContext.Response.Headers.ETag = persisted.ConcurrencyToken;
+        // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
+        httpContext.Response.Headers.ETag = generatedSecret.ConcurrencyToken;
         return TypedResults.Created(
             $"/servers/{serverId}/secrets/{secretId}",
-            ToSecretResource(persisted)
+            ToSecretResource(generatedSecret)
         );
     }
 

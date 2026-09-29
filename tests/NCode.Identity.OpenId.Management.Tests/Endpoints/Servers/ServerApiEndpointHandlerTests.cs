@@ -593,12 +593,6 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        MockServerStore
-            .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
-            )
-            .ReturnsAsync(CreatePersistedSecret())
-            .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 

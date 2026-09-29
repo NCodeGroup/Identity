@@ -39,14 +39,21 @@ Two kinds of token live on these entities and must not be conflated:
   `entity.ConcurrencyToken = NextConcurrencyToken()` for the row token, and no longer copy a
   freshly-generated value onto the DTO. A newly constructed entity leaves its row token empty for the
   interceptor to fill on save.
+- **The interceptor force-regenerates on update/delete but only fills an empty token on insert.** A new row
+  cannot have a concurrency conflict, so a caller may legitimately pre-seed the insert token; the interceptor
+  respects a non-empty `Added` value and only regenerates it when it is empty. On `Modified`/`Deleted` it
+  always assigns a new value so the row version changes. This lets a create hand its token straight back on
+  the DTO (see below) while every update still gets a fresh token.
 - **The sub-resource version columns stay manually managed** in the specific operation that changes their
   slice (`UpdateSettingsAsync` bumps `SettingsConcurrencyToken`; the secret operations bump
   `SecretsConcurrencyToken`). The interceptor deliberately does not touch them.
-- **A mutation no longer populates the DTO's row token.** The token is assigned by the interceptor at
-  save time, after the store method has returned, so the DTO cannot carry it. Callers that need the fresh
-  token **re-read** the resource (the secret `POST` does this) or return `204 No Content` (`PUT`/`DELETE`).
-  No existing caller depended on the store back-filling the token — the grant flows never read it, and the
-  management read endpoints already load the resource fresh.
+- **An update no longer populates the DTO's row token; a create does.** For an update the token is assigned
+  by the interceptor at save time, after the store method has returned, so the DTO cannot carry it — an
+  updating caller re-reads if it needs the fresh token or returns `204 No Content` (`PUT`/`DELETE`). For an
+  insert the store assigns the token up front (safe — no conflict is possible) and returns it on the DTO, so
+  `POST` builds its `201` + `ETag` **without a re-read**. No existing caller depended on an update
+  back-filling the token — the grant flows never read it, and the management read endpoints already load the
+  resource fresh.
 - **Optimistic concurrency for the row is EF-native plus API-level `If-Match`.** EF's `[ConcurrencyCheck]`
   detects a concurrent write during the transaction (throwing `DbUpdateConcurrencyException` at
   `SaveChangesAsync`); the management endpoints enforce caller staleness at the edge via `If-Match`. The

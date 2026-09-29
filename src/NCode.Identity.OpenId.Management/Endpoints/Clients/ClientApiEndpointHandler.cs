@@ -169,12 +169,14 @@ internal class ClientApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="request">The <see cref="CreateClientRequest"/> describing the client to create.</param>
+    /// <param name="mediator">The <see cref="IMediator"/> used to run the create precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/clients/create")]
     internal virtual async ValueTask<IResult> CreateClientAsync(
         HttpContext httpContext,
         [FromBody] CreateClientRequest request,
+        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -203,40 +205,20 @@ internal class ClientApiEndpointHandler(
             },
         };
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            client,
-            Operations.Create
+        // Preconditions (authorization + parent-exists + uniqueness) are asserted by the mediator pipeline,
+        // which decides on facts it queries rather than on caught exceptions (ADR-0013).
+        var disposition = new OperationDisposition<ManagementError>();
+        await mediator.SendAsync(
+            new ValidateCreateClientCommand(httpContext, client, disposition),
+            cancellationToken
         );
 
-        if (!authorizationResult.Succeeded)
+        if (disposition.HasError)
         {
-            return AuthorizationFailed(httpContext);
+            return ToErrorResult(disposition.Error);
         }
 
-        var existing = await store.GetOrDefaultAsync(request.ClientId, cancellationToken);
-        if (existing is not null)
-        {
-            return TypedResults.Problem(
-                detail: $"A client with ClientId='{request.ClientId}' already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
-
-        try
-        {
-            await store.AddAsync(client, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            // The owning tenant does not exist.
-            Logger.MissingDependency(exception);
-            return TypedResults.Problem(
-                detail: "The specified tenant does not exist.",
-                statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
+        await store.AddAsync(client, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
         // The store assigns the row token on insert (ADR-0012), so no re-read is needed.
@@ -252,6 +234,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="request">The JSON Patch document to apply to the client metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current client.</param>
+    /// <param name="mediator">The <see cref="IMediator"/> used to run the update precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/clients/update")]
@@ -260,6 +243,7 @@ internal class ClientApiEndpointHandler(
         [FromRoute] string clientId,
         [FromBody] JsonPatchDocument<UpdateClientRequest> request,
         [FromHeader(Name = "If-Match")] string? ifMatch,
+        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -272,23 +256,16 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            client,
-            Operations.Update
+        // Preconditions (authorization + If-Match) are asserted by the mediator pipeline (ADR-0013).
+        var disposition = new OperationDisposition<ManagementError>();
+        await mediator.SendAsync(
+            new ValidateUpdateClientCommand(httpContext, client, ifMatch, disposition),
+            cancellationToken
         );
 
-        if (!authorizationResult.Succeeded)
+        if (disposition.HasError)
         {
-            return AuthorizationFailed(httpContext);
-        }
-
-        if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, client.ConcurrencyToken, StringComparison.Ordinal)
-        )
-        {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+            return ToErrorResult(disposition.Error);
         }
 
         var model = new UpdateClientRequest { IsDisabled = client.IsDisabled };

@@ -49,6 +49,15 @@ NCode.Identity.OpenId.Management.Endpoints.Clients.UpdateClientRequest
 NCode.Identity.OpenId.Management.Endpoints.Clients.UpdateClientRequest.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Endpoints.Clients.UpdateClientRequest.IsDisabled.set -> void
 NCode.Identity.OpenId.Management.Endpoints.Clients.UpdateClientRequest.UpdateClientRequest() -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.Client.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.Client.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.Disposition.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.HttpContext.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.ValidateCreateClientCommand() -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.ValidateCreateClientCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! Client, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.Client.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient!
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.Client.init -> void
@@ -58,6 +67,17 @@ NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.H
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.HttpContext.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.ValidateDeleteClientCommand() -> void
 NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.ValidateDeleteClientCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! Client, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.Client.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.Client.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.Disposition.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.HttpContext.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.IfMatch.get -> string?
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.IfMatch.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.ValidateUpdateClientCommand() -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.ValidateUpdateClientCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! Client, string? IfMatch, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
 NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest
 NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Algorithm.get -> string?
 NCode.Identity.OpenId.Management.Endpoints.Secrets.CreateSecretRequest.Algorithm.init -> void
@@ -126,6 +146,15 @@ NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.Server
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.ServerSettingsResource() -> void
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.Settings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Management.Endpoints.Servers.ServerSettingsResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand
+NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
+NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.Disposition.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.HttpContext.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.Server.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer!
+NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.Server.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.ValidateCreateServerCommand() -> void
+NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.ValidateCreateServerCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! Server, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
 NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand
 NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
 NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.Disposition.init -> void

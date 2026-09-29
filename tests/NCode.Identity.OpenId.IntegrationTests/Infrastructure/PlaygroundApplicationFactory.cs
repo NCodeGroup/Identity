@@ -16,6 +16,9 @@
 
 #endregion
 
+using System.Buffers;
+using System.Buffers.Text;
+using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -23,10 +26,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Extensions.DataProtection;
+using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Playground;
+using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
@@ -97,6 +104,76 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client (<c>client_secret_post</c>) whose symmetric
+    /// secret matches <paramref name="clientSecret"/>, so the <c>client_credentials</c> grant can be exercised.
+    /// </summary>
+    public async Task SeedConfidentialClientAsync(string clientId, string clientSecret)
+    {
+        // A first request forces the static tenant provider to persist the tenant entity,
+        // which ClientStore.AddAsync requires as a foreign key.
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        using var scope = Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        // Protect the secret the same way DefaultSecretSerializer expects to unprotect it.
+        var protector = serviceProvider
+            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
+            .CreateDataProtector();
+
+        var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
+        var writer = new ArrayBufferWriter<byte>();
+        protector.ProtectSpan(secretBytes, ref writer);
+
+        var persistedSecret = new PersistedSecret
+        {
+            SecretId = $"{clientId}-secret",
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
+            SecretType = SecretTypes.Symmetric,
+            KeySizeBits = secretBytes.Length * 8,
+            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+        };
+
+        var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
+            new Dictionary<string, object>()
+        );
+
+        var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var store = storeManager.GetStore<IClientStore>();
+
+        var persistedClient = new PersistedClient
+        {
+            TenantId = TenantId,
+            ClientId = clientId,
+            IsDisabled = false,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                Value = emptySettingsJson,
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                Value = [persistedSecret],
+            },
+        };
+
+        await store.AddAsync(persistedClient, CancellationToken.None);
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
     /// <inheritdoc />
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -114,6 +191,10 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
             services.AddDbContextFactory<OpenIdDbContext>(options =>
                 options.UseInMemoryDatabase(DatabaseName, databaseRoot)
             );
+
+            // Widen the server ceiling (registered after the library default, so it unions on top):
+            // enables the client_credentials grant and a custom "api" scope for integration coverage.
+            services.AddSingleton<IDefaultSettingsProvider, TestServerSettingsProvider>();
         });
     }
 }

@@ -1,0 +1,94 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Net;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using Xunit;
+
+namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
+
+public class TokenEndpointClientCredentialsTests
+{
+    private const string ClientId = "it-cc-client";
+    private const string ClientSecret = "confidential-secret-value";
+
+    [Fact]
+    public async Task PostToken_WithClientCredentials_ReturnsAccessToken()
+    {
+        using var factory = new PlaygroundApplicationFactory();
+        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var content = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["client_id"] = ClientId,
+                ["client_secret"] = ClientSecret,
+                ["scope"] = TestServerSettingsProvider.ApiScope,
+            }
+        );
+
+        using var response = await client.PostAsync("/oauth2/token", content);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+
+        Assert.True(root.TryGetProperty("access_token", out var accessToken));
+        Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
+
+        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
+        Assert.Equal(TestServerSettingsProvider.ApiScope, root.GetProperty("scope").GetString());
+    }
+
+    [Fact]
+    public async Task PostToken_WithWrongClientSecret_DoesNotReturnAccessToken()
+    {
+        using var factory = new PlaygroundApplicationFactory();
+        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var content = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["client_id"] = ClientId,
+                ["client_secret"] = "wrong-secret",
+                ["scope"] = TestServerSettingsProvider.ApiScope,
+            }
+        );
+
+        using var response = await client.PostAsync("/oauth2/token", content);
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(document.RootElement.TryGetProperty("error", out _));
+    }
+}

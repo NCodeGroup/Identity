@@ -1,4 +1,4 @@
-# 0011. Server-secret management: server-side key generation, no material on the surface
+# 0011. Secret management: server-side key generation, no material on the surface
 
 - **Status:** Accepted
 - **Date:** 2026-09-29
@@ -6,19 +6,21 @@
 
 ## Context
 
-The OpenID management API (`NCode.Identity.OpenId.Management`) exposes CRUD over an OpenID Server's
-settings and secrets. Reading secrets was already correct-by-default: `SecretResource` exposes only
+The OpenID management API (`NCode.Identity.OpenId.Management`) exposes CRUD over the secrets owned by an
+OpenID **server**, **tenant**, and **client**. These decisions apply to **all** of those secret owners;
+server secrets are the first implementation and tenant/client secrets follow the same rules as their
+endpoint groups land. Reading secrets was already correct-by-default: `SecretResource` exposes only
 metadata (`Use`, `Algorithm`, `CreatedWhen`, `ExpiresWhen`, `SecretType`, `KeySizeBits`) and never the
-`EncodedValue`. But there was no write path — a server's secret collection could only be seeded through
-the persistence layer directly (`IServerStore.AddAsync`), not managed at runtime.
+`EncodedValue`. But there was no write path — a secret collection could only be seeded through
+the persistence layer directly (`AddAsync`), not managed at runtime.
 
 Two facts constrain the write path:
 
 - **`PersistedSecret.EncodedValue` is data-protected (encrypted) key material**, base64url-encoded.
   `DefaultSecretSerializer` unprotects it via `IDataProtectorFactory<PersistedSecret>` on the way out;
   anything that writes a secret must protect it symmetrically on the way in.
-- **`IServerStore` had no per-secret operations** — only whole-collection reads
-  (`GetSecretsOrDefaultAsync`) and settings writes. Individual add/update/delete did not exist.
+- **The stores had no per-secret operations** — only whole-collection reads and settings writes.
+  Individual add/update/delete did not exist.
 
 Creating a secret therefore raises a security-design fork: does the operator **import** raw private key
 material over the wire (BYOK), or does the **server generate** it? Importing private keys means
@@ -27,7 +29,9 @@ inside the server's data-protection boundary from birth.
 
 ## Decision
 
-The management API creates secrets by **server-side generation only** for now:
+The management API creates secrets — for any owner (server, tenant, client) — by **server-side
+generation only** for now. The rules below are written against the server endpoints (the first
+implementation); the tenant and client secret endpoints adopt the identical shape and semantics:
 
 - **`POST api/servers/{serverId}/secrets`** takes _metadata_ (`secretType`, `keySizeBits`, optional
   `use`, `algorithm`, `expiresWhen`, optional `secretId`). The server generates fresh key material for
@@ -43,9 +47,10 @@ The management API creates secrets by **server-side generation only** for now:
 Generation lives in a new **`ISecretGenerator`** contract in `NCode.Identity.Secrets.Persistence`
 (alongside `DefaultSecretSerializer`, which owns the inverse unprotect path and the same
 `IDataProtectorFactory<PersistedSecret>`), so the crypto/protection concern stays in the secrets stack
-and the management layer is a thin DI consumer. Per-secret persistence is a set of new `IServerStore`
-methods (`GetSecretOrDefaultAsync`, `AddSecretAsync`, `UpdateSecretAsync`, `RemoveSecretAsync`) that
-also bump the server's `SecretsConcurrencyToken` so the running server's secret provider refreshes.
+and every management layer (server, tenant, client) is a thin DI consumer. Per-secret persistence is a
+set of new store methods (`GetSecretOrDefaultAsync`, `AddSecretAsync`, `UpdateSecretAsync`,
+`RemoveSecretAsync` — on `IServerStore` today, on the tenant/client stores as those land) that also bump
+the owner's `SecretsConcurrencyToken` so the running server/tenant/client secret provider refreshes.
 
 Key material import (BYOK) is **explicitly deferred**, not rejected — the request/DTO shape leaves room
 for an additive `EncodedValue`/PEM import field guarded by a future decision. Code that would host it

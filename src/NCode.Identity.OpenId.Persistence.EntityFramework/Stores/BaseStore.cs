@@ -113,6 +113,18 @@ internal abstract class BaseStore<TItem, TEntity> : IStore
     );
 
     /// <summary>
+    /// Returns an already-tracked entity matching the predicate without querying the database. EF identity
+    /// resolution would return this same tracked instance from a query anyway, so a <c>Local</c>-first lookup
+    /// avoids a redundant round-trip when the entity was already loaded in the current unit of work (ADR-0012).
+    /// </summary>
+    /// <param name="predicate">The predicate to match against the tracked (local) entities.</param>
+    /// <returns>The tracked entity if one matches; otherwise <c>null</c>.</returns>
+    protected TEntity? GetLocalOrDefault(Expression<Func<TEntity, bool>> predicate)
+    {
+        return DbContext.Set<TEntity>().Local.FirstOrDefault(predicate.Compile());
+    }
+
+    /// <summary>
     /// Attempts to retrieve a DTO from the store using the provided predicate.
     /// </summary>
     /// <param name="predicate">The predicate to use to find the entity.</param>

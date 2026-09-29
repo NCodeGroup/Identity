@@ -113,11 +113,12 @@ internal class ClientStore(
         CancellationToken cancellationToken
     )
     {
-        return await DbContext
-            .Clients.Include(client => client.Tenant)
-            .Include(client => client.Secrets)
-                .ThenInclude(clientSecret => clientSecret.Secret)
-            .FirstOrDefaultAsync(predicate, cancellationToken);
+        return GetLocalOrDefault(predicate)
+            ?? await DbContext
+                .Clients.Include(client => client.Tenant)
+                .Include(client => client.Secrets)
+                    .ThenInclude(clientSecret => clientSecret.Secret)
+                .FirstOrDefaultAsync(predicate, cancellationToken);
     }
 
     /// <inheritdoc />

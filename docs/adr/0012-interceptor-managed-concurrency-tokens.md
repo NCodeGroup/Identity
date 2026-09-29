@@ -68,15 +68,17 @@ Two kinds of token live on these entities and must not be conflated:
 - The three-line manual token dance is gone from every store; adding a new store or mutation no longer has
   to remember it.
 - Concurrency-token regeneration is now verifiable end-to-end: a store test that saves through
-  `SaveChangesAsync` and re-reads observes the token change. (The EF **InMemory** provider does honor the
-  interceptor's change-tracker writes, but does **not** enforce `[ConcurrencyCheck]` in the `WHERE` clause,
-  so a true concurrent-conflict test needs a relational provider — noted for the test backlog.)
-- **Follow-up (not in this change): eliminate the store-side re-read on update.** With the token
-  auto-managed, an `UpdateAsync` no longer needs to re-read purely to source the token; it re-reads only to
-  obtain the tracked entity to mutate. Removing that read (via a `Local`-first lookup when the entity is
-  already tracked in the unit of work, or by exposing the surrogate id on the DTO for a `Find`) is a
-  worthwhile optimization but changes read semantics in the auth-critical load paths, so it is deferred to
-  its own focused pass.
+  `SaveChangesAsync` and re-reads observes the token change. The EF **InMemory** provider honors the
+  interceptor's change-tracker writes but does **not** enforce `[ConcurrencyCheck]` in the `WHERE` clause, so
+  a true concurrent-conflict test uses **SQLite** (`GrantStoreConcurrencyTests`) to prove the native check
+  throws `DbUpdateConcurrencyException` on a stale write.
+- **The store-side re-read on update is eliminated.** Because EF identity resolution would return the
+  already-tracked instance from a query anyway, `GetEntityOrDefaultAsync` now does a `Local`-first lookup
+  (`BaseStore.GetLocalOrDefault`) and only queries the database when the entity is not already tracked in the
+  unit of work. This removes the redundant second round-trip in the load-then-update flows (notably grant
+  consume/revoke, which read then updated the same row) with behavior identical to the previous
+  identity-resolved re-read. Exposing the surrogate id on the DTOs was considered and rejected — the
+  `Local`-first lookup keeps the DTO/entity boundary intact.
 
 ## References
 

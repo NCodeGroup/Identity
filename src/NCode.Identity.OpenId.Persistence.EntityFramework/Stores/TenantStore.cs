@@ -170,7 +170,8 @@ internal class TenantStore(
         CancellationToken cancellationToken
     )
     {
-        persistedTenant.ConcurrencyToken = NextConcurrencyToken();
+        // Row-level ConcurrencyToken is filled by the interceptor on save (ADR-0012);
+        // the sub-resource version columns are plain and stay manual.
         persistedTenant.Settings.ConcurrencyToken = NextConcurrencyToken();
         persistedTenant.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
@@ -183,7 +184,7 @@ internal class TenantStore(
             NormalizedTenantId = Normalize(persistedTenant.TenantId),
             DomainName = persistedTenant.DomainName,
             NormalizedDomainName = Normalize(persistedTenant.DomainName),
-            ConcurrencyToken = persistedTenant.ConcurrencyToken,
+            ConcurrencyToken = string.Empty,
             SettingsConcurrencyToken = persistedTenant.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedTenant.Secrets.ConcurrencyToken,
             IsDisabled = persistedTenant.IsDisabled,
@@ -194,8 +195,6 @@ internal class TenantStore(
 
         foreach (var persistedSecret in persistedTenant.Secrets.Value)
         {
-            persistedSecret.ConcurrencyToken = NextConcurrencyToken();
-
             var secretEntity = MapToSecretEntity(persistedSecret);
 
             await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
@@ -241,9 +240,7 @@ internal class TenantStore(
             );
         }
 
-        var nextConcurrencyToken = NextConcurrencyToken();
-
-        tenantEntity.ConcurrencyToken = nextConcurrencyToken;
+        // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-0012).
         tenantEntity.IsDisabled = persistedTenant.IsDisabled;
         tenantEntity.DisplayName = persistedTenant.DisplayName;
 
@@ -251,8 +248,6 @@ internal class TenantStore(
         tenantEntity.NormalizedDomainName = Normalize(persistedTenant.DomainName);
 
         DbContext.Tenants.Update(tenantEntity);
-
-        persistedTenant.ConcurrencyToken = nextConcurrencyToken;
     }
 
     /// <inheritdoc />

@@ -90,5 +90,43 @@ public class ConcurrencyTokenSaveChangesInterceptorTests
         Assert.NotEqual(firstToken, entity.ConcurrencyToken);
     }
 
+    [Fact]
+    public async Task SavingChangesAsync_WhenEntityAdded_GeneratesConcurrencyToken()
+    {
+        await using var context = CreateContext();
+        var entity = new TestEntity
+        {
+            Id = 1,
+            ConcurrencyToken = string.Empty,
+            Name = "first",
+        };
+        context.Add(entity);
+
+        await context.SaveChangesAsync();
+
+        Assert.False(string.IsNullOrEmpty(entity.ConcurrencyToken));
+        Assert.Equal(32, entity.ConcurrencyToken.Length);
+    }
+
+    [Fact]
+    public async Task SavingChangesAsync_WhenEntityModified_ChangesConcurrencyToken()
+    {
+        await using var context = CreateContext();
+        var entity = new TestEntity
+        {
+            Id = 1,
+            ConcurrencyToken = string.Empty,
+            Name = "first",
+        };
+        context.Add(entity);
+        await context.SaveChangesAsync();
+        var firstToken = entity.ConcurrencyToken;
+
+        entity.Name = "second";
+        await context.SaveChangesAsync();
+
+        Assert.NotEqual(firstToken, entity.ConcurrencyToken);
+    }
+
     #endregion
 }

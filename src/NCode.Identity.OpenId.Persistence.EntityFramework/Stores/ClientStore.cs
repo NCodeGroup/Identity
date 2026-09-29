@@ -141,7 +141,8 @@ internal class ClientStore(
     {
         var tenantEntity = await GetTenantEntityAsync(persistedClient, cancellationToken);
 
-        persistedClient.ConcurrencyToken = NextConcurrencyToken();
+        // Row-level ConcurrencyToken is filled by the interceptor on save (ADR-0012);
+        // the sub-resource version columns are plain and stay manual.
         persistedClient.Settings.ConcurrencyToken = NextConcurrencyToken();
         persistedClient.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
@@ -153,7 +154,7 @@ internal class ClientStore(
             TenantId = tenantEntity.Id,
             ClientId = persistedClient.ClientId,
             NormalizedClientId = Normalize(persistedClient.ClientId),
-            ConcurrencyToken = persistedClient.ConcurrencyToken,
+            ConcurrencyToken = string.Empty,
             SettingsConcurrencyToken = persistedClient.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedClient.Secrets.ConcurrencyToken,
             IsDisabled = persistedClient.IsDisabled,
@@ -164,8 +165,6 @@ internal class ClientStore(
 
         foreach (var persistedSecret in persistedClient.Secrets.Value)
         {
-            persistedSecret.ConcurrencyToken = NextConcurrencyToken();
-
             var secretEntity = MapToSecretEntity(persistedSecret);
 
             await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
@@ -214,14 +213,10 @@ internal class ClientStore(
             );
         }
 
-        var nextConcurrencyToken = NextConcurrencyToken();
-
-        clientEntity.ConcurrencyToken = nextConcurrencyToken;
+        // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-0012).
         clientEntity.IsDisabled = persistedClient.IsDisabled;
 
         DbContext.Clients.Update(clientEntity);
-
-        persistedClient.ConcurrencyToken = nextConcurrencyToken;
     }
 
     /// <inheritdoc />

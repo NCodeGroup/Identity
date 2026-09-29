@@ -54,4 +54,54 @@ public class AuthorizationEndpointSeededClientTests(PlaygroundApplicationFactory
         // than the missing-client 400 returned when no client can be resolved.
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetAuthorize_WithPromptNoneAndNoSession_RedirectsToClientWithError()
+    {
+        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        var query =
+            $"?client_id={ClientId}"
+            + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+            + "&response_type=code"
+            + "&scope=openid"
+            + "&state=abc123"
+            + "&prompt=none";
+
+        using var response = await client.GetAsync("/oauth2/authorize" + query);
+
+        // prompt=none with no active session cannot interactively re-authenticate, so the server
+        // redirects the error back to the client's registered redirect_uri.
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.StartsWith(RedirectUri, location.GetLeftPart(UriPartial.Path));
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithUnregisteredRedirectUri_ReturnsBadRequest()
+    {
+        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        var query =
+            $"?client_id={ClientId}"
+            + $"&redirect_uri={Uri.EscapeDataString("https://evil.example/callback")}"
+            + "&response_type=code"
+            + "&scope=openid";
+
+        using var response = await client.GetAsync("/oauth2/authorize" + query);
+
+        // An unregistered redirect_uri is not safe to redirect to: the request must fail rather than
+        // open-redirect to the attacker-controlled URI.
+        Assert.True((int)response.StatusCode >= 400);
+        Assert.NotEqual(HttpStatusCode.Redirect, response.StatusCode);
+    }
 }

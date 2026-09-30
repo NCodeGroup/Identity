@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
@@ -87,20 +88,27 @@ internal class ClientApiEndpointHandler(
     {
         // The tenant-scope filter establishes the ambient tenant so tenant-scoped data access never materializes
         // another tenant's resources; a cross-tenant resource is simply not found.
-        var clients = endpoints.MapGroup("/clients").AddEndpointFilter<TenantScopeEndpointFilter>();
+        var clients = endpoints
+            .MapGroup("/clients")
+            .AddEndpointFilter<TenantScopeEndpointFilter>()
+            .WithTags("Clients");
 
-        clients.MapPost("", CreateClientAsync);
-        clients.MapGet("", ListClientsAsync);
-        clients.MapGet("/{clientId}", GetClientAsync);
+        clients
+            .MapPost("", CreateClientAsync)
+            .Produces<ClientResource>(StatusCodes.Status201Created);
+        clients.MapGet("", ListClientsAsync).Produces<CollectionResource<ClientResource>>();
+        clients.MapGet("/{clientId}", GetClientAsync).Produces<ClientResource>();
         clients.MapPatch("/{clientId}", UpdateClientAsync);
         clients.MapDelete("/{clientId}", DeleteClientAsync);
 
-        clients.MapGet("/{clientId}/settings", GetSettingsAsync);
+        clients.MapGet("/{clientId}/settings", GetSettingsAsync).Produces<ClientSettingsResource>();
         clients.MapPatch("/{clientId}/settings", UpdateSettingsAsync);
 
-        clients.MapGet("/{clientId}/secrets", GetSecretsAsync);
-        clients.MapPost("/{clientId}/secrets", CreateSecretAsync);
-        clients.MapGet("/{clientId}/secrets/{secretId}", GetSecretAsync);
+        clients.MapGet("/{clientId}/secrets", GetSecretsAsync).Produces<ClientSecretsResource>();
+        clients
+            .MapPost("/{clientId}/secrets", CreateSecretAsync)
+            .Produces<SecretResource>(StatusCodes.Status201Created);
+        clients.MapGet("/{clientId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
         clients.MapPut("/{clientId}/secrets/{secretId}", UpdateSecretAsync);
         clients.MapDelete("/{clientId}/secrets/{secretId}", DeleteSecretAsync);
     }

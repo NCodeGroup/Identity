@@ -324,9 +324,11 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
 - 👁 **A message template is a constant with named placeholders** (`"… {DisplayName}"`), never string interpolation or
   concatenation; a value that also feeds an error/response is defined **once** (§6) and passed to the log method as a
   structured argument.
-- 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`**, defined off a `private const int Base` as
-  `Base + n`, and referenced from the attribute (`EventId = EventIds.SubjectValidationFailed`) — never a bare magic
-  number at the call site.
+- 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`** — an `internal static class EventIds`
+  with a `private const int Base` set to the package's band (below) and one `public const int` per event defined as
+  `Base + n`. **Each constant is named _exactly_ as the `[LoggerMessage]` method it identifies**
+  (`EventIds.SubjectValidationFailed` ↔ `Log.SubjectValidationFailed(…)`), and the attribute references it
+  (`EventId = EventIds.SubjectValidationFailed`) — never a bare magic number at the call site or in the attribute.
 - 👁 **Every runtime package is pre-assigned a disjoint 1000-wide Event-ID band** in the registry below; a package
   starts using its band when it adds its first log. An `EventId` only has to be unique within an `ILogger<T>` category,
   but a family-wide band makes it **globally unique across packages**, so an operator's log filter or alert keys on a

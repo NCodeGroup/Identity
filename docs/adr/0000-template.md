@@ -7,7 +7,8 @@
 ## Context
 
 _What is the problem or the recurring question? What forces (technical, organizational) are at
-play? Keep it factual and neutral._
+play? Keep it factual, neutral, and timeless — present tense, no development-timeline narrative
+(not "we shipped X then reversed it"); describe what **is** and why._
 
 ## Decision
 

@@ -16,6 +16,11 @@ consequences. ADRs are immutable once **Accepted** — if a decision changes, ad
 - **Status** is one of: `Proposed`, `Accepted`, `Deprecated`, or `Superseded by ADR-NNNN`.
 - Keep ADRs short, concrete, and link to real code so future readers can verify the decision
   against the current source.
+- Write each ADR as a **timeless, present-tense record** of the decision and its rationale — never a
+  narrative of the development process. Avoid development-timeline language (_"shipped"_, _"reversed
+  before release"_, _"the first cut"_, _"we built"_, _"now/originally/today"_): describe what the
+  decision **is** and why, so the record reads the same a year later. A superseded ADR keeps its
+  original decision text and only gains a status change plus a forward pointer to its successor.
 
 ## Index
 
@@ -33,3 +38,6 @@ consequences. ADRs are immutable once **Accepted** — if a decision changes, ad
 | [0010](./0010-supported-settings-unset-means-unrestricted.md)          | `*_supported` settings: unset means unrestricted; a replaceable baseline supplies defaults | Accepted |
 | [0011](./0011-secret-management-api.md)                                | Secret management: server-side key generation, no material on the surface                  | Accepted |
 | [0012](./0012-interceptor-managed-concurrency-tokens.md)               | Concurrency tokens are interceptor-managed; sub-resource version columns stay manual       | Accepted |
+| [0013](./0013-management-precondition-mediator-pipeline.md)            | Management preconditions are a mediator validation pipeline                                | Superseded by [0015](./0015-management-core-validation-via-validators.md) |
+| [0014](./0014-server-generated-opaque-resource-ids.md)                | Resource identifiers are server-generated and opaque                                       | Accepted |
+| [0015](./0015-management-core-validation-via-validators.md)           | Management core validation via replaceable validators                                      | Accepted |

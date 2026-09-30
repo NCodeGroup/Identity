@@ -85,6 +85,21 @@ public class OpenIdDbContext(
     /// </summary>
     public DbSet<GrantEntity> Grants => Set<GrantEntity>();
 
+    /// <summary>
+    /// Gets the <see cref="ResourceServerEntity"/> entities.
+    /// </summary>
+    public DbSet<ResourceServerEntity> ResourceServers => Set<ResourceServerEntity>();
+
+    /// <summary>
+    /// Gets the <see cref="ScopeEntity"/> entities.
+    /// </summary>
+    public DbSet<ScopeEntity> Scopes => Set<ScopeEntity>();
+
+    /// <summary>
+    /// Gets the <see cref="ClientGrantEntity"/> entities.
+    /// </summary>
+    public DbSet<ClientGrantEntity> ClientGrants => Set<ClientGrantEntity>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -133,6 +148,27 @@ public class OpenIdDbContext(
                     entity.Tenant != null
                     && entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
                 )
+            );
+
+        modelBuilder
+            .Entity<ResourceServerEntity>()
+            .HasQueryFilter(entity =>
+                NormalizedAmbientTenantId == null
+                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+            );
+
+        modelBuilder
+            .Entity<ScopeEntity>()
+            .HasQueryFilter(entity =>
+                NormalizedAmbientTenantId == null
+                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+            );
+
+        modelBuilder
+            .Entity<ClientGrantEntity>()
+            .HasQueryFilter(entity =>
+                NormalizedAmbientTenantId == null
+                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
             );
     }
 

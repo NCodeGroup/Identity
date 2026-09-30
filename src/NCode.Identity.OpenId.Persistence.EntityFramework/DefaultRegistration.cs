@@ -59,6 +59,8 @@ public static class DefaultRegistration
             serviceCollection.AddStore<TDbContext, ITenantStore, TenantStore>();
             serviceCollection.AddStore<TDbContext, IClientStore, ClientStore>();
             serviceCollection.AddStore<TDbContext, IGrantStore, GrantStore>();
+            serviceCollection.AddStore<TDbContext, IResourceServerStore, ResourceServerStore>();
+            serviceCollection.AddStore<TDbContext, IClientGrantStore, ClientGrantStore>();
 
             return serviceCollection;
         }

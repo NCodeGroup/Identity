@@ -57,4 +57,24 @@ public static class OpenIdMaxLengths
     /// Specifies the maximum length of a <c>UrlValue</c>.
     /// </summary>
     public const int UrlValue = 1000;
+
+    /// <summary>
+    /// Specifies the maximum length of a resource server's <c>Identifier</c> (the audience).
+    /// </summary>
+    public const int ResourceServerIdentifier = 1000;
+
+    /// <summary>
+    /// Specifies the maximum length of a scope's <c>Value</c>.
+    /// </summary>
+    public const int ScopeValue = 300;
+
+    /// <summary>
+    /// Specifies the maximum length of a human-readable <c>DisplayName</c>.
+    /// </summary>
+    public const int DisplayName = 300;
+
+    /// <summary>
+    /// Specifies the maximum length of a human-readable <c>Description</c>.
+    /// </summary>
+    public const int Description = 1000;
 }

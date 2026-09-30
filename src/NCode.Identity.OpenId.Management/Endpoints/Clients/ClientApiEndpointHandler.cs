@@ -61,6 +61,7 @@ internal class ClientApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     IClientValidator clientValidator,
+    ITenantBoundary tenantBoundary,
     ISecretGenerator secretGenerator,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
@@ -69,6 +70,7 @@ internal class ClientApiEndpointHandler(
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IClientValidator ClientValidator { get; } = clientValidator;
+    private ITenantBoundary TenantBoundary { get; } = tenantBoundary;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<ClientApiEndpointHandler> Logger { get; } = logger;
@@ -78,6 +80,24 @@ internal class ClientApiEndpointHandler(
 
     /// <inheritdoc />
     protected override ICryptoService CryptoService { get; } = cryptoService;
+
+    /// <summary>
+    /// Enforces the per-request tenant boundary for a client-scoped resource, returning a <c>404</c> result when the
+    /// resource lies outside the request's tenant scope; otherwise <c>null</c>.
+    /// </summary>
+    private async ValueTask<IResult?> CheckTenantBoundaryAsync(
+        HttpContext httpContext,
+        string resourceTenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var error = await TenantBoundary.CheckAsync(
+            httpContext,
+            resourceTenantId,
+            cancellationToken
+        );
+        return error is null ? null : ToErrorResult(error);
+    }
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -168,6 +188,13 @@ internal class ClientApiEndpointHandler(
 
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
 
+        if (
+            client is not null
+            && await CheckTenantBoundaryAsync(httpContext, client.TenantId, cancellationToken)
+                is { } boundary
+        )
+            return boundary;
+
         return await ProcessGetAsync(httpContext, client, Operations.Read, ToClientResource);
     }
 
@@ -211,6 +238,12 @@ internal class ClientApiEndpointHandler(
                 Value = [],
             },
         };
+
+        if (
+            await CheckTenantBoundaryAsync(httpContext, request.TenantId, cancellationToken) is
+            { } boundary
+        )
+            return boundary;
 
         // Core preconditions (authorization + parent-exists + uniqueness) are asserted by the validator (ADR-0014).
         var error = await ClientValidator.ValidateCreateAsync(
@@ -260,6 +293,12 @@ internal class ClientApiEndpointHandler(
         {
             return TypedResults.NotFound();
         }
+
+        if (
+            await CheckTenantBoundaryAsync(httpContext, client.TenantId, cancellationToken) is
+            { } boundary
+        )
+            return boundary;
 
         var model = new UpdateClientRequest { IsDisabled = client.IsDisabled };
 
@@ -324,6 +363,12 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
+        if (
+            await CheckTenantBoundaryAsync(httpContext, client.TenantId, cancellationToken) is
+            { } boundary
+        )
+            return boundary;
+
         // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-0014).
         var error = await ClientValidator.ValidateDeleteAsync(
             httpContext.User,
@@ -363,6 +408,13 @@ internal class ClientApiEndpointHandler(
         // The client store has no dedicated settings getter; the client is loaded whole (settings included).
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
 
+        if (
+            client is not null
+            && await CheckTenantBoundaryAsync(httpContext, client.TenantId, cancellationToken)
+                is { } boundary
+        )
+            return boundary;
+
         return await ProcessGetAsync(
             httpContext,
             client?.Settings,
@@ -400,6 +452,16 @@ internal class ClientApiEndpointHandler(
         {
             return TypedResults.NotFound();
         }
+
+        if (
+            await CheckTenantBoundaryAsync(
+                httpContext,
+                clientSettings.TenantId,
+                cancellationToken
+            ) is
+            { } boundary
+        )
+            return boundary;
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
@@ -465,6 +527,17 @@ internal class ClientApiEndpointHandler(
 
         var clientSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
 
+        if (
+            clientSecrets is not null
+            && await CheckTenantBoundaryAsync(
+                httpContext,
+                clientSecrets.TenantId,
+                cancellationToken
+            )
+                is { } boundary
+        )
+            return boundary;
+
         return await ProcessGetAsync(
             httpContext,
             clientSecrets,
@@ -497,6 +570,12 @@ internal class ClientApiEndpointHandler(
         {
             return TypedResults.NotFound();
         }
+
+        if (
+            await CheckTenantBoundaryAsync(httpContext, client.TenantId, cancellationToken) is
+            { } boundary
+        )
+            return boundary;
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
@@ -585,6 +664,14 @@ internal class ClientApiEndpointHandler(
             secretId,
             cancellationToken
         );
+
+        if (
+            clientSecret is not null
+            && await CheckTenantBoundaryAsync(httpContext, clientSecret.TenantId, cancellationToken)
+                is { } boundary
+        )
+            return boundary;
+
         var scoped = clientSecret is null
             ? null
             : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
@@ -630,6 +717,12 @@ internal class ClientApiEndpointHandler(
         {
             return TypedResults.NotFound();
         }
+
+        if (
+            await CheckTenantBoundaryAsync(httpContext, clientSecret.TenantId, cancellationToken) is
+            { } boundary
+        )
+            return boundary;
 
         var secret = clientSecret.Value;
 
@@ -699,6 +792,12 @@ internal class ClientApiEndpointHandler(
         {
             return TypedResults.NotFound();
         }
+
+        if (
+            await CheckTenantBoundaryAsync(httpContext, clientSecret.TenantId, cancellationToken) is
+            { } boundary
+        )
+            return boundary;
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,

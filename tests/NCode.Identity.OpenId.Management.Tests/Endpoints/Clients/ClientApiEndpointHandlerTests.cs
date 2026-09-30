@@ -51,6 +51,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IClientValidator> MockClientValidator { get; }
+    private Mock<ITenantBoundary> MockTenantBoundary { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private ClientApiEndpointHandler Handler { get; }
 
@@ -63,12 +64,25 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockClientValidator = MockRepository.Create<IClientValidator>();
+        MockTenantBoundary = MockRepository.Create<ITenantBoundary>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
+
+        // By default the tenant boundary allows access (unscoped / central-admin); specific tests override this.
+        MockTenantBoundary
+            .Setup(x =>
+                x.CheckAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null);
 
         Handler = new ClientApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockClientValidator.Object,
+            MockTenantBoundary.Object,
             MockSecretGenerator.Object,
             TimeProvider.System,
             MockCryptoService.Object,
@@ -472,6 +486,39 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region TenantBoundary Tests
+
+    [Fact]
+    public async Task GetClientAsync_WhenOutsideTenantBoundary_ReturnsNotFound()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        MockTenantBoundary
+            .Setup(x =>
+                x.CheckAsync(It.IsAny<HttpContext>(), TenantId, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status404NotFound,
+                    Detail = "The specified resource could not be found.",
+                }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetClientAsync(httpContext, ClientId, CancellationToken.None);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
     }
 
     #endregion

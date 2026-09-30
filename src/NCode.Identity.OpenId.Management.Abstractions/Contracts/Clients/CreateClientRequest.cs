@@ -30,11 +30,6 @@ namespace NCode.Identity.OpenId.Management.Contracts.Clients;
 public sealed class CreateClientRequest
 {
     /// <summary>
-    /// Gets the identifier of the OpenID Tenant that owns the client.
-    /// </summary>
-    public required string TenantId { get; init; }
-
-    /// <summary>
     /// Gets a value indicating whether the client is created in a disabled state.
     /// </summary>
     public required bool IsDisabled { get; init; }

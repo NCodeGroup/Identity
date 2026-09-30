@@ -46,20 +46,19 @@ so a cross-tenant row is never materialized.** "Never fetch what you cannot see"
 - **Establishing the scope (management).** A reusable `TenantScopeEndpointFilter` on the tenant-bound endpoint group
   ([ADR-0009](0009-endpoint-families-own-their-route-group.md)) resolves the ambient tenant via `ITenantResolver` and
   opens an `IAmbientTenantAccessor` scope for the duration of the request; an unresolvable tenant short-circuits with
-  its mapped result (typically `404`). For static-single (central-admin) deployments the filter is a no-op.
-- **Writes.** Only a create needs an explicit tenant check, because it introduces a target `TenantId` from the request
-  body for a row that does not yet exist — nothing for the query filter to constrain — so the create validator rejects
-  a resource whose tenant differs from the ambient scope with `404` (never `403`, so a scoped surface cannot probe
-  another tenant's existence). Every operation on an _existing_ resource (get, update, delete — for the client and its
-  settings and secrets alike) loads it by its opaque id through the tenant-scoped query filter, so a cross-tenant
-  resource is already unreachable (`null` → `404`) before validation runs; by the time the validator sees the loaded
-  resource it necessarily belongs to the ambient tenant, and no further check is needed.
+  its mapped result (typically `404`). A tenant-bound resource is always owned by the request's tenant, so the scope is
+  established for **every** tenant strategy — including static-single, which has a single real tenant.
+- **Writes.** A tenant-bound resource is always owned by the request's tenant, never a client-supplied value, so a
+  create derives the owning tenant from the ambient scope — the request carries no tenant identifier at all. This
+  removes the redundancy (and the footgun) of echoing a tenant the server already resolved, and it means a caller can
+  only ever create within the tenant its request resolves to. Every operation on an _existing_ resource (get, update,
+  delete — for the client and its settings and secrets alike) loads it by its opaque id through the tenant-scoped query
+  filter, so a cross-tenant resource is already unreachable (`null` → `404`) before validation runs.
 - **Establishing the scope doubles as the tenant's existence proof.** `TenantScopeEndpointFilter` opens a scope only
   after `ITenantResolver` has _resolved the tenant from the store_ (an unresolvable tenant already short-circuited with
-  `404`). So on a scoped create, once the id-match guard passes, the target tenant is provably present — the
-  validator's usual "parent tenant exists" lookup would be a redundant second round-trip for the same row (and a
-  logically-dead branch). The create validator therefore skips it when scoped and performs the existence lookup only on
-  the unscoped (central-admin) path, where the caller may name any tenant.
+  `404`). So the tenant a create writes into is provably present — the validator needs no "parent tenant exists"
+  lookup, which would be a redundant second round-trip for a row the scope already loaded. Create validation is reduced
+  to authorization and identifier uniqueness.
 
 ## Options considered
 
@@ -81,8 +80,9 @@ so a cross-tenant row is never materialized.** "Never fetch what you cannot see"
 - The scope is established once per request by a reusable filter, and the persistence layer enforces it uniformly, so
   new tenant-bound resource families inherit isolation by adding the entity to the scoped set — no new per-endpoint
   logic.
-- Because the scope is established by resolving the tenant, a scoped create needs no separate "parent exists" query —
-  the scope resolution is that proof — so the same tenant row is not fetched twice in one request.
+- A create derives its owning tenant from the ambient scope, so the request carries no tenant identifier — there is
+  nothing for a caller to get wrong, and the same tenant row is not fetched twice (the scope resolution is the
+  existence proof, so create needs no separate "parent exists" query).
 - The `OpenIdDbContext` takes an optional `IAmbientTenantAccessor` (defaulting to unscoped), so direct construction
   (tests, tooling) and consumers without the ambient accessor keep working unchanged.
 - The tenant selection rules still have a single source of truth shared by the runtime and the management API, so the

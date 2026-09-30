@@ -17,7 +17,6 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -28,16 +27,14 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// <summary>
 /// A reusable endpoint filter that establishes the ambient tenant scope for tenant-bound endpoint families, so that
 /// tenant-scoped data access can never materialize another tenant's resources (defense against cross-tenant data
-/// leaks). For static-single (central-admin) deployments the filter is a no-op.
+/// leaks). A tenant-bound resource is always owned by the request's tenant, so the scope is established for every
+/// tenant strategy — including static-single, which has a single real tenant.
 /// </summary>
 internal sealed class TenantScopeEndpointFilter(
-    IOptions<TenantResolutionOptions> optionsAccessor,
     ITenantResolver tenantResolver,
     IAmbientTenantAccessor ambientTenantAccessor
 ) : IEndpointFilter
 {
-    private TenantResolutionOptions Options { get; } = optionsAccessor.Value;
-
     private ITenantResolver TenantResolver { get; } = tenantResolver;
 
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
@@ -48,16 +45,6 @@ internal sealed class TenantScopeEndpointFilter(
         EndpointFilterDelegate next
     )
     {
-        // Static-single tenancy is a central-admin surface with no request-derived tenant boundary.
-        if (
-            string.Equals(
-                Options.StrategyCode,
-                OpenIdConstants.TenantStrategyCodes.StaticSingle,
-                StringComparison.Ordinal
-            )
-        )
-            return await next(context);
-
         var httpContext = context.HttpContext;
 
         PersistedTenant ambientTenant;
@@ -70,7 +57,7 @@ internal sealed class TenantScopeEndpointFilter(
         }
         catch (HttpResultException exception)
         {
-            // An unresolvable ambient tenant (unknown host/path) is reported as its mapped result (typically 404).
+            // An unresolvable tenant (unknown host/path) is reported as its mapped result (typically 404).
             return exception.HttpResult;
         }
 

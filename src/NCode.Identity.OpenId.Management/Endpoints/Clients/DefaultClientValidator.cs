@@ -23,7 +23,6 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -32,13 +31,10 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 /// Provides the default implementation of <see cref="IClientValidator"/>.
 /// </summary>
 [PublicAPI]
-internal class DefaultClientValidator(
-    IAuthorizationService authorizationService,
-    IAmbientTenantAccessor ambientTenantAccessor
-) : DefaultResourceValidator(authorizationService), IClientValidator
+internal class DefaultClientValidator(IAuthorizationService authorizationService)
+    : DefaultResourceValidator(authorizationService),
+        IClientValidator
 {
-    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
-
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateCreateAsync(
         ClaimsPrincipal user,
@@ -57,40 +53,6 @@ internal class DefaultClientValidator(
         if (error is not null)
         {
             return error;
-        }
-
-        if (AmbientTenantAccessor.IsScoped)
-        {
-            // The scope already resolved this tenant (proving it exists), so no existence fetch is needed. Report a
-            // mismatch as not-found so a scoped surface cannot probe another tenant's existence.
-            if (
-                !string.Equals(
-                    client.TenantId,
-                    AmbientTenantAccessor.TenantId,
-                    StringComparison.Ordinal
-                )
-            )
-            {
-                return new ManagementError
-                {
-                    StatusCode = StatusCodes.Status404NotFound,
-                    Detail = "The specified tenant could not be found.",
-                };
-            }
-        }
-        else
-        {
-            // Central-admin surface: the owning tenant must exist before a client can attach to it.
-            var tenantStore = storeManager.GetStore<ITenantStore>();
-            var tenant = await tenantStore.GetOrDefaultAsync(client.TenantId, cancellationToken);
-            if (tenant is null)
-            {
-                return new ManagementError
-                {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Detail = "The specified tenant does not exist.",
-                };
-            }
         }
 
         var clientStore = storeManager.GetStore<IClientStore>();

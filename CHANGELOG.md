@@ -33,6 +33,12 @@ change to the public API is a **major** version bump.
   only — the internal `HashedKey` and the grant `PayloadJson` are never exposed. The shared keyset-pagination
   mechanics move from `BaseStoreWithResourceId` to `BaseStore` so a grant store not keyed by a resource id can paginate
   on its chronological surrogate id. See [ADR-0020](docs/adr/0020-grant-management-read-surface.md).
+- A persistent developer-keys opt-in for the Playground, `AddDeveloperSigningKey(...)`, that seeds an `RSA` signing key
+  through the tenant secret store (so the runtime, the JWKS endpoint, and the management API share one source of truth)
+  instead of overriding the read path. Paired with a local SQLite database and a persistent Data Protection key ring
+  (DPAPI-protected on Windows), the key survives restarts and self-heals if the key ring is lost; the existing
+  `AddEphemeralDeveloperKeys()` stays the hermetic path for tests. Selected via `DeveloperKeys:Mode=PersistentSigningKey`
+  (set in `launchSettings.json`). See [ADR-0021](docs/adr/0021-developer-signing-keys-seeded-through-persistence.md).
 
 ### Changed
 

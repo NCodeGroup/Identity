@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Endpoints;
+using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
@@ -33,7 +34,6 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
-using NCode.Mediator;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Operations;
@@ -51,7 +51,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
-    private Mock<IMediator> MockMediator { get; }
+    private Mock<ITenantValidator> MockTenantValidator { get; }
+    private Mock<ICryptoService> MockCryptoService { get; }
     private TenantApiEndpointHandler Handler { get; }
 
     public TenantApiEndpointHandlerTests()
@@ -62,13 +63,16 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantStore = MockRepository.Create<ITenantStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
-        MockMediator = MockRepository.Create<IMediator>();
+        MockTenantValidator = MockRepository.Create<ITenantValidator>();
+        MockCryptoService = MockRepository.Create<ICryptoService>();
 
         Handler = new TenantApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
+            MockTenantValidator.Object,
             MockSecretGenerator.Object,
             TimeProvider.System,
+            MockCryptoService.Object,
             NullLogger<TenantApiEndpointHandler>.Instance
         );
     }
@@ -106,6 +110,14 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                 )
             )
             .ReturnsAsync(result)
+            .Verifiable();
+    }
+
+    private void SetupResourceId(string id = "generated-id")
+    {
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Returns(id)
             .Verifiable();
     }
 
@@ -185,7 +197,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private static CreateSecretRequest CreateSecretRequest() =>
         new()
         {
-            SecretId = "secret-1",
             SecretType = SecretTypes.Symmetric,
             KeySizeBits = 256,
             Use = "sig",
@@ -416,6 +427,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
 
         var generated = CreatePersistedSecret();
         MockSecretGenerator
@@ -475,6 +487,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
 
         var generated = CreatePersistedSecret();
         MockSecretGenerator
@@ -693,11 +706,16 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
-        MockMediator
+        MockTenantValidator
             .Setup(x =>
-                x.SendAsync(It.IsAny<ValidateDeleteTenantCommand>(), It.IsAny<CancellationToken>())
+                x.ValidateDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedTenant>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync((ManagementError?)null)
             .Verifiable();
         MockTenantStore
             .Setup(x => x.RemoveAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -710,47 +728,40 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteTenantAsync(
-            httpContext,
-            TenantId,
-            MockMediator.Object,
-            CancellationToken.None
-        );
+        var result = await Handler.DeleteTenantAsync(httpContext, TenantId, CancellationToken.None);
 
         Assert.IsType<NoContent>(result);
     }
 
     [Fact]
-    public async Task DeleteTenantAsync_WhenPipelineReportsConflict_ReturnsProblem()
+    public async Task DeleteTenantAsync_WhenValidatorReportsConflict_ReturnsProblem()
     {
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
-        MockMediator
+        MockTenantValidator
             .Setup(x =>
-                x.SendAsync(It.IsAny<ValidateDeleteTenantCommand>(), It.IsAny<CancellationToken>())
+                x.ValidateDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedTenant>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
-            .Callback(
-                (ValidateDeleteTenantCommand command, CancellationToken _) =>
-                    command.Disposition.Error = new ManagementError
-                    {
-                        StatusCode = StatusCodes.Status409Conflict,
-                        Detail = "conflict",
-                    }
+            .ReturnsAsync(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = "conflict",
+                }
             )
-            .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteTenantAsync(
-            httpContext,
-            TenantId,
-            MockMediator.Object,
-            CancellationToken.None
-        );
+        var result = await Handler.DeleteTenantAsync(httpContext, TenantId, CancellationToken.None);
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
@@ -767,12 +778,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteTenantAsync(
-            httpContext,
-            TenantId,
-            MockMediator.Object,
-            CancellationToken.None
-        );
+        var result = await Handler.DeleteTenantAsync(httpContext, TenantId, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
     }
@@ -784,7 +790,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private static CreateTenantRequest CreateTenantRequest() =>
         new()
         {
-            TenantId = TenantId,
             DomainName = null,
             DisplayName = "Tenant One",
             IsDisabled = false,
@@ -795,11 +800,17 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task CreateTenantAsync_WhenPreconditionsPass_ReturnsCreated()
     {
         SetupStore();
-        MockMediator
+        SetupResourceId();
+        MockTenantValidator
             .Setup(x =>
-                x.SendAsync(It.IsAny<ValidateCreateTenantCommand>(), It.IsAny<CancellationToken>())
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedTenant>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync((ManagementError?)null)
             .Verifiable();
         MockTenantStore
             .Setup(x => x.AddAsync(It.IsAny<PersistedTenant>(), It.IsAny<CancellationToken>()))
@@ -815,7 +826,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.CreateTenantAsync(
             httpContext,
             CreateTenantRequest(),
-            MockMediator.Object,
             CancellationToken.None
         );
 
@@ -823,22 +833,26 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateTenantAsync_WhenPipelineReportsConflict_ReturnsProblem()
+    public async Task CreateTenantAsync_WhenValidatorReportsConflict_ReturnsProblem()
     {
         SetupStore();
-        MockMediator
+        SetupResourceId();
+        MockTenantValidator
             .Setup(x =>
-                x.SendAsync(It.IsAny<ValidateCreateTenantCommand>(), It.IsAny<CancellationToken>())
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedTenant>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
-            .Callback(
-                (ValidateCreateTenantCommand command, CancellationToken _) =>
-                    command.Disposition.Error = new ManagementError
-                    {
-                        StatusCode = StatusCodes.Status409Conflict,
-                        Detail = "conflict",
-                    }
+            .ReturnsAsync(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = "conflict",
+                }
             )
-            .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -846,7 +860,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.CreateTenantAsync(
             httpContext,
             CreateTenantRequest(),
-            MockMediator.Object,
             CancellationToken.None
         );
 
@@ -862,11 +875,18 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
-        MockMediator
+        MockTenantValidator
             .Setup(x =>
-                x.SendAsync(It.IsAny<ValidateUpdateTenantCommand>(), It.IsAny<CancellationToken>())
+                x.ValidateUpdateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedTenant>(),
+                    It.IsAny<UpdateTenantRequest>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync((ManagementError?)null)
             .Verifiable();
         MockTenantStore
             .Setup(x => x.UpdateAsync(It.IsAny<PersistedTenant>(), It.IsAny<CancellationToken>()))
@@ -884,7 +904,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             TenantId,
             new JsonPatchDocument<UpdateTenantRequest>(),
             ifMatch: null,
-            MockMediator.Object,
             CancellationToken.None
         );
 
@@ -907,7 +926,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             TenantId,
             new JsonPatchDocument<UpdateTenantRequest>(),
             ifMatch: null,
-            MockMediator.Object,
             CancellationToken.None
         );
 

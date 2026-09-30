@@ -109,6 +109,7 @@ NCode.Identity.ISupportClone<T>
 NCode.Identity.ISupportClone<T>.Clone() -> T
 NCode.Identity.Logic.CryptoServiceExtensions
 NCode.Identity.Logic.CryptoServiceExtensions.extension(NCode.Identity.Logic.ICryptoService!)
+NCode.Identity.Logic.CryptoServiceExtensions.extension(NCode.Identity.Logic.ICryptoService!).GenerateResourceId() -> string!
 NCode.Identity.Logic.CryptoServiceExtensions.extension(NCode.Identity.Logic.ICryptoService!).GenerateUrlSafeKey() -> string!
 NCode.Identity.Logic.CryptoServiceExtensions.extension(NCode.Identity.Logic.ICryptoService!).GenerateUrlSafeKey(int byteLength) -> string!
 NCode.Identity.Logic.ICryptoService

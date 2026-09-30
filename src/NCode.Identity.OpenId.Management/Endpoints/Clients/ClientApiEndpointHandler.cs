@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
+using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
@@ -32,7 +33,6 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
-using NCode.Mediator;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
@@ -60,18 +60,24 @@ DELETE api/clients/{clientId}/secrets/{secretId}
 internal class ClientApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
+    IClientValidator clientValidator,
     ISecretGenerator secretGenerator,
     TimeProvider timeProvider,
+    ICryptoService cryptoService,
     ILogger<ClientApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IClientValidator ClientValidator { get; } = clientValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<ClientApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
+
+    /// <inheritdoc />
+    protected override ICryptoService CryptoService { get; } = cryptoService;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -170,53 +176,53 @@ internal class ClientApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="request">The <see cref="CreateClientRequest"/> describing the client to create.</param>
-    /// <param name="mediator">The <see cref="IMediator"/> used to run the create precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/clients/create")]
     internal virtual async ValueTask<IResult> CreateClientAsync(
         HttpContext httpContext,
         [FromBody] CreateClientRequest request,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
+        var clientId = CryptoService.GenerateResourceId();
+
         var client = new PersistedClient
         {
             TenantId = request.TenantId,
-            ClientId = request.ClientId,
+            ClientId = clientId,
             ConcurrencyToken = string.Empty,
             IsDisabled = request.IsDisabled,
             Settings = new PersistedClientSettings
             {
                 TenantId = request.TenantId,
-                ClientId = request.ClientId,
+                ClientId = clientId,
                 ConcurrencyToken = string.Empty,
                 Value = SerializeToElement(ToJsonObject(request.Settings)),
             },
             Secrets = new PersistedClientSecrets
             {
                 TenantId = request.TenantId,
-                ClientId = request.ClientId,
+                ClientId = clientId,
                 ConcurrencyToken = string.Empty,
                 Value = [],
             },
         };
 
-        // Preconditions (authorization + parent-exists + uniqueness) are asserted by the mediator pipeline,
-        // which decides on facts it queries rather than on caught exceptions (ADR-0013).
-        var disposition = new OperationDisposition<ManagementError>();
-        await mediator.SendAsync(
-            new ValidateCreateClientCommand(httpContext, client, disposition),
+        // Core preconditions (authorization + parent-exists + uniqueness) are asserted by the validator (ADR-0014).
+        var error = await ClientValidator.ValidateCreateAsync(
+            httpContext.User,
+            client,
+            storeManager,
             cancellationToken
         );
 
-        if (disposition.HasError)
+        if (error is not null)
         {
-            return ToErrorResult(disposition.Error);
+            return ToErrorResult(error);
         }
 
         await store.AddAsync(client, cancellationToken);
@@ -235,7 +241,6 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="request">The JSON Patch document to apply to the client metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current client.</param>
-    /// <param name="mediator">The <see cref="IMediator"/> used to run the update precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/clients/update")]
@@ -244,7 +249,6 @@ internal class ClientApiEndpointHandler(
         [FromRoute] string clientId,
         [FromBody] JsonPatchDocument<UpdateClientRequest> request,
         [FromHeader(Name = "If-Match")] string? ifMatch,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -257,16 +261,18 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Preconditions (authorization + If-Match) are asserted by the mediator pipeline (ADR-0013).
-        var disposition = new OperationDisposition<ManagementError>();
-        await mediator.SendAsync(
-            new ValidateUpdateClientCommand(httpContext, client, ifMatch, disposition),
+        // Core preconditions (authorization + If-Match) are asserted by the validator (ADR-0014).
+        var error = await ClientValidator.ValidateUpdateAsync(
+            httpContext.User,
+            client,
+            ifMatch,
+            storeManager,
             cancellationToken
         );
 
-        if (disposition.HasError)
+        if (error is not null)
         {
-            return ToErrorResult(disposition.Error);
+            return ToErrorResult(error);
         }
 
         var model = new UpdateClientRequest { IsDisabled = client.IsDisabled };
@@ -298,14 +304,12 @@ internal class ClientApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
-    /// <param name="mediator">The <see cref="IMediator"/> used to run the delete precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/clients/delete")]
     internal virtual async ValueTask<IResult> DeleteClientAsync(
         HttpContext httpContext,
         [FromRoute] string clientId,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -318,17 +322,17 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Preconditions (authorization + no-dependents) are asserted by the mediator pipeline, which decides
-        // on facts it queries rather than on caught exceptions (ADR-0013).
-        var disposition = new OperationDisposition<ManagementError>();
-        await mediator.SendAsync(
-            new ValidateDeleteClientCommand(httpContext, client, disposition),
+        // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-0014).
+        var error = await ClientValidator.ValidateDeleteAsync(
+            httpContext.User,
+            client,
+            storeManager,
             cancellationToken
         );
 
-        if (disposition.HasError)
+        if (error is not null)
         {
-            return ToErrorResult(disposition.Error);
+            return ToErrorResult(error);
         }
 
         await store.RemoveAsync(clientId, cancellationToken);
@@ -503,9 +507,7 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var secretId = string.IsNullOrEmpty(request.SecretId)
-            ? Guid.NewGuid().ToString("N")
-            : request.SecretId;
+        var secretId = CryptoService.GenerateResourceId();
 
         PersistedSecret generatedSecret;
         try

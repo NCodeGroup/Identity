@@ -5,82 +5,17 @@ NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdManagementLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.Client.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.Client.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.Disposition.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.HttpContext.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.ValidateCreateClientCommand() -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateCreateClientCommand.ValidateCreateClientCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! Client, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.Client.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.Client.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.Disposition.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.HttpContext.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.ValidateDeleteClientCommand() -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateDeleteClientCommand.ValidateDeleteClientCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! Client, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.Client.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.Client.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.Disposition.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.HttpContext.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.IfMatch.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.IfMatch.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.ValidateUpdateClientCommand() -> void
-NCode.Identity.OpenId.Management.Endpoints.Clients.ValidateUpdateClientCommand.ValidateUpdateClientCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! Client, string? IfMatch, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.Disposition.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.HttpContext.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.Server.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.Server.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.ValidateCreateServerCommand() -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateCreateServerCommand.ValidateCreateServerCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! Server, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.Disposition.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.HttpContext.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.Server.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer!
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.Server.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.ValidateDeleteServerCommand() -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.ValidateDeleteServerCommand.ValidateDeleteServerCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! Server, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.Disposition.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.HttpContext.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.Tenant.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.Tenant.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.ValidateCreateTenantCommand() -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateCreateTenantCommand.ValidateCreateTenantCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! Tenant, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.Disposition.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.HttpContext.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.Tenant.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.Tenant.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.ValidateDeleteTenantCommand() -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateDeleteTenantCommand.ValidateDeleteTenantCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! Tenant, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.Disposition.get -> NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.Disposition.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.HttpContext.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.IfMatch.get -> string?
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.IfMatch.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.Tenant.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.Tenant.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.ValidateUpdateTenantCommand() -> void
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ValidateUpdateTenantCommand.ValidateUpdateTenantCommand(Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! Tenant, string? IfMatch, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Management.ManagementError!>! Disposition) -> void
+NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator
+NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator
+NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! server, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! server, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.ManagementError
 NCode.Identity.OpenId.Management.ManagementError.Detail.get -> string!
 NCode.Identity.OpenId.Management.ManagementError.Detail.init -> void

@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
+using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Servers;
 using NCode.Identity.OpenId.Management.Logging;
@@ -33,7 +34,6 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
-using NCode.Mediator;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
@@ -61,18 +61,24 @@ DELETE api/servers/{serverId}/secrets/{secretId}
 internal class ServerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
+    IServerValidator serverValidator,
     ISecretGenerator secretGenerator,
     TimeProvider timeProvider,
+    ICryptoService cryptoService,
     ILogger<ServerApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IServerValidator ServerValidator { get; } = serverValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<ServerApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
+
+    /// <inheritdoc />
+    protected override ICryptoService CryptoService { get; } = cryptoService;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -166,48 +172,49 @@ internal class ServerApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="request">The <see cref="CreateServerRequest"/> describing the server to create.</param>
-    /// <param name="mediator">The <see cref="IMediator"/> used to run the create precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/servers/create")]
     internal virtual async ValueTask<IResult> CreateServerAsync(
         HttpContext httpContext,
         [FromBody] CreateServerRequest request,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IServerStore>();
 
+        var serverId = CryptoService.GenerateResourceId();
+
         var server = new PersistedServer
         {
-            ServerId = request.ServerId,
+            ServerId = serverId,
             ConcurrencyToken = string.Empty,
             Settings = new PersistedServerSettings
             {
-                ServerId = request.ServerId,
+                ServerId = serverId,
                 ConcurrencyToken = string.Empty,
                 Value = SerializeToElement(ToJsonObject(request.Settings)),
             },
             Secrets = new PersistedServerSecrets
             {
-                ServerId = request.ServerId,
+                ServerId = serverId,
                 ConcurrencyToken = string.Empty,
                 Value = [],
             },
         };
 
-        // Preconditions (authorization + uniqueness) are asserted by the mediator pipeline (ADR-0013).
-        var disposition = new OperationDisposition<ManagementError>();
-        await mediator.SendAsync(
-            new ValidateCreateServerCommand(httpContext, server, disposition),
+        // Core preconditions (authorization + uniqueness) are asserted by the validator (ADR-0014).
+        var error = await ServerValidator.ValidateCreateAsync(
+            httpContext.User,
+            server,
+            storeManager,
             cancellationToken
         );
 
-        if (disposition.HasError)
+        if (error is not null)
         {
-            return ToErrorResult(disposition.Error);
+            return ToErrorResult(error);
         }
 
         await store.AddAsync(server, cancellationToken);
@@ -224,14 +231,12 @@ internal class ServerApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
-    /// <param name="mediator">The <see cref="IMediator"/> used to run the delete precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/servers/delete")]
     internal virtual async ValueTask<IResult> DeleteServerAsync(
         HttpContext httpContext,
         [FromRoute] string serverId,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -244,17 +249,17 @@ internal class ServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Preconditions (authorization + no-dependents) are asserted by the mediator pipeline, which decides
-        // on facts it queries rather than on caught exceptions (ADR-0013).
-        var disposition = new OperationDisposition<ManagementError>();
-        await mediator.SendAsync(
-            new ValidateDeleteServerCommand(httpContext, server, disposition),
+        // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-0014).
+        var error = await ServerValidator.ValidateDeleteAsync(
+            httpContext.User,
+            server,
+            storeManager,
             cancellationToken
         );
 
-        if (disposition.HasError)
+        if (error is not null)
         {
-            return ToErrorResult(disposition.Error);
+            return ToErrorResult(error);
         }
 
         await store.RemoveAsync(serverId, cancellationToken);
@@ -430,9 +435,7 @@ internal class ServerApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var secretId = string.IsNullOrEmpty(request.SecretId)
-            ? Guid.NewGuid().ToString("N")
-            : request.SecretId;
+        var secretId = CryptoService.GenerateResourceId();
 
         PersistedSecret generatedSecret;
         try

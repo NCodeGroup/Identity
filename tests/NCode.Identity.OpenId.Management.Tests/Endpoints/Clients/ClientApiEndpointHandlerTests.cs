@@ -284,6 +284,20 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         Assert.Equal(TenantId, captured.Secrets.TenantId);
     }
 
+    [Fact]
+    public async Task CreateClientAsync_WhenNoAmbientTenant_ThrowsBeforeStore()
+    {
+        // No store scaffold is set up, so a strict-mock failure here would mean the guard ran too late.
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns((string?)null).Verifiable();
+
+        var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Handler.CreateClientAsync(httpContext, request, CancellationToken.None)
+        );
+    }
+
     #endregion
 
     #region GetClientAsync Tests

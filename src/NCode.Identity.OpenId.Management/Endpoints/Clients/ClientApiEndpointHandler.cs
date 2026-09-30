@@ -190,17 +190,14 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        // A client is always owned by the request's tenant, which the tenant-scope filter already resolved. Resolve
+        // it before acquiring the store manager so the fail-fast guard does not open a unit of work.
+        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
         var clientId = CryptoService.GenerateResourceId();
-
-        // A client is always owned by the request's tenant, which the tenant-scope filter already resolved.
-        var tenantId =
-            AmbientTenantAccessor.TenantId
-            ?? throw new InvalidOperationException(
-                "The ambient tenant scope was not established for the request."
-            );
 
         var client = new PersistedClient
         {

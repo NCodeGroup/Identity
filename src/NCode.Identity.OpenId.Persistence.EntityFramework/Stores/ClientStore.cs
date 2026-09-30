@@ -270,6 +270,42 @@ internal class ClientStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<PersistedClientSecret?> GetSecretOrDefaultAsync(
+        string clientId,
+        string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedClientId = Normalize(clientId);
+        var normalizedSecretId = Normalize(secretId);
+
+        var row = await DbContext
+            .ClientSecrets.Where(clientSecret =>
+                clientSecret.Client.NormalizedClientId == normalizedClientId
+                && clientSecret.Secret.NormalizedSecretId == normalizedSecretId
+            )
+            .Select(clientSecret => new
+            {
+                clientSecret.Tenant.TenantId,
+                clientSecret.Client.ClientId,
+                clientSecret.Secret,
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (row is null)
+        {
+            return null;
+        }
+
+        return new PersistedClientSecret
+        {
+            TenantId = row.TenantId,
+            ClientId = row.ClientId,
+            Value = MapToPersistedSecret(row.Secret),
+        };
+    }
+
+    /// <inheritdoc />
     public async ValueTask AddSecretAsync(
         string clientId,
         PersistedSecret persistedSecret,

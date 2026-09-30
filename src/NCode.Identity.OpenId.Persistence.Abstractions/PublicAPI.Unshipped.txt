@@ -50,6 +50,8 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientResource<TValue>
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientResource<TValue>.PersistedClientResource() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientResource<TValue>.Value.get -> TValue
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientResource<TValue>.Value.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecret
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecret.PersistedClientSecret() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecrets
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecrets.PersistedClientSecrets() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSettings
@@ -123,6 +125,7 @@ NCode.Identity.OpenId.Persistence.OpenIdResourceTypes
 NCode.Identity.OpenId.Persistence.Stores.IClientStore
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.AddSecretAsync(string! clientId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.GetOrDefaultAsync(string! clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient?>
+NCode.Identity.OpenId.Persistence.Stores.IClientStore.GetSecretOrDefaultAsync(string! clientId, string! secretId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecret?>
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.GetSecretsOrDefaultAsync(string! clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecrets?>
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.HasDependentsAsync(string! clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.RemoveAsync(string! clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
@@ -157,6 +160,7 @@ NCode.Identity.OpenId.Persistence.Stores.ITenantStore.RemoveSecretAsync(string! 
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.UpdateSecretAsync(string! tenantId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.UpdateSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSettings! persistedTenantSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.ResourceType.get -> string!
+override NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecret.ResourceType.get -> string!
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecrets.ResourceType.get -> string!
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSettings.ResourceType.get -> string!
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.ResourceType.get -> string!

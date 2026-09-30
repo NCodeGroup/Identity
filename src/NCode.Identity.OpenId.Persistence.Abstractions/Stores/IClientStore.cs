@@ -66,6 +66,21 @@ public interface IClientStore : IStore<PersistedClient>
     );
 
     /// <summary>
+    /// Attempts to get a single secret for an OpenId Client, resolved together with its owning tenant. The lookup
+    /// queries the store directly instead of loading the whole secret collection.
+    /// </summary>
+    /// <param name="clientId">The identifier of the OpenId Client.</param>
+    /// <param name="secretId">The identifier of the secret to retrieve.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedClientSecret"/> if found; otherwise <c>null</c>.</returns>
+    ValueTask<PersistedClientSecret?> GetSecretOrDefaultAsync(
+        string clientId,
+        string secretId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Adds a new secret to an OpenId Client and bumps the client's secrets concurrency token so that any
     /// running client instance refreshes its secret collection.
     /// </summary>

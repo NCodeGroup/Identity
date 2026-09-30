@@ -388,6 +388,14 @@ NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImpleme
 NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.set -> void
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider.GetJsonConverters(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.JsonConverter!>!
+NCode.Identity.OpenId.Tenants.TenantDescriptor
+NCode.Identity.OpenId.Tenants.TenantDescriptor.DisplayName.get -> string!
+NCode.Identity.OpenId.Tenants.TenantDescriptor.DisplayName.init -> void
+NCode.Identity.OpenId.Tenants.TenantDescriptor.DomainName.get -> string?
+NCode.Identity.OpenId.Tenants.TenantDescriptor.DomainName.init -> void
+NCode.Identity.OpenId.Tenants.TenantDescriptor.TenantDescriptor() -> void
+NCode.Identity.OpenId.Tenants.TenantDescriptor.TenantId.get -> string!
+NCode.Identity.OpenId.Tenants.TenantDescriptor.TenantId.init -> void
 override NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>.ValueType.get -> System.Type!
 override NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.Equals(object? obj) -> bool
 override NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.GetHashCode() -> int

@@ -19,6 +19,7 @@
 
 using NCode.Disposables;
 using NCode.Identity.Models;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Settings;

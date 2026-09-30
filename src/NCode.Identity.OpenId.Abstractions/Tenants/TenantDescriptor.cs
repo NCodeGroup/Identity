@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -19,7 +19,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Authentication.Tenants;
+namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Contains identifying information about a tenant.

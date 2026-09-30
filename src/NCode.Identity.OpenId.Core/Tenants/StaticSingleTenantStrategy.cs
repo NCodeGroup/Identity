@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.ResourceServers;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Tenants;
@@ -32,9 +33,13 @@ namespace NCode.Identity.OpenId.Tenants;
 /// </summary>
 internal class StaticSingleTenantStrategy(
     IStoreManagerFactory storeManagerFactory,
-    IOptions<TenantResolutionOptions> optionsAccessor
+    IOptions<TenantResolutionOptions> optionsAccessor,
+    ISystemResourceServerSeeder systemResourceServerSeeder
 ) : TenantStrategy(storeManagerFactory)
 {
+    private ISystemResourceServerSeeder SystemResourceServerSeeder { get; } =
+        systemResourceServerSeeder;
+
     private StaticSingleTenantOptions Options =>
         optionsAccessor.Value.StaticSingle ?? new StaticSingleTenantOptions();
 
@@ -74,6 +79,9 @@ internal class StaticSingleTenantStrategy(
             persistedTenant = CreateEmptyPersistedTenant(tenantId, options);
             await store.AddAsync(persistedTenant, cancellationToken);
             await storeManager.SaveChangesAsync(cancellationToken);
+
+            // A freshly-provisioned tenant is self-contained: seed its reserved system resource servers.
+            await SystemResourceServerSeeder.SeedAsync(tenantId, cancellationToken);
         }
 
         return persistedTenant;

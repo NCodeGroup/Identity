@@ -26,14 +26,14 @@ on the runtime.
 runtime and the management API compose via dependency injection; the management API layers an _optional_ tenant
 boundary on top of it.**
 
-- **Selection (shared).** `ITenantSelector` (plus the pluggable `ITenantStrategy` for static-single /
+- **Selection (shared).** `ITenantResolver` (plus the pluggable `ITenantStrategy` for static-single /
   dynamic-by-host / dynamic-by-path, and `TenantResolutionOptions`) resolves a request to a `PersistedTenant`. The
   contracts live in `NCode.Identity.OpenId.Abstractions` (namespace `NCode.Identity.OpenId.Tenants`); the default
   implementation lives in `NCode.Identity.OpenId.Core`, mirroring the `OpenIdEnvironment` → `DefaultOpenIdEnvironment`
   precedent. Both consumers depend only on the abstraction and receive the concrete selector through DI, never through
   a cross-implementation reference ([ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md)). Selection
   returns the persisted tenant directly (no intermediate descriptor); an unresolvable tenant is a `404`.
-- **Materialization (runtime only).** A single `DefaultOpenIdTenantFactory` composes `ITenantSelector` for selection
+- **Materialization (runtime only).** A single `DefaultOpenIdTenantFactory` composes `ITenantResolver` for selection
   and builds the runtime `OpenIdTenant` (issuer, base address, settings/secrets providers, caching) from the resolved
   `PersistedTenant`. It consolidates the former separate factory/provider pair and per-strategy provider classes into
   one type.
@@ -58,7 +58,7 @@ boundary on top of it.**
   authorization failure yields `403` (revealing existence) rather than the `404` this boundary requires.
 - **An explicit, reusable boundary invoked by tenant-scoped endpoint families (chosen).** A new tenant-bound family
   reuses `ITenantBoundary`; central-admin families simply do not call it. The check returns `404` and reuses the
-  shared `ITenantSelector`, giving true symmetry with the runtime while respecting the central-admin surfaces.
+  shared `ITenantResolver`, giving true symmetry with the runtime while respecting the central-admin surfaces.
 
 ## Consequences
 
@@ -81,6 +81,6 @@ boundary on top of it.**
   alongside.
 - [ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md) — the reference-direction rule the
   abstraction/implementation split honors.
-- Code: `NCode.Identity.OpenId.Tenants.ITenantSelector`, `NCode.Identity.OpenId.Core` tenant strategies
+- Code: `NCode.Identity.OpenId.Tenants.ITenantResolver`, `NCode.Identity.OpenId.Core` tenant strategies
   (`ITenantStrategy`), `NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory`,
   `NCode.Identity.OpenId.Management.Endpoints.ITenantBoundary`.

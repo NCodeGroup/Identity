@@ -402,9 +402,9 @@ NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantIdRouteParameterN
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantIdRouteParameterName.set -> void
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.get -> Microsoft.AspNetCore.Http.PathString
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.set -> void
-NCode.Identity.OpenId.Tenants.ITenantSelector
-NCode.Identity.OpenId.Tenants.ITenantSelector.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
-NCode.Identity.OpenId.Tenants.ITenantSelector.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
+NCode.Identity.OpenId.Tenants.ITenantResolver
+NCode.Identity.OpenId.Tenants.ITenantResolver.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
+NCode.Identity.OpenId.Tenants.ITenantResolver.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantStrategy
 NCode.Identity.OpenId.Tenants.ITenantStrategy.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
 NCode.Identity.OpenId.Tenants.ITenantStrategy.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>

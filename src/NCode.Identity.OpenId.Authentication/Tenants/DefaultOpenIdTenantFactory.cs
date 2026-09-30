@@ -44,12 +44,12 @@ namespace NCode.Identity.OpenId.Authentication.Tenants;
 
 /// <summary>
 /// Provides the default implementation of the <see cref="IOpenIdTenantFactory"/> abstraction. Tenant selection is
-/// delegated to the shared <see cref="ITenantSelector"/>; this type materializes the <see cref="OpenIdTenant"/>
+/// delegated to the shared <see cref="ITenantResolver"/>; this type materializes the <see cref="OpenIdTenant"/>
 /// (settings, secrets, issuer, base address) from the resolved <see cref="PersistedTenant"/> and caches it.
 /// </summary>
 [PublicAPI]
 public class DefaultOpenIdTenantFactory(
-    ITenantSelector tenantSelector,
+    ITenantResolver tenantResolver,
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
     IStoreManagerFactory storeManagerFactory,
@@ -62,9 +62,9 @@ public class DefaultOpenIdTenantFactory(
 ) : IOpenIdTenantFactory
 {
     /// <summary>
-    /// Gets the <see cref="ITenantSelector"/> used to resolve the ambient tenant for the current request.
+    /// Gets the <see cref="ITenantResolver"/> used to resolve the ambient tenant for the current request.
     /// </summary>
-    protected ITenantSelector TenantSelector { get; } = tenantSelector;
+    protected ITenantResolver TenantResolver { get; } = tenantResolver;
 
     /// <summary>
     /// Gets the <see cref="TemplateBinderFactory"/> used to bind route templates.
@@ -123,7 +123,7 @@ public class DefaultOpenIdTenantFactory(
         CancellationToken cancellationToken
     )
     {
-        var persistedTenant = await TenantSelector.ResolveTenantAsync(
+        var persistedTenant = await TenantResolver.ResolveTenantAsync(
             httpContext,
             cancellationToken
         );
@@ -304,7 +304,7 @@ public class DefaultOpenIdTenantFactory(
         var httpRequest = httpContext.Request;
         var basePath = httpRequest.PathBase;
 
-        var tenantRoute = TenantSelector.GetTenantRoute();
+        var tenantRoute = TenantResolver.GetTenantRoute();
         var templateBinder = TemplateBinderFactory.Create(tenantRoute);
         var tenantRouteUrl = templateBinder.BindValues(httpRequest.RouteValues);
         if (!string.IsNullOrEmpty(tenantRouteUrl))

@@ -24,14 +24,14 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
 /// Provides the default implementation of <see cref="ITenantBoundary"/> that reuses the shared
-/// <see cref="ITenantSelector"/> to determine the request's tenant scope.
+/// <see cref="ITenantResolver"/> to determine the request's tenant scope.
 /// </summary>
 internal class DefaultTenantBoundary(
-    ITenantSelector tenantSelector,
+    ITenantResolver tenantResolver,
     IOptions<TenantResolutionOptions> optionsAccessor
 ) : ITenantBoundary
 {
-    private ITenantSelector TenantSelector { get; } = tenantSelector;
+    private ITenantResolver TenantResolver { get; } = tenantResolver;
 
     private TenantResolutionOptions Options { get; } = optionsAccessor.Value;
 
@@ -52,7 +52,7 @@ internal class DefaultTenantBoundary(
         )
             return null;
 
-        var ambientTenant = await TenantSelector.ResolveTenantAsync(httpContext, cancellationToken);
+        var ambientTenant = await TenantResolver.ResolveTenantAsync(httpContext, cancellationToken);
 
         if (string.Equals(ambientTenant.TenantId, resourceTenantId, StringComparison.Ordinal))
             return null;

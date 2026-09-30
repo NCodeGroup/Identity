@@ -30,12 +30,12 @@ public sealed class DefaultTenantBoundaryTests : IDisposable
     private const string ResourceTenantId = "tenant-1";
 
     private MockRepository MockRepository { get; }
-    private Mock<ITenantSelector> MockTenantSelector { get; }
+    private Mock<ITenantResolver> MockTenantResolver { get; }
 
     public DefaultTenantBoundaryTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockTenantSelector = MockRepository.Create<ITenantSelector>();
+        MockTenantResolver = MockRepository.Create<ITenantResolver>();
     }
 
     public void Dispose()
@@ -47,14 +47,14 @@ public sealed class DefaultTenantBoundaryTests : IDisposable
 
     private DefaultTenantBoundary CreateBoundary(string strategyCode) =>
         new(
-            MockTenantSelector.Object,
+            MockTenantResolver.Object,
             Options.Create(new TenantResolutionOptions { StrategyCode = strategyCode })
         );
 
     private static HttpContext CreateHttpContext() => new DefaultHttpContext();
 
     private void SetupResolvedTenant(PersistedTenant tenant) =>
-        MockTenantSelector
+        MockTenantResolver
             .Setup(x =>
                 x.ResolveTenantAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>())
             )

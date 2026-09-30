@@ -30,8 +30,15 @@ namespace NCode.Identity.OpenId.Tenants;
 /// full tenant on top of it) and the management API (which enforces a tenant boundary on top of it).
 /// </summary>
 [PublicAPI]
-public interface ITenantSelector
+public interface ITenantResolver
 {
+    /// <summary>
+    /// Gets the <c>RoutePattern</c> for the tenant's relative base path. The pattern is empty when tenancy is not
+    /// path-based.
+    /// </summary>
+    /// <returns>The <c>RoutePattern</c> instance for the tenant.</returns>
+    RoutePattern GetTenantRoute();
+
     /// <summary>
     /// Resolves the <see cref="PersistedTenant"/> for the current HTTP request.
     /// </summary>
@@ -43,11 +50,4 @@ public interface ITenantSelector
         HttpContext httpContext,
         CancellationToken cancellationToken
     );
-
-    /// <summary>
-    /// Gets the <c>RoutePattern</c> for the tenant's relative base path. The pattern is empty when tenancy is not
-    /// path-based.
-    /// </summary>
-    /// <returns>The <c>RoutePattern</c> instance for the tenant.</returns>
-    RoutePattern GetTenantRoute();
 }

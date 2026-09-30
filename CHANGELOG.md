@@ -10,7 +10,7 @@ change to the public API is a **major** version bump.
 
 ### Added
 
-- Shared tenant-resolution abstraction (`ITenantSelector` / `ITenantStrategy` / `TenantResolutionOptions` in
+- Shared tenant-resolution abstraction (`ITenantResolver` / `ITenantStrategy` / `TenantResolutionOptions` in
   `NCode.Identity.OpenId.Abstractions`, default implementation in `NCode.Identity.OpenId.Core`) so the OpenID runtime
   and the management API select the ambient tenant from a single source of truth. See
   [ADR-0017](docs/adr/0017-tenant-resolution-shared-abstraction-and-management-boundary.md).
@@ -21,7 +21,7 @@ change to the public API is a **major** version bump.
 ### Changed
 
 - Collapsed the per-strategy OpenID tenant providers, their selector, and the thin tenant factory into a single
-  `DefaultOpenIdTenantFactory` that composes `ITenantSelector` for selection and performs only tenant materialization.
+  `DefaultOpenIdTenantFactory` that composes `ITenantResolver` for selection and performs only tenant materialization.
   Tenant-selection option types moved from `NCode.Identity.OpenId.Authentication` to
   `NCode.Identity.OpenId.Abstractions` (`NCode.Identity.OpenId.Tenants` namespace); `OpenIdTenantOptions` now carries
   only materialization settings.

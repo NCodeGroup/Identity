@@ -26,13 +26,13 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ITenantSelector"/> abstraction that selects the configured
+/// Provides a default implementation of the <see cref="ITenantResolver"/> abstraction that selects the configured
 /// <see cref="ITenantStrategy"/> by <see cref="TenantResolutionOptions.StrategyCode"/> and delegates to it.
 /// </summary>
-internal class DefaultTenantSelector(
+internal class DefaultTenantResolver(
     IOptions<TenantResolutionOptions> optionsAccessor,
     IEnumerable<ITenantStrategy> strategies
-) : ITenantSelector
+) : ITenantResolver
 {
     private TenantResolutionOptions Options { get; } = optionsAccessor.Value;
 

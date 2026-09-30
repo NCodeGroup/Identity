@@ -131,6 +131,13 @@ rationale.
 - 👁 **No cross-assembly `InternalsVisibleTo` in production.** It is for **test projects only** (plus
   `DynamicProxyGenAssembly2` for mocking). Packages collaborate through **public** contracts, never internals. See
   [ADR-0004](../../docs/adr/0004-no-cross-assembly-internalsvisibleto.md).
+- 👁 **An implementation package references only `*.Abstractions` packages — never another implementation package.**
+  Cross-implementation collaboration flows through an interface owned by an `*.Abstractions` package, resolved from DI;
+  the concrete type is registered by its own package's `DefaultRegistration.cs` (§4) and referenced in exactly one
+  place — the composition root (`AddIdentityServer()` on the `NCode.Registration` `IServiceBuilder<TMarker>` builder). A
+  new capability shared by more than one implementation therefore ships as an abstraction/implementation **pair**. An
+  implementation `.csproj` whose `ProjectReference` names a non-`Abstractions` package is a violation. See
+  [ADR-0016](../../docs/adr/0016-implementation-packages-depend-only-on-abstractions.md).
 - 👁 **Mark infrastructure-public types.** A type that is public **only** for cross-assembly collaboration — never for
   application code — is marked `[EditorBrowsable(EditorBrowsableState.Never)]` and its `<summary>` opens with the
   standard boilerplate: _"This API supports the NCode.Identity infrastructure and is not intended to be used directly

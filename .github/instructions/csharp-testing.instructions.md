@@ -122,6 +122,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   (`.HasIndex(…).IsUnique().HasFilter("… IS NOT NULL")`). A test that must observe the constraint (a duplicate
   rejected, or multiple rows allowed past a filtered `NULL`) runs against **SQLite in-memory** (`EnsureCreated` builds
   and enforces the index); the collision surfaces as a `DbUpdateException` on the offending `SaveChanges`.
+- 👁 **A global query filter is bypassed for change-tracked entities.** A `HasQueryFilter` predicate (e.g. the
+  tenant-scoping filter, [ADR-0018](../../docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md)) is
+  applied to a **database** query, but a first-level-cache hit — an entity already tracked from a prior `Add`/read,
+  including a store's local-first lookup — returns the row **without** re-applying the filter. A test that exercises a
+  query filter must `ChangeTracker.Clear()` (or use a fresh `DbContext`) after seeding so the assertion hits the
+  database query where the filter actually runs. EF InMemory **does** honor query filters, so it covers this case.
 - 👁 **Data-protection integration tests are not hermetic under a shared host.** A `WebApplicationFactory`
   `IClassFixture` that protects/unprotects secrets (confidential clients, encrypted key material) leaks
   keyring/serializer state between tests, and the second run fails (`invalid_client`). Give each such test its own

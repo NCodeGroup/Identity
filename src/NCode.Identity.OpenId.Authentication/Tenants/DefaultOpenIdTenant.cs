@@ -31,7 +31,8 @@ namespace NCode.Identity.OpenId.Authentication.Tenants;
 /// Provides a default implementation of the <see cref="OpenIdTenant"/> abstraction.
 /// </summary>
 internal class DefaultOpenIdTenant(
-    TenantDescriptor tenantDescriptor,
+    string tenantId,
+    string displayName,
     string issuer,
     UriDescriptor baseAddress,
     AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> settingsReference,
@@ -39,17 +40,16 @@ internal class DefaultOpenIdTenant(
     IPropertyBag propertyBag
 ) : OpenIdTenant
 {
-    private TenantDescriptor TenantDescriptor { get; } = tenantDescriptor;
     private AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> SettingsReference { get; set; } =
         settingsReference.AddReference();
     private AsyncSharedReferenceLease<ISecretKeyCollectionProvider> SecretsReference { get; set; } =
         secretsReference.AddReference();
 
     /// <inheritdoc />
-    public override string TenantId => TenantDescriptor.TenantId;
+    public override string TenantId { get; } = tenantId;
 
     /// <inheritdoc />
-    public override string DisplayName => TenantDescriptor.DisplayName;
+    public override string DisplayName { get; } = displayName;
 
     /// <inheritdoc />
     public override string Issuer { get; } = issuer;

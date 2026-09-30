@@ -16,10 +16,11 @@
 
 #endregion
 
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Tenants;
-using NCode.PropertyBag;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
@@ -29,12 +30,12 @@ public sealed class DefaultTenantBoundaryTests : IDisposable
     private const string ResourceTenantId = "tenant-1";
 
     private MockRepository MockRepository { get; }
-    private Mock<ITenantResolver> MockTenantResolver { get; }
+    private Mock<ITenantSelector> MockTenantSelector { get; }
 
     public DefaultTenantBoundaryTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockTenantResolver = MockRepository.Create<ITenantResolver>();
+        MockTenantSelector = MockRepository.Create<ITenantSelector>();
     }
 
     public void Dispose()
@@ -44,32 +45,50 @@ public sealed class DefaultTenantBoundaryTests : IDisposable
 
     #region Helpers
 
-    private DefaultTenantBoundary CreateBoundary(string providerCode) =>
+    private DefaultTenantBoundary CreateBoundary(string strategyCode) =>
         new(
-            MockTenantResolver.Object,
-            Options.Create(new TenantResolutionOptions { ProviderCode = providerCode })
+            MockTenantSelector.Object,
+            Options.Create(new TenantResolutionOptions { StrategyCode = strategyCode })
         );
 
     private static HttpContext CreateHttpContext() => new DefaultHttpContext();
 
-    private void SetupResolvedTenant(TenantDescriptor? descriptor) =>
-        MockTenantResolver
+    private void SetupResolvedTenant(PersistedTenant tenant) =>
+        MockTenantSelector
             .Setup(x =>
-                x.ResolveDescriptorAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<IPropertyBag>(),
-                    It.IsAny<CancellationToken>()
-                )
+                x.ResolveTenantAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>())
             )
-            .ReturnsAsync(descriptor)
+            .ReturnsAsync(tenant)
             .Verifiable();
+
+    private static PersistedTenant CreateTenant(string tenantId) =>
+        new()
+        {
+            TenantId = tenantId,
+            ConcurrencyToken = string.Empty,
+            DomainName = null,
+            IsDisabled = false,
+            DisplayName = "Tenant",
+            Settings = new PersistedTenantSettings
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = string.Empty,
+                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = string.Empty,
+                Value = [],
+            },
+        };
 
     #endregion
 
     [Fact]
     public async Task CheckAsync_WhenStaticSingle_ReturnsNullWithoutResolving()
     {
-        var boundary = CreateBoundary(OpenIdConstants.TenantProviderCodes.StaticSingle);
+        var boundary = CreateBoundary(OpenIdConstants.TenantStrategyCodes.StaticSingle);
 
         var error = await boundary.CheckAsync(
             CreateHttpContext(),
@@ -83,10 +102,8 @@ public sealed class DefaultTenantBoundaryTests : IDisposable
     [Fact]
     public async Task CheckAsync_WhenScopedAndTenantMatches_ReturnsNull()
     {
-        SetupResolvedTenant(
-            new TenantDescriptor { TenantId = ResourceTenantId, DisplayName = "Tenant One" }
-        );
-        var boundary = CreateBoundary(OpenIdConstants.TenantProviderCodes.DynamicByHost);
+        SetupResolvedTenant(CreateTenant(ResourceTenantId));
+        var boundary = CreateBoundary(OpenIdConstants.TenantStrategyCodes.DynamicByHost);
 
         var error = await boundary.CheckAsync(
             CreateHttpContext(),
@@ -100,10 +117,8 @@ public sealed class DefaultTenantBoundaryTests : IDisposable
     [Fact]
     public async Task CheckAsync_WhenScopedAndTenantMismatch_Returns404()
     {
-        SetupResolvedTenant(
-            new TenantDescriptor { TenantId = "other-tenant", DisplayName = "Other" }
-        );
-        var boundary = CreateBoundary(OpenIdConstants.TenantProviderCodes.DynamicByPath);
+        SetupResolvedTenant(CreateTenant("other-tenant"));
+        var boundary = CreateBoundary(OpenIdConstants.TenantStrategyCodes.DynamicByPath);
 
         var error = await boundary.CheckAsync(
             CreateHttpContext(),
@@ -113,20 +128,5 @@ public sealed class DefaultTenantBoundaryTests : IDisposable
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status404NotFound, error.StatusCode);
-    }
-
-    [Fact]
-    public async Task CheckAsync_WhenScopedAndNoAmbientTenant_ReturnsNull()
-    {
-        SetupResolvedTenant(null);
-        var boundary = CreateBoundary(OpenIdConstants.TenantProviderCodes.DynamicByHost);
-
-        var error = await boundary.CheckAsync(
-            CreateHttpContext(),
-            ResourceTenantId,
-            CancellationToken.None
-        );
-
-        Assert.Null(error);
     }
 }

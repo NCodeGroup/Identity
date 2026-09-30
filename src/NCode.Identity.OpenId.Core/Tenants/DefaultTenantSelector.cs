@@ -21,46 +21,44 @@ using System.Collections.Immutable;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.Options;
-using NCode.PropertyBag;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ITenantResolver"/> abstraction that selects the configured
-/// <see cref="ITenantResolverStrategy"/> by <see cref="TenantResolutionOptions.ProviderCode"/> and delegates to it.
+/// Provides a default implementation of the <see cref="ITenantSelector"/> abstraction that selects the configured
+/// <see cref="ITenantStrategy"/> by <see cref="TenantResolutionOptions.StrategyCode"/> and delegates to it.
 /// </summary>
-internal class DefaultTenantResolver(
+internal class DefaultTenantSelector(
     IOptions<TenantResolutionOptions> optionsAccessor,
-    IEnumerable<ITenantResolverStrategy> strategies
-) : ITenantResolver
+    IEnumerable<ITenantStrategy> strategies
+) : ITenantSelector
 {
     private TenantResolutionOptions Options { get; } = optionsAccessor.Value;
 
-    private ImmutableArray<ITenantResolverStrategy> Strategies { get; } = [.. strategies];
+    private ImmutableArray<ITenantStrategy> Strategies { get; } = [.. strategies];
 
-    private ITenantResolverStrategy? SelectedOrNull { get; set; }
+    private ITenantStrategy? SelectedOrNull { get; set; }
 
-    private ITenantResolverStrategy Selected => SelectedOrNull ??= SelectStrategy();
+    private ITenantStrategy Selected => SelectedOrNull ??= SelectStrategy();
 
-    private ITenantResolverStrategy SelectStrategy()
+    private ITenantStrategy SelectStrategy()
     {
-        var providerCode = Options.ProviderCode;
+        var strategyCode = Options.StrategyCode;
         return Strategies.FirstOrDefault(strategy =>
-                string.Equals(providerCode, strategy.ProviderCode, StringComparison.Ordinal)
+                string.Equals(strategyCode, strategy.StrategyCode, StringComparison.Ordinal)
             )
             ?? throw new InvalidOperationException(
-                $"Unable to find a tenant resolver strategy with code '{providerCode}'."
+                $"Unable to find a tenant strategy with code '{strategyCode}'."
             );
     }
 
     /// <inheritdoc />
-    public RoutePattern GetTenantRoute(IPropertyBag propertyBag) =>
-        Selected.GetTenantRoute(propertyBag);
+    public RoutePattern GetTenantRoute() => Selected.GetTenantRoute();
 
     /// <inheritdoc />
-    public async ValueTask<TenantDescriptor?> ResolveDescriptorAsync(
+    public async ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
-        IPropertyBag propertyBag,
         CancellationToken cancellationToken
-    ) => await Selected.ResolveDescriptorAsync(httpContext, propertyBag, cancellationToken);
+    ) => await Selected.ResolveTenantAsync(httpContext, cancellationToken);
 }

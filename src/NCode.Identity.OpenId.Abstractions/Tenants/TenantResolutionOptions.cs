@@ -29,27 +29,27 @@ namespace NCode.Identity.OpenId.Tenants;
 public sealed class TenantResolutionOptions
 {
     /// <summary>
-    /// Gets or sets the provider code that selects the tenant-resolution strategy.
-    /// This value is used to find the corresponding <see cref="ITenantResolverStrategy"/>.
-    /// The default value is <see cref="OpenIdConstants.TenantProviderCodes.StaticSingle"/>.
+    /// Gets or sets the strategy code that selects the tenant-resolution strategy.
+    /// This value is used to find the corresponding <see cref="ITenantStrategy"/>.
+    /// The default value is <see cref="OpenIdConstants.TenantStrategyCodes.StaticSingle"/>.
     /// </summary>
-    public string ProviderCode { get; set; } = OpenIdConstants.TenantProviderCodes.StaticSingle;
+    public string StrategyCode { get; set; } = OpenIdConstants.TenantStrategyCodes.StaticSingle;
 
     /// <summary>
-    /// Gets or sets the options used when <see cref="ProviderCode"/> is
-    /// <see cref="OpenIdConstants.TenantProviderCodes.StaticSingle"/>.
+    /// Gets or sets the options used when <see cref="StrategyCode"/> is
+    /// <see cref="OpenIdConstants.TenantStrategyCodes.StaticSingle"/>.
     /// </summary>
     public StaticSingleTenantOptions? StaticSingle { get; set; }
 
     /// <summary>
-    /// Gets or sets the options used when <see cref="ProviderCode"/> is
-    /// <see cref="OpenIdConstants.TenantProviderCodes.DynamicByHost"/>.
+    /// Gets or sets the options used when <see cref="StrategyCode"/> is
+    /// <see cref="OpenIdConstants.TenantStrategyCodes.DynamicByHost"/>.
     /// </summary>
     public DynamicByHostTenantOptions? DynamicByHost { get; set; }
 
     /// <summary>
-    /// Gets or sets the options used when <see cref="ProviderCode"/> is
-    /// <see cref="OpenIdConstants.TenantProviderCodes.DynamicByPath"/>.
+    /// Gets or sets the options used when <see cref="StrategyCode"/> is
+    /// <see cref="OpenIdConstants.TenantStrategyCodes.DynamicByPath"/>.
     /// </summary>
     public DynamicByPathTenantOptions? DynamicByPath { get; set; }
 }

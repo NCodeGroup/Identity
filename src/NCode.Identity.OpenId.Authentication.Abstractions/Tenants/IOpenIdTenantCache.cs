@@ -19,7 +19,6 @@
 
 using JetBrains.Annotations;
 using NCode.Disposables;
-using NCode.Identity.OpenId.Tenants;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Authentication.Tenants;
@@ -31,28 +30,28 @@ namespace NCode.Identity.OpenId.Authentication.Tenants;
 public interface IOpenIdTenantCache
 {
     /// <summary>
-    /// Attempts to get an <see cref="OpenIdTenant"/> instance from the cache using the specified <paramref name="tenantDescriptor"/>.
+    /// Attempts to get an <see cref="OpenIdTenant"/> instance from the cache using the specified <paramref name="tenantId"/>.
     /// </summary>
-    /// <param name="tenantDescriptor">The <see cref="TenantDescriptor"/> instance that describes the tenant to get from the cache.</param>
+    /// <param name="tenantId">The identifier of the tenant to get from the cache.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="OpenIdTenant"/> instance.</returns>
     ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> TryGetAsync(
-        TenantDescriptor tenantDescriptor,
+        string tenantId,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Sets an <see cref="OpenIdTenant"/> instance in the cache using the specified <paramref name="tenantDescriptor"/>.
+    /// Sets an <see cref="OpenIdTenant"/> instance in the cache using the specified <paramref name="tenantId"/>.
     /// </summary>
-    /// <param name="tenantDescriptor">The <see cref="TenantDescriptor"/> instance that describes the tenant to set in the cache.</param>
+    /// <param name="tenantId">The identifier of the tenant to set in the cache.</param>
     /// <param name="tenant">The <see cref="OpenIdTenant"/> instance to set in the cache.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask SetAsync(
-        TenantDescriptor tenantDescriptor,
+        string tenantId,
         AsyncSharedReferenceLease<OpenIdTenant> tenant,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken

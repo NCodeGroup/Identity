@@ -26,15 +26,17 @@ on the runtime.
 runtime and the management API compose via dependency injection; the management API layers an _optional_ tenant
 boundary on top of it.**
 
-- **Selection (shared).** `ITenantResolver` (plus the pluggable `ITenantResolverStrategy` for static-single /
-  dynamic-by-host / dynamic-by-path, and `TenantResolutionOptions`) resolves a request to a `TenantDescriptor`. The
+- **Selection (shared).** `ITenantSelector` (plus the pluggable `ITenantStrategy` for static-single /
+  dynamic-by-host / dynamic-by-path, and `TenantResolutionOptions`) resolves a request to a `PersistedTenant`. The
   contracts live in `NCode.Identity.OpenId.Abstractions` (namespace `NCode.Identity.OpenId.Tenants`); the default
   implementation lives in `NCode.Identity.OpenId.Core`, mirroring the `OpenIdEnvironment` → `DefaultOpenIdEnvironment`
-  precedent. Both consumers depend only on the abstraction and receive the concrete resolver through DI, never through
-  a cross-implementation reference ([ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md)).
-- **Materialization (runtime only).** A single `DefaultOpenIdTenantProvider` composes `ITenantResolver` for selection
-  and builds the runtime `OpenIdTenant` (issuer, base address, settings/secrets providers, caching). It replaces the
-  former per-strategy provider classes and their selector.
+  precedent. Both consumers depend only on the abstraction and receive the concrete selector through DI, never through
+  a cross-implementation reference ([ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md)). Selection
+  returns the persisted tenant directly (no intermediate descriptor); an unresolvable tenant is a `404`.
+- **Materialization (runtime only).** A single `DefaultOpenIdTenantFactory` composes `ITenantSelector` for selection
+  and builds the runtime `OpenIdTenant` (issuer, base address, settings/secrets providers, caching) from the resolved
+  `PersistedTenant`. It consolidates the former separate factory/provider pair and per-strategy provider classes into
+  one type.
 - **Boundary (management only).** `ITenantBoundary` enforces the optional, per-request isolation for tenant-scoped
   resource families. The rule: when tenancy is request-derived (dynamic-by-host or dynamic-by-path), a resource whose
   owning tenant differs from the request's resolved tenant is reported as **`404 Not Found`** — never `403` — so a
@@ -56,13 +58,13 @@ boundary on top of it.**
   authorization failure yields `403` (revealing existence) rather than the `404` this boundary requires.
 - **An explicit, reusable boundary invoked by tenant-scoped endpoint families (chosen).** A new tenant-bound family
   reuses `ITenantBoundary`; central-admin families simply do not call it. The check returns `404` and reuses the
-  shared `ITenantResolver`, giving true symmetry with the runtime while respecting the central-admin surfaces.
+  shared `ITenantSelector`, giving true symmetry with the runtime while respecting the central-admin surfaces.
 
 ## Consequences
 
 - The tenant-selection rules have a single source of truth, so the runtime and the management boundary can never
   diverge on "which tenant is this request?"
-- Enabling the management boundary is a configuration choice (`TenantResolutionOptions.ProviderCode` =
+- Enabling the management boundary is a configuration choice (`TenantResolutionOptions.StrategyCode` =
   dynamic-by-host / dynamic-by-path), matching how the runtime opts into multi-tenancy; static-single deployments are
   unaffected.
 - A future tenant-bound management resource family gets isolation by injecting `ITenantBoundary` and calling it after
@@ -79,6 +81,6 @@ boundary on top of it.**
   alongside.
 - [ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md) — the reference-direction rule the
   abstraction/implementation split honors.
-- Code: `NCode.Identity.OpenId.Tenants.ITenantResolver`, `NCode.Identity.OpenId.Core` tenant strategies,
-  `NCode.Identity.OpenId.Authentication.Tenants.Providers.DefaultOpenIdTenantProvider`,
+- Code: `NCode.Identity.OpenId.Tenants.ITenantSelector`, `NCode.Identity.OpenId.Core` tenant strategies
+  (`ITenantStrategy`), `NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory`,
   `NCode.Identity.OpenId.Management.Endpoints.ITenantBoundary`.

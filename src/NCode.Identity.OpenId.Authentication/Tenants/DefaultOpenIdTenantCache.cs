@@ -21,7 +21,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Authentication.Options;
-using NCode.Identity.OpenId.Tenants;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Authentication.Tenants;
@@ -48,8 +47,8 @@ internal class DefaultOpenIdTenantCache(
             },
         };
 
-    private static string GetCacheKey(TenantDescriptor tenantDescriptor) =>
-        $"NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantCache:{tenantDescriptor.TenantId}";
+    private static string GetCacheKey(string tenantId) =>
+        $"NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantCache:{tenantId}";
 
     private static void EvictionCallback(
         object key,
@@ -67,12 +66,12 @@ internal class DefaultOpenIdTenantCache(
 
     /// <inheritdoc />
     public ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> TryGetAsync(
-        TenantDescriptor tenantDescriptor,
+        string tenantId,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
-        var key = GetCacheKey(tenantDescriptor);
+        var key = GetCacheKey(tenantId);
 
         if (
             MemoryCache.TryGetValue<AsyncSharedReferenceLease<OpenIdTenant>>(
@@ -90,13 +89,13 @@ internal class DefaultOpenIdTenantCache(
 
     /// <inheritdoc />
     public ValueTask SetAsync(
-        TenantDescriptor tenantDescriptor,
+        string tenantId,
         AsyncSharedReferenceLease<OpenIdTenant> tenant,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
-        var key = GetCacheKey(tenantDescriptor);
+        var key = GetCacheKey(tenantId);
         var newLease = tenant.AddReference();
 
         MemoryCache.Set(key, newLease, MemoryCacheEntryOptions);

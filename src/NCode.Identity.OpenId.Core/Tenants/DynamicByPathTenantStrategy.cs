@@ -19,38 +19,37 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Persistence.Stores;
-using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Provides a tenant-resolution strategy that resolves the tenant dynamically from a route parameter (aka path)
+/// Provides a tenant-selection strategy that resolves the tenant dynamically from a route parameter (aka path)
 /// of the request.
 /// </summary>
-internal class DynamicByPathTenantResolverStrategy(
+internal class DynamicByPathTenantStrategy(
     IStoreManagerFactory storeManagerFactory,
     IOptions<TenantResolutionOptions> optionsAccessor
-) : TenantResolverStrategy(storeManagerFactory)
+) : TenantStrategy(storeManagerFactory)
 {
     private DynamicByPathTenantOptions Options =>
         optionsAccessor.Value.DynamicByPath ?? new DynamicByPathTenantOptions();
 
     /// <inheritdoc />
-    public override string ProviderCode => OpenIdConstants.TenantProviderCodes.DynamicByPath;
+    public override string StrategyCode => OpenIdConstants.TenantStrategyCodes.DynamicByPath;
 
     /// <inheritdoc />
     protected override PathString TenantPath => Options.TenantPath;
 
     /// <inheritdoc />
-    public override async ValueTask<TenantDescriptor> ResolveDescriptorAsync(
+    public override async ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
-        IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
         var options = Options;
-        var tenantRoute = GetTenantRoute(propertyBag);
+        var tenantRoute = GetTenantRoute();
 
         if (tenantRoute.Parameters.Count == 0)
             throw new InvalidOperationException("The TenantRoute has no parameters.");
@@ -72,8 +71,6 @@ internal class DynamicByPathTenantResolverStrategy(
                 $"The value for route parameter '{options.TenantIdRouteParameterName}' is empty."
             );
 
-        var persistedTenant = await GetTenantByIdAsync(tenantId, propertyBag, cancellationToken);
-
-        return CreateDescriptor(persistedTenant);
+        return await GetTenantByIdAsync(tenantId, cancellationToken);
     }
 }

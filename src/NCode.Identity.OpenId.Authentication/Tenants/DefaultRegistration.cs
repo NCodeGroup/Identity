@@ -19,7 +19,6 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.OpenId.Authentication.Tenants.Providers;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Tenants;
@@ -47,8 +46,6 @@ internal static class DefaultRegistration
             serviceCollection.TryAddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
 
             serviceCollection.TryAddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
-
-            serviceCollection.TryAddSingleton<IOpenIdTenantProvider, DefaultOpenIdTenantProvider>();
 
             return builder;
         }

@@ -18,7 +18,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.OpenId.Authentication.Tenants.Providers;
+using NCode.Identity.OpenId.Authentication.Tenants;
 
 namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 
@@ -37,19 +37,16 @@ public static class DeveloperKeysRegistration
     extension(IServiceCollection services)
     {
         /// <summary>
-        /// Replaces the default tenant provider with one that generates an ephemeral in-memory
+        /// Replaces the default tenant factory with one that generates an ephemeral in-memory
         /// <c>RSA</c> signing key, so that token signing and the JWKS endpoint work out-of-the-box for local
         /// development and testing. Must not be used in production.
         /// </summary>
         /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
         public IServiceCollection AddEphemeralDeveloperKeys()
         {
-            // Replace the single tenant provider with one that generates an ephemeral in-memory RSA signing key.
+            // Replace the single tenant factory with one that generates an ephemeral in-memory RSA signing key.
             services.Replace(
-                ServiceDescriptor.Singleton<
-                    IOpenIdTenantProvider,
-                    EphemeralStaticSingleOpenIdTenantProvider
-                >()
+                ServiceDescriptor.Singleton<IOpenIdTenantFactory, EphemeralOpenIdTenantFactory>()
             );
 
             return services;

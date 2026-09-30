@@ -19,20 +19,19 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Tenants;
-using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
 /// Provides the default implementation of <see cref="ITenantBoundary"/> that reuses the shared
-/// <see cref="ITenantResolver"/> to determine the request's tenant scope.
+/// <see cref="ITenantSelector"/> to determine the request's tenant scope.
 /// </summary>
 internal class DefaultTenantBoundary(
-    ITenantResolver tenantResolver,
+    ITenantSelector tenantSelector,
     IOptions<TenantResolutionOptions> optionsAccessor
 ) : ITenantBoundary
 {
-    private ITenantResolver TenantResolver { get; } = tenantResolver;
+    private ITenantSelector TenantSelector { get; } = tenantSelector;
 
     private TenantResolutionOptions Options { get; } = optionsAccessor.Value;
 
@@ -46,25 +45,16 @@ internal class DefaultTenantBoundary(
         // Central-admin surface: static-single tenancy carries no request-derived boundary.
         if (
             string.Equals(
-                Options.ProviderCode,
-                OpenIdConstants.TenantProviderCodes.StaticSingle,
+                Options.StrategyCode,
+                OpenIdConstants.TenantStrategyCodes.StaticSingle,
                 StringComparison.Ordinal
             )
         )
             return null;
 
-        var propertyBag = PropertyBagFactory.Create();
-        var descriptor = await TenantResolver.ResolveDescriptorAsync(
-            httpContext,
-            propertyBag,
-            cancellationToken
-        );
+        var ambientTenant = await TenantSelector.ResolveTenantAsync(httpContext, cancellationToken);
 
-        // No ambient tenant scope resolved for this request; treat as unscoped.
-        if (descriptor is not { } scope)
-            return null;
-
-        if (string.Equals(scope.TenantId, resourceTenantId, StringComparison.Ordinal))
+        if (string.Equals(ambientTenant.TenantId, resourceTenantId, StringComparison.Ordinal))
             return null;
 
         // Return 404 (not 403) so a scoped surface cannot probe the existence of another tenant's resources.

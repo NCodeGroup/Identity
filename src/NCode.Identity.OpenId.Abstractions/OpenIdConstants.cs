@@ -124,22 +124,22 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
-    /// Contains constants for various codes that can be used to identify the tenant provider.
+    /// Contains constants for various codes that can be used to identify the tenant strategy.
     /// </summary>
-    public static class TenantProviderCodes
+    public static class TenantStrategyCodes
     {
         /// <summary>
-        /// Identifies the tenant provider that always resolves the same single, statically-configured tenant.
+        /// Identifies the tenant strategy that always resolves the same single, statically-configured tenant.
         /// </summary>
         public const string StaticSingle = nameof(StaticSingle);
 
         /// <summary>
-        /// Identifies the tenant provider that resolves the tenant dynamically from the request host.
+        /// Identifies the tenant strategy that resolves the tenant dynamically from the request host.
         /// </summary>
         public const string DynamicByHost = nameof(DynamicByHost);
 
         /// <summary>
-        /// Identifies the tenant provider that resolves the tenant dynamically from the request path.
+        /// Identifies the tenant strategy that resolves the tenant dynamically from the request path.
         /// </summary>
         public const string DynamicByPath = nameof(DynamicByPath);
     }

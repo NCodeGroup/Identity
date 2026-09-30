@@ -41,27 +41,18 @@ internal static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.TryAddSingleton<ITenantResolver, DefaultTenantResolver>();
+            serviceCollection.TryAddSingleton<ITenantSelector, DefaultTenantSelector>();
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ITenantResolverStrategy,
-                    StaticSingleTenantResolverStrategy
-                >()
+                ServiceDescriptor.Singleton<ITenantStrategy, StaticSingleTenantStrategy>()
             );
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ITenantResolverStrategy,
-                    DynamicByHostTenantResolverStrategy
-                >()
+                ServiceDescriptor.Singleton<ITenantStrategy, DynamicByHostTenantStrategy>()
             );
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ITenantResolverStrategy,
-                    DynamicByPathTenantResolverStrategy
-                >()
+                ServiceDescriptor.Singleton<ITenantStrategy, DynamicByPathTenantStrategy>()
             );
 
             return builder;

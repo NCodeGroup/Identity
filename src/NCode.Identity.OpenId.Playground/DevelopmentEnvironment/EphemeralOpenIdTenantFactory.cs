@@ -17,7 +17,6 @@
 #endregion
 
 using System.Security.Cryptography;
-using IdGen;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
@@ -27,8 +26,8 @@ using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Options;
 using NCode.Identity.OpenId.Authentication.Servers;
 using NCode.Identity.OpenId.Authentication.Tenants;
-using NCode.Identity.OpenId.Authentication.Tenants.Providers;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -41,7 +40,7 @@ using NCode.PropertyBag;
 namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 
 /// <summary>
-/// A <strong>development-only</strong> <see cref="DefaultOpenIdTenantProvider"/> that provides
+/// A <strong>development-only</strong> <see cref="DefaultOpenIdTenantFactory"/> that provides
 /// the tenant with an ephemeral, in-memory <c>RSA</c> signing key instead of loading persisted secrets.
 /// This makes the server fully runnable (token signing and the JWKS endpoint) without any configured or
 /// persisted secret keys.
@@ -51,11 +50,10 @@ namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 /// (re)materialized. This is intentional for local development and testing and must never be used in
 /// production, where a stable, securely-managed signing key is required.
 /// </remarks>
-public sealed class EphemeralStaticSingleOpenIdTenantProvider(
-    ITenantResolver tenantResolver,
+public sealed class EphemeralOpenIdTenantFactory(
+    ITenantSelector tenantSelector,
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
-    IOpenIdServerProvider openIdServerProvider,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
@@ -65,11 +63,10 @@ public sealed class EphemeralStaticSingleOpenIdTenantProvider(
     ICollectionDataSourceFactory collectionDataSourceFactory,
     ISecretKeyFactory secretKeyFactory
 )
-    : DefaultOpenIdTenantProvider(
-        tenantResolver,
+    : DefaultOpenIdTenantFactory(
+        tenantSelector,
         templateBinderFactory,
         optionsAccessor,
-        openIdServerProvider,
         storeManagerFactory,
         tenantCache,
         settingCollectionProviderFactory,
@@ -88,7 +85,7 @@ public sealed class EphemeralStaticSingleOpenIdTenantProvider(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
         OpenIdServer openIdServer,
-        TenantDescriptor tenantDescriptor,
+        PersistedTenant persistedTenant,
         string tenantIssuer,
         UriDescriptor tenantBaseAddress,
         AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> tenantSettings,

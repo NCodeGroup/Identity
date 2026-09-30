@@ -59,34 +59,38 @@ internal class DefaultClientValidator(
             return error;
         }
 
-        // A tenant-scoped surface may only create resources within its own tenant; report a mismatch as not-found so
-        // it cannot probe another tenant's existence.
-        if (
-            AmbientTenantAccessor.IsScoped
-            && !string.Equals(
-                client.TenantId,
-                AmbientTenantAccessor.TenantId,
-                StringComparison.Ordinal
+        if (AmbientTenantAccessor.IsScoped)
+        {
+            // The scope already resolved this tenant (proving it exists), so no existence fetch is needed. Report a
+            // mismatch as not-found so a scoped surface cannot probe another tenant's existence.
+            if (
+                !string.Equals(
+                    client.TenantId,
+                    AmbientTenantAccessor.TenantId,
+                    StringComparison.Ordinal
+                )
             )
-        )
-        {
-            return new ManagementError
             {
-                StatusCode = StatusCodes.Status404NotFound,
-                Detail = "The specified tenant could not be found.",
-            };
+                return new ManagementError
+                {
+                    StatusCode = StatusCodes.Status404NotFound,
+                    Detail = "The specified tenant could not be found.",
+                };
+            }
         }
-
-        // the owning tenant must exist before a client can attach to it
-        var tenantStore = storeManager.GetStore<ITenantStore>();
-        var tenant = await tenantStore.GetOrDefaultAsync(client.TenantId, cancellationToken);
-        if (tenant is null)
+        else
         {
-            return new ManagementError
+            // Central-admin surface: the owning tenant must exist before a client can attach to it.
+            var tenantStore = storeManager.GetStore<ITenantStore>();
+            var tenant = await tenantStore.GetOrDefaultAsync(client.TenantId, cancellationToken);
+            if (tenant is null)
             {
-                StatusCode = StatusCodes.Status400BadRequest,
-                Detail = "The specified tenant does not exist.",
-            };
+                return new ManagementError
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Detail = "The specified tenant does not exist.",
+                };
+            }
         }
 
         var clientStore = storeManager.GetStore<IClientStore>();

@@ -257,6 +257,30 @@ public sealed class DefaultClientValidatorTests : IDisposable
         Assert.Equal(StatusCodes.Status404NotFound, error.StatusCode);
     }
 
+    [Fact]
+    public async Task ValidateCreateAsync_WhenScopedToOwnTenant_DoesNotFetchTenant()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAmbientTenantAccessor.Setup(x => x.IsScoped).Returns(true);
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId);
+        SetupClientStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+
+        var error = await Validator.ValidateCreateAsync(
+            CreateUser(authenticated: true),
+            CreateClient(),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+        // The scope already proved the tenant exists, so it is never re-fetched in scoped mode.
+        MockStoreManager.Verify(x => x.GetStore<ITenantStore>(), Times.Never);
+    }
+
     #endregion
 
     #region ValidateUpdateAsync Tests

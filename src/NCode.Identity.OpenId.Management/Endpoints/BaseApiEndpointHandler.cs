@@ -21,9 +21,11 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
@@ -33,6 +35,16 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// </summary>
 internal abstract class BaseApiEndpointHandler
 {
+    /// <summary>
+    /// The default page size applied to a collection <c>GET</c> when the caller does not specify a limit.
+    /// </summary>
+    protected const int DefaultPageSize = 50;
+
+    /// <summary>
+    /// The maximum page size a collection <c>GET</c> will return regardless of the caller's requested limit.
+    /// </summary>
+    protected const int MaxPageSize = 100;
+
     /// <summary>
     /// Gets the <see cref="IAuthorizationService"/> used to perform resource-based authorization.
     /// </summary>
@@ -199,5 +211,52 @@ internal abstract class BaseApiEndpointHandler
         }
 
         return AuthorizationFailed(httpContext);
+    }
+
+    /// <summary>
+    /// Clamps a caller-supplied page limit to the supported range, applying the default when unspecified.
+    /// </summary>
+    /// <param name="limit">The requested page limit, or <c>null</c>.</param>
+    /// <returns>The effective page limit.</returns>
+    protected internal virtual int NormalizeLimit(int? limit) =>
+        Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
+
+    /// <summary>
+    /// Processes an HTTP collection <c>GET</c> request: authorizes the caller to enumerate the family, then fetches,
+    /// maps, and returns a single page. Authorization runs before the page is fetched so an unauthorized request never
+    /// touches the store.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="authorizationResource">The resource evaluated by <see cref="Operations.List"/> authorization — a
+    /// tenant-scoped marker for a tenant-bound family, or <c>null</c> for a central-admin family.</param>
+    /// <param name="fetchPageAsync">A function that fetches the page once authorization has succeeded.</param>
+    /// <param name="mapper">A function that maps a persisted item to its response representation.</param>
+    /// <typeparam name="TItem">The type of the persisted item.</typeparam>
+    /// <typeparam name="TResource">The type of the response representation.</typeparam>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    protected internal virtual async ValueTask<IResult> ProcessListAsync<TItem, TResource>(
+        HttpContext httpContext,
+        object? authorizationResource,
+        Func<ValueTask<PagedResult<TItem>>> fetchPageAsync,
+        Func<TItem, TResource> mapper
+    )
+    {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            authorizationResource,
+            Operations.List
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var page = await fetchPageAsync();
+
+        var items = page.Items.Select(mapper).ToList();
+        return TypedResults.Json(
+            new CollectionResource<TResource> { Items = items, ContinuationToken = page.NextCursor }
+        );
     }
 }

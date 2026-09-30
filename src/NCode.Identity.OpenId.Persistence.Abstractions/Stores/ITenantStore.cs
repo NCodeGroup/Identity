@@ -31,6 +31,22 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 public interface ITenantStore : IStore<PersistedTenant>
 {
     /// <summary>
+    /// Gets a single page of <see cref="PersistedTenant"/> instances ordered by their identifier, using keyset
+    /// (cursor) pagination.
+    /// </summary>
+    /// <param name="cursor">The opaque cursor returned by a previous call that fetches the next page, or <c>null</c>
+    /// to fetch the first page.</param>
+    /// <param name="limit">The maximum number of items to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
+    /// <see cref="PersistedTenant"/> instances and the cursor for the next page.</returns>
+    ValueTask<PagedResult<PersistedTenant>> GetPageAsync(
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Attempts to get a <see cref="PersistedTenant"/> instance from the store with the specified identifier.
     /// </summary>
     /// <param name="tenantId">The identifier of the <see cref="PersistedTenant"/> instance to retrieve.</param>

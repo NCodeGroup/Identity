@@ -131,6 +131,29 @@ internal class ServerStore(
     }
 
     /// <inheritdoc />
+    protected override async ValueTask<IReadOnlyList<ServerEntity>> GetEntityPageAsync(
+        long? afterId,
+        int take,
+        CancellationToken cancellationToken
+    )
+    {
+        var query = DbContext
+            .Servers.Include(server => server.Secrets)
+                .ThenInclude(serverSecret => serverSecret.Secret)
+            .AsQueryable();
+
+        if (afterId is { } id)
+        {
+            query = query.Where(server => server.Id > id);
+        }
+
+        return await query.OrderBy(server => server.Id).Take(take).ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    protected override long GetSortKey(ServerEntity entity) => entity.Id;
+
+    /// <inheritdoc />
     public async ValueTask<PersistedServerSettings?> GetSettingsOrDefaultAsync(
         string serverId,
         CancellationToken cancellationToken

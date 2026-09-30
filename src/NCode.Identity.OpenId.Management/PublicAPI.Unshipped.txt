@@ -15,5 +15,6 @@ NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft
 NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddAuthorizationHandler<THandler>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static NCode.Identity.OpenId.Management.Operations.Create.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.Delete.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
+static NCode.Identity.OpenId.Management.Operations.List.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.Read.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.Update.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!

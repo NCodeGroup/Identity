@@ -21,6 +21,11 @@ change to the public API is a **major** version bump.
   window). A reusable `TenantScopeEndpointFilter` establishes the scope; tenant and server administration remain
   central-admin (unscoped). See
   [ADR-0018](docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md).
+- Collection `GET` endpoints for the management API — `GET api/clients`, `GET api/servers`, `GET api/tenants` — that
+  return a page of resources (`CollectionResource<T>` = `{ items, continuationToken }`) using keyset (cursor)
+  pagination (`?limit=` clamped to 100, `?cursor=` opaque continuation token). The client list is scoped to the
+  request's tenant; the server and tenant lists are central-admin. There is deliberately no query protocol (no OData);
+  see [ADR-0019](docs/adr/0019-collection-endpoints-keyset-pagination.md).
 
 ### Changed
 

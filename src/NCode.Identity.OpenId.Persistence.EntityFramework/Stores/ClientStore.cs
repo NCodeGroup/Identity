@@ -136,6 +136,30 @@ internal class ClientStore(
     }
 
     /// <inheritdoc />
+    protected override async ValueTask<IReadOnlyList<ClientEntity>> GetEntityPageAsync(
+        long? afterId,
+        int take,
+        CancellationToken cancellationToken
+    )
+    {
+        var query = DbContext
+            .Clients.Include(client => client.Tenant)
+            .Include(client => client.Secrets)
+                .ThenInclude(clientSecret => clientSecret.Secret)
+            .AsQueryable();
+
+        if (afterId is { } id)
+        {
+            query = query.Where(client => client.Id > id);
+        }
+
+        return await query.OrderBy(client => client.Id).Take(take).ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    protected override long GetSortKey(ClientEntity entity) => entity.Id;
+
+    /// <inheritdoc />
     public override async ValueTask AddAsync(
         PersistedClient persistedClient,
         CancellationToken cancellationToken

@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -296,6 +297,60 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await Handler.CreateClientAsync(httpContext, request, CancellationToken.None)
         );
+    }
+
+    #endregion
+
+    #region ListClientsAsync Tests
+
+    [Fact]
+    public async Task ListClientsAsync_WhenAuthorized_ReturnsPage()
+    {
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetPageAsync(null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PagedResult<PersistedClient>
+                {
+                    Items = [CreateClient("client-ct")],
+                    NextCursor = "next",
+                }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListClientsAsync(
+            httpContext,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<ClientResource>>>(result);
+        Assert.Single(json.Value!.Items);
+        Assert.Equal("next", json.Value.ContinuationToken);
+    }
+
+    [Fact]
+    public async Task ListClientsAsync_WhenForbidden_ReturnsForbidWithoutQueryingStore()
+    {
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListClientsAsync(
+            httpContext,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        // No store scaffold is set up, so a strict-mock failure would mean authorization ran too late.
+        Assert.IsType<ForbidHttpResult>(result);
     }
 
     #endregion

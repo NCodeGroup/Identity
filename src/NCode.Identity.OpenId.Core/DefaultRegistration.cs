@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Serialization;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId;
@@ -47,7 +48,8 @@ public static class DefaultRegistration
                 .AddEnvironmentServices()
                 .AddExceptionServices()
                 .AddMessageServices()
-                .AddResultServices();
+                .AddResultServices()
+                .AddTenantResolutionServices();
 
             return newBuilder;
         }

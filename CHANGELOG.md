@@ -26,6 +26,13 @@ change to the public API is a **major** version bump.
   pagination (`?limit=` clamped to 100, `?cursor=` opaque continuation token). The client list is scoped to the
   request's tenant; the server and tenant lists are central-admin. There is deliberately no query protocol (no OData);
   see [ADR-0019](docs/adr/0019-collection-endpoints-keyset-pagination.md).
+- Grant administration for the management API — `GET api/grants`, `GET api/grants/{grantId}`, and
+  `DELETE api/grants/{grantId}` — a tenant-scoped, read-only surface that lists and inspects persisted grants and
+  soft-revokes them (sets `RevokedWhen`, keeps the row for audit; idempotent). Grants are addressed by a new opaque,
+  server-generated `GrantId` (`PersistedGrant.GrantId` / `GrantEntity.GrantId`), and `GrantResource` projects metadata
+  only — the internal `HashedKey` and the grant `PayloadJson` are never exposed. The shared keyset-pagination
+  mechanics move from `BaseStoreWithResourceId` to `BaseStore` so a grant store not keyed by a resource id can paginate
+  on its chronological surrogate id. See [ADR-0020](docs/adr/0020-grant-management-read-surface.md).
 
 ### Changed
 

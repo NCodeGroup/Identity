@@ -31,6 +31,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedGrant"/>.
 /// </summary>
 [Index(nameof(GrantType), nameof(HashedKey), IsUnique = true)]
+[Index(nameof(NormalizedGrantId), IsUnique = true)]
 [Index(nameof(TenantId), nameof(ClientId), IsUnique = false)]
 [Index(nameof(TenantId), nameof(NormalizedSubjectId), IsUnique = false)]
 [Index(nameof(ExpiresWhen), IsUnique = false)]
@@ -42,6 +43,22 @@ public sealed class GrantEntity : ISupportConcurrencyToken
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
+
+    /// <summary>
+    /// Gets the opaque, server-generated public identifier for this grant, used by the management API. This is
+    /// distinct from the internal <see cref="HashedKey"/> (the runtime token-lookup key), which is never exposed.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string GrantId { get; init; }
+
+    /// <summary>
+    /// Gets the normalized value of <see cref="GrantId"/> so that lookups can be sargable for DBMS engines that
+    /// don't support case-insensitive indices.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string NormalizedGrantId { get; init; }
 
     /// <summary>
     /// Gets or sets the type of grant.

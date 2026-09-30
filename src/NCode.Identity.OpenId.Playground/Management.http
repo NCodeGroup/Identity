@@ -25,3 +25,19 @@ Accept: application/json
 ### List tenants (central-admin)
 GET {{host}}/api/tenants?limit=50
 Accept: application/json
+
+### List grants (first page) — scoped to the request's tenant
+GET {{host}}/api/grants?limit=50
+Accept: application/json
+
+### List grants (next page) — replace the cursor with the previous response's continuationToken
+GET {{host}}/api/grants?limit=50&cursor=REPLACE_WITH_continuationToken
+Accept: application/json
+
+### Get a single grant by its opaque GrantId
+GET {{host}}/api/grants/REPLACE_WITH_GrantId
+Accept: application/json
+
+### Revoke a grant (soft-revoke: sets RevokedWhen, keeps the row; idempotent) — returns 204
+DELETE {{host}}/api/grants/REPLACE_WITH_GrantId
+

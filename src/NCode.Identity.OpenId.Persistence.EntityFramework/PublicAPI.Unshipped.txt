@@ -56,6 +56,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.CreatedWh
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.ExpiresWhen.get -> System.DateTimeOffset?
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.ExpiresWhen.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.GrantEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.GrantId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.GrantId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.GrantType.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.GrantType.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.HashedKey.get -> string!
@@ -64,6 +66,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.Id.get ->
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.Id.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.NormalizedSubjectId.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.NormalizedSubjectId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.NormalizedGrantId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.NormalizedGrantId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.PayloadJson.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.PayloadJson.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.RevokedWhen.get -> System.DateTimeOffset?

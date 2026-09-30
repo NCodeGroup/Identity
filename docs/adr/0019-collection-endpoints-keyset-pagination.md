@@ -30,7 +30,7 @@ no ad-hoc query protocol.**
 - **The store owns the cursor.** The cursor is opaque above the persistence layer: the store produces and consumes it
   (a base64url encoding of the last key). Each store gains a `GetPageAsync(cursor, limit, ct)` returning a
   `PagedResult<T>` (`items` + `nextCursor`); the shared keyset mechanics — decode, fetch `limit + 1`, detect "more",
-  encode the next cursor — live once in `BaseStoreWithResourceId`, with each store supplying only its ordered,
+  encode the next cursor — live once in `BaseStore`, with each store supplying only its ordered,
   `Include`-shaped query and its sort key.
 - **Tenant scoping falls out of ADR-0018.** `GET /clients` runs under `TenantScopeEndpointFilter`, so the
   `OpenIdDbContext` global query filter already scopes the page to the ambient tenant — a tenant admin lists only
@@ -80,6 +80,6 @@ no ad-hoc query protocol.**
 - [ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md) — the query filter that scopes the client list
   to the ambient tenant for free.
 - Code: `NCode.Persistence.Stores.PagedResult<T>`,
-  `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStoreWithResourceId` (keyset mechanics),
+  `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore` (keyset mechanics),
   `NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>`,
   `NCode.Identity.OpenId.Management.Operations.List`.

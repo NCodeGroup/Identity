@@ -57,6 +57,7 @@ internal class GrantStore(
             {
                 GrantType = entity.GrantType,
                 HashedKey = entity.HashedKey,
+                GrantId = entity.GrantId,
                 ConcurrencyToken = entity.ConcurrencyToken,
                 TenantId = entity.Tenant?.TenantId,
                 ClientId = entity.Client?.ClientId,
@@ -104,6 +105,49 @@ internal class GrantStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<PersistedGrant?> GetOrDefaultAsync(
+        string grantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedGrantId = Normalize(grantId);
+        var grantEntity = await GetEntityOrDefaultAsync(
+            entity => entity.NormalizedGrantId == normalizedGrantId,
+            cancellationToken
+        );
+
+        if (grantEntity is null)
+        {
+            return null;
+        }
+
+        return await MapFromEntityAsync(grantEntity, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<IReadOnlyList<GrantEntity>> GetEntityPageAsync(
+        long? afterId,
+        int take,
+        CancellationToken cancellationToken
+    )
+    {
+        var query = DbContext
+            .Grants.Include(entity => entity.Tenant)
+            .Include(entity => entity.Client)
+            .AsQueryable();
+
+        if (afterId is { } id)
+        {
+            query = query.Where(entity => entity.Id > id);
+        }
+
+        return await query.OrderBy(entity => entity.Id).Take(take).ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    protected override long GetSortKey(GrantEntity entity) => entity.Id;
+
+    /// <inheritdoc />
     public async ValueTask AddAsync(
         PersistedGrant persistedGrant,
         CancellationToken cancellationToken
@@ -142,10 +186,12 @@ internal class GrantStore(
                 );
         }
 
-        // Row-level ConcurrencyToken is filled by the interceptor on save (ADR-0012).
+        // The opaque GrantId is assigned by the grant-creation service (ICryptoService.GenerateResourceId).
         var grantEntity = new GrantEntity
         {
             Id = NextId(),
+            GrantId = persistedGrant.GrantId,
+            NormalizedGrantId = Normalize(persistedGrant.GrantId),
             GrantType = persistedGrant.GrantType,
             HashedKey = persistedGrant.HashedKey,
             ConcurrencyToken = string.Empty,

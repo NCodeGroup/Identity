@@ -45,6 +45,26 @@ NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>.ContinuationTok
 NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>.ContinuationToken.init -> void
 NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>.Items.get -> System.Collections.Generic.IReadOnlyList<T>!
 NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>.Items.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.ClientId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.ClientId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.ConsumedWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.ConsumedWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.CreatedWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.ExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.GrantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.GrantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.GrantResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.GrantType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.GrantType.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.RevokedWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.RevokedWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.SubjectId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.SubjectId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.TenantId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Algorithm.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Algorithm.init -> void

@@ -122,6 +122,18 @@ public class OpenIdDbContext(
                 NormalizedAmbientTenantId == null
                 || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
             );
+
+        // A grant's tenant is optional: a tenant-scoped surface sees only its tenant's grants, while non-tenant
+        // (global) grants are visible only to central-admin (an unset ambient tenant).
+        modelBuilder
+            .Entity<GrantEntity>()
+            .HasQueryFilter(entity =>
+                NormalizedAmbientTenantId == null
+                || (
+                    entity.Tenant != null
+                    && entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+                )
+            );
     }
 
     /// <inheritdoc />

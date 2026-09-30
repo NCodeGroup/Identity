@@ -31,8 +31,10 @@ public interface IGrantStore : IStore<PersistedGrant>
 {
     /// <summary>
     /// Gets a single page of <see cref="PersistedGrant"/> instances ordered by their identifier, using keyset
-    /// (cursor) pagination.
+    /// (cursor) pagination, optionally filtered to a subject and/or a client.
     /// </summary>
+    /// <param name="subjectId">When specified, restricts the page to grants for this subject; otherwise all subjects.</param>
+    /// <param name="clientId">When specified, restricts the page to grants for this client; otherwise all clients.</param>
     /// <param name="cursor">The opaque cursor returned by a previous call that fetches the next page, or <c>null</c>
     /// to fetch the first page.</param>
     /// <param name="limit">The maximum number of items to return on the page.</param>
@@ -40,8 +42,28 @@ public interface IGrantStore : IStore<PersistedGrant>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
     /// <see cref="PersistedGrant"/> instances and the cursor for the next page.</returns>
     ValueTask<PagedResult<PersistedGrant>> GetPageAsync(
+        string? subjectId,
+        string? clientId,
         string? cursor,
         int limit,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Soft-revokes every active grant matching the specified subject and/or client by setting its
+    /// <c>RevokedWhen</c> timestamp; already-revoked grants are left unchanged. At least one of
+    /// <paramref name="subjectId"/> or <paramref name="clientId"/> should be specified by the caller.
+    /// </summary>
+    /// <param name="subjectId">When specified, restricts the revocation to grants for this subject.</param>
+    /// <param name="clientId">When specified, restricts the revocation to grants for this client.</param>
+    /// <param name="revokedWhen">The timestamp to record as the revocation time.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
+    /// grants that were revoked.</returns>
+    ValueTask<long> RevokeWhereAsync(
+        string? subjectId,
+        string? clientId,
+        DateTimeOffset revokedWhen,
         CancellationToken cancellationToken
     );
 

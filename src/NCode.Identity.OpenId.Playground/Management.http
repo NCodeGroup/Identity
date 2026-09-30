@@ -45,10 +45,26 @@ Accept: application/json
 GET {{host}}/api/grants?limit=50&cursor=REPLACE_WITH_continuationToken
 Accept: application/json
 
+### List grants for a subject (e.g. triage one user's sessions)
+GET {{host}}/api/grants?subjectId=REPLACE_WITH_SubjectId&limit=50
+Accept: application/json
+
+### List grants for a client
+GET {{host}}/api/grants?clientId=REPLACE_WITH_ClientId&limit=50
+Accept: application/json
+
 ### Get a single grant by its opaque GrantId
 GET {{host}}/api/grants/REPLACE_WITH_GrantId
 Accept: application/json
 
 ### Revoke a grant (soft-revoke: sets RevokedWhen, keeps the row; idempotent) — returns 204
 DELETE {{host}}/api/grants/REPLACE_WITH_GrantId
+
+### Bulk-revoke all of a subject's grants ("sign the user out everywhere") — returns { "revoked": N }
+DELETE {{host}}/api/grants?subjectId=REPLACE_WITH_SubjectId
+Accept: application/json
+
+### Bulk-revoke all of a client's grants ("kill a compromised client's tokens") — returns { "revoked": N }
+DELETE {{host}}/api/grants?clientId=REPLACE_WITH_ClientId
+Accept: application/json
 

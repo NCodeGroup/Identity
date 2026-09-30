@@ -137,7 +137,9 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockGrantStore
-            .Setup(x => x.GetPageAsync(null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.GetPageAsync(null, null, null, It.IsAny<int>(), It.IsAny<CancellationToken>())
+            )
             .ReturnsAsync(
                 new PagedResult<PersistedGrant> { Items = [CreateGrant()], NextCursor = "next" }
             )
@@ -147,6 +149,8 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.ListGrantsAsync(
             httpContext,
+            subjectId: null,
+            clientId: null,
             cursor: null,
             limit: null,
             CancellationToken.None
@@ -159,6 +163,42 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task ListGrantsAsync_WhenFiltered_PassesSubjectAndClientToStore()
+    {
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockGrantStore
+            .Setup(x =>
+                x.GetPageAsync(
+                    "subject-1",
+                    "client-1",
+                    null,
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PagedResult<PersistedGrant> { Items = [CreateGrant()], NextCursor = null }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListGrantsAsync(
+            httpContext,
+            subjectId: "subject-1",
+            clientId: "client-1",
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<GrantResource>>>(result);
+        Assert.Single(json.Value!.Items);
+    }
+
+    [Fact]
     public async Task ListGrantsAsync_WhenForbidden_ReturnsForbidWithoutQueryingStore()
     {
         MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
@@ -168,12 +208,88 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.ListGrantsAsync(
             httpContext,
+            subjectId: null,
+            clientId: null,
             cursor: null,
             limit: null,
             CancellationToken.None
         );
 
         // No store scaffold is set up, so a strict-mock failure would mean authorization ran too late.
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    #endregion
+
+    #region RevokeGrantsAsync Tests
+
+    [Fact]
+    public async Task RevokeGrantsAsync_WhenNoFilter_ReturnsBadRequestWithoutAuthorizing()
+    {
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // No authorization or store scaffold: a strict-mock failure would mean the guard ran too late.
+        var result = await Handler.RevokeGrantsAsync(
+            httpContext,
+            subjectId: null,
+            clientId: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task RevokeGrantsAsync_WhenAuthorized_RevokesAndReturnsCount()
+    {
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockGrantStore
+            .Setup(x =>
+                x.RevokeWhereAsync(
+                    "subject-1",
+                    null,
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(3)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RevokeGrantsAsync(
+            httpContext,
+            subjectId: "subject-1",
+            clientId: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<GrantRevocationResult>>(result);
+        Assert.Equal(3, json.Value?.Revoked);
+    }
+
+    [Fact]
+    public async Task RevokeGrantsAsync_WhenForbidden_ReturnsForbidWithoutQueryingStore()
+    {
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RevokeGrantsAsync(
+            httpContext,
+            subjectId: "subject-1",
+            clientId: null,
+            CancellationToken.None
+        );
+
         Assert.IsType<ForbidHttpResult>(result);
     }
 

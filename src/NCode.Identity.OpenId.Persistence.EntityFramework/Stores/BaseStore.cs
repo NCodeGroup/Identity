@@ -180,6 +180,24 @@ internal abstract class BaseStore<TItem, TEntity> : IStore
         // Fetch one extra row so a full page signals that another page exists.
         var entities = await GetEntityPageAsync(afterId, limit + 1, cancellationToken);
 
+        return await BuildPageAsync(entities, limit, cancellationToken);
+    }
+
+    /// <summary>
+    /// Builds a <see cref="PagedResult{TItem}"/> from a keyset fetch of <c>limit + 1</c> entities: maps the first
+    /// <paramref name="limit"/> items and, when a further row was returned, encodes the next-page cursor.
+    /// </summary>
+    /// <param name="entities">The entities returned by a keyset fetch (ordered by sort key, up to <c>limit + 1</c>).</param>
+    /// <param name="limit">The maximum number of items on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page and the
+    /// cursor for the next page.</returns>
+    protected async ValueTask<PagedResult<TItem>> BuildPageAsync(
+        IReadOnlyList<TEntity> entities,
+        int limit,
+        CancellationToken cancellationToken
+    )
+    {
         var hasMore = entities.Count > limit;
         var count = hasMore ? limit : entities.Count;
 
@@ -194,14 +212,25 @@ internal abstract class BaseStore<TItem, TEntity> : IStore
         return new PagedResult<TItem> { Items = items, NextCursor = nextCursor };
     }
 
-    private static string EncodeCursor(long key)
+    /// <summary>
+    /// Encodes a keyset sort key into an opaque, base64url continuation cursor.
+    /// </summary>
+    /// <param name="key">The sort key of the last item on the page.</param>
+    /// <returns>The opaque continuation cursor.</returns>
+    protected static string EncodeCursor(long key)
     {
         Span<byte> bytes = stackalloc byte[sizeof(long)];
         BinaryPrimitives.WriteInt64BigEndian(bytes, key);
         return Base64Url.EncodeToString(bytes);
     }
 
-    private static long? DecodeCursor(string? cursor)
+    /// <summary>
+    /// Decodes an opaque continuation cursor into its keyset sort key, treating a malformed cursor as the start of
+    /// the collection rather than a hard error.
+    /// </summary>
+    /// <param name="cursor">The opaque cursor, or <c>null</c> to start at the beginning.</param>
+    /// <returns>The exclusive lower-bound sort key, or <c>null</c> to start at the beginning.</returns>
+    protected static long? DecodeCursor(string? cursor)
     {
         if (string.IsNullOrEmpty(cursor))
             return null;

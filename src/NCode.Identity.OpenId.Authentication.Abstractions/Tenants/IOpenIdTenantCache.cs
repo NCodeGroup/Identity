@@ -19,6 +19,7 @@
 
 using JetBrains.Annotations;
 using NCode.Disposables;
+using NCode.Identity.OpenId.Tenants;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Authentication.Tenants;

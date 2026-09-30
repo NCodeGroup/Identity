@@ -21,6 +21,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Authentication.Options;
+using NCode.Identity.OpenId.Tenants;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Authentication.Tenants;

@@ -579,8 +579,8 @@ NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectCommand.SubjectAuthe
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectCommand.ValidateSubjectCommand() -> void
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectCommand.ValidateSubjectCommand(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Messages.IOpenIdRequest! OpenIdRequest, NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication SubjectAuthentication, NCode.Identity.Endpoints.OperationDisposition<NCode.Identity.OpenId.Messages.IOpenIdError!>! OperationDisposition) -> void
 NCode.Identity.OpenId.Authentication.Tenants.IOpenIdTenantCache
-NCode.Identity.OpenId.Authentication.Tenants.IOpenIdTenantCache.SetAsync(NCode.Identity.OpenId.Authentication.Tenants.TenantDescriptor tenantDescriptor, NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Authentication.Tenants.OpenIdTenant!> tenant, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Authentication.Tenants.IOpenIdTenantCache.TryGetAsync(NCode.Identity.OpenId.Authentication.Tenants.TenantDescriptor tenantDescriptor, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Authentication.Tenants.OpenIdTenant!>>
+NCode.Identity.OpenId.Authentication.Tenants.IOpenIdTenantCache.SetAsync(NCode.Identity.OpenId.Tenants.TenantDescriptor tenantDescriptor, NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Authentication.Tenants.OpenIdTenant!> tenant, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Tenants.IOpenIdTenantCache.TryGetAsync(NCode.Identity.OpenId.Tenants.TenantDescriptor tenantDescriptor, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Authentication.Tenants.OpenIdTenant!>>
 NCode.Identity.OpenId.Authentication.Tenants.IOpenIdTenantFactory
 NCode.Identity.OpenId.Authentication.Tenants.IOpenIdTenantFactory.CreateTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Authentication.Servers.OpenIdServer! openIdServer, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Authentication.Tenants.OpenIdTenant!>>
 NCode.Identity.OpenId.Authentication.Tenants.OpenIdTenant
@@ -592,14 +592,6 @@ NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProvider.Get
 NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProvider.ProviderCode.get -> string!
 NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProviderSelector
 NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProviderSelector.SelectProvider(NCode.PropertyBag.IPropertyBag! propertyBag) -> NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProvider!
-NCode.Identity.OpenId.Authentication.Tenants.TenantDescriptor
-NCode.Identity.OpenId.Authentication.Tenants.TenantDescriptor.DisplayName.get -> string!
-NCode.Identity.OpenId.Authentication.Tenants.TenantDescriptor.DisplayName.init -> void
-NCode.Identity.OpenId.Authentication.Tenants.TenantDescriptor.DomainName.get -> string?
-NCode.Identity.OpenId.Authentication.Tenants.TenantDescriptor.DomainName.init -> void
-NCode.Identity.OpenId.Authentication.Tenants.TenantDescriptor.TenantDescriptor() -> void
-NCode.Identity.OpenId.Authentication.Tenants.TenantDescriptor.TenantId.get -> string!
-NCode.Identity.OpenId.Authentication.Tenants.TenantDescriptor.TenantId.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Commands.GetAccessTokenPayloadClaimsCommand
 NCode.Identity.OpenId.Authentication.Tokens.Commands.GetAccessTokenPayloadClaimsCommand.GetAccessTokenPayloadClaimsCommand() -> void
 NCode.Identity.OpenId.Authentication.Tokens.Commands.GetAccessTokenPayloadClaimsCommand.GetAccessTokenPayloadClaimsCommand(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityTokenContext TokenContext, System.Collections.Generic.IDictionary<string!, object!>! PayloadClaims) -> void

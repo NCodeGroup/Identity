@@ -95,7 +95,7 @@ rationale.
   is `sealed` (above) — it is a leaf and sealing says so. A public type that is a **deliberate extension point** — an
   abstract base or a class consumers subclass (the Abstractions surface: `SecretKey`, `Algorithm`, `OpenIdContext`,
   `OpenIdClient`, `KnownParameter`, …) — is **not** sealed. A public **concrete leaf** with no extension point is
-  sealed too; if it only needs to be *test*-mockable, demote it to `internal` (left unsealed, §7) or mock its
+  sealed too; if it only needs to be _test_-mockable, demote it to `internal` (left unsealed, §7) or mock its
   interface — never keep it `public` **and** unsealed just for tests. `CA1852` (seal internal types) is **disabled**
   precisely so internal impls can stay unsealed for mocking; that exemption does not license unsealed public leaves.
 - 👁 **Prefer a `readonly record struct` for a small, immutable value-like type** — an id, key, command, or disposition,
@@ -189,7 +189,7 @@ rationale.
   trip `CA1708` — split them (which also fits one-type-per-file).
 - 👁 Keep null-guards on the receiver (extension members can be invoked on `null`).
 - 👁 **Name the receiver in a receiver-argument exception even though `CA2208` objects.** When an `extension(...)` member
-  throws `ArgumentException` about its receiver, still pass `nameof(receiver)` — the receiver *is* the offending argument.
+  throws `ArgumentException` about its receiver, still pass `nameof(receiver)` — the receiver _is_ the offending argument.
   `CA2208` does not yet treat an extension-block receiver as a parameter, so wrap only those throws in a tight
   `#pragma warning disable/restore CA2208` with a one-line reason; never drop the `paramName` to silence it.
 - 👁 **Choose the DI shape deliberately** per [ADR-0001](../../docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md):
@@ -225,7 +225,7 @@ Drawn from _Clean Code_ (R. C. Martin) and _Refactoring_ (Fowler / Beck). All �
 - **Few parameters** (0–2; avoid >3); a recurring parameter group (data clump) becomes a type. **I/O-channel
   parameters don't count toward the budget** — a trailing `CancellationToken` and a Try-pattern `out` result are
   plumbing, not data. A clump that mirrors a well-known BCL shape (e.g. `ClaimsIdentity(authenticationType,
-  nameType, roleType)`) is acceptable, and a private single-call-site helper isn't worth a parameter object.
+nameType, roleType)`) is acceptable, and a private single-call-site helper isn't worth a parameter object.
 - **Command–Query Separation** — a method acts _or_ answers, never both; a query does not mutate.
 - **Don't pass or return `null`** where an empty/absent form exists (empty collections; model absence).
 - **Intention-revealing, honest, searchable names** — no `Manager` / `Helper` catch-alls, no encodings.
@@ -344,23 +344,21 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   `*.Abstractions` packages are pure contracts (§2) with no behavior, so they never log and get no band. A **new**
   runtime package added to the family claims the next free band and **adds a row here**:
 
-  | Band | Package |
-  | --- | --- |
-  | `1000`–`1999` | `NCode.Identity.OpenId.Core` |
-  | `2000`–`2999` | `NCode.Identity.OpenId.Authentication` |
-  | `3000`–`3999` | `NCode.Identity.OpenId.Management` |
-  | `4000`–`4999` | `NCode.Identity.OpenId.Persistence` |
-  | `5000`–`5999` | `NCode.Identity.OpenId.Persistence.EntityFramework` |
-  | `6000`–`6999` | `NCode.Identity.Secrets` |
-  | `7000`–`7999` | `NCode.Identity.Secrets.Persistence` |
-  | `8000`–`8999` | `NCode.Identity.Jose` |
-  | `9000`–`9999` | `NCode.Identity.JsonWebTokens` |
-  | `10000`–`10999` | `NCode.Identity` |
-  | `11000`–`11999` | `NCode.Registration` |
-  | `12000`–`12999` | `NCode.Identity.Server` |
-  | `13000`–`13999` | `NCode.Identity.OpenId.Playground` |
-
-
+    | Band            | Package                                             |
+    | --------------- | --------------------------------------------------- |
+    | `1000`–`1999`   | `NCode.Identity.OpenId.Core`                        |
+    | `2000`–`2999`   | `NCode.Identity.OpenId.Authentication`              |
+    | `3000`–`3999`   | `NCode.Identity.OpenId.Management`                  |
+    | `4000`–`4999`   | `NCode.Identity.OpenId.Persistence`                 |
+    | `5000`–`5999`   | `NCode.Identity.OpenId.Persistence.EntityFramework` |
+    | `6000`–`6999`   | `NCode.Identity.Secrets`                            |
+    | `7000`–`7999`   | `NCode.Identity.Secrets.Persistence`                |
+    | `8000`–`8999`   | `NCode.Identity.Jose`                               |
+    | `9000`–`9999`   | `NCode.Identity.JsonWebTokens`                      |
+    | `10000`–`10999` | `NCode.Identity`                                    |
+    | `11000`–`11999` | `NCode.Registration`                                |
+    | `12000`–`12999` | `NCode.Identity.Server`                             |
+    | `13000`–`13999` | `NCode.Identity.OpenId.Playground`                  |
 
 ## 12. Configuration & options
 

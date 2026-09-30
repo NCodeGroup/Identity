@@ -30,6 +30,7 @@ using NCode.Identity.OpenId.Authentication.Servers;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence.Logic;

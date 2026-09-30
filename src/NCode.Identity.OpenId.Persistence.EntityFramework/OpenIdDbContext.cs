@@ -84,6 +84,14 @@ public class OpenIdDbContext(DbContextOptions<OpenIdDbContext> options) : DbCont
         {
             relationship.DeleteBehavior = DeleteBehavior.Restrict;
         }
+
+        // A tenant's domain name is optional; enforce uniqueness only over non-null values (a filtered index) so
+        // that multiple tenants may omit it. The in-memory provider ignores the filter and does not enforce indexes.
+        modelBuilder
+            .Entity<TenantEntity>()
+            .HasIndex(entity => entity.NormalizedDomainName)
+            .IsUnique()
+            .HasFilter("NormalizedDomainName IS NOT NULL");
     }
 
     /// <inheritdoc />

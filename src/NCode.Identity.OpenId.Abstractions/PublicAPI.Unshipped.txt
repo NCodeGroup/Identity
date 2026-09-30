@@ -185,6 +185,8 @@ const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.AccessToken = "access_tok
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.Bearer = "Bearer" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.IdToken = "id_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.RefreshToken = "refresh_token" -> string!
+const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultDisplayName = "Default Tenant" -> string!
+const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultTenantId = "default" -> string!
 NCode.Identity.OpenId.Environments.IOpenIdEnvironmentFactory
 NCode.Identity.OpenId.Environments.IOpenIdEnvironmentFactory.Create() -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
 NCode.Identity.OpenId.Environments.IOpenIdEnvironmentProvider
@@ -388,6 +390,33 @@ NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImpleme
 NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.set -> void
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider.GetJsonConverters(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.JsonConverter!>!
+NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions
+NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.DynamicByHostTenantOptions() -> void
+NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.RegexPattern.get -> string!
+NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.RegexPattern.set -> void
+NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.TenantPath.get -> Microsoft.AspNetCore.Http.PathString
+NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.TenantPath.set -> void
+NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions
+NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.DynamicByPathTenantOptions() -> void
+NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantIdRouteParameterName.get -> string!
+NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantIdRouteParameterName.set -> void
+NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.get -> Microsoft.AspNetCore.Http.PathString
+NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.set -> void
+NCode.Identity.OpenId.Tenants.ITenantResolver
+NCode.Identity.OpenId.Tenants.ITenantResolver.GetTenantRoute(NCode.PropertyBag.IPropertyBag! propertyBag) -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
+NCode.Identity.OpenId.Tenants.ITenantResolver.ResolveDescriptorAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Tenants.TenantDescriptor?>
+NCode.Identity.OpenId.Tenants.ITenantResolverStrategy
+NCode.Identity.OpenId.Tenants.ITenantResolverStrategy.GetTenantRoute(NCode.PropertyBag.IPropertyBag! propertyBag) -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
+NCode.Identity.OpenId.Tenants.ITenantResolverStrategy.ProviderCode.get -> string!
+NCode.Identity.OpenId.Tenants.ITenantResolverStrategy.ResolveDescriptorAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Tenants.TenantDescriptor>
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DisplayName.get -> string!
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DisplayName.set -> void
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.StaticSingleTenantOptions() -> void
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.TenantId.get -> string!
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.TenantId.set -> void
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.TenantPath.get -> Microsoft.AspNetCore.Http.PathString
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.TenantPath.set -> void
 NCode.Identity.OpenId.Tenants.TenantDescriptor
 NCode.Identity.OpenId.Tenants.TenantDescriptor.DisplayName.get -> string!
 NCode.Identity.OpenId.Tenants.TenantDescriptor.DisplayName.init -> void
@@ -396,6 +425,16 @@ NCode.Identity.OpenId.Tenants.TenantDescriptor.DomainName.init -> void
 NCode.Identity.OpenId.Tenants.TenantDescriptor.TenantDescriptor() -> void
 NCode.Identity.OpenId.Tenants.TenantDescriptor.TenantId.get -> string!
 NCode.Identity.OpenId.Tenants.TenantDescriptor.TenantId.init -> void
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DynamicByHost.get -> NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions?
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DynamicByHost.set -> void
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DynamicByPath.get -> NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions?
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DynamicByPath.set -> void
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions.ProviderCode.get -> string!
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions.ProviderCode.set -> void
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions.StaticSingle.get -> NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions?
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions.StaticSingle.set -> void
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions.TenantResolutionOptions() -> void
 override NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>.ValueType.get -> System.Type!
 override NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.Equals(object? obj) -> bool
 override NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.GetHashCode() -> int

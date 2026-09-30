@@ -30,7 +30,6 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedTenant"/>.
 /// </summary>
 [Index(nameof(NormalizedTenantId), IsUnique = true)]
-[Index(nameof(NormalizedDomainName), IsUnique = true)]
 public sealed class TenantEntity : ISupportConcurrencyToken
 {
     /// <summary>

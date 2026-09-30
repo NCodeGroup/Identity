@@ -25,6 +25,11 @@ change to the public API is a **major** version bump.
   types moved from `NCode.Identity.OpenId.Authentication` to `NCode.Identity.OpenId.Abstractions`
   (`NCode.Identity.OpenId.Tenants` namespace); `OpenIdTenantOptions` now carries only materialization settings.
 
+### Fixed
+
+- The unique index on a tenant's domain name is now a filtered index (`WHERE NormalizedDomainName IS NOT NULL`), so
+  multiple tenants may omit the optional domain name without colliding on relational providers.
+
 - Adopted repository-wide engineering conventions: Central Package Management, Nerdbank.GitVersioning lockstep
   versioning, SourceLink-to-GitHub provenance with portable symbols, a scripted Definition of Done, CSharpier
   formatting, and scoped coding-convention instruction files. See [`docs/adr/`](docs/adr/).

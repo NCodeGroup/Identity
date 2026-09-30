@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Tenants;
@@ -40,6 +41,11 @@ internal static class DefaultRegistration
         public IServiceBuilder<OpenIdCoreLibrary> AddTenantResolutionServices()
         {
             var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection.TryAddSingleton<
+                IAmbientTenantAccessor,
+                DefaultAmbientTenantAccessor
+            >();
 
             serviceCollection.TryAddSingleton<ITenantResolver, DefaultTenantResolver>();
 

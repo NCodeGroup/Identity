@@ -24,6 +24,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Converters;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
+using NCode.Identity.OpenId.Persistence.Tenants;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 
@@ -31,8 +32,19 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 /// Contains the entity framework <see cref="DbContext"/> for <c>OAuth</c> and <c>OpenID Connect</c> entities.
 /// </summary>
 [PublicAPI]
-public class OpenIdDbContext(DbContextOptions<OpenIdDbContext> options) : DbContext(options)
+public class OpenIdDbContext(
+    DbContextOptions<OpenIdDbContext> options,
+    IAmbientTenantAccessor? ambientTenantAccessor = null
+) : DbContext(options)
 {
+    private IAmbientTenantAccessor? AmbientTenantAccessor { get; } = ambientTenantAccessor;
+
+    /// <summary>
+    /// Gets the normalized identifier of the ambient tenant for the current request, or <c>null</c> when tenant-bound
+    /// data access is unscoped. Referenced by the tenant-scoping global query filters.
+    /// </summary>
+    public string? NormalizedAmbientTenantId => AmbientTenantAccessor?.TenantId?.ToLowerInvariant();
+
     /// <summary>
     /// Gets the <see cref="SecretEntity"/> entities.
     /// </summary>
@@ -92,6 +104,24 @@ public class OpenIdDbContext(DbContextOptions<OpenIdDbContext> options) : DbCont
             .HasIndex(entity => entity.NormalizedDomainName)
             .IsUnique()
             .HasFilter("NormalizedDomainName IS NOT NULL");
+
+        // Tenant-scoping global query filters: when an ambient tenant scope is active, tenant-child resources from
+        // other tenants are never materialized (a cross-tenant row cannot be fetched, let alone returned). When no
+        // scope is active (central-admin surfaces / runtime), NormalizedAmbientTenantId is null and the filter is a
+        // no-op. Tenant-owned families (the tenant itself and its secrets) are intentionally not scoped.
+        modelBuilder
+            .Entity<ClientEntity>()
+            .HasQueryFilter(entity =>
+                NormalizedAmbientTenantId == null
+                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+            );
+
+        modelBuilder
+            .Entity<ClientSecretEntity>()
+            .HasQueryFilter(entity =>
+                NormalizedAmbientTenantId == null
+                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+            );
     }
 
     /// <inheritdoc />

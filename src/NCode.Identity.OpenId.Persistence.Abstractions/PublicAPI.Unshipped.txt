@@ -159,6 +159,10 @@ NCode.Identity.OpenId.Persistence.Stores.ITenantStore.RemoveAsync(string! tenant
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.RemoveSecretAsync(string! tenantId, string! secretId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.UpdateSecretAsync(string! tenantId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.UpdateSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSettings! persistedTenantSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor
+NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor.BeginScope(string! tenantId) -> System.IDisposable!
+NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor.IsScoped.get -> bool
+NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor.TenantId.get -> string?
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.ResourceType.get -> string!
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecret.ResourceType.get -> string!
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecrets.ResourceType.get -> string!

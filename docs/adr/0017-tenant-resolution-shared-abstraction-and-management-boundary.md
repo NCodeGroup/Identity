@@ -1,6 +1,6 @@
 # 17. Tenant resolution is a shared abstraction; the management API has an optional tenant boundary
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md)
 - **Date:** 2026-09-29
 - **Deciders:** NCode Group
 

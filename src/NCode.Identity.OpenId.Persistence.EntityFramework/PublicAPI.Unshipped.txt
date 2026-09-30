@@ -176,7 +176,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Clients.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity!>!
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ClientSecrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity!>!
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Grants.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity!>!
-NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.OpenIdDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext!>! options) -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.NormalizedAmbientTenantId.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.OpenIdDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext!>! options, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor? ambientTenantAccessor = null) -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Secrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity!>!
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Servers.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity!>!
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ServerSecrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity!>!

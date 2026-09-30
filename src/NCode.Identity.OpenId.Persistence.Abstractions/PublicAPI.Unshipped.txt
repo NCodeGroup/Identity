@@ -11,6 +11,10 @@ const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.SubjectId = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.TenantDomainName = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.UrlType = 100 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.UrlValue = 1000 -> int
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.Description = 1000 -> int
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.DisplayName = 300 -> int
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.ResourceServerIdentifier = 1000 -> int
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.ScopeValue = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.Client = "client" -> string!
 const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.Server = "server" -> string!
 const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.Settings = "settings" -> string!
@@ -46,6 +50,18 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.Secrets.get -> N
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.Secrets.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.Settings.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSettings!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.Settings.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant.ClientId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant.ClientId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant.PersistedClientGrant() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant.ResourceServerId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant.ResourceServerId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant.Scopes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant.Scopes.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant.TenantId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientResource<TValue>
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientResource<TValue>.PersistedClientResource() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientResource<TValue>.Value.get -> TValue
@@ -82,6 +98,34 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.SubjectId.get -> 
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.SubjectId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.TenantId.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.Identifier.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.Identifier.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.IsDisabled.get -> bool
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.IsDisabled.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.IsSystem.get -> bool
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.IsSystem.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.Name.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.Name.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.PersistedResourceServer() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.ResourceServerId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.ResourceServerId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.Scopes.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope!>!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.Scopes.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.Settings.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.Description.get -> string?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.Description.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.IsSystem.get -> bool
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.IsSystem.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.PersistedScope() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.Value.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.Value.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.PersistedServer() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.Secrets.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedServerSecrets!
@@ -124,6 +168,10 @@ NCode.Identity.OpenId.Persistence.ISupportTenantId
 NCode.Identity.OpenId.Persistence.ISupportTenantId.TenantId.get -> string!
 NCode.Identity.OpenId.Persistence.OpenIdMaxLengths
 NCode.Identity.OpenId.Persistence.OpenIdResourceTypes
+NCode.Identity.OpenId.Persistence.Stores.IClientGrantStore
+NCode.Identity.OpenId.Persistence.Stores.IClientGrantStore.GetOrDefaultAsync(string! clientId, string! resourceServerId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant?>
+NCode.Identity.OpenId.Persistence.Stores.IClientGrantStore.GetPageAsync(string! clientId, string? cursor, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant!>!>
+NCode.Identity.OpenId.Persistence.Stores.IClientGrantStore.RemoveAsync(string! clientId, string! resourceServerId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Persistence.Stores.IClientStore
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.AddSecretAsync(string! clientId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.GetOrDefaultAsync(string! clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient?>
@@ -140,6 +188,14 @@ NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! g
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! grantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant?>
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetPageAsync(string? subjectId, string? clientId, string? cursor, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant!>!>
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.RevokeWhereAsync(string? subjectId, string? clientId, System.DateTimeOffset revokedWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.AddScopeAsync(string! resourceServerId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope! persistedScope, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.GetByIdentifierOrDefaultAsync(string! identifier, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer?>
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.GetOrDefaultAsync(string! resourceServerId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer?>
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.GetPageAsync(string? cursor, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer!>!>
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.RemoveAsync(string! resourceServerId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.RemoveScopeAsync(string! resourceServerId, string! scopeValue, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.UpdateScopeAsync(string! resourceServerId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope! persistedScope, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IServerStore
 NCode.Identity.OpenId.Persistence.Stores.IServerStore.AddSecretAsync(string! serverId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IServerStore.GetOrDefaultAsync(string! serverId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer?>

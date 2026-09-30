@@ -39,9 +39,10 @@ using NCode.Identity.Server;
 
 namespace NCode.Identity.OpenId.Playground;
 
-internal class Startup(IConfiguration configuration)
+internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnvironment)
 {
     private IConfiguration Configuration { get; } = configuration;
+    private IWebHostEnvironment HostEnvironment { get; } = hostEnvironment;
 
     public void ConfigureServices(IServiceCollection services)
     {
@@ -83,27 +84,54 @@ internal class Startup(IConfiguration configuration)
         services.AddIdentityServer();
         services.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
 
-        // DEVELOPMENT ONLY: generate an ephemeral in-memory RSA signing key so the server is fully
-        // runnable (token signing + JWKS) without any configured/persisted secrets. Production must
-        // supply a stable, securely-managed signing key instead. See docs/adr/0002.
-        services.AddEphemeralDeveloperKeys();
+        // DEVELOPMENT ONLY: choose how signing keys are provided (see ADR-0002). The default is ephemeral,
+        // in-memory keys (hermetic, ideal for tests). Local running can opt into persistent developer keys —
+        // seeded through the store and surviving restarts — via 'DeveloperKeys:Mode=PersistentSigningKey' (set
+        // in launchSettings.json, so test hosts keep the ephemeral default). Production must supply a stable,
+        // securely-managed signing key instead.
+        var usePersistentDeveloperKeys = string.Equals(
+            Configuration["DeveloperKeys:Mode"],
+            "PersistentSigningKey",
+            StringComparison.OrdinalIgnoreCase
+        );
+
+        if (usePersistentDeveloperKeys)
+        {
+            var keyRingDirectory = new DirectoryInfo(
+                Path.Combine(HostEnvironment.ContentRootPath, "App_Data", "dp-keys")
+            );
+            services.AddDeveloperSigningKey(keyRingDirectory);
+        }
+        else
+        {
+            services.AddEphemeralDeveloperKeys();
+        }
 
         services.AddDatabaseDeveloperPageExceptionFilter();
 
-        // Select the database provider based on configuration. When a connection string named 'OpenId'
-        // is provided (e.g. via appsettings.json, environment variables, or user secrets) SQL Server is
-        // used; otherwise the Playground falls back to a zero-setup in-memory database so it can run
-        // without any external dependencies.
+        // Select the database provider. A configured 'OpenId' connection string uses SQL Server; otherwise the
+        // Playground uses a local SQLite file when persistent developer keys are enabled (so state survives
+        // restarts and can be reset by deleting the file), or a zero-setup in-memory database.
         var connectionString = Configuration.GetConnectionString("OpenId");
         services.AddDbContextFactory<OpenIdDbContext>(builder =>
         {
-            if (string.IsNullOrEmpty(connectionString))
+            if (!string.IsNullOrEmpty(connectionString))
             {
-                builder.UseInMemoryDatabase("OpenId");
+                builder.UseSqlServer(connectionString);
+            }
+            else if (usePersistentDeveloperKeys)
+            {
+                var databasePath = Path.Combine(
+                    HostEnvironment.ContentRootPath,
+                    "App_Data",
+                    "openid-dev.db"
+                );
+                Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
+                builder.UseSqlite($"Data Source={databasePath}");
             }
             else
             {
-                builder.UseSqlServer(connectionString);
+                builder.UseInMemoryDatabase("OpenId");
             }
         });
 

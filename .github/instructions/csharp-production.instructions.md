@@ -145,6 +145,10 @@ rationale.
 - ⏳ The public surface is deliberate and tracked by `PublicApiAnalyzers` (`RS0016` / `RS0017` / `RS0024`): a public
   change not recorded in the sibling `PublicAPI.{Shipped,Unshipped}.txt` fails the build. A breaking change is a
   **major** version bump. See [ADR-0005](../../docs/adr/0005-public-api-surface-is-tracked-and-evolves-compatibly.md).
+  After a large refactor (types moved/renamed, members added/removed), regenerate the entries with
+  `dotnet format analyzers <project> --diagnostics RS0016 RS0017` — it applies the analyzer's add/remove code fixes to
+  `PublicAPI.Unshipped.txt` in bulk; rebuild to confirm and hand-fix any leftovers rather than editing dozens of lines
+  by hand. Entries are a **set**, so exact sort order is not required for the build, though the file is kept sorted.
 - 👁 **Required inputs are constructor parameters; optional inputs are `init` properties.** Never add an optional value
   as a new constructor parameter — once shipped that is a binary-breaking signature change. Add it as an `init`
   property, model "unspecified" as nullable, and resolve the default **inside the library**.
@@ -216,6 +220,10 @@ rationale.
   sync-over-async. Add house rules to that file as they emerge.
 - ⏳ **Warnings-as-errors**, and **NuGet vulnerability advisories (`NU190x`) as errors in CI**.
 - ✅ The whole gate is [`build/dod.ps1`](../../build/dod.ps1) — the single Definition of Done that CI runs.
+- 👁 **Run the full `dod.ps1` (a clean Release build over the whole solution) before calling a structural change done —
+  an incremental Debug build of a single project can mask errors a clean build catches.** Notably, a `git mv` of a file
+  that is open in the editor can be silently undone by the editor re-saving its stale buffer to the old path, leaving a
+  duplicate type definition that only a clean/Release build (i.e. the DoD) surfaces.
 
 ## 6. Clean Code / Refactoring (review-only)
 

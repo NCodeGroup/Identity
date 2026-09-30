@@ -118,6 +118,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   the token in the `UPDATE … WHERE` clause, so it cannot detect a concurrent-write conflict. A true
   optimistic-concurrency test uses a **relational** provider — SQLite in-memory (a shared, open `SqliteConnection` +
   `EnsureCreated`) with two `DbContext`s to stand in for the racing writers.
+- 👁 **EF InMemory does not enforce unique indexes** either — including a **filtered** unique index
+  (`.HasIndex(…).IsUnique().HasFilter("… IS NOT NULL")`). A test that must observe the constraint (a duplicate
+  rejected, or multiple rows allowed past a filtered `NULL`) runs against **SQLite in-memory** (`EnsureCreated` builds
+  and enforces the index); the collision surfaces as a `DbUpdateException` on the offending `SaveChanges`.
 - 👁 **Data-protection integration tests are not hermetic under a shared host.** A `WebApplicationFactory`
   `IClassFixture` that protects/unprotects secrets (confidential clients, encrypted key material) leaks
   keyring/serializer state between tests, and the second run fails (`invalid_client`). Give each such test its own

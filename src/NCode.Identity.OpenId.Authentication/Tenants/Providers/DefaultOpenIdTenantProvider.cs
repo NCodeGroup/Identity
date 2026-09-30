@@ -22,6 +22,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.AspNetCore.Routing.Template;
+using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Collections.Providers.PeriodicPolling;
 using NCode.Disposables;
@@ -46,73 +47,82 @@ using NCode.PropertyBag;
 namespace NCode.Identity.OpenId.Authentication.Tenants.Providers;
 
 /// <summary>
-/// Provides a common base implementation of the <see cref="IOpenIdTenantProvider"/> abstraction.
+/// Provides the default implementation of the <see cref="IOpenIdTenantProvider"/> abstraction. Tenant selection is
+/// delegated to the shared <see cref="ITenantResolver"/>; this type is responsible only for materializing the
+/// <see cref="OpenIdTenant"/> (settings, secrets, issuer, base address) and caching it.
 /// </summary>
 [PublicAPI]
-public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
+public class DefaultOpenIdTenantProvider(
+    ITenantResolver tenantResolver,
+    TemplateBinderFactory templateBinderFactory,
+    IOptions<OpenIdOptions> optionsAccessor,
+    IOpenIdServerProvider openIdServerProvider,
+    IStoreManagerFactory storeManagerFactory,
+    IOpenIdTenantCache tenantCache,
+    IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
+    ISettingSerializer settingSerializer,
+    ISecretSerializer secretSerializer,
+    ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
+    ICollectionDataSourceFactory collectionDataSourceFactory
+) : IOpenIdTenantProvider
 {
-    [MemberNotNullWhen(true, nameof(TenantRouteOrNull))]
-    private bool TenantRouteHasValue { get; set; }
-
-    private RoutePattern? TenantRouteOrNull { get; set; }
-
-    /// <inheritdoc />
-    public abstract string ProviderCode { get; }
-
     /// <summary>
-    /// Gets the relative base path for the tenant.
+    /// Gets the <see cref="ITenantResolver"/> used to resolve the ambient tenant for the current request.
     /// </summary>
-    protected abstract PathString TenantPath { get; }
+    protected ITenantResolver TenantResolver { get; } = tenantResolver;
 
     /// <summary>
     /// Gets the <see cref="TemplateBinderFactory"/> used to bind route templates.
     /// </summary>
-    protected abstract TemplateBinderFactory TemplateBinderFactory { get; }
+    protected TemplateBinderFactory TemplateBinderFactory { get; } = templateBinderFactory;
 
     /// <summary>
     /// Gets the <see cref="OpenIdOptions"/> used to configure OpenID.
     /// </summary>
-    protected abstract OpenIdOptions OpenIdOptions { get; }
+    protected OpenIdOptions OpenIdOptions { get; } = optionsAccessor.Value;
 
     /// <summary>
     /// Gets the <see cref="OpenIdServerProvider"/> used to get the current <see cref="OpenIdServer"/> instance.
     /// </summary>
-    protected abstract IOpenIdServerProvider OpenIdServerProvider { get; }
+    protected IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
 
     /// <summary>
     /// Gets the <see cref="IStoreManagerFactory"/> used to create <see cref="IStoreManager"/> instances.
     /// </summary>
-    protected abstract IStoreManagerFactory StoreManagerFactory { get; }
+    protected IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
     /// <summary>
     /// Gets the <see cref="IOpenIdTenantCache"/> used to cache tenant instances.
     /// </summary>
-    protected abstract IOpenIdTenantCache TenantCache { get; }
+    protected IOpenIdTenantCache TenantCache { get; } = tenantCache;
 
     /// <summary>
     /// Gets the <see cref="IReadOnlySettingCollectionProviderFactory"/> used to create <see cref="IReadOnlySettingCollectionProvider"/> instances.
     /// </summary>
-    protected abstract IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; }
+    protected IReadOnlySettingCollectionProviderFactory SettingCollectionProviderFactory { get; } =
+        settingCollectionProviderFactory;
 
     /// <summary>
     /// Gets the <see cref="ISettingSerializer"/> used to serialize/deserialize settings.
     /// </summary>
-    protected abstract ISettingSerializer SettingSerializer { get; }
+    protected ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
     /// <summary>
     /// Gets the <see cref="ISecretSerializer"/> used to serialize/deserialize secrets.
     /// </summary>
-    protected abstract ISecretSerializer SecretSerializer { get; }
+    protected ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     /// <summary>
     /// Gets the <see cref="ISecretKeyCollectionProviderFactory"/> used to create <see cref="ISecretKeyCollectionProvider"/> instances.
     /// </summary>
-    protected abstract ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; }
+    protected ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } =
+        secretKeyCollectionProviderFactory;
 
     /// <summary>
     /// Gets the <see cref="ICollectionDataSourceFactory"/> used to create <see cref="ICollectionDataSource{T}"/> instances.
     /// </summary>
-    protected abstract ICollectionDataSourceFactory CollectionDataSourceFactory { get; }
+    protected ICollectionDataSourceFactory CollectionDataSourceFactory { get; } =
+        collectionDataSourceFactory;
 
     /// <summary>
     /// Attempts to load a <see cref="PersistedTenant"/> using the specified <paramref name="tenantId"/> from the <see cref="ITenantStore"/>.
@@ -181,19 +191,8 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
     }
 
     /// <inheritdoc />
-    public virtual RoutePattern GetTenantRoute(IPropertyBag propertyBag)
-    {
-        if (TenantRouteHasValue)
-            return TenantRouteOrNull;
-
-        var tenantPath = TenantPath;
-        var tenantRoute = RoutePatternFactory.Parse(tenantPath.Value ?? string.Empty);
-
-        TenantRouteOrNull = tenantRoute;
-        TenantRouteHasValue = true;
-
-        return tenantRoute;
-    }
+    public virtual RoutePattern GetTenantRoute(IPropertyBag propertyBag) =>
+        TenantResolver.GetTenantRoute(propertyBag);
 
     /// <inheritdoc />
     public virtual async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> GetTenantAsync(
@@ -204,13 +203,11 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
         CancellationToken cancellationToken
     )
     {
-        var tenantDescriptor = await GetTenantDescriptorAsync(
-            httpContext,
-            openIdEnvironment,
-            openIdServer,
-            propertyBag,
-            cancellationToken
-        );
+        var tenantDescriptor =
+            await TenantResolver.ResolveDescriptorAsync(httpContext, propertyBag, cancellationToken)
+            ?? throw new InvalidOperationException(
+                "The tenant could not be resolved for the current request."
+            );
 
         await using var cachedTenantReference = await TenantCache.TryGetAsync(
             tenantDescriptor,
@@ -283,31 +280,6 @@ public abstract class OpenIdTenantProvider : IOpenIdTenantProvider
 
         return newTenantReference.AddReference();
     }
-
-    /// <summary>
-    /// Creates and returns an <see cref="InvalidOperationException"/> instance for when the tenant options are missing.
-    /// </summary>
-    protected InvalidOperationException MissingTenantOptionsException() =>
-        new(
-            $"The OpenIdTenant ProviderCode is '{ProviderCode}' but the corresponding options are missing."
-        );
-
-    /// <summary>
-    /// Used to get the tenant's <see cref="TenantDescriptor"/> instance from the current HTTP request.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> instance associated with current request.</param>
-    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> instance associated with the current request.</param>
-    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="TenantDescriptor"/> instance.</returns>
-    protected abstract ValueTask<TenantDescriptor> GetTenantDescriptorAsync(
-        HttpContext httpContext,
-        OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
-        IPropertyBag propertyBag,
-        CancellationToken cancellationToken
-    );
 
     /// <summary>
     /// Used to get the tenant's <see cref="IReadOnlySettingCollectionProvider"/> instance from the current HTTP request.

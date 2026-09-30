@@ -29,10 +29,10 @@ namespace NCode.Identity.OpenId.Authentication.Tenants;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdTenantFactory"/> abstraction.
 /// </summary>
-internal class DefaultOpenIdTenantFactory(IOpenIdTenantProviderSelector tenantProviderSelector)
+internal class DefaultOpenIdTenantFactory(IOpenIdTenantProvider tenantProvider)
     : IOpenIdTenantFactory
 {
-    private IOpenIdTenantProviderSelector TenantProviderSelector { get; } = tenantProviderSelector;
+    private IOpenIdTenantProvider TenantProvider { get; } = tenantProvider;
 
     /// <inheritdoc />
     public async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateTenantAsync(
@@ -43,10 +43,8 @@ internal class DefaultOpenIdTenantFactory(IOpenIdTenantProviderSelector tenantPr
         CancellationToken cancellationToken
     )
     {
-        var tenantProvider = TenantProviderSelector.SelectProvider(propertyBag);
-
         // no need to add ref since we return immediately
-        var tenantReference = await tenantProvider.GetTenantAsync(
+        var tenantReference = await TenantProvider.GetTenantAsync(
             httpContext,
             openIdEnvironment,
             openIdServer,

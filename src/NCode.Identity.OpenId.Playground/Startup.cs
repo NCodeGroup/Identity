@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Authentication.Options;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server;
 
 /*
@@ -68,6 +69,12 @@ internal class Startup(IConfiguration configuration)
         services.Configure<OpenIdOptions>(Configuration.GetSection(openIdOptionsSectionName));
         services.Configure<OpenIdOptions>(options =>
             options.SectionName = openIdOptionsSectionName
+        );
+
+        // Tenant selection is configured separately from tenant materialization; defaults resolve the
+        // single "default" tenant when this section is absent.
+        services.Configure<TenantResolutionOptions>(
+            Configuration.GetSection($"{openIdOptionsSectionName}:TenantResolution")
         );
 
         services.AddEndpointsApiExplorer();

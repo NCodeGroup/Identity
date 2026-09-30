@@ -41,7 +41,7 @@ using NCode.PropertyBag;
 namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 
 /// <summary>
-/// A <strong>development-only</strong> <see cref="DefaultStaticSingleOpenIdTenantProvider"/> that provides
+/// A <strong>development-only</strong> <see cref="DefaultOpenIdTenantProvider"/> that provides
 /// the tenant with an ephemeral, in-memory <c>RSA</c> signing key instead of loading persisted secrets.
 /// This makes the server fully runnable (token signing and the JWKS endpoint) without any configured or
 /// persisted secret keys.
@@ -52,31 +52,31 @@ namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 /// production, where a stable, securely-managed signing key is required.
 /// </remarks>
 public sealed class EphemeralStaticSingleOpenIdTenantProvider(
+    ITenantResolver tenantResolver,
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
     IOpenIdServerProvider openIdServerProvider,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
+    IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
-    IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
-    IIdGenerator<long> idGenerator,
     ISecretKeyFactory secretKeyFactory
 )
-    : DefaultStaticSingleOpenIdTenantProvider(
+    : DefaultOpenIdTenantProvider(
+        tenantResolver,
         templateBinderFactory,
         optionsAccessor,
         openIdServerProvider,
         storeManagerFactory,
         tenantCache,
+        settingCollectionProviderFactory,
         settingSerializer,
         secretSerializer,
         secretKeyCollectionProviderFactory,
-        collectionDataSourceFactory,
-        settingCollectionProviderFactory,
-        idGenerator
+        collectionDataSourceFactory
     )
 {
     private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;

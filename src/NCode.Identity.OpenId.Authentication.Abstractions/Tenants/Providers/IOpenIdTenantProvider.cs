@@ -34,11 +34,6 @@ namespace NCode.Identity.OpenId.Authentication.Tenants.Providers;
 public interface IOpenIdTenantProvider
 {
     /// <summary>
-    /// Gets the <see cref="string"/> <c>Code</c> for the current provider.
-    /// </summary>
-    string ProviderCode { get; }
-
-    /// <summary>
     /// Gets the <c>RoutePattern</c> for the tenant's relative base path.
     /// </summary>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>

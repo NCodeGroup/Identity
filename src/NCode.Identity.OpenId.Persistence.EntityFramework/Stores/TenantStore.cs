@@ -134,6 +134,29 @@ internal class TenantStore(
     }
 
     /// <inheritdoc />
+    protected override async ValueTask<IReadOnlyList<TenantEntity>> GetEntityPageAsync(
+        long? afterId,
+        int take,
+        CancellationToken cancellationToken
+    )
+    {
+        var query = DbContext
+            .Tenants.Include(tenant => tenant.Secrets)
+                .ThenInclude(tenantSecret => tenantSecret.Secret)
+            .AsQueryable();
+
+        if (afterId is { } id)
+        {
+            query = query.Where(tenant => tenant.Id > id);
+        }
+
+        return await query.OrderBy(tenant => tenant.Id).Take(take).ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    protected override long GetSortKey(TenantEntity entity) => entity.Id;
+
+    /// <inheritdoc />
     public async ValueTask<PersistedTenant?> GetOrDefaultByDomainNameAsync(
         string domainName,
         CancellationToken cancellationToken

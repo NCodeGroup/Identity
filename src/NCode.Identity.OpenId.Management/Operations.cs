@@ -42,6 +42,11 @@ public static class Operations
     public static OperationAuthorizationRequirement Read { get; } = new() { Name = nameof(Read) };
 
     /// <summary>
+    /// Gets the authorization requirement for the <c>List</c> operation (enumerating a resource family).
+    /// </summary>
+    public static OperationAuthorizationRequirement List { get; } = new() { Name = nameof(List) };
+
+    /// <summary>
     /// Gets the authorization requirement for the <c>Update</c> operation.
     /// </summary>
     public static OperationAuthorizationRequirement Update { get; } =

@@ -86,6 +86,7 @@ internal class ServerApiEndpointHandler(
         var servers = endpoints.MapGroup("/servers");
 
         servers.MapPost("", CreateServerAsync);
+        servers.MapGet("", ListServersAsync);
         servers.MapGet("/{serverId}", GetServerAsync);
         servers.MapDelete("/{serverId}", DeleteServerAsync);
 
@@ -143,6 +144,40 @@ internal class ServerApiEndpointHandler(
             ConcurrencyToken = secrets.ConcurrencyToken,
             Secrets = ToSecretsResource(secrets.Value),
         };
+    }
+
+    /// <summary>
+    /// Handles <c>GET api/servers</c>, returning a page of OpenID Servers.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of servers to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/list")]
+    internal virtual async ValueTask<IResult> ListServersAsync(
+        HttpContext httpContext,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        var effectiveLimit = NormalizeLimit(limit);
+
+        // Server administration is central-admin; a null authorization resource restricts this to global admins.
+        return await ProcessListAsync(
+            httpContext,
+            authorizationResource: null,
+            async () =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var store = storeManager.GetStore<IServerStore>();
+                return await store.GetPageAsync(cursor, effectiveLimit, cancellationToken);
+            },
+            ToServerResource
+        );
     }
 
     /// <summary>

@@ -90,6 +90,7 @@ internal class ClientApiEndpointHandler(
         var clients = endpoints.MapGroup("/clients").AddEndpointFilter<TenantScopeEndpointFilter>();
 
         clients.MapPost("", CreateClientAsync);
+        clients.MapGet("", ListClientsAsync);
         clients.MapGet("/{clientId}", GetClientAsync);
         clients.MapPatch("/{clientId}", UpdateClientAsync);
         clients.MapDelete("/{clientId}", DeleteClientAsync);
@@ -152,6 +153,41 @@ internal class ClientApiEndpointHandler(
             ConcurrencyToken = secrets.ConcurrencyToken,
             Secrets = ToSecretsResource(secrets.Value),
         };
+    }
+
+    /// <summary>
+    /// Handles <c>GET api/clients</c>, returning a page of OpenID Clients in the request's tenant.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of clients to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/clients/list")]
+    internal virtual async ValueTask<IResult> ListClientsAsync(
+        HttpContext httpContext,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        // A client list is scoped to the request's tenant (the query filter enforces it); authorize for that tenant.
+        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var effectiveLimit = NormalizeLimit(limit);
+
+        return await ProcessListAsync(
+            httpContext,
+            new TenantScopeResource(tenantId),
+            async () =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var store = storeManager.GetStore<IClientStore>();
+                return await store.GetPageAsync(cursor, effectiveLimit, cancellationToken);
+            },
+            ToClientResource
+        );
     }
 
     /// <summary>

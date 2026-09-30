@@ -85,6 +85,7 @@ internal class TenantApiEndpointHandler(
         var tenants = endpoints.MapGroup("/tenants");
 
         tenants.MapPost("", CreateTenantAsync);
+        tenants.MapGet("", ListTenantsAsync);
         tenants.MapGet("/{tenantId}", GetTenantAsync);
         tenants.MapPatch("/{tenantId}", UpdateTenantAsync);
         tenants.MapDelete("/{tenantId}", DeleteTenantAsync);
@@ -146,6 +147,40 @@ internal class TenantApiEndpointHandler(
             ConcurrencyToken = secrets.ConcurrencyToken,
             Secrets = ToSecretsResource(secrets.Value),
         };
+    }
+
+    /// <summary>
+    /// Handles <c>GET api/tenants</c>, returning a page of OpenID Tenants.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of tenants to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/tenants/list")]
+    internal virtual async ValueTask<IResult> ListTenantsAsync(
+        HttpContext httpContext,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        var effectiveLimit = NormalizeLimit(limit);
+
+        // Tenant administration is central-admin; a null authorization resource restricts this to global admins.
+        return await ProcessListAsync(
+            httpContext,
+            authorizationResource: null,
+            async () =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var store = storeManager.GetStore<ITenantStore>();
+                return await store.GetPageAsync(cursor, effectiveLimit, cancellationToken);
+            },
+            ToTenantResource
+        );
     }
 
     /// <summary>

@@ -9,3 +9,9 @@ NCode.Persistence.Stores.IStoreManagerFactory
 NCode.Persistence.Stores.IStoreManagerFactory.CreateAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.IStoreManager!>
 NCode.Persistence.Stores.IStoreProvider
 NCode.Persistence.Stores.IStoreProvider.GetStore<TStore>() -> TStore
+NCode.Persistence.Stores.PagedResult<T>
+NCode.Persistence.Stores.PagedResult<T>.Items.get -> System.Collections.Generic.IReadOnlyList<T>!
+NCode.Persistence.Stores.PagedResult<T>.Items.init -> void
+NCode.Persistence.Stores.PagedResult<T>.NextCursor.get -> string?
+NCode.Persistence.Stores.PagedResult<T>.NextCursor.init -> void
+NCode.Persistence.Stores.PagedResult<T>.PagedResult() -> void

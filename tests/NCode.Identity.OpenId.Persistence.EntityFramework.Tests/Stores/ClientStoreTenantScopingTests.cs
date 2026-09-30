@@ -200,6 +200,20 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
         Assert.NotNull(tenantB);
     }
 
+    [Fact]
+    public async Task GetPageAsync_WhenScopedToTenant_ReturnsOnlyThatTenant()
+    {
+        await SeedAsync();
+
+        _ambientTenantAccessor.TenantId = TenantA;
+
+        var page = await _store.GetPageAsync(cursor: null, limit: 10, CancellationToken.None);
+
+        Assert.All(page.Items, client => Assert.Equal(TenantA, client.TenantId));
+        Assert.Contains(page.Items, client => client.ClientId == ClientA);
+        Assert.DoesNotContain(page.Items, client => client.ClientId == ClientB);
+    }
+
     private sealed class TestAmbientTenantAccessor : IAmbientTenantAccessor
     {
         public string? TenantId { get; set; }

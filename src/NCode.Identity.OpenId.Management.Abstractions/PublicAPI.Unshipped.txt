@@ -39,6 +39,12 @@ NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest.IsDisabled.set -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest.UpdateClientRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>
+NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>.CollectionResource() -> void
+NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>.ContinuationToken.get -> string?
+NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>.ContinuationToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>.Items.get -> System.Collections.Generic.IReadOnlyList<T>!
+NCode.Identity.OpenId.Management.Contracts.CollectionResource<T>.Items.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Algorithm.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Algorithm.init -> void

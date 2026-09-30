@@ -30,11 +30,6 @@ namespace NCode.Identity.OpenId.Management.Contracts.Servers;
 public sealed class CreateServerRequest
 {
     /// <summary>
-    /// Gets the natural identifier to assign to the server.
-    /// </summary>
-    public required string ServerId { get; init; }
-
-    /// <summary>
     /// Gets the initial JSON settings for the server.
     /// </summary>
     public required JsonElement Settings { get; init; }

@@ -24,7 +24,6 @@ using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
-using NCode.Mediator;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Management;
@@ -50,109 +49,9 @@ public static class DefaultRegistration
             serviceCollection.AddAuthorizationHandler<GlobalAdminHandler>();
             serviceCollection.AddAuthorizationHandler<TenantAdminHandler>();
 
-            serviceCollection.AddMediator();
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateDeleteTenantCommand>,
-                    DefaultAuthorizeDeleteTenantHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateDeleteTenantCommand>,
-                    DefaultTenantHasNoDependentsHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateCreateTenantCommand>,
-                    DefaultAuthorizeCreateTenantHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateCreateTenantCommand>,
-                    DefaultTenantIsUniqueHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateUpdateTenantCommand>,
-                    DefaultAuthorizeUpdateTenantHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateUpdateTenantCommand>,
-                    DefaultTenantIfMatchHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateCreateClientCommand>,
-                    DefaultAuthorizeCreateClientHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateCreateClientCommand>,
-                    DefaultClientIsUniqueHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateCreateClientCommand>,
-                    DefaultClientTenantExistsHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateUpdateClientCommand>,
-                    DefaultAuthorizeUpdateClientHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateUpdateClientCommand>,
-                    DefaultClientIfMatchHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateCreateServerCommand>,
-                    DefaultAuthorizeCreateServerHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateCreateServerCommand>,
-                    DefaultServerIsUniqueHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateDeleteClientCommand>,
-                    DefaultAuthorizeDeleteClientHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateDeleteClientCommand>,
-                    DefaultClientHasNoDependentsHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateDeleteServerCommand>,
-                    DefaultAuthorizeDeleteServerHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<ValidateDeleteServerCommand>,
-                    DefaultServerHasNoDependentsHandler
-                >()
-            );
+            serviceCollection.TryAddSingleton<ITenantValidator, DefaultTenantValidator>();
+            serviceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
+            serviceCollection.TryAddSingleton<IServerValidator, DefaultServerValidator>();
 
             builder.AddEndpointProvider<ServerApiEndpointHandler>();
             builder.AddEndpointProvider<TenantApiEndpointHandler>();

@@ -20,6 +20,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -36,6 +37,11 @@ internal abstract class BaseApiEndpointHandler
     /// Gets the <see cref="IAuthorizationService"/> used to perform resource-based authorization.
     /// </summary>
     protected abstract IAuthorizationService AuthorizationService { get; }
+
+    /// <summary>
+    /// Gets the <see cref="ICryptoService"/> used to generate opaque resource identifiers.
+    /// </summary>
+    protected abstract ICryptoService CryptoService { get; }
 
     /// <summary>
     /// Serializes the specified <see cref="JsonObject"/> into a detached <see cref="JsonElement"/>.
@@ -79,8 +85,8 @@ internal abstract class BaseApiEndpointHandler
     }
 
     /// <summary>
-    /// Maps a precondition <see cref="ManagementError"/> produced by a validation pipeline to its
-    /// <see cref="IResult"/> response, using the error's fixed status and safe detail message.
+    /// Maps a core-validation <see cref="ManagementError"/> to its <see cref="IResult"/> response, using the
+    /// error's fixed status and safe detail message.
     /// </summary>
     /// <param name="error">The <see cref="ManagementError"/> to map.</param>
     /// <returns>The <see cref="IResult"/> representing the failure.</returns>

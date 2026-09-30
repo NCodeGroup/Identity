@@ -110,12 +110,12 @@ carries a `// Future:` note rather than an implementation.
 Managing an owner's secrets presumes the owner exists, so the same management layer also exposes CRUD over
 the **owner entities themselves** — the server, tenant, and client rows that own the secret collections.
 These endpoints share the secret endpoints' authorization, concurrency, and (from
-[ADR-0013](0013-management-precondition-mediator-pipeline.md)) precondition model:
+[ADR-0015](0015-management-core-validation-via-validators.md)) core-validation model:
 
 - **Create** (`POST api/servers`, `POST api/tenants`, `POST api/clients`) persists the owner row plus an
   **empty** settings and secrets collection. It never accepts key material — a freshly created owner starts
   with zero secrets and is populated through the secret endpoints above. Uniqueness (and, for a client, the
-  existence of its parent tenant) is asserted **before** the write by the precondition pipeline rather than
+  existence of its parent tenant) is asserted **before** the write by the entity validator rather than
   inferred from a caught store exception, so a duplicate is a `409 Conflict` and a missing parent tenant is a
   `400 Bad Request` with a deterministic body. The store eager-assigns the row `ConcurrencyToken` on insert
   (ADR-0012), so the `201 Created` carries a correct `ETag` with no re-read.
@@ -124,7 +124,7 @@ These endpoints share the secret endpoints' authorization, concurrency, and (fro
   `If-Match`. There is **no server update endpoint**: `PersistedServer` has no mutable top-level fields — its
   mutable state lives entirely in its settings and secrets sub-resources, which have their own endpoints.
 - **Delete** (`DELETE api/servers/{serverId}`, `DELETE api/tenants/{tenantId}`, `DELETE api/clients/{clientId}`)
-  is **dependency-guarded**. The precondition pipeline rejects the delete with `409 Conflict` while the owner
+  is **dependency-guarded**. The entity validator rejects the delete with `409 Conflict` while the owner
   still has dependents (a tenant with clients or tenant-secrets, a client with client-secrets, a server with
   server-secrets), so removal is only ever a leaf operation. The store's `RemoveAsync` re-checks the same
   invariant, so the guard holds even if a caller bypasses the endpoint.
@@ -139,7 +139,7 @@ client entities are tenant-scoped (`ISupportTenantId` / `TenantOwnedResource`), 
   settings endpoints read.
 - [ADR-0012](0012-interceptor-managed-concurrency-tokens.md) — how the secret (and every) store's concurrency
   token is generated.
-- [ADR-0013](0013-management-precondition-mediator-pipeline.md) — the mediator precondition pipeline that
-  authorizes and validates every management create/update/delete (including the owner lifecycle above).
+- [ADR-0015](0015-management-core-validation-via-validators.md) — the entity validators that
+  authorize and validate every management create/update/delete (including the owner lifecycle above).
 - `NCode.Identity.Secrets.Persistence.Logic.DefaultSecretSerializer` — the inverse unprotect path.
 - `NCode.Identity.OpenId.Persistence.Stores.IServerStore` — the extended store contract.

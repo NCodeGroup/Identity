@@ -30,12 +30,6 @@ namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 public sealed class CreateSecretRequest
 {
     /// <summary>
-    /// Gets the optional natural identifier (aka <c>kid</c>) to assign to the secret. When <c>null</c> or empty,
-    /// the server generates one.
-    /// </summary>
-    public string? SecretId { get; init; }
-
-    /// <summary>
     /// Gets the type of secret to generate. Supported values are <c>symmetric</c>, <c>rsa</c>, and <c>ecc</c>.
     /// </summary>
     public required string SecretType { get; init; }

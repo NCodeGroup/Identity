@@ -30,11 +30,6 @@ namespace NCode.Identity.OpenId.Management.Contracts.Clients;
 public sealed class CreateClientRequest
 {
     /// <summary>
-    /// Gets the natural identifier to assign to the client.
-    /// </summary>
-    public required string ClientId { get; init; }
-
-    /// <summary>
     /// Gets the identifier of the OpenID Tenant that owns the client.
     /// </summary>
     public required string TenantId { get; init; }

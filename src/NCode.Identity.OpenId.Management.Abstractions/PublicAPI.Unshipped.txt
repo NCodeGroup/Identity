@@ -30,8 +30,6 @@ NCode.Identity.OpenId.Management.Contracts.Clients.ClientSettingsResource.Settin
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSettingsResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSettingsResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest
-NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.ClientId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.ClientId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.CreateClientRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.IsDisabled.init -> void
@@ -51,8 +49,6 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.ExpiresWh
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.ExpiresWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.KeySizeBits.get -> int
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.KeySizeBits.init -> void
-NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.SecretId.get -> string?
-NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.SecretId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.SecretType.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.SecretType.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Use.get -> string?
@@ -85,8 +81,6 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.Use.get -
 NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.Use.init -> void
 NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest
 NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest.CreateServerRequest() -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest.ServerId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest.ServerId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest.Settings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest.Settings.init -> void
 NCode.Identity.OpenId.Management.Contracts.Servers.ServerResource
@@ -121,8 +115,6 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.IsDisable
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.IsDisabled.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Settings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Settings.init -> void
-NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.ConcurrencyToken.init -> void

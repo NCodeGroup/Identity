@@ -30,11 +30,6 @@ namespace NCode.Identity.OpenId.Management.Contracts.Tenants;
 public sealed class CreateTenantRequest
 {
     /// <summary>
-    /// Gets the natural identifier to assign to the tenant.
-    /// </summary>
-    public required string TenantId { get; init; }
-
-    /// <summary>
     /// Gets the optional domain name used to locate the tenant, or <c>null</c> when not applicable.
     /// </summary>
     public string? DomainName { get; init; }

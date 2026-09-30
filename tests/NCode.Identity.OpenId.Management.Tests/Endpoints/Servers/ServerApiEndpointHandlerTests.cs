@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
+using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
@@ -32,7 +33,6 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
-using NCode.Mediator;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Operations;
@@ -50,7 +50,8 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<IServerStore> MockServerStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
-    private Mock<IMediator> MockMediator { get; }
+    private Mock<IServerValidator> MockServerValidator { get; }
+    private Mock<ICryptoService> MockCryptoService { get; }
     private ServerApiEndpointHandler Handler { get; }
 
     public ServerApiEndpointHandlerTests()
@@ -61,13 +62,16 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockServerStore = MockRepository.Create<IServerStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
-        MockMediator = MockRepository.Create<IMediator>();
+        MockServerValidator = MockRepository.Create<IServerValidator>();
+        MockCryptoService = MockRepository.Create<ICryptoService>();
 
         Handler = new ServerApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
+            MockServerValidator.Object,
             MockSecretGenerator.Object,
             TimeProvider.System,
+            MockCryptoService.Object,
             NullLogger<ServerApiEndpointHandler>.Instance
         );
     }
@@ -105,6 +109,14 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
                 )
             )
             .ReturnsAsync(result)
+            .Verifiable();
+    }
+
+    private void SetupResourceId(string id = "generated-id")
+    {
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Returns(id)
             .Verifiable();
     }
 
@@ -564,7 +576,6 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private static CreateSecretRequest CreateSecretRequest() =>
         new()
         {
-            SecretId = "secret-1",
             SecretType = SecretTypes.Symmetric,
             KeySizeBits = 256,
             Use = "sig",
@@ -585,6 +596,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
 
         var generated = CreatePersistedSecret();
         MockSecretGenerator
@@ -666,6 +678,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
         MockSecretGenerator
             .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
             .Throws(new ArgumentException("bad size"))
@@ -693,6 +706,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
 
         var generated = CreatePersistedSecret();
         MockSecretGenerator
@@ -944,11 +958,16 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
-        MockMediator
+        MockServerValidator
             .Setup(x =>
-                x.SendAsync(It.IsAny<ValidateDeleteServerCommand>(), It.IsAny<CancellationToken>())
+                x.ValidateDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedServer>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync((ManagementError?)null)
             .Verifiable();
         MockServerStore
             .Setup(x => x.RemoveAsync(ServerId, It.IsAny<CancellationToken>()))
@@ -961,47 +980,40 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteServerAsync(
-            httpContext,
-            ServerId,
-            MockMediator.Object,
-            CancellationToken.None
-        );
+        var result = await Handler.DeleteServerAsync(httpContext, ServerId, CancellationToken.None);
 
         Assert.IsType<NoContent>(result);
     }
 
     [Fact]
-    public async Task DeleteServerAsync_WhenPipelineReportsConflict_ReturnsProblem()
+    public async Task DeleteServerAsync_WhenValidatorReportsConflict_ReturnsProblem()
     {
         SetupStore();
         MockServerStore
             .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
-        MockMediator
+        MockServerValidator
             .Setup(x =>
-                x.SendAsync(It.IsAny<ValidateDeleteServerCommand>(), It.IsAny<CancellationToken>())
+                x.ValidateDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedServer>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
-            .Callback(
-                (ValidateDeleteServerCommand command, CancellationToken _) =>
-                    command.Disposition.Error = new ManagementError
-                    {
-                        StatusCode = StatusCodes.Status409Conflict,
-                        Detail = "conflict",
-                    }
+            .ReturnsAsync(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = "conflict",
+                }
             )
-            .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteServerAsync(
-            httpContext,
-            ServerId,
-            MockMediator.Object,
-            CancellationToken.None
-        );
+        var result = await Handler.DeleteServerAsync(httpContext, ServerId, CancellationToken.None);
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
@@ -1018,12 +1030,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteServerAsync(
-            httpContext,
-            ServerId,
-            MockMediator.Object,
-            CancellationToken.None
-        );
+        var result = await Handler.DeleteServerAsync(httpContext, ServerId, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
     }

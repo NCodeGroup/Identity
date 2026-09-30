@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
+using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Logging;
@@ -32,7 +33,6 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
-using NCode.Mediator;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
@@ -60,18 +60,24 @@ DELETE api/tenants/{tenantId}/secrets/{secretId}
 internal class TenantApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
+    ITenantValidator tenantValidator,
     ISecretGenerator secretGenerator,
     TimeProvider timeProvider,
+    ICryptoService cryptoService,
     ILogger<TenantApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private ITenantValidator TenantValidator { get; } = tenantValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<TenantApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
+
+    /// <inheritdoc />
+    protected override ICryptoService CryptoService { get; } = cryptoService;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -169,51 +175,51 @@ internal class TenantApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="request">The <see cref="CreateTenantRequest"/> describing the tenant to create.</param>
-    /// <param name="mediator">The <see cref="IMediator"/> used to run the create precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/tenants/create")]
     internal virtual async ValueTask<IResult> CreateTenantAsync(
         HttpContext httpContext,
         [FromBody] CreateTenantRequest request,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
+        var tenantId = CryptoService.GenerateResourceId();
+
         var tenant = new PersistedTenant
         {
-            TenantId = request.TenantId,
+            TenantId = tenantId,
             ConcurrencyToken = string.Empty,
             DomainName = request.DomainName,
             IsDisabled = request.IsDisabled,
             DisplayName = request.DisplayName,
             Settings = new PersistedTenantSettings
             {
-                TenantId = request.TenantId,
+                TenantId = tenantId,
                 ConcurrencyToken = string.Empty,
                 Value = SerializeToElement(ToJsonObject(request.Settings)),
             },
             Secrets = new PersistedTenantSecrets
             {
-                TenantId = request.TenantId,
+                TenantId = tenantId,
                 ConcurrencyToken = string.Empty,
                 Value = [],
             },
         };
 
-        // Preconditions (authorization + uniqueness) are asserted by the mediator pipeline (ADR-0013).
-        var disposition = new OperationDisposition<ManagementError>();
-        await mediator.SendAsync(
-            new ValidateCreateTenantCommand(httpContext, tenant, disposition),
+        // Core preconditions (authorization + uniqueness) are asserted by the validator (ADR-0014).
+        var error = await TenantValidator.ValidateCreateAsync(
+            httpContext.User,
+            tenant,
+            storeManager,
             cancellationToken
         );
-
-        if (disposition.HasError)
+        if (error is not null)
         {
-            return ToErrorResult(disposition.Error);
+            return ToErrorResult(error);
         }
 
         await store.AddAsync(tenant, cancellationToken);
@@ -232,7 +238,6 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="request">The JSON Patch document to apply to the tenant metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current tenant.</param>
-    /// <param name="mediator">The <see cref="IMediator"/> used to run the update precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/tenants/update")]
@@ -241,7 +246,6 @@ internal class TenantApiEndpointHandler(
         [FromRoute] string tenantId,
         [FromBody] JsonPatchDocument<UpdateTenantRequest> request,
         [FromHeader(Name = "If-Match")] string? ifMatch,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -252,18 +256,6 @@ internal class TenantApiEndpointHandler(
         if (tenant is null)
         {
             return TypedResults.NotFound();
-        }
-
-        // Preconditions (authorization + If-Match) are asserted by the mediator pipeline (ADR-0013).
-        var disposition = new OperationDisposition<ManagementError>();
-        await mediator.SendAsync(
-            new ValidateUpdateTenantCommand(httpContext, tenant, ifMatch, disposition),
-            cancellationToken
-        );
-
-        if (disposition.HasError)
-        {
-            return ToErrorResult(disposition.Error);
         }
 
         var model = new UpdateTenantRequest
@@ -286,12 +278,19 @@ internal class TenantApiEndpointHandler(
             );
         }
 
-        if (string.IsNullOrEmpty(model.DisplayName))
+        // Core preconditions (authorization + If-Match + required fields + domain uniqueness) are asserted by the
+        // validator against the hydrated model (ADR-0014).
+        var error = await TenantValidator.ValidateUpdateAsync(
+            httpContext.User,
+            tenant,
+            model,
+            ifMatch,
+            storeManager,
+            cancellationToken
+        );
+        if (error is not null)
         {
-            return TypedResults.Problem(
-                detail: "The 'displayName' is required.",
-                statusCode: StatusCodes.Status400BadRequest
-            );
+            return ToErrorResult(error);
         }
 
         tenant.DomainName = model.DomainName;
@@ -310,14 +309,12 @@ internal class TenantApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
-    /// <param name="mediator">The <see cref="IMediator"/> used to run the delete precondition pipeline.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     [EndpointName("api/tenants/delete")]
     internal virtual async ValueTask<IResult> DeleteTenantAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
@@ -330,17 +327,16 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Preconditions (authorization + no-dependents) are asserted by the mediator pipeline, which decides
-        // on facts it queries rather than on caught exceptions (ADR-0013).
-        var disposition = new OperationDisposition<ManagementError>();
-        await mediator.SendAsync(
-            new ValidateDeleteTenantCommand(httpContext, tenant, disposition),
+        // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-0014).
+        var error = await TenantValidator.ValidateDeleteAsync(
+            httpContext.User,
+            tenant,
+            storeManager,
             cancellationToken
         );
-
-        if (disposition.HasError)
+        if (error is not null)
         {
-            return ToErrorResult(disposition.Error);
+            return ToErrorResult(error);
         }
 
         await store.RemoveAsync(tenantId, cancellationToken);
@@ -513,9 +509,7 @@ internal class TenantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var secretId = string.IsNullOrEmpty(request.SecretId)
-            ? Guid.NewGuid().ToString("N")
-            : request.SecretId;
+        var secretId = CryptoService.GenerateResourceId();
 
         PersistedSecret generatedSecret;
         try

@@ -261,20 +261,6 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Core preconditions (authorization + If-Match) are asserted by the validator (ADR-0014).
-        var error = await ClientValidator.ValidateUpdateAsync(
-            httpContext.User,
-            client,
-            ifMatch,
-            storeManager,
-            cancellationToken
-        );
-
-        if (error is not null)
-        {
-            return ToErrorResult(error);
-        }
-
         var model = new UpdateClientRequest { IsDisabled = client.IsDisabled };
 
         try
@@ -288,6 +274,22 @@ internal class ClientApiEndpointHandler(
                 detail: "The JSON Patch document could not be applied.",
                 statusCode: StatusCodes.Status400BadRequest
             );
+        }
+
+        // Core preconditions (authorization + If-Match) are asserted by the validator against the hydrated
+        // model (ADR-0015).
+        var error = await ClientValidator.ValidateUpdateAsync(
+            httpContext.User,
+            client,
+            model,
+            ifMatch,
+            storeManager,
+            cancellationToken
+        );
+
+        if (error is not null)
+        {
+            return ToErrorResult(error);
         }
 
         client.IsDisabled = model.IsDisabled;

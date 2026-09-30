@@ -5,23 +5,6 @@ NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdManagementLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
-NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator
-NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator
-NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! server, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! server, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.ManagementError
-NCode.Identity.OpenId.Management.ManagementError.Detail.get -> string!
-NCode.Identity.OpenId.Management.ManagementError.Detail.init -> void
-NCode.Identity.OpenId.Management.ManagementError.ManagementError() -> void
-NCode.Identity.OpenId.Management.ManagementError.StatusCode.get -> int
-NCode.Identity.OpenId.Management.ManagementError.StatusCode.init -> void
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary.ConfigureMethod.get -> string!
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary.DisplayName.get -> string!

@@ -20,6 +20,7 @@ using System.Security.Claims;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
@@ -84,6 +85,7 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
     public async ValueTask<ManagementError?> ValidateUpdateAsync(
         ClaimsPrincipal user,
         PersistedClient client,
+        UpdateClientRequest model,
         string? ifMatch,
         IStoreManager storeManager,
         CancellationToken cancellationToken

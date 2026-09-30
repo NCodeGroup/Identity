@@ -18,6 +18,7 @@
 
 using System.Security.Claims;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
@@ -50,6 +51,7 @@ public interface IClientValidator
     /// </summary>
     /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
     /// <param name="client">The current <see cref="PersistedClient"/> being updated.</param>
+    /// <param name="model">The proposed (patched) client metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the current unit of work.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -57,6 +59,7 @@ public interface IClientValidator
     ValueTask<ManagementError?> ValidateUpdateAsync(
         ClaimsPrincipal user,
         PersistedClient client,
+        UpdateClientRequest model,
         string? ifMatch,
         IStoreManager storeManager,
         CancellationToken cancellationToken

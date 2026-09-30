@@ -13,17 +13,17 @@ required field is present. [ADR-0013](0013-management-precondition-mediator-pipe
 **mediator fan-out pipeline** — a `Validate…Command` per operation with a separate `ICommandHandler` per
 individual check, ordered by priority and short-circuiting on the first error.
 
-Shipping that revealed three costs that outweighed its benefit:
+The mediator pipeline carries three costs that outweigh its benefit:
 
-- **The extensibility it optimized for is speculative.** These preconditions are the **intrinsic, fixed**
+- **The extensibility it optimizes for is speculative.** These preconditions are the **intrinsic, fixed**
   requirements of the entities themselves — they do not change per deployment. The fan-out's value is letting
-  an integrator inject or replace a *single* precondition without touching the others; we have no such
-  requirement today (YAGNI).
+  an integrator inject or replace a _single_ precondition without touching the others; the family has no such
+  requirement (YAGNI).
 - **Ceremony.** Each check is a ~50-line class with its own command deconstruction and priority. One operation
   is spread across many files whose execution order is implied by `ISupportMediatorPriority` rather than read
   top-to-bottom.
 - **A concrete inefficiency.** Each fan-out handler opened its **own** `IStoreManager`; a single create-tenant
-  ran authorization + id-uniqueness + domain-uniqueness across *multiple* store managers instead of one shared
+  ran authorization + id-uniqueness + domain-uniqueness across _multiple_ store managers instead of one shared
   unit of work.
 
 The unsound part of the prior design — inferring a failure cause from a caught `InvalidOperationException` —
@@ -49,19 +49,19 @@ Replace the mediator pipeline with a single **replaceable validator service per 
   **proposed** state to `ValidateUpdateAsync`, so post-patch checks (required fields, domain uniqueness) are
   ordinary ordered validations rather than inline specials in the endpoint.
 - **Extensibility is a DI replacement.** Each validator is registered `TryAddSingleton<I{Entity}Validator,
-  Default{Entity}Validator>()`, so an integrator that needs custom rules registers **their own implementation**
+Default{Entity}Validator>()`, so an integrator that needs custom rules registers **their own implementation**
   of the interface — replacing (or wrapping) the default wholesale. If per-check composition is ever genuinely
-  needed, a pipeline can be layered *inside* a custom validator, after the fast core checks.
+  needed, a pipeline can be layered _inside_ a custom validator, after the fast core checks.
 
 The `Validate…Command` records, the per-check `Default…Handler` classes, the `AddMediator()` registration, the
-`[FromServices] IMediator` endpoint parameters, and the `NCode.Mediator` package reference are all removed from
-the management library. Because the validators are singletons, the endpoint handlers inject them by constructor
-(the earlier `[FromServices]` workaround for the scoped `IMediator` is no longer needed).
+`[FromServices] IMediator` endpoint parameters, and the `NCode.Mediator` package reference are absent from the
+management library. Because the validators are singletons, the endpoint handlers inject them by constructor,
+with no scoped-service workaround.
 
 ## Options considered
 
 - **Keep the mediator fan-out (ADR-0013).** Rejected: it pays per-check class/UoW ceremony for an extension
-  seam we do not use. Reversed before release rather than shipped and carried.
+  seam that is not used.
 - **One handler/method per `Entity-Operation` on the endpoint handler.** Viable and simple, but a separate
   interface makes the core validation independently testable and — crucially — **replaceable via DI**, which is
   the extensibility story we do want to keep open.

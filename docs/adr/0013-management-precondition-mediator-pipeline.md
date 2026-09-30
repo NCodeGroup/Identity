@@ -4,13 +4,13 @@
 - **Date:** 2026-09-29
 - **Deciders:** NCode Group
 
-> **Superseded.** This decision shipped a mediator fan-out pipeline for management preconditions. It was
-> reversed before release: the preconditions our entities enforce are a **fixed, intrinsic** set, so the
-> fan-out's per-precondition extensibility did not earn its ceremony (a class per check, each opening its
-> own store manager). [ADR-0015](0015-management-core-validation-via-validators.md) replaces it with a single
-> replaceable `I{Entity}Validator` service per entity. The unsound "infer failure from a caught exception"
-> analysis below still holds and is preserved by the validators (they decide on queried facts).
-
+> **Superseded by [ADR-0015](0015-management-core-validation-via-validators.md).** This ADR records a mediator
+> fan-out pipeline for management preconditions — a `Validate…Command` per operation with a separate handler per
+> check. [ADR-0015](0015-management-core-validation-via-validators.md) replaces it with a single replaceable
+> `I{Entity}Validator` service per entity: the preconditions our entities enforce are a **fixed, intrinsic** set,
+> so the fan-out's per-precondition extensibility does not justify its ceremony (a class per check, each opening
+> its own store manager). The "inferring a failure from a caught exception is unsound" analysis below still holds
+> and is preserved by the validators, which decide on queried facts.
 
 ## Context
 

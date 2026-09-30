@@ -30,6 +30,34 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 public interface IGrantStore : IStore<PersistedGrant>
 {
     /// <summary>
+    /// Gets a single page of <see cref="PersistedGrant"/> instances ordered by their identifier, using keyset
+    /// (cursor) pagination.
+    /// </summary>
+    /// <param name="cursor">The opaque cursor returned by a previous call that fetches the next page, or <c>null</c>
+    /// to fetch the first page.</param>
+    /// <param name="limit">The maximum number of items to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
+    /// <see cref="PersistedGrant"/> instances and the cursor for the next page.</returns>
+    ValueTask<PagedResult<PersistedGrant>> GetPageAsync(
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Attempts to retrieve a persisted grant from the store by its opaque <c>GrantId</c>.
+    /// </summary>
+    /// <param name="grantId">The opaque identifier of the grant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedGrant"/> instance if found; otherwise <c>null</c>.</returns>
+    ValueTask<PersistedGrant?> GetOrDefaultAsync(
+        string grantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Attempts to retrieve a persisted grant from the store.
     /// </summary>
     /// <param name="grantType">The type of the grant.</param>

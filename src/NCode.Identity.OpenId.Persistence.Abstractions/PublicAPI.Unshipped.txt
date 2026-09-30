@@ -67,6 +67,8 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.CreatedWhen.get -
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.CreatedWhen.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.ExpiresWhen.get -> System.DateTimeOffset?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.ExpiresWhen.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.GrantId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.GrantId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.GrantType.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.GrantType.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.HashedKey.get -> string!
@@ -135,6 +137,8 @@ NCode.Identity.OpenId.Persistence.Stores.IClientStore.UpdateSecretAsync(string! 
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.UpdateSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSettings! persistedClientSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! grantType, string! hashedKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant?>
+NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! grantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant?>
+NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetPageAsync(string? cursor, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant!>!>
 NCode.Identity.OpenId.Persistence.Stores.IServerStore
 NCode.Identity.OpenId.Persistence.Stores.IServerStore.AddSecretAsync(string! serverId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IServerStore.GetOrDefaultAsync(string! serverId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer?>

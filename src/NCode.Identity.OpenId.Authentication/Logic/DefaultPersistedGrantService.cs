@@ -94,6 +94,7 @@ internal class DefaultPersistedGrantService(
         {
             GrantType = grantId.GrantType,
             HashedKey = hashedKey,
+            GrantId = CryptoService.GenerateResourceId(),
             TenantId = grant.TenantId,
             ClientId = grant.ClientId,
             SubjectId = grant.SubjectId,

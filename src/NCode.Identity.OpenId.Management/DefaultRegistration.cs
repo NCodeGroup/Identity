@@ -23,6 +23,7 @@ using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
+using NCode.Identity.OpenId.Management.Endpoints.Grants;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Registration;
@@ -58,6 +59,7 @@ public static class DefaultRegistration
             builder.AddManagementEndpointProvider<ServerApiEndpointHandler>();
             builder.AddManagementEndpointProvider<TenantApiEndpointHandler>();
             builder.AddManagementEndpointProvider<ClientApiEndpointHandler>();
+            builder.AddManagementEndpointProvider<GrantApiEndpointHandler>();
 
             return builder.NewBuilder<OpenIdManagementLibrary>();
         }

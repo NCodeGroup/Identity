@@ -61,11 +61,15 @@ public sealed class GrantStoreTests : IDisposable
         _provider.Dispose();
     }
 
-    private static PersistedGrant CreateGrant() =>
+    private static PersistedGrant CreateGrant(
+        string hashedKey = HashedKey,
+        string grantId = "grant-1"
+    ) =>
         new()
         {
             GrantType = GrantType,
-            HashedKey = HashedKey,
+            HashedKey = hashedKey,
+            GrantId = grantId,
             ConcurrencyToken = string.Empty,
             TenantId = null,
             ClientId = null,
@@ -89,6 +93,67 @@ public sealed class GrantStoreTests : IDisposable
 
         Assert.NotNull(reloaded);
         Assert.False(string.IsNullOrEmpty(reloaded.ConcurrencyToken));
+    }
+
+    [Fact]
+    public async Task AddAsync_PersistsGrantId()
+    {
+        await _store.AddAsync(CreateGrant(grantId: "grant-abc"), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync("grant-abc", CancellationToken.None);
+
+        Assert.NotNull(reloaded);
+        Assert.Equal("grant-abc", reloaded.GrantId);
+    }
+
+    #endregion
+
+    #region GetOrDefaultAsync Tests
+
+    [Fact]
+    public async Task GetOrDefaultAsync_ByGrantId_WhenMissing_ReturnsNull()
+    {
+        var result = await _store.GetOrDefaultAsync("no-such-grant", CancellationToken.None);
+
+        Assert.Null(result);
+    }
+
+    #endregion
+
+    #region GetPageAsync Tests
+
+    [Fact]
+    public async Task GetPageAsync_KeysetPaginatesInOrder()
+    {
+        for (var index = 0; index < 3; index++)
+        {
+            await _store.AddAsync(
+                CreateGrant(hashedKey: $"hashed-key-{index}", grantId: $"grant-{index}"),
+                CancellationToken.None
+            );
+        }
+
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var firstPage = await _store.GetPageAsync(cursor: null, limit: 2, CancellationToken.None);
+
+        Assert.Equal(2, firstPage.Items.Count);
+        Assert.NotNull(firstPage.NextCursor);
+
+        var secondPage = await _store.GetPageAsync(
+            firstPage.NextCursor,
+            limit: 2,
+            CancellationToken.None
+        );
+
+        Assert.Single(secondPage.Items);
+        Assert.Null(secondPage.NextCursor);
+
+        var seen = firstPage.Items.Concat(secondPage.Items).Select(grant => grant.GrantId).ToList();
+        Assert.Equal(new[] { "grant-0", "grant-1", "grant-2" }, seen);
     }
 
     #endregion

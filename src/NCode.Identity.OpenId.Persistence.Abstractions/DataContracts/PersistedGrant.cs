@@ -44,6 +44,14 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
     [MaxLength(OpenIdMaxLengths.HashedKey)]
     public required string HashedKey { get; init; }
 
+    /// <summary>
+    /// Gets the opaque, server-generated public identifier for this grant. It is assigned by the store when the
+    /// grant is persisted and is used by the management API to address a grant; it is distinct from the internal
+    /// <see cref="HashedKey"/> used for runtime token lookup.
+    /// </summary>
+    [MaxLength(MaxLengths.ResourceId)]
+    public string GrantId { get; init; } = string.Empty;
+
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ConcurrencyToken)]
     public string ConcurrencyToken { get; set; } = string.Empty;

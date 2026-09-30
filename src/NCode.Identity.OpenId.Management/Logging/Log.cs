@@ -30,28 +30,28 @@ namespace NCode.Identity.OpenId.Management.Logging;
 internal static partial class Log
 {
     [LoggerMessage(
-        EventId = 1,
+        EventId = EventIds.SecretGenerationFailed,
         Level = LogLevel.Debug,
         Message = "Secret generation failed for the supplied request parameters"
     )]
     internal static partial void SecretGenerationFailed(this ILogger logger, Exception exception);
 
     [LoggerMessage(
-        EventId = 2,
+        EventId = EventIds.JsonPatchFailed,
         Level = LogLevel.Debug,
         Message = "A JSON Patch document could not be applied"
     )]
     internal static partial void JsonPatchFailed(this ILogger logger, Exception exception);
 
     [LoggerMessage(
-        EventId = 3,
+        EventId = EventIds.ResourceConflict,
         Level = LogLevel.Debug,
         Message = "The operation was rejected because of a resource conflict"
     )]
     internal static partial void ResourceConflict(this ILogger logger, Exception exception);
 
     [LoggerMessage(
-        EventId = 4,
+        EventId = EventIds.MissingDependency,
         Level = LogLevel.Debug,
         Message = "The operation referenced a resource that does not exist"
     )]

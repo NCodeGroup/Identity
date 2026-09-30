@@ -29,6 +29,10 @@ change to the public API is a **major** version bump.
   Tenant-selection option types moved from `NCode.Identity.OpenId.Authentication` to
   `NCode.Identity.OpenId.Abstractions` (`NCode.Identity.OpenId.Tenants` namespace); `OpenIdTenantOptions` now carries
   only materialization settings.
+- A managed client is always owned by the request's tenant, so `POST api/clients` no longer accepts a tenant
+  identifier: `CreateClientRequest.TenantId` is removed and the server derives the owning tenant from the request
+  (resolved for every tenant strategy, static-single included). This removes the redundant, error-prone echo of a
+  tenant the server already resolved.
 
 ### Fixed
 

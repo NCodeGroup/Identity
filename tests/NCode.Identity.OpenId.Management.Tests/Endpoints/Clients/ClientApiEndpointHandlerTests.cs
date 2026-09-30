@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -51,6 +52,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IClientValidator> MockClientValidator { get; }
+    private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private ClientApiEndpointHandler Handler { get; }
 
@@ -63,12 +65,14 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockClientValidator = MockRepository.Create<IClientValidator>();
+        MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
 
         Handler = new ClientApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockClientValidator.Object,
+            MockAmbientTenantAccessor.Object,
             MockSecretGenerator.Object,
             TimeProvider.System,
             MockCryptoService.Object,
@@ -230,6 +234,54 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             new Operation<JsonObject>("add", $"/{name}", from: null, value: value)
         );
         return patch;
+    }
+
+    #endregion
+
+    #region CreateClientAsync Tests
+
+    [Fact]
+    public async Task CreateClientAsync_UsesAmbientTenant()
+    {
+        SetupStore();
+        SetupResourceId("generated-id");
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+
+        PersistedClient? captured = null;
+        MockClientValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedClient>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (ClaimsPrincipal _, PersistedClient c, IStoreManager _, CancellationToken _) =>
+                    captured = c
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedClient>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateClientAsync(httpContext, request, CancellationToken.None);
+
+        Assert.IsType<Created<ClientResource>>(result);
+        Assert.NotNull(captured);
+        Assert.Equal(TenantId, captured.TenantId);
+        Assert.Equal(TenantId, captured.Settings.TenantId);
+        Assert.Equal(TenantId, captured.Secrets.TenantId);
     }
 
     #endregion

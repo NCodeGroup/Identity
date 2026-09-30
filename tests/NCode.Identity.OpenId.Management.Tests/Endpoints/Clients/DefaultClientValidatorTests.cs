@@ -24,7 +24,6 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -39,8 +38,6 @@ public sealed class DefaultClientValidatorTests : IDisposable
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
-    private Mock<ITenantStore> MockTenantStore { get; }
-    private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private DefaultClientValidator Validator { get; }
 
     public DefaultClientValidatorTests()
@@ -49,16 +46,8 @@ public sealed class DefaultClientValidatorTests : IDisposable
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
-        MockTenantStore = MockRepository.Create<ITenantStore>();
-        MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
 
-        // By default the surface is unscoped (central-admin); specific tests opt into a tenant scope.
-        MockAmbientTenantAccessor.Setup(x => x.IsScoped).Returns(false);
-
-        Validator = new DefaultClientValidator(
-            MockAuthorizationService.Object,
-            MockAmbientTenantAccessor.Object
-        );
+        Validator = new DefaultClientValidator(MockAuthorizationService.Object);
     }
 
     public void Dispose()
@@ -123,14 +112,6 @@ public sealed class DefaultClientValidatorTests : IDisposable
             .Verifiable();
     }
 
-    private void SetupTenantStore()
-    {
-        MockStoreManager
-            .Setup(x => x.GetStore<ITenantStore>())
-            .Returns(MockTenantStore.Object)
-            .Verifiable();
-    }
-
     #endregion
 
     #region ValidateCreateAsync Tests
@@ -168,35 +149,9 @@ public sealed class DefaultClientValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenTenantMissing_Returns400()
-    {
-        SetupAuthorization(AuthorizationResult.Success());
-        SetupTenantStore();
-        MockTenantStore
-            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedTenant?)null)
-            .Verifiable();
-
-        var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            CreateClient(),
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
-    }
-
-    [Fact]
     public async Task ValidateCreateAsync_WhenClientExists_Returns409()
     {
         SetupAuthorization(AuthorizationResult.Success());
-        SetupTenantStore();
-        MockTenantStore
-            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenant())
-            .Verifiable();
         SetupClientStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -218,11 +173,6 @@ public sealed class DefaultClientValidatorTests : IDisposable
     public async Task ValidateCreateAsync_WhenValid_ReturnsNull()
     {
         SetupAuthorization(AuthorizationResult.Success());
-        SetupTenantStore();
-        MockTenantStore
-            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenant())
-            .Verifiable();
         SetupClientStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -237,48 +187,6 @@ public sealed class DefaultClientValidatorTests : IDisposable
         );
 
         Assert.Null(error);
-    }
-
-    [Fact]
-    public async Task ValidateCreateAsync_WhenScopedToOtherTenant_Returns404()
-    {
-        SetupAuthorization(AuthorizationResult.Success());
-        MockAmbientTenantAccessor.Setup(x => x.IsScoped).Returns(true);
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns("other-tenant");
-
-        var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            CreateClient(),
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status404NotFound, error.StatusCode);
-    }
-
-    [Fact]
-    public async Task ValidateCreateAsync_WhenScopedToOwnTenant_DoesNotFetchTenant()
-    {
-        SetupAuthorization(AuthorizationResult.Success());
-        MockAmbientTenantAccessor.Setup(x => x.IsScoped).Returns(true);
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId);
-        SetupClientStore();
-        MockClientStore
-            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedClient?)null)
-            .Verifiable();
-
-        var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            CreateClient(),
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        Assert.Null(error);
-        // The scope already proved the tenant exists, so it is never re-fetched in scoped mode.
-        MockStoreManager.Verify(x => x.GetStore<ITenantStore>(), Times.Never);
     }
 
     #endregion
@@ -415,32 +323,6 @@ public sealed class DefaultClientValidatorTests : IDisposable
 
         Assert.Null(error);
     }
-
-    #endregion
-
-    #region Fixtures
-
-    private static PersistedTenant CreateTenant() =>
-        new()
-        {
-            TenantId = TenantId,
-            ConcurrencyToken = "tenant-ct",
-            DomainName = null,
-            IsDisabled = false,
-            DisplayName = "Tenant One",
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = "settings-ct",
-                Value = EmptyObject(),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = "secrets-ct",
-                Value = [],
-            },
-        };
 
     #endregion
 }

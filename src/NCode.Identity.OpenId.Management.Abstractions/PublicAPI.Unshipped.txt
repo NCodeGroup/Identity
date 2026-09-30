@@ -35,8 +35,6 @@ NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.IsDisable
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.IsDisabled.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.Settings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.Settings.init -> void
-NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest.IsDisabled.set -> void

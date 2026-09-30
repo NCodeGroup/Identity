@@ -31,6 +31,7 @@ using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Persistence.Stores;
@@ -61,6 +62,7 @@ internal class ClientApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     IClientValidator clientValidator,
+    IAmbientTenantAccessor ambientTenantAccessor,
     ISecretGenerator secretGenerator,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
@@ -69,6 +71,7 @@ internal class ClientApiEndpointHandler(
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IClientValidator ClientValidator { get; } = clientValidator;
+    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<ClientApiEndpointHandler> Logger { get; } = logger;
@@ -192,29 +195,36 @@ internal class ClientApiEndpointHandler(
 
         var clientId = CryptoService.GenerateResourceId();
 
+        // A client is always owned by the request's tenant, which the tenant-scope filter already resolved.
+        var tenantId =
+            AmbientTenantAccessor.TenantId
+            ?? throw new InvalidOperationException(
+                "The ambient tenant scope was not established for the request."
+            );
+
         var client = new PersistedClient
         {
-            TenantId = request.TenantId,
+            TenantId = tenantId,
             ClientId = clientId,
             ConcurrencyToken = string.Empty,
             IsDisabled = request.IsDisabled,
             Settings = new PersistedClientSettings
             {
-                TenantId = request.TenantId,
+                TenantId = tenantId,
                 ClientId = clientId,
                 ConcurrencyToken = string.Empty,
                 Value = SerializeToElement(ToJsonObject(request.Settings)),
             },
             Secrets = new PersistedClientSecrets
             {
-                TenantId = request.TenantId,
+                TenantId = tenantId,
                 ClientId = clientId,
                 ConcurrencyToken = string.Empty,
                 Value = [],
             },
         };
 
-        // Core preconditions (authorization + parent-exists + uniqueness) are asserted by the validator (ADR-0014).
+        // Core preconditions (authorization + uniqueness) are asserted by the validator (ADR-0014).
         var error = await ClientValidator.ValidateCreateAsync(
             httpContext.User,
             client,

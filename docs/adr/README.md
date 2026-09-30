@@ -41,3 +41,4 @@ consequences. ADRs are immutable once **Accepted** — if a decision changes, ad
 | [0013](./0013-management-precondition-mediator-pipeline.md)            | Management preconditions are a mediator validation pipeline                                | Superseded by [0015](./0015-management-core-validation-via-validators.md) |
 | [0014](./0014-server-generated-opaque-resource-ids.md)                | Resource identifiers are server-generated and opaque                                       | Accepted |
 | [0015](./0015-management-core-validation-via-validators.md)           | Management core validation via replaceable validators                                      | Accepted |
+| [0016](./0016-implementation-packages-depend-only-on-abstractions.md)  | Implementation packages depend only on abstractions; composition wires them                | Accepted |

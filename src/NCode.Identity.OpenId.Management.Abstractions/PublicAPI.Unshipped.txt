@@ -65,6 +65,10 @@ NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.SubjectId.get ->
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.SubjectId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.TenantId.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.GrantRevocationResult() -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.Revoked.get -> long
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.Revoked.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Algorithm.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Algorithm.init -> void

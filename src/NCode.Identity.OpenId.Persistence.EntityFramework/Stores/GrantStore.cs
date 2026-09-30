@@ -148,6 +148,88 @@ internal class GrantStore(
     protected override long GetSortKey(GrantEntity entity) => entity.Id;
 
     /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedGrant>> GetPageAsync(
+        string? subjectId,
+        string? clientId,
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken
+    )
+    {
+        var afterId = DecodeCursor(cursor);
+
+        var query = DbContext
+            .Grants.Include(entity => entity.Tenant)
+            .Include(entity => entity.Client)
+            .AsQueryable();
+
+        if (afterId is { } id)
+        {
+            query = query.Where(entity => entity.Id > id);
+        }
+
+        query = ApplyGrantFilters(query, subjectId, clientId);
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var entities = await query
+            .OrderBy(entity => entity.Id)
+            .Take(limit + 1)
+            .ToListAsync(cancellationToken);
+
+        return await BuildPageAsync(entities, limit, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<long> RevokeWhereAsync(
+        string? subjectId,
+        string? clientId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    )
+    {
+        // Only active grants are touched so the operation is idempotent and the interceptor bumps the row token
+        // (ADR-0012) on exactly the rows it changes.
+        var query = DbContext
+            .Grants.Include(entity => entity.Client)
+            .Where(entity => entity.RevokedWhen == null);
+
+        query = ApplyGrantFilters(query, subjectId, clientId);
+
+        var entities = await query.ToListAsync(cancellationToken);
+
+        var utcRevokedWhen = revokedWhen.ToUniversalTime();
+        foreach (var entity in entities)
+        {
+            entity.RevokedWhen = utcRevokedWhen;
+        }
+
+        return entities.Count;
+    }
+
+    private static IQueryable<GrantEntity> ApplyGrantFilters(
+        IQueryable<GrantEntity> query,
+        string? subjectId,
+        string? clientId
+    )
+    {
+        if (!string.IsNullOrEmpty(subjectId))
+        {
+            var normalizedSubjectId = Normalize(subjectId);
+            query = query.Where(entity => entity.NormalizedSubjectId == normalizedSubjectId);
+        }
+
+        if (!string.IsNullOrEmpty(clientId))
+        {
+            var normalizedClientId = Normalize(clientId);
+            query = query.Where(entity =>
+                entity.Client != null && entity.Client.NormalizedClientId == normalizedClientId
+            );
+        }
+
+        return query;
+    }
+
+    /// <inheritdoc />
     public async ValueTask AddAsync(
         PersistedGrant persistedGrant,
         CancellationToken cancellationToken

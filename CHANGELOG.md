@@ -26,13 +26,16 @@ change to the public API is a **major** version bump.
   pagination (`?limit=` clamped to 100, `?cursor=` opaque continuation token). The client list is scoped to the
   request's tenant; the server and tenant lists are central-admin. There is deliberately no query protocol (no OData);
   see [ADR-0019](docs/adr/0019-collection-endpoints-keyset-pagination.md).
-- Grant administration for the management API — `GET api/grants`, `GET api/grants/{grantId}`, and
-  `DELETE api/grants/{grantId}` — a tenant-scoped, read-only surface that lists and inspects persisted grants and
-  soft-revokes them (sets `RevokedWhen`, keeps the row for audit; idempotent). Grants are addressed by a new opaque,
-  server-generated `GrantId` (`PersistedGrant.GrantId` / `GrantEntity.GrantId`), and `GrantResource` projects metadata
-  only — the internal `HashedKey` and the grant `PayloadJson` are never exposed. The shared keyset-pagination
-  mechanics move from `BaseStoreWithResourceId` to `BaseStore` so a grant store not keyed by a resource id can paginate
-  on its chronological surrogate id. See [ADR-0020](docs/adr/0020-grant-management-read-surface.md).
+- Grant administration for the management API — a tenant-scoped, read-only surface: `GET api/grants` (paged, with
+  optional `?subjectId=` / `?clientId=` filters), `GET api/grants/{grantId}`, `DELETE api/grants/{grantId}` (single
+  soft-revoke), and `DELETE api/grants?subjectId=&clientId=` (bulk soft-revoke of every active match, requires at least
+  one filter, returns `GrantRevocationResult { revoked }`). Revocation sets `RevokedWhen` and keeps the row for audit;
+  it is idempotent. Grants are addressed by a new opaque, server-generated `GrantId` (`PersistedGrant.GrantId` /
+  `GrantEntity.GrantId`), and `GrantResource` projects metadata only — the internal `HashedKey` and the grant
+  `PayloadJson` are never exposed. The shared keyset-pagination mechanics move from `BaseStoreWithResourceId` to
+  `BaseStore` so a grant store not keyed by a resource id can paginate on its chronological surrogate id. See
+  [ADR-0020](docs/adr/0020-grant-management-read-surface.md) and
+  [ADR-0022](docs/adr/0022-grant-filters-and-bulk-revocation.md).
 - A persistent developer-keys opt-in for the Playground, `AddDeveloperSigningKey(...)`, that seeds an `RSA` signing key
   through the tenant secret store (so the runtime, the JWKS endpoint, and the management API share one source of truth)
   instead of overriding the read path. Paired with a local SQLite database and a persistent Data Protection key ring

@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Servers;
 using NCode.Identity.OpenId.Management.Logging;
@@ -83,19 +84,23 @@ internal class ServerApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var servers = endpoints.MapGroup("/servers");
+        var servers = endpoints.MapGroup("/servers").WithTags("Servers");
 
-        servers.MapPost("", CreateServerAsync);
-        servers.MapGet("", ListServersAsync);
-        servers.MapGet("/{serverId}", GetServerAsync);
+        servers
+            .MapPost("", CreateServerAsync)
+            .Produces<ServerResource>(StatusCodes.Status201Created);
+        servers.MapGet("", ListServersAsync).Produces<CollectionResource<ServerResource>>();
+        servers.MapGet("/{serverId}", GetServerAsync).Produces<ServerResource>();
         servers.MapDelete("/{serverId}", DeleteServerAsync);
 
-        servers.MapGet("/{serverId}/settings", GetSettingsAsync);
+        servers.MapGet("/{serverId}/settings", GetSettingsAsync).Produces<ServerSettingsResource>();
         servers.MapPatch("/{serverId}/settings", UpdateSettingsAsync);
 
-        servers.MapGet("/{serverId}/secrets", GetSecretsAsync);
-        servers.MapPost("/{serverId}/secrets", CreateSecretAsync);
-        servers.MapGet("/{serverId}/secrets/{secretId}", GetSecretAsync);
+        servers.MapGet("/{serverId}/secrets", GetSecretsAsync).Produces<ServerSecretsResource>();
+        servers
+            .MapPost("/{serverId}/secrets", CreateSecretAsync)
+            .Produces<SecretResource>(StatusCodes.Status201Created);
+        servers.MapGet("/{serverId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
         servers.MapPut("/{serverId}/secrets/{secretId}", UpdateSecretAsync);
         servers.MapDelete("/{serverId}/secrets/{secretId}", DeleteSecretAsync);
     }

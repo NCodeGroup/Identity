@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Logging;
@@ -82,20 +83,24 @@ internal class TenantApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var tenants = endpoints.MapGroup("/tenants");
+        var tenants = endpoints.MapGroup("/tenants").WithTags("Tenants");
 
-        tenants.MapPost("", CreateTenantAsync);
-        tenants.MapGet("", ListTenantsAsync);
-        tenants.MapGet("/{tenantId}", GetTenantAsync);
+        tenants
+            .MapPost("", CreateTenantAsync)
+            .Produces<TenantResource>(StatusCodes.Status201Created);
+        tenants.MapGet("", ListTenantsAsync).Produces<CollectionResource<TenantResource>>();
+        tenants.MapGet("/{tenantId}", GetTenantAsync).Produces<TenantResource>();
         tenants.MapPatch("/{tenantId}", UpdateTenantAsync);
         tenants.MapDelete("/{tenantId}", DeleteTenantAsync);
 
-        tenants.MapGet("/{tenantId}/settings", GetSettingsAsync);
+        tenants.MapGet("/{tenantId}/settings", GetSettingsAsync).Produces<TenantSettingsResource>();
         tenants.MapPatch("/{tenantId}/settings", UpdateSettingsAsync);
 
-        tenants.MapGet("/{tenantId}/secrets", GetSecretsAsync);
-        tenants.MapPost("/{tenantId}/secrets", CreateSecretAsync);
-        tenants.MapGet("/{tenantId}/secrets/{secretId}", GetSecretAsync);
+        tenants.MapGet("/{tenantId}/secrets", GetSecretsAsync).Produces<TenantSecretsResource>();
+        tenants
+            .MapPost("/{tenantId}/secrets", CreateSecretAsync)
+            .Produces<SecretResource>(StatusCodes.Status201Created);
+        tenants.MapGet("/{tenantId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
         tenants.MapPut("/{tenantId}/secrets/{secretId}", UpdateSecretAsync);
         tenants.MapDelete("/{tenantId}/secrets/{secretId}", DeleteSecretAsync);
     }

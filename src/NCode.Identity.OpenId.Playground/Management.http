@@ -1,0 +1,27 @@
+@host = https://localhost:5001
+
+# NCode.Identity.OpenId management API — collection (list) endpoints.
+#
+# Pagination is keyset/cursor-based: pass '?limit=' to size the page (clamped to 100) and the
+# previous response's 'continuationToken' back as '?cursor=' to fetch the next page. A null
+# 'continuationToken' means there are no more pages.
+#
+# Authorization: in a Development build the global-admin check is bypassed (see GlobalAdminHandler
+# '#if DEBUG'), so these run without a token. A Release deployment requires a GlobalAdmin token
+# (servers, tenants) or a GlobalAdmin/TenantAdmin token for the request's tenant (clients).
+
+### List clients (first page) — scoped to the request's tenant
+GET {{host}}/clients?limit=50
+Accept: application/json
+
+### List clients (next page) — replace the cursor with the previous response's continuationToken
+GET {{host}}/clients?limit=50&cursor=REPLACE_WITH_continuationToken
+Accept: application/json
+
+### List servers (central-admin)
+GET {{host}}/servers?limit=50
+Accept: application/json
+
+### List tenants (central-admin)
+GET {{host}}/tenants?limit=50
+Accept: application/json

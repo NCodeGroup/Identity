@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Authorization;
+using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
@@ -53,9 +54,10 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
             serviceCollection.TryAddSingleton<IServerValidator, DefaultServerValidator>();
 
-            builder.AddEndpointProvider<ServerApiEndpointHandler>();
-            builder.AddEndpointProvider<TenantApiEndpointHandler>();
-            builder.AddEndpointProvider<ClientApiEndpointHandler>();
+            builder.AddEndpointGroupProvider<ManagementEndpointGroupProvider>();
+            builder.AddManagementEndpointProvider<ServerApiEndpointHandler>();
+            builder.AddManagementEndpointProvider<TenantApiEndpointHandler>();
+            builder.AddManagementEndpointProvider<ClientApiEndpointHandler>();
 
             return builder.NewBuilder<OpenIdManagementLibrary>();
         }

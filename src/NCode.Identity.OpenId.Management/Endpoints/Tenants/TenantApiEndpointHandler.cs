@@ -65,7 +65,7 @@ internal class TenantApiEndpointHandler(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ILogger<TenantApiEndpointHandler> logger
-) : BaseApiEndpointHandler, IEndpointProvider
+) : BaseApiEndpointHandler, IManagementEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ITenantValidator TenantValidator { get; } = tenantValidator;

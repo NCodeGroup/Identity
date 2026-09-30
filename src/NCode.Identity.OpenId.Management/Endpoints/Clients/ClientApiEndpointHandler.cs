@@ -67,7 +67,7 @@ internal class ClientApiEndpointHandler(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ILogger<ClientApiEndpointHandler> logger
-) : BaseApiEndpointHandler, IEndpointProvider
+) : BaseApiEndpointHandler, IManagementEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IClientValidator ClientValidator { get; } = clientValidator;

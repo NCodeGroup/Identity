@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -39,6 +40,7 @@ public sealed class DefaultClientValidatorTests : IDisposable
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
+    private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private DefaultClientValidator Validator { get; }
 
     public DefaultClientValidatorTests()
@@ -48,8 +50,15 @@ public sealed class DefaultClientValidatorTests : IDisposable
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
+        MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
 
-        Validator = new DefaultClientValidator(MockAuthorizationService.Object);
+        // By default the surface is unscoped (central-admin); specific tests opt into a tenant scope.
+        MockAmbientTenantAccessor.Setup(x => x.IsScoped).Returns(false);
+
+        Validator = new DefaultClientValidator(
+            MockAuthorizationService.Object,
+            MockAmbientTenantAccessor.Object
+        );
     }
 
     public void Dispose()
@@ -228,6 +237,24 @@ public sealed class DefaultClientValidatorTests : IDisposable
         );
 
         Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task ValidateCreateAsync_WhenScopedToOtherTenant_Returns404()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAmbientTenantAccessor.Setup(x => x.IsScoped).Returns(true);
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns("other-tenant");
+
+        var error = await Validator.ValidateCreateAsync(
+            CreateUser(authenticated: true),
+            CreateClient(),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status404NotFound, error.StatusCode);
     }
 
     #endregion

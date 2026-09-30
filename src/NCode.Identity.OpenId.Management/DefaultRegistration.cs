@@ -21,7 +21,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Authorization;
-using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
@@ -53,8 +52,6 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<ITenantValidator, DefaultTenantValidator>();
             serviceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
             serviceCollection.TryAddSingleton<IServerValidator, DefaultServerValidator>();
-
-            serviceCollection.TryAddSingleton<ITenantBoundary, DefaultTenantBoundary>();
 
             builder.AddEndpointProvider<ServerApiEndpointHandler>();
             builder.AddEndpointProvider<TenantApiEndpointHandler>();

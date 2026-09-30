@@ -13,10 +13,14 @@ change to the public API is a **major** version bump.
 - Shared tenant-resolution abstraction (`ITenantResolver` / `ITenantStrategy` / `TenantResolutionOptions` in
   `NCode.Identity.OpenId.Abstractions`, default implementation in `NCode.Identity.OpenId.Core`) so the OpenID runtime
   and the management API select the ambient tenant from a single source of truth. See
-  [ADR-0017](docs/adr/0017-tenant-resolution-shared-abstraction-and-management-boundary.md).
-- Optional tenant boundary for the management API (`ITenantBoundary`): when tenancy is request-derived
-  (dynamic-by-host / dynamic-by-path), client-scoped resources outside the request's tenant scope return `404`; tenant
-  and server administration remain central-admin (unscoped).
+  [ADR-0018](docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md).
+- Tenant-scoped data access for the management API: an `IAmbientTenantAccessor`
+  (`NCode.Identity.OpenId.Persistence.Abstractions`) plus an `OpenIdDbContext` global query filter on tenant-child
+  entities so that, when tenancy is request-derived (dynamic-by-host / dynamic-by-path), a resource outside the
+  request's tenant is never materialized (a cross-tenant read returns `404`, closing the fetch-then-reject leak
+  window). A reusable `TenantScopeEndpointFilter` establishes the scope; tenant and server administration remain
+  central-admin (unscoped). See
+  [ADR-0018](docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md).
 
 ### Changed
 

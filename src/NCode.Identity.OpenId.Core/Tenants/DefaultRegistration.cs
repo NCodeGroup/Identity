@@ -41,7 +41,7 @@ internal static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.TryAddSingleton<ITenantSelector, DefaultTenantSelector>();
+            serviceCollection.TryAddSingleton<ITenantResolver, DefaultTenantResolver>();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ITenantStrategy, StaticSingleTenantStrategy>()

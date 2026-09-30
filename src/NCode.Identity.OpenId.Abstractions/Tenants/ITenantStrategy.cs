@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Provides a single tenant-selection strategy (for example: static-single, dynamic-by-host, or dynamic-by-path).
-/// The <see cref="ITenantSelector"/> selects the active strategy by <see cref="StrategyCode"/> and delegates to it.
+/// The <see cref="ITenantResolver"/> selects the active strategy by <see cref="StrategyCode"/> and delegates to it.
 /// </summary>
 [PublicAPI]
 public interface ITenantStrategy

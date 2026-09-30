@@ -51,7 +51,7 @@ namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 /// production, where a stable, securely-managed signing key is required.
 /// </remarks>
 public sealed class EphemeralOpenIdTenantFactory(
-    ITenantSelector tenantSelector,
+    ITenantResolver tenantResolver,
     TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
     IStoreManagerFactory storeManagerFactory,
@@ -64,7 +64,7 @@ public sealed class EphemeralOpenIdTenantFactory(
     ISecretKeyFactory secretKeyFactory
 )
     : DefaultOpenIdTenantFactory(
-        tenantSelector,
+        tenantResolver,
         templateBinderFactory,
         optionsAccessor,
         storeManagerFactory,

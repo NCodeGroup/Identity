@@ -11,17 +11,17 @@
 # (servers, tenants) or a GlobalAdmin/TenantAdmin token for the request's tenant (clients).
 
 ### List clients (first page) — scoped to the request's tenant
-GET {{host}}/clients?limit=50
+GET {{host}}/api/clients?limit=50
 Accept: application/json
 
 ### List clients (next page) — replace the cursor with the previous response's continuationToken
-GET {{host}}/clients?limit=50&cursor=REPLACE_WITH_continuationToken
+GET {{host}}/api/clients?limit=50&cursor=REPLACE_WITH_continuationToken
 Accept: application/json
 
 ### List servers (central-admin)
-GET {{host}}/servers?limit=50
+GET {{host}}/api/servers?limit=50
 Accept: application/json
 
 ### List tenants (central-admin)
-GET {{host}}/tenants?limit=50
+GET {{host}}/api/tenants?limit=50
 Accept: application/json

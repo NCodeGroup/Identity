@@ -38,6 +38,9 @@ change to the public API is a **major** version bump.
   identifier: `CreateClientRequest.TenantId` is removed and the server derives the owning tenant from the request
   (resolved for every tenant strategy, static-single included). This removes the redundant, error-prone echo of a
   tenant the server already resolved.
+- The management API endpoints are now served under a shared top-level `/api` route group (`/api/clients`,
+  `/api/servers`, `/api/tenants`, …) via a `ManagementEndpointGroupProvider` ([ADR-0009](docs/adr/0009-endpoint-families-own-their-route-group.md)),
+  keeping them distinct from the OpenID protocol endpoints at the root.
 
 ### Fixed
 

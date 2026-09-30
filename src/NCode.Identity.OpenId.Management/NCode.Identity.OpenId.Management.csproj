@@ -12,7 +12,6 @@
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" />
-        <PackageReference Include="NCode.PropertyBag" />
         <PackageReference Include="SystemTextJsonPatch" />
     </ItemGroup>
 

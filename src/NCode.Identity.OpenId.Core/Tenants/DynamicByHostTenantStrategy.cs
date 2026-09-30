@@ -24,17 +24,16 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Results;
 using NCode.Persistence.Stores;
-using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Provides a tenant-resolution strategy that resolves the tenant dynamically from the request host.
+/// Provides a tenant-selection strategy that resolves the tenant dynamically from the request host.
 /// </summary>
-internal class DynamicByHostTenantResolverStrategy(
+internal class DynamicByHostTenantStrategy(
     IStoreManagerFactory storeManagerFactory,
     IOptions<TenantResolutionOptions> optionsAccessor
-) : TenantResolverStrategy(storeManagerFactory)
+) : TenantStrategy(storeManagerFactory)
 {
     private Regex? DomainNameRegex { get; set; }
 
@@ -42,15 +41,14 @@ internal class DynamicByHostTenantResolverStrategy(
         optionsAccessor.Value.DynamicByHost ?? new DynamicByHostTenantOptions();
 
     /// <inheritdoc />
-    public override string ProviderCode => OpenIdConstants.TenantProviderCodes.DynamicByHost;
+    public override string StrategyCode => OpenIdConstants.TenantStrategyCodes.DynamicByHost;
 
     /// <inheritdoc />
     protected override PathString TenantPath => Options.TenantPath;
 
     /// <inheritdoc />
-    public override async ValueTask<TenantDescriptor> ResolveDescriptorAsync(
+    public override async ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
-        IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
@@ -65,18 +63,11 @@ internal class DynamicByHostTenantResolverStrategy(
         var match = regex.Match(host);
         var domainName = match.Success ? match.Value : host;
 
-        var persistedTenant = await GetTenantByDomainAsync(
-            domainName,
-            propertyBag,
-            cancellationToken
-        );
-
-        return CreateDescriptor(persistedTenant);
+        return await GetTenantByDomainAsync(domainName, cancellationToken);
     }
 
     private async ValueTask<PersistedTenant> GetTenantByDomainAsync(
         string domainName,
-        IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
@@ -98,7 +89,6 @@ internal class DynamicByHostTenantResolverStrategy(
                 .NotFound()
                 .AsException($"The tenant with domain '{domainName}' is disabled.");
 
-        Stash(persistedTenant, propertyBag);
         return persistedTenant;
     }
 }

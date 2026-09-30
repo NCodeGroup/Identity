@@ -24,16 +24,14 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Results;
 using NCode.Persistence.Stores;
-using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Provides a common base implementation of the <see cref="ITenantResolverStrategy"/> abstraction, including
-/// route-pattern caching and tenant loading with a shared property-bag hand-off to materialization.
+/// Provides a common base implementation of the <see cref="ITenantStrategy"/> abstraction, including route-pattern
+/// caching and tenant loading with a <c>404</c> for a missing or disabled tenant.
 /// </summary>
-internal abstract class TenantResolverStrategy(IStoreManagerFactory storeManagerFactory)
-    : ITenantResolverStrategy
+internal abstract class TenantStrategy(IStoreManagerFactory storeManagerFactory) : ITenantStrategy
 {
     [MemberNotNullWhen(true, nameof(TenantRouteOrNull))]
     private bool TenantRouteHasValue { get; set; }
@@ -46,7 +44,7 @@ internal abstract class TenantResolverStrategy(IStoreManagerFactory storeManager
     protected IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
     /// <inheritdoc />
-    public abstract string ProviderCode { get; }
+    public abstract string StrategyCode { get; }
 
     /// <summary>
     /// Gets the relative base path for the tenant.
@@ -54,7 +52,7 @@ internal abstract class TenantResolverStrategy(IStoreManagerFactory storeManager
     protected abstract PathString TenantPath { get; }
 
     /// <inheritdoc />
-    public virtual RoutePattern GetTenantRoute(IPropertyBag propertyBag)
+    public virtual RoutePattern GetTenantRoute()
     {
         if (TenantRouteHasValue)
             return TenantRouteOrNull;
@@ -68,28 +66,20 @@ internal abstract class TenantResolverStrategy(IStoreManagerFactory storeManager
     }
 
     /// <inheritdoc />
-    public abstract ValueTask<TenantDescriptor> ResolveDescriptorAsync(
+    public abstract ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
-        IPropertyBag propertyBag,
         CancellationToken cancellationToken
     );
 
     /// <summary>
     /// Loads the <see cref="PersistedTenant"/> for the specified identifier, throwing <c>404</c> when it is missing
-    /// or disabled, and stashes it in the property bag for reuse during materialization.
+    /// or disabled.
     /// </summary>
     protected async ValueTask<PersistedTenant> GetTenantByIdAsync(
         string tenantId,
-        IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
-        if (
-            propertyBag.TryGet<PersistedTenant>(out var cached, tenantId)
-            && cached?.TenantId == tenantId
-        )
-            return cached;
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
@@ -105,28 +95,6 @@ internal abstract class TenantResolverStrategy(IStoreManagerFactory storeManager
                 .NotFound()
                 .AsException($"The tenant with identifier '{tenantId}' is disabled.");
 
-        Stash(persistedTenant, propertyBag);
         return persistedTenant;
     }
-
-    /// <summary>
-    /// Stashes the loaded <see cref="PersistedTenant"/> in the property bag so that materialization can reuse it
-    /// without a second store round-trip.
-    /// </summary>
-    protected static void Stash(PersistedTenant persistedTenant, IPropertyBag propertyBag)
-    {
-        propertyBag.Set(persistedTenant);
-        propertyBag.Set(persistedTenant, persistedTenant.TenantId);
-    }
-
-    /// <summary>
-    /// Creates a <see cref="TenantDescriptor"/> from a loaded <see cref="PersistedTenant"/>.
-    /// </summary>
-    protected static TenantDescriptor CreateDescriptor(PersistedTenant persistedTenant) =>
-        new()
-        {
-            TenantId = persistedTenant.TenantId,
-            DisplayName = persistedTenant.DisplayName,
-            DomainName = persistedTenant.DomainName,
-        };
 }

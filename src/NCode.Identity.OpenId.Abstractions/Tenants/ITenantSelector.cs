@@ -20,30 +20,27 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
-using NCode.PropertyBag;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Provides the ability to resolve the <see cref="TenantDescriptor"/> for the current HTTP request, independently
-/// of how the tenant is subsequently materialized. This is the low-level tenant-selection seam shared by the OpenID
-/// runtime (which materializes a full tenant on top of it) and the management API (which enforces a tenant boundary
-/// on top of it).
+/// Selects the tenant for the current HTTP request by choosing the configured <see cref="ITenantStrategy"/> and
+/// delegating to it. This is the low-level tenant-selection seam shared by the OpenID runtime (which materializes a
+/// full tenant on top of it) and the management API (which enforces a tenant boundary on top of it).
 /// </summary>
 [PublicAPI]
-public interface ITenantResolver
+public interface ITenantSelector
 {
     /// <summary>
-    /// Resolves the <see cref="TenantDescriptor"/> for the current HTTP request.
+    /// Resolves the <see cref="PersistedTenant"/> for the current HTTP request.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
-    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the resolved
-    /// <see cref="TenantDescriptor"/>, or <c>null</c> when no tenant boundary applies to the current request.</returns>
-    ValueTask<TenantDescriptor?> ResolveDescriptorAsync(
+    /// <see cref="PersistedTenant"/>.</returns>
+    ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
-        IPropertyBag propertyBag,
         CancellationToken cancellationToken
     );
 
@@ -51,7 +48,6 @@ public interface ITenantResolver
     /// Gets the <c>RoutePattern</c> for the tenant's relative base path. The pattern is empty when tenancy is not
     /// path-based.
     /// </summary>
-    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <returns>The <c>RoutePattern</c> instance for the tenant.</returns>
-    RoutePattern GetTenantRoute(IPropertyBag propertyBag);
+    RoutePattern GetTenantRoute();
 }

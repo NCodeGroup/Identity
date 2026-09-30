@@ -23,32 +23,30 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
-using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Provides a tenant-resolution strategy that always resolves the same single, statically-configured tenant,
+/// Provides a tenant-selection strategy that always resolves the same single, statically-configured tenant,
 /// provisioning an empty tenant on first use when one does not yet exist.
 /// </summary>
-internal class StaticSingleTenantResolverStrategy(
+internal class StaticSingleTenantStrategy(
     IStoreManagerFactory storeManagerFactory,
     IOptions<TenantResolutionOptions> optionsAccessor
-) : TenantResolverStrategy(storeManagerFactory)
+) : TenantStrategy(storeManagerFactory)
 {
     private StaticSingleTenantOptions Options =>
         optionsAccessor.Value.StaticSingle ?? new StaticSingleTenantOptions();
 
     /// <inheritdoc />
-    public override string ProviderCode => OpenIdConstants.TenantProviderCodes.StaticSingle;
+    public override string StrategyCode => OpenIdConstants.TenantStrategyCodes.StaticSingle;
 
     /// <inheritdoc />
     protected override PathString TenantPath => Options.TenantPath;
 
     /// <inheritdoc />
-    public override async ValueTask<TenantDescriptor> ResolveDescriptorAsync(
+    public override async ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
-        IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
@@ -58,29 +56,15 @@ internal class StaticSingleTenantResolverStrategy(
         if (string.IsNullOrEmpty(tenantId))
             tenantId = StaticSingleTenantOptions.DefaultTenantId;
 
-        var persistedTenant = await GetOrCreateTenantAsync(
-            tenantId,
-            options,
-            propertyBag,
-            cancellationToken
-        );
-
-        return CreateDescriptor(persistedTenant);
+        return await GetOrCreateTenantAsync(tenantId, options, cancellationToken);
     }
 
     private async ValueTask<PersistedTenant> GetOrCreateTenantAsync(
         string tenantId,
         StaticSingleTenantOptions options,
-        IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
-        if (
-            propertyBag.TryGet<PersistedTenant>(out var cached, tenantId)
-            && cached?.TenantId == tenantId
-        )
-            return cached;
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
@@ -92,7 +76,6 @@ internal class StaticSingleTenantResolverStrategy(
             await storeManager.SaveChangesAsync(cancellationToken);
         }
 
-        Stash(persistedTenant, propertyBag);
         return persistedTenant;
     }
 

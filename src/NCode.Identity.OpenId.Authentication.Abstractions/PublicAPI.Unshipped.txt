@@ -589,9 +589,6 @@ NCode.Identity.OpenId.Authentication.Tenants.OpenIdTenant.OpenIdTenant() -> void
 NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProvider
 NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProvider.GetTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Authentication.Servers.OpenIdServer! openIdServer, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Authentication.Tenants.OpenIdTenant!>>
 NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProvider.GetTenantRoute(NCode.PropertyBag.IPropertyBag! propertyBag) -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
-NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProvider.ProviderCode.get -> string!
-NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProviderSelector
-NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProviderSelector.SelectProvider(NCode.PropertyBag.IPropertyBag! propertyBag) -> NCode.Identity.OpenId.Authentication.Tenants.Providers.IOpenIdTenantProvider!
 NCode.Identity.OpenId.Authentication.Tokens.Commands.GetAccessTokenPayloadClaimsCommand
 NCode.Identity.OpenId.Authentication.Tokens.Commands.GetAccessTokenPayloadClaimsCommand.GetAccessTokenPayloadClaimsCommand() -> void
 NCode.Identity.OpenId.Authentication.Tokens.Commands.GetAccessTokenPayloadClaimsCommand.GetAccessTokenPayloadClaimsCommand(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityTokenContext TokenContext, System.Collections.Generic.IDictionary<string!, object!>! PayloadClaims) -> void

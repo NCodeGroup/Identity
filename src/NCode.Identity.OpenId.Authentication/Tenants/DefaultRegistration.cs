@@ -48,31 +48,7 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
 
-            serviceCollection.TryAddSingleton<
-                IOpenIdTenantProviderSelector,
-                DefaultOpenIdTenantProviderSelector
-            >();
-
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    IOpenIdTenantProvider,
-                    DefaultStaticSingleOpenIdTenantProvider
-                >()
-            );
-
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    IOpenIdTenantProvider,
-                    DefaultDynamicByHostOpenIdTenantProvider
-                >()
-            );
-
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    IOpenIdTenantProvider,
-                    DefaultDynamicByPathOpenIdTenantProvider
-                >()
-            );
+            serviceCollection.TryAddSingleton<IOpenIdTenantProvider, DefaultOpenIdTenantProvider>();
 
             return builder;
         }

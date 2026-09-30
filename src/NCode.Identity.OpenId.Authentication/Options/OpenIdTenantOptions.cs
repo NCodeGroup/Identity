@@ -18,12 +18,13 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Authentication.Tenants.Providers;
 
 namespace NCode.Identity.OpenId.Authentication.Options;
 
 /// <summary>
-/// Contains the options that are used to configure multi-tenancy support.
+/// Contains the options that are used to configure how a resolved tenant is materialized (settings/secrets refresh
+/// and caching). Tenant <em>selection</em> is configured separately via
+/// <see cref="NCode.Identity.OpenId.Tenants.TenantResolutionOptions"/>.
 /// </summary>
 [PublicAPI]
 public sealed class OpenIdTenantOptions
@@ -46,26 +47,4 @@ public sealed class OpenIdTenantOptions
     /// The default value is 4 hours.
     /// </summary>
     public TimeSpan TenantCacheExpiration { get; set; } = TimeSpan.FromHours(4.0);
-
-    /// <summary>
-    /// Gets or sets the provider code that is used to configure multi-tenancy.
-    /// This value is used to find the corresponding <see cref="IOpenIdTenantProvider"/>.
-    /// The default value is <see cref="StaticSingle"/>.
-    /// </summary>
-    public string ProviderCode { get; set; } = OpenIdConstants.TenantProviderCodes.StaticSingle;
-
-    /// <summary>
-    /// Gets or set the tenant options that are used when <see cref="ProviderCode"/> is set to <see cref="StaticSingle"/>.
-    /// </summary>
-    public StaticSingleOpenIdTenantOptions? StaticSingle { get; set; }
-
-    /// <summary>
-    /// Gets or set the tenant options that are used when <see cref="ProviderCode"/> is set to <see cref="DynamicByHost"/>.
-    /// </summary>
-    public DynamicByHostOpenIdTenantOptions? DynamicByHost { get; set; }
-
-    /// <summary>
-    /// Gets or set the tenant options that are used when <see cref="ProviderCode"/> is set to <see cref="DynamicByPath"/>.
-    /// </summary>
-    public DynamicByPathOpenIdTenantOptions? DynamicByPath { get; set; }
 }

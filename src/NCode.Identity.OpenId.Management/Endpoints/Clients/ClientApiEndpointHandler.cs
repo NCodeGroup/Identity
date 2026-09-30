@@ -579,13 +579,15 @@ internal class ClientApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
-        // Load the client's secrets, which carry the owning TenantId needed to scope authorization.
-        var clientSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
-        var secret = FindSecret(clientSecrets, secretId);
-        var scoped =
-            clientSecrets is null || secret is null
-                ? null
-                : TenantOwnedResource.For(clientSecrets.TenantId, secret);
+        // The discrete getter resolves the secret together with its owning TenantId, which scopes authorization.
+        var clientSecret = await store.GetSecretOrDefaultAsync(
+            clientId,
+            secretId,
+            cancellationToken
+        );
+        var scoped = clientSecret is null
+            ? null
+            : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
 
         return await ProcessGetAsync(
             httpContext,
@@ -619,16 +621,21 @@ internal class ClientApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
-        var clientSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
-        var secret = FindSecret(clientSecrets, secretId);
-        if (clientSecrets is null || secret is null)
+        var clientSecret = await store.GetSecretOrDefaultAsync(
+            clientId,
+            secretId,
+            cancellationToken
+        );
+        if (clientSecret is null)
         {
             return TypedResults.NotFound();
         }
 
+        var secret = clientSecret.Value;
+
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
-            TenantOwnedResource.For(clientSecrets.TenantId, secret),
+            TenantOwnedResource.For(clientSecret.TenantId, secret),
             Operations.Update
         );
 
@@ -683,16 +690,19 @@ internal class ClientApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
-        var clientSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
-        var secret = FindSecret(clientSecrets, secretId);
-        if (clientSecrets is null || secret is null)
+        var clientSecret = await store.GetSecretOrDefaultAsync(
+            clientId,
+            secretId,
+            cancellationToken
+        );
+        if (clientSecret is null)
         {
             return TypedResults.NotFound();
         }
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
-            TenantOwnedResource.For(clientSecrets.TenantId, secret),
+            TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value),
             Operations.Delete
         );
 
@@ -705,15 +715,5 @@ internal class ClientApiEndpointHandler(
         await storeManager.SaveChangesAsync(cancellationToken);
 
         return TypedResults.NoContent();
-    }
-
-    private static PersistedSecret? FindSecret(
-        PersistedClientSecrets? clientSecrets,
-        string secretId
-    )
-    {
-        return clientSecrets?.Value.SingleOrDefault(x =>
-            string.Equals(x.SecretId, secretId, StringComparison.OrdinalIgnoreCase)
-        );
     }
 }

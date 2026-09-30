@@ -169,6 +169,14 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             Value = secrets,
         };
 
+    private static PersistedClientSecret CreateClientSecret(string secretId = "secret-1") =>
+        new()
+        {
+            TenantId = TenantId,
+            ClientId = ClientId,
+            Value = CreatePersistedSecret(secretId),
+        };
+
     private static PersistedClient CreateClient(string concurrencyToken) =>
         new()
         {
@@ -475,8 +483,10 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockClientStore
-            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSecretsCollection("secrets-ct", CreatePersistedSecret()))
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ClientId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateClientSecret())
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
 
@@ -498,8 +508,10 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockClientStore
-            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSecretsCollection("secrets-ct"))
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ClientId, "missing", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync((PersistedClientSecret?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -519,8 +531,10 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockClientStore
-            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSecretsCollection("secrets-ct", CreatePersistedSecret()))
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ClientId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateClientSecret())
             .Verifiable();
         object? capturedResource = null;
         SetupAuthorizationCapture(resource => capturedResource = resource);
@@ -539,8 +553,10 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockClientStore
-            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSecretsCollection("secrets-ct", CreatePersistedSecret()))
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ClientId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateClientSecret())
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         MockClientStore
@@ -577,8 +593,10 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockClientStore
-            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSecretsCollection("secrets-ct", CreatePersistedSecret()))
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ClientId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateClientSecret())
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         MockClientStore
@@ -607,8 +625,10 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockClientStore
-            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSecretsCollection("secrets-ct"))
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ClientId, "missing", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync((PersistedClientSecret?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -628,8 +648,10 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockClientStore
-            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSecretsCollection("secrets-ct", CreatePersistedSecret()))
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ClientId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateClientSecret())
             .Verifiable();
         object? capturedResource = null;
         SetupAuthorizationCapture(resource => capturedResource = resource);

@@ -173,6 +173,55 @@ public sealed class ClientStoreSecretsTests : IDisposable
 
     #endregion
 
+    #region GetSecretOrDefaultAsync Tests
+
+    [Fact]
+    public async Task GetSecretOrDefaultAsync_WhenExists_ReturnsSecretWithOwningTenant()
+    {
+        await SeedClientAsync(CreateSecret("secret-1"), CreateSecret("secret-2"));
+
+        var result = await _store.GetSecretOrDefaultAsync(
+            ClientId,
+            "secret-2",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(result);
+        Assert.Equal(ClientId, result.ClientId);
+        Assert.Equal(TenantId, result.TenantId);
+        Assert.Equal("secret-2", result.Value.SecretId);
+    }
+
+    [Fact]
+    public async Task GetSecretOrDefaultAsync_WhenSecretMissing_ReturnsNull()
+    {
+        await SeedClientAsync(CreateSecret("secret-1"));
+
+        var result = await _store.GetSecretOrDefaultAsync(
+            ClientId,
+            "missing",
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetSecretOrDefaultAsync_WhenClientMissing_ReturnsNull()
+    {
+        await SeedClientAsync(CreateSecret("secret-1"));
+
+        var result = await _store.GetSecretOrDefaultAsync(
+            "missing",
+            "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+    }
+
+    #endregion
+
     #region AddSecretAsync Tests
 
     [Fact]

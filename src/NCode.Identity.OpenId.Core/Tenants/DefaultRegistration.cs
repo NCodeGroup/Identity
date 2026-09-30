@@ -19,7 +19,9 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Core.ResourceServers;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.ResourceServers;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Tenants;
@@ -48,6 +50,18 @@ internal static class DefaultRegistration
             >();
 
             serviceCollection.TryAddSingleton<ITenantResolver, DefaultTenantResolver>();
+
+            serviceCollection.TryAddSingleton<
+                ISystemResourceServerSeeder,
+                DefaultSystemResourceServerSeeder
+            >();
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ISystemResourceServerProvider,
+                    DefaultOpenIdIdentityResourceServerProvider
+                >()
+            );
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ITenantStrategy, StaticSingleTenantStrategy>()

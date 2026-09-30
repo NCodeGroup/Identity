@@ -368,6 +368,24 @@ NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes
 NCode.Identity.OpenId.OpenIdConstants.SubjectTypes
 NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes
 NCode.Identity.OpenId.OpenIdConstants.TokenTypes
+NCode.Identity.OpenId.ResourceServers.ISystemResourceServerProvider
+NCode.Identity.OpenId.ResourceServers.ISystemResourceServerProvider.GetDescriptor() -> NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor!
+NCode.Identity.OpenId.ResourceServers.ISystemResourceServerSeeder
+NCode.Identity.OpenId.ResourceServers.ISystemResourceServerSeeder.SeedAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Identifier.get -> string!
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Identifier.init -> void
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Name.get -> string!
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Name.init -> void
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Scopes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor!>!
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Scopes.init -> void
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.SystemResourceServerDescriptor() -> void
+NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor
+NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.Description.get -> string?
+NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.Description.init -> void
+NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.SystemScopeDescriptor() -> void
+NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.Value.get -> string!
+NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.Value.init -> void
 NCode.Identity.OpenId.Results.OpenIdRedirectResult
 NCode.Identity.OpenId.Results.OpenIdRedirectResult.AjaxStatusCode.get -> int?
 NCode.Identity.OpenId.Results.OpenIdRedirectResult.AjaxStatusCode.init -> void

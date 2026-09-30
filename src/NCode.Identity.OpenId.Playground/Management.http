@@ -9,6 +9,17 @@
 # Authorization: in a Development build the global-admin check is bypassed (see GlobalAdminHandler
 # '#if DEBUG'), so these run without a token. A Release deployment requires a GlobalAdmin token
 # (servers, tenants) or a GlobalAdmin/TenantAdmin token for the request's tenant (clients).
+#
+# First-run bootstrap: the OpenID server and the static-single tenant are provisioned LAZILY by the
+# OpenID runtime on first resolution, not at startup and not by these management endpoints (the list
+# endpoints only read the store). On a fresh database 'GET /api/servers' and 'GET /api/tenants'
+# therefore return empty until something resolves them. Invoke the discovery endpoint below once to
+# build an OpenIdContext, which materializes the server (DefaultOpenIdServerFactory) and the tenant
+# (StaticSingleTenantStrategy); after that they appear in the corresponding list endpoints.
+
+### Discovery — materializes the server + static-single tenant on first call (run this before the lists)
+GET {{host}}/.well-known/openid-configuration
+Accept: application/json
 
 ### List clients (first page) — scoped to the request's tenant
 GET {{host}}/api/clients?limit=50

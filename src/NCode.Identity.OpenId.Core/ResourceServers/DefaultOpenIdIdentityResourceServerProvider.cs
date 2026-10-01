@@ -25,16 +25,11 @@ namespace NCode.Identity.OpenId.Core.ResourceServers;
 /// </summary>
 internal class DefaultOpenIdIdentityResourceServerProvider : ISystemResourceServerProvider
 {
-    /// <summary>
-    /// The reserved audience identifier for the OpenID Connect identity resource server.
-    /// </summary>
-    public const string Identifier = "urn:ncode:openid";
-
     /// <inheritdoc />
     public SystemResourceServerDescriptor GetDescriptor() =>
         new()
         {
-            Identifier = Identifier,
+            Identifier = OpenIdConstants.SystemResourceServerIdentifiers.OpenId,
             Name = "OpenID Connect",
             Scopes =
             [

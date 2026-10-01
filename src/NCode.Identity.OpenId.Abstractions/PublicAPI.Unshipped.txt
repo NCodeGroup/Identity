@@ -178,6 +178,7 @@ const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.IdToken = "id_tok
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.RefreshToken = "refresh_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SubjectTypes.Pairwise = "pairwise" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SubjectTypes.Public = "public" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers.OpenId = "urn:ncode:openid" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes.DynamicByHost = "DynamicByHost" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes.DynamicByPath = "DynamicByPath" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes.StaticSingle = "StaticSingle" -> string!
@@ -366,6 +367,7 @@ NCode.Identity.OpenId.OpenIdConstants.ResponseTypes
 NCode.Identity.OpenId.OpenIdConstants.ScopeTypes
 NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes
 NCode.Identity.OpenId.OpenIdConstants.SubjectTypes
+NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers
 NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes
 NCode.Identity.OpenId.OpenIdConstants.TokenTypes
 NCode.Identity.OpenId.ResourceServers.ISystemResourceServerProvider

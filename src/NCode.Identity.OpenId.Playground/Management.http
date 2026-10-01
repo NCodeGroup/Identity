@@ -72,6 +72,34 @@ Accept: application/json
 ### Delete a resource server (409 when it is a system resource server or still has client grants)
 DELETE {{host}}/api/resource-servers/REPLACE_WITH_ResourceServerId
 
+### List a client's grants (its authorizations to resource servers) — first page
+GET {{host}}/api/clients/REPLACE_WITH_ClientId/grants?limit=50
+Accept: application/json
+
+### Grant a client access to a resource server with a subset of its scopes (422 when a scope is not defined on the API)
+POST {{host}}/api/clients/REPLACE_WITH_ClientId/grants
+Content-Type: application/json
+
+{
+  "resourceServerId": "REPLACE_WITH_ResourceServerId",
+  "scopes": ["read:messages"]
+}
+
+### Get a client's grant to a specific resource server
+GET {{host}}/api/clients/REPLACE_WITH_ClientId/grants/REPLACE_WITH_ResourceServerId
+Accept: application/json
+
+### Replace the granted scopes for a client's grant (422 when a scope is not defined on the API) — returns 204
+PUT {{host}}/api/clients/REPLACE_WITH_ClientId/grants/REPLACE_WITH_ResourceServerId
+Content-Type: application/json
+
+{
+  "scopes": ["read:messages", "write:messages"]
+}
+
+### Revoke a client's grant to a resource server — returns 204
+DELETE {{host}}/api/clients/REPLACE_WITH_ClientId/grants/REPLACE_WITH_ResourceServerId
+
 ### List grants (first page) — scoped to the request's tenant
 GET {{host}}/api/grants?limit=50
 Accept: application/json

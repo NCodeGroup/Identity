@@ -17,11 +17,9 @@
 #endregion
 
 using System.Security.Claims;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
@@ -33,43 +31,45 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 
-public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
+public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
 {
     private const string TenantId = "tenant-1";
+    private const string ClientId = "client-1";
     private const string ResourceServerId = "rs-1";
 
     private MockRepository MockRepository { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
-    private Mock<IResourceServerStore> MockStore { get; }
+    private Mock<IClientGrantStore> MockStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
-    private Mock<IResourceServerValidator> MockValidator { get; }
+    private Mock<IClientGrantValidator> MockValidator { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
-    private ResourceServerApiEndpointHandler Handler { get; }
+    private ClientGrantApiEndpointHandler Handler { get; }
 
-    public ResourceServerApiEndpointHandlerTests()
+    public ClientGrantApiEndpointHandlerTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
-        MockStore = MockRepository.Create<IResourceServerStore>();
+        MockStore = MockRepository.Create<IClientGrantStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
-        MockValidator = MockRepository.Create<IResourceServerValidator>();
+        MockValidator = MockRepository.Create<IClientGrantValidator>();
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
 
-        Handler = new ResourceServerApiEndpointHandler(
+        Handler = new ClientGrantApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockValidator.Object,
             MockAmbientTenantAccessor.Object,
-            MockCryptoService.Object,
-            NullLogger<ResourceServerApiEndpointHandler>.Instance
+            MockCryptoService.Object
         );
     }
 
     public void Dispose() => MockRepository.Verify();
+
+    #region Helpers
 
     private void SetupStore()
     {
@@ -78,7 +78,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(MockStoreManager.Object)
             .Verifiable();
         MockStoreManager
-            .Setup(x => x.GetStore<IResourceServerStore>())
+            .Setup(x => x.GetStore<IClientGrantStore>())
             .Returns(MockStore.Object)
             .Verifiable();
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
@@ -104,22 +104,17 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             User = new ClaimsPrincipal(new ClaimsIdentity(authenticationType: "test")),
         };
 
-    private static PersistedResourceServer CreateResourceServer(
-        bool isSystem = false,
-        params PersistedScope[] scopes
-    ) =>
+    private static PersistedClientGrant CreateGrant() =>
         new()
         {
             TenantId = TenantId,
+            ClientId = ClientId,
             ResourceServerId = ResourceServerId,
-            Identifier = "https://api.example.com",
-            ConcurrencyToken = "rs-ct",
-            Name = "Example API",
-            IsSystem = isSystem,
-            IsDisabled = false,
-            Settings = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            Scopes = scopes,
+            ConcurrencyToken = "grant-ct",
+            Scopes = ["read:messages"],
         };
+
+    #endregion
 
     [Fact]
     public async Task ListAsync_WhenAuthorized_ReturnsPage()
@@ -128,43 +123,36 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
-            .Setup(x => x.GetPageAsync(null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.GetPageAsync(ClientId, null, It.IsAny<int>(), It.IsAny<CancellationToken>())
+            )
             .ReturnsAsync(
-                new PagedResult<PersistedResourceServer>
-                {
-                    Items = [CreateResourceServer()],
-                    NextCursor = null,
-                }
+                new PagedResult<PersistedClientGrant> { Items = [CreateGrant()], NextCursor = null }
             )
             .Verifiable();
 
         var result = await Handler.ListAsync(
             CreateHttpContext(),
+            ClientId,
             null,
             null,
             CancellationToken.None
         );
 
-        var json = Assert.IsType<JsonHttpResult<CollectionResource<ResourceServerResource>>>(
-            result
-        );
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<ClientGrantResource>>>(result);
         Assert.Single(json.Value!.Items);
     }
 
     [Fact]
-    public async Task CreateAsync_WhenAuthorized_ReturnsCreated()
+    public async Task CreateAsync_WhenValid_ReturnsCreated()
     {
         MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
-        MockCryptoService
-            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
-            .Returns("generated-rs-id")
-            .Verifiable();
         SetupStore();
         MockValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
                     It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedResourceServer>(),
+                    It.IsAny<PersistedClientGrant>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )
@@ -172,9 +160,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .ReturnsAsync((ManagementError?)null)
             .Verifiable();
         MockStore
-            .Setup(x =>
-                x.AddAsync(It.IsAny<PersistedResourceServer>(), It.IsAny<CancellationToken>())
-            )
+            .Setup(x => x.AddAsync(It.IsAny<PersistedClientGrant>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockStoreManager
@@ -182,37 +168,33 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var request = new CreateResourceServerRequest
+        var request = new CreateClientGrantRequest
         {
-            Identifier = "https://api.example.com",
-            Name = "Example API",
-            IsDisabled = false,
-            Settings = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            ResourceServerId = ResourceServerId,
+            Scopes = ["read:messages"],
         };
 
         var result = await Handler.CreateAsync(
             CreateHttpContext(),
+            ClientId,
             request,
             CancellationToken.None
         );
 
-        var created = Assert.IsType<Created<ResourceServerResource>>(result);
-        Assert.Equal("generated-rs-id", created.Value?.ResourceServerId);
+        var created = Assert.IsType<Created<ClientGrantResource>>(result);
+        Assert.Equal(ResourceServerId, created.Value?.ResourceServerId);
     }
 
     [Fact]
-    public async Task DeleteAsync_WhenSystem_ReturnsConflict()
+    public async Task CreateAsync_WhenScopeUnknown_ReturnsUnprocessableEntity()
     {
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupStore();
-        MockStore
-            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateResourceServer(isSystem: true))
-            .Verifiable();
         MockValidator
             .Setup(x =>
-                x.ValidateDeleteAsync(
+                x.ValidateCreateAsync(
                     It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedResourceServer>(),
+                    It.IsAny<PersistedClientGrant>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )
@@ -220,54 +202,66 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(
                 new ManagementError
                 {
-                    StatusCode = StatusCodes.Status409Conflict,
-                    Detail = "A reserved system resource server cannot be deleted.",
+                    StatusCode = StatusCodes.Status422UnprocessableEntity,
+                    Detail = "The following scopes are not defined on the resource server: x.",
                 }
             )
             .Verifiable();
 
-        var result = await Handler.DeleteAsync(
+        var request = new CreateClientGrantRequest
+        {
+            ResourceServerId = ResourceServerId,
+            Scopes = ["x"],
+        };
+
+        var result = await Handler.CreateAsync(
             CreateHttpContext(),
-            ResourceServerId,
+            ClientId,
+            request,
             CancellationToken.None
         );
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
-        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(StatusCodes.Status422UnprocessableEntity, problem.StatusCode);
     }
 
     [Fact]
-    public async Task CreateScopeAsync_WhenAuthorized_ReturnsCreated()
+    public async Task DeleteAsync_WhenValid_ReturnsNoContent()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
-            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateResourceServer())
-            .Verifiable();
-        MockStore
             .Setup(x =>
-                x.AddScopeAsync(
-                    ResourceServerId,
-                    It.IsAny<PersistedScope>(),
+                x.GetOrDefaultAsync(ClientId, ResourceServerId, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateGrant())
+            .Verifiable();
+        MockValidator
+            .Setup(x =>
+                x.ValidateDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedClientGrant>(),
+                    MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        MockStore
+            .Setup(x => x.RemoveAsync(ClientId, ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
             .Verifiable();
         MockStoreManager
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var result = await Handler.CreateScopeAsync(
+        var result = await Handler.DeleteAsync(
             CreateHttpContext(),
+            ClientId,
             ResourceServerId,
-            new CreateScopeRequest { Value = "read:x", Description = "Read." },
             CancellationToken.None
         );
 
-        var created = Assert.IsType<Created<ScopeResource>>(result);
-        Assert.Equal("read:x", created.Value?.Value);
+        Assert.IsType<NoContent>(result);
     }
 }

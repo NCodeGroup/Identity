@@ -69,6 +69,24 @@ NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.GrantRevocationResult() -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.Revoked.get -> long
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.Revoked.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ClientGrantResource() -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ClientId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ClientId.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ResourceServerId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ResourceServerId.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.Scopes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.Scopes.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateClientGrantRequest
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateClientGrantRequest.CreateClientGrantRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateClientGrantRequest.ResourceServerId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateClientGrantRequest.ResourceServerId.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateClientGrantRequest.Scopes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateClientGrantRequest.Scopes.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest.CreateResourceServerRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest.Identifier.get -> string!
@@ -113,6 +131,10 @@ NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource.IsSyste
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource.ScopeResource() -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource.Value.get -> string!
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource.Value.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateClientGrantRequest
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateClientGrantRequest.Scopes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateClientGrantRequest.Scopes.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateClientGrantRequest.UpdateClientGrantRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.IsDisabled.set -> void
@@ -239,6 +261,14 @@ NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator
 NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator
+NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant! grant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant! grant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant! grant, System.Collections.Generic.IReadOnlyList<string!>! scopes, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator
+NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator
 NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! server, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! server, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>

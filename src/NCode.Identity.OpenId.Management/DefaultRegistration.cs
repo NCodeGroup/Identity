@@ -55,6 +55,11 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<ITenantValidator, DefaultTenantValidator>();
             serviceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
             serviceCollection.TryAddSingleton<IServerValidator, DefaultServerValidator>();
+            serviceCollection.TryAddSingleton<
+                IResourceServerValidator,
+                DefaultResourceServerValidator
+            >();
+            serviceCollection.TryAddSingleton<IClientGrantValidator, DefaultClientGrantValidator>();
 
             builder.AddEndpointGroupProvider<ManagementEndpointGroupProvider>();
             builder.AddManagementEndpointProvider<ServerApiEndpointHandler>();
@@ -62,6 +67,7 @@ public static class DefaultRegistration
             builder.AddManagementEndpointProvider<ClientApiEndpointHandler>();
             builder.AddManagementEndpointProvider<GrantApiEndpointHandler>();
             builder.AddManagementEndpointProvider<ResourceServerApiEndpointHandler>();
+            builder.AddManagementEndpointProvider<ClientGrantApiEndpointHandler>();
 
             return builder.NewBuilder<OpenIdManagementLibrary>();
         }

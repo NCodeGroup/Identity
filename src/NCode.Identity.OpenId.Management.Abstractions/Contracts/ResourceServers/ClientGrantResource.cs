@@ -16,45 +16,39 @@
 
 #endregion
 
-using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Persistence.DataContracts;
+namespace NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 
 /// <summary>
-/// Contains the data for a persisted client grant (in Auth0 terms): a client's authorization to a resource server
+/// Represents the REST resource for a client grant (in Auth0 terms): a client's authorization to a resource server
 /// with a set of granted scopes.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PersistedClientGrant : ISupportTenantId, ISupportConcurrencyToken
+public sealed class ClientGrantResource : ISupportTenantId, ISupportConcurrencyToken
 {
-    /// <summary>
-    /// Gets or sets the identifier of the tenant that owns this client grant.
-    /// </summary>
-    [MaxLength(MaxLengths.ResourceId)]
+    /// <inheritdoc cref="ISupportTenantId.TenantId"/>
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the identifier of the authorized client.
+    /// Gets the identifier of the authorized client.
     /// </summary>
-    [MaxLength(MaxLengths.ResourceId)]
     public required string ClientId { get; init; }
 
     /// <summary>
-    /// Gets or sets the identifier of the resource server the client is authorized to.
+    /// Gets the identifier of the resource server the client is authorized to.
     /// </summary>
-    [MaxLength(MaxLengths.ResourceId)]
     public required string ResourceServerId { get; init; }
 
-    /// <inheritdoc />
-    [MaxLength(MaxLengths.ConcurrencyToken)]
-    public required string ConcurrencyToken { get; set; }
+    /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
+    public required string ConcurrencyToken { get; init; }
 
     /// <summary>
-    /// Gets or sets the granted scope values.
+    /// Gets the granted scope values.
     /// </summary>
-    public required IReadOnlyList<string> Scopes { get; set; }
+    public required IReadOnlyList<string> Scopes { get; init; }
 }

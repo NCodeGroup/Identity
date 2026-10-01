@@ -134,6 +134,34 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ResourceServerEntity.
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ResourceServerEntity.Tenant.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ResourceServerEntity.TenantId.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ResourceServerEntity.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.AssignmentId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.AssignmentId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.NormalizedAssignmentId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.NormalizedAssignmentId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.NormalizedPrincipalId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.NormalizedPrincipalId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.NormalizedResourceId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.NormalizedResourceId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.NormalizedRoleName.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.NormalizedRoleName.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.PrincipalId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.PrincipalId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.ResourceId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.ResourceId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.ResourceType.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.ResourceType.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.RoleAssignmentEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.RoleName.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.RoleName.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.Tenant.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.TenantId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity.TenantId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ScopeEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ScopeEntity.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ScopeEntity.ConcurrencyToken.set -> void
@@ -256,6 +284,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Grants.get -> 
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.NormalizedAmbientTenantId.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.OpenIdDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext!>! options, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor? ambientTenantAccessor = null) -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.ResourceServers.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ResourceServerEntity!>!
+NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.RoleAssignments.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity!>!
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Scopes.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ScopeEntity!>!
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Secrets.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity!>!
 NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext.Servers.get -> Microsoft.EntityFrameworkCore.DbSet<NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity!>!

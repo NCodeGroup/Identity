@@ -58,12 +58,14 @@ DELETE api/resource-servers/{resourceServerId}/scopes/{scopeValue}
 internal class ResourceServerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
+    IResourceServerValidator resourceServerValidator,
     IAmbientTenantAccessor ambientTenantAccessor,
     ICryptoService cryptoService,
     ILogger<ResourceServerApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IManagementEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IResourceServerValidator ResourceServerValidator { get; } = resourceServerValidator;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private ILogger<ResourceServerApiEndpointHandler> Logger { get; } = logger;
 
@@ -192,17 +194,6 @@ internal class ResourceServerApiEndpointHandler(
     {
         var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            new TenantScopeResource(tenantId),
-            Operations.Create
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IResourceServerStore>();
 
@@ -221,19 +212,20 @@ internal class ResourceServerApiEndpointHandler(
             Scopes = [],
         };
 
-        try
+        // Core preconditions (authorization + identifier uniqueness) are asserted by the validator (ADR-0014).
+        var error = await ResourceServerValidator.ValidateCreateAsync(
+            httpContext.User,
+            resourceServer,
+            storeManager,
+            cancellationToken
+        );
+        if (error is not null)
         {
-            await store.AddAsync(resourceServer, cancellationToken);
-            await storeManager.SaveChangesAsync(cancellationToken);
+            return ToErrorResult(error);
         }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A resource server with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
+
+        await store.AddAsync(resourceServer, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
 
         httpContext.Response.Headers.ETag = resourceServer.ConcurrencyToken;
         return TypedResults.Created(
@@ -262,15 +254,15 @@ internal class ResourceServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+        var error = await ResourceServerValidator.ValidateUpdateAsync(
             httpContext.User,
-            ToResourceServerResource(resourceServer),
-            Operations.Update
+            resourceServer,
+            storeManager,
+            cancellationToken
         );
-
-        if (!authorizationResult.Succeeded)
+        if (error is not null)
         {
-            return AuthorizationFailed(httpContext);
+            return ToErrorResult(error);
         }
 
         var model = new UpdateResourceServerRequest
@@ -323,30 +315,19 @@ internal class ResourceServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+        var error = await ResourceServerValidator.ValidateDeleteAsync(
             httpContext.User,
-            ToResourceServerResource(resourceServer),
-            Operations.Delete
+            resourceServer,
+            storeManager,
+            cancellationToken
         );
-
-        if (!authorizationResult.Succeeded)
+        if (error is not null)
         {
-            return AuthorizationFailed(httpContext);
+            return ToErrorResult(error);
         }
 
-        try
-        {
-            await store.RemoveAsync(resourceServerId, cancellationToken);
-            await storeManager.SaveChangesAsync(cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: exception.Message,
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
+        await store.RemoveAsync(resourceServerId, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
 
         return TypedResults.NoContent();
     }

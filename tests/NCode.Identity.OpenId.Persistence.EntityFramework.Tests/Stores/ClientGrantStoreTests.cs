@@ -215,4 +215,33 @@ public sealed class ClientGrantStoreTests : IDisposable
         );
         Assert.Null(reloaded);
     }
+
+    [Fact]
+    public async Task HasDependentsAsync_WhenGrantExists_ReturnsTrue()
+    {
+        await SeedAsync();
+        await _store.AddAsync(CreateGrant("read:x"), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var hasDependents = await _resourceServerStore.HasDependentsAsync(
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        Assert.True(hasDependents);
+    }
+
+    [Fact]
+    public async Task HasDependentsAsync_WhenNoGrant_ReturnsFalse()
+    {
+        await SeedAsync();
+
+        var hasDependents = await _resourceServerStore.HasDependentsAsync(
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        Assert.False(hasDependents);
+    }
 }

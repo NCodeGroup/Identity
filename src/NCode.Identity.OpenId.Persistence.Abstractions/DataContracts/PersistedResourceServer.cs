@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PersistedResourceServer : ISupportConcurrencyToken
+public sealed class PersistedResourceServer : ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the identifier of the tenant that owns this resource server.

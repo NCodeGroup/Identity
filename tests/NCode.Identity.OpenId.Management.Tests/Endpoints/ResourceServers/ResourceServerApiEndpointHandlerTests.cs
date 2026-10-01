@@ -43,6 +43,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IResourceServerStore> MockStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
+    private Mock<IResourceServerValidator> MockValidator { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private ResourceServerApiEndpointHandler Handler { get; }
@@ -54,12 +55,14 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockStore = MockRepository.Create<IResourceServerStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
+        MockValidator = MockRepository.Create<IResourceServerValidator>();
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
 
         Handler = new ResourceServerApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
+            MockValidator.Object,
             MockAmbientTenantAccessor.Object,
             MockCryptoService.Object,
             NullLogger<ResourceServerApiEndpointHandler>.Instance
@@ -152,12 +155,22 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     public async Task CreateAsync_WhenAuthorized_ReturnsCreated()
     {
         MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
-        SetupAuthorization(AuthorizationResult.Success());
         MockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
             .Returns("generated-rs-id")
             .Verifiable();
         SetupStore();
+        MockValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedResourceServer>(),
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
         MockStore
             .Setup(x =>
                 x.AddAsync(It.IsAny<PersistedResourceServer>(), It.IsAny<CancellationToken>())
@@ -190,15 +203,27 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteAsync_WhenSystem_ReturnsConflict()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
             .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateResourceServer(isSystem: true))
             .Verifiable();
-        MockStore
-            .Setup(x => x.RemoveAsync(ResourceServerId, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("system"))
+        MockValidator
+            .Setup(x =>
+                x.ValidateDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedResourceServer>(),
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = "A reserved system resource server cannot be deleted.",
+                }
+            )
             .Verifiable();
 
         var result = await Handler.DeleteAsync(

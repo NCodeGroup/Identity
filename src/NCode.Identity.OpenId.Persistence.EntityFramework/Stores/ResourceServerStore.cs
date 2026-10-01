@@ -228,6 +228,19 @@ internal class ResourceServerStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<bool> HasDependentsAsync(
+        string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedResourceServerId = Normalize(resourceServerId);
+        return await DbContext.ClientGrants.AnyAsync(
+            grant => grant.ResourceServer.NormalizedResourceServerId == normalizedResourceServerId,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
     public async ValueTask RemoveAsync(string resourceServerId, CancellationToken cancellationToken)
     {
         var resourceServerEntity = await GetEntityOrDefaultAsync(

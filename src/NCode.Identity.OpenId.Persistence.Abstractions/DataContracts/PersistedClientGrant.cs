@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PersistedClientGrant : ISupportConcurrencyToken
+public sealed class PersistedClientGrant : ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets or sets the identifier of the tenant that owns this client grant.

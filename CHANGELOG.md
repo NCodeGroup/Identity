@@ -41,7 +41,11 @@ change to the public API is a **major** version bump.
   scopes. Adds the persistence model (`ResourceServerEntity` / `ScopeEntity` / `ClientGrantEntity`, DTOs,
   `IResourceServerStore` / `IClientGrantStore`), seeds a reserved OpenID Connect system resource server
   (`urn:ncode:openid`) with the standard scopes into each tenant via `ISystemResourceServerProvider`, and the
-  management surface `GET/POST/GET/PATCH/DELETE api/resource-servers` plus the `/{id}/scopes` sub-resource. System
+  management surface `GET/POST/GET/PATCH/DELETE api/resource-servers` plus the `/{id}/scopes` sub-resource, and the
+  nested `GET/POST/GET/PUT/DELETE api/clients/{clientId}/grants[/{resourceServerId}]` client-grant surface. Granted
+  scopes are validated (write-time) against the target resource server's scopes. Core preconditions for both surfaces
+  are asserted up-front by replaceable validators (`IResourceServerValidator` / `IClientGrantValidator`), consistent
+  with the existing client/server/tenant validators. System
   resource servers and scopes cannot be deleted. See [ADR-0023](docs/adr/0023-scopes-and-resources-management-model.md)
   and [ADR-0024](docs/adr/0024-control-plane-and-per-tenant-planes.md).
 - A persistent developer-keys opt-in for the Playground, `AddDeveloperSigningKey(...)`, that seeds an `RSA` signing key

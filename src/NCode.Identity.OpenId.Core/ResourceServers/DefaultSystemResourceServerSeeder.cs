@@ -18,26 +18,32 @@
 
 using System.Collections.Immutable;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.ResourceServers;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Core.ResourceServers;
 
 /// <summary>
 /// Provides a default implementation of <see cref="ISystemResourceServerSeeder"/> that seeds every registered
-/// <see cref="ISystemResourceServerProvider"/> into a tenant.
+/// <see cref="ISystemResourceServerProvider"/> whose <see cref="SystemResourceServerDescriptor.Plane"/> applies to
+/// the tenant being seeded. Control-plane providers are seeded only into the root tenant
+/// (<see href="../../../docs/adr/0024-control-plane-and-per-tenant-planes.md">ADR-0024</see>).
 /// </summary>
 internal class DefaultSystemResourceServerSeeder(
     IStoreManagerFactory storeManagerFactory,
     ICryptoService cryptoService,
+    IOptions<TenantResolutionOptions> optionsAccessor,
     IEnumerable<ISystemResourceServerProvider> providers
 ) : ISystemResourceServerSeeder
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ICryptoService CryptoService { get; } = cryptoService;
+    private IOptions<TenantResolutionOptions> OptionsAccessor { get; } = optionsAccessor;
     private ImmutableArray<ISystemResourceServerProvider> Providers { get; } = [.. providers];
 
     /// <inheritdoc />
@@ -48,13 +54,29 @@ internal class DefaultSystemResourceServerSeeder(
             return;
         }
 
+        var isRootTenant = string.Equals(
+            tenantId,
+            OptionsAccessor.Value.RootTenantId,
+            StringComparison.Ordinal
+        );
+
+        var applicable = Providers
+            .Select(provider => provider.GetDescriptor())
+            .Where(descriptor =>
+                descriptor.Plane != SystemResourceServerPlane.Control || isRootTenant
+            )
+            .ToList();
+
+        if (applicable.Count == 0)
+        {
+            return;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IResourceServerStore>();
 
-        foreach (var provider in Providers)
+        foreach (var descriptor in applicable)
         {
-            var descriptor = provider.GetDescriptor();
-
             var resourceServer = new PersistedResourceServer
             {
                 TenantId = tenantId,

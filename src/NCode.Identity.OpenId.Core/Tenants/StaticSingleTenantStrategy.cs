@@ -37,11 +37,15 @@ internal class StaticSingleTenantStrategy(
     ISystemResourceServerSeeder systemResourceServerSeeder
 ) : TenantStrategy(storeManagerFactory)
 {
+    private const string RootDisplayName = "Root Tenant";
+
     private ISystemResourceServerSeeder SystemResourceServerSeeder { get; } =
         systemResourceServerSeeder;
 
     private StaticSingleTenantOptions Options =>
         optionsAccessor.Value.StaticSingle ?? new StaticSingleTenantOptions();
+
+    private string RootTenantId => optionsAccessor.Value.RootTenantId;
 
     /// <inheritdoc />
     public override string StrategyCode => OpenIdConstants.TenantStrategyCodes.StaticSingle;
@@ -61,22 +65,47 @@ internal class StaticSingleTenantStrategy(
         if (string.IsNullOrEmpty(tenantId))
             tenantId = StaticSingleTenantOptions.DefaultTenantId;
 
-        return await GetOrCreateTenantAsync(tenantId, options, cancellationToken);
-    }
+        var displayName = options.DisplayName;
+        if (string.IsNullOrEmpty(displayName))
+            displayName = StaticSingleTenantOptions.DefaultDisplayName;
 
-    private async ValueTask<PersistedTenant> GetOrCreateTenantAsync(
-        string tenantId,
-        StaticSingleTenantOptions options,
-        CancellationToken cancellationToken
-    )
-    {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
+        // The root (control-plane) tenant must exist so that its control-plane management resource server is seeded,
+        // even when the workload tenant differs from the root tenant (ADR-0024).
+        if (!string.Equals(tenantId, RootTenantId, StringComparison.Ordinal))
+        {
+            await EnsureTenantAsync(
+                store,
+                storeManager,
+                RootTenantId,
+                RootDisplayName,
+                cancellationToken
+            );
+        }
+
+        return await EnsureTenantAsync(
+            store,
+            storeManager,
+            tenantId,
+            displayName,
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<PersistedTenant> EnsureTenantAsync(
+        ITenantStore store,
+        IStoreManager storeManager,
+        string tenantId,
+        string displayName,
+        CancellationToken cancellationToken
+    )
+    {
         var persistedTenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (persistedTenant is null)
         {
-            persistedTenant = CreateEmptyPersistedTenant(tenantId, options);
+            persistedTenant = CreateEmptyPersistedTenant(tenantId, displayName);
             await store.AddAsync(persistedTenant, cancellationToken);
             await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -87,15 +116,8 @@ internal class StaticSingleTenantStrategy(
         return persistedTenant;
     }
 
-    private static PersistedTenant CreateEmptyPersistedTenant(
-        string tenantId,
-        StaticSingleTenantOptions options
-    )
+    private static PersistedTenant CreateEmptyPersistedTenant(string tenantId, string displayName)
     {
-        var displayName = options.DisplayName;
-        if (string.IsNullOrEmpty(displayName))
-            displayName = StaticSingleTenantOptions.DefaultDisplayName;
-
         var settings = new PersistedTenantSettings
         {
             TenantId = tenantId,

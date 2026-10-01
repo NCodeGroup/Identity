@@ -185,6 +185,7 @@ const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.IdToken = "id_tok
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.RefreshToken = "refresh_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SubjectTypes.Pairwise = "pairwise" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SubjectTypes.Public = "public" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers.ControlManagement = "urn:ncode:control-management" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers.Management = "urn:ncode:management" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers.OpenId = "urn:ncode:openid" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes.DynamicByHost = "DynamicByHost" -> string!
@@ -196,6 +197,7 @@ const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.IdToken = "id_token" -> s
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.RefreshToken = "refresh_token" -> string!
 const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultDisplayName = "Default Tenant" -> string!
 const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultTenantId = "default" -> string!
+const NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DefaultRootTenantId = "root" -> string!
 NCode.Identity.OpenId.Environments.IOpenIdEnvironmentFactory
 NCode.Identity.OpenId.Environments.IOpenIdEnvironmentFactory.Create() -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
 NCode.Identity.OpenId.Environments.IOpenIdEnvironmentProvider
@@ -388,9 +390,14 @@ NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Identifier.
 NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Identifier.init -> void
 NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Name.get -> string!
 NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Name.init -> void
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Plane.get -> NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Plane.init -> void
 NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Scopes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor!>!
 NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Scopes.init -> void
 NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.SystemResourceServerDescriptor() -> void
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane.Control = 1 -> NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane
+NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane.Tenant = 0 -> NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane
 NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor
 NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.Description.get -> string?
 NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.Description.init -> void
@@ -451,6 +458,8 @@ NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DynamicByHost.get -> NCode
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DynamicByHost.set -> void
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DynamicByPath.get -> NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions?
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DynamicByPath.set -> void
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions.RootTenantId.get -> string!
+NCode.Identity.OpenId.Tenants.TenantResolutionOptions.RootTenantId.set -> void
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.StaticSingle.get -> NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions?
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.StaticSingle.set -> void
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.StrategyCode.get -> string!

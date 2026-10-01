@@ -29,11 +29,23 @@ namespace NCode.Identity.OpenId.Tenants;
 public sealed class TenantResolutionOptions
 {
     /// <summary>
+    /// Contains the default value for the root (control-plane) tenant's identifier.
+    /// </summary>
+    public const string DefaultRootTenantId = "root";
+
+    /// <summary>
     /// Gets or sets the strategy code that selects the tenant-resolution strategy.
     /// This value is used to find the corresponding <see cref="ITenantStrategy"/>.
     /// The default value is <see cref="OpenIdConstants.TenantStrategyCodes.StaticSingle"/>.
     /// </summary>
     public string StrategyCode { get; set; } = OpenIdConstants.TenantStrategyCodes.StaticSingle;
+
+    /// <summary>
+    /// Gets or sets the identifier of the root (control-plane) tenant, into which the control-plane management
+    /// resource server is seeded (<see href="../../../docs/adr/0024-control-plane-and-per-tenant-planes.md">ADR-0024</see>).
+    /// The default value is <see cref="DefaultRootTenantId"/>.
+    /// </summary>
+    public string RootTenantId { get; set; } = DefaultRootTenantId;
 
     /// <summary>
     /// Gets or sets the options used when <see cref="StrategyCode"/> is

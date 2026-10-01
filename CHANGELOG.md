@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- A control-plane management resource server (`urn:ncode:control-management`) that gates the `servers` and `tenants`
+  management families and is seeded only into the root (control-plane) tenant
+  ([ADR-0024](docs/adr/0024-control-plane-and-per-tenant-planes.md)). A `SystemResourceServerDescriptor` now declares a
+  `Plane` (`SystemResourceServerPlane.Tenant` (default) or `Control`); the system-resource-server seeder is plane-aware
+  and seeds `Control`-plane providers only into the root tenant, whose identifier is `TenantResolutionOptions.RootTenantId`
+  (default `"root"`). The static single-tenant strategy now provisions the root tenant lazily alongside its workload
+  tenant, so a single-tenant deployment gains its control plane with no extra configuration. The tenant-plane
+  `urn:ncode:management` resource server continues to own the clients, resource servers, client grants, and grants
+  families. See [ADR-0031](docs/adr/0031-control-plane-management-resource-server-and-root-tenant-seeding.md).
 - An `OpenID Connect` UserInfo endpoint (`GET`/`POST /oauth2/userinfo`,
   [OpenID Connect Core 5.3](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo), auto-advertised as
   `userinfo_endpoint` in discovery). The endpoint is a thin shell over two mediator seams: a reusable

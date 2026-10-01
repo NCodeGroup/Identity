@@ -70,6 +70,13 @@ public static class DefaultRegistration
                 >()
             );
 
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ISystemResourceServerProvider,
+                    ControlManagementResourceServerProvider
+                >()
+            );
+
             builder.AddEndpointGroupProvider<ManagementEndpointGroupProvider>();
             builder.AddManagementEndpointProvider<ServerApiEndpointHandler>();
             builder.AddManagementEndpointProvider<TenantApiEndpointHandler>();

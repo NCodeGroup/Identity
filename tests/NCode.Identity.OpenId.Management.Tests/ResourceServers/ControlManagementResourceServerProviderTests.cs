@@ -27,12 +27,12 @@ public sealed class ControlManagementResourceServerProviderTests
     private readonly ControlManagementResourceServerProvider _provider = new();
 
     [Fact]
-    public void GetDescriptor_UsesTheControlManagementIdentifier()
+    public void GetDescriptor_UsesTheManagementIdentifier()
     {
         var descriptor = _provider.GetDescriptor();
 
         Assert.Equal(
-            OpenIdConstants.SystemResourceServerIdentifiers.ControlManagement,
+            OpenIdConstants.SystemResourceServerIdentifiers.Management,
             descriptor.Identifier
         );
     }
@@ -50,6 +50,12 @@ public sealed class ControlManagementResourceServerProviderTests
     [InlineData("create:servers")]
     [InlineData("update:servers")]
     [InlineData("delete:servers")]
+    [InlineData("read:server_settings")]
+    [InlineData("update:server_settings")]
+    [InlineData("read:server_secrets")]
+    [InlineData("create:server_secrets")]
+    [InlineData("update:server_secrets")]
+    [InlineData("delete:server_secrets")]
     [InlineData("read:tenants")]
     [InlineData("create:tenants")]
     [InlineData("update:tenants")]
@@ -59,6 +65,16 @@ public sealed class ControlManagementResourceServerProviderTests
         var descriptor = _provider.GetDescriptor();
 
         Assert.Contains(descriptor.Scopes, scope => scope.Value == expectedScope);
+    }
+
+    [Theory]
+    [InlineData("create:server_settings")]
+    [InlineData("delete:server_settings")]
+    public void GetDescriptor_ExcludesCreateAndDeleteForServerSettings(string settingsScope)
+    {
+        var descriptor = _provider.GetDescriptor();
+
+        Assert.DoesNotContain(descriptor.Scopes, scope => scope.Value == settingsScope);
     }
 
     [Theory]

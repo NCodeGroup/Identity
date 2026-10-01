@@ -21,10 +21,11 @@ using NCode.Identity.OpenId.ResourceServers;
 namespace NCode.Identity.OpenId.Management.ResourceServers;
 
 /// <summary>
-/// Provides the reserved control-plane management resource server (<c>urn:ncode:control-management</c>) whose scopes
-/// gate the control-plane management API families (servers and tenants). This resource server is seeded only into the
-/// root tenant (<see href="../../../docs/adr/0024-control-plane-and-per-tenant-planes.md">ADR-0024</see>); the
-/// tenant-plane families (clients, resource servers, and grants) belong to <see cref="ManagementResourceServerProvider"/>.
+/// Contributes the control-plane scope families of the reserved management resource server (<c>urn:ncode:management</c>),
+/// seeded only into the root tenant: server management (and its settings and secrets) and tenant provisioning
+/// (create/delete/enumerate tenants). The tenant-plane families belong to <see cref="ManagementResourceServerProvider"/>;
+/// the seeder merges both into one resource server per tenant
+/// (<see href="../../../docs/adr/0033-authorization-model-scopes-roles-and-ownership.md">ADR-0033</see>).
 /// </summary>
 internal class ControlManagementResourceServerProvider : ISystemResourceServerProvider
 {
@@ -32,15 +33,31 @@ internal class ControlManagementResourceServerProvider : ISystemResourceServerPr
     public SystemResourceServerDescriptor GetDescriptor() =>
         new()
         {
-            Identifier = OpenIdConstants.SystemResourceServerIdentifiers.ControlManagement,
-            Name = "Control Management",
+            Identifier = OpenIdConstants.SystemResourceServerIdentifiers.Management,
+            Name = "Management",
             Plane = SystemResourceServerPlane.Control,
             Scopes =
             [
                 .. CrudScopes(ManagementScopes.Families.Servers, "servers"),
+                .. SettingsScopes(ManagementScopes.Families.ServerSettings, "server settings"),
+                .. CrudScopes(ManagementScopes.Families.ServerSecrets, "server secrets"),
                 .. CrudScopes(ManagementScopes.Families.Tenants, "tenants"),
             ],
         };
+
+    private static IEnumerable<SystemScopeDescriptor> SettingsScopes(string family, string noun) =>
+        [
+            new SystemScopeDescriptor
+            {
+                Value = ManagementScopes.For(ManagementScopes.Verbs.Read, family),
+                Description = $"Read {noun}.",
+            },
+            new SystemScopeDescriptor
+            {
+                Value = ManagementScopes.For(ManagementScopes.Verbs.Update, family),
+                Description = $"Update {noun}.",
+            },
+        ];
 
     private static IEnumerable<SystemScopeDescriptor> CrudScopes(string family, string noun) =>
         [

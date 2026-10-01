@@ -37,10 +37,20 @@ public sealed class ManagementResourceServerProviderTests
     }
 
     [Theory]
+    [InlineData("read:tenant_settings")]
+    [InlineData("update:tenant_settings")]
+    [InlineData("read:tenant_secrets")]
+    [InlineData("create:tenant_secrets")]
+    [InlineData("update:tenant_secrets")]
+    [InlineData("delete:tenant_secrets")]
     [InlineData("read:clients")]
     [InlineData("create:clients")]
     [InlineData("update:clients")]
     [InlineData("delete:clients")]
+    [InlineData("read:client_secrets")]
+    [InlineData("create:client_secrets")]
+    [InlineData("update:client_secrets")]
+    [InlineData("delete:client_secrets")]
     [InlineData("read:resource_servers")]
     [InlineData("create:resource_servers")]
     [InlineData("read:client_grants")]
@@ -51,6 +61,16 @@ public sealed class ManagementResourceServerProviderTests
         var descriptor = _provider.GetDescriptor();
 
         Assert.Contains(descriptor.Scopes, scope => scope.Value == expectedScope);
+    }
+
+    [Theory]
+    [InlineData("create:tenant_settings")]
+    [InlineData("delete:tenant_settings")]
+    public void GetDescriptor_ExcludesCreateAndDeleteForTenantSettings(string settingsScope)
+    {
+        var descriptor = _provider.GetDescriptor();
+
+        Assert.DoesNotContain(descriptor.Scopes, scope => scope.Value == settingsScope);
     }
 
     [Theory]

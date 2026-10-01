@@ -38,8 +38,8 @@ The allowed set for a client is computed as the union, over the tenant's enabled
 Scope tokens are compared case-sensitively (RFC 6749). Discovery's `scopes_supported` is **derived** from the distinct
 scopes of the tenant's enabled resource servers rather than echoed from a setting.
 
-Because `offline_access` is a scope on the system identity resource server, it is always *available*; whether a refresh
-token is actually *issued* remains governed by the client requesting `offline_access` and by the `refresh_token` grant
+Because `offline_access` is a scope on the system identity resource server, it is always _available_; whether a refresh
+token is actually _issued_ remains governed by the client requesting `offline_access` and by the `refresh_token` grant
 type being enabled (`grant_types_supported`) — so the retired setting's secondary "prohibit refresh tokens" role is
 subsumed, not lost.
 
@@ -67,7 +67,7 @@ subsumed, not lost.
   setting.
 - `scopes_supported` is removed as a setting (key, descriptor, default) while remaining a discovery **metadata field
   name**, now populated from the catalog.
-- Which resource servers are *advertised* in discovery (for example, whether to list management scopes) is currently
+- Which resource servers are _advertised_ in discovery (for example, whether to list management scopes) is currently
   "all enabled resource servers"; narrowing that is a later refinement.
 
 ## References

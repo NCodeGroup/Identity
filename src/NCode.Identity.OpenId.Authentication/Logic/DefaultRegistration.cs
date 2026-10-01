@@ -48,6 +48,7 @@ internal static class DefaultRegistration
                 IPersistedGrantService,
                 DefaultPersistedGrantService
             >();
+            serviceCollection.TryAddSingleton<IClientScopeService, DefaultClientScopeService>();
 
             return builder;
         }

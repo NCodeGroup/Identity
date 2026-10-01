@@ -19,10 +19,10 @@ answered partially:
 
 Today there are two coarse realms — `GlobalAdmin` (grants everything) and `TenantAdmin` — and a flat set of management
 scope families (`clients`, `resource_servers`, `client_grants`, `grants`, `servers`, `tenants`). This has three gaps:
-the `tenants` family conflates tenant **provisioning** (a global act) with a tenant **managing its own** settings and
-secrets (a self-service act), so a `TenantAdmin` cannot manage its own tenant; the scopes stop at the entity, not its
-leaves (settings, secrets), so "secrets manager" is inexpressible; and `TenantAdmin` is a global claim rather than an
-authority bound to a particular tenant.
+the `tenants` family conflates tenant **creation and cross-tenant enumeration** (global acts at the server root) with a
+tenant **managing its own existing tenant** (a self-service act), so a `TenantAdmin` cannot manage its own tenant; the
+scopes stop at the entity, not its leaves (settings, secrets), so "secrets manager" is inexpressible; and `TenantAdmin`
+is a global claim rather than an authority bound to a particular tenant.
 
 The resource model ([ADR-0023](0023-scopes-and-resources-management-model.md)) and the single-control-plane deployment
 ([ADR-0024](0024-control-plane-and-per-tenant-planes.md)) already give us a resource hierarchy and a `GlobalAdmin`
@@ -54,8 +54,10 @@ Management scopes are `{verb}:{family}` where a family is an entity **or one of 
 (the server and tenant **provisioning**) are seeded only into the root tenant; the tenant-plane families (a tenant's own
 settings/secrets and its child resources) are seeded into every tenant. Examples:
 
-- Control (root tenant): `servers`, `server_settings`, `server_secrets`, `tenants` (provisioning: create/delete/
-  list-all/enable).
+- Control (root tenant): `servers`, `server_settings`, `server_secrets`, and the server-root verbs of `tenants` —
+  **creating** a tenant and **enumerating/reading across all** tenants. Managing an _existing_ tenant you administer —
+  read/update/delete/deactivate it, plus its settings, secrets, and children — is authority at that tenant node (below),
+  not a server-root act.
 - Tenant-plane (every tenant): `tenant_settings`, `tenant_secrets`, `clients`, `client_secrets`, `resource_servers`,
   `client_grants`, `grants`.
 
@@ -103,8 +105,10 @@ same mechanism at different scopes.
 
 - **Phase 1 — granular type-level authorization (built-in roles).** The per-leaf scope families above; a single
   management resource server (`urn:ncode:management`) with the provisioning families seeded only into the root tenant;
-  the tenant self-service fix (a `TenantAdmin` manages its own settings/secrets); `GlobalAdmin` = everything,
-  `TenantAdmin` = the tenant plane — still via the current realm handlers. Immediately usable.
+  the tenant self-service fix (a `TenantAdmin` fully manages its own tenant — the registry row itself, including
+  deactivate and delete, plus its settings, secrets, and child resources — while **creating** tenants and
+  **cross-tenant** enumeration remain `GlobalAdmin`); `GlobalAdmin` = everything, `TenantAdmin` = full authority over
+  its tenant — still via the current realm handlers. Immediately usable.
 - **Phase 2 — data-driven scoped assignments and ownership.** Persist `(principal, role, resource-node)` assignments
   with inheritance; the `Owner` role, creator-as-owner, owner-list management, and an ownership authorization handler.
   Generalizes the built-in realms into per-resource, data-driven authority (enables "Joe admin of tenant-a," custom
@@ -125,9 +129,10 @@ same mechanism at different scopes.
 
 ## Consequences
 
-- The `tenants` scope family splits into tenant **provisioning** (control plane, root tenant) and tenant **self-service**
-  (`tenant_settings`/`tenant_secrets`, tenant plane, every tenant), closing the hole where a `TenantAdmin` could not
-  manage its own tenant.
+- The `tenants` scope family splits into tenant **creation / cross-tenant enumeration** (control plane, root tenant,
+  `GlobalAdmin`) and **managing an existing tenant you administer** — the registry row itself (including deactivate and
+  delete), its `tenant_settings`/`tenant_secrets`, and its child resources, at the tenant node — closing the hole where
+  a `TenantAdmin` could not manage its own tenant.
 - The management surface collapses to a **single resource-server audience** (`urn:ncode:management`); the control/tenant
   distinction becomes _which scopes are seeded where_, not a second audience (revises
   [ADR-0031](0031-control-plane-management-resource-server-and-root-tenant-seeding.md)).

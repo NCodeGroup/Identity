@@ -236,4 +236,92 @@ public sealed class DefaultSystemResourceServerSeederTests
         Assert.Equal(RootTenantId, captured.TenantId);
         Assert.Equal("urn:control", captured.Identifier);
     }
+
+    [Fact]
+    public async Task SeedAsync_WhenProvidersShareIdentifier_MergesIntoOneResourceServer()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var factory = mocks.Create<IStoreManagerFactory>();
+        var manager = mocks.Create<IStoreManager>();
+        var store = mocks.Create<IResourceServerStore>();
+        var crypto = mocks.Create<ICryptoService>();
+        var first = mocks.Create<ISystemResourceServerProvider>();
+        var second = mocks.Create<ISystemResourceServerProvider>();
+
+        first
+            .Setup(x => x.GetDescriptor())
+            .Returns(
+                new SystemResourceServerDescriptor
+                {
+                    Identifier = "urn:test",
+                    Name = "Test API",
+                    Scopes =
+                    [
+                        new SystemScopeDescriptor { Value = "read:a", Description = "Read A." },
+                        new SystemScopeDescriptor { Value = "shared", Description = "Shared." },
+                    ],
+                }
+            )
+            .Verifiable();
+        second
+            .Setup(x => x.GetDescriptor())
+            .Returns(
+                new SystemResourceServerDescriptor
+                {
+                    Identifier = "urn:test",
+                    Name = "Test API",
+                    Scopes =
+                    [
+                        new SystemScopeDescriptor { Value = "read:b", Description = "Read B." },
+                        new SystemScopeDescriptor { Value = "shared", Description = "Shared." },
+                    ],
+                }
+            )
+            .Verifiable();
+
+        crypto
+            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Returns("generated-rs-id")
+            .Verifiable();
+
+        factory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(manager.Object)
+            .Verifiable();
+        manager.Setup(x => x.GetStore<IResourceServerStore>()).Returns(store.Object).Verifiable();
+        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+
+        var added = new List<PersistedResourceServer>();
+        store
+            .Setup(x =>
+                x.AddAsync(It.IsAny<PersistedResourceServer>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (PersistedResourceServer resourceServer, CancellationToken _) =>
+                    added.Add(resourceServer)
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        manager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var seeder = new DefaultSystemResourceServerSeeder(
+            factory.Object,
+            crypto.Object,
+            CreateOptions(),
+            [first.Object, second.Object]
+        );
+
+        await seeder.SeedAsync("tenant-1", CancellationToken.None);
+
+        mocks.Verify();
+        var captured = Assert.Single(added);
+        Assert.Equal("urn:test", captured.Identifier);
+        Assert.Equal(
+            new[] { "read:a", "shared", "read:b" }.OrderBy(value => value),
+            captured.Scopes.Select(scope => scope.Value).OrderBy(value => value)
+        );
+    }
 }

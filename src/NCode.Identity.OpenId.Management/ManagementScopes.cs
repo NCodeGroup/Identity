@@ -36,16 +36,22 @@ internal static class ManagementScopes
     }
 
     /// <summary>
-    /// Contains the resource-family segments of a management scope value.
+    /// Contains the resource-family segments of a management scope value. A family is an entity or one of its leaves
+    /// (settings, secrets), so that roles can be composed at per-leaf granularity (ADR-0033).
     /// </summary>
     internal static class Families
     {
+        internal const string Servers = "servers";
+        internal const string ServerSettings = "server_settings";
+        internal const string ServerSecrets = "server_secrets";
+        internal const string Tenants = "tenants";
+        internal const string TenantSettings = "tenant_settings";
+        internal const string TenantSecrets = "tenant_secrets";
         internal const string Clients = "clients";
+        internal const string ClientSecrets = "client_secrets";
         internal const string ResourceServers = "resource_servers";
         internal const string ClientGrants = "client_grants";
         internal const string Grants = "grants";
-        internal const string Servers = "servers";
-        internal const string Tenants = "tenants";
     }
 
     /// <summary>

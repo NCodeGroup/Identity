@@ -185,7 +185,6 @@ const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.IdToken = "id_tok
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.RefreshToken = "refresh_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SubjectTypes.Pairwise = "pairwise" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SubjectTypes.Public = "public" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers.ControlManagement = "urn:ncode:control-management" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers.Management = "urn:ncode:management" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers.OpenId = "urn:ncode:openid" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes.DynamicByHost = "DynamicByHost" -> string!

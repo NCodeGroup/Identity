@@ -75,26 +75,33 @@ internal class DefaultSystemResourceServerSeeder(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IResourceServerStore>();
 
-        foreach (var descriptor in applicable)
+        // Multiple providers may contribute scopes to the same system resource server (for example, the tenant-plane
+        // and control-plane families of the management resource server); merge them into one row per identifier.
+        foreach (var group in applicable.GroupBy(descriptor => descriptor.Identifier))
         {
+            var scopes = group
+                .SelectMany(descriptor => descriptor.Scopes)
+                .GroupBy(scope => scope.Value, StringComparer.Ordinal)
+                .Select(byValue => byValue.First())
+                .Select(scope => new PersistedScope
+                {
+                    Value = scope.Value,
+                    Description = scope.Description,
+                    IsSystem = true,
+                })
+                .ToList();
+
             var resourceServer = new PersistedResourceServer
             {
                 TenantId = tenantId,
                 ResourceServerId = CryptoService.GenerateResourceId(),
-                Identifier = descriptor.Identifier,
+                Identifier = group.Key,
                 ConcurrencyToken = string.Empty,
-                Name = descriptor.Name,
+                Name = group.First().Name,
                 IsSystem = true,
                 IsDisabled = false,
                 Settings = JsonSerializer.SerializeToElement(null, typeof(object)),
-                Scopes = descriptor
-                    .Scopes.Select(scope => new PersistedScope
-                    {
-                        Value = scope.Value,
-                        Description = scope.Description,
-                        IsSystem = true,
-                    })
-                    .ToList(),
+                Scopes = scopes,
             };
 
             await store.AddAsync(resourceServer, cancellationToken);

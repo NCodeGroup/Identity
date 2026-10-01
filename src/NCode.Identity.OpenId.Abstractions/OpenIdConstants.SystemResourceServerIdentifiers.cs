@@ -21,7 +21,9 @@ namespace NCode.Identity.OpenId;
 public static partial class OpenIdConstants
 {
     /// <summary>
-    /// Contains the reserved audience identifiers for the system-owned resource servers seeded into each tenant.
+    /// Contains the reserved audience identifiers for the system-owned resource servers seeded into tenants. The OpenID
+    /// identity and management resource servers are seeded into every tenant; the management resource server's
+    /// control-plane scope families (server and tenant provisioning) are seeded only into the root tenant.
     /// </summary>
     public static class SystemResourceServerIdentifiers
     {
@@ -32,16 +34,11 @@ public static partial class OpenIdConstants
         public const string OpenId = "urn:ncode:openid";
 
         /// <summary>
-        /// Contains the reserved audience identifier for the tenant-plane management resource server
-        /// (administering a tenant's clients, resource servers, scopes, and grants): 'urn:ncode:management'.
+        /// Contains the reserved audience identifier for the single management resource server, which gates the whole
+        /// management API: 'urn:ncode:management'. Its tenant-plane scope families are seeded into every tenant; its
+        /// control-plane (server and tenant provisioning) families are seeded only into the root tenant
+        /// (<see href="../../../docs/adr/0033-authorization-model-scopes-roles-and-ownership.md">ADR-0033</see>).
         /// </summary>
         public const string Management = "urn:ncode:management";
-
-        /// <summary>
-        /// Contains the reserved audience identifier for the control-plane management resource server
-        /// (administering servers and tenants) seeded only into the root tenant: 'urn:ncode:control-management'
-        /// (<see href="../../../docs/adr/0024-control-plane-and-per-tenant-planes.md">ADR-0024</see>).
-        /// </summary>
-        public const string ControlManagement = "urn:ncode:control-management";
     }
 }

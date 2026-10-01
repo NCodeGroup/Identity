@@ -37,6 +37,41 @@ Accept: application/json
 GET {{host}}/api/tenants?limit=50
 Accept: application/json
 
+### List resource servers (APIs) — scoped to the request's tenant
+GET {{host}}/api/resource-servers?limit=50
+Accept: application/json
+
+### Create a resource server (API)
+POST {{host}}/api/resource-servers
+Content-Type: application/json
+
+{
+  "identifier": "https://api.example.com",
+  "name": "Example API",
+  "isDisabled": false,
+  "settings": {}
+}
+
+### Get a resource server by its opaque id
+GET {{host}}/api/resource-servers/REPLACE_WITH_ResourceServerId
+Accept: application/json
+
+### Add a scope (permission) to a resource server
+POST {{host}}/api/resource-servers/REPLACE_WITH_ResourceServerId/scopes
+Content-Type: application/json
+
+{
+  "value": "read:messages",
+  "description": "Read your messages."
+}
+
+### List a resource server's scopes
+GET {{host}}/api/resource-servers/REPLACE_WITH_ResourceServerId/scopes
+Accept: application/json
+
+### Delete a resource server (409 when it is a system resource server or still has client grants)
+DELETE {{host}}/api/resource-servers/REPLACE_WITH_ResourceServerId
+
 ### List grants (first page) — scoped to the request's tenant
 GET {{host}}/api/grants?limit=50
 Accept: application/json

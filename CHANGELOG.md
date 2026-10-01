@@ -36,6 +36,14 @@ change to the public API is a **major** version bump.
   `BaseStore` so a grant store not keyed by a resource id can paginate on its chronological surrogate id. See
   [ADR-0020](docs/adr/0020-grant-management-read-surface.md) and
   [ADR-0022](docs/adr/0022-grant-filters-and-bulk-revocation.md).
+- Scope and resource management (Auth0-aligned): a tenant-owned **resource server** (an API/audience) owns its
+  **scopes** (permissions), and a **client grant** authorizes a client to a resource server with a subset of its
+  scopes. Adds the persistence model (`ResourceServerEntity` / `ScopeEntity` / `ClientGrantEntity`, DTOs,
+  `IResourceServerStore` / `IClientGrantStore`), seeds a reserved OpenID Connect system resource server
+  (`urn:ncode:openid`) with the standard scopes into each tenant via `ISystemResourceServerProvider`, and the
+  management surface `GET/POST/GET/PATCH/DELETE api/resource-servers` plus the `/{id}/scopes` sub-resource. System
+  resource servers and scopes cannot be deleted. See [ADR-0023](docs/adr/0023-scopes-and-resources-management-model.md)
+  and [ADR-0024](docs/adr/0024-control-plane-and-per-tenant-planes.md).
 - A persistent developer-keys opt-in for the Playground, `AddDeveloperSigningKey(...)`, that seeds an `RSA` signing key
   through the tenant secret store (so the runtime, the JWKS endpoint, and the management API share one source of truth)
   instead of overriding the read path. Paired with a local SQLite database and a persistent Data Protection key ring

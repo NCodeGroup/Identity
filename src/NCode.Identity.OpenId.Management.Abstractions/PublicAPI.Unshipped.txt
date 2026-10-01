@@ -69,6 +69,62 @@ NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.GrantRevocationResult() -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.Revoked.get -> long
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.Revoked.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest.CreateResourceServerRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest.Identifier.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest.Identifier.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest.IsDisabled.get -> bool
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest.IsDisabled.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest.Name.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest.Name.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateResourceServerRequest.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateScopeRequest
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateScopeRequest.CreateScopeRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateScopeRequest.Description.get -> string?
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateScopeRequest.Description.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateScopeRequest.Value.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.CreateScopeRequest.Value.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Identifier.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Identifier.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.IsDisabled.get -> bool
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.IsDisabled.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.IsSystem.get -> bool
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.IsSystem.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Name.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Name.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.ResourceServerId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.ResourceServerId.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.ResourceServerResource() -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Scopes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource!>!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Scopes.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource.Description.get -> string?
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource.Description.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource.IsSystem.get -> bool
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource.IsSystem.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource.ScopeResource() -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource.Value.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource.Value.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.IsDisabled.get -> bool
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.IsDisabled.set -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.Name.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.Name.set -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.Settings.set -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.UpdateResourceServerRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateScopeRequest
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateScopeRequest.Description.get -> string?
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateScopeRequest.Description.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateScopeRequest.UpdateScopeRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Algorithm.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Algorithm.init -> void

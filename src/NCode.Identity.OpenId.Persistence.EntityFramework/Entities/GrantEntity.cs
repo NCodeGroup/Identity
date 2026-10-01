@@ -83,10 +83,10 @@ public sealed class GrantEntity : ISupportConcurrencyToken
     public required string ConcurrencyToken { get; set; }
 
     /// <summary>
-    /// Gets or sets the <c>ClientId</c> associated with this entity.
+    /// Gets or sets the <c>TenantId</c> associated with this entity.
     /// </summary>
     [ForeignKey(nameof(Tenant))]
-    public required long? TenantId { get; init; }
+    public required long TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the <c>ClientId</c> associated with this entity.
@@ -139,7 +139,7 @@ public sealed class GrantEntity : ISupportConcurrencyToken
     /// <summary>
     /// Gets the navigation property for the associated tenant.
     /// </summary>
-    public required TenantEntity? Tenant { get; init; }
+    public required TenantEntity Tenant { get; init; }
 
     /// <summary>
     /// Gets the navigation property for the associated client.

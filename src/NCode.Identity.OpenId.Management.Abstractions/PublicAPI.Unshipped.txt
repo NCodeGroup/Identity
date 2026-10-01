@@ -63,7 +63,7 @@ NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.RevokedWhen.get 
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.RevokedWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.SubjectId.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.SubjectId.init -> void
-NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.TenantId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.GrantRevocationResult() -> void

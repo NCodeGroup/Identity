@@ -32,11 +32,11 @@ public interface IPersistedGrantService
     /// <summary>
     /// Factory method to create a persisted grant identifier with the specified details.
     /// </summary>
-    /// <param name="tenantId">The tenant identifier associated with the grant.</param>
+    /// <param name="tenantId">The tenant identifier that scopes the grant.</param>
     /// <param name="grantType">The type of the grant.</param>
     /// <param name="grantKey">The identifier of the resource associated with the grant.</param>
     /// <returns>The <see cref="PersistedGrantId"/> that represents the persisted grant identifier.</returns>
-    PersistedGrantId CreateGrantId(string? tenantId, string grantType, string grantKey);
+    PersistedGrantId CreateGrantId(string tenantId, string grantType, string grantKey);
 
     /// <summary>
     /// Persists a grant with the specified details to storage.

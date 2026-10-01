@@ -41,9 +41,9 @@ public sealed class GrantResource
     public required string GrantType { get; init; }
 
     /// <summary>
-    /// Gets the identifier of the tenant that owns this grant, or <c>null</c> for a non-tenant (global) grant.
+    /// Gets the identifier of the tenant that owns this grant.
     /// </summary>
-    public required string? TenantId { get; init; }
+    public required string TenantId { get; init; }
 
     /// <summary>
     /// Gets the identifier of the client associated with this grant, or <c>null</c> when not applicable.

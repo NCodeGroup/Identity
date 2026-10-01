@@ -35,7 +35,7 @@ public readonly record struct PersistedGrant<TPayload>
     /// <summary>
     /// Gets or sets the identifier of the tenant that is associated with the grant.
     /// </summary>
-    public required string? TenantId { get; init; }
+    public required string TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the identifier of the client that is associated with the grant.

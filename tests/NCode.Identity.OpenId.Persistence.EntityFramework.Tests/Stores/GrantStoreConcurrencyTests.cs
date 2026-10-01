@@ -34,6 +34,7 @@ public sealed class GrantStoreConcurrencyTests : IDisposable
 {
     private const string GrantType = "authorization_code";
     private const string HashedKey = "hashed-key-1";
+    private const string TenantId = "tenant-1";
 
     private readonly SqliteConnection _connection;
     private readonly ServiceProvider _provider;
@@ -53,6 +54,14 @@ public sealed class GrantStoreConcurrencyTests : IDisposable
         using var scope = _provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         context.Database.EnsureCreated();
+
+        var tenantStore = new TenantStore(
+            Mock.Of<IStoreProvider>(),
+            _provider.GetRequiredService<IIdGenerator<long>>(),
+            context
+        );
+        tenantStore.AddAsync(CreateTenant(), CancellationToken.None).GetAwaiter().GetResult();
+        context.SaveChanges();
     }
 
     public void Dispose()
@@ -64,13 +73,38 @@ public sealed class GrantStoreConcurrencyTests : IDisposable
     private GrantStore CreateStore(OpenIdDbContext context) =>
         new(Mock.Of<IStoreProvider>(), _provider.GetRequiredService<IIdGenerator<long>>(), context);
 
+    private static JsonElement EmptyObject() =>
+        JsonSerializer.SerializeToElement(new Dictionary<string, object>());
+
+    private static PersistedTenant CreateTenant() =>
+        new()
+        {
+            TenantId = TenantId,
+            ConcurrencyToken = string.Empty,
+            DomainName = null,
+            IsDisabled = false,
+            DisplayName = "Tenant One",
+            Settings = new PersistedTenantSettings
+            {
+                TenantId = TenantId,
+                ConcurrencyToken = string.Empty,
+                Value = EmptyObject(),
+            },
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = TenantId,
+                ConcurrencyToken = string.Empty,
+                Value = [],
+            },
+        };
+
     private static PersistedGrant CreateGrant() =>
         new()
         {
             GrantType = GrantType,
             HashedKey = HashedKey,
             ConcurrencyToken = string.Empty,
-            TenantId = null,
+            TenantId = TenantId,
             ClientId = null,
             SubjectId = "subject-1",
             CreatedWhen = DateTimeOffset.UnixEpoch,

@@ -45,7 +45,10 @@ change to the public API is a **major** version bump.
   nested `GET/POST/GET/PUT/DELETE api/clients/{clientId}/grants[/{resourceServerId}]` client-grant surface. Granted
   scopes are validated (write-time) against the target resource server's scopes. Core preconditions for both surfaces
   are asserted up-front by replaceable validators (`IResourceServerValidator` / `IClientGrantValidator`), consistent
-  with the existing client/server/tenant validators. System
+  with the existing client/server/tenant validators. A reserved tenant-plane management resource server
+  (`urn:ncode:management`) is also seeded into each tenant, whose `{verb}:{family}` scopes (for example `read:clients`,
+  `create:resource_servers`, `delete:grants`) gate the per-tenant management families; control-plane families
+  (servers, tenants) are intentionally excluded and belong to the root tenant's control plane. System
   resource servers and scopes cannot be deleted. See [ADR-0023](docs/adr/0023-scopes-and-resources-management-model.md)
   and [ADR-0024](docs/adr/0024-control-plane-and-per-tenant-planes.md).
 - A persistent developer-keys opt-in for the Playground, `AddDeveloperSigningKey(...)`, that seeds an `RSA` signing key
@@ -69,6 +72,11 @@ change to the public API is a **major** version bump.
 - The management API endpoints are now served under a shared top-level `/api` route group (`/api/clients`,
   `/api/servers`, `/api/tenants`, …) via a `ManagementEndpointGroupProvider` ([ADR-0009](docs/adr/0009-endpoint-families-own-their-route-group.md)),
   keeping them distinct from the OpenID protocol endpoints at the root.
+- Grants are now strictly tenant-scoped: the previously nullable `TenantId` on the grant vertical slice
+  (`PersistedGrantId`, `PersistedGrant`, `PersistedGrant<TPayload>`, `GrantEntity`, `GrantResource`) and the
+  `IPersistedGrantService.CreateGrantId` parameter are now required (non-nullable). Every grant is created against the
+  resolved request tenant, so the unused non-tenant (global) key space is removed; a future server-level grant type, if
+  needed, would be modeled explicitly rather than by an absent tenant.
 
 ### Fixed
 

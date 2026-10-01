@@ -59,7 +59,7 @@ internal class GrantStore(
                 HashedKey = entity.HashedKey,
                 GrantId = entity.GrantId,
                 ConcurrencyToken = entity.ConcurrencyToken,
-                TenantId = entity.Tenant?.TenantId,
+                TenantId = entity.Tenant.TenantId,
                 ClientId = entity.Client?.ClientId,
                 SubjectId = entity.SubjectId,
                 CreatedWhen = entity.CreatedWhen,
@@ -235,25 +235,15 @@ internal class GrantStore(
         CancellationToken cancellationToken
     )
     {
-        TenantEntity? tenantEntity = null;
-        if (!string.IsNullOrEmpty(persistedGrant.TenantId))
-        {
-            tenantEntity = await GetTenantEntityOrDefaultAsync(
-                persistedGrant.TenantId,
-                cancellationToken
+        var tenantEntity =
+            await GetTenantEntityOrDefaultAsync(persistedGrant.TenantId, cancellationToken)
+            ?? throw new InvalidOperationException(
+                $"Tenant '{persistedGrant.TenantId}' not found."
             );
-        }
 
         ClientEntity? clientEntity = null;
         if (!string.IsNullOrEmpty(persistedGrant.ClientId))
         {
-            if (tenantEntity is null)
-            {
-                throw new InvalidOperationException(
-                    "TenantId is required when ClientId is specified."
-                );
-            }
-
             var normalizedClientId = Normalize(persistedGrant.ClientId);
             clientEntity = await DbContext.Clients.FirstOrDefaultAsync(
                 entity =>
@@ -277,7 +267,7 @@ internal class GrantStore(
             GrantType = persistedGrant.GrantType,
             HashedKey = persistedGrant.HashedKey,
             ConcurrencyToken = string.Empty,
-            TenantId = tenantEntity?.Id,
+            TenantId = tenantEntity.Id,
             ClientId = clientEntity?.Id,
             SubjectId = persistedGrant.SubjectId,
             NormalizedSubjectId = Normalize(persistedGrant.SubjectId),

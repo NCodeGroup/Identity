@@ -46,9 +46,7 @@ internal class DefaultPersistedGrantService(
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
     private static string GetHashInput(PersistedGrantId grantId) =>
-        string.IsNullOrEmpty(grantId.TenantId)
-            ? grantId.GrantKey
-            : string.Concat(grantId.TenantId.AsSpan(), TenantDelimiter, grantId.GrantKey.AsSpan());
+        string.Concat(grantId.TenantId.AsSpan(), TenantDelimiter, grantId.GrantKey.AsSpan());
 
     private string GetHashedKey(PersistedGrantId grantId) =>
         CryptoService.HashValue(
@@ -58,7 +56,7 @@ internal class DefaultPersistedGrantService(
         );
 
     /// <inheritdoc />
-    public PersistedGrantId CreateGrantId(string? tenantId, string grantType, string grantKey) =>
+    public PersistedGrantId CreateGrantId(string tenantId, string grantType, string grantKey) =>
         new()
         {
             TenantId = tenantId,

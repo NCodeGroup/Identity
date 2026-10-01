@@ -31,10 +31,12 @@ public sealed class GrantStoreTests : IDisposable
 {
     private const string GrantType = "authorization_code";
     private const string HashedKey = "hashed-key-1";
+    private const string TenantId = "tenant-1";
 
     private readonly ServiceProvider _provider;
     private readonly OpenIdDbContext _dbContext;
     private readonly GrantStore _store;
+    private readonly TenantStore _tenantStore;
 
     public GrantStoreTests()
     {
@@ -48,17 +50,49 @@ public sealed class GrantStoreTests : IDisposable
 
         _provider = services.BuildServiceProvider();
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        _store = new GrantStore(
-            Mock.Of<IStoreProvider>(),
-            _provider.GetRequiredService<IIdGenerator<long>>(),
-            _dbContext
-        );
+        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        _store = new GrantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+
+        SeedTenantAsync().GetAwaiter().GetResult();
     }
 
     public void Dispose()
     {
         _dbContext.Dispose();
         _provider.Dispose();
+    }
+
+    private static JsonElement EmptyObject() =>
+        JsonSerializer.SerializeToElement(new Dictionary<string, object>());
+
+    private async Task SeedTenantAsync()
+    {
+        await _tenantStore.AddAsync(
+            new PersistedTenant
+            {
+                TenantId = TenantId,
+                ConcurrencyToken = string.Empty,
+                DomainName = null,
+                IsDisabled = false,
+                DisplayName = "Tenant One",
+                Settings = new PersistedTenantSettings
+                {
+                    TenantId = TenantId,
+                    ConcurrencyToken = string.Empty,
+                    Value = EmptyObject(),
+                },
+                Secrets = new PersistedTenantSecrets
+                {
+                    TenantId = TenantId,
+                    ConcurrencyToken = string.Empty,
+                    Value = [],
+                },
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
     }
 
     private static PersistedGrant CreateGrant(
@@ -72,7 +106,7 @@ public sealed class GrantStoreTests : IDisposable
             HashedKey = hashedKey,
             GrantId = grantId,
             ConcurrencyToken = string.Empty,
-            TenantId = null,
+            TenantId = TenantId,
             ClientId = null,
             SubjectId = subjectId,
             CreatedWhen = DateTimeOffset.UnixEpoch,

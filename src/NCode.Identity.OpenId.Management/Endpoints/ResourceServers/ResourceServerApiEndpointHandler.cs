@@ -107,6 +107,14 @@ internal class ResourceServerApiEndpointHandler(
             .Produces<ScopeResource>();
         resourceServers.MapPut("/{resourceServerId}/scopes/{scopeValue}", UpdateScopeAsync);
         resourceServers.MapDelete("/{resourceServerId}/scopes/{scopeValue}", DeleteScopeAsync);
+
+        resourceServers
+            .MapGet("/{resourceServerId}/owners", ListOwnersAsync)
+            .Produces<CollectionResource<OwnerResource>>();
+        resourceServers
+            .MapPost("/{resourceServerId}/owners", AddOwnerAsync)
+            .Produces<OwnerResource>(StatusCodes.Status201Created);
+        resourceServers.MapDelete("/{resourceServerId}/owners/{principalId}", RemoveOwnerAsync);
     }
 
     internal virtual ScopeResource ToScopeResource(PersistedScope scope) =>
@@ -554,4 +562,90 @@ internal class ResourceServerApiEndpointHandler(
         await storeManager.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
+
+    /// <summary>
+    /// Handles <c>GET api/resource-servers/{resourceServerId}/owners</c>, returning the resource server's owners.
+    /// </summary>
+    [EndpointName("api/resource-servers/owners/list")]
+    internal virtual async ValueTask<IResult> ListOwnersAsync(
+        HttpContext httpContext,
+        [FromRoute] string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        return await ProcessListOwnersAsync(
+            httpContext,
+            ResourceOwnershipService,
+            StoreManagerFactory,
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId,
+            (storeManager, token) =>
+                ResourceServerExistsAsync(storeManager, resourceServerId, token),
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Handles <c>POST api/resource-servers/{resourceServerId}/owners</c>, granting a principal ownership.
+    /// </summary>
+    [EndpointName("api/resource-servers/owners/add")]
+    internal virtual async ValueTask<IResult> AddOwnerAsync(
+        HttpContext httpContext,
+        [FromRoute] string resourceServerId,
+        [FromBody] AddOwnerRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        return await ProcessAddOwnerAsync(
+            httpContext,
+            ResourceOwnershipService,
+            StoreManagerFactory,
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId,
+            request,
+            $"/resource-servers/{resourceServerId}/owners",
+            (storeManager, token) =>
+                ResourceServerExistsAsync(storeManager, resourceServerId, token),
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Handles <c>DELETE api/resource-servers/{resourceServerId}/owners/{principalId}</c>, revoking ownership. Refused
+    /// when it would leave the resource server with no owner.
+    /// </summary>
+    [EndpointName("api/resource-servers/owners/remove")]
+    internal virtual async ValueTask<IResult> RemoveOwnerAsync(
+        HttpContext httpContext,
+        [FromRoute] string resourceServerId,
+        [FromRoute] string principalId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        return await ProcessRemoveOwnerAsync(
+            httpContext,
+            ResourceOwnershipService,
+            StoreManagerFactory,
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId,
+            principalId,
+            cancellationToken
+        );
+    }
+
+    private static async ValueTask<bool> ResourceServerExistsAsync(
+        IStoreManager storeManager,
+        string resourceServerId,
+        CancellationToken cancellationToken
+    ) =>
+        await storeManager
+            .GetStore<IResourceServerStore>()
+            .GetOrDefaultAsync(resourceServerId, cancellationToken)
+            is not null;
 }

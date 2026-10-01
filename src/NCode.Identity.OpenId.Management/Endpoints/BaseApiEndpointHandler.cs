@@ -21,8 +21,10 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
@@ -172,9 +174,38 @@ internal abstract class BaseApiEndpointHandler
     /// <typeparam name="TValue">The type of the value being processed.</typeparam>
     /// <typeparam name="TResponse">The type of the response representation.</typeparam>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    protected internal virtual ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(
+        HttpContext httpContext,
+        TValue? valueOrNull,
+        IAuthorizationRequirement authorizationRequirement,
+        Func<TValue, TResponse> mapper
+    ) =>
+        ProcessGetAsync(
+            httpContext,
+            valueOrNull,
+            authorizationResource: null,
+            authorizationRequirement,
+            mapper
+        );
+
+    /// <summary>
+    /// Processes an HTTP <c>GET</c> request for the specified value, authorizing against a separately-supplied
+    /// resource (such as the owning resource node) while mapping and returning the value. Emits an <c>ETag</c> and
+    /// honors <c>If-None-Match</c> when the value supports a concurrency token.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="valueOrNull">The value to map and return, or <c>null</c> when not found.</param>
+    /// <param name="authorizationResource">The resource to authorize against, or <c>null</c> to authorize against the
+    /// value itself.</param>
+    /// <param name="authorizationRequirement">The <see cref="IAuthorizationRequirement"/> to evaluate.</param>
+    /// <param name="mapper">A function that maps the value to the response representation.</param>
+    /// <typeparam name="TValue">The type of the value being processed.</typeparam>
+    /// <typeparam name="TResponse">The type of the response representation.</typeparam>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(
         HttpContext httpContext,
         TValue? valueOrNull,
+        object? authorizationResource,
         IAuthorizationRequirement authorizationRequirement,
         Func<TValue, TResponse> mapper
     )
@@ -188,7 +219,7 @@ internal abstract class BaseApiEndpointHandler
         var user = httpContext.User;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             user,
-            valueOrNull,
+            authorizationResource ?? valueOrNull,
             authorizationRequirement
         );
 
@@ -258,5 +289,173 @@ internal abstract class BaseApiEndpointHandler
         return TypedResults.Json(
             new CollectionResource<TResource> { Items = items, ContinuationToken = page.NextCursor }
         );
+    }
+
+    /// <summary>
+    /// Maps an owner role assignment to its <see cref="OwnerResource"/> representation.
+    /// </summary>
+    /// <param name="assignment">The owner role assignment to map.</param>
+    /// <returns>The mapped <see cref="OwnerResource"/>.</returns>
+    internal virtual OwnerResource ToOwnerResource(PersistedRoleAssignment assignment) =>
+        new()
+        {
+            AssignmentId = assignment.AssignmentId,
+            PrincipalId = assignment.PrincipalId,
+            RoleName = assignment.RoleName,
+        };
+
+    /// <summary>
+    /// Processes an HTTP <c>GET</c> for a resource's owners: authorizes the caller against the resource node, then
+    /// returns the owner assignments. Responds <c>404</c> when the resource does not exist.
+    /// </summary>
+    protected internal virtual async ValueTask<IResult> ProcessListOwnersAsync(
+        HttpContext httpContext,
+        IResourceOwnershipService ownershipService,
+        IStoreManagerFactory storeManagerFactory,
+        string tenantId,
+        string resourceType,
+        string resourceId,
+        Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync,
+        CancellationToken cancellationToken
+    )
+    {
+        var node = ResourceNode.For(tenantId, resourceType, resourceId);
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            Operations.Read
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
+        if (!await resourceExistsAsync(storeManager, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var owners = await ownershipService.GetOwnersAsync(
+            storeManager,
+            resourceType,
+            resourceId,
+            cancellationToken
+        );
+        return TypedResults.Json(
+            new CollectionResource<OwnerResource>
+            {
+                Items = owners.Select(ToOwnerResource).ToList(),
+                ContinuationToken = null,
+            }
+        );
+    }
+
+    /// <summary>
+    /// Processes an HTTP <c>POST</c> that grants a principal ownership of a resource: authorizes the caller against the
+    /// resource node, then adds the owner (idempotently). Responds <c>404</c> when the resource does not exist.
+    /// </summary>
+    protected internal virtual async ValueTask<IResult> ProcessAddOwnerAsync(
+        HttpContext httpContext,
+        IResourceOwnershipService ownershipService,
+        IStoreManagerFactory storeManagerFactory,
+        string tenantId,
+        string resourceType,
+        string resourceId,
+        AddOwnerRequest request,
+        string ownersPath,
+        Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync,
+        CancellationToken cancellationToken
+    )
+    {
+        var node = ResourceNode.For(tenantId, resourceType, resourceId);
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            Operations.Update
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (string.IsNullOrEmpty(request.PrincipalId))
+        {
+            return TypedResults.Problem(
+                detail: "The 'principalId' is required.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
+        if (!await resourceExistsAsync(storeManager, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var owner = await ownershipService.AddOwnerAsync(
+            storeManager,
+            tenantId,
+            resourceType,
+            resourceId,
+            request.PrincipalId,
+            cancellationToken
+        );
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.Created($"{ownersPath}/{owner.PrincipalId}", ToOwnerResource(owner));
+    }
+
+    /// <summary>
+    /// Processes an HTTP <c>DELETE</c> that revokes a principal's ownership of a resource: authorizes the caller
+    /// against the resource node, then removes the owner. Responds <c>409</c> when the removal would orphan the
+    /// resource and <c>404</c> when the principal is not an owner.
+    /// </summary>
+    protected internal virtual async ValueTask<IResult> ProcessRemoveOwnerAsync(
+        HttpContext httpContext,
+        IResourceOwnershipService ownershipService,
+        IStoreManagerFactory storeManagerFactory,
+        string tenantId,
+        string resourceType,
+        string resourceId,
+        string principalId,
+        CancellationToken cancellationToken
+    )
+    {
+        var node = ResourceNode.For(tenantId, resourceType, resourceId);
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            Operations.Update
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
+        var result = await ownershipService.RemoveOwnerAsync(
+            storeManager,
+            resourceType,
+            resourceId,
+            principalId,
+            cancellationToken
+        );
+
+        switch (result)
+        {
+            case OwnerRemovalResult.NotFound:
+                return TypedResults.NotFound();
+
+            case OwnerRemovalResult.LastOwnerForbidden:
+                return TypedResults.Problem(
+                    detail: "The resource must retain at least one owner.",
+                    statusCode: StatusCodes.Status409Conflict
+                );
+
+            default:
+                await storeManager.SaveChangesAsync(cancellationToken);
+                return TypedResults.NoContent();
+        }
     }
 }

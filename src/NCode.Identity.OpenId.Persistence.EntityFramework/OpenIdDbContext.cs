@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Reflection;
 using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
@@ -120,51 +121,49 @@ public class OpenIdDbContext(
             .IsUnique()
             .HasFilter("NormalizedDomainName IS NOT NULL");
 
-        // Tenant-scoping global query filters: when an ambient tenant scope is active, tenant-child resources from
-        // other tenants are never materialized (a cross-tenant row cannot be fetched, let alone returned). When no
-        // scope is active (central-admin surfaces / runtime), NormalizedAmbientTenantId is null and the filter is a
-        // no-op. The filters read the denormalized NormalizedTenantId on each entity (not a join to the tenant
-        // table), so a tenant-scoped row is self-identifying and can be relocated to its own database (ADR-0024).
-        // Tenant-owned families (the tenant itself and its secrets) are intentionally not scoped.
-        modelBuilder
-            .Entity<ClientEntity>()
-            .HasQueryFilter(entity =>
-                NormalizedAmbientTenantId == null
-                || entity.NormalizedTenantId == NormalizedAmbientTenantId
+        // Tenant-scoping global query filters: every tenant-child entity (ISupportTenantEntity) is scoped by the
+        // ambient tenant, so that when a scope is active a cross-tenant row is never materialized; when no scope is
+        // active (central-admin surfaces / runtime), NormalizedAmbientTenantId is null and the filter is a no-op. The
+        // filter reads the denormalized NormalizedTenantId on the row (not a join to the tenant table), so a
+        // tenant-scoped row is self-identifying and can be relocated to its own database (ADR-0024). Applying it by
+        // interface is fail-closed — a newly-added tenant-child entity is scoped automatically. The tenant-owned
+        // families (the tenant itself and its secrets) implement ISupportTenantEntity but are intentionally NOT scoped:
+        // they are loaded during tenant materialization for any tenant, independent of the ambient scope.
+        var applyTenantScopeFilter =
+            typeof(OpenIdDbContext).GetMethod(
+                nameof(ApplyTenantScopeFilter),
+                BindingFlags.Instance | BindingFlags.NonPublic
+            )
+            ?? throw new InvalidOperationException(
+                $"The '{nameof(ApplyTenantScopeFilter)}' method could not be found."
             );
 
-        modelBuilder
-            .Entity<ClientSecretEntity>()
-            .HasQueryFilter(entity =>
-                NormalizedAmbientTenantId == null
-                || entity.NormalizedTenantId == NormalizedAmbientTenantId
-            );
+        var tenantChildEntityTypes = modelBuilder
+            .Model.GetEntityTypes()
+            .Select(entityType => entityType.ClrType)
+            .Where(clrType =>
+                typeof(ISupportTenantEntity).IsAssignableFrom(clrType)
+                && clrType != typeof(TenantSecretEntity)
+            )
+            .ToList();
 
-        // A grant is tenant-scoped: a tenant-scoped surface sees only its tenant's grants, while central-admin (an
-        // unset ambient tenant) sees all grants.
-        modelBuilder
-            .Entity<GrantEntity>()
-            .HasQueryFilter(entity =>
-                NormalizedAmbientTenantId == null
-                || entity.NormalizedTenantId == NormalizedAmbientTenantId
-            );
+        foreach (var clrType in tenantChildEntityTypes)
+        {
+            applyTenantScopeFilter.MakeGenericMethod(clrType).Invoke(this, [modelBuilder]);
+        }
+    }
 
+    /// <summary>
+    /// Applies the tenant-scoping global query filter to a single tenant-child entity type, reading the denormalized
+    /// <see cref="ISupportTenantEntity.NormalizedTenantId"/> so that no join to the tenant table is required. Invoked
+    /// per entity type via reflection from <see cref="OnModelCreating"/>.
+    /// </summary>
+    [UsedImplicitly]
+    private void ApplyTenantScopeFilter<TEntity>(ModelBuilder modelBuilder)
+        where TEntity : class, ISupportTenantEntity
+    {
         modelBuilder
-            .Entity<ResourceServerEntity>()
-            .HasQueryFilter(entity =>
-                NormalizedAmbientTenantId == null
-                || entity.NormalizedTenantId == NormalizedAmbientTenantId
-            );
-
-        modelBuilder
-            .Entity<ScopeEntity>()
-            .HasQueryFilter(entity =>
-                NormalizedAmbientTenantId == null
-                || entity.NormalizedTenantId == NormalizedAmbientTenantId
-            );
-
-        modelBuilder
-            .Entity<ClientGrantEntity>()
+            .Entity<TEntity>()
             .HasQueryFilter(entity =>
                 NormalizedAmbientTenantId == null
                 || entity.NormalizedTenantId == NormalizedAmbientTenantId

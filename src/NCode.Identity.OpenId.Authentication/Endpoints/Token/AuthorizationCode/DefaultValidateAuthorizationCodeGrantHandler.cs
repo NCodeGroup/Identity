@@ -163,7 +163,7 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
         var operationDisposition = new OperationDisposition<IOpenIdError>();
 
         await mediator.SendAsync(
-            new ValidateSubjectCommand(
+            new ValidateSubjectAuthenticationCommand(
                 openIdContext,
                 openIdClient,
                 openIdRequest,

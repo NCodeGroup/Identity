@@ -33,14 +33,14 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Handlers;
 
-public class DefaultAuthorizeSubjectHandlerTests : BaseTests
+public class DefaultAuthorizeHandlerTests : BaseTests
 {
-    private DefaultAuthorizeSubjectHandler Handler { get; }
+    private DefaultAuthorizeHandler Handler { get; }
 
-    public DefaultAuthorizeSubjectHandlerTests()
+    public DefaultAuthorizeHandlerTests()
     {
-        var mockLogger = CreateLooseMock<ILogger<DefaultAuthorizeSubjectHandler>>();
-        Handler = new DefaultAuthorizeSubjectHandler(mockLogger.Object);
+        var mockLogger = CreateLooseMock<ILogger<DefaultAuthorizeHandler>>();
+        Handler = new DefaultAuthorizeHandler(mockLogger.Object);
     }
 
     #region Scaffolding
@@ -49,7 +49,7 @@ public class DefaultAuthorizeSubjectHandlerTests : BaseTests
         new("scheme", new AuthenticationProperties(), new ClaimsPrincipal(), "subject-id");
 
     private (
-        AuthorizeSubjectCommand command,
+        AuthorizeCommand command,
         Mock<OpenIdContext> context,
         Mock<IAuthorizationRequest> authRequest,
         Mock<IMediator> mediator,
@@ -68,7 +68,7 @@ public class DefaultAuthorizeSubjectHandlerTests : BaseTests
         mockAuthRequest.SetupGet(x => x.PromptTypes).Returns(promptTypes).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
-        var command = new AuthorizeSubjectCommand(
+        var command = new AuthorizeCommand(
             mockContext.Object,
             mockClient.Object,
             mockAuthRequest.Object,
@@ -87,10 +87,13 @@ public class DefaultAuthorizeSubjectHandlerTests : BaseTests
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         mockMediator
             .Setup(x =>
-                x.SendAsync(It.IsAny<ValidateSubjectCommand>(), It.IsAny<CancellationToken>())
+                x.SendAsync(
+                    It.IsAny<ValidateSubjectAuthenticationCommand>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
             .Callback(
-                (ValidateSubjectCommand cmd, CancellationToken _) =>
+                (ValidateSubjectAuthenticationCommand cmd, CancellationToken _) =>
                     cmd.OperationDisposition.Error = subjectError
             )
             .Returns(ValueTask.CompletedTask)

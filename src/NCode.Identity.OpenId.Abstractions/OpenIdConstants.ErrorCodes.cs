@@ -61,6 +61,12 @@ public static partial class OpenIdConstants
         public const string AccessDenied = "access_denied";
 
         /// <summary>
+        /// Contains the error code for <c>invalid_token</c>, used when a bearer access token is missing, malformed,
+        /// expired, revoked, or otherwise invalid (<see href="https://datatracker.ietf.org/doc/html/rfc6750#section-3.1">RFC 6750</see>).
+        /// </summary>
+        public const string InvalidToken = "invalid_token";
+
+        /// <summary>
         /// Contains the error code for <c>unsupported_response_type</c>.
         /// </summary>
         public const string UnsupportedResponseType = "unsupported_response_type";

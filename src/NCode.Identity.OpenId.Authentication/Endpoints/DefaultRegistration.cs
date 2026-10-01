@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 using NCode.Identity.OpenId.Authentication.Endpoints.Revocation;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token;
+using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
@@ -57,6 +58,7 @@ internal static class DefaultRegistration
             newBuilder.AddTokenEndpoint();
             newBuilder.AddRevocationEndpoint();
             newBuilder.AddIntrospectionEndpoint();
+            newBuilder.AddUserInfoEndpoint();
 
             return builder;
         }

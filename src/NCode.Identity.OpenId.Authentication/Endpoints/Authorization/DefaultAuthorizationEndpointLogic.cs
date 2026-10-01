@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Settings;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
@@ -116,10 +117,10 @@ internal class DefaultAuthorizationEndpointLogic(IContinueService continueServic
         );
 
         var authenticateSubjectDisposition = await mediator.SendAsync<
-            AuthenticateSubjectCommand,
+            AuthenticateCommand,
             AuthenticateSubjectDisposition
         >(
-            new AuthenticateSubjectCommand(openIdContext, openIdClient, authorizationRequest),
+            new AuthenticateCommand(openIdContext, openIdClient, authorizationRequest),
             cancellationToken
         );
 
@@ -147,10 +148,10 @@ internal class DefaultAuthorizationEndpointLogic(IContinueService continueServic
         var authenticationTicket = authenticateSubjectDisposition.Ticket.Value;
 
         var authorizeSubjectDisposition = await mediator.SendAsync<
-            AuthorizeSubjectCommand,
-            AuthorizeSubjectDisposition
+            AuthorizeCommand,
+            AuthorizeDisposition
         >(
-            new AuthorizeSubjectCommand(
+            new AuthorizeCommand(
                 openIdContext,
                 openIdClient,
                 authorizationRequest,
@@ -248,11 +249,8 @@ internal class DefaultAuthorizationEndpointLogic(IContinueService continueServic
 
         // additional authentication properties can be set via mediator middleware
 
-        var disposition = await mediator.SendAsync<
-            ChallengeSubjectCommand,
-            ReadOnlyEndpointDisposition
-        >(
-            new ChallengeSubjectCommand(
+        var disposition = await mediator.SendAsync<ChallengeCommand, ReadOnlyEndpointDisposition>(
+            new ChallengeCommand(
                 openIdContext,
                 openIdClient,
                 authorizationRequest,

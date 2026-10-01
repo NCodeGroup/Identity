@@ -21,6 +21,7 @@ using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
@@ -29,7 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 /// Represents a mediator command to authenticate a subject (aka end-user).
 /// </summary>
 [PublicAPI]
-public readonly record struct AuthenticateSubjectCommand(
+public readonly record struct AuthenticateCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     IAuthorizationRequest AuthorizationRequest

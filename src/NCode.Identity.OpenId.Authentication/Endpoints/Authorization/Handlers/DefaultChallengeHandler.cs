@@ -26,11 +26,11 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="ChallengeSubjectCommand"/> message.
+/// Provides a default implementation of a handler for the <see cref="ChallengeCommand"/> message.
 /// </summary>
 [PublicAPI]
-internal class DefaultChallengeSubjectHandler
-    : ICommandResponseHandler<ChallengeSubjectCommand, ReadOnlyEndpointDisposition>
+internal class DefaultChallengeHandler
+    : ICommandResponseHandler<ChallengeCommand, ReadOnlyEndpointDisposition>
 {
     private bool DefaultChallengeSchemeFetched { get; set; }
     private string? DefaultChallengeSchemeName { get; set; }
@@ -39,7 +39,7 @@ internal class DefaultChallengeSubjectHandler
 
     /// <inheritdoc />
     public async ValueTask<ReadOnlyEndpointDisposition> HandleAsync(
-        ChallengeSubjectCommand command,
+        ChallengeCommand command,
         CancellationToken cancellationToken
     )
     {

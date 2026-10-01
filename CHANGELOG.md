@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- An `OpenID Connect` UserInfo endpoint (`GET`/`POST /oauth2/userinfo`,
+  [OpenID Connect Core 5.3](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo), auto-advertised as
+  `userinfo_endpoint` in discovery). The endpoint is a thin shell over two mediator seams: a reusable
+  `AuthenticateSubjectCommand` whose default handler authenticates the caller via the host's ASP.NET Core authentication
+  scheme (the same mechanism the management API uses) and maps it to `SubjectAuthentication`; and a
+  `GetUserInfoClaimsCommand` enricher pipeline whose default handler supplies only the required `sub` claim, with
+  applications registering additional `ICommandHandler<GetUserInfoClaimsCommand>` handlers to contribute profile/email/
+  other claims. The response is an extensible `[JsonExtensionData]` result (`UserInfoResult`). See
+  [ADR-0030](docs/adr/0030-userinfo-endpoint-and-subject-authentication-seam.md).
 - An `OAuth 2.0` token introspection endpoint (`POST /oauth2/introspect`,
   [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662), auto-advertised as `introspection_endpoint` in discovery).
   An authenticated client may probe a token's active state: the default handler validates a JWT access token against the
@@ -76,6 +85,15 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- Renamed the authorization endpoint's subject pipeline to drop the redundant `Subject` noun (the namespace already
+  supplies the context) now that a general subject-authentication seam exists: `AuthenticateSubjectCommand` →
+  `AuthenticateCommand`, `AuthorizeSubjectCommand`/`AuthorizeSubjectDisposition` → `AuthorizeCommand`/
+  `AuthorizeDisposition`, `ChallengeSubjectCommand` → `ChallengeCommand` (and the matching `Default*` handlers). The
+  cross-slice `ValidateSubjectCommand`/`DefaultValidateSubjectHandler` were renamed to
+  `ValidateSubjectAuthenticationCommand`/`DefaultValidateSubjectAuthenticationHandler` to reflect that they validate an
+  existing login-session `SubjectAuthentication` (tenant/`max_age`/`acr`), not the generic authenticate pipeline. The
+  root `Subject` capability keeps the `Subject` noun. See
+  [ADR-0030](docs/adr/0030-userinfo-endpoint-and-subject-authentication-seam.md).
 - Collapsed the per-strategy OpenID tenant providers, their selector, and the thin tenant factory into a single
   `DefaultOpenIdTenantFactory` that composes `ITenantResolver` for selection and performs only tenant materialization.
   Tenant-selection option types moved from `NCode.Identity.OpenId.Authentication` to

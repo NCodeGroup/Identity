@@ -54,6 +54,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Introspection = "intro
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Jwks = "jwks_uri" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Revocation = "revocation_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Token = "token_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.UserInfo = "userinfo_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Authorization = "/oauth2/authorize" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Continue = "/oauth2/continue" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Discovery = "/.well-known/openid-configuration" -> string!
@@ -61,6 +62,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Introspection = "/oaut
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Jwks = "/oauth2/jwks" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Revocation = "/oauth2/revoke" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Token = "/oauth2/token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.UserInfo = "/oauth2/userinfo" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.OpenId = "oidc" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccessDenied = "access_denied" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccountSelectionRequired = "account_selection_required" -> string!
@@ -72,6 +74,7 @@ const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequest = "invalid
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequestJwt = "invalid_request_object" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequestUri = "invalid_request_uri" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidScope = "invalid_scope" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidToken = "invalid_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.LoginRequired = "login_required" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RegistrationNotSupported = "registration_not_supported" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RequestNotSupported = "request_not_supported" -> string!
@@ -224,6 +227,7 @@ NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identi
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidRequest(string! errorDescription, string! errorCode = "invalid_request") -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidRequestUri(string! errorDescription, string! errorCode = "invalid_request_uri") -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidScope() -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidToken() -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).LoginRequired() -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).MissingParameter(string! parameterName, string! errorCode = "invalid_request") -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).NotSupported(string! parameterName) -> NCode.Identity.OpenId.Messages.IOpenIdError!

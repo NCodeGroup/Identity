@@ -1,6 +1,7 @@
 ﻿#region Copyright Preamble
 
-// Copyright @ 2025 NCode Group
+//
+//    Copyright @ 2023 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,22 +18,21 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.AspNetCore.Authentication;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Represents a mediator command to challenge a subject (aka an end-user must interactively provide their credentials or use SSO).
+/// Represents a mediator command to authorize a subject (aka end-user).
 /// </summary>
 [PublicAPI]
-public readonly record struct ChallengeSubjectCommand(
+public readonly record struct AuthorizeCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     IAuthorizationRequest AuthorizationRequest,
-    AuthenticationProperties AuthenticationProperties
-) : ICommand<ReadOnlyEndpointDisposition>;
+    SubjectAuthentication SubjectAuthentication
+) : ICommand<AuthorizeDisposition>;

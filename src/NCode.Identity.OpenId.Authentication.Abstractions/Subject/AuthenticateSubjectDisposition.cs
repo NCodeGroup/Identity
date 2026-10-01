@@ -18,10 +18,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Messages;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
+namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
 /// Represents the disposition of authenticating a subject (aka end-user).

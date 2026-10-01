@@ -207,7 +207,10 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         mockMediator
             .Setup(x =>
-                x.SendAsync(It.IsAny<ValidateSubjectCommand>(), It.IsAny<CancellationToken>())
+                x.SendAsync(
+                    It.IsAny<ValidateSubjectAuthenticationCommand>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();

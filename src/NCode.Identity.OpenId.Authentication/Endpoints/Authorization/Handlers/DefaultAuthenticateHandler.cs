@@ -31,11 +31,11 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="AuthenticateSubjectCommand"/> message.
+/// Provides a default implementation of a handler for the <see cref="AuthenticateCommand"/> message.
 /// </summary>
 [PublicAPI]
-internal class DefaultAuthenticateSubjectHandler(IOptions<OpenIdOptions> optionsAccessor)
-    : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
+internal class DefaultAuthenticateHandler(IOptions<OpenIdOptions> optionsAccessor)
+    : ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectDisposition>
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
 
@@ -51,7 +51,7 @@ internal class DefaultAuthenticateSubjectHandler(IOptions<OpenIdOptions> options
 
     /// <inheritdoc />
     public async ValueTask<AuthenticateSubjectDisposition> HandleAsync(
-        AuthenticateSubjectCommand command,
+        AuthenticateCommand command,
         CancellationToken cancellationToken
     )
     {

@@ -31,32 +31,31 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="AuthorizeSubjectCommand"/> message.
+/// Provides a default implementation of a handler for the <see cref="AuthorizeCommand"/> message.
 /// </summary>
-internal class DefaultAuthorizeSubjectHandler(ILogger<DefaultAuthorizeSubjectHandler> logger)
-    : ICommandResponseHandler<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>
+internal class DefaultAuthorizeHandler(ILogger<DefaultAuthorizeHandler> logger)
+    : ICommandResponseHandler<AuthorizeCommand, AuthorizeDisposition>
 {
-    private ILogger<DefaultAuthorizeSubjectHandler> Logger { get; } = logger;
+    private ILogger<DefaultAuthorizeHandler> Logger { get; } = logger;
 
-    internal virtual AuthorizeSubjectDisposition Failed(IOpenIdError error) => new(error);
+    internal virtual AuthorizeDisposition Failed(IOpenIdError error) => new(error);
 
-    internal virtual AuthorizeSubjectDisposition Authorized() => new(ChallengeRequired: false);
+    internal virtual AuthorizeDisposition Authorized() => new(ChallengeRequired: false);
 
-    internal virtual AuthorizeSubjectDisposition ChallengeRequired() =>
-        new(ChallengeRequired: true);
+    internal virtual AuthorizeDisposition ChallengeRequired() => new(ChallengeRequired: true);
 
-    internal virtual AuthorizeSubjectDisposition LoginRequired(IOpenIdErrorFactory errorFactory) =>
+    internal virtual AuthorizeDisposition LoginRequired(IOpenIdErrorFactory errorFactory) =>
         Failed(errorFactory.LoginRequired());
 
-    internal virtual AuthorizeSubjectDisposition InteractionRequired(
+    internal virtual AuthorizeDisposition InteractionRequired(
         IOpenIdErrorFactory errorFactory,
         bool noPrompt
     ) => noPrompt ? LoginRequired(errorFactory) : ChallengeRequired();
 
     /// <inheritdoc />
     [SuppressMessage("ReSharper", "ConvertIfStatementToReturnStatement")]
-    public async ValueTask<AuthorizeSubjectDisposition> HandleAsync(
-        AuthorizeSubjectCommand command,
+    public async ValueTask<AuthorizeDisposition> HandleAsync(
+        AuthorizeCommand command,
         CancellationToken cancellationToken
     )
     {
@@ -113,7 +112,7 @@ internal class DefaultAuthorizeSubjectHandler(ILogger<DefaultAuthorizeSubjectHan
         var operationDisposition = new OperationDisposition<IOpenIdError>();
 
         await mediator.SendAsync(
-            new ValidateSubjectCommand(
+            new ValidateSubjectAuthenticationCommand(
                 openIdContext,
                 openIdClient,
                 openIdRequest,

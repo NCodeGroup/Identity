@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// Represents a mediator command to validate a subject (aka end-user).
 /// </summary>
 [PublicAPI]
-public readonly record struct ValidateSubjectCommand(
+public readonly record struct ValidateSubjectAuthenticationCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     IOpenIdRequest OpenIdRequest,

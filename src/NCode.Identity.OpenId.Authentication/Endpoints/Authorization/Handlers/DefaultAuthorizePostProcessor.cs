@@ -23,10 +23,10 @@ using NCode.Mediator.Middleware;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 
 /// <summary>
-/// Provides a post-processor for the <see cref="AuthorizeSubjectCommand"/> message.
+/// Provides a post-processor for the <see cref="AuthorizeCommand"/> message.
 /// </summary>
-internal class DefaultAuthorizeSubjectPostProcessor
-    : ICommandResponsePostProcessor<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>,
+internal class DefaultAuthorizePostProcessor
+    : ICommandResponsePostProcessor<AuthorizeCommand, AuthorizeDisposition>,
         ISupportMediatorPriority
 {
     /// <inheritdoc />
@@ -34,8 +34,8 @@ internal class DefaultAuthorizeSubjectPostProcessor
 
     /// <inheritdoc />
     public ValueTask PostProcessAsync(
-        AuthorizeSubjectCommand command,
-        AuthorizeSubjectDisposition response,
+        AuthorizeCommand command,
+        AuthorizeDisposition response,
         CancellationToken cancellationToken
     )
     {

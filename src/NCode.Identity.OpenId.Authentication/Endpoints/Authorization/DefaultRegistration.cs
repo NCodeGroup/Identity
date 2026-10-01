@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Serialization;
 using NCode.Identity.Results;
@@ -96,27 +97,24 @@ internal static class DefaultRegistration
                 DefaultValidateAuthorizationRequestHandler
             >();
             serviceCollection.TryAddSingleton<
-                ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,
-                DefaultAuthenticateSubjectHandler
+                ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectDisposition>,
+                DefaultAuthenticateHandler
             >();
             serviceCollection.TryAddSingleton<
-                ICommandResponsePostProcessor<
-                    AuthenticateSubjectCommand,
-                    AuthenticateSubjectDisposition
-                >,
-                DefaultAuthenticateSubjectPostProcessor
+                ICommandResponsePostProcessor<AuthenticateCommand, AuthenticateSubjectDisposition>,
+                DefaultAuthenticatePostProcessor
             >();
             serviceCollection.TryAddSingleton<
-                ICommandResponseHandler<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>,
-                DefaultAuthorizeSubjectHandler
+                ICommandResponseHandler<AuthorizeCommand, AuthorizeDisposition>,
+                DefaultAuthorizeHandler
             >();
             serviceCollection.TryAddSingleton<
-                ICommandResponsePostProcessor<AuthorizeSubjectCommand, AuthorizeSubjectDisposition>,
-                DefaultAuthorizeSubjectPostProcessor
+                ICommandResponsePostProcessor<AuthorizeCommand, AuthorizeDisposition>,
+                DefaultAuthorizePostProcessor
             >();
             serviceCollection.TryAddSingleton<
-                ICommandResponseHandler<ChallengeSubjectCommand, ReadOnlyEndpointDisposition>,
-                DefaultChallengeSubjectHandler
+                ICommandResponseHandler<ChallengeCommand, ReadOnlyEndpointDisposition>,
+                DefaultChallengeHandler
             >();
             serviceCollection.TryAddSingleton<
                 ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>,

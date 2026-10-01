@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2025 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -22,18 +22,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
-using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
-using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
-using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Options;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
-using NCode.Identity.Settings;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Handlers;
+namespace NCode.Identity.OpenId.Core.Tests.Subject;
 
 public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 {
@@ -49,9 +45,6 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
     ) CreateScaffold()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
-        var mockClient = CreateStrictMock<OpenIdClient>();
-        var mockAuthRequest = CreateStrictMock<IAuthorizationRequest>();
-        var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
         var mockAuthService = CreateStrictMock<IAuthenticationService>();
@@ -65,19 +58,14 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
         mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
-        var command = new AuthenticateSubjectCommand(
-            mockContext.Object,
-            mockClient.Object,
-            mockAuthRequest.Object
-        );
+        var command = new AuthenticateSubjectCommand(mockContext.Object);
 
         return (command, mockAuthService, mockError);
     }
 
-    private void SetupAuthenticate(
+    private static void SetupAuthenticate(
         Mock<IAuthenticationService> mockAuthService,
         AuthenticateResult result
     ) =>

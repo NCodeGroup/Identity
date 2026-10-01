@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers.Text;
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -68,6 +69,16 @@ public class TokenEndpointClientCredentialsTests
 
         Assert.Equal(OpenIdConstants.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
         Assert.Equal(TestServerSettingsProvider.ApiScope, root.GetProperty("scope").GetString());
+
+        // The access token audience is bound to the resource server that owns the scope, not the client (ADR-0027).
+        using var payload = DecodeJwtPayload(accessToken.GetString()!);
+        var audElement = payload.RootElement.GetProperty("aud");
+        var audiences =
+            audElement.ValueKind == JsonValueKind.Array
+                ? audElement.EnumerateArray().Select(element => element.GetString()).ToList()
+                : [audElement.GetString()];
+        Assert.Contains("https://api.integration.test", audiences);
+        Assert.DoesNotContain(ClientId, audiences);
     }
 
     [Fact]
@@ -96,5 +107,12 @@ public class TokenEndpointClientCredentialsTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.True(document.RootElement.TryGetProperty("error", out _));
+    }
+
+    private static JsonDocument DecodeJwtPayload(string jwt)
+    {
+        var payloadSegment = jwt.Split('.')[1];
+        var payloadBytes = Base64Url.DecodeFromChars(payloadSegment);
+        return JsonDocument.Parse(payloadBytes);
     }
 }

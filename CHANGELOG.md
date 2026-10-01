@@ -85,6 +85,11 @@ change to the public API is a **major** version bump.
   `scopes_supported` is derived from the tenant's resource-server catalog. `offline_access` availability follows from the
   system identity resource server; refresh-token issuance remains governed by the request and the `refresh_token` grant
   type. See [ADR-0026](docs/adr/0026-scope-enforcement-via-resource-servers-and-client-grants.md).
+- An access token's `aud` is now bound to the resource servers that own its effective scopes (resolved via
+  `IClientScopeService.ResolveAudiencesAsync`) instead of the requesting client, so a resource server can validate that a
+  token was minted for it; a token spanning several resource servers carries a multi-valued `aud`, and a scopeless token
+  falls back to the client id. The ID token's `aud` remains the client. See
+  [ADR-0027](docs/adr/0027-access-token-audience-from-resource-servers.md).
 
 ### Fixed
 

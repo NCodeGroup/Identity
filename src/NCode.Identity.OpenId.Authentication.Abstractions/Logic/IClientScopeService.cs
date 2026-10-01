@@ -43,4 +43,19 @@ public interface IClientScopeService
         string clientId,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Resolves the audiences for the specified scopes: the identifiers of the tenant's enabled resource servers that
+    /// own at least one of the scopes. Used to bind an access token's <c>aud</c> to the resource servers it targets.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant that owns the resource servers.</param>
+    /// <param name="scopes">The scope values whose owning resource servers are resolved.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the distinct resource
+    /// server identifiers (audiences) for the scopes.</returns>
+    ValueTask<IReadOnlyCollection<string>> ResolveAudiencesAsync(
+        string tenantId,
+        IReadOnlyCollection<string> scopes,
+        CancellationToken cancellationToken
+    );
 }

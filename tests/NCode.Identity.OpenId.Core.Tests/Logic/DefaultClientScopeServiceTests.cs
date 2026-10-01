@@ -239,4 +239,44 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
 
         Assert.DoesNotContain("dead:z", allowed);
     }
+
+    [Fact]
+    public async Task ResolveAudiencesAsync_ReturnsIdentifiersOfResourceServersOwningTheScopes()
+    {
+        MockAmbientTenantAccessor
+            .Setup(x => x.BeginScope(TenantId))
+            .Returns(Mock.Of<IDisposable>())
+            .Verifiable();
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<IResourceServerStore>())
+            .Returns(MockResourceServerStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        SetupResourceServers(
+            ResourceServer("rs-api", isSystem: false, isDisabled: false, "read:x", "write:x"),
+            ResourceServer("rs-openid", isSystem: true, isDisabled: false, "openid"),
+            ResourceServer("rs-dead", isSystem: false, isDisabled: true, "read:x")
+        );
+
+        var audiences = await Service.ResolveAudiencesAsync(
+            TenantId,
+            ["read:x", "openid"],
+            CancellationToken.None
+        );
+
+        // The disabled resource server is excluded even though it also owns 'read:x'.
+        Assert.Equal(new[] { "urn:rs-api", "urn:rs-openid" }, audiences);
+    }
+
+    [Fact]
+    public async Task ResolveAudiencesAsync_WhenNoScopes_ReturnsEmpty()
+    {
+        var audiences = await Service.ResolveAudiencesAsync(TenantId, [], CancellationToken.None);
+
+        Assert.Empty(audiences);
+    }
 }

@@ -32,4 +32,10 @@ public static class BuiltInRoles
     /// The role name for tenant administrators who have administrative access within a specific tenant.
     /// </summary>
     public const string TenantAdmin = "TenantAdmin";
+
+    /// <summary>
+    /// The role name for the owner of a single resource instance, who may manage that instance (and everything beneath
+    /// it) but not create new resources.
+    /// </summary>
+    public const string Owner = "Owner";
 }

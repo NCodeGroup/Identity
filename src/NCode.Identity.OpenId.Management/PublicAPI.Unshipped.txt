@@ -1,5 +1,6 @@
 #nullable enable
 const NCode.Identity.OpenId.Management.BuiltInRoles.GlobalAdmin = "GlobalAdmin" -> string!
+const NCode.Identity.OpenId.Management.BuiltInRoles.Owner = "Owner" -> string!
 const NCode.Identity.OpenId.Management.BuiltInRoles.TenantAdmin = "TenantAdmin" -> string!
 NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration

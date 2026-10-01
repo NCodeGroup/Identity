@@ -53,6 +53,7 @@ public static class DefaultRegistration
             serviceCollection.AddAuthorization();
             serviceCollection.AddAuthorizationHandler<GlobalAdminHandler>();
             serviceCollection.AddAuthorizationHandler<TenantAdminHandler>();
+            serviceCollection.AddAuthorizationHandler<OwnershipHandler>();
 
             serviceCollection.TryAddSingleton<ITenantValidator, DefaultTenantValidator>();
             serviceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();

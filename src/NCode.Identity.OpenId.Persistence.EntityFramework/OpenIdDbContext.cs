@@ -101,6 +101,11 @@ public class OpenIdDbContext(
     /// </summary>
     public DbSet<ClientGrantEntity> ClientGrants => Set<ClientGrantEntity>();
 
+    /// <summary>
+    /// Gets the <see cref="RoleAssignmentEntity"/> entities.
+    /// </summary>
+    public DbSet<RoleAssignmentEntity> RoleAssignments => Set<RoleAssignmentEntity>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -7,6 +7,7 @@ const NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedServerResourc
 const NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTenantResource.ResourceTypePrefix = "tenant" -> string!
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.GrantType = 100 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.HashedKey = 1000 -> int
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.RoleName = 100 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.SubjectId = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.TenantDomainName = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.UrlType = 100 -> int
@@ -118,6 +119,22 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.Settings
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.Settings.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.TenantId.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.AssignmentId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.AssignmentId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.PersistedRoleAssignment() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.PrincipalId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.PrincipalId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.ResourceId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.ResourceId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.ResourceType.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.ResourceType.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.RoleName.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.RoleName.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.TenantId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.Description.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.Description.set -> void
@@ -197,6 +214,12 @@ NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.HasDependentsAsync
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.RemoveAsync(string! resourceServerId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.RemoveScopeAsync(string! resourceServerId, string! scopeValue, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.UpdateScopeAsync(string! resourceServerId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope! persistedScope, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore
+NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore.AddAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment! assignment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore.GetByPrincipalAsync(string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!>!>
+NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore.GetByResourceAsync(string! resourceType, string! resourceId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!>!>
+NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore.GetOrDefaultAsync(string! assignmentId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment?>
+NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore.RemoveAsync(string! assignmentId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IServerStore
 NCode.Identity.OpenId.Persistence.Stores.IServerStore.AddSecretAsync(string! serverId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IServerStore.GetOrDefaultAsync(string! serverId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer?>

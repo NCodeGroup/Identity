@@ -39,6 +39,11 @@ public static class OpenIdMaxLengths
     public const int SubjectId = 300;
 
     /// <summary>
+    /// Specifies the maximum length of a role's <c>Name</c>.
+    /// </summary>
+    public const int RoleName = 100;
+
+    /// <summary>
     /// Specifies the maximum length of a <c>GrantType</c>.
     /// </summary>
     public const int GrantType = 100;

@@ -60,6 +60,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockValidator = MockRepository.Create<IResourceServerValidator>();
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId);
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService

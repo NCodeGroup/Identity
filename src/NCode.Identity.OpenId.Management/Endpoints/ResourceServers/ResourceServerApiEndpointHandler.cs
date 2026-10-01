@@ -185,9 +185,15 @@ internal class ResourceServerApiEndpointHandler(
 
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
 
+        var node = ResourceNode.For(
+            AmbientTenantAccessor.GetRequiredTenantId(),
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId
+        );
         return await ProcessGetAsync(
             httpContext,
             resourceServer,
+            node,
             Operations.Read,
             ToResourceServerResource
         );

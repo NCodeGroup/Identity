@@ -70,6 +70,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockClientValidator = MockRepository.Create<IClientValidator>();
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
+        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId);
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -665,7 +666,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetSecretAsync_AuthorizesAgainstTenantScopedResource()
+    public async Task GetSecretAsync_AuthorizesAgainstTheClientNode()
     {
         SetupStore();
         MockClientStore
@@ -681,9 +682,10 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         await Handler.GetSecretAsync(httpContext, ClientId, "secret-1", CancellationToken.None);
 
-        var scoped = Assert.IsType<TenantOwnedResource<PersistedSecret>>(capturedResource);
-        Assert.Equal(TenantId, scoped.TenantId);
-        Assert.Equal("secret-1", scoped.Value.SecretId);
+        var node = Assert.IsType<ResourceNode>(capturedResource);
+        Assert.Equal(TenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Client, node.ResourceType);
+        Assert.Equal(ClientId, node.ResourceId);
     }
 
     [Fact]

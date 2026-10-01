@@ -228,7 +228,12 @@ internal class ClientApiEndpointHandler(
 
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
 
-        return await ProcessGetAsync(httpContext, client, Operations.Read, ToClientResource);
+        var node = ResourceNode.For(
+            AmbientTenantAccessor.GetRequiredTenantId(),
+            ResourceNodeTypes.Client,
+            clientId
+        );
+        return await ProcessGetAsync(httpContext, client, node, Operations.Read, ToClientResource);
     }
 
     /// <summary>
@@ -435,9 +440,15 @@ internal class ClientApiEndpointHandler(
         // The client store has no dedicated settings getter; the client is loaded whole (settings included).
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
 
+        var node = ResourceNode.For(
+            AmbientTenantAccessor.GetRequiredTenantId(),
+            ResourceNodeTypes.Client,
+            clientId
+        );
         return await ProcessGetAsync(
             httpContext,
             client?.Settings,
+            node,
             Operations.Read,
             ToClientSettingsResource
         );
@@ -537,9 +548,15 @@ internal class ClientApiEndpointHandler(
 
         var clientSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
 
+        var node = ResourceNode.For(
+            AmbientTenantAccessor.GetRequiredTenantId(),
+            ResourceNodeTypes.Client,
+            clientId
+        );
         return await ProcessGetAsync(
             httpContext,
             clientSecrets,
+            node,
             Operations.Read,
             ToClientSecretsResource
         );
@@ -662,9 +679,15 @@ internal class ClientApiEndpointHandler(
             ? null
             : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
 
+        var node = ResourceNode.For(
+            AmbientTenantAccessor.GetRequiredTenantId(),
+            ResourceNodeTypes.Client,
+            clientId
+        );
         return await ProcessGetAsync(
             httpContext,
             scoped,
+            node,
             Operations.Read,
             x => ToSecretResource(x.Value)
         );

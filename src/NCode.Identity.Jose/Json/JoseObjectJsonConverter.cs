@@ -22,7 +22,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose.Json;
 
@@ -47,7 +46,6 @@ namespace NCode.Identity.Jose.Json;
 /// <item><term><see cref="Single"/></term></item>
 /// </list>
 /// </remarks>
-[PublicAPI]
 internal sealed class JoseObjectJsonConverter : JsonConverter<object>
 {
     /// <summary>

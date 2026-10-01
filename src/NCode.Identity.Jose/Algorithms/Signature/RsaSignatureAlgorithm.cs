@@ -18,7 +18,6 @@
 #endregion
 
 using System.Security.Cryptography;
-using JetBrains.Annotations;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Logic;
@@ -31,7 +30,6 @@ namespace NCode.Identity.Jose.Algorithms.Signature;
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
 /// <param name="padding">Contains a <see cref="RSASignaturePadding"/> value that specifies the type of <c>RSA</c> padding to use.</param>
-[PublicAPI]
 internal class RsaSignatureAlgorithm(
     string code,
     HashAlgorithmName hashAlgorithmName,

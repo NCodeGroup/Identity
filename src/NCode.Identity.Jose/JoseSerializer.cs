@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using JetBrains.Annotations;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Disposables;
@@ -39,7 +38,6 @@ namespace NCode.Identity.Jose;
 /// </summary>
 /// <param name="optionsAccessor">An accessor that provides <see cref="JoseSerializerOptions"/>.</param>
 /// <param name="algorithmCollectionProvider">An <see cref="IAlgorithmCollectionProvider"/> that provides a collection of <see cref="Algorithm"/> instances.</param>
-[PublicAPI]
 internal partial class JoseSerializer(
     IOptions<JoseSerializerOptions> optionsAccessor,
     IAlgorithmCollectionProvider algorithmCollectionProvider

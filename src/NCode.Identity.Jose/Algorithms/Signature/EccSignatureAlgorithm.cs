@@ -18,7 +18,6 @@
 #endregion
 
 using System.Security.Cryptography;
-using JetBrains.Annotations;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Logic;
@@ -28,7 +27,6 @@ namespace NCode.Identity.Jose.Algorithms.Signature;
 /// <summary>
 /// Provides an implementation of <see cref="SignatureAlgorithm"/> that uses an <c>Elliptic-Curve (ECC)</c> cryptographic algorithm for digital signatures.
 /// </summary>
-[PublicAPI]
 internal class EccSignatureAlgorithm : SignatureAlgorithm
 {
     /// <inheritdoc />

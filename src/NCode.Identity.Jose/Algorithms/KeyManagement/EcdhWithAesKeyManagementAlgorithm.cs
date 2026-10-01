@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
-using JetBrains.Annotations;
 using NCode.Buffers;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -34,7 +33,6 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="kekSizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
-[PublicAPI]
 internal class EcdhWithAesKeyManagementAlgorithm(
     IAesKeyWrap aesKeyWrap,
     string code,

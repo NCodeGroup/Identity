@@ -17,7 +17,6 @@
 #endregion
 
 using System.Diagnostics;
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Authentication.Options;
@@ -33,7 +32,6 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// the management API relies on). Applications replace this handler (or configure the authentication scheme) to change
 /// how the subject's credentials are validated.
 /// </summary>
-[PublicAPI]
 internal class DefaultAuthenticateSubjectHandler(IOptions<OpenIdOptions> optionsAccessor)
     : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
 {

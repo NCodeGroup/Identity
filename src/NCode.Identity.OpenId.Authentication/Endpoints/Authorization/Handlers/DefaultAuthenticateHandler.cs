@@ -17,7 +17,6 @@
 #endregion
 
 using System.Diagnostics;
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
@@ -33,7 +32,6 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthenticateCommand"/> message.
 /// </summary>
-[PublicAPI]
 internal class DefaultAuthenticateHandler(IOptions<OpenIdOptions> optionsAccessor)
     : ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectDisposition>
 {

@@ -16,7 +16,6 @@
 
 #endregion
 
-using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Endpoints;
@@ -30,7 +29,6 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 /// <summary>
 /// Provides extension methods to configure services and handlers for the OpenId <c>UserInfo</c> endpoint.
 /// </summary>
-[PublicAPI]
 internal static class DefaultRegistration
 {
     extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)

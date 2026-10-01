@@ -17,7 +17,6 @@
 #endregion
 
 using System.Text.Json;
-using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.Secrets;
@@ -31,7 +30,6 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdClientFactory"/> abstraction.
 /// </summary>
-[PublicAPI]
 internal class DefaultOpenIdClientFactory(ISecretKeyCollectionFactory secretKeyCollectionFactory)
     : IOpenIdClientFactory
 {

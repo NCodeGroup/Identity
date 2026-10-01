@@ -20,7 +20,6 @@
 using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
-using JetBrains.Annotations;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Logic;
@@ -32,7 +31,6 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// </summary>
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="padding">Contains a <see cref="RSAEncryptionPadding"/> value that describes the type of RSA padding to use.</param>
-[PublicAPI]
 internal class RsaKeyManagementAlgorithm(string code, RSAEncryptionPadding padding)
     : CommonKeyManagementAlgorithm
 {

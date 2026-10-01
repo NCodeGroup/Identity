@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Diagnostics;
-using JetBrains.Annotations;
 using NCode.Buffers;
 using Nerdbank.Streams;
 
@@ -29,7 +28,6 @@ namespace NCode.Identity.Jose.Encoders;
 /// Provides an abstraction to encode a JOSE token.
 /// </summary>
 /// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
-[PublicAPI]
 internal abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseEncoder
 {
     /// <summary>

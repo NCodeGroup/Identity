@@ -26,7 +26,6 @@ namespace NCode.Identity.OpenId.Serialization;
 /// <summary>
 /// Provides extension methods to configure services and handlers for <see cref="OpenIdCoreLibrary"/>.
 /// </summary>
-[PublicAPI]
 internal static class DefaultRegistration
 {
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdCoreLibrary"/>.</param>

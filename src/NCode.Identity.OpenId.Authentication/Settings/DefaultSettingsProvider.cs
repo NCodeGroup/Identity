@@ -16,7 +16,6 @@
 
 #endregion
 
-using JetBrains.Annotations;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Settings;
@@ -26,7 +25,6 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 /// which configures nothing still gets a sensible, spec-compliant ceiling. Registered by default and
 /// replaceable/extendable by hosts.
 /// </summary>
-[PublicAPI]
 internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
 {
     /// <inheritdoc />

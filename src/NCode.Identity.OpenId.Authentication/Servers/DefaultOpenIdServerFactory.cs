@@ -18,7 +18,6 @@
 
 using System.Text.Json;
 using IdGen;
-using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -43,7 +42,6 @@ namespace NCode.Identity.OpenId.Authentication.Servers;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdServerFactory"/> abstraction.
 /// </summary>
-[PublicAPI]
 internal class DefaultOpenIdServerFactory(
     IOptions<OpenIdOptions> optionsAccessor,
     IServiceProvider serviceProvider,

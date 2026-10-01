@@ -19,7 +19,6 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using JetBrains.Annotations;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Secrets.Logic;
@@ -27,7 +26,6 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// Provides an <see cref="ISecretKeyCollection"/> implementation that is empty.
 /// </summary>
-[PublicAPI]
 internal sealed class EmptySecretKeyCollection : ISecretKeyCollection
 {
     /// <summary>

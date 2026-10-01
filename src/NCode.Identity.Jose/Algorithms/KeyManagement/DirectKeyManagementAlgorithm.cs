@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
-using JetBrains.Annotations;
 using NCode.Buffers;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets;
@@ -33,7 +32,6 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>key encryption key (KEK)</c> directly for key agreement.
 /// </summary>
-[PublicAPI]
 internal class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 {
     /// <summary>

@@ -19,7 +19,6 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Contexts;
@@ -37,7 +36,6 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// <summary>
 /// Provides a common base for <see cref="IClientAuthenticationHandler"/> implementations.
 /// </summary>
-[PublicAPI]
 internal abstract class CommonClientAuthenticationHandler(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,

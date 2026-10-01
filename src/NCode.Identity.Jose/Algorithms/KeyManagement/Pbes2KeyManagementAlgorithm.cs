@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
-using JetBrains.Annotations;
 using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
@@ -40,7 +39,6 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function to use.</param>
 /// <param name="keySizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
 /// <param name="maxIterationCount">Contains the maximum number of iterations allowed for the PBKDF2 algorithm.</param>
-[PublicAPI]
 internal class Pbes2KeyManagementAlgorithm(
     IAesKeyWrap aesKeyWrap,
     string code,

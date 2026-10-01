@@ -19,7 +19,6 @@
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using JetBrains.Annotations;
 using NCode.Identity.Claims;
 
 namespace NCode.Identity.OpenId.Serialization;
@@ -28,7 +27,6 @@ namespace NCode.Identity.OpenId.Serialization;
 /// Provides a <see cref="JsonConverter"/> implementation that can serialize and deserialize <see cref="ClaimsIdentity"/>
 /// instances to and from JSON.
 /// </summary>
-[PublicAPI]
 internal class ClaimsIdentityJsonConverter(IClaimsSerializer serializer)
     : JsonConverter<ClaimsIdentity>
 {

@@ -18,14 +18,12 @@
 #endregion
 
 using System.Buffers;
-using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose.Algorithms.Compression;
 
 /// <summary>
 /// Provides an implementation of <see cref="CompressionAlgorithm"/> that does not perform compression and reads/writes data as-is.
 /// </summary>
-[PublicAPI]
 internal class NoneCompressionAlgorithm : CompressionAlgorithm
 {
     /// <summary>

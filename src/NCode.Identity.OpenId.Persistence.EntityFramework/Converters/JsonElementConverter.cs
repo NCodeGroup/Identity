@@ -17,7 +17,6 @@
 #endregion
 
 using System.Text.Json;
-using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Converters;
@@ -26,7 +25,6 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Converters;
 /// Provides an implementation of <see cref="ValueConverter"/> that converts <see cref="JsonElement"/> to a JSON string and back.
 /// This is useful for storing JSON data in a database column as a string.
 /// </summary>
-[PublicAPI]
 internal class JsonElementConverter : ValueConverter<JsonElement, string>
 {
     /// <summary>

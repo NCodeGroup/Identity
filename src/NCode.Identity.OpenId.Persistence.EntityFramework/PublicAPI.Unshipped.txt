@@ -94,9 +94,9 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.RevokedWh
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.RevokedWhen.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.SubjectId.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.SubjectId.init -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity!
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.Tenant.init -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.TenantId.get -> long?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.TenantId.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity.TenantId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportSecretEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportSecretEntity.Secret.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity!

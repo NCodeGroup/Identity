@@ -60,7 +60,7 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
     /// Gets or sets the <c>TenantId</c> associated with this entity.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
-    public required string? TenantId { get; init; }
+    public required string TenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the <c>ClientId</c> associated with this entity.

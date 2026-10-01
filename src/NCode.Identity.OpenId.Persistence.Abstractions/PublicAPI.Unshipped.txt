@@ -96,7 +96,7 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.RevokedWhen.get -
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.RevokedWhen.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.SubjectId.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.SubjectId.init -> void
-NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.TenantId.get -> string?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.TenantId.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.TenantId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer.ConcurrencyToken.get -> string!

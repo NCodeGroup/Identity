@@ -27,6 +27,8 @@ using NCode.Identity.OpenId.Management.Endpoints.Grants;
 using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
+using NCode.Identity.OpenId.Management.ResourceServers;
+using NCode.Identity.OpenId.ResourceServers;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Management;
@@ -60,6 +62,13 @@ public static class DefaultRegistration
                 DefaultResourceServerValidator
             >();
             serviceCollection.TryAddSingleton<IClientGrantValidator, DefaultClientGrantValidator>();
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ISystemResourceServerProvider,
+                    ManagementResourceServerProvider
+                >()
+            );
 
             builder.AddEndpointGroupProvider<ManagementEndpointGroupProvider>();
             builder.AddManagementEndpointProvider<ServerApiEndpointHandler>();

@@ -131,9 +131,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
             .Verifiable();
 
         MockPersistedGrantService
-            .Setup(x =>
-                x.CreateGrantId(It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>())
-            )
+            .Setup(x => x.CreateGrantId(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(CreateGrantId())
             .Verifiable();
 

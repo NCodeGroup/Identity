@@ -30,5 +30,11 @@ public static partial class OpenIdConstants
         /// 'urn:ncode:openid'.
         /// </summary>
         public const string OpenId = "urn:ncode:openid";
+
+        /// <summary>
+        /// Contains the reserved audience identifier for the tenant-plane management resource server
+        /// (administering a tenant's clients, resource servers, scopes, and grants): 'urn:ncode:management'.
+        /// </summary>
+        public const string Management = "urn:ncode:management";
     }
 }

@@ -499,7 +499,7 @@ NCode.Identity.OpenId.Authentication.Logic.IAuthorizationCodeService.CreateAutho
 NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService
 NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.AddAsync<TPayload>(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Models.PersistedGrantId grantId, NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload> grant, System.DateTimeOffset createdWhen, System.TimeSpan? lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.ConsumeOnceOrDefault<TPayload>(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Models.PersistedGrantId grantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>?>
-NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.CreateGrantId(string? tenantId, string! grantType, string! grantKey) -> NCode.Identity.OpenId.Authentication.Models.PersistedGrantId
+NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.CreateGrantId(string! tenantId, string! grantType, string! grantKey) -> NCode.Identity.OpenId.Authentication.Models.PersistedGrantId
 NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.GetOrDefaultAsync<TPayload>(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Models.PersistedGrantId grantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>?>
 NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.SetRevokedOnceAsync(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Models.PersistedGrantId grantId, System.DateTimeOffset revokedWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.UpdateExpirationAsync(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Models.PersistedGrantId grantId, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -526,7 +526,7 @@ NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.Status.get 
 NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.Status.init -> void
 NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.SubjectId.get -> string?
 NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.SubjectId.init -> void
-NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.TenantId.get -> string?
+NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.TenantId.get -> string!
 NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.TenantId.init -> void
 NCode.Identity.OpenId.Authentication.Models.PersistedGrantId
 NCode.Identity.OpenId.Authentication.Models.PersistedGrantId.GrantKey.get -> string!
@@ -534,7 +534,7 @@ NCode.Identity.OpenId.Authentication.Models.PersistedGrantId.GrantKey.init -> vo
 NCode.Identity.OpenId.Authentication.Models.PersistedGrantId.GrantType.get -> string!
 NCode.Identity.OpenId.Authentication.Models.PersistedGrantId.GrantType.init -> void
 NCode.Identity.OpenId.Authentication.Models.PersistedGrantId.PersistedGrantId() -> void
-NCode.Identity.OpenId.Authentication.Models.PersistedGrantId.TenantId.get -> string?
+NCode.Identity.OpenId.Authentication.Models.PersistedGrantId.TenantId.get -> string!
 NCode.Identity.OpenId.Authentication.Models.PersistedGrantId.TenantId.init -> void
 NCode.Identity.OpenId.Authentication.Models.PersistedGrantStatus
 NCode.Identity.OpenId.Authentication.Models.PersistedGrantStatus.Active = 0 -> NCode.Identity.OpenId.Authentication.Models.PersistedGrantStatus

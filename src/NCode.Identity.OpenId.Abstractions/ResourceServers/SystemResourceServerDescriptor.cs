@@ -40,6 +40,13 @@ public sealed class SystemResourceServerDescriptor
     public required string Name { get; init; }
 
     /// <summary>
+    /// Gets the deployment plane into which this resource server is seeded. The default is
+    /// <see cref="SystemResourceServerPlane.Tenant"/> (seeded into every tenant);
+    /// <see cref="SystemResourceServerPlane.Control"/> is seeded only into the root tenant.
+    /// </summary>
+    public SystemResourceServerPlane Plane { get; init; } = SystemResourceServerPlane.Tenant;
+
+    /// <summary>
     /// Gets the scopes owned by the resource server.
     /// </summary>
     public required IReadOnlyList<SystemScopeDescriptor> Scopes { get; init; }

@@ -16,7 +16,6 @@
 
 #endregion
 
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
@@ -28,7 +27,6 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="ChallengeCommand"/> message.
 /// </summary>
-[PublicAPI]
 internal class DefaultChallengeHandler
     : ICommandResponseHandler<ChallengeCommand, ReadOnlyEndpointDisposition>
 {

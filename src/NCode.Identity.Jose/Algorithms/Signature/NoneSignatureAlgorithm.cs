@@ -18,7 +18,6 @@
 #endregion
 
 using System.Security.Cryptography;
-using JetBrains.Annotations;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 
@@ -27,7 +26,6 @@ namespace NCode.Identity.Jose.Algorithms.Signature;
 /// <summary>
 /// Provides an implementation of <see cref="SignatureAlgorithm"/> that doesn't calculate any digital signatures.
 /// </summary>
-[PublicAPI]
 internal class NoneSignatureAlgorithm : SignatureAlgorithm
 {
     /// <summary>

@@ -18,7 +18,6 @@
 
 using System.Linq.Expressions;
 using IdGen;
-using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
@@ -31,7 +30,6 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// Provides a default implementation of <see cref="IRoleAssignmentStore"/> that uses Entity Framework Core for
 /// persistence.
 /// </summary>
-[PublicAPI]
 internal class RoleAssignmentStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,

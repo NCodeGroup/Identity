@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
-using JetBrains.Annotations;
 using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
@@ -37,7 +36,6 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// </summary>
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="kekSizeBits">Contains the legal size, in bits, of the key encryption key (KEK).</param>
-[PublicAPI]
 internal class AesGcmKeyManagementAlgorithm(string code, int kekSizeBits)
     : CommonKeyManagementAlgorithm
 {

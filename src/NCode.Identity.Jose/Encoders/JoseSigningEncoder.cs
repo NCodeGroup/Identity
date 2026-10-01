@@ -18,7 +18,6 @@
 #endregion
 
 using System.Buffers;
-using JetBrains.Annotations;
 
 namespace NCode.Identity.Jose.Encoders;
 
@@ -27,7 +26,6 @@ namespace NCode.Identity.Jose.Encoders;
 /// </summary>
 /// <param name="joseSerializer">The <see cref="JoseSerializer"/> instance.</param>
 /// <param name="signingOptions">The JOSE signing credentials and options.</param>
-[PublicAPI]
 internal class JoseSigningEncoder(JoseSerializer joseSerializer, JoseSigningOptions signingOptions)
     : CommonJoseEncoder(joseSerializer)
 {

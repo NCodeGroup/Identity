@@ -18,7 +18,6 @@
 
 using System.Linq.Expressions;
 using IdGen;
-using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
@@ -30,7 +29,6 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// <summary>
 /// Provides a default implementation of <see cref="IGrantStore"/> that uses Entity Framework Core for persistence.
 /// </summary>
-[PublicAPI]
 internal class GrantStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,

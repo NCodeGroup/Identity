@@ -16,7 +16,6 @@
 
 #endregion
 
-using JetBrains.Annotations;
 using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 using NCode.Identity.Secrets.Keys;
@@ -27,7 +26,6 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 /// Converts an <see cref="RsaSecretKey"/> into an <see cref="RsaJsonWebKey"/> (<c>kty=RSA</c>),
 /// publishing only the public members (<c>n</c> and <c>e</c>).
 /// </summary>
-[PublicAPI]
 internal class RsaJsonWebKeyConverter : JsonWebKeyConverter<RsaSecretKey>
 {
     /// <inheritdoc />

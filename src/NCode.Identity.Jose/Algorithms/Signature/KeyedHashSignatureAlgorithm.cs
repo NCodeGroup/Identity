@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Security.Cryptography;
-using JetBrains.Annotations;
 using NCode.Buffers;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -30,7 +29,6 @@ namespace NCode.Identity.Jose.Algorithms.Signature;
 /// <summary>
 /// Provides an implementation of <see cref="SignatureAlgorithm"/> that uses a <c>keyed hash (HMAC)</c> cryptographic algorithm for digital signatures.
 /// </summary>
-[PublicAPI]
 internal class KeyedHashSignatureAlgorithm : SignatureAlgorithm
 {
     /// <inheritdoc />

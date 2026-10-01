@@ -29,7 +29,6 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <summary>
 /// Provides extension methods to configure services for tenant resolution.
 /// </summary>
-[PublicAPI]
 internal static class DefaultRegistration
 {
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdCoreLibrary"/>.</param>

@@ -17,7 +17,6 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 
@@ -26,7 +25,6 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 /// built-in NIST P-curves (<c>P-256</c>, <c>P-384</c>, and <c>P-521</c>). Additional specifications
 /// registered by the application are merged in and override a built-in that shares the same curve size.
 /// </summary>
-[PublicAPI]
 internal class DefaultEccCurveSpecificationRegistry : IEccCurveSpecificationRegistry
 {
     /// <summary>

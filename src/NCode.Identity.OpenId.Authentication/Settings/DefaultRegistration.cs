@@ -28,7 +28,6 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 /// <summary>
 /// Provides extension methods to configure services and handlers for OpenId Setting services.
 /// </summary>
-[PublicAPI]
 internal static class DefaultRegistration
 {
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>

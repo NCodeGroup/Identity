@@ -16,7 +16,6 @@
 
 #endregion
 
-using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Persistence.Stores;
@@ -26,7 +25,6 @@ namespace NCode.Identity.OpenId.Authentication.Logic;
 /// <summary>
 /// Provides the default implementation of <see cref="IClientScopeService"/>.
 /// </summary>
-[PublicAPI]
 internal class DefaultClientScopeService(
     IStoreManagerFactory storeManagerFactory,
     IAmbientTenantAccessor ambientTenantAccessor

@@ -153,9 +153,11 @@ rationale.
   as a new constructor parameter — once shipped that is a binary-breaking signature change. Add it as an `init`
   property, model "unspecified" as nullable, and resolve the default **inside the library**.
 - 👁 **Annotate a reflection-/DI-/serializer-consumed public type with `[PublicAPI]`** (JetBrains.Annotations) — the
-  house pattern across the packages. Members touched only by the JSON serializer, the options binder, or the DI
-  container have no in-repo call site, so the unused-member analyzers flag them; `[PublicAPI]` states the intent and
-  silences the noise without a null-forgiving or pragma escape hatch.
+  house pattern across the packages. Members of a public type touched only by the JSON serializer, the options binder,
+  or the DI container have no in-repo call site, so the unused-member analyzers flag them; `[PublicAPI]` states the
+  intent and silences the noise without a null-forgiving or pragma escape hatch. **Do not apply `[PublicAPI]` to an
+  internal type** — an internal implementation is reached through in-assembly call sites (its interface, its DI
+  registration), so the analyzers do not flag it and the annotation would misstate it as public surface.
 
 ## 3. File & code organization
 

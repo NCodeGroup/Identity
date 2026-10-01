@@ -16,7 +16,6 @@
 
 #endregion
 
-using JetBrains.Annotations;
 using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 using NCode.Identity.Secrets.Keys;
@@ -27,7 +26,6 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 /// Converts an <see cref="EccSecretKey"/> into an <see cref="EccJsonWebKey"/> (<c>kty=EC</c>),
 /// publishing only the public members (<c>crv</c>, <c>x</c>, and <c>y</c>).
 /// </summary>
-[PublicAPI]
 internal class EccJsonWebKeyConverter(IEccCurveSpecificationRegistry curveSpecificationRegistry)
     : JsonWebKeyConverter<EccSecretKey>
 {

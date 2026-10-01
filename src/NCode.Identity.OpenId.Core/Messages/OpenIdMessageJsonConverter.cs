@@ -20,7 +20,6 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using JetBrains.Annotations;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 
@@ -31,7 +30,6 @@ namespace NCode.Identity.OpenId.Messages;
 /// instances to and from JSON.
 /// </summary>
 /// <typeparam name="T">The type of the <see cref="IOpenIdMessage"/> instance to serialize and deserialize.</typeparam>
-[PublicAPI]
 internal class OpenIdMessageJsonConverter<T>(OpenIdEnvironment openIdEnvironment)
     : JsonConverter<T?>
     where T : class, IOpenIdMessage

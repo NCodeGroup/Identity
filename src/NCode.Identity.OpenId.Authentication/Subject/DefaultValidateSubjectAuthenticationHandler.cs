@@ -18,7 +18,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
-using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
@@ -38,7 +37,6 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// <remarks>
 /// The application should also register an additional handler to validate the subject's active status.
 /// </remarks>
-[PublicAPI]
 internal class DefaultValidateSubjectAuthenticationHandler(
     TimeProvider timeProvider,
     ILogger<DefaultValidateSubjectAuthenticationHandler> logger

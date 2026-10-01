@@ -17,7 +17,6 @@
 #endregion
 
 using System.Collections;
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 
@@ -26,7 +25,6 @@ namespace NCode.Identity.OpenId.Authentication.Messages;
 /// <summary>
 /// Provides an implementation of <see cref="IRequestValues"/> that wraps an <see cref="IQueryCollection"/>.
 /// </summary>
-[PublicAPI]
 internal class RequestValuesUsingQuery(IQueryCollection query) : IRequestValues
 {
     private IQueryCollection Query { get; } = query;

@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Security.Cryptography;
-using JetBrains.Annotations;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -30,7 +29,6 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// <summary>
 /// Base implementation for all cryptographic key management algorithms.
 /// </summary>
-[PublicAPI]
 internal abstract class CommonKeyManagementAlgorithm : KeyManagementAlgorithm
 {
     /// <inheritdoc />

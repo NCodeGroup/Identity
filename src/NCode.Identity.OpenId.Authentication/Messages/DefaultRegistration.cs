@@ -32,7 +32,6 @@ namespace NCode.Identity.OpenId.Authentication.Messages;
 /// <summary>
 /// Provides extension methods to configure services and handlers for essential OpenId Messages.
 /// </summary>
-[PublicAPI]
 internal static class DefaultRegistration
 {
     /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>

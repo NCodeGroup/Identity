@@ -18,7 +18,6 @@
 #endregion
 
 using System.Security.Cryptography;
-using JetBrains.Annotations;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Logic;
 
@@ -27,7 +26,6 @@ namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 /// <summary>
 /// Provides common implementation for all cryptographic authenticated encryption (AEAD) algorithms.
 /// </summary>
-[PublicAPI]
 internal abstract class CommonAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlgorithm
 {
     private IEnumerable<KeySizes>? KeyBitSizesOrNull { get; set; }

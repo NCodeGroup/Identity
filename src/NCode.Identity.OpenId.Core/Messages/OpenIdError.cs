@@ -17,7 +17,6 @@
 
 #endregion
 
-using JetBrains.Annotations;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -27,7 +26,6 @@ namespace NCode.Identity.OpenId.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdError"/> abstraction.
 /// </summary>
-[PublicAPI]
 internal sealed class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError, ISupportOpenIdError
 {
     /// <summary>

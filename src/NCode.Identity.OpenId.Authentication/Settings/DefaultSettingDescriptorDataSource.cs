@@ -16,7 +16,6 @@
 
 #endregion
 
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
@@ -30,7 +29,6 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 /// <summary>
 /// Provides the default implementation for a data source collection of <see cref="SettingDescriptor"/> instances supported by this library.
 /// </summary>
-[PublicAPI]
 internal class DefaultSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IServiceProvider serviceProvider

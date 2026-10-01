@@ -16,36 +16,40 @@
 
 #endregion
 
+using JetBrains.Annotations;
+
 namespace NCode.Identity.OpenId.Management.Authorization;
 
 /// <summary>
-/// Contains the controlled vocabulary of resource node types that a role assignment may target. A role assigned at a
-/// node applies to that node and every resource beneath it (ADR-0034).
+/// Contains the controlled vocabulary of built-in resource node types that a role assignment may target. A role
+/// assigned at a node applies to that node and every resource beneath it (ADR-0034). Applications may assign ownership
+/// at their own node types using application-defined values.
 /// </summary>
-internal static class ResourceNodeTypes
+[PublicAPI]
+public static class ResourceNodeTypes
 {
     /// <summary>
     /// The server root node. A role assigned here applies across the whole server.
     /// </summary>
-    internal const string Server = "server";
+    public const string Server = "server";
 
     /// <summary>
     /// A tenant node. A role assigned here applies across the tenant and its child resources.
     /// </summary>
-    internal const string Tenant = "tenant";
+    public const string Tenant = "tenant";
 
     /// <summary>
     /// A client (application) node.
     /// </summary>
-    internal const string Client = "client";
+    public const string Client = "client";
 
     /// <summary>
     /// A resource server (API) node.
     /// </summary>
-    internal const string ResourceServer = "resource_server";
+    public const string ResourceServer = "resource_server";
 
     /// <summary>
     /// A grant (user authorization) node.
     /// </summary>
-    internal const string Grant = "grant";
+    public const string Grant = "grant";
 }

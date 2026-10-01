@@ -32,6 +32,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedClient"/>.
 /// </summary>
 [Index(nameof(TenantId), nameof(NormalizedClientId), IsUnique = true)]
+[Index(nameof(NormalizedTenantId), IsUnique = false)]
 public sealed class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <summary>
@@ -44,6 +45,11 @@ public sealed class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToke
     /// <inheritdoc />
     [ForeignKey(nameof(Tenant))]
     public required long TenantId { get; init; }
+
+    /// <inheritdoc />
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string NormalizedTenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the natural identifier for this entity.

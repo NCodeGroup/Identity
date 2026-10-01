@@ -30,6 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// the same value on two resource servers is two distinct scopes.
 /// </summary>
 [Index(nameof(ResourceServerId), nameof(NormalizedValue), IsUnique = true)]
+[Index(nameof(NormalizedTenantId), IsUnique = false)]
 public sealed class ScopeEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <summary>
@@ -42,6 +43,11 @@ public sealed class ScopeEntity : ISupportTenantEntity, ISupportConcurrencyToken
     /// <inheritdoc />
     [ForeignKey(nameof(Tenant))]
     public required long TenantId { get; init; }
+
+    /// <inheritdoc />
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string NormalizedTenantId { get; init; }
 
     /// <summary>
     /// Gets the foreign key for the resource server that owns this scope.

@@ -150,6 +150,30 @@ public sealed class ResourceServerStoreTests : IDisposable
         Assert.Equal(ResourceServerId, found.ResourceServerId);
     }
 
+    [Fact]
+    public async Task AddAsync_DenormalizesTenantIdOntoResourceServerAndScopes()
+    {
+        await SeedTenantAsync();
+        await _store.AddAsync(
+            CreateResourceServer(scopes: [CreateScope("read:x")]),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        // The denormalized tenant key is the normalized (lowercase) natural tenant id, stored on the entity itself
+        // so tenant-scoping needs no join to the tenant table (ADR-0024 split-readiness).
+        var expected = TenantId.ToLowerInvariant();
+
+        var resourceServer = await _dbContext.ResourceServers.SingleAsync(entity =>
+            entity.NormalizedResourceServerId == ResourceServerId.ToLowerInvariant()
+        );
+        Assert.Equal(expected, resourceServer.NormalizedTenantId);
+
+        var scope = await _dbContext.Scopes.SingleAsync();
+        Assert.Equal(expected, scope.NormalizedTenantId);
+    }
+
     #endregion
 
     #region Scope Sub-Resource Tests

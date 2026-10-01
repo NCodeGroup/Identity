@@ -32,6 +32,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// read time. The complimentary DTO for this entity is <c>PersistedClientGrant</c>.
 /// </summary>
 [Index(nameof(TenantId), nameof(ClientId), nameof(ResourceServerId), IsUnique = true)]
+[Index(nameof(NormalizedTenantId), IsUnique = false)]
 public sealed class ClientGrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <summary>
@@ -44,6 +45,11 @@ public sealed class ClientGrantEntity : ISupportTenantEntity, ISupportConcurrenc
     /// <inheritdoc />
     [ForeignKey(nameof(Tenant))]
     public required long TenantId { get; init; }
+
+    /// <inheritdoc />
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string NormalizedTenantId { get; init; }
 
     /// <summary>
     /// Gets the foreign key for the client that is authorized.

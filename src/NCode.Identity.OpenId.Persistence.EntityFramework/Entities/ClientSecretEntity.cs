@@ -21,6 +21,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
+using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 
@@ -28,6 +29,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// Represents an entity framework data contract for a relationship between a <see cref="ClientEntity"/> and a <see cref="SecretEntity"/>.
 /// </summary>
 [Index(nameof(TenantId), nameof(ClientId), nameof(SecretId), IsUnique = true)]
+[Index(nameof(NormalizedTenantId), IsUnique = false)]
 public sealed class ClientSecretEntity : ISupportTenantEntity, ISupportSecretEntity
 {
     /// <summary>
@@ -40,6 +42,11 @@ public sealed class ClientSecretEntity : ISupportTenantEntity, ISupportSecretEnt
     /// <inheritdoc />
     [ForeignKey(nameof(Tenant))]
     public required long TenantId { get; init; }
+
+    /// <inheritdoc />
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string NormalizedTenantId { get; init; }
 
     /// <summary>
     /// Gets the foreign key for the associated client.

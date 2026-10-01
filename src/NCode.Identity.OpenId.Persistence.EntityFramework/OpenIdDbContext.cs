@@ -123,19 +123,21 @@ public class OpenIdDbContext(
         // Tenant-scoping global query filters: when an ambient tenant scope is active, tenant-child resources from
         // other tenants are never materialized (a cross-tenant row cannot be fetched, let alone returned). When no
         // scope is active (central-admin surfaces / runtime), NormalizedAmbientTenantId is null and the filter is a
-        // no-op. Tenant-owned families (the tenant itself and its secrets) are intentionally not scoped.
+        // no-op. The filters read the denormalized NormalizedTenantId on each entity (not a join to the tenant
+        // table), so a tenant-scoped row is self-identifying and can be relocated to its own database (ADR-0024).
+        // Tenant-owned families (the tenant itself and its secrets) are intentionally not scoped.
         modelBuilder
             .Entity<ClientEntity>()
             .HasQueryFilter(entity =>
                 NormalizedAmbientTenantId == null
-                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+                || entity.NormalizedTenantId == NormalizedAmbientTenantId
             );
 
         modelBuilder
             .Entity<ClientSecretEntity>()
             .HasQueryFilter(entity =>
                 NormalizedAmbientTenantId == null
-                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+                || entity.NormalizedTenantId == NormalizedAmbientTenantId
             );
 
         // A grant is tenant-scoped: a tenant-scoped surface sees only its tenant's grants, while central-admin (an
@@ -144,28 +146,28 @@ public class OpenIdDbContext(
             .Entity<GrantEntity>()
             .HasQueryFilter(entity =>
                 NormalizedAmbientTenantId == null
-                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+                || entity.NormalizedTenantId == NormalizedAmbientTenantId
             );
 
         modelBuilder
             .Entity<ResourceServerEntity>()
             .HasQueryFilter(entity =>
                 NormalizedAmbientTenantId == null
-                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+                || entity.NormalizedTenantId == NormalizedAmbientTenantId
             );
 
         modelBuilder
             .Entity<ScopeEntity>()
             .HasQueryFilter(entity =>
                 NormalizedAmbientTenantId == null
-                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+                || entity.NormalizedTenantId == NormalizedAmbientTenantId
             );
 
         modelBuilder
             .Entity<ClientGrantEntity>()
             .HasQueryFilter(entity =>
                 NormalizedAmbientTenantId == null
-                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+                || entity.NormalizedTenantId == NormalizedAmbientTenantId
             );
     }
 

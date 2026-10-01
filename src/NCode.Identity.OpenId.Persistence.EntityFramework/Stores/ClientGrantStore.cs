@@ -194,6 +194,7 @@ internal class ClientGrantStore(
         {
             Id = NextId(),
             TenantId = tenantEntity.Id,
+            NormalizedTenantId = tenantEntity.NormalizedTenantId,
             ClientId = clientEntity.Id,
             ResourceServerId = resourceServerEntity.Id,
             ConcurrencyToken = persistedClientGrant.ConcurrencyToken,

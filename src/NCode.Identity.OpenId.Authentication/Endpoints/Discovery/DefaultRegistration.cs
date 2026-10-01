@@ -53,6 +53,13 @@ internal static class DefaultRegistration
                 >()
             );
 
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<DiscoverMetadataCommand>,
+                    DefaultDiscoverScopesHandler
+                >()
+            );
+
             return builder;
         }
     }

@@ -70,17 +70,5 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
                 OpenIdConstants.ResponseTypes.Token,
             ]
         );
-
-        settings.Set(
-            OpenIdSettingKeys.ScopesSupported,
-            [
-                OpenIdConstants.ScopeTypes.OpenId,
-                OpenIdConstants.ScopeTypes.Profile,
-                OpenIdConstants.ScopeTypes.Email,
-                OpenIdConstants.ScopeTypes.Address,
-                OpenIdConstants.ScopeTypes.Phone,
-                OpenIdConstants.ScopeTypes.OfflineAccess,
-            ]
-        );
     }
 }

@@ -174,6 +174,74 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 
+    /// <summary>
+    /// Seeds a resource server owning the given scopes and a client grant authorizing the client to all of them,
+    /// so the client may request those scopes (replaces the retired <c>scopes_supported</c> setting).
+    /// </summary>
+    public async Task SeedResourceServerWithClientGrantAsync(
+        string clientId,
+        string resourceServerId,
+        string identifier,
+        params string[] scopes
+    )
+    {
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
+            new Dictionary<string, object>()
+        );
+
+        using var scope = Services.CreateScope();
+        var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
+        var clientGrantStore = storeManager.GetStore<IClientGrantStore>();
+
+        await resourceServerStore.AddAsync(
+            new PersistedResourceServer
+            {
+                TenantId = TenantId,
+                ResourceServerId = resourceServerId,
+                Identifier = identifier,
+                ConcurrencyToken = string.Empty,
+                Name = resourceServerId,
+                IsSystem = false,
+                IsDisabled = false,
+                Settings = emptySettingsJson,
+                Scopes = scopes
+                    .Select(value => new PersistedScope
+                    {
+                        Value = value,
+                        Description = null,
+                        IsSystem = false,
+                    })
+                    .ToList(),
+            },
+            CancellationToken.None
+        );
+        // Persist the resource server before the grant: the grant store resolves the resource-server foreign key,
+        // and an in-memory query does not observe unsaved inserts.
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+
+        await clientGrantStore.AddAsync(
+            new PersistedClientGrant
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                ResourceServerId = resourceServerId,
+                ConcurrencyToken = string.Empty,
+                Scopes = scopes,
+            },
+            CancellationToken.None
+        );
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
     /// <inheritdoc />
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

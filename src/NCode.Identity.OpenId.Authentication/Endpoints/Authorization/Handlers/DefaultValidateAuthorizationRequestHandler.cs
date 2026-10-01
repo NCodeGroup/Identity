@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
@@ -32,15 +33,17 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="ValidateAuthorizationRequestCommand"/> message.
 /// </summary>
-internal class DefaultValidateAuthorizationRequestHandler
+internal class DefaultValidateAuthorizationRequestHandler(IClientScopeService clientScopeService)
     : ICommandHandler<ValidateAuthorizationRequestCommand>,
         ISupportMediatorPriority
 {
+    private IClientScopeService ClientScopeService { get; } = clientScopeService;
+
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(
+    public async ValueTask HandleAsync(
         ValidateAuthorizationRequestCommand command,
         CancellationToken cancellationToken
     )
@@ -59,7 +62,14 @@ internal class DefaultValidateAuthorizationRequestHandler
 
         ValidateRequest(openIdEnvironment, openIdClient, authorizationRequest);
 
-        return ValueTask.CompletedTask;
+        // A requested scope must be permitted by the client's grants (ADR-0026).
+        var allowedScopes = await ClientScopeService.GetAllowedScopesAsync(
+            openIdContext.Tenant.TenantId,
+            openIdClient.ClientId,
+            cancellationToken
+        );
+        if (authorizationRequest.Scopes.Except(allowedScopes).Any())
+            throw openIdEnvironment.ErrorFactory.InvalidScope().AsException();
     }
 
     [AssertionMethod]
@@ -407,14 +417,7 @@ internal class DefaultValidateAuthorizationRequestHandler
                     .AsException();
         }
 
-        // scopes_supported
-        if (
-            settings.TryGetValue(OpenIdSettingKeys.ScopesSupported, out var scopesSupported)
-            && request.Scopes.Except(scopesSupported).Any()
-        )
-        {
-            throw errorFactory.InvalidScope().AsException();
-        }
+        // scopes_supported is enforced in HandleAsync via IClientScopeService (ADR-0026)
 
         // TODO: other checks...
 

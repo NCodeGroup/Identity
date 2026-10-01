@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
+using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Errors;
@@ -37,11 +38,13 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="AuthorizationGrant"/>.
 /// </summary>
-internal class DefaultValidateAuthorizationCodeGrantHandler(ICryptoService cryptoService)
-    : ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>,
-        ISupportMediatorPriority
+internal class DefaultValidateAuthorizationCodeGrantHandler(
+    ICryptoService cryptoService,
+    IClientScopeService clientScopeService
+) : ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>, ISupportMediatorPriority
 {
     private ICryptoService CryptoService { get; } = cryptoService;
+    private IClientScopeService ClientScopeService { get; } = clientScopeService;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -110,11 +113,13 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(ICryptoService crypt
                     "The requested scope exceeds the scope granted by the resource owner."
                 );
 
-        // scopes_supported
-        var hasInvalidScopes =
-            settings.TryGetValue(OpenIdSettingKeys.ScopesSupported, out var scopesSupported)
-            && effectiveScopes.Except(scopesSupported).Any();
-        if (hasInvalidScopes)
+        // A requested scope must be permitted by the client's grants (ADR-0026).
+        var allowedScopes = await ClientScopeService.GetAllowedScopesAsync(
+            openIdContext.Tenant.TenantId,
+            openIdClient.ClientId,
+            cancellationToken
+        );
+        if (effectiveScopes.Except(allowedScopes).Any())
             // invalid_scope
             throw errorFactory
                 .InvalidScope()

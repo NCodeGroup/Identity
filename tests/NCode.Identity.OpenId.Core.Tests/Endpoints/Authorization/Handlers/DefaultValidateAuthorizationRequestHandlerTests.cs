@@ -40,14 +40,6 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         var mockRequest = CreateLooseMock<IAuthorizationRequest>();
 
-        // scopes_supported runs unconditionally; make it pass so it does not mask the check under test
-        IReadOnlyList<string> emptyScopes = [];
-        IReadOnlyCollection<string> scopesSupported = [];
-        mockRequest.SetupGet(x => x.Scopes).Returns(emptyScopes);
-        mockSettings
-            .Setup(x => x.TryGetValue(OpenIdSettingKeys.ScopesSupported, out scopesSupported))
-            .Returns(true);
-
         return (mockSettings, mockRequest);
     }
 

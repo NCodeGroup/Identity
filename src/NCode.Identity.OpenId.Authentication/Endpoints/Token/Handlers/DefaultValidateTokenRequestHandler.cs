@@ -18,7 +18,7 @@
 
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
-using NCode.Identity.OpenId.Authentication.Settings;
+using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
 
@@ -27,15 +27,17 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="ValidateTokenRequestCommand"/> messsage.
 /// </summary>
-internal class DefaultValidateTokenRequestHandler
+internal class DefaultValidateTokenRequestHandler(IClientScopeService clientScopeService)
     : ICommandHandler<ValidateTokenRequestCommand>,
         ISupportMediatorPriority
 {
+    private IClientScopeService ClientScopeService { get; } = clientScopeService;
+
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(
+    public async ValueTask HandleAsync(
         ValidateTokenRequestCommand command,
         CancellationToken cancellationToken
     )
@@ -43,27 +45,28 @@ internal class DefaultValidateTokenRequestHandler
         var (openIdContext, openIdClient, tokenRequest) = command;
 
         var errorFactory = openIdContext.ErrorFactory;
-        var settings = openIdClient.Settings;
 
         // client_id/authenticated-client match is enforced upstream by DefaultClientAuthenticationService
 
-        // scopes_supported
+        // A requested scope must be permitted by the client's grants (ADR-0026).
         var requestedScopes = tokenRequest.Scopes;
-        var hasInvalidScopes =
-            requestedScopes is not null
-            && settings.TryGetValue(OpenIdSettingKeys.ScopesSupported, out var scopesSupported)
-            && requestedScopes.Except(scopesSupported).Any();
-        if (hasInvalidScopes)
-            // invalid_scope
-            throw errorFactory
-                .InvalidScope()
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
+        if (requestedScopes is not null)
+        {
+            var allowedScopes = await ClientScopeService.GetAllowedScopesAsync(
+                openIdContext.Tenant.TenantId,
+                openIdClient.ClientId,
+                cancellationToken
+            );
+            if (requestedScopes.Except(allowedScopes).Any())
+                // invalid_scope
+                throw errorFactory
+                    .InvalidScope()
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+                    .AsException();
+        }
 
         // additional validation occurs in:
         // - DefaultSelectTokenGrantHandlerHandler
         // - The specific token grant handler
-
-        return ValueTask.CompletedTask;
     }
 }

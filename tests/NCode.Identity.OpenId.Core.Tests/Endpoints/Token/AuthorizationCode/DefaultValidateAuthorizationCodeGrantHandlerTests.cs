@@ -27,8 +27,10 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Subject;
+using NCode.Identity.OpenId.Authentication.Tenants;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
@@ -41,15 +43,21 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Token.AuthorizationCode;
 public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
 {
     private const string ClientId = "client-1";
+    private const string TenantId = "tenant-1";
     private static readonly Uri RedirectUri = new("https://client/callback");
 
     private Mock<ICryptoService> MockCryptoService { get; }
+    private Mock<IClientScopeService> MockClientScopeService { get; }
     private DefaultValidateAuthorizationCodeGrantHandler Handler { get; }
 
     public DefaultValidateAuthorizationCodeGrantHandlerTests()
     {
         MockCryptoService = CreateStrictMock<ICryptoService>();
-        Handler = new DefaultValidateAuthorizationCodeGrantHandler(MockCryptoService.Object);
+        MockClientScopeService = CreateStrictMock<IClientScopeService>();
+        Handler = new DefaultValidateAuthorizationCodeGrantHandler(
+            MockCryptoService.Object,
+            MockClientScopeService.Object
+        );
     }
 
     #region Scaffolding
@@ -68,6 +76,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
         var mockMediator = CreateStrictMock<IMediator>();
         var mockTokenRequest = CreateStrictMock<ITokenRequest>();
         var mockAuthRequest = CreateStrictMock<IAuthorizationRequest>();
@@ -78,6 +87,8 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         // ErrorFactory, Settings and the two client ids are read before the first branch on every path.
         // Mediator is read only on the success path (subject validation), so that test sets it up itself.
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
+        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
         mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
         mockAuthRequest.SetupGet(x => x.ClientId).Returns(authRequestClientId).Verifiable();
@@ -169,10 +180,9 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(["api"]).Verifiable();
 
-        IReadOnlyCollection<string> scopesSupported = [];
-        mockSettings
-            .Setup(x => x.TryGetValue(OpenIdSettingKeys.ScopesSupported, out scopesSupported))
-            .Returns(true);
+        MockClientScopeService
+            .Setup(x => x.GetAllowedScopesAsync(TenantId, ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(command, CancellationToken.None)
@@ -190,10 +200,9 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(["api"]).Verifiable();
 
-        IReadOnlyCollection<string> scopesSupported = ["api"];
-        mockSettings
-            .Setup(x => x.TryGetValue(OpenIdSettingKeys.ScopesSupported, out scopesSupported))
-            .Returns(true);
+        MockClientScopeService
+            .Setup(x => x.GetAllowedScopesAsync(TenantId, ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { "api" });
 
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         mockMediator

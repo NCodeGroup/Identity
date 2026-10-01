@@ -22,7 +22,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
-using NCode.Identity.OpenId.Authentication.Settings;
+using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -34,10 +34,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 /// Provides a default implementation of handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="RefreshTokenGrant"/>.
 /// </summary>
-internal class DefaultValidateRefreshTokenGrantHandler
+internal class DefaultValidateRefreshTokenGrantHandler(IClientScopeService clientScopeService)
     : ICommandHandler<ValidateTokenGrantCommand<RefreshTokenGrant>>,
         ISupportMediatorPriority
 {
+    private IClientScopeService ClientScopeService { get; } = clientScopeService;
+
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
 
@@ -51,7 +53,6 @@ internal class DefaultValidateRefreshTokenGrantHandler
         var (clientId, originalScopes, _, subjectAuthentication) = refreshTokenGrant;
 
         var errorFactory = openIdContext.ErrorFactory;
-        var settings = openIdClient.Settings;
 
         // see DefaultValidateTokenRequestHandler for additional validation
 
@@ -60,15 +61,6 @@ internal class DefaultValidateRefreshTokenGrantHandler
                 .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException("The refresh token belongs to a different client.");
-
-        if (
-            settings.TryGetValue(OpenIdSettingKeys.ScopesSupported, out var scopesSupported)
-            && !scopesSupported.Contains(OpenIdConstants.ScopeTypes.OfflineAccess)
-        )
-            throw errorFactory
-                .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException("The client is prohibited from using refresh tokens.");
 
         // scope
         var requestedScopes = tokenRequest.Scopes;
@@ -84,11 +76,13 @@ internal class DefaultValidateRefreshTokenGrantHandler
                     "The requested scope exceeds the scope granted by the resource owner."
                 );
 
-        // scopes_supported
-        var hasInvalidScopes =
-            settings.TryGetValue(OpenIdSettingKeys.ScopesSupported, out var scopesSupportedCeiling)
-            && effectiveScopes.Except(scopesSupportedCeiling).Any();
-        if (hasInvalidScopes)
+        // A requested scope must be permitted by the client's grants (ADR-0026).
+        var allowedScopes = await ClientScopeService.GetAllowedScopesAsync(
+            openIdContext.Tenant.TenantId,
+            openIdClient.ClientId,
+            cancellationToken
+        );
+        if (effectiveScopes.Except(allowedScopes).Any())
             throw errorFactory
                 .InvalidScope()
                 .WithStatusCode(StatusCodes.Status400BadRequest)

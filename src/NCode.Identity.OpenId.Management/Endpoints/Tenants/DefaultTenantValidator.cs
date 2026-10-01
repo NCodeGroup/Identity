@@ -20,6 +20,7 @@ using System.Security.Claims;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -99,7 +100,7 @@ internal class DefaultTenantValidator(IAuthorizationService authorizationService
     {
         var error = await AuthorizeAsync(
             user,
-            tenant,
+            ResourceNode.For(tenant.TenantId, ResourceNodeTypes.Tenant, tenant.TenantId),
             Operations.Update,
             "The caller is not authorized to update this tenant.",
             "Authentication is required to update this tenant."
@@ -171,7 +172,7 @@ internal class DefaultTenantValidator(IAuthorizationService authorizationService
     {
         var error = await AuthorizeAsync(
             user,
-            tenant,
+            ResourceNode.For(tenant.TenantId, ResourceNodeTypes.Tenant, tenant.TenantId),
             Operations.Delete,
             "The caller is not authorized to delete this tenant.",
             "Authentication is required to delete this tenant."

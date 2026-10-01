@@ -20,6 +20,7 @@ using System.Security.Claims;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
@@ -81,7 +82,11 @@ internal class DefaultResourceServerValidator(IAuthorizationService authorizatio
     {
         return await AuthorizeAsync(
             user,
-            resourceServer,
+            ResourceNode.For(
+                resourceServer.TenantId,
+                ResourceNodeTypes.ResourceServer,
+                resourceServer.ResourceServerId
+            ),
             Operations.Update,
             "The caller is not authorized to update this resource server.",
             "Authentication is required to update this resource server."
@@ -98,7 +103,11 @@ internal class DefaultResourceServerValidator(IAuthorizationService authorizatio
     {
         var error = await AuthorizeAsync(
             user,
-            resourceServer,
+            ResourceNode.For(
+                resourceServer.TenantId,
+                ResourceNodeTypes.ResourceServer,
+                resourceServer.ResourceServerId
+            ),
             Operations.Delete,
             "The caller is not authorized to delete this resource server.",
             "Authentication is required to delete this resource server."

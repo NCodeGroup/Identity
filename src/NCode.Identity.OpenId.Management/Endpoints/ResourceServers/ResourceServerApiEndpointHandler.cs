@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Management.Logging;
@@ -225,6 +226,15 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         await store.AddAsync(resourceServer, cancellationToken);
+        await OwnerAssignments.AssignCreatorAsync(
+            httpContext.User,
+            storeManager,
+            CryptoService,
+            resourceServer.TenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServer.ResourceServerId,
+            cancellationToken
+        );
         await storeManager.SaveChangesAsync(cancellationToken);
 
         httpContext.Response.Headers.ETag = resourceServer.ConcurrencyToken;

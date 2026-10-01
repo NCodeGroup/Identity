@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
@@ -279,6 +280,15 @@ internal class ClientApiEndpointHandler(
         }
 
         await store.AddAsync(client, cancellationToken);
+        await OwnerAssignments.AssignCreatorAsync(
+            httpContext.User,
+            storeManager,
+            CryptoService,
+            client.TenantId,
+            ResourceNodeTypes.Client,
+            client.ClientId,
+            cancellationToken
+        );
         await storeManager.SaveChangesAsync(cancellationToken);
 
         // The store assigns the row token on insert (ADR-0012), so no re-read is needed.

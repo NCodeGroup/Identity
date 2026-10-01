@@ -17,16 +17,17 @@
 #endregion
 
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Mediator;
 using NCode.Mediator.Middleware;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 
 /// <summary>
-/// Provides a post-processor for the <see cref="AuthenticateSubjectCommand"/> message.
+/// Provides a post-processor for the <see cref="AuthenticateCommand"/> message.
 /// </summary>
-internal class DefaultAuthenticateSubjectPostProcessor
-    : ICommandResponsePostProcessor<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,
+internal class DefaultAuthenticatePostProcessor
+    : ICommandResponsePostProcessor<AuthenticateCommand, AuthenticateSubjectDisposition>,
         ISupportMediatorPriority
 {
     /// <inheritdoc />
@@ -34,7 +35,7 @@ internal class DefaultAuthenticateSubjectPostProcessor
 
     /// <inheritdoc />
     public ValueTask PostProcessAsync(
-        AuthenticateSubjectCommand command,
+        AuthenticateCommand command,
         AuthenticateSubjectDisposition response,
         CancellationToken cancellationToken
     )

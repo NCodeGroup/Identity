@@ -1,6 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,20 +17,20 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
-using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Mediator;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
+namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
 
 /// <summary>
-/// Represents a mediator command to authenticate a password grant request.
+/// Represents a mediator command to contribute claims about the authenticated subject to a <c>UserInfo</c> response.
+/// Multiple handlers may run; the default handler supplies the required <c>sub</c> claim, and applications register
+/// additional handlers to add profile, email, and other claims (typically gated by the granted scopes).
 /// </summary>
 [PublicAPI]
-public readonly record struct AuthenticatePasswordGrantCommand(
+public readonly record struct GetUserInfoClaimsCommand(
     OpenIdContext OpenIdContext,
-    OpenIdClient OpenIdClient,
-    ITokenRequest TokenRequest
-) : ICommand<AuthenticateSubjectDisposition>;
+    SubjectAuthentication SubjectAuthentication,
+    IDictionary<string, object> Claims
+) : ICommand;

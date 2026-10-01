@@ -1,7 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,21 +17,17 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
-using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Mediator;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
+namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
-/// Represents a mediator command to authorize a subject (aka end-user).
+/// Represents a mediator command to authenticate the subject (aka end-user) of the current HTTP request from the
+/// credentials it presents (for example, a bearer access token), returning an <see cref="AuthenticateSubjectDisposition"/>.
+/// This is the resource-facing counterpart to the interactive authorization-endpoint authentication and is reused by
+/// endpoints such as <c>UserInfo</c>.
 /// </summary>
 [PublicAPI]
-public readonly record struct AuthorizeSubjectCommand(
-    OpenIdContext OpenIdContext,
-    OpenIdClient OpenIdClient,
-    IAuthorizationRequest AuthorizationRequest,
-    SubjectAuthentication SubjectAuthentication
-) : ICommand<AuthorizeSubjectDisposition>;
+public readonly record struct AuthenticateSubjectCommand(OpenIdContext OpenIdContext)
+    : ICommand<AuthenticateSubjectDisposition>;

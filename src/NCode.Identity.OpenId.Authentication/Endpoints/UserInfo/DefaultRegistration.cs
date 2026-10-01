@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2025 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,39 +17,38 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Endpoints;
+using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
+using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Handlers;
 using NCode.Mediator;
 using NCode.Registration;
 
-namespace NCode.Identity.OpenId.Authentication.Subject;
+namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 
 /// <summary>
-/// Provides extension methods to configure services and handlers for OpenId Subject services.
+/// Provides extension methods to configure services and handlers for the OpenId <c>UserInfo</c> endpoint.
 /// </summary>
 [PublicAPI]
 internal static class DefaultRegistration
 {
-    /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
-    extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
+    extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
     {
         /// <summary>
-        /// Configures services and handlers for OpenId Subject services.
+        /// Configures services and handlers for the OpenId <c>UserInfo</c> endpoint (OpenID Connect Core 5.3).
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        [PublicAPI]
-        public IServiceBuilder<OpenIdAuthenticationLibrary> AddSubjectServices()
+        public IServiceBuilder<OpenIdAuthenticationEndpoints> AddUserInfoEndpoint()
         {
-            var serviceCollection = builder.ServiceCollection;
+            builder.AddOpenIdEndpointProvider<DefaultUserInfoEndpointProvider>();
 
-            serviceCollection.TryAddSingleton<
-                ICommandHandler<ValidateSubjectAuthenticationCommand>,
-                DefaultValidateSubjectAuthenticationHandler
-            >();
-
-            serviceCollection.TryAddSingleton<
-                ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,
-                DefaultAuthenticateSubjectHandler
-            >();
+            builder.ServiceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<GetUserInfoClaimsCommand>,
+                    DefaultGetUserInfoClaimsHandler
+                >()
+            );
 
             return builder;
         }

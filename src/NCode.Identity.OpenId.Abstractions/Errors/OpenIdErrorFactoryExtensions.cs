@@ -44,6 +44,18 @@ public static class OpenIdErrorFactoryExtensions
         }
 
         /// <summary>
+        /// Creates an <see cref="IOpenIdError"/> for when a bearer access token is missing, malformed, expired, revoked,
+        /// or otherwise invalid (<see href="https://datatracker.ietf.org/doc/html/rfc6750#section-3.1">RFC 6750</see>).
+        /// </summary>
+        /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError InvalidToken()
+        {
+            return factory
+                .Create(OpenIdConstants.ErrorCodes.InvalidToken)
+                .WithDescription("The access token is missing, invalid, or expired.");
+        }
+
+        /// <summary>
         /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c> message produces an error.
         /// </summary>
         /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>

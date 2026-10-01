@@ -77,7 +77,10 @@ public class DefaultValidatePasswordGrantHandlerTests : BaseTests
 
         mockMediator
             .Setup(x =>
-                x.SendAsync(It.IsAny<ValidateSubjectCommand>(), It.IsAny<CancellationToken>())
+                x.SendAsync(
+                    It.IsAny<ValidateSubjectAuthenticationCommand>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -94,10 +97,13 @@ public class DefaultValidatePasswordGrantHandlerTests : BaseTests
 
         mockMediator
             .Setup(x =>
-                x.SendAsync(It.IsAny<ValidateSubjectCommand>(), It.IsAny<CancellationToken>())
+                x.SendAsync(
+                    It.IsAny<ValidateSubjectAuthenticationCommand>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
             .Callback(
-                (ValidateSubjectCommand cmd, CancellationToken _) =>
+                (ValidateSubjectAuthenticationCommand cmd, CancellationToken _) =>
                     cmd.OperationDisposition.Error = mockError.Object
             )
             .Returns(ValueTask.CompletedTask)

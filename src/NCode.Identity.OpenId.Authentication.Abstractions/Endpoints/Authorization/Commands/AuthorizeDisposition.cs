@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 /// <param name="ChallengeRequired">Indicates whether the authorization request requires a challenge from the user-agent.</param>
 /// <param name="Error">Contains the <see cref="IOpenIdError"/> to be returned to the user-agent.</param>
 [PublicAPI]
-public readonly record struct AuthorizeSubjectDisposition(
+public readonly record struct AuthorizeDisposition(
     bool ChallengeRequired,
     IOpenIdError? Error = null
 )
@@ -40,20 +40,20 @@ public readonly record struct AuthorizeSubjectDisposition(
     public bool HasError => Error is not null;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AuthorizeSubjectDisposition"/> class.
+    /// Initializes a new instance of the <see cref="AuthorizeDisposition"/> class.
     /// </summary>
-    public AuthorizeSubjectDisposition()
+    public AuthorizeDisposition()
         : this(ChallengeRequired: false, Error: null)
     {
         // nothing
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AuthorizeSubjectDisposition"/> class
+    /// Initializes a new instance of the <see cref="AuthorizeDisposition"/> class
     /// that contains an <see cref="IOpenIdError"/> to be returned to the user-agent.
     /// </summary>
     /// <param name="error">The <see cref="IOpenIdError"/> to be returned to the user-agent.</param>
-    public AuthorizeSubjectDisposition(IOpenIdError error)
+    public AuthorizeDisposition(IOpenIdError error)
         : this(ChallengeRequired: false, error)
     {
         // nothing

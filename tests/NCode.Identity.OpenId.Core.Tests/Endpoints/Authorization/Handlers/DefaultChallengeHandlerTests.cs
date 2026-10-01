@@ -30,9 +30,9 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Handlers;
 
-public class DefaultChallengeSubjectHandlerTests : BaseTests
+public class DefaultChallengeHandlerTests : BaseTests
 {
-    private DefaultChallengeSubjectHandler Handler { get; } = new();
+    private DefaultChallengeHandler Handler { get; } = new();
 
     [Fact]
     public async Task HandleAsync_Always_ChallengesAndReturnsHandled()
@@ -63,7 +63,7 @@ public class DefaultChallengeSubjectHandlerTests : BaseTests
             .Returns(Task.CompletedTask)
             .Verifiable();
 
-        var command = new ChallengeSubjectCommand(
+        var command = new ChallengeCommand(
             mockContext.Object,
             mockClient.Object,
             mockAuthRequest.Object,

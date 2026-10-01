@@ -33,19 +33,19 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="ValidateSubjectCommand"/> message.
+/// Provides a default implementation of a handler for the <see cref="ValidateSubjectAuthenticationCommand"/> message.
 /// </summary>
 /// <remarks>
 /// The application should also register an additional handler to validate the subject's active status.
 /// </remarks>
 [PublicAPI]
-internal class DefaultValidateSubjectHandler(
+internal class DefaultValidateSubjectAuthenticationHandler(
     TimeProvider timeProvider,
-    ILogger<DefaultValidateSubjectHandler> logger
-) : ICommandHandler<ValidateSubjectCommand>, ISupportMediatorPriority
+    ILogger<DefaultValidateSubjectAuthenticationHandler> logger
+) : ICommandHandler<ValidateSubjectAuthenticationCommand>, ISupportMediatorPriority
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private ILogger<DefaultValidateSubjectHandler> Logger { get; } = logger;
+    private ILogger<DefaultValidateSubjectAuthenticationHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -53,7 +53,7 @@ internal class DefaultValidateSubjectHandler(
     /// <inheritdoc />
     [SuppressMessage("ReSharper", "InvertIf")]
     public ValueTask HandleAsync(
-        ValidateSubjectCommand command,
+        ValidateSubjectAuthenticationCommand command,
         CancellationToken cancellationToken
     )
     {

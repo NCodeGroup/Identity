@@ -83,6 +83,11 @@ public static partial class OpenIdConstants
         /// Contains the name for the <c>introspection</c> endpoint.
         /// </summary>
         public const string Introspection = "introspection_endpoint";
+
+        /// <summary>
+        /// Contains the name for the <c>userinfo</c> endpoint.
+        /// </summary>
+        public const string UserInfo = "userinfo_endpoint";
     }
 
     /// <summary>
@@ -130,6 +135,11 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the <c>introspection</c> endpoint.
         /// </summary>
         public const string Introspection = $"{Prefix}/introspect";
+
+        /// <summary>
+        /// Contains the relative path for the <c>userinfo</c> endpoint.
+        /// </summary>
+        public const string UserInfo = $"{Prefix}/userinfo";
     }
 
     /// <summary>

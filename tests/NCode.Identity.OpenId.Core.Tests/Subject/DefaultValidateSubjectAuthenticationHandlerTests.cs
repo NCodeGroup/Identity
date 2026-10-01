@@ -32,16 +32,19 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Subject;
 
-public class DefaultValidateSubjectHandlerTests : BaseTests
+public class DefaultValidateSubjectAuthenticationHandlerTests : BaseTests
 {
     private const string TenantId = "tenant-1";
 
-    private DefaultValidateSubjectHandler Handler { get; }
+    private DefaultValidateSubjectAuthenticationHandler Handler { get; }
 
-    public DefaultValidateSubjectHandlerTests()
+    public DefaultValidateSubjectAuthenticationHandlerTests()
     {
-        var mockLogger = CreateLooseMock<ILogger<DefaultValidateSubjectHandler>>();
-        Handler = new DefaultValidateSubjectHandler(TimeProvider.System, mockLogger.Object);
+        var mockLogger = CreateLooseMock<ILogger<DefaultValidateSubjectAuthenticationHandler>>();
+        Handler = new DefaultValidateSubjectAuthenticationHandler(
+            TimeProvider.System,
+            mockLogger.Object
+        );
     }
 
     #region Scaffolding
@@ -61,7 +64,7 @@ public class DefaultValidateSubjectHandlerTests : BaseTests
     }
 
     private (
-        ValidateSubjectCommand command,
+        ValidateSubjectAuthenticationCommand command,
         OperationDisposition<IOpenIdError> disposition,
         Mock<OpenIdContext> context,
         Mock<OpenIdTenant> tenant
@@ -82,7 +85,7 @@ public class DefaultValidateSubjectHandlerTests : BaseTests
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
         var disposition = new OperationDisposition<IOpenIdError> { Error = initialError };
-        var command = new ValidateSubjectCommand(
+        var command = new ValidateSubjectAuthenticationCommand(
             mockContext.Object,
             mockClient.Object,
             mockRequest.Object,

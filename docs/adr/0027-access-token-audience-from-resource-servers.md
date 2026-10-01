@@ -33,8 +33,8 @@ needing a special case.
 
 ## Options considered
 
-- **Keep `aud` = client id (the prior behavior).** Rejected: it conflates the party that *requested* the token with the
-  party that must *accept* it; a resource server cannot distinguish a token minted for it from any other token the
+- **Keep `aud` = client id (the prior behavior).** Rejected: it conflates the party that _requested_ the token with the
+  party that must _accept_ it; a resource server cannot distinguish a token minted for it from any other token the
   client holds, defeating audience validation.
 - **Require an explicit `resource` parameter (RFC 8707) to set the audience.** Rejected for now: it adds request surface
   and a second way to say what the scopes already say under Archetype A (one scope, one resource server); it can be
@@ -44,8 +44,8 @@ needing a special case.
 
 ## Consequences
 
-- A resource server can validate tokens by checking its `Identifier` against `aud`; a token issued for API *A* is not
-  accepted by API *B*.
+- A resource server can validate tokens by checking its `Identifier` against `aud`; a token issued for API _A_ is not
+  accepted by API _B_.
 - Minting an access token performs a tenant-scoped resource-server read to resolve audiences (via the same
   `IClientScopeService` used for scope validation); this per-request read is a caching opportunity left as future work,
   as noted in [ADR-0026](0026-scope-enforcement-via-resource-servers-and-client-grants.md).

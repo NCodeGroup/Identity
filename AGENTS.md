@@ -38,3 +38,8 @@ Package versions are centrally managed in
 from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow and
 [`GOVERNANCE.md`](GOVERNANCE.md) for ownership, versioning, and publishing. For a full conventions sweep, run the
 [`/audit-conventions`](.github/prompts/audit-conventions.prompt.md) prompt.
+
+This family is **greenfield and pre-release**: all work lands on `dev` until it is feature-complete, breaking changes
+are acceptable there (prefer a clean cutover over compatibility shims, and expect `PublicAPI.Unshipped.txt` churn), and
+the design follows an **Auth0-parity-plus** philosophy — familiar Auth0 shapes with more flexible, data-driven controls.
+See [ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md).

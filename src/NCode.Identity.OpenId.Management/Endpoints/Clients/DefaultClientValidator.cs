@@ -20,6 +20,7 @@ using System.Security.Claims;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -81,7 +82,7 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
     {
         var error = await AuthorizeAsync(
             user,
-            client,
+            ResourceNode.For(client.TenantId, ResourceNodeTypes.Client, client.ClientId),
             Operations.Update,
             "The caller is not authorized to update this client.",
             "Authentication is required to update this client."
@@ -116,7 +117,7 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
     {
         var error = await AuthorizeAsync(
             user,
-            client,
+            ResourceNode.For(client.TenantId, ResourceNodeTypes.Client, client.ClientId),
             Operations.Delete,
             "The caller is not authorized to delete this client.",
             "Authentication is required to delete this client."

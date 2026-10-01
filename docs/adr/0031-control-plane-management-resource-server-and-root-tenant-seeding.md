@@ -6,9 +6,9 @@
 
 ## Context
 
-[ADR-0024](0024-control-plane-and-per-tenant-planes.md) models the system as a control plane plus N per-tenant planes:
-the control plane administers servers and tenants (the `GlobalAdmin` realm) and _is_ the root tenant, while a workload
-tenant's plane holds its clients, resource servers, scopes, and grants (the `TenantAdmin` realm). It also placed the
+[ADR-0024](0024-control-plane-and-per-tenant-planes.md) models the system as a single control plane with logical tenant
+isolation: the control plane administers servers and tenants (the `GlobalAdmin` realm) and _is_ the root tenant, while a
+workload tenant holds its clients, resource servers, scopes, and grants (the `TenantAdmin` realm). It also placed the
 control-plane management resource server in the root tenant and the tenant-plane management resource server in every
 workload tenant.
 
@@ -70,8 +70,8 @@ guarantees.**
   (control-plane) tenant — each self-contained with the system resource servers its plane requires.
 - The change is additive and backward compatible for providers: the `Tenant` plane is the default, so the OpenID
   identity provider and the tenant-plane management provider are unaffected.
-- Dynamic (admin-provisioned) deployments do not yet auto-provision the root tenant; that remains future work tied to
-  the ADR-0024 connection-routing seam. The seeder and plane model are already in place to support it.
+- Dynamic (admin-provisioned) deployments do not yet auto-provision the root tenant; that remains future work. The
+  seeder and plane model are already in place to support it.
 
 ## References
 

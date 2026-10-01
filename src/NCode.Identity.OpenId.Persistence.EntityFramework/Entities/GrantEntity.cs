@@ -32,7 +32,6 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// </summary>
 [Index(nameof(GrantType), nameof(HashedKey), IsUnique = true)]
 [Index(nameof(NormalizedGrantId), IsUnique = true)]
-[Index(nameof(NormalizedTenantId), IsUnique = false)]
 [Index(nameof(TenantId), nameof(ClientId), IsUnique = false)]
 [Index(nameof(TenantId), nameof(NormalizedSubjectId), IsUnique = false)]
 [Index(nameof(ExpiresWhen), IsUnique = false)]
@@ -88,11 +87,6 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     /// </summary>
     [ForeignKey(nameof(Tenant))]
     public required long TenantId { get; init; }
-
-    /// <inheritdoc />
-    [Unicode(false)]
-    [MaxLength(MaxLengths.ResourceId)]
-    public required string NormalizedTenantId { get; init; }
 
     /// <summary>
     /// Gets or sets the <c>ClientId</c> associated with this entity.

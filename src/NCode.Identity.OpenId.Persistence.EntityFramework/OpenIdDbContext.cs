@@ -123,12 +123,11 @@ public class OpenIdDbContext(
 
         // Tenant-scoping global query filters: every tenant-child entity (ISupportTenantEntity) is scoped by the
         // ambient tenant, so that when a scope is active a cross-tenant row is never materialized; when no scope is
-        // active (central-admin surfaces / runtime), NormalizedAmbientTenantId is null and the filter is a no-op. The
-        // filter reads the denormalized NormalizedTenantId on the row (not a join to the tenant table), so a
-        // tenant-scoped row is self-identifying and can be relocated to its own database (ADR-0024). Applying it by
-        // interface is fail-closed — a newly-added tenant-child entity is scoped automatically. The tenant-owned
-        // families (the tenant itself and its secrets) implement ISupportTenantEntity but are intentionally NOT scoped:
-        // they are loaded during tenant materialization for any tenant, independent of the ambient scope.
+        // active (central-admin surfaces / runtime), NormalizedAmbientTenantId is null and the filter is a no-op.
+        // Applying it by interface is fail-closed — a newly-added tenant-child entity is scoped automatically. The
+        // tenant itself (TenantEntity) has no owning-tenant foreign key, so it is not ISupportTenantEntity and stays
+        // unscoped (discoverable by id during resolution); its secrets, however, ARE tenant-scoped like every other
+        // tenant-owned row (tenant resolution and tenant management read them with no ambient scope).
         var applyTenantScopeFilter =
             typeof(OpenIdDbContext).GetMethod(
                 nameof(ApplyTenantScopeFilter),
@@ -141,10 +140,7 @@ public class OpenIdDbContext(
         var tenantChildEntityTypes = modelBuilder
             .Model.GetEntityTypes()
             .Select(entityType => entityType.ClrType)
-            .Where(clrType =>
-                typeof(ISupportTenantEntity).IsAssignableFrom(clrType)
-                && clrType != typeof(TenantSecretEntity)
-            )
+            .Where(clrType => typeof(ISupportTenantEntity).IsAssignableFrom(clrType))
             .ToList();
 
         foreach (var clrType in tenantChildEntityTypes)
@@ -154,9 +150,9 @@ public class OpenIdDbContext(
     }
 
     /// <summary>
-    /// Applies the tenant-scoping global query filter to a single tenant-child entity type, reading the denormalized
-    /// <see cref="ISupportTenantEntity.NormalizedTenantId"/> so that no join to the tenant table is required. Invoked
-    /// per entity type via reflection from <see cref="OnModelCreating"/>.
+    /// Applies the tenant-scoping global query filter to a single tenant-child entity type, scoping by the associated
+    /// tenant's normalized identifier via the tenant navigation. Invoked per entity type via reflection from
+    /// <see cref="OnModelCreating"/>.
     /// </summary>
     [UsedImplicitly]
     private void ApplyTenantScopeFilter<TEntity>(ModelBuilder modelBuilder)
@@ -166,7 +162,7 @@ public class OpenIdDbContext(
             .Entity<TEntity>()
             .HasQueryFilter(entity =>
                 NormalizedAmbientTenantId == null
-                || entity.NormalizedTenantId == NormalizedAmbientTenantId
+                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
             );
     }
 

@@ -94,14 +94,6 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
-- Tenant-scoped persistence entities now carry a denormalized `NormalizedTenantId` (the normalized natural tenant id
-  stored on the row itself), and the tenant-scoping global query filters read it directly instead of navigating to the
-  tenant table (`entity.NormalizedTenantId == NormalizedAmbientTenantId`). This makes a tenant-scoped row
-  self-identifying — the data-model prerequisite for isolating a tenant's data into its own database — while leaving
-  the single-database deployment and its tenant foreign keys unchanged. `ISupportTenantEntity` gains
-  `NormalizedTenantId`, and `GrantEntity` now implements `ISupportTenantEntity` (removing a long-standing
-  inconsistency). The physical control/tenant context and connection-routing split remains future work. See
-  [ADR-0032](docs/adr/0032-denormalized-tenant-key-for-split-ready-scoping.md).
 - Renamed the authorization endpoint's subject pipeline to drop the redundant `Subject` noun (the namespace already
   supplies the context) now that a general subject-authentication seam exists: `AuthenticateSubjectCommand` →
   `AuthenticateCommand`, `AuthorizeSubjectCommand`/`AuthorizeSubjectDisposition` → `AuthorizeCommand`/

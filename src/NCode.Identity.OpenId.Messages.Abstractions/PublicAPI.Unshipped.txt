@@ -164,7 +164,9 @@ static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ResponseTypes -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Scopes -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.State -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Token -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.TokenType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.TokenTypeHint -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.UiLocales -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Username -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parsers.CommonParameterParsers.Bool -> NCode.Identity.OpenId.Messages.Parsers.BoolParser!

@@ -181,6 +181,12 @@ NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointConventionBuilderEx
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithOpenIdDiscoverable(bool isDiscoverable = true) -> TBuilder
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithOpenIdExceptionHandler(NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler! exceptionHandler) -> TBuilder
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithOpenIdExceptionHandler(System.Func<Microsoft.AspNetCore.Http.HttpContext!, NCode.Identity.OpenId.Environments.OpenIdEnvironment!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler!>>! getter) -> TBuilder
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.Token.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.Token.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.TokenRevocationRequest() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.TokenTypeHint.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.TokenTypeHint.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.AuthorizationCode.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.AuthorizationCode.set -> void
@@ -275,6 +281,7 @@ NCode.Identity.OpenId.Authentication.UniqueCollection<T>.UniqueCollection(System
 override NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequestMessage.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequestMessage!
 override NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequestObject.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequestObject!
 override NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket!
+override NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse!
 static readonly NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters.Claims -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims!>!

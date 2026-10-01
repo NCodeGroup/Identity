@@ -73,6 +73,11 @@ public static partial class OpenIdConstants
         /// Contains the name for the <c>token</c> endpoint.
         /// </summary>
         public const string Token = "token_endpoint";
+
+        /// <summary>
+        /// Contains the name for the <c>revocation</c> endpoint.
+        /// </summary>
+        public const string Revocation = "revocation_endpoint";
     }
 
     /// <summary>
@@ -110,6 +115,11 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the <c>token</c> endpoint.
         /// </summary>
         public const string Token = $"{Prefix}/token";
+
+        /// <summary>
+        /// Contains the relative path for the <c>revocation</c> endpoint.
+        /// </summary>
+        public const string Revocation = $"{Prefix}/revoke";
     }
 
     /// <summary>

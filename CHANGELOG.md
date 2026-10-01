@@ -10,6 +10,13 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- An `OAuth 2.0` token revocation endpoint (`POST /oauth2/revoke`,
+  [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009), auto-advertised as `revocation_endpoint` in discovery). An
+  authenticated client may revoke one of its own refresh tokens; an unknown or non-revocable token (including a stateless
+  JWT access token) is a no-op, and the endpoint always responds `200 OK` so it never reveals token state. The endpoint
+  is a thin `IOpenIdEndpointProvider` that authenticates the client and parses a typed `ITokenRevocationRequest`, then
+  delegates to the `RevokeTokenCommand` mediator handler. See
+  [ADR-0028](docs/adr/0028-token-revocation-refresh-tokens-only.md).
 - Shared tenant-resolution abstraction (`ITenantResolver` / `ITenantStrategy` / `TenantResolutionOptions` in
   `NCode.Identity.OpenId.Abstractions`, default implementation in `NCode.Identity.OpenId.Core`) so the OpenID runtime
   and the management API select the ambient tenant from a single source of truth. See

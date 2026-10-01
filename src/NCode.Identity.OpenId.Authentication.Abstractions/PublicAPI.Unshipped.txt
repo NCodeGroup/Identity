@@ -393,6 +393,20 @@ NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.Expone
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.Modulus.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.Modulus.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.RsaJsonWebKey() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand.OpenIdClient.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand.OpenIdContext.get -> NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand.RevokeTokenCommand() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand.RevokeTokenCommand(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.ITokenRevocationRequest! TokenRevocationRequest) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand.TokenRevocationRequest.get -> NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.ITokenRevocationRequest!
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand.TokenRevocationRequest.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.ITokenRevocationRequest
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.ITokenRevocationRequest.Token.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.ITokenRevocationRequest.Token.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.ITokenRevocationRequest.TokenTypeHint.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.ITokenRevocationRequest.TokenTypeHint.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.AuthenticatePasswordGrantCommand() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.AuthenticatePasswordGrantCommand(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest! TokenRequest) -> void

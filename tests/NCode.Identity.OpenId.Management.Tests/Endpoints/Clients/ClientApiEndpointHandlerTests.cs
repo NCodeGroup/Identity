@@ -17,6 +17,7 @@
 #endregion
 
 using System.Security.Claims;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
@@ -25,6 +26,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
@@ -55,6 +57,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private Mock<IClientValidator> MockClientValidator { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
+    private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private ClientApiEndpointHandler Handler { get; }
 
     public ClientApiEndpointHandlerTests()
@@ -68,6 +71,19 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         MockClientValidator = MockRepository.Create<IClientValidator>();
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
+        MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AssignCreatorAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
 
         Handler = new ClientApiEndpointHandler(
             MockStoreManagerFactory.Object,
@@ -77,6 +93,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             MockSecretGenerator.Object,
             TimeProvider.System,
             MockCryptoService.Object,
+            MockResourceOwnershipService.Object,
             NullLogger<ClientApiEndpointHandler>.Instance
         );
     }

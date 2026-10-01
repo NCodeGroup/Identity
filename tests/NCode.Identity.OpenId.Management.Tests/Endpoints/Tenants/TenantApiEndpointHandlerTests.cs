@@ -18,6 +18,7 @@
 #endregion
 
 using System.Security.Claims;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
@@ -26,6 +27,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
@@ -53,6 +55,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<ITenantValidator> MockTenantValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
+    private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private TenantApiEndpointHandler Handler { get; }
 
     public TenantApiEndpointHandlerTests()
@@ -65,6 +68,19 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockTenantValidator = MockRepository.Create<ITenantValidator>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
+        MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AssignCreatorAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
 
         Handler = new TenantApiEndpointHandler(
             MockStoreManagerFactory.Object,
@@ -73,6 +89,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockSecretGenerator.Object,
             TimeProvider.System,
             MockCryptoService.Object,
+            MockResourceOwnershipService.Object,
             NullLogger<TenantApiEndpointHandler>.Instance
         );
     }

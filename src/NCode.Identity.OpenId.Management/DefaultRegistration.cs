@@ -59,6 +59,10 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
             serviceCollection.TryAddSingleton<IServerValidator, DefaultServerValidator>();
             serviceCollection.TryAddSingleton<
+                IResourceOwnershipService,
+                DefaultResourceOwnershipService
+            >();
+            serviceCollection.TryAddSingleton<
                 IResourceServerValidator,
                 DefaultResourceServerValidator
             >();

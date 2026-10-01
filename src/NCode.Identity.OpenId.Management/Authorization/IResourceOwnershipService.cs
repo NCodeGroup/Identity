@@ -17,14 +17,18 @@
 #endregion
 
 using System.Security.Claims;
+using JetBrains.Annotations;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Authorization;
 
 /// <summary>
 /// Manages resource ownership — the <see cref="BuiltInRoles.Owner"/> role assignments at a resource node (ADR-0034).
+/// Applications may use this to grant ownership of their own resource types by passing an application-defined
+/// <c>resourceType</c>.
 /// </summary>
-internal interface IResourceOwnershipService
+[PublicAPI]
+public interface IResourceOwnershipService
 {
     /// <summary>
     /// Assigns the calling principal the <see cref="BuiltInRoles.Owner"/> role at the newly-created resource node,

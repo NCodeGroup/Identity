@@ -16,32 +16,17 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence;
 
 namespace NCode.Identity.OpenId.Management.Authorization;
 
 /// <summary>
-/// Identifies a node of the resource hierarchy — a resource type and identifier within a tenant — so that
-/// resource-scoped role assignments (including ownership) can be evaluated against it and its ancestors (ADR-0034).
-/// </summary>
-internal interface IResourceNode : ISupportTenantId
-{
-    /// <summary>
-    /// Gets the type of the resource node (a <see cref="ResourceNodeTypes"/> value).
-    /// </summary>
-    string ResourceType { get; }
-
-    /// <summary>
-    /// Gets the identifier of the resource node.
-    /// </summary>
-    string ResourceId { get; }
-}
-
-/// <summary>
 /// A minimal <see cref="IResourceNode"/> an endpoint passes to <c>IAuthorizationService.AuthorizeAsync</c> so that the
-/// <see cref="OwnershipHandler"/> can evaluate resource-scoped assignments for the resource being acted on.
+/// ownership authorization handler can evaluate resource-scoped assignments for the resource being acted on.
 /// </summary>
-internal sealed class ResourceNode : IResourceNode
+[PublicAPI]
+public sealed class ResourceNode : IResourceNode
 {
     /// <inheritdoc cref="ISupportTenantId.TenantId"/>
     public required string TenantId { get; init; }

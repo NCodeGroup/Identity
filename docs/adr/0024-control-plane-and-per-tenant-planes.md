@@ -8,12 +8,12 @@
 
 Tenancy exists so that an operator can **optionally isolate a tenant onto dedicated infrastructure — including its own
 database**. That goal forces a question the single-database model hides: if every tenant's data can live in its own
-database, where does the data that is *about* tenants live? You cannot resolve a request to a tenant, or even enumerate
+database, where does the data that is _about_ tenants live? You cannot resolve a request to a tenant, or even enumerate
 which tenants exist, if that index is scattered inside the per-tenant databases — a bootstrapping chicken-and-egg.
 
 Today there is one `OpenIdDbContext` holding everything (server, tenants, clients, resource servers, grants, …) behind
 a single connection ([ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md) scopes access with a query
-filter *within* that one database). Per-tenant-database isolation is a stated goal, not yet a built capability. This ADR
+filter _within_ that one database). Per-tenant-database isolation is a stated goal, not yet a built capability. This ADR
 records the target deployment model so later work builds toward it, and so the `ResourceServer`/`Scope`/`ClientGrant`
 model ([ADR-0023](0023-scopes-and-resources-management-model.md)) and the system-resource-server seeding are designed on
 the right side of the boundary.
@@ -25,12 +25,12 @@ administer tenants lives in the control plane; everything a tenant needs to oper
 plane (and therefore relocatable to a dedicated database).**
 
 - **Control-plane (global) database** holds:
-  - the **tenant registry** — the index of which tenants exist and how to reach each (id, host/path, enabled, and, in a
-    fully-isolated deployment, the tenant's connection/routing information). This is the bootstrap index consulted
-    *before* any tenant database is opened;
-  - the **server** — the deployment-root settings and secrets (the baseline tenants narrow, ADR-0010);
-  - the **root/system tenant** and its **control-plane management resource server** (administering servers and
-    provisioning tenants). The root tenant *is* the control plane's tenant.
+    - the **tenant registry** — the index of which tenants exist and how to reach each (id, host/path, enabled, and, in a
+      fully-isolated deployment, the tenant's connection/routing information). This is the bootstrap index consulted
+      _before_ any tenant database is opened;
+    - the **server** — the deployment-root settings and secrets (the baseline tenants narrow, ADR-0010);
+    - the **root/system tenant** and its **control-plane management resource server** (administering servers and
+      provisioning tenants). The root tenant _is_ the control plane's tenant.
 - **Per-tenant (workload) database** holds a tenant's self-contained plane: its clients, resource servers, scopes,
   grants, client grants, the tenant's own settings and secrets, and the system resource servers seeded into it (the
   OpenID Connect identity resource server and the tenant-plane management resource server).
@@ -68,9 +68,9 @@ designed so the physical split is an additive change, not a redesign.
 ## Consequences
 
 - There is, by necessity, a control-plane (global) database: the tenant registry, the server, and the root/system
-  tenant. A tenant cannot be fully self-contained *including* the fact of its own existence — that fact is control-plane.
+  tenant. A tenant cannot be fully self-contained _including_ the fact of its own existence — that fact is control-plane.
 - A workload tenant's plane is self-contained and relocatable to a dedicated database; the control plane routes to it.
-- System resource servers are seeded into the *workload* tenant's plane (OIDC, tenant-plane management), while the
+- System resource servers are seeded into the _workload_ tenant's plane (OIDC, tenant-plane management), while the
   control-plane management resource server (servers/tenants) belongs to the root tenant in the control database — which
   is why seeding and the management surface are split along this boundary.
 - The multi-database routing itself is unbuilt; the current single-`OpenIdDbContext` deployment remains valid, and the

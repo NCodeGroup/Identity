@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Grants;
+using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Registration;
@@ -60,6 +61,7 @@ public static class DefaultRegistration
             builder.AddManagementEndpointProvider<TenantApiEndpointHandler>();
             builder.AddManagementEndpointProvider<ClientApiEndpointHandler>();
             builder.AddManagementEndpointProvider<GrantApiEndpointHandler>();
+            builder.AddManagementEndpointProvider<ResourceServerApiEndpointHandler>();
 
             return builder.NewBuilder<OpenIdManagementLibrary>();
         }

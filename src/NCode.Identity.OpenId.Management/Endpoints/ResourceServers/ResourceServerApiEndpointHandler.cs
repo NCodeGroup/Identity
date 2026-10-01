@@ -62,12 +62,14 @@ internal class ResourceServerApiEndpointHandler(
     IResourceServerValidator resourceServerValidator,
     IAmbientTenantAccessor ambientTenantAccessor,
     ICryptoService cryptoService,
+    IResourceOwnershipService resourceOwnershipService,
     ILogger<ResourceServerApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IManagementEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IResourceServerValidator ResourceServerValidator { get; } = resourceServerValidator;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
+    private IResourceOwnershipService ResourceOwnershipService { get; } = resourceOwnershipService;
     private ILogger<ResourceServerApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -226,10 +228,9 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         await store.AddAsync(resourceServer, cancellationToken);
-        await OwnerAssignments.AssignCreatorAsync(
+        await ResourceOwnershipService.AssignCreatorAsync(
             httpContext.User,
             storeManager,
-            CryptoService,
             resourceServer.TenantId,
             ResourceNodeTypes.ResourceServer,
             resourceServer.ResourceServerId,

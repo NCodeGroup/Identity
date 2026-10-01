@@ -17,12 +17,14 @@
 #endregion
 
 using System.Security.Claims;
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -46,6 +48,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private Mock<IResourceServerValidator> MockValidator { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
+    private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private ResourceServerApiEndpointHandler Handler { get; }
 
     public ResourceServerApiEndpointHandlerTests()
@@ -58,6 +61,19 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockValidator = MockRepository.Create<IResourceServerValidator>();
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
+        MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AssignCreatorAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
 
         Handler = new ResourceServerApiEndpointHandler(
             MockStoreManagerFactory.Object,
@@ -65,6 +81,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             MockValidator.Object,
             MockAmbientTenantAccessor.Object,
             MockCryptoService.Object,
+            MockResourceOwnershipService.Object,
             NullLogger<ResourceServerApiEndpointHandler>.Instance
         );
     }

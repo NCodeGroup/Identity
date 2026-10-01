@@ -66,6 +66,7 @@ internal class TenantApiEndpointHandler(
     ISecretGenerator secretGenerator,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
+    IResourceOwnershipService resourceOwnershipService,
     ILogger<TenantApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IManagementEndpointProvider
 {
@@ -73,6 +74,7 @@ internal class TenantApiEndpointHandler(
     private ITenantValidator TenantValidator { get; } = tenantValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private IResourceOwnershipService ResourceOwnershipService { get; } = resourceOwnershipService;
     private ILogger<TenantApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -264,10 +266,9 @@ internal class TenantApiEndpointHandler(
         }
 
         await store.AddAsync(tenant, cancellationToken);
-        await OwnerAssignments.AssignCreatorAsync(
+        await ResourceOwnershipService.AssignCreatorAsync(
             httpContext.User,
             storeManager,
-            CryptoService,
             tenant.TenantId,
             ResourceNodeTypes.Tenant,
             tenant.TenantId,

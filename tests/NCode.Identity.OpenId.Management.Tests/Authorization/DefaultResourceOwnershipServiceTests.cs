@@ -26,7 +26,7 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management;
 
-public class OwnerAssignmentsTests
+public class DefaultResourceOwnershipServiceTests
 {
     private static ClaimsPrincipal CreateUser(params Claim[] claims) =>
         new(new ClaimsIdentity(claims, "test"));
@@ -59,10 +59,11 @@ public class OwnerAssignmentsTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await OwnerAssignments.AssignCreatorAsync(
+        var service = new DefaultResourceOwnershipService(crypto.Object);
+
+        await service.AssignCreatorAsync(
             CreateUser(new Claim("sub", "subject-1")),
             storeManager.Object,
-            crypto.Object,
             "tenant-1",
             ResourceNodeTypes.Client,
             "client-1",
@@ -86,11 +87,12 @@ public class OwnerAssignmentsTests
         var storeManager = mocks.Create<IStoreManager>();
         var crypto = mocks.Create<ICryptoService>();
 
+        var service = new DefaultResourceOwnershipService(crypto.Object);
+
         // No setups: a strict-mock failure would mean an owner assignment was attempted without a principal.
-        await OwnerAssignments.AssignCreatorAsync(
+        await service.AssignCreatorAsync(
             CreateUser(),
             storeManager.Object,
-            crypto.Object,
             "tenant-1",
             ResourceNodeTypes.Client,
             "client-1",

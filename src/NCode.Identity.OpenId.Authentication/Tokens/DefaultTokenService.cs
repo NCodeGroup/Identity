@@ -19,6 +19,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -50,7 +51,8 @@ internal class DefaultTokenService(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,
     IJsonWebTokenService jsonWebTokenService,
-    IPersistedGrantService persistedGrantService
+    IPersistedGrantService persistedGrantService,
+    IClientScopeService clientScopeService
 ) : ITokenService
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
@@ -60,6 +62,7 @@ internal class DefaultTokenService(
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
+    private IClientScopeService ClientScopeService { get; } = clientScopeService;
 
     private static IEnumerable<Claim> FilterClaims(
         IReadOnlySettingCollection settings,
@@ -220,6 +223,18 @@ internal class DefaultTokenService(
             ? EnsureAuthTime(openIdContext, ticket.Value, tokenRequest, filteredClaims)
             : filteredClaims;
 
+        // Bind the access token audience to the resource servers that own its effective scopes (ADR-0027);
+        // fall back to the client when no resource-server audience applies (for example, a scopeless token).
+        var audiences = await ClientScopeService.ResolveAudiencesAsync(
+            openIdTenant.TenantId,
+            tokenRequest.EffectiveScopes,
+            cancellationToken
+        );
+        StringValues audience =
+            audiences.Count > 0
+                ? new StringValues(audiences.ToArray())
+                : new StringValues(openIdClient.ClientId);
+
         var parameters = new EncodeJwtParameters
         {
             TokenType = settings.GetValue(OpenIdSettingKeys.AccessTokenType),
@@ -228,7 +243,7 @@ internal class DefaultTokenService(
             EncryptionCredentials = encryptionCredentials,
 
             Issuer = openIdTenant.Issuer,
-            Audience = openIdClient.ClientId,
+            Audience = audience,
 
             IssuedAt = createdWhen,
             NotBefore = createdWhen,

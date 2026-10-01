@@ -83,7 +83,6 @@ internal class DefaultGetAccessTokenPayloadClaimsHandler(ICryptoService cryptoSe
         // - sid: requires a session-management subsystem
         // - cnf: requires a proof-of-possession (e.g. DPoP/mTLS) subsystem
         // - acr: requires authentication-context-class tracking
-        // - api resource / api scope claims: require a resource (audience) subsystem
 
         return ValueTask.CompletedTask;
     }

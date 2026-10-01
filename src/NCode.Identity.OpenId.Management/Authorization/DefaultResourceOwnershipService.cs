@@ -17,7 +17,6 @@
 #endregion
 
 using System.Security.Claims;
-using JetBrains.Annotations;
 using NCode.Identity.Jose;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -29,7 +28,6 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// <summary>
 /// Provides the default implementation of <see cref="IResourceOwnershipService"/>.
 /// </summary>
-[PublicAPI]
 internal class DefaultResourceOwnershipService(ICryptoService cryptoService)
     : IResourceOwnershipService
 {

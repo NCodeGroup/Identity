@@ -18,6 +18,7 @@
 
 using System.Security.Claims;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Authorization;
@@ -49,6 +50,63 @@ public interface IResourceOwnershipService
         string tenantId,
         string resourceType,
         string resourceId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets the <see cref="BuiltInRoles.Owner"/> assignments at the specified resource node.
+    /// </summary>
+    /// <param name="storeManager">The unit of work to read through.</param>
+    /// <param name="resourceType">The type of the resource node (a <see cref="ResourceNodeTypes"/> value).</param>
+    /// <param name="resourceId">The identifier of the resource node.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the owner
+    /// assignments at the node.</returns>
+    ValueTask<IReadOnlyList<PersistedRoleAssignment>> GetOwnersAsync(
+        IStoreManager storeManager,
+        string resourceType,
+        string resourceId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Grants the specified principal the <see cref="BuiltInRoles.Owner"/> role at the resource node, enlisted in the
+    /// supplied unit of work. The operation is idempotent: when the principal is already an owner, the existing
+    /// assignment is returned unchanged.
+    /// </summary>
+    /// <param name="storeManager">The unit of work to enlist in.</param>
+    /// <param name="tenantId">The identifier of the tenant that owns the resource.</param>
+    /// <param name="resourceType">The type of the resource node (a <see cref="ResourceNodeTypes"/> value).</param>
+    /// <param name="resourceId">The identifier of the resource node.</param>
+    /// <param name="principalId">The identifier of the principal to grant ownership to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the owner
+    /// assignment.</returns>
+    ValueTask<PersistedRoleAssignment> AddOwnerAsync(
+        IStoreManager storeManager,
+        string tenantId,
+        string resourceType,
+        string resourceId,
+        string principalId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Removes the specified principal's <see cref="BuiltInRoles.Owner"/> assignment from the resource node, enlisted
+    /// in the supplied unit of work. The removal is refused when it would leave the resource with no owner.
+    /// </summary>
+    /// <param name="storeManager">The unit of work to enlist in.</param>
+    /// <param name="resourceType">The type of the resource node (a <see cref="ResourceNodeTypes"/> value).</param>
+    /// <param name="resourceId">The identifier of the resource node.</param>
+    /// <param name="principalId">The identifier of the principal to remove ownership from.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the outcome of the
+    /// removal.</returns>
+    ValueTask<OwnerRemovalResult> RemoveOwnerAsync(
+        IStoreManager storeManager,
+        string resourceType,
+        string resourceId,
+        string principalId,
         CancellationToken cancellationToken
     );
 }

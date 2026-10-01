@@ -11,7 +11,14 @@ NCode.Identity.OpenId.Management.Authorization.IResourceNode
 NCode.Identity.OpenId.Management.Authorization.IResourceNode.ResourceId.get -> string!
 NCode.Identity.OpenId.Management.Authorization.IResourceNode.ResourceType.get -> string!
 NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService
+NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.AddOwnerAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! tenantId, string! resourceType, string! resourceId, string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!>
 NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.AssignCreatorAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, string! tenantId, string! resourceType, string! resourceId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.GetOwnersAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! resourceType, string! resourceId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!>!>
+NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.RemoveOwnerAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! resourceType, string! resourceId, string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult>
+NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult
+NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult.LastOwnerForbidden = 2 -> NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult
+NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult.NotFound = 1 -> NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult
+NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult.Removed = 0 -> NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult
 NCode.Identity.OpenId.Management.Authorization.ResourceNode
 NCode.Identity.OpenId.Management.Authorization.ResourceNode.ResourceId.get -> string!
 NCode.Identity.OpenId.Management.Authorization.ResourceNode.ResourceId.init -> void

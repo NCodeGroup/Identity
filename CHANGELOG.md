@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- An `OAuth 2.0` token introspection endpoint (`POST /oauth2/introspect`,
+  [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662), auto-advertised as `introspection_endpoint` in discovery).
+  An authenticated client may probe a token's active state: the default handler validates a JWT access token against the
+  tenant signing keys, issuer, and lifetime, otherwise resolves a refresh-token grant, and reports `{"active": false}`
+  for anything else. The response is a discovery-style, extensible result (`IntrospectionResult` with
+  `[JsonExtensionData]` claims) that additional `ICommandHandler<IntrospectTokenCommand>` handlers may enrich. The
+  endpoint is a thin `IOpenIdEndpointProvider` that authenticates the client and parses a typed
+  `ITokenIntrospectionRequest`, then delegates to the `IntrospectTokenCommand` mediator handler. See
+  [ADR-0029](docs/adr/0029-token-introspection-endpoint.md).
 - An `OAuth 2.0` token revocation endpoint (`POST /oauth2/revoke`,
   [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009), auto-advertised as `revocation_endpoint` in discovery). An
   authenticated client may revoke one of its own refresh tokens; an unknown or non-revocable token (including a stateless

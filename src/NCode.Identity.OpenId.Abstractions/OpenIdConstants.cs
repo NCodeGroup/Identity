@@ -78,6 +78,11 @@ public static partial class OpenIdConstants
         /// Contains the name for the <c>revocation</c> endpoint.
         /// </summary>
         public const string Revocation = "revocation_endpoint";
+
+        /// <summary>
+        /// Contains the name for the <c>introspection</c> endpoint.
+        /// </summary>
+        public const string Introspection = "introspection_endpoint";
     }
 
     /// <summary>
@@ -120,6 +125,11 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the <c>revocation</c> endpoint.
         /// </summary>
         public const string Revocation = $"{Prefix}/revoke";
+
+        /// <summary>
+        /// Contains the relative path for the <c>introspection</c> endpoint.
+        /// </summary>
+        public const string Introspection = $"{Prefix}/introspect";
     }
 
     /// <summary>

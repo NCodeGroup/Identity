@@ -172,6 +172,12 @@ NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models.ContinueEnvelope.
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models.ContinueEnvelope.ContinueEnvelope() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models.ContinueEnvelope.PayloadJson.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models.ContinueEnvelope.PayloadJson.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest.Token.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest.Token.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest.TokenIntrospectionRequest() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest.TokenTypeHint.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest.TokenTypeHint.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdAuthenticationEndpoints
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdAuthenticationEndpoints.ConfigureMethod.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdAuthenticationEndpoints.DisplayName.get -> string!
@@ -281,6 +287,7 @@ NCode.Identity.OpenId.Authentication.UniqueCollection<T>.UniqueCollection(System
 override NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequestMessage.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequestMessage!
 override NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequestObject.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequestObject!
 override NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket!
+override NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse!

@@ -350,6 +350,28 @@ NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results.DiscoveryResult
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results.DiscoveryResult.Issuer.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results.DiscoveryResult.Metadata.get -> System.Collections.Generic.Dictionary<string!, object!>!
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results.DiscoveryResult.Metadata.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.IntrospectTokenCommand() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.IntrospectTokenCommand(NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.ITokenIntrospectionRequest! TokenIntrospectionRequest, NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.IntrospectionResult! Result) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.OpenIdClient.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.OpenIdContext.get -> NCode.Identity.OpenId.Authentication.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.Result.get -> NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.IntrospectionResult!
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.Result.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.TokenIntrospectionRequest.get -> NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.ITokenIntrospectionRequest!
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.TokenIntrospectionRequest.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.ITokenIntrospectionRequest
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.ITokenIntrospectionRequest.Token.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.ITokenIntrospectionRequest.Token.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.ITokenIntrospectionRequest.TokenTypeHint.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.ITokenIntrospectionRequest.TokenTypeHint.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.IntrospectionResult
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.IntrospectionResult.Active.get -> bool
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.IntrospectionResult.Active.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.IntrospectionResult.Claims.get -> System.Collections.Generic.Dictionary<string!, object!>!
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.IntrospectionResult.Claims.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.IntrospectionResult.IntrospectionResult() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointDiscoverableMetadata
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointDiscoverableMetadata.IsDiscoverable.get -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointExceptionHandlerMetadata

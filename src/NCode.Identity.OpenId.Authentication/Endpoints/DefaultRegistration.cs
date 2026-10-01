@@ -22,6 +22,7 @@ using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
+using NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 using NCode.Identity.OpenId.Authentication.Endpoints.Revocation;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token;
@@ -55,6 +56,7 @@ internal static class DefaultRegistration
             newBuilder.AddJwksEndpoint();
             newBuilder.AddTokenEndpoint();
             newBuilder.AddRevocationEndpoint();
+            newBuilder.AddIntrospectionEndpoint();
 
             return builder;
         }

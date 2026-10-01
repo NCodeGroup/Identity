@@ -218,7 +218,8 @@ internal class TenantApiEndpointHandler(
 
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
 
-        return await ProcessGetAsync(httpContext, tenant, Operations.Read, ToTenantResource);
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+        return await ProcessGetAsync(httpContext, tenant, node, Operations.Read, ToTenantResource);
     }
 
     /// <summary>
@@ -423,9 +424,11 @@ internal class TenantApiEndpointHandler(
 
         var tenantSettings = await store.GetSettingsOrDefaultAsync(tenantId, cancellationToken);
 
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
         return await ProcessGetAsync(
             httpContext,
             tenantSettings,
+            node,
             Operations.Read,
             ToTenantSettingsResource
         );
@@ -524,9 +527,11 @@ internal class TenantApiEndpointHandler(
 
         var tenantSecrets = await store.GetSecretsOrDefaultAsync(tenantId, cancellationToken);
 
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
         return await ProcessGetAsync(
             httpContext,
             tenantSecrets,
+            node,
             Operations.Read,
             ToTenantSecretsResource
         );
@@ -641,9 +646,11 @@ internal class TenantApiEndpointHandler(
         var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
         var scoped = TenantOwnedResource.ForOrDefault(tenantId, secret);
 
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
         return await ProcessGetAsync(
             httpContext,
             scoped,
+            node,
             Operations.Read,
             x => ToSecretResource(x.Value)
         );

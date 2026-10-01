@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- Data-driven resource ownership: persisted `(principal, role, resource-node)` role assignments
+  (`PersistedRoleAssignment` / `IRoleAssignmentStore`), an additive `OwnershipHandler` that grants a principal every
+  operation except `Create` on a resource it owns (or an ancestor node), and creator-as-owner on client, resource
+  server, and tenant creation. Each of those resources gains owner-management endpoints
+  (`GET`/`POST`/`DELETE /{resource}/{id}/owners`) returning the rich `OwnerResource`, with a one-owner invariant that
+  refuses to orphan a resource (`409`). The ownership service and resource-node abstraction (`IResourceOwnershipService`,
+  `IResourceNode`, `ResourceNode`, `ResourceNodeTypes`) are public so applications can own and enforce their own
+  resource types. See [ADR-0034](docs/adr/0034-persisted-role-assignments-and-ownership.md).
 - A single management resource server (`urn:ncode:management`) that gates the whole management API through granular
   per-leaf scopes composed as `{verb}:{family}` (for example `read:clients`, `update:tenant_settings`,
   `create:server_secrets`). Its control-plane scope families (`servers`, `server_settings`, `server_secrets`,

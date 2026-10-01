@@ -654,7 +654,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetSecretAsync_AuthorizesAgainstTenantScopedResource()
+    public async Task GetSecretAsync_AuthorizesAgainstTheTenantNode()
     {
         SetupStore();
         MockTenantStore
@@ -670,9 +670,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         await Handler.GetSecretAsync(httpContext, TenantId, "secret-1", CancellationToken.None);
 
-        var scoped = Assert.IsType<TenantOwnedResource<PersistedSecret>>(capturedResource);
-        Assert.Equal(TenantId, scoped.TenantId);
-        Assert.Equal("secret-1", scoped.Value.SecretId);
+        var node = Assert.IsType<ResourceNode>(capturedResource);
+        Assert.Equal(TenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Tenant, node.ResourceType);
+        Assert.Equal(TenantId, node.ResourceId);
     }
 
     [Fact]

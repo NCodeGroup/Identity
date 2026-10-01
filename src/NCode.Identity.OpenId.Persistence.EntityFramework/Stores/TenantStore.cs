@@ -231,6 +231,7 @@ internal class TenantStore(
 
                 Tenant = tenantEntity,
                 TenantId = tenantEntity.Id,
+                NormalizedTenantId = tenantEntity.NormalizedTenantId,
 
                 Secret = secretEntity,
                 SecretId = secretEntity.Id,
@@ -390,6 +391,7 @@ internal class TenantStore(
             Id = NextId(),
             Tenant = tenantEntity,
             TenantId = tenantEntity.Id,
+            NormalizedTenantId = tenantEntity.NormalizedTenantId,
             Secret = secretEntity,
             SecretId = secretEntity.Id,
         };

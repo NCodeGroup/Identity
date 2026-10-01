@@ -161,6 +161,7 @@ internal class ResourceServerStore(
         {
             Id = NextId(),
             TenantId = tenantEntity.Id,
+            NormalizedTenantId = tenantEntity.NormalizedTenantId,
             ResourceServerId = persistedResourceServer.ResourceServerId,
             NormalizedResourceServerId = Normalize(persistedResourceServer.ResourceServerId),
             Identifier = persistedResourceServer.Identifier,
@@ -182,6 +183,7 @@ internal class ResourceServerStore(
                 {
                     Id = NextId(),
                     TenantId = tenantEntity.Id,
+                    NormalizedTenantId = tenantEntity.NormalizedTenantId,
                     ResourceServerId = resourceServerEntity.Id,
                     Value = persistedScope.Value,
                     NormalizedValue = Normalize(persistedScope.Value),
@@ -298,6 +300,7 @@ internal class ResourceServerStore(
         {
             Id = NextId(),
             TenantId = resourceServerEntity.TenantId,
+            NormalizedTenantId = resourceServerEntity.NormalizedTenantId,
             ResourceServerId = resourceServerEntity.Id,
             Value = persistedScope.Value,
             NormalizedValue = normalizedValue,

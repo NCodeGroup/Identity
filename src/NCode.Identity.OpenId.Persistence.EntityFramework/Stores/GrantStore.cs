@@ -268,6 +268,7 @@ internal class GrantStore(
             HashedKey = persistedGrant.HashedKey,
             ConcurrencyToken = string.Empty,
             TenantId = tenantEntity.Id,
+            NormalizedTenantId = tenantEntity.NormalizedTenantId,
             ClientId = clientEntity?.Id,
             SubjectId = persistedGrant.SubjectId,
             NormalizedSubjectId = Normalize(persistedGrant.SubjectId),

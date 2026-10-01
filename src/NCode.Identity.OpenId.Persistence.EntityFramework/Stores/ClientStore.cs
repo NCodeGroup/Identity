@@ -179,6 +179,7 @@ internal class ClientStore(
         {
             Id = NextId(),
             TenantId = tenantEntity.Id,
+            NormalizedTenantId = tenantEntity.NormalizedTenantId,
             ClientId = persistedClient.ClientId,
             NormalizedClientId = Normalize(persistedClient.ClientId),
             ConcurrencyToken = persistedClient.ConcurrencyToken,
@@ -202,6 +203,7 @@ internal class ClientStore(
 
                 Tenant = tenantEntity,
                 TenantId = tenantEntity.Id,
+                NormalizedTenantId = tenantEntity.NormalizedTenantId,
 
                 Client = clientEntity,
                 ClientId = clientEntity.Id,
@@ -360,6 +362,7 @@ internal class ClientStore(
             Id = NextId(),
             Tenant = clientEntity.Tenant,
             TenantId = clientEntity.TenantId,
+            NormalizedTenantId = clientEntity.NormalizedTenantId,
             Client = clientEntity,
             ClientId = clientEntity.Id,
             Secret = secretEntity,

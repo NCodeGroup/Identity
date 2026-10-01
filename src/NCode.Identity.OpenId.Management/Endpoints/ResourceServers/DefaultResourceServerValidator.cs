@@ -17,7 +17,6 @@
 #endregion
 
 using System.Security.Claims;
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -30,7 +29,6 @@ namespace NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 /// <summary>
 /// Provides the default implementation of <see cref="IResourceServerValidator"/>.
 /// </summary>
-[PublicAPI]
 internal class DefaultResourceServerValidator(IAuthorizationService authorizationService)
     : DefaultResourceValidator(authorizationService),
         IResourceServerValidator

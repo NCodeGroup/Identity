@@ -17,7 +17,6 @@
 #endregion
 
 using System.Security.Claims;
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -29,7 +28,6 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
 /// <summary>
 /// Provides the default implementation of <see cref="IServerValidator"/>.
 /// </summary>
-[PublicAPI]
 internal class DefaultServerValidator(IAuthorizationService authorizationService)
     : DefaultResourceValidator(authorizationService),
         IServerValidator

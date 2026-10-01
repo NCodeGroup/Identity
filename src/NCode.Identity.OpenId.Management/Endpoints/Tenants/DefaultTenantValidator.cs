@@ -17,7 +17,6 @@
 #endregion
 
 using System.Security.Claims;
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -31,7 +30,6 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 /// <summary>
 /// Provides the default implementation of <see cref="ITenantValidator"/>.
 /// </summary>
-[PublicAPI]
 internal class DefaultTenantValidator(IAuthorizationService authorizationService)
     : DefaultResourceValidator(authorizationService),
         ITenantValidator

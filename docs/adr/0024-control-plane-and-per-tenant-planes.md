@@ -1,86 +1,84 @@
-# 24. Deployment model: a control plane and per-tenant planes, so a tenant can be isolated to its own database
+# 24. Deployment model: one control plane with logical tenant isolation; physical isolation is a separate deployment
 
 - **Status:** Accepted
-- **Date:** 2026-09-30
+- **Date:** 2026-10-01
 - **Deciders:** NCode Group
 
 ## Context
 
-Tenancy exists so that an operator can **optionally isolate a tenant onto dedicated infrastructure — including its own
-database**. That goal forces a question the single-database model hides: if every tenant's data can live in its own
-database, where does the data that is _about_ tenants live? You cannot resolve a request to a tenant, or even enumerate
-which tenants exist, if that index is scattered inside the per-tenant databases — a bootstrapping chicken-and-egg.
+Tenancy exists so that one running server can host many tenants without their data bleeding across. The real question
+is how strong that isolation must be, and where to draw the line between **logical** isolation (one deployment, one
+database, tenants separated by scoping) and **physical** isolation (separate storage/infrastructure).
 
-Today there is one `OpenIdDbContext` holding everything (server, tenants, clients, resource servers, grants, …) behind
-a single connection ([ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md) scopes access with a query
-filter _within_ that one database). Per-tenant-database isolation is a stated goal, not yet a built capability. This ADR
-records the target deployment model so later work builds toward it, and so the `ResourceServer`/`Scope`/`ClientGrant`
-model ([ADR-0023](0023-scopes-and-resources-management-model.md)) and the system-resource-server seeding are designed on
-the right side of the boundary.
+Everything today lives in one `OpenIdDbContext` behind a single connection: the server, the tenants, and every tenant's
+clients, resource servers, scopes, and grants, joined by foreign keys.
+[ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md) scopes tenant-bound access with a global query
+filter _within_ that one database. This ADR records how far that model is meant to go — and, deliberately, where it
+stops.
 
 ## Decision
 
-**The system is modeled as a control plane plus N per-tenant planes. Anything that must exist to discover, route to, or
-administer tenants lives in the control plane; everything a tenant needs to operate is self-contained in that tenant's
-plane (and therefore relocatable to a dedicated database).**
+**The system is a single control plane over a single physical deployment (one database, one `OpenIdDbContext`), in which
+tenants are a _logical_ isolation boundary, not a physical one. The server, the tenants, and every tenant's child
+resources are one connected graph with ordinary foreign-key relationships, and tenant isolation is enforced logically by
+the ambient-tenant query filter ([ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md)). When an
+operator genuinely needs physical isolation (compliance, blast-radius, noisy-neighbor), they deploy a separate
+infrastructure instance of the whole server — they do not give a tenant its own database.**
 
-- **Control-plane (global) database** holds:
-    - the **tenant registry** — the index of which tenants exist and how to reach each (id, host/path, enabled, and, in a
-      fully-isolated deployment, the tenant's connection/routing information). This is the bootstrap index consulted
-      _before_ any tenant database is opened;
-    - the **server** — the deployment-root settings and secrets (the baseline tenants narrow, ADR-0010);
-    - the **root/system tenant** and its **control-plane management resource server** (administering servers and
-      provisioning tenants). The root tenant _is_ the control plane's tenant.
-- **Per-tenant (workload) database** holds a tenant's self-contained plane: its clients, resource servers, scopes,
-  grants, client grants, the tenant's own settings and secrets, and the system resource servers seeded into it (the
-  OpenID Connect identity resource server and the tenant-plane management resource server).
-- **The boundary is what makes a tenant relocatable.** Because a workload tenant's plane depends on nothing outside its
-  own database (except the control-plane registry that routes to it and the server baseline it inherits), that database
-  can be lifted onto dedicated infrastructure without breaking references.
-- **The root/system tenant = the control plane** ([ADR-0023](0023-scopes-and-resources-management-model.md) follow-on):
-  `GlobalAdmin` is the root tenant's realm (manage servers + tenants), `TenantAdmin` is a workload tenant's realm.
-
-### Realization is phased (the routing seam is future work)
-
-The single-database deployment is the current, valid default. Reaching per-tenant databases requires, in order:
-
-1. a **control/tenant split** — a control context (registry + server + root tenant) distinct from a per-tenant context
-   (a tenant's resources);
-2. **per-tenant connection routing** — the ambient tenant ([ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md))
-   resolves the connection for the tenant's context, turning "scoping by query filter in one database" into "scoping by
-   a separate database"; the query filter remains correct for shared-database deployments;
-3. **cross-plane reads at materialization** — building an `OpenIdTenant` merges the server baseline (control plane) with
-   the tenant's settings (tenant plane), so both must be reachable while materializing.
-
-Until those exist, everything lives in one database and the boundary is logical, not physical — but the model is
-designed so the physical split is an additive change, not a redesign.
+- **Logical isolation, like a namespace or a process.** A tenant is the OAuth/OIDC analogue of a Kubernetes namespace or
+  an OS process: a scoping boundary _inside_ one running system, cheap to create, with the "kernel" — here, the query
+  filter — keeping tenants from seeing one another. It is not a separate machine.
+- **One control plane manages servers and tenants together.** The control plane is the central administrative surface:
+  it manages the server (the deployment-root settings and secrets tenants narrow,
+  [ADR-0010](0010-supported-settings-unset-means-unrestricted.md)) and provisions/administers tenants. `GlobalAdmin` is
+  its realm (manage servers + tenants); `TenantAdmin` is a workload tenant's realm (manage that tenant's clients,
+  resource servers, scopes, and grants). These are management _realms_ over one database, not separate databases.
+- **The root/system tenant is the control plane's tenant**
+  ([ADR-0023](0023-scopes-and-resources-management-model.md)): the control-plane management resource server
+  (servers + tenants) is seeded into it
+  ([ADR-0031](0031-control-plane-management-resource-server-and-root-tenant-seeding.md)), while the OpenID identity and
+  tenant-plane management resource servers are seeded into each workload tenant. "Control-plane" and "tenant-plane" name
+  these logical roles, not physical planes.
+- **Foreign keys stay.** Because everything is co-resident, the server → tenant → (clients, resource servers, scopes,
+  grants) graph is modeled with ordinary foreign keys and referential integrity; there is no cross-database link to
+  engineer around.
+- **Physical isolation is a deployment concern, not a data-model concern.** A tenant that must be physically separated
+  becomes its own deployment: a separate server instance with its own database (typically hosting that single tenant).
+  The application model does not change; the operator simply runs another copy.
 
 ## Options considered
 
-- **One database, tenant-scoped by query filter only (today's model, kept as the default).** Correct and simple for
-  shared-hosting, but cannot deliver database-level isolation. Retained as one deployment shape, not the ceiling.
-- **Push the tenant registry into each tenant's own database.** Rejected: it is unbootstrappable — you cannot find or
-  route to a tenant whose existence is only recorded inside its own (possibly remote) database.
-- **Make everything global (no per-tenant database).** Rejected: it abandons the isolation goal that motivated tenancy.
-- **A control/tenant-plane split with a connection-routing seam (chosen).** Delivers optional per-tenant databases while
-  keeping the shared-database deployment as a special case (all planes in one database).
+- **One control plane, one database, logical tenant isolation by query filter (chosen).** Simple to build, operate, and
+  reason about; keeps the server/tenant/child graph as plain foreign keys; and still allows strong physical isolation by
+  running another instance.
+- **Per-tenant databases, with a control/tenant split and connection routing.** Rejected: it forces a bootstrap/registry
+  split, cross-database reads when materializing a tenant, and a connection-routing seam — substantial complexity to put
+  database-level isolation _inside_ one deployment, when deploying a second instance achieves the same isolation far
+  more simply. (This was explored as an earlier direction and is explicitly not pursued.)
+- **Make everything global (no tenant scoping).** Rejected: it abandons isolation entirely.
 
 ## Consequences
 
-- There is, by necessity, a control-plane (global) database: the tenant registry, the server, and the root/system
-  tenant. A tenant cannot be fully self-contained _including_ the fact of its own existence — that fact is control-plane.
-- A workload tenant's plane is self-contained and relocatable to a dedicated database; the control plane routes to it.
-- System resource servers are seeded into the _workload_ tenant's plane (OIDC, tenant-plane management), while the
-  control-plane management resource server (servers/tenants) belongs to the root tenant in the control database — which
-  is why seeding and the management surface are split along this boundary.
-- The multi-database routing itself is unbuilt; the current single-`OpenIdDbContext` deployment remains valid, and the
-  split is an additive, phased change.
+- The data model stays a single, foreign-key-connected graph in one `OpenIdDbContext`; tenant isolation is the
+  [ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md) query filter, and nothing on any path depends
+  on a per-tenant database or a control/tenant connection split.
+- "Control plane" versus "tenant plane" is a _logical_ distinction (management realm plus the system resource servers
+  seeded into each), which is why the management surface and system-resource-server seeding split along
+  `GlobalAdmin`/`TenantAdmin`
+  ([ADR-0031](0031-control-plane-management-resource-server-and-root-tenant-seeding.md)) even though all rows share one
+  database.
+- Operators needing physical isolation run a separate server deployment; capacity and blast-radius are managed by how
+  many tenants an instance hosts — like processes to a machine, or namespaces to a cluster.
+- The library carries no per-tenant-database routing, projection, or cross-plane materialization machinery, which keeps
+  it simpler to build and maintain.
 
 ## References
 
-- [ADR-0010](0010-supported-settings-unset-means-unrestricted.md) — the server baseline that tenants narrow, read
-  across the control/tenant boundary at materialization.
-- [ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md) — the ambient-tenant scoping that becomes the
-  connection-routing seam for per-tenant databases.
-- [ADR-0023](0023-scopes-and-resources-management-model.md) — the resource server / scope / client grant model designed
-  on the tenant side of this boundary, and the root/system tenant this ADR places in the control plane.
+- [ADR-0010](0010-supported-settings-unset-means-unrestricted.md) — the server baseline that tenants narrow, read when
+  materializing a tenant within the one database.
+- [ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md) — the ambient-tenant query filter that is the
+  sole tenant-isolation mechanism.
+- [ADR-0023](0023-scopes-and-resources-management-model.md) — the resource server / scope / client grant model and the
+  root/system tenant that is the control plane's tenant.
+- [ADR-0031](0031-control-plane-management-resource-server-and-root-tenant-seeding.md) — the control-plane management
+  resource server (servers + tenants) seeded into the root tenant.

@@ -33,14 +33,6 @@ public interface ISupportTenantEntity
     long TenantId { get; }
 
     /// <summary>
-    /// Gets the denormalized, normalized (uppercase) natural identifier of the associated tenant, stored on the
-    /// entity itself so that tenant-scoping does not require a join to the tenant table. This keeps a tenant-scoped
-    /// row self-identifying — the prerequisite for isolating a tenant's data into its own database
-    /// (<see href="../../../docs/adr/0024-control-plane-and-per-tenant-planes.md">ADR-0024</see>).
-    /// </summary>
-    string NormalizedTenantId { get; }
-
-    /// <summary>
     /// Gets the navigation property for the associated tenant.
     /// </summary>
     TenantEntity Tenant { get; }

@@ -32,7 +32,6 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// </summary>
 [Index(nameof(TenantId), nameof(NormalizedResourceServerId), IsUnique = true)]
 [Index(nameof(TenantId), nameof(NormalizedIdentifier), IsUnique = true)]
-[Index(nameof(NormalizedTenantId), IsUnique = false)]
 public sealed class ResourceServerEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <summary>
@@ -45,11 +44,6 @@ public sealed class ResourceServerEntity : ISupportTenantEntity, ISupportConcurr
     /// <inheritdoc />
     [ForeignKey(nameof(Tenant))]
     public required long TenantId { get; init; }
-
-    /// <inheritdoc />
-    [Unicode(false)]
-    [MaxLength(MaxLengths.ResourceId)]
-    public required string NormalizedTenantId { get; init; }
 
     /// <summary>
     /// Gets the opaque, server-generated public identifier for this resource server.

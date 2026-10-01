@@ -114,6 +114,14 @@ internal class ClientApiEndpointHandler(
         clients.MapGet("/{clientId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
         clients.MapPut("/{clientId}/secrets/{secretId}", UpdateSecretAsync);
         clients.MapDelete("/{clientId}/secrets/{secretId}", DeleteSecretAsync);
+
+        clients
+            .MapGet("/{clientId}/owners", ListOwnersAsync)
+            .Produces<CollectionResource<OwnerResource>>();
+        clients
+            .MapPost("/{clientId}/owners", AddOwnerAsync)
+            .Produces<OwnerResource>(StatusCodes.Status201Created);
+        clients.MapDelete("/{clientId}/owners/{principalId}", RemoveOwnerAsync);
     }
 
     /// <summary>
@@ -781,4 +789,86 @@ internal class ClientApiEndpointHandler(
 
         return TypedResults.NoContent();
     }
+
+    /// <summary>
+    /// Handles <c>GET api/clients/{clientId}/owners</c>, returning the client's owners.
+    /// </summary>
+    [EndpointName("api/clients/owners/list")]
+    internal virtual async ValueTask<IResult> ListOwnersAsync(
+        HttpContext httpContext,
+        [FromRoute] string clientId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        return await ProcessListOwnersAsync(
+            httpContext,
+            ResourceOwnershipService,
+            StoreManagerFactory,
+            tenantId,
+            ResourceNodeTypes.Client,
+            clientId,
+            (storeManager, token) => ClientExistsAsync(storeManager, clientId, token),
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Handles <c>POST api/clients/{clientId}/owners</c>, granting a principal ownership of the client.
+    /// </summary>
+    [EndpointName("api/clients/owners/add")]
+    internal virtual async ValueTask<IResult> AddOwnerAsync(
+        HttpContext httpContext,
+        [FromRoute] string clientId,
+        [FromBody] AddOwnerRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        return await ProcessAddOwnerAsync(
+            httpContext,
+            ResourceOwnershipService,
+            StoreManagerFactory,
+            tenantId,
+            ResourceNodeTypes.Client,
+            clientId,
+            request,
+            $"/clients/{clientId}/owners",
+            (storeManager, token) => ClientExistsAsync(storeManager, clientId, token),
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Handles <c>DELETE api/clients/{clientId}/owners/{principalId}</c>, revoking a principal's ownership of the
+    /// client. Refused when it would leave the client with no owner.
+    /// </summary>
+    [EndpointName("api/clients/owners/remove")]
+    internal virtual async ValueTask<IResult> RemoveOwnerAsync(
+        HttpContext httpContext,
+        [FromRoute] string clientId,
+        [FromRoute] string principalId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        return await ProcessRemoveOwnerAsync(
+            httpContext,
+            ResourceOwnershipService,
+            StoreManagerFactory,
+            tenantId,
+            ResourceNodeTypes.Client,
+            clientId,
+            principalId,
+            cancellationToken
+        );
+    }
+
+    private static async ValueTask<bool> ClientExistsAsync(
+        IStoreManager storeManager,
+        string clientId,
+        CancellationToken cancellationToken
+    ) =>
+        await storeManager.GetStore<IClientStore>().GetOrDefaultAsync(clientId, cancellationToken)
+            is not null;
 }

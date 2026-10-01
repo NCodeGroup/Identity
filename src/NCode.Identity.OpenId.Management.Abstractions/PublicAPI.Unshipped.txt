@@ -1,4 +1,8 @@
 #nullable enable
+NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest
+NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.AddOwnerRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.PrincipalId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.PrincipalId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.ClientId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.ClientId.init -> void
@@ -69,6 +73,14 @@ NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.GrantRevocationResult() -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.Revoked.get -> long
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.Revoked.init -> void
+NCode.Identity.OpenId.Management.Contracts.OwnerResource
+NCode.Identity.OpenId.Management.Contracts.OwnerResource.AssignmentId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.OwnerResource.AssignmentId.init -> void
+NCode.Identity.OpenId.Management.Contracts.OwnerResource.OwnerResource() -> void
+NCode.Identity.OpenId.Management.Contracts.OwnerResource.PrincipalId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.OwnerResource.PrincipalId.init -> void
+NCode.Identity.OpenId.Management.Contracts.OwnerResource.RoleName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.OwnerResource.RoleName.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ClientGrantResource() -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ClientId.get -> string!

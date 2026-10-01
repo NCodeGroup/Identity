@@ -34,6 +34,12 @@ public class TokenEndpointClientCredentialsTests
     {
         using var factory = new PlaygroundApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            ClientId,
+            "it-rs-api",
+            "https://api.integration.test",
+            TestServerSettingsProvider.ApiScope
+        );
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }

@@ -76,16 +76,6 @@ public class DefaultSettingsProviderTests : BaseTests
             OpenIdConstants.ResponseTypes.IdToken,
             OpenIdConstants.ResponseTypes.Token
         );
-        SetupBaseline(
-            mockSettings,
-            OpenIdSettingKeys.ScopesSupported,
-            OpenIdConstants.ScopeTypes.OpenId,
-            OpenIdConstants.ScopeTypes.Profile,
-            OpenIdConstants.ScopeTypes.Email,
-            OpenIdConstants.ScopeTypes.Address,
-            OpenIdConstants.ScopeTypes.Phone,
-            OpenIdConstants.ScopeTypes.OfflineAccess
-        );
 
         var provider = new DefaultSettingsProvider();
         provider.Configure(mockSettings.Object);

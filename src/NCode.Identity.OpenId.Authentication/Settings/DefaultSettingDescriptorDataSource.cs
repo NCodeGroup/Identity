@@ -576,15 +576,6 @@ internal class DefaultSettingDescriptorDataSource(
                 OnFormat = FormatUniqueCombinations,
             };
 
-            // scopes_supported
-            yield return new SettingDescriptor<IReadOnlyCollection<string>>
-            {
-                Name = OpenIdSettingNames.ScopesSupported,
-
-                IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect,
-            };
-
             // send_id_claims_in_access_token
             yield return new SettingDescriptor<bool>
             {

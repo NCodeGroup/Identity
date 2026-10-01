@@ -22,36 +22,44 @@ using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
-using NCode.Identity.OpenId.Authentication.Settings;
+using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Tenants;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
-using NCode.Identity.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Token.Handlers;
 
 public class DefaultValidateTokenRequestHandlerTests : BaseTests
 {
-    private DefaultValidateTokenRequestHandler Handler { get; } = new();
+    private const string TenantId = "tenant-1";
+    private const string ClientId = "client-1";
+
+    private Mock<IClientScopeService> MockClientScopeService { get; }
+    private DefaultValidateTokenRequestHandler Handler { get; }
+
+    public DefaultValidateTokenRequestHandlerTests()
+    {
+        MockClientScopeService = CreateStrictMock<IClientScopeService>();
+        Handler = new DefaultValidateTokenRequestHandler(MockClientScopeService.Object);
+    }
 
     #region Scaffolding
 
-    private (
-        ValidateTokenRequestCommand command,
-        Mock<ITokenRequest> tokenRequest,
-        Mock<IReadOnlySettingCollection> settings
-    ) CreateScaffold()
+    private (ValidateTokenRequestCommand command, Mock<ITokenRequest> tokenRequest) CreateScaffold()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
         var mockTokenRequest = CreateStrictMock<ITokenRequest>();
-        var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
 
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
+        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
+        mockClient.SetupGet(x => x.ClientId).Returns(ClientId);
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
         var command = new ValidateTokenRequestCommand(
@@ -60,18 +68,14 @@ public class DefaultValidateTokenRequestHandlerTests : BaseTests
             mockTokenRequest.Object
         );
 
-        return (command, mockTokenRequest, mockSettings);
+        return (command, mockTokenRequest);
     }
 
-    private void SetupScopesSupported(
-        Mock<IReadOnlySettingCollection> mockSettings,
-        params string[] scopes
-    )
+    private void SetupAllowedScopes(params string[] scopes)
     {
-        IReadOnlyCollection<string> supported = scopes;
-        mockSettings
-            .Setup(x => x.TryGetValue(OpenIdSettingKeys.ScopesSupported, out supported))
-            .Returns(true);
+        MockClientScopeService
+            .Setup(x => x.GetAllowedScopesAsync(TenantId, ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(scopes);
     }
 
     #endregion
@@ -81,7 +85,7 @@ public class DefaultValidateTokenRequestHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenScopesNull_CompletesSuccessfully()
     {
-        var (command, mockTokenRequest, _) = CreateScaffold();
+        var (command, mockTokenRequest) = CreateScaffold();
 
         mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
 
@@ -89,23 +93,23 @@ public class DefaultValidateTokenRequestHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenScopesSupported_CompletesSuccessfully()
+    public async Task HandleAsync_WhenScopesAllowed_CompletesSuccessfully()
     {
-        var (command, mockTokenRequest, mockSettings) = CreateScaffold();
+        var (command, mockTokenRequest) = CreateScaffold();
 
         mockTokenRequest.SetupGet(x => x.Scopes).Returns(["api"]).Verifiable();
-        SetupScopesSupported(mockSettings, "api");
+        SetupAllowedScopes("api");
 
         await Handler.HandleAsync(command, CancellationToken.None);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenScopeNotSupported_ThrowsOpenIdException()
+    public async Task HandleAsync_WhenScopeNotAllowed_ThrowsOpenIdException()
     {
-        var (command, mockTokenRequest, mockSettings) = CreateScaffold();
+        var (command, mockTokenRequest) = CreateScaffold();
 
         mockTokenRequest.SetupGet(x => x.Scopes).Returns(["unsupported"]).Verifiable();
-        SetupScopesSupported(mockSettings, "api");
+        SetupAllowedScopes("api");
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(command, CancellationToken.None)

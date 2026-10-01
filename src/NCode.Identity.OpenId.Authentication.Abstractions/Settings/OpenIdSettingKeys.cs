@@ -338,12 +338,6 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.ResponseTypesSupported);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'scopes_supported' setting.
-    /// </summary>
-    public static SettingKey<IReadOnlyCollection<string>> ScopesSupported =>
-        new(OpenIdSettingNames.ScopesSupported);
-
-    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_id_claims_in_access_token' setting.
     /// </summary>
     public static SettingKey<bool> SendIdClaimsInAccessToken =>

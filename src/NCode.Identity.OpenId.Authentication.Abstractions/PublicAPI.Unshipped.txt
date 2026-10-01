@@ -749,7 +749,6 @@ static NCode.Identity.OpenId.Authentication.Settings.OpenIdSettingKeys.RequireRe
 static NCode.Identity.OpenId.Authentication.Settings.OpenIdSettingKeys.RequireRequestUriRegistration.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Authentication.Settings.OpenIdSettingKeys.ResponseModesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Authentication.Settings.OpenIdSettingKeys.ResponseTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
-static NCode.Identity.OpenId.Authentication.Settings.OpenIdSettingKeys.ScopesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Authentication.Settings.OpenIdSettingKeys.SendIdClaimsInAccessToken.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Authentication.Settings.OpenIdSettingKeys.ServiceDocumentation.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Authentication.Settings.OpenIdSettingKeys.SubjectMaxAge.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>

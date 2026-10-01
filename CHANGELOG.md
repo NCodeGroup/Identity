@@ -77,6 +77,14 @@ change to the public API is a **major** version bump.
   `IPersistedGrantService.CreateGrantId` parameter are now required (non-nullable). Every grant is created against the
   resolved request tenant, so the unused non-tenant (global) key space is removed; a future server-level grant type, if
   needed, would be modeled explicitly rather than by an absent tenant.
+- Runtime scope enforcement is now driven by the resource-server / client-grant model instead of a `scopes_supported`
+  setting, which is retired (its `SettingKey`, descriptor, and default are removed). A replaceable `IClientScopeService`
+  resolves a client's allowed scopes — every scope of a system resource server (`IsSystem`) is implicitly available to
+  all clients, while a non-system API is available only through a client grant intersected with the API's current
+  scopes (read-time intersection) — and the authorization/token validators reject out-of-scope requests. Discovery's
+  `scopes_supported` is derived from the tenant's resource-server catalog. `offline_access` availability follows from the
+  system identity resource server; refresh-token issuance remains governed by the request and the `refresh_token` grant
+  type. See [ADR-0026](docs/adr/0026-scope-enforcement-via-resource-servers-and-client-grants.md).
 
 ### Fixed
 

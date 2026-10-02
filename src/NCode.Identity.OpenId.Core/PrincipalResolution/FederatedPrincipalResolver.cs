@@ -99,11 +99,13 @@ internal class FederatedPrincipalResolver(
         var options = OptionsAccessor.Value;
         var subject = user.FindFirstValue(options.SourceClaimName);
         var issuer = user.FindFirstValue(options.IssuerClaimName);
+
+        // Without a resolvable upstream (issuer, subject) pair we cannot form a durable connection identity for
+        // idempotent lookup, so the subject value is used as-is: for a non-federated caller the subject is already the
+        // principal reference, and provisioning on every sight would create duplicates (ADR-0035).
         if (string.IsNullOrEmpty(subject) || string.IsNullOrEmpty(issuer))
         {
-            throw new InvalidOperationException(
-                "Cannot provision a federated principal without an upstream issuer and subject."
-            );
+            return subject ?? string.Empty;
         }
 
         var decision = await LinkingPolicy.ResolveLinkAsync(user, storeManager, cancellationToken);

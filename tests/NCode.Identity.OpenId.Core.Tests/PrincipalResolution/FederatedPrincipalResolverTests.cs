@@ -359,7 +359,7 @@ public sealed class FederatedPrincipalResolverTests
     }
 
     [Fact]
-    public async Task ResolvePrincipalIdAsync_WhenUpstreamClaimsMissing_Throws()
+    public async Task ResolvePrincipalIdAsync_WhenUpstreamClaimsMissing_FallsBackToRawSubject()
     {
         var mocks = new MockRepository(MockBehavior.Strict);
         var manager = mocks.Create<IStoreManager>();
@@ -376,13 +376,13 @@ public sealed class FederatedPrincipalResolverTests
             CreateOptions()
         );
 
-        // Subject present but no issuer: cannot provision.
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await resolver.ResolvePrincipalIdAsync(
-                CreateUser(new Claim("sub", Subject)),
-                manager.Object,
-                CancellationToken.None
-            )
+        // Subject present but no issuer: cannot form a durable identity, so the subject value is used as-is.
+        var result = await resolver.ResolvePrincipalIdAsync(
+            CreateUser(new Claim("sub", Subject)),
+            manager.Object,
+            CancellationToken.None
         );
+
+        Assert.Equal(Subject, result);
     }
 }

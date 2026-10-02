@@ -75,9 +75,18 @@ _identify_ anything the system owns.
 ### Resolution
 
 `IPrincipalResolver` maps the caller's authenticated context to a `PrincipalId`. For a human token the
-`FederatedPrincipalResolver` matches the token's `(issuer, subject)` to a `FederatedIdentity` and returns its
-`FederatedPrincipal`, provisioning on first sight. The source claim is configurable (defaulting to `sub`, keyed by
-issuer), so the identity source is not hard-coded.
+`FederatedPrincipalResolver` interprets the subject claim first as a server-owned `PrincipalId` and, failing that, as an
+upstream `(issuer, subject)` that it matches to a `FederatedIdentity`, provisioning the principal (and its identity) on
+first sight. The source claim is configurable (defaulting to `sub`, keyed by issuer), so the identity source is not
+hard-coded; a caller with no resolvable upstream identity falls back to its raw subject value, so non-federated schemes
+keep working.
+
+Resolution happens at the two points where an authenticated caller enters the system. At the
+**subject-authentication seam** (where the OpenID runtime turns the host's authenticated subject into a session),
+the resolver runs so the resolved `PrincipalId` is what flows into the issued grant and is emitted as the `sub` claim —
+tokens, grants, introspection, and activity therefore all carry the durable principal, not the raw external subject,
+without any change to the grant's own shape. In the **management authorization path**, the resolver maps the caller to
+its `PrincipalId` before ownership and role assignments are evaluated or recorded.
 
 ### Linking policy
 
@@ -135,8 +144,9 @@ no code today:
 - The `sub` the server emits becomes the stable `PrincipalId`; relying parties get one durable subject for a human
   regardless of which connection authenticated the session.
 - The `PrincipalId` reference that assignments, ownership, and grants already carry is retained; its persisted column is
-  re-based on a principal-id length rather than the subject-id length it was initially sized with, and other surfaces
-  that persist a raw subject (such as grants) are revisited to reference the `PrincipalId`.
+  re-based on a principal-id length rather than the subject-id length it was initially sized with. A grant persists the
+  resolved `PrincipalId` in its subject field because the subject-authentication seam resolves the principal before the
+  grant is created — the value is corrected at its source rather than by renaming the grant surface.
 - `ADR-0033`/`ADR-0034`'s abstract-principal note is realized here; the abstract `Principal` supertype keeps the
   service-principal path open.
 

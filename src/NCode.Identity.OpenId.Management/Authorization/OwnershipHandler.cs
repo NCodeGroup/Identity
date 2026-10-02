@@ -16,12 +16,11 @@
 
 #endregion
 
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 
@@ -36,10 +35,12 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// </summary>
 internal class OwnershipHandler(
     IStoreManagerFactory storeManagerFactory,
+    IPrincipalResolver principalResolver,
     IOptions<TenantResolutionOptions> optionsAccessor
 ) : AuthorizationHandler<IAuthorizationRequirement, IResourceNode>
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IOptions<TenantResolutionOptions> OptionsAccessor { get; } = optionsAccessor;
 
     /// <inheritdoc />
@@ -58,17 +59,24 @@ internal class OwnershipHandler(
             return;
         }
 
-        var principalId = context.User.FindFirstValue(JoseClaimNames.Payload.Sub);
-        if (string.IsNullOrEmpty(principalId))
-        {
-            return;
-        }
-
         var ancestorNodes = GetAncestorNodes(resource, OptionsAccessor.Value.RootTenantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(
             CancellationToken.None
         );
+
+        // Resolve the caller to a stable principal id (ADR-0035); a caller that has never been provisioned has no
+        // authority, so there is nothing to look up.
+        var principalId = await PrincipalResolver.ResolvePrincipalIdOrDefaultAsync(
+            context.User,
+            storeManager,
+            CancellationToken.None
+        );
+        if (string.IsNullOrEmpty(principalId))
+        {
+            return;
+        }
+
         var store = storeManager.GetStore<IRoleAssignmentStore>();
         var assignments = await store.GetByPrincipalAsync(principalId, CancellationToken.None);
 

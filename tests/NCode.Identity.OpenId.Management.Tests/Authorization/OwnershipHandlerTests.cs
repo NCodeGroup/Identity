@@ -22,6 +22,7 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 
@@ -70,18 +71,32 @@ public class OwnershipHandlerTests
         var factory = mocks.Create<IStoreManagerFactory>();
         var manager = mocks.Create<IStoreManager>();
         var store = mocks.Create<IRoleAssignmentStore>();
+        var resolver = mocks.Create<IPrincipalResolver>();
 
         factory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(manager.Object);
         manager.Setup(x => x.GetStore<IRoleAssignmentStore>()).Returns(store.Object);
         manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        // The resolver maps the caller to a stable principal id; mirror the token's subject claim (ADR-0035).
+        resolver
+            .Setup(x =>
+                x.ResolvePrincipalIdOrDefaultAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                (ClaimsPrincipal callerUser, IStoreManager _, CancellationToken _) =>
+                    callerUser.FindFirstValue("sub")
+            );
         store
             .Setup(x => x.GetByPrincipalAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(assignments.ToList());
 
         var options = Options.Create(new TenantResolutionOptions { RootTenantId = RootTenantId });
-        var handler = new OwnershipHandler(factory.Object, options);
+        var handler = new OwnershipHandler(factory.Object, resolver.Object, options);
         var context = new AuthorizationHandlerContext([requirement], user, resource);
 
         await handler.HandleAsync(context);

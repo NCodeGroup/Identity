@@ -17,10 +17,10 @@
 #endregion
 
 using System.Security.Claims;
-using NCode.Identity.Jose;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Authorization;
@@ -28,10 +28,13 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// <summary>
 /// Provides the default implementation of <see cref="IResourceOwnershipService"/>.
 /// </summary>
-internal class DefaultResourceOwnershipService(ICryptoService cryptoService)
-    : IResourceOwnershipService
+internal class DefaultResourceOwnershipService(
+    ICryptoService cryptoService,
+    IPrincipalResolver principalResolver
+) : IResourceOwnershipService
 {
     private ICryptoService CryptoService { get; } = cryptoService;
+    private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
 
     /// <inheritdoc />
     public async ValueTask AssignCreatorAsync(
@@ -43,11 +46,12 @@ internal class DefaultResourceOwnershipService(ICryptoService cryptoService)
         CancellationToken cancellationToken
     )
     {
-        var principalId = user.FindFirstValue(JoseClaimNames.Payload.Sub);
-        if (string.IsNullOrEmpty(principalId))
-        {
-            return;
-        }
+        // Resolve (and provision on first sight) the stable principal id for the creator (ADR-0035).
+        var principalId = await PrincipalResolver.ResolvePrincipalIdAsync(
+            user,
+            storeManager,
+            cancellationToken
+        );
 
         var store = storeManager.GetStore<IRoleAssignmentStore>();
         await store.AddAsync(

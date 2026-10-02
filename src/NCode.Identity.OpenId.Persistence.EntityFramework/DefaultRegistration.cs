@@ -62,6 +62,16 @@ public static class DefaultRegistration
             serviceCollection.AddStore<TDbContext, IResourceServerStore, ResourceServerStore>();
             serviceCollection.AddStore<TDbContext, IClientGrantStore, ClientGrantStore>();
             serviceCollection.AddStore<TDbContext, IRoleAssignmentStore, RoleAssignmentStore>();
+            serviceCollection.AddStore<
+                TDbContext,
+                IFederatedPrincipalStore,
+                FederatedPrincipalStore
+            >();
+            serviceCollection.AddStore<
+                TDbContext,
+                IFederatedIdentityStore,
+                FederatedIdentityStore
+            >();
 
             return serviceCollection;
         }

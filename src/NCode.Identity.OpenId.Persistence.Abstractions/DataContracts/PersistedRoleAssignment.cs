@@ -45,10 +45,10 @@ public sealed class PersistedRoleAssignment : ISupportTenantId, ISupportConcurre
     public required string AssignmentId { get; init; }
 
     /// <summary>
-    /// Gets or sets the identifier of the principal (a subject today, a service principal later) that is granted the
-    /// role.
+    /// Gets or sets the server-generated opaque identifier of the principal that is granted the role (a federated
+    /// principal today, a service principal later).
     /// </summary>
-    [MaxLength(OpenIdMaxLengths.SubjectId)]
+    [MaxLength(OpenIdMaxLengths.PrincipalId)]
     public required string PrincipalId { get; init; }
 
     /// <summary>

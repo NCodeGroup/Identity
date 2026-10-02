@@ -106,6 +106,16 @@ public class OpenIdDbContext(
     /// </summary>
     public DbSet<RoleAssignmentEntity> RoleAssignments => Set<RoleAssignmentEntity>();
 
+    /// <summary>
+    /// Gets the <see cref="FederatedPrincipalEntity"/> entities.
+    /// </summary>
+    public DbSet<FederatedPrincipalEntity> FederatedPrincipals => Set<FederatedPrincipalEntity>();
+
+    /// <summary>
+    /// Gets the <see cref="FederatedIdentityEntity"/> entities.
+    /// </summary>
+    public DbSet<FederatedIdentityEntity> FederatedIdentities => Set<FederatedIdentityEntity>();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

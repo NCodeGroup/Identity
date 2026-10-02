@@ -27,6 +27,8 @@ using NCode.Identity.OpenId.Authentication.Options;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.PrincipalResolution;
+using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Subject;
@@ -35,8 +37,39 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 {
     #region Scaffolding
 
-    private DefaultAuthenticateSubjectHandler CreateHandler(string? subjectId) =>
-        new(Options.Create(new OpenIdOptions { GetSubjectId = _ => subjectId }));
+    private DefaultAuthenticateSubjectHandler CreateHandler(
+        string? subjectId,
+        string? resolvedPrincipalId = null
+    )
+    {
+        var mockFactory = CreateStrictMock<IStoreManagerFactory>();
+        var mockManager = CreateStrictMock<IStoreManager>();
+        var mockResolver = CreateStrictMock<IPrincipalResolver>();
+
+        mockFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockManager.Object);
+        mockManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+        mockManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        // The resolver maps the authenticated subject to the stable principal id carried into the ticket (ADR-0035).
+        mockResolver
+            .Setup(x =>
+                x.ResolvePrincipalIdAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(resolvedPrincipalId ?? subjectId ?? string.Empty);
+
+        return new DefaultAuthenticateSubjectHandler(
+            Options.Create(new OpenIdOptions { GetSubjectId = _ => subjectId }),
+            mockFactory.Object,
+            mockResolver.Object
+        );
+    }
 
     private (
         AuthenticateSubjectCommand command,
@@ -131,6 +164,20 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
         Assert.True(result.IsAuthenticated);
         Assert.Equal("subject-id", result.Ticket.Value.SubjectId);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAuthenticated_CarriesResolvedPrincipalId()
+    {
+        var (command, mockAuthService, _) = CreateScaffold();
+        SetupAuthenticate(mockAuthService, SuccessResult());
+
+        // The resolver maps the raw subject to a stable principal id; the ticket carries the resolved id (ADR-0035).
+        var result = await CreateHandler("subject-id", resolvedPrincipalId: "principal-99")
+            .HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsAuthenticated);
+        Assert.Equal("principal-99", result.Ticket.Value.SubjectId);
     }
 
     #endregion

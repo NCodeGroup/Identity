@@ -70,14 +70,18 @@ internal class ClientApiEndpointHandler(
     ICryptoService cryptoService,
     IResourceOwnershipService resourceOwnershipService,
     ILogger<ClientApiEndpointHandler> logger
-) : BaseApiEndpointHandler, IManagementEndpointProvider
+) : BaseOwnableApiEndpointHandler, IManagementEndpointProvider
 {
-    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    /// <inheritdoc />
+    protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IClientValidator ClientValidator { get; } = clientValidator;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private IResourceOwnershipService ResourceOwnershipService { get; } = resourceOwnershipService;
+
+    /// <inheritdoc />
+    protected override IResourceOwnershipService ResourceOwnershipService { get; } =
+        resourceOwnershipService;
     private ILogger<ClientApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -826,8 +830,6 @@ internal class ClientApiEndpointHandler(
         var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
         return await ProcessListOwnersAsync(
             httpContext,
-            ResourceOwnershipService,
-            StoreManagerFactory,
             tenantId,
             ResourceNodeTypes.Client,
             clientId,
@@ -850,8 +852,6 @@ internal class ClientApiEndpointHandler(
         var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
         return await ProcessAddOwnerAsync(
             httpContext,
-            ResourceOwnershipService,
-            StoreManagerFactory,
             tenantId,
             ResourceNodeTypes.Client,
             clientId,
@@ -877,8 +877,6 @@ internal class ClientApiEndpointHandler(
         var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
         return await ProcessRemoveOwnerAsync(
             httpContext,
-            ResourceOwnershipService,
-            StoreManagerFactory,
             tenantId,
             ResourceNodeTypes.Client,
             clientId,

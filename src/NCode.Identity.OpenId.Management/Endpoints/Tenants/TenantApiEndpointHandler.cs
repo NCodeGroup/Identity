@@ -68,13 +68,17 @@ internal class TenantApiEndpointHandler(
     ICryptoService cryptoService,
     IResourceOwnershipService resourceOwnershipService,
     ILogger<TenantApiEndpointHandler> logger
-) : BaseApiEndpointHandler, IManagementEndpointProvider
+) : BaseOwnableApiEndpointHandler, IManagementEndpointProvider
 {
-    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    /// <inheritdoc />
+    protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ITenantValidator TenantValidator { get; } = tenantValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private IResourceOwnershipService ResourceOwnershipService { get; } = resourceOwnershipService;
+
+    /// <inheritdoc />
+    protected override IResourceOwnershipService ResourceOwnershipService { get; } =
+        resourceOwnershipService;
     private ILogger<TenantApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -778,8 +782,6 @@ internal class TenantApiEndpointHandler(
     {
         return await ProcessListOwnersAsync(
             httpContext,
-            ResourceOwnershipService,
-            StoreManagerFactory,
             tenantId,
             ResourceNodeTypes.Tenant,
             tenantId,
@@ -801,8 +803,6 @@ internal class TenantApiEndpointHandler(
     {
         return await ProcessAddOwnerAsync(
             httpContext,
-            ResourceOwnershipService,
-            StoreManagerFactory,
             tenantId,
             ResourceNodeTypes.Tenant,
             tenantId,
@@ -827,8 +827,6 @@ internal class TenantApiEndpointHandler(
     {
         return await ProcessRemoveOwnerAsync(
             httpContext,
-            ResourceOwnershipService,
-            StoreManagerFactory,
             tenantId,
             ResourceNodeTypes.Tenant,
             tenantId,

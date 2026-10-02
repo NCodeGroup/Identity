@@ -32,7 +32,9 @@ resources — including the tenant node itself — lives in that tenant and inhe
 tenant ([ADR-0031](0031-control-plane-management-resource-server-and-root-tenant-seeding.md)). Its columns:
 
 - `PrincipalId` / `NormalizedPrincipalId` — the subject identifier (`sub`); a service principal (client) later. The
-  model is defined over an abstract principal so the client case is additive.
+  model is defined over an abstract principal so the client case is additive. The principal's own durable, server-owned
+  identity is decided in [ADR-0035](0035-federated-principals-and-identity-resolution.md), which rebases this reference
+  onto a server-generated `PrincipalId` rather than a raw external `sub`.
 - `RoleName` — the role (a name, not a foreign key), so operator-defined custom roles are additive without a schema
   change.
 - `ResourceType` + `ResourceId` / `NormalizedResourceId` — the **node** the authority is granted at: a resource type

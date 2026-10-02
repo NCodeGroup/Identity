@@ -194,6 +194,10 @@ const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.AccessToken = "access_tok
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.Bearer = "Bearer" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.IdToken = "id_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.RefreshToken = "refresh_token" -> string!
+const NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.DefaultJoinClaimName = "email" -> string!
+const NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.DefaultVerifiedClaimName = "email_verified" -> string!
+const NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.DefaultIssuerClaimName = "iss" -> string!
+const NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.DefaultSourceClaimName = "sub" -> string!
 const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultDisplayName = "Default Tenant" -> string!
 const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultTenantId = "default" -> string!
 const NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DefaultRootTenantId = "root" -> string!
@@ -380,6 +384,33 @@ NCode.Identity.OpenId.OpenIdConstants.SubjectTypes
 NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers
 NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes
 NCode.Identity.OpenId.OpenIdConstants.TokenTypes
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.FederatedIdentityLinkDecision() -> void
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.JoinKey.get -> string?
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.JoinKey.init -> void
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.LinkedPrincipalId.get -> string?
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.LinkedPrincipalId.init -> void
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.ExplicitOnly.get -> bool
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.ExplicitOnly.set -> void
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.FederatedIdentityLinkingOptions() -> void
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.JoinClaimName.get -> string!
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.JoinClaimName.set -> void
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.RequireVerifiedJoinKey.get -> bool
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.RequireVerifiedJoinKey.set -> void
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.VerifiedClaimName.get -> string!
+NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.VerifiedClaimName.set -> void
+NCode.Identity.OpenId.PrincipalResolution.IFederatedIdentityLinkingPolicy
+NCode.Identity.OpenId.PrincipalResolution.IFederatedIdentityLinkingPolicy.ResolveLinkAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision!>
+NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver
+NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver.ResolvePrincipalIdAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
+NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver.ResolvePrincipalIdOrDefaultAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
+NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions
+NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.IssuerClaimName.get -> string!
+NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.IssuerClaimName.set -> void
+NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.PrincipalResolutionOptions() -> void
+NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.SourceClaimName.get -> string!
+NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.SourceClaimName.set -> void
 NCode.Identity.OpenId.ResourceServers.ISystemResourceServerProvider
 NCode.Identity.OpenId.ResourceServers.ISystemResourceServerProvider.GetDescriptor() -> NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor!
 NCode.Identity.OpenId.ResourceServers.ISystemResourceServerSeeder

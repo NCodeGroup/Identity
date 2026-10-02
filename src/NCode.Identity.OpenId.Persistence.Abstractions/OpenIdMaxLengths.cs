@@ -52,6 +52,12 @@ public static class OpenIdMaxLengths
     public const int Issuer = 1000;
 
     /// <summary>
+    /// Specifies the maximum length of a federated identity's <c>JoinKey</c> (such as a verified email address used by
+    /// the linking policy).
+    /// </summary>
+    public const int JoinKey = 300;
+
+    /// <summary>
     /// Specifies the maximum length of a role's <c>Name</c>.
     /// </summary>
     public const int RoleName = 100;

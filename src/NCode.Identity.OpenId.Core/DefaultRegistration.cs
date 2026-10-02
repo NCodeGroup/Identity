@@ -20,6 +20,7 @@ using JetBrains.Annotations;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Serialization;
 using NCode.Identity.OpenId.Tenants;
@@ -49,7 +50,8 @@ public static class DefaultRegistration
                 .AddExceptionServices()
                 .AddMessageServices()
                 .AddResultServices()
-                .AddTenantResolutionServices();
+                .AddTenantResolutionServices()
+                .AddPrincipalResolutionServices();
 
             return newBuilder;
         }

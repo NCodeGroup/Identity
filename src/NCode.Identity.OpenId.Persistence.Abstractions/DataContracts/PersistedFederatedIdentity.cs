@@ -56,6 +56,14 @@ public sealed class PersistedFederatedIdentity : ISupportConcurrencyToken
     [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string Subject { get; init; }
 
+    /// <summary>
+    /// Gets or sets the optional join key (such as a verified email address) asserted by this connection identity,
+    /// used by the linking policy to attach a new identity to an existing principal. This value is <c>null</c> when
+    /// the connection asserts no usable join key.
+    /// </summary>
+    [MaxLength(OpenIdMaxLengths.JoinKey)]
+    public required string? JoinKey { get; init; }
+
     /// <inheritdoc />
     [MaxLength(MaxLengths.ConcurrencyToken)]
     public required string ConcurrencyToken { get; set; }

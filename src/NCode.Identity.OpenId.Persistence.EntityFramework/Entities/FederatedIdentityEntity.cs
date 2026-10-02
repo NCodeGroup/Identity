@@ -31,6 +31,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 /// </summary>
 [Index(nameof(NormalizedFederatedIdentityId), IsUnique = true)]
 [Index(nameof(NormalizedIssuer), nameof(NormalizedSubject), IsUnique = true)]
+[Index(nameof(NormalizedJoinKey))]
 public sealed class FederatedIdentityEntity : ISupportConcurrencyToken
 {
     /// <summary>
@@ -90,6 +91,23 @@ public sealed class FederatedIdentityEntity : ISupportConcurrencyToken
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string NormalizedSubject { get; init; }
+
+    /// <summary>
+    /// Gets the optional join key (such as a verified email address) asserted by this connection identity, used by the
+    /// linking policy to deterministically attach a new identity to an existing principal. This value is <c>null</c>
+    /// when the connection asserts no usable join key.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(OpenIdMaxLengths.JoinKey)]
+    public required string? JoinKey { get; init; }
+
+    /// <summary>
+    /// Gets the value of <see cref="JoinKey"/> in lowercase so that lookups can be sargable for DBMS engines that
+    /// don't support case-insensitive indices.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(OpenIdMaxLengths.JoinKey)]
+    public required string? NormalizedJoinKey { get; init; }
 
     //
 

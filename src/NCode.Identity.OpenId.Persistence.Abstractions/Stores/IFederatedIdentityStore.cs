@@ -76,4 +76,17 @@ public interface IFederatedIdentityStore : IStore
         string principalId,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Gets every federated identity that asserts the specified join key (such as a verified email address). The
+    /// linking policy uses this to deterministically attach a new identity to an existing principal.
+    /// </summary>
+    /// <param name="joinKey">The join key to match.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the identities that
+    /// assert the join key.</returns>
+    ValueTask<IReadOnlyList<PersistedFederatedIdentity>> GetByJoinKeyAsync(
+        string joinKey,
+        CancellationToken cancellationToken
+    );
 }

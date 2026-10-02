@@ -67,7 +67,8 @@ public sealed class FederatedIdentityStoreTests : IDisposable
         string federatedIdentityId,
         string principalId,
         string issuer,
-        string subject
+        string subject,
+        string? joinKey = null
     ) =>
         new()
         {
@@ -75,6 +76,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
             PrincipalId = principalId,
             Issuer = issuer,
             Subject = subject,
+            JoinKey = joinKey,
             ConcurrencyToken = string.Empty,
         };
 
@@ -175,5 +177,32 @@ public sealed class FederatedIdentityStoreTests : IDisposable
         Assert.Contains(loaded, identity => identity.FederatedIdentityId == "identity-1");
         Assert.Contains(loaded, identity => identity.FederatedIdentityId == "identity-2");
         Assert.All(loaded, identity => Assert.Equal(PrincipalId, identity.PrincipalId));
+    }
+
+    [Fact]
+    public async Task GetByJoinKeyAsync_WhenMatch_ReturnsIdentitiesWithThatJoinKey()
+    {
+        await SeedPrincipalAsync();
+        await _store.AddAsync(
+            CreateIdentity("identity-1", PrincipalId, Issuer, Subject, "user@example.com"),
+            CancellationToken.None
+        );
+        await _store.AddAsync(
+            CreateIdentity(
+                "identity-2",
+                PrincipalId,
+                "https://other.example",
+                "subject-2",
+                "other@example.com"
+            ),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+
+        var loaded = await _store.GetByJoinKeyAsync("USER@example.com", CancellationToken.None);
+
+        Assert.Single(loaded);
+        Assert.Equal("identity-1", loaded[0].FederatedIdentityId);
+        Assert.Equal("user@example.com", loaded[0].JoinKey);
     }
 }

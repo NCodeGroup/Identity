@@ -58,6 +58,7 @@ internal class FederatedIdentityStore(
                 PrincipalId = entity.FederatedPrincipal.PrincipalId,
                 Issuer = entity.Issuer,
                 Subject = entity.Subject,
+                JoinKey = entity.JoinKey,
                 ConcurrencyToken = entity.ConcurrencyToken,
             }
         );
@@ -127,6 +128,8 @@ internal class FederatedIdentityStore(
             NormalizedIssuer = Normalize(identity.Issuer),
             Subject = identity.Subject,
             NormalizedSubject = Normalize(identity.Subject),
+            JoinKey = identity.JoinKey,
+            NormalizedJoinKey = Normalize(identity.JoinKey),
             ConcurrencyToken = identity.ConcurrencyToken,
             FederatedPrincipal = principalEntity,
         };
@@ -178,6 +181,27 @@ internal class FederatedIdentityStore(
             .Where(entity =>
                 entity.FederatedPrincipal.NormalizedPrincipalId == normalizedPrincipalId
             )
+            .ToListAsync(cancellationToken);
+
+        var result = new List<PersistedFederatedIdentity>(entities.Count);
+        foreach (var entity in entities)
+        {
+            result.Add(await MapFromEntityAsync(entity, cancellationToken));
+        }
+
+        return result;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<PersistedFederatedIdentity>> GetByJoinKeyAsync(
+        string joinKey,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedJoinKey = Normalize(joinKey);
+        var entities = await DbContext
+            .FederatedIdentities.Include(entity => entity.FederatedPrincipal)
+            .Where(entity => entity.NormalizedJoinKey == normalizedJoinKey)
             .ToListAsync(cancellationToken);
 
         var result = new List<PersistedFederatedIdentity>(entities.Count);

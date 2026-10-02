@@ -8,6 +8,7 @@ const NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTenantResourc
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.GrantType = 100 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.HashedKey = 1000 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.Issuer = 1000 -> int
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.JoinKey = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.PrincipalId = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.RoleName = 100 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.SubjectId = 300 -> int
@@ -82,6 +83,8 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.Feder
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.FederatedIdentityId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.Issuer.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.Issuer.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.JoinKey.get -> string?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.JoinKey.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.PersistedFederatedIdentity() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.PrincipalId.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.PrincipalId.init -> void
@@ -223,6 +226,7 @@ NCode.Identity.OpenId.Persistence.Stores.IClientStore.UpdateSettingsAsync(NCode.
 NCode.Identity.OpenId.Persistence.Stores.IFederatedIdentityStore
 NCode.Identity.OpenId.Persistence.Stores.IFederatedIdentityStore.AddAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity! identity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IFederatedIdentityStore.GetByIssuerSubjectAsync(string! issuer, string! subject, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity?>
+NCode.Identity.OpenId.Persistence.Stores.IFederatedIdentityStore.GetByJoinKeyAsync(string! joinKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity!>!>
 NCode.Identity.OpenId.Persistence.Stores.IFederatedIdentityStore.GetByPrincipalAsync(string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity!>!>
 NCode.Identity.OpenId.Persistence.Stores.IFederatedIdentityStore.GetOrDefaultAsync(string! federatedIdentityId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity?>
 NCode.Identity.OpenId.Persistence.Stores.IFederatedPrincipalStore

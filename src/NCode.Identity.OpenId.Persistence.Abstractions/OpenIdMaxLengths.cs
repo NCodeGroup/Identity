@@ -34,9 +34,22 @@ public static class OpenIdMaxLengths
     public const int TenantDomainName = 300;
 
     /// <summary>
-    /// Specifies the maximum length of a <c>SubjectId</c>.
+    /// Specifies the maximum length of a <c>SubjectId</c>: the upstream subject value carried by an external
+    /// connection identity (the OpenID <c>sub</c> as issued by an upstream issuer).
     /// </summary>
     public const int SubjectId = 300;
+
+    /// <summary>
+    /// Specifies the maximum length of a <c>PrincipalId</c>: the server-generated opaque identifier of a principal
+    /// (the stable public id that authority references and that is emitted as the <c>sub</c> claim).
+    /// </summary>
+    public const int PrincipalId = 300;
+
+    /// <summary>
+    /// Specifies the maximum length of an <c>Issuer</c> identifier (the upstream issuer of an external connection
+    /// identity).
+    /// </summary>
+    public const int Issuer = 1000;
 
     /// <summary>
     /// Specifies the maximum length of a role's <c>Name</c>.

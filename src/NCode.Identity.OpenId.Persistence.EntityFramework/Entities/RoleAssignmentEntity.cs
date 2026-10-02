@@ -72,7 +72,7 @@ public sealed class RoleAssignmentEntity : ISupportTenantEntity, ISupportConcurr
     /// Gets the identifier of the principal that is granted the role.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(OpenIdMaxLengths.SubjectId)]
+    [MaxLength(OpenIdMaxLengths.PrincipalId)]
     public required string PrincipalId { get; init; }
 
     /// <summary>
@@ -80,7 +80,7 @@ public sealed class RoleAssignmentEntity : ISupportTenantEntity, ISupportConcurr
     /// don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(OpenIdMaxLengths.SubjectId)]
+    [MaxLength(OpenIdMaxLengths.PrincipalId)]
     public required string NormalizedPrincipalId { get; init; }
 
     /// <summary>

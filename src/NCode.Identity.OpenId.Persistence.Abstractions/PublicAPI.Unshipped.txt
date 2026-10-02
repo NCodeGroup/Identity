@@ -7,6 +7,8 @@ const NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedServerResourc
 const NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTenantResource.ResourceTypePrefix = "tenant" -> string!
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.GrantType = 100 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.HashedKey = 1000 -> int
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.Issuer = 1000 -> int
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.PrincipalId = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.RoleName = 100 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.SubjectId = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.TenantDomainName = 300 -> int
@@ -73,6 +75,24 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecrets
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecrets.PersistedClientSecrets() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSettings
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSettings.PersistedClientSettings() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.FederatedIdentityId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.FederatedIdentityId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.Issuer.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.Issuer.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.PersistedFederatedIdentity() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.PrincipalId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.PrincipalId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.Subject.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.Subject.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PersistedFederatedPrincipal() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PrincipalId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PrincipalId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.ClientId.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.ClientId.init -> void
@@ -200,6 +220,14 @@ NCode.Identity.OpenId.Persistence.Stores.IClientStore.RemoveAsync(string! client
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.RemoveSecretAsync(string! clientId, string! secretId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.UpdateSecretAsync(string! clientId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IClientStore.UpdateSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSettings! persistedClientSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.IFederatedIdentityStore
+NCode.Identity.OpenId.Persistence.Stores.IFederatedIdentityStore.AddAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity! identity, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.IFederatedIdentityStore.GetByIssuerSubjectAsync(string! issuer, string! subject, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity?>
+NCode.Identity.OpenId.Persistence.Stores.IFederatedIdentityStore.GetByPrincipalAsync(string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity!>!>
+NCode.Identity.OpenId.Persistence.Stores.IFederatedIdentityStore.GetOrDefaultAsync(string! federatedIdentityId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity?>
+NCode.Identity.OpenId.Persistence.Stores.IFederatedPrincipalStore
+NCode.Identity.OpenId.Persistence.Stores.IFederatedPrincipalStore.AddAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal! principal, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.IFederatedPrincipalStore.GetOrDefaultAsync(string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal?>
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! grantType, string! hashedKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant?>
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! grantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant?>

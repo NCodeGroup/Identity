@@ -92,7 +92,9 @@ scope) or, later, a request/approval flow.
 ### Principals
 
 A principal is a **subject (user)** today and a **service principal (client)** later; the assignment and ownership
-model is defined over an abstract principal so the client case is additive.
+model is defined over an abstract principal so the client case is additive. The principal's durable, server-owned
+identity — one human aggregating many external connection-identities, referenced by an opaque `PrincipalId` — is decided
+in [ADR-0035](0035-federated-principals-and-identity-resolution.md).
 
 ### The authorization decision
 

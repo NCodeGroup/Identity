@@ -76,10 +76,14 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEnti
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.Id.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.Issuer.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.Issuer.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.JoinKey.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.JoinKey.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.NormalizedFederatedIdentityId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.NormalizedFederatedIdentityId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.NormalizedIssuer.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.NormalizedIssuer.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.NormalizedJoinKey.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.NormalizedJoinKey.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.NormalizedSubject.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.NormalizedSubject.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity.Subject.get -> string!

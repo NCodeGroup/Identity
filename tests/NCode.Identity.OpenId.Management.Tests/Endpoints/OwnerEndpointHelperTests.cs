@@ -33,12 +33,18 @@ public class OwnerEndpointHelperTests
     private const string TenantId = "tenant-1";
     private const string ResourceId = "client-1";
 
-    private sealed class TestHandler(IAuthorizationService authorizationService)
-        : BaseApiEndpointHandler
+    private sealed class TestHandler(
+        IAuthorizationService authorizationService,
+        IStoreManagerFactory storeManagerFactory,
+        IResourceOwnershipService ownershipService
+    ) : BaseOwnableApiEndpointHandler
     {
         protected override IAuthorizationService AuthorizationService { get; } =
             authorizationService;
         protected override ICryptoService CryptoService { get; } = Mock.Of<ICryptoService>();
+        protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+        protected override IResourceOwnershipService ResourceOwnershipService { get; } =
+            ownershipService;
     }
 
     private static HttpContext CreateHttpContext() =>
@@ -104,11 +110,9 @@ public class OwnerEndpointHelperTests
             )
             .ReturnsAsync([Owner("p1")]);
 
-        var handler = new TestHandler(authz.Object);
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessListOwnersAsync(
             CreateHttpContext(),
-            ownership.Object,
-            factory.Object,
             TenantId,
             ResourceNodeTypes.Client,
             ResourceId,
@@ -127,11 +131,9 @@ public class OwnerEndpointHelperTests
         var (factory, _) = StoreManager();
         var ownership = new Mock<IResourceOwnershipService>(MockBehavior.Strict);
 
-        var handler = new TestHandler(authz.Object);
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessListOwnersAsync(
             CreateHttpContext(),
-            ownership.Object,
-            factory.Object,
             TenantId,
             ResourceNodeTypes.Client,
             ResourceId,
@@ -164,11 +166,9 @@ public class OwnerEndpointHelperTests
             )
             .ReturnsAsync(Owner("p2", "a2"));
 
-        var handler = new TestHandler(authz.Object);
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessAddOwnerAsync(
             CreateHttpContext(),
-            ownership.Object,
-            factory.Object,
             TenantId,
             ResourceNodeTypes.Client,
             ResourceId,
@@ -188,11 +188,9 @@ public class OwnerEndpointHelperTests
         var (factory, _) = StoreManager();
         var ownership = new Mock<IResourceOwnershipService>(MockBehavior.Strict);
 
-        var handler = new TestHandler(authz.Object);
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessAddOwnerAsync(
             CreateHttpContext(),
-            ownership.Object,
-            factory.Object,
             TenantId,
             ResourceNodeTypes.Client,
             ResourceId,
@@ -223,11 +221,9 @@ public class OwnerEndpointHelperTests
             )
             .ReturnsAsync(OwnerRemovalResult.LastOwnerForbidden);
 
-        var handler = new TestHandler(authz.Object);
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessRemoveOwnerAsync(
             CreateHttpContext(),
-            ownership.Object,
-            factory.Object,
             TenantId,
             ResourceNodeTypes.Client,
             ResourceId,
@@ -260,11 +256,9 @@ public class OwnerEndpointHelperTests
             )
             .ReturnsAsync(OwnerRemovalResult.Removed);
 
-        var handler = new TestHandler(authz.Object);
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessRemoveOwnerAsync(
             CreateHttpContext(),
-            ownership.Object,
-            factory.Object,
             TenantId,
             ResourceNodeTypes.Client,
             ResourceId,

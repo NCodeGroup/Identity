@@ -64,12 +64,16 @@ internal class ResourceServerApiEndpointHandler(
     ICryptoService cryptoService,
     IResourceOwnershipService resourceOwnershipService,
     ILogger<ResourceServerApiEndpointHandler> logger
-) : BaseApiEndpointHandler, IManagementEndpointProvider
+) : BaseOwnableApiEndpointHandler, IManagementEndpointProvider
 {
-    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    /// <inheritdoc />
+    protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IResourceServerValidator ResourceServerValidator { get; } = resourceServerValidator;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
-    private IResourceOwnershipService ResourceOwnershipService { get; } = resourceOwnershipService;
+
+    /// <inheritdoc />
+    protected override IResourceOwnershipService ResourceOwnershipService { get; } =
+        resourceOwnershipService;
     private ILogger<ResourceServerApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -582,8 +586,6 @@ internal class ResourceServerApiEndpointHandler(
         var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
         return await ProcessListOwnersAsync(
             httpContext,
-            ResourceOwnershipService,
-            StoreManagerFactory,
             tenantId,
             ResourceNodeTypes.ResourceServer,
             resourceServerId,
@@ -607,8 +609,6 @@ internal class ResourceServerApiEndpointHandler(
         var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
         return await ProcessAddOwnerAsync(
             httpContext,
-            ResourceOwnershipService,
-            StoreManagerFactory,
             tenantId,
             ResourceNodeTypes.ResourceServer,
             resourceServerId,
@@ -635,8 +635,6 @@ internal class ResourceServerApiEndpointHandler(
         var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
         return await ProcessRemoveOwnerAsync(
             httpContext,
-            ResourceOwnershipService,
-            StoreManagerFactory,
             tenantId,
             ResourceNodeTypes.ResourceServer,
             resourceServerId,

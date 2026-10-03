@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
@@ -94,6 +95,24 @@ internal abstract class BaseApiEndpointHandler
     {
         var isAuthenticated = httpContext.User.Identity?.IsAuthenticated ?? false;
         return isAuthenticated ? TypedResults.Forbid() : TypedResults.Unauthorized();
+    }
+
+    /// <summary>
+    /// Serializes an effective (merged) <see cref="IReadOnlySettingCollection"/> into a flat <see cref="JsonElement"/>
+    /// of setting name to formatted value, ordered by name for a stable dump and using the same value representation
+    /// as the discovery document.
+    /// </summary>
+    /// <param name="settings">The effective <see cref="IReadOnlySettingCollection"/> to serialize.</param>
+    /// <returns>The serialized <see cref="JsonElement"/>.</returns>
+    internal virtual JsonElement ToEffectiveSettingsElement(IReadOnlySettingCollection settings)
+    {
+        var values = new SortedDictionary<string, object>(StringComparer.Ordinal);
+        foreach (var setting in settings)
+        {
+            values[setting.Descriptor.Name] = setting.Descriptor.Format(setting);
+        }
+
+        return JsonSerializer.SerializeToElement(values);
     }
 
     /// <summary>

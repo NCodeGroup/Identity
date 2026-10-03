@@ -25,14 +25,19 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Operations;
@@ -52,6 +57,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IServerValidator> MockServerValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
+    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private ServerApiEndpointHandler Handler { get; }
 
     public ServerApiEndpointHandlerTests()
@@ -64,6 +70,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockServerValidator = MockRepository.Create<IServerValidator>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
+        MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
 
         Handler = new ServerApiEndpointHandler(
             MockStoreManagerFactory.Object,
@@ -72,6 +79,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             MockSecretGenerator.Object,
             TimeProvider.System,
             MockCryptoService.Object,
+            MockServerProvider.Object,
             NullLogger<ServerApiEndpointHandler>.Instance
         );
     }
@@ -344,6 +352,90 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         var result = await Handler.GetSecretsAsync(httpContext, ServerId, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region GetEffectiveSettingsAsync Tests
+
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenFoundAndAuthorized_ReturnsFlatSettings()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettings("settings-ct", EmptyObject()))
+            .Verifiable();
+
+        var descriptor = new SettingDescriptor<bool> { Name = "claims_parameter_supported" };
+        var effective = CreateSettingCollection(descriptor.Create(true));
+
+        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
+        mockProvider.Setup(x => x.Collection).Returns(effective);
+        var mockServer = new Mock<OpenIdServer>(MockBehavior.Loose);
+        mockServer.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
+        MockServerProvider
+            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockServer.Object)
+            .Verifiable();
+
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContextWithEnvironment(authenticated: true);
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            httpContext,
+            ServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<ServerEffectiveSettingsResource>>(result);
+        Assert.Equal(ServerId, json.Value?.ServerId);
+        Assert.True(json.Value!.Settings.GetProperty("claims_parameter_supported").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedServerSettings?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            httpContext,
+            ServerId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    private static ISettingCollection CreateSettingCollection(params Setting[] settings)
+    {
+        var list = settings.ToList();
+        var mock = new Mock<ISettingCollection>(MockBehavior.Loose);
+        mock.Setup(x => x.GetEnumerator()).Returns(() => list.GetEnumerator());
+        return mock.Object;
+    }
+
+    private static HttpContext CreateHttpContextWithEnvironment(bool authenticated)
+    {
+        var identity = authenticated
+            ? new ClaimsIdentity(authenticationType: "test")
+            : new ClaimsIdentity();
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+
+        var mockContext = new Mock<OpenIdContext>(MockBehavior.Loose);
+        mockContext.Setup(x => x.Environment).Returns(Mock.Of<OpenIdEnvironment>());
+
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature => feature.OpenIdContext == mockContext.Object)
+        );
+        return httpContext;
     }
 
     #endregion

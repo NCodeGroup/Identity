@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- Authenticated **effective-settings** preview endpoints that return the resolved, merged settings view (server
+  baseline + tenant/client overrides + descriptor defaults) as a flat `name → value` JSON object — using the same value
+  representation as the discovery document but including settings that are not discoverable — for each settings-bearing
+  entity: `GET /api/tenant/effective-settings` (the request's current tenant), `GET /api/clients/{clientId}/
+effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each is gated by the same `Read`
+  authorization as reading that entity's raw settings and carries no `ETag` (a merged view spans multiple persisted
+  entities). This is the gated replacement for the removed anonymous discovery `showAll` override. New wire contracts
+  `TenantEffectiveSettingsResource`, `ClientEffectiveSettingsResource`, and `ServerEffectiveSettingsResource`. See
+  [ADR-0040](docs/adr/0040-effective-settings-preview-endpoints.md).
 - End-to-end support for the OpenID Connect `claims` request parameter
   ([OIDC Core 5.5](https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter)), now advertised as
   `claims_parameter_supported: true` in discovery. Requested `claims.id_token` claims are added on top of the

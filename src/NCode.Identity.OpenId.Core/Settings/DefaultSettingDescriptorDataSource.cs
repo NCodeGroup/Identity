@@ -45,7 +45,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
     {
         get
         {
-            // principal_source_claim (ADR-0035)
+            // principal_source_claim: claim whose value seeds the resolved principal id (default "sub"). (ADR-0035)
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.PrincipalSourceClaim,
@@ -55,7 +56,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // principal_issuer_claim (ADR-0035)
+            // principal_issuer_claim: claim identifying the upstream issuer of a federated principal (default "iss"). (ADR-0035)
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.PrincipalIssuerClaim,
@@ -65,7 +67,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // federated_identity_join_claim (ADR-0035)
+            // federated_identity_join_claim: claim used to auto-link a federated identity to an existing principal (default "email"). (ADR-0035)
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.FederatedIdentityJoinClaim,
@@ -75,7 +78,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // federated_identity_verified_claim (ADR-0035)
+            // federated_identity_verified_claim: boolean claim proving the join claim is verified (default "email_verified"). (ADR-0035)
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.FederatedIdentityVerifiedClaim,
@@ -85,7 +89,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // federated_identity_require_verified (ADR-0035)
+            // federated_identity_require_verified: require the join claim be verified before auto-linking (default true). (ADR-0035)
+            // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.FederatedIdentityRequireVerified,
@@ -95,7 +100,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
-            // federated_identity_explicit_only (ADR-0035)
+            // federated_identity_explicit_only: only link federated identities that were explicitly provisioned (default false). (ADR-0035)
+            // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.FederatedIdentityExplicitOnly,
@@ -105,7 +111,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
-            // access_token_encryption_alg_values_supported
+            // access_token_encryption_alg_values_supported: permitted "alg" values for access-token encryption.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported,
@@ -114,7 +121,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // access_token_encryption_enc_values_supported
+            // access_token_encryption_enc_values_supported: permitted "enc" values for access-token encryption.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionEncValuesSupported,
@@ -123,7 +131,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // access_token_encryption_required
+            // access_token_encryption_required: whether issued access tokens must be encrypted (default false).
+            // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionRequired,
@@ -133,7 +142,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
-            // access_token_encryption_zip_values_supported
+            // access_token_encryption_zip_values_supported: permitted "zip" compression values for access-token encryption.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionZipValuesSupported,
@@ -142,7 +152,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // access_token_lifetime
+            // access_token_lifetime: validity window for issued access tokens (default 5 minutes).
+            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.AccessTokenLifetime,
@@ -152,7 +163,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Min,
             };
 
-            // access_token_signing_alg_values_supported
+            // access_token_signing_alg_values_supported: permitted "alg" values for access-token signing.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
@@ -161,7 +173,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // access_token_type
+            // access_token_type: token format for issued access tokens (default JWT).
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AccessTokenType,
@@ -171,7 +184,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // acr_values_supported
+            // acr_values_supported: Authentication Context Class Reference values the server honors.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AcrValuesSupported,
@@ -180,7 +194,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // allow_loopback_redirect
+            // allow_loopback_redirect: permit loopback IP redirect URIs for native clients (default true).
+            // Ceiling (And): once a parent forbids it, a child cannot re-allow it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AllowLoopbackRedirect,
@@ -190,7 +205,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = And,
             };
 
-            // allow_plain_code_challenge_method
+            // allow_plain_code_challenge_method: permit the PKCE "plain" code-challenge method (default true).
+            // Ceiling (And): once a parent forbids it, a child cannot re-allow it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AllowPlainCodeChallengeMethod,
@@ -200,7 +216,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = And,
             };
 
-            // allow_unsafe_token_response
+            // allow_unsafe_token_response: permit returning tokens via a query/fragment response (default true).
+            // Ceiling (And): once a parent forbids it, a child cannot re-allow it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AllowUnsafeTokenResponse,
@@ -210,7 +227,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = And,
             };
 
-            // allowed_identity_providers
+            // allowed_identity_providers: identity providers a client may use; unset permits any.
+            // Ceiling (Intersect): a child narrows the parent's set; a set (or narrowed-to-empty) list denies all others (fail-closed).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AllowedIdentityProviders,
@@ -219,7 +237,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // authorization_authenticate_scheme
+            // authorization_authenticate_scheme: ASP.NET Core auth scheme used to authenticate the end-user (default application cookie).
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AuthorizationAuthenticateScheme,
@@ -232,7 +251,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // authorization_challenge_scheme
+            // authorization_challenge_scheme: ASP.NET Core auth scheme used to challenge the end-user to log in (default application cookie).
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AuthorizationChallengeScheme,
@@ -245,7 +265,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // authorization_code_lifetime
+            // authorization_code_lifetime: validity window for issued authorization codes (default 5 minutes).
+            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.AuthorizationCodeLifetime,
@@ -255,7 +276,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Min,
             };
 
-            // claims_locales_supported
+            // claims_locales_supported: BCP47 locales for which the server can return localized claim values.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ClaimsLocalesSupported,
@@ -264,7 +286,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // claims_parameter_supported
+            // claims_parameter_supported: whether the OIDC "claims" request parameter is honored (default false; WIP, not yet implemented).
+            // Ceiling (And): once a parent disables it, a child cannot re-enable it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.ClaimsParameterSupported,
@@ -274,7 +297,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = And,
             };
 
-            // claims_supported
+            // claims_supported: claim names the OP may return (advertised in discovery; default supplied by the baseline provider).
+            // Override (Replace). Enforced as an allow-list only when claims_supported_is_strict is true.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ClaimsSupported,
@@ -283,7 +307,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // claims_supported_is_strict
+            // claims_supported_is_strict: when true, emitted claims are filtered to claims_supported (default false).
+            // Floor (Or): once a parent enables strict filtering, a child cannot disable it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.ClaimsSupportedIsStrict,
@@ -293,7 +318,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
-            // claim_types_supported
+            // claim_types_supported: OIDC claim types the server can emit (default "normal"; aggregated/distributed are not implemented).
+            // Ceiling (Intersect): advisory discovery only (no runtime consumer); reflects a fixed capability.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ClaimTypesSupported,
@@ -303,7 +329,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // clock_skew
+            // clock_skew: allowed leeway when validating token time claims (default 5 minutes).
+            // Ceiling (Min): a child may only reduce the tolerance; raise the server value to allow more.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.ClockSkew,
@@ -313,7 +340,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Min,
             };
 
-            // continue_authorization_lifetime
+            // continue_authorization_lifetime: validity window for a paused ("continue") authorization flow (default 15 minutes).
+            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.ContinueAuthorizationLifetime,
@@ -323,7 +351,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Min,
             };
 
-            // display_values_supported
+            // display_values_supported: OIDC "display" parameter values the server supports.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.DisplayValuesSupported,
@@ -332,7 +361,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // grant_types_supported
+            // grant_types_supported: OAuth grant types the server permits (default supplied by the baseline provider).
+            // Ceiling (Intersect): a child narrows the parent's set; capability is enforced by grant handlers (ADR-0010/0026).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.GrantTypesSupported,
@@ -341,7 +371,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // id_token_encryption_alg_values_supported
+            // id_token_encryption_alg_values_supported: permitted "alg" values for id-token encryption.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionAlgValuesSupported,
@@ -350,7 +381,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // id_token_encryption_enc_values_supported
+            // id_token_encryption_enc_values_supported: permitted "enc" values for id-token encryption.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionEncValuesSupported,
@@ -359,7 +391,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // id_token_encryption_required
+            // id_token_encryption_required: whether issued id tokens must be encrypted (default false).
+            // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionRequired,
@@ -369,7 +402,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
-            // id_token_encryption_zip_values_supported
+            // id_token_encryption_zip_values_supported: permitted "zip" compression values for id-token encryption.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionZipValuesSupported,
@@ -378,7 +412,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // id_token_lifetime
+            // id_token_lifetime: validity window for issued id tokens (default 5 minutes).
+            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.IdTokenLifetime,
@@ -388,7 +423,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Min,
             };
 
-            // id_token_signing_alg_values_supported
+            // id_token_signing_alg_values_supported: permitted "alg" values for id-token signing.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
@@ -397,7 +433,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // op_policy_uri
+            // op_policy_uri: URL of the OP's data-usage policy document.
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.OpenIdProviderPolicyUri,
@@ -406,7 +443,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // op_tos_uri
+            // op_tos_uri: URL of the OP's terms-of-service document.
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.OpenIdProviderTermsOfServiceUri,
@@ -415,7 +453,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // prompt_values_supported
+            // prompt_values_supported: OIDC "prompt" values the server supports (default supplied by the baseline provider).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.PromptValuesSupported,
@@ -424,7 +463,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // redirect_uris
+            // redirect_uris: the registered redirect URIs for a client.
+            // Override (Replace): each scope specifies its own set (per-client registration, not a cascade ceiling).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RedirectUris,
@@ -433,7 +473,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // refresh_token_expiration_policy
+            // refresh_token_expiration_policy: how a refresh token's expiration is computed — absolute or sliding (default absolute).
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.RefreshTokenExpirationPolicy,
@@ -443,7 +484,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // refresh_token_lifetime
+            // refresh_token_lifetime: validity window for issued refresh tokens (default 30 days).
+            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.RefreshTokenLifetime,
@@ -453,7 +495,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Min,
             };
 
-            // refresh_token_rotation_enabled
+            // refresh_token_rotation_enabled: issue a new refresh token on each use and revoke the prior one (default false).
+            // Floor (Or): once a parent enables rotation, a child cannot disable it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RefreshTokenRotationEnabled,
@@ -463,7 +506,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
-            // request_object_encryption_alg_values_supported
+            // request_object_encryption_alg_values_supported: permitted "alg" values for encrypting request objects.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported,
@@ -472,7 +516,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // request_object_encryption_enc_values_supported
+            // request_object_encryption_enc_values_supported: permitted "enc" values for encrypting request objects.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported,
@@ -481,7 +526,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // request_object_encryption_zip_values_supported
+            // request_object_encryption_zip_values_supported: permitted "zip" compression values for encrypting request objects.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionZipValuesSupported,
@@ -490,7 +536,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // request_object_signing_alg_values_supported
+            // request_object_signing_alg_values_supported: permitted "alg" values for signing request objects.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectSigningAlgValuesSupported,
@@ -499,7 +546,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // request_object_expected_audience
+            // request_object_expected_audience: expected "aud" of a client's request object; empty disables audience validation (default empty).
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.RequestObjectExpectedAudience,
@@ -509,7 +557,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // request_parameter_supported
+            // request_parameter_supported: whether a passed-by-value "request" object parameter is accepted (default true).
+            // Ceiling (And): once a parent disables it, a child cannot re-enable it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequestParameterSupported,
@@ -519,7 +568,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = And,
             };
 
-            // request_uri_parameter_supported
+            // request_uri_parameter_supported: whether a "request_uri" parameter is accepted (default true).
+            // Ceiling (And): once a parent disables it, a child cannot re-enable it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequestUriParameterSupported,
@@ -529,7 +579,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = And,
             };
 
-            // request_uri_require_strict_content_type
+            // request_uri_require_strict_content_type: require the request_uri response to use the expected content type (default false).
+            // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequestUriRequireStrictContentType,
@@ -539,7 +590,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
-            // request_uri_expected_content_type
+            // request_uri_expected_content_type: expected content type when fetching a request_uri (default application/oauth-authz-req+jwt).
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.RequestUriExpectedContentType,
@@ -549,7 +601,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // require_pkce
+            // require_pkce: whether the authorization-code flow must use PKCE (default false).
+            // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequireCodeChallenge,
@@ -559,7 +612,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
-            // require_request_uri_registration
+            // require_request_uri_registration: whether request_uri values must be pre-registered by the client.
+            // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequireRequestUriRegistration,
@@ -568,7 +622,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
-            // response_modes_supported
+            // response_modes_supported: OAuth response modes the server supports (default supplied by the baseline provider).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ResponseModesSupported,
@@ -577,7 +632,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // response_types_supported
+            // response_types_supported: OAuth response types the server supports (default supplied by the baseline provider).
+            // Ceiling (Intersect); discovery advertises every valid space-delimited combination (OnFormat).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ResponseTypesSupported,
@@ -587,7 +643,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnFormat = FormatUniqueCombinations,
             };
 
-            // send_id_claims_in_access_token
+            // send_id_claims_in_access_token: also place id-token claims into the access token (default false).
+            // Override (Replace): behavioral toggle; a child fully replaces the parent value.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.SendIdClaimsInAccessToken,
@@ -597,7 +654,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // service_documentation
+            // service_documentation: URL of human-readable developer documentation for the server.
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.ServiceDocumentation,
@@ -606,7 +664,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // subject_max_age
+            // subject_max_age: maximum age of the end-user authentication a client will accept. Has no default.
+            // Ceiling (Min): a child may only shorten it; a shorter value demands fresher authentication.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SubjectMaxAge,
@@ -615,7 +674,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Min,
             };
 
-            // subject_type
+            // subject_type: the subject identifier type a client uses — public or pairwise.
+            // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.SubjectType,
@@ -624,7 +684,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // subject_types_supported
+            // subject_types_supported: subject identifier types the server supports (public, pairwise).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SubjectTypesSupported,
@@ -633,7 +694,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // tenant_issuer
+            // tenant_issuer: the tenant's issuer identifier; the tenant base address is used when unset.
+            // Parent-owned (Keep): a child scope cannot override it. Not advertised in discovery.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TenantIssuer,
@@ -642,7 +704,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Keep,
             };
 
-            // token_endpoint_auth_signing_alg_values_supported
+            // token_endpoint_auth_signing_alg_values_supported: permitted "alg" values for private_key_jwt / client_secret_jwt client auth.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported,
@@ -651,7 +714,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // ui_locales_supported
+            // ui_locales_supported: BCP47 locales the server's UI supports.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UiLocalesSupported,
@@ -660,7 +724,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // userinfo_encryption_alg_values_supported
+            // userinfo_encryption_alg_values_supported: permitted "alg" values for UserInfo response encryption.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionAlgValuesSupported,
@@ -669,7 +734,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // userinfo_encryption_enc_values_supported
+            // userinfo_encryption_enc_values_supported: permitted "enc" values for UserInfo response encryption.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionEncValuesSupported,
@@ -678,7 +744,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // userinfo_encryption_zip_values_supported
+            // userinfo_encryption_zip_values_supported: permitted "zip" compression values for UserInfo response encryption.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionZipValuesSupported,
@@ -687,7 +754,8 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // userinfo_signing_alg_values_supported
+            // userinfo_signing_alg_values_supported: permitted "alg" values for signing the UserInfo response.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoSigningAlgValuesSupported,

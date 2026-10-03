@@ -99,7 +99,9 @@ audited `IFederatedIdentityLinkingPolicy` — never a fuzzy heuristic:
 - **Merging two already-established principals is never automatic** — it requires explicit administrative or end-user
   action, because that is where account-takeover risk concentrates.
 - The join claim, the set of link-trusted connections, the verified-email requirement, and an explicit-only mode are all
-  configurable.
+  configurable. These knobs, and the resolution source/issuer claims, are tenant settings with server defaults on the
+  shared request environment ([ADR-0036](0036-unified-openid-request-environment.md)), so a tenant overrides the server
+  default at runtime.
 
 ### Authority references the principal
 

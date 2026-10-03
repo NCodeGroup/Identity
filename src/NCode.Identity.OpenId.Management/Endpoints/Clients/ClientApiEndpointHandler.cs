@@ -97,7 +97,7 @@ internal class ClientApiEndpointHandler(
         // another tenant's resources; a cross-tenant resource is simply not found.
         var clients = endpoints
             .MapGroup("/clients")
-            .AddEndpointFilter<TenantScopeEndpointFilter>()
+            .AddEndpointFilter<OpenIdEnvironmentEndpointFilter>()
             .WithTags("Clients");
 
         clients

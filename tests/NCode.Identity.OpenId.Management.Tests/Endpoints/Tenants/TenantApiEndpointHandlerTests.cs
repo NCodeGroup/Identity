@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
@@ -71,6 +72,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockResourceOwnershipService
             .Setup(x =>
                 x.AssignCreatorAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<string>(),
@@ -842,6 +844,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateTenantAsync(
             httpContext,
+            Mock.Of<OpenIdContext>(),
             CreateTenantRequest(),
             CancellationToken.None
         );
@@ -876,6 +879,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateTenantAsync(
             httpContext,
+            Mock.Of<OpenIdContext>(),
             CreateTenantRequest(),
             CancellationToken.None
         );

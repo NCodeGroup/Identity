@@ -18,6 +18,7 @@
 
 using System.Security.Claims;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.PrincipalResolution;
@@ -38,6 +39,7 @@ internal class DefaultResourceOwnershipService(
 
     /// <inheritdoc />
     public async ValueTask AssignCreatorAsync(
+        OpenIdContext openIdContext,
         ClaimsPrincipal user,
         IStoreManager storeManager,
         string tenantId,
@@ -48,6 +50,7 @@ internal class DefaultResourceOwnershipService(
     {
         // Resolve (and provision on first sight) the stable principal id for the creator (ADR-0035).
         var principalId = await PrincipalResolver.ResolvePrincipalIdAsync(
+            openIdContext,
             user,
             storeManager,
             cancellationToken

@@ -18,6 +18,7 @@
 
 using System.Security.Claims;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.PrincipalResolution;
@@ -33,12 +34,15 @@ public interface IPrincipalResolver
     /// Resolves the stable principal identifier for an already-provisioned caller, without provisioning. Used by
     /// read-only paths (such as authorization) where a caller that has never been seen simply has no authority.
     /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request, whose tenant settings
+    /// configure how the caller is resolved.</param>
     /// <param name="user">The authenticated caller.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> whose unit of work the lookup participates in.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the resolved
     /// principal identifier, or <c>null</c> when the caller cannot be resolved to a provisioned principal.</returns>
     ValueTask<string?> ResolvePrincipalIdOrDefaultAsync(
+        OpenIdContext openIdContext,
         ClaimsPrincipal user,
         IStoreManager storeManager,
         CancellationToken cancellationToken
@@ -49,12 +53,15 @@ public interface IPrincipalResolver
     /// on first sight. Used by write paths (such as recording resource ownership) that must attribute an action to a
     /// durable principal.
     /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request, whose tenant settings
+    /// configure how the caller is resolved.</param>
     /// <param name="user">The authenticated caller.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> whose unit of work the provisioning participates in.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the resolved
     /// principal identifier.</returns>
     ValueTask<string> ResolvePrincipalIdAsync(
+        OpenIdContext openIdContext,
         ClaimsPrincipal user,
         IStoreManager storeManager,
         CancellationToken cancellationToken

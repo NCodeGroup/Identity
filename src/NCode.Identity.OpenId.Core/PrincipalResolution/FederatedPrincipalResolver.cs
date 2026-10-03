@@ -17,8 +17,8 @@
 #endregion
 
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -34,22 +34,21 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// </summary>
 internal class FederatedPrincipalResolver(
     ICryptoService cryptoService,
-    IFederatedIdentityLinkingPolicy linkingPolicy,
-    IHttpContextAccessor httpContextAccessor
+    IFederatedIdentityLinkingPolicy linkingPolicy
 ) : IPrincipalResolver
 {
     private ICryptoService CryptoService { get; } = cryptoService;
     private IFederatedIdentityLinkingPolicy LinkingPolicy { get; } = linkingPolicy;
-    private IHttpContextAccessor HttpContextAccessor { get; } = httpContextAccessor;
 
     /// <inheritdoc />
     public async ValueTask<string?> ResolvePrincipalIdOrDefaultAsync(
+        OpenIdContext openIdContext,
         ClaimsPrincipal user,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
-        var settings = AmbientTenantSettings.GetRequired(HttpContextAccessor);
+        var settings = openIdContext.Tenant.SettingsProvider.Collection;
 
         var subject = user.FindFirstValue(
             settings.GetValue(OpenIdSettingKeys.PrincipalSourceClaim)
@@ -85,12 +84,14 @@ internal class FederatedPrincipalResolver(
 
     /// <inheritdoc />
     public async ValueTask<string> ResolvePrincipalIdAsync(
+        OpenIdContext openIdContext,
         ClaimsPrincipal user,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
         var existing = await ResolvePrincipalIdOrDefaultAsync(
+            openIdContext,
             user,
             storeManager,
             cancellationToken
@@ -100,7 +101,7 @@ internal class FederatedPrincipalResolver(
             return existing;
         }
 
-        var settings = AmbientTenantSettings.GetRequired(HttpContextAccessor);
+        var settings = openIdContext.Tenant.SettingsProvider.Collection;
         var subject = user.FindFirstValue(
             settings.GetValue(OpenIdSettingKeys.PrincipalSourceClaim)
         );
@@ -114,7 +115,12 @@ internal class FederatedPrincipalResolver(
             return subject ?? string.Empty;
         }
 
-        var decision = await LinkingPolicy.ResolveLinkAsync(user, storeManager, cancellationToken);
+        var decision = await LinkingPolicy.ResolveLinkAsync(
+            openIdContext,
+            user,
+            storeManager,
+            cancellationToken
+        );
 
         var principalStore = storeManager.GetStore<IFederatedPrincipalStore>();
         var identityStore = storeManager.GetStore<IFederatedIdentityStore>();

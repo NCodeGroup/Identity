@@ -20,25 +20,21 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
-/// A reusable endpoint filter that materializes the shared OpenID request environment for tenant-bound management
-/// endpoints: it builds the <see cref="OpenIdContext"/> (the server and the resolved, settings/secrets-bearing tenant)
-/// and opens the ambient tenant scope that tenant-scoped data access reads (ADR-0018/ADR-0036). Management requests thus
-/// run the same environment the OpenID protocol endpoints do, rather than a separate tenant-only path.
+/// A reusable endpoint filter that materializes the shared OpenID request environment for management endpoints: it
+/// builds the <see cref="OpenIdContext"/> (the server and the resolved, settings/secrets-bearing tenant) and publishes
+/// it on the request so every management endpoint can bind it (ADR-0036). Opening the ambient tenant data-scope is a
+/// separate concern handled by <see cref="AmbientTenantScopeEndpointFilter"/>, so cross-tenant endpoints (tenants,
+/// servers) run the environment without being scoped to a single tenant's rows.
 /// </summary>
-internal sealed class OpenIdEnvironmentEndpointFilter(
-    IOpenIdContextFactory openIdContextFactory,
-    IAmbientTenantAccessor ambientTenantAccessor
-) : IEndpointFilter
+internal sealed class OpenIdEnvironmentEndpointFilter(IOpenIdContextFactory openIdContextFactory)
+    : IEndpointFilter
 {
     private IOpenIdContextFactory OpenIdContextFactory { get; } = openIdContextFactory;
-
-    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
     /// <inheritdoc />
     public async ValueTask<object?> InvokeAsync(
@@ -49,10 +45,10 @@ internal sealed class OpenIdEnvironmentEndpointFilter(
         var httpContext = context.HttpContext;
         var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
 
-        OpenIdContext openIdContext;
         try
         {
-            openIdContext = await OpenIdContextFactory.CreateAsync(
+            // The factory publishes the context on the request (an IOpenIdContextFeature) so endpoints can bind it.
+            await OpenIdContextFactory.CreateAsync(
                 httpContext,
                 mediator,
                 httpContext.RequestAborted
@@ -64,7 +60,6 @@ internal sealed class OpenIdEnvironmentEndpointFilter(
             return exception.HttpResult;
         }
 
-        using var scope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
         return await next(context);
     }
 }

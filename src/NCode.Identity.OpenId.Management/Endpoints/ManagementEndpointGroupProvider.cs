@@ -18,6 +18,7 @@
 
 using System.Collections.Immutable;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Endpoints;
 
@@ -38,7 +39,9 @@ internal sealed class ManagementEndpointGroupProvider(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api");
+        // Materialize the OpenID request environment for every management endpoint so each can bind the OpenIdContext;
+        // the ambient tenant data-scope is opened per tenant-scoped subgroup (AmbientTenantScopeEndpointFilter).
+        var group = endpoints.MapGroup("/api").AddEndpointFilter<OpenIdEnvironmentEndpointFilter>();
 
         foreach (var endpointProvider in EndpointProviders)
         {

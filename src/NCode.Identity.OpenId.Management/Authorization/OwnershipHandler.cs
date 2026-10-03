@@ -18,7 +18,9 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Tenants;
@@ -36,11 +38,16 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 internal class OwnershipHandler(
     IStoreManagerFactory storeManagerFactory,
     IPrincipalResolver principalResolver,
+    IHttpContextAccessor httpContextAccessor,
     IOptions<TenantResolutionOptions> optionsAccessor
 ) : AuthorizationHandler<IAuthorizationRequirement, IResourceNode>
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
+
+    // ASP.NET Core authorization handlers are invoked by the framework without the request's OpenIdContext in hand, so
+    // this is the one blessed place that reads the ambient context from the request rather than receiving it threaded.
+    private IHttpContextAccessor HttpContextAccessor { get; } = httpContextAccessor;
     private IOptions<TenantResolutionOptions> OptionsAccessor { get; } = optionsAccessor;
 
     /// <inheritdoc />
@@ -59,6 +66,12 @@ internal class OwnershipHandler(
             return;
         }
 
+        var openIdContext = HttpContextAccessor.HttpContext?.GetOpenIdContextOrDefault();
+        if (openIdContext is null)
+        {
+            return;
+        }
+
         var ancestorNodes = GetAncestorNodes(resource, OptionsAccessor.Value.RootTenantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(
@@ -68,6 +81,7 @@ internal class OwnershipHandler(
         // Resolve the caller to a stable principal id (ADR-0035); a caller that has never been provisioned has no
         // authority, so there is nothing to look up.
         var principalId = await PrincipalResolver.ResolvePrincipalIdOrDefaultAsync(
+            openIdContext,
             context.User,
             storeManager,
             CancellationToken.None

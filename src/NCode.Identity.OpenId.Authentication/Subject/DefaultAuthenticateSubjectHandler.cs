@@ -21,6 +21,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
@@ -98,7 +99,12 @@ internal class DefaultAuthenticateSubjectHandler(
         // (and its connection identity) on first sight. This is the value carried into grants and emitted as the
         // `sub` claim, so authority and tokens reference the durable principal rather than the raw external subject
         // (ADR-0035). A subject with no resolvable upstream identity falls back to its raw subject id.
-        var principalId = await ResolvePrincipalIdAsync(subject, subjectId, cancellationToken);
+        var principalId = await ResolvePrincipalIdAsync(
+            openIdContext,
+            subject,
+            subjectId,
+            cancellationToken
+        );
 
         var ticket = new SubjectAuthentication(
             authenticationScheme,
@@ -111,6 +117,7 @@ internal class DefaultAuthenticateSubjectHandler(
     }
 
     private async ValueTask<string> ResolvePrincipalIdAsync(
+        OpenIdContext openIdContext,
         ClaimsPrincipal subject,
         string subjectId,
         CancellationToken cancellationToken
@@ -118,6 +125,7 @@ internal class DefaultAuthenticateSubjectHandler(
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var principalId = await PrincipalResolver.ResolvePrincipalIdAsync(
+            openIdContext,
             subject,
             storeManager,
             cancellationToken

@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
@@ -65,6 +66,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockResourceOwnershipService
             .Setup(x =>
                 x.AssignCreatorAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<string>(),
@@ -209,6 +211,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateAsync(
             CreateHttpContext(),
+            Mock.Of<OpenIdContext>(),
             request,
             CancellationToken.None
         );

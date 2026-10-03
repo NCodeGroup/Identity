@@ -19,6 +19,7 @@
 using System.Security.Claims;
 using NCode.Identity;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -48,6 +49,7 @@ public class DefaultResourceOwnershipServiceTests
         resolver
             .Setup(x =>
                 x.ResolvePrincipalIdAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
@@ -74,6 +76,7 @@ public class DefaultResourceOwnershipServiceTests
         var service = new DefaultResourceOwnershipService(crypto.Object, resolver.Object);
 
         await service.AssignCreatorAsync(
+            Mock.Of<OpenIdContext>(),
             CreateUser(new Claim("sub", "subject-1")),
             storeManager.Object,
             "tenant-1",
@@ -106,6 +109,7 @@ public class DefaultResourceOwnershipServiceTests
         resolver
             .Setup(x =>
                 x.ResolvePrincipalIdAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
@@ -127,6 +131,7 @@ public class DefaultResourceOwnershipServiceTests
         var service = new DefaultResourceOwnershipService(crypto.Object, resolver.Object);
 
         await service.AssignCreatorAsync(
+            Mock.Of<OpenIdContext>(),
             CreateUser(new Claim("sub", "raw-upstream-subject")),
             storeManager.Object,
             "tenant-1",

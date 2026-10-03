@@ -50,6 +50,10 @@ public static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
+            // OwnershipHandler is an ASP.NET Core authorization handler invoked without the request's OpenIdContext in
+            // hand, so it reads the ambient context from the request (the one blessed async-local usage).
+            serviceCollection.AddHttpContextAccessor();
+
             serviceCollection.AddAuthorization();
             serviceCollection.AddAuthorizationHandler<GlobalAdminHandler>();
             serviceCollection.AddAuthorizationHandler<TenantAdminHandler>();

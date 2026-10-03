@@ -152,6 +152,14 @@ change to the public API is a **major** version bump.
   falls back to the client id. The ID token's `aud` remains the client. See
   [ADR-0027](docs/adr/0027-access-token-audience-from-resource-servers.md).
 
+### Security
+
+- Removed the undocumented `showAll` query-string override from the discovery endpoint
+  (`/.well-known/openid-configuration`). It was unauthenticated and, when set, bypassed both the per-setting
+  `IsDiscoverable` filter and the per-endpoint discoverability filter, letting any anonymous caller enumerate every
+  non-advertised setting and endpoint. Discovery now always returns only the settings and endpoints explicitly marked
+  discoverable. An authenticated management view of a tenant's effective settings is tracked as a separate follow-up.
+
 ### Fixed
 
 - The unique index on a tenant's domain name is now a filtered index (`WHERE NormalizedDomainName IS NOT NULL`), so

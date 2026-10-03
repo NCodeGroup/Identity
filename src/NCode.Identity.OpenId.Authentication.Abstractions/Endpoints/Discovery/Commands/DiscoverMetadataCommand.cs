@@ -29,6 +29,5 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands;
 [PublicAPI]
 public readonly record struct DiscoverMetadataCommand(
     OpenIdContext OpenIdContext,
-    IDictionary<string, object> Metadata,
-    bool ShowAll
+    IDictionary<string, object> Metadata
 ) : ICommand;

@@ -46,7 +46,6 @@ internal class DefaultDiscoveryEndpointHandler : IOpenIdEndpointProvider
     private async ValueTask<JsonHttpResult<DiscoveryResult>> HandleRouteAsync(
         HttpContext httpContext,
         [FromServices] IMediator mediator,
-        [FromQuery] bool? showAll,
         CancellationToken cancellationToken
     )
     {
@@ -57,7 +56,7 @@ internal class DefaultDiscoveryEndpointHandler : IOpenIdEndpointProvider
         var result = new DiscoveryResult { Issuer = openIdContext.Tenant.Issuer };
 
         await mediator.SendAsync(
-            new DiscoverMetadataCommand(openIdContext, result.Metadata, showAll ?? false),
+            new DiscoverMetadataCommand(openIdContext, result.Metadata),
             cancellationToken
         );
 

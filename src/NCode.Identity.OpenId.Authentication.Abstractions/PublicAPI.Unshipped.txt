@@ -233,13 +233,11 @@ NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueService
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueService.GetContinueUrlAsync<TPayload>(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! continueCode, string? clientId, string? subjectId, System.TimeSpan lifetime, TPayload payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.DiscoverMetadataCommand() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.DiscoverMetadataCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, System.Collections.Generic.IDictionary<string!, object!>! Metadata, bool ShowAll) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.DiscoverMetadataCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, System.Collections.Generic.IDictionary<string!, object!>! Metadata) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.Metadata.get -> System.Collections.Generic.IDictionary<string!, object!>!
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.Metadata.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.OpenIdContext.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.ShowAll.get -> bool
-NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.ShowAll.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results.DiscoveryResult
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results.DiscoveryResult.DiscoveryResult() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results.DiscoveryResult.Issuer.get -> string!

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -18,7 +18,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Authentication.Contexts;
+namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
 /// Provides the <see cref="OpenIdContext"/> for the current HTTP request.

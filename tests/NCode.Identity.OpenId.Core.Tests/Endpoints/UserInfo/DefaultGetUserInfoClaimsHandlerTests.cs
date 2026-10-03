@@ -18,10 +18,10 @@
 
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
-using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Handlers;
 using NCode.Identity.OpenId.Authentication.Subject;
+using NCode.Identity.OpenId.Contexts;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.UserInfo;

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2023 NCode Group
 //
@@ -18,8 +18,8 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;

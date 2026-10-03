@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -21,7 +21,7 @@ using JetBrains.Annotations;
 using NCode.Disposables;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Authentication.Tenants;
+namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Provides an abstraction for caching <see cref="OpenIdTenant"/> instances.

@@ -18,17 +18,17 @@
 
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
-using NCode.Identity.OpenId.Authentication.Tenants;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Mediator;
 using Xunit;
 

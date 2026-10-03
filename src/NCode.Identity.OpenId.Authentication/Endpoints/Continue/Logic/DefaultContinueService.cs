@@ -21,10 +21,10 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Logic;
-using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Contexts;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue.Logic;
 

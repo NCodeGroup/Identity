@@ -18,61 +18,57 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Authentication.Servers;
-using NCode.Identity.OpenId.Authentication.Tenants;
-using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Errors;
-using NCode.Mediator;
+using NCode.Identity.Models;
+using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Authentication.Contexts;
+namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Encapsulates all OpenID-specific information about an individual OpenID request.
+/// Provides the configuration for an <c>OAuth</c> or <c>OpenID Connect</c> tenant.
 /// </summary>
 [PublicAPI]
-public abstract class OpenIdContext : IAsyncDisposable
+public abstract class OpenIdTenant : IAsyncDisposable
 {
     /// <summary>
-    /// Gets the <see cref="HttpContext"/> associated with the current request.
+    /// Gets the unique identifier for the tenant.
     /// </summary>
-    public abstract HttpContext Http { get; }
+    public abstract string TenantId { get; }
 
     /// <summary>
-    /// Gets the <see cref="OpenIdEnvironment"/> associated with the current request.
+    /// Gets the display name for the tenant.
     /// </summary>
-    public abstract OpenIdEnvironment Environment { get; }
+    public abstract string DisplayName { get; }
 
     /// <summary>
-    /// Gets the <see cref="IOpenIdErrorFactory"/> instance that can be used to create error responses
+    /// Gets the issuer identifier for the tenant.
     /// </summary>
-    public virtual IOpenIdErrorFactory ErrorFactory => Environment.ErrorFactory;
+    public abstract string Issuer { get; }
 
     /// <summary>
-    /// Gets the <see cref="OpenIdServer"/> associated with the current request.
+    /// Gets the base address for the tenant.
+    /// Includes the server base address and tenant path.
     /// </summary>
-    public abstract OpenIdServer Server { get; }
+    public abstract UriDescriptor BaseAddress { get; }
 
     /// <summary>
-    /// Gets the <see cref="OpenIdTenant"/> associated with the current request.
+    /// Gets the <see cref="ISecretKeyCollectionProvider"/> that contains tenant settings merged with server settings.
+    /// This collection provider will periodically refresh the items from the backing store and provide change notifications.
     /// </summary>
-    public abstract OpenIdTenant Tenant { get; }
+    public abstract IReadOnlySettingCollectionProvider SettingsProvider { get; }
 
     /// <summary>
-    /// Gets the <see cref="IMediator"/> instance that is scoped to the current request.
+    /// Gets the <see cref="ISecretKeyCollectionProvider"/> which contains secrets only known to the tenant.
+    /// This collection provider will periodically refresh the items from the backing store and provide change notifications.
     /// </summary>
-    public abstract IMediator Mediator { get; }
+    public abstract ISecretKeyCollectionProvider SecretsProvider { get; }
 
     /// <summary>
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.
     /// </summary>
     public abstract IPropertyBag PropertyBag { get; }
-
-    /// <summary>
-    /// Gets the name of the endpoint associated with the current request.
-    /// </summary>
-    public abstract string EndpointName { get; }
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()

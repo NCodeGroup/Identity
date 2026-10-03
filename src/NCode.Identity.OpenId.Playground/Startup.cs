@@ -111,13 +111,18 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
 
         // Select the database provider. A configured 'OpenId' connection string uses SQL Server; otherwise the
         // Playground uses a local SQLite file when persistent developer keys are enabled (so state survives
-        // restarts and can be reset by deleting the file), or a zero-setup in-memory database.
+        // restarts; reset it by deleting the App_Data/openid-dev.db* files and the next Development run rebuilds it
+        // from migrations), or a zero-setup in-memory database.
         var connectionString = Configuration.GetConnectionString("OpenId");
+        var migrationsAssembly = typeof(Startup).Assembly.GetName().Name;
         services.AddDbContextFactory<OpenIdDbContext>(builder =>
         {
             if (!string.IsNullOrEmpty(connectionString))
             {
-                builder.UseSqlServer(connectionString);
+                builder.UseSqlServer(
+                    connectionString,
+                    sql => sql.MigrationsAssembly(migrationsAssembly)
+                );
             }
             else if (usePersistentDeveloperKeys)
             {
@@ -127,7 +132,10 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
                     "openid-dev.db"
                 );
                 Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
-                builder.UseSqlite($"Data Source={databasePath}");
+                builder.UseSqlite(
+                    $"Data Source={databasePath}",
+                    sql => sql.MigrationsAssembly(migrationsAssembly)
+                );
             }
             else
             {

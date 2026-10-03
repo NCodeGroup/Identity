@@ -123,11 +123,19 @@ public class DefaultOpenIdTenantFactory(
         CancellationToken cancellationToken
     )
     {
-        var persistedTenant = await TenantResolver.ResolveTenantAsync(
-            httpContext,
-            cancellationToken
-        );
-        var tenantId = persistedTenant.TenantId;
+        // Probe the cache before any store round-trip when the tenant's identity can be determined from the request
+        // alone (static/path strategies). Host-based tenancy must map its domain to a tenant via the store, so it
+        // falls through to a full resolve. A cache hit intentionally serves the cached tenant without re-reading the
+        // store, so a tenant disabled after it was cached continues to serve until the cache entry expires.
+        PersistedTenant? persistedTenant = null;
+        if (!TenantResolver.TryGetTenantId(httpContext, out var tenantId))
+        {
+            persistedTenant = await TenantResolver.ResolveTenantAsync(
+                httpContext,
+                cancellationToken
+            );
+            tenantId = persistedTenant.TenantId;
+        }
 
         await using var cachedTenantReference = await TenantCache.TryGetAsync(
             tenantId,
@@ -139,6 +147,9 @@ public class DefaultOpenIdTenantFactory(
         {
             return cachedTenantReference.AddReference();
         }
+
+        persistedTenant ??= await TenantResolver.ResolveTenantAsync(httpContext, cancellationToken);
+        tenantId = persistedTenant.TenantId;
 
         var tenantPropertyBag = propertyBag.Clone();
 

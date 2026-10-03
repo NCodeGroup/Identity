@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -53,6 +54,24 @@ internal class StaticSingleTenantStrategy(
     /// <inheritdoc />
     protected override PathString TenantPath => Options.TenantPath;
 
+    private string ResolveConfiguredTenantId()
+    {
+        var tenantId = Options.TenantId;
+        return string.IsNullOrEmpty(tenantId)
+            ? StaticSingleTenantOptions.DefaultTenantId
+            : tenantId;
+    }
+
+    /// <inheritdoc />
+    public override bool TryGetTenantId(
+        HttpContext httpContext,
+        [NotNullWhen(true)] out string? tenantId
+    )
+    {
+        tenantId = ResolveConfiguredTenantId();
+        return true;
+    }
+
     /// <inheritdoc />
     public override async ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
@@ -61,9 +80,7 @@ internal class StaticSingleTenantStrategy(
     {
         var options = Options;
 
-        var tenantId = options.TenantId;
-        if (string.IsNullOrEmpty(tenantId))
-            tenantId = StaticSingleTenantOptions.DefaultTenantId;
+        var tenantId = ResolveConfiguredTenantId();
 
         var displayName = options.DisplayName;
         if (string.IsNullOrEmpty(displayName))

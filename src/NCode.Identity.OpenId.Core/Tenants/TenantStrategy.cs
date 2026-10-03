@@ -52,6 +52,17 @@ internal abstract class TenantStrategy(IStoreManagerFactory storeManagerFactory)
     protected abstract PathString TenantPath { get; }
 
     /// <inheritdoc />
+    public virtual bool TryGetTenantId(
+        HttpContext httpContext,
+        [NotNullWhen(true)] out string? tenantId
+    )
+    {
+        // By default a strategy cannot identify the tenant without a store round-trip.
+        tenantId = null;
+        return false;
+    }
+
+    /// <inheritdoc />
     public virtual RoutePattern GetTenantRoute()
     {
         if (TenantRouteHasValue)

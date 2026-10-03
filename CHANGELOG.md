@@ -105,6 +105,13 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- Probe the tenant cache before reading the tenant store on the resolution hot path. `ITenantResolver` and
+  `ITenantStrategy` gain `TryGetTenantId(httpContext, out tenantId)`, a store-free identity probe satisfied by the
+  static-single (configured id) and dynamic-by-path (route value) strategies; `DefaultOpenIdTenantFactory` uses it to
+  serve a warm tenant with no tenant-store round-trip. Dynamic-by-host still performs a full resolve because mapping a
+  domain to a tenant requires the store. A cache hit no longer re-reads the store, so a tenant disabled after it was
+  cached serves until its cache entry expires. See
+  [ADR-0037](docs/adr/0037-tenant-cache-probe-before-store-load.md).
 - Renamed the authorization endpoint's subject pipeline to drop the redundant `Subject` noun (the namespace already
   supplies the context) now that a general subject-authentication seam exists: `AuthenticateSubjectCommand` →
   `AuthenticateCommand`, `AuthorizeSubjectCommand`/`AuthorizeSubjectDisposition` → `AuthorizeCommand`/

@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -43,32 +44,42 @@ internal class DynamicByPathTenantStrategy(
     protected override PathString TenantPath => Options.TenantPath;
 
     /// <inheritdoc />
+    public override bool TryGetTenantId(
+        HttpContext httpContext,
+        [NotNullWhen(true)] out string? tenantId
+    )
+    {
+        if (
+            httpContext.Request.RouteValues.TryGetValue(
+                Options.TenantIdRouteParameterName,
+                out var routeValue
+            )
+            && routeValue is string value
+            && !string.IsNullOrEmpty(value)
+        )
+        {
+            tenantId = value;
+            return true;
+        }
+
+        tenantId = null;
+        return false;
+    }
+
+    /// <inheritdoc />
     public override async ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
     {
-        var options = Options;
         var tenantRoute = GetTenantRoute();
 
         if (tenantRoute.Parameters.Count == 0)
             throw new InvalidOperationException("The TenantRoute has no parameters.");
 
-        var routeValues = httpContext.Request.RouteValues;
-
-        if (!routeValues.TryGetValue(options.TenantIdRouteParameterName, out var routeValue))
+        if (!TryGetTenantId(httpContext, out var tenantId))
             throw new InvalidOperationException(
-                $"The value for route parameter '{options.TenantIdRouteParameterName}' could not be found in the HTTP request."
-            );
-
-        if (routeValue is not string tenantId)
-            throw new InvalidOperationException(
-                $"The value for route parameter '{options.TenantIdRouteParameterName}' is not a string."
-            );
-
-        if (string.IsNullOrEmpty(tenantId))
-            throw new InvalidOperationException(
-                $"The value for route parameter '{options.TenantIdRouteParameterName}' is empty."
+                $"The value for route parameter '{Options.TenantIdRouteParameterName}' is missing or empty."
             );
 
         return await GetTenantByIdAsync(tenantId, cancellationToken);

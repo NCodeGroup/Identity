@@ -564,10 +564,12 @@ NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory.CreateTenantAsync(Microsoft.A
 NCode.Identity.OpenId.Tenants.ITenantResolver
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
 NCode.Identity.OpenId.Tenants.ITenantResolver.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
+NCode.Identity.OpenId.Tenants.ITenantResolver.TryGetTenantId(Microsoft.AspNetCore.Http.HttpContext! httpContext, out string? tenantId) -> bool
 NCode.Identity.OpenId.Tenants.ITenantStrategy
 NCode.Identity.OpenId.Tenants.ITenantStrategy.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
 NCode.Identity.OpenId.Tenants.ITenantStrategy.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantStrategy.StrategyCode.get -> string!
+NCode.Identity.OpenId.Tenants.ITenantStrategy.TryGetTenantId(Microsoft.AspNetCore.Http.HttpContext! httpContext, out string? tenantId) -> bool
 NCode.Identity.OpenId.Tenants.OpenIdTenant
 NCode.Identity.OpenId.Tenants.OpenIdTenant.DisposeAsync() -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.OpenIdTenant.OpenIdTenant() -> void

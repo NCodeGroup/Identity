@@ -23,7 +23,7 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Tenants;
+namespace NCode.Identity.OpenId.Tenants.Strategies;
 
 /// <summary>
 /// Provides a tenant-selection strategy that resolves the tenant dynamically from a route parameter (aka path)

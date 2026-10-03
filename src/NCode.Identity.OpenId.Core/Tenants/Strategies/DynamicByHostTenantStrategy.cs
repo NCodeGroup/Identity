@@ -25,7 +25,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Results;
 using NCode.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Tenants;
+namespace NCode.Identity.OpenId.Tenants.Strategies;
 
 /// <summary>
 /// Provides a tenant-selection strategy that resolves the tenant dynamically from the request host.

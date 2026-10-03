@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.OpenId.Tenants.Strategies;
 using NCode.Persistence.Stores;
 using Xunit;
 

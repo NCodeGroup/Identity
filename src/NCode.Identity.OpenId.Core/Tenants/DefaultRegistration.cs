@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Core.ResourceServers;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.ResourceServers;
+using NCode.Identity.OpenId.Tenants.Strategies;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Tenants;

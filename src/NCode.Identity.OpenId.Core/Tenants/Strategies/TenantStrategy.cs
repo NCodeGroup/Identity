@@ -25,7 +25,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Results;
 using NCode.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Tenants;
+namespace NCode.Identity.OpenId.Tenants.Strategies;
 
 /// <summary>
 /// Provides a common base implementation of the <see cref="ITenantStrategy"/> abstraction, including route-pattern

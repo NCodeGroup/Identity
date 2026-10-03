@@ -26,7 +26,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.ResourceServers;
 using NCode.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Tenants;
+namespace NCode.Identity.OpenId.Tenants.Strategies;
 
 /// <summary>
 /// Provides a tenant-selection strategy that always resolves the same single, statically-configured tenant,

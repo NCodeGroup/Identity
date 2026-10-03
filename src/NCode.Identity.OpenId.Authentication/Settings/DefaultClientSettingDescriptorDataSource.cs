@@ -58,7 +58,8 @@ internal class DefaultClientSettingDescriptorDataSource(
     {
         get
         {
-            // token_endpoint_auth_methods_supported
+            // token_endpoint_auth_methods_supported: client authentication methods the token endpoint accepts (default derived from the registered handlers).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthMethodsSupported,

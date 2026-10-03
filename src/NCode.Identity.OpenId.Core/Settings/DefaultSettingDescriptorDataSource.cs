@@ -67,6 +67,66 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
     {
         get
         {
+            // principal_source_claim (ADR-0035)
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.PrincipalSourceClaim,
+                Default = "sub",
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // principal_issuer_claim (ADR-0035)
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.PrincipalIssuerClaim,
+                Default = "iss",
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // federated_identity_join_claim (ADR-0035)
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.FederatedIdentityJoinClaim,
+                Default = "email",
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // federated_identity_verified_claim (ADR-0035)
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.FederatedIdentityVerifiedClaim,
+                Default = "email_verified",
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // federated_identity_require_verified (ADR-0035)
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.FederatedIdentityRequireVerified,
+                Default = true,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // federated_identity_explicit_only (ADR-0035)
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.FederatedIdentityExplicitOnly,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // access_token_encryption_alg_values_supported
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {

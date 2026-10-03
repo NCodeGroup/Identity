@@ -17,10 +17,11 @@
 #endregion
 
 using System.Security.Claims;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Http;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Settings;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.PrincipalResolution;
@@ -28,17 +29,18 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// <summary>
 /// Provides the default implementation of <see cref="IPrincipalResolver"/>, which resolves an authenticated caller to
 /// a federated principal: the subject claim is interpreted first as a server-owned <c>PrincipalId</c> and, when that
-/// does not match, as an upstream <c>(issuer, subject)</c> external connection identity.
+/// does not match, as an upstream <c>(issuer, subject)</c> external connection identity. The source and issuer claim
+/// names are per-tenant settings on the shared request environment (ADR-0035/ADR-0036).
 /// </summary>
 internal class FederatedPrincipalResolver(
     ICryptoService cryptoService,
     IFederatedIdentityLinkingPolicy linkingPolicy,
-    IOptions<PrincipalResolutionOptions> optionsAccessor
+    IHttpContextAccessor httpContextAccessor
 ) : IPrincipalResolver
 {
     private ICryptoService CryptoService { get; } = cryptoService;
     private IFederatedIdentityLinkingPolicy LinkingPolicy { get; } = linkingPolicy;
-    private IOptions<PrincipalResolutionOptions> OptionsAccessor { get; } = optionsAccessor;
+    private IHttpContextAccessor HttpContextAccessor { get; } = httpContextAccessor;
 
     /// <inheritdoc />
     public async ValueTask<string?> ResolvePrincipalIdOrDefaultAsync(
@@ -47,9 +49,11 @@ internal class FederatedPrincipalResolver(
         CancellationToken cancellationToken
     )
     {
-        var options = OptionsAccessor.Value;
+        var settings = AmbientTenantSettings.GetRequired(HttpContextAccessor);
 
-        var subject = user.FindFirstValue(options.SourceClaimName);
+        var subject = user.FindFirstValue(
+            settings.GetValue(OpenIdSettingKeys.PrincipalSourceClaim)
+        );
         if (string.IsNullOrEmpty(subject))
         {
             return null;
@@ -64,7 +68,7 @@ internal class FederatedPrincipalResolver(
         }
 
         // Otherwise the subject is an upstream value paired with its issuer.
-        var issuer = user.FindFirstValue(options.IssuerClaimName);
+        var issuer = user.FindFirstValue(settings.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim));
         if (string.IsNullOrEmpty(issuer))
         {
             return null;
@@ -96,9 +100,11 @@ internal class FederatedPrincipalResolver(
             return existing;
         }
 
-        var options = OptionsAccessor.Value;
-        var subject = user.FindFirstValue(options.SourceClaimName);
-        var issuer = user.FindFirstValue(options.IssuerClaimName);
+        var settings = AmbientTenantSettings.GetRequired(HttpContextAccessor);
+        var subject = user.FindFirstValue(
+            settings.GetValue(OpenIdSettingKeys.PrincipalSourceClaim)
+        );
+        var issuer = user.FindFirstValue(settings.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim));
 
         // Without a resolvable upstream (issuer, subject) pair we cannot form a durable connection identity for
         // idempotent lookup, so the subject value is used as-is: for a non-federated caller the subject is already the

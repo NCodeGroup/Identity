@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Authentication;
 using Moq;
 using NCode.Identity.Claims;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
@@ -51,7 +52,8 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
 
     private GetIdTokenSubjectClaimsCommand CreateCommand(
         SubjectAuthentication? subjectAuthentication,
-        IReadOnlyList<string> effectiveScopes
+        IReadOnlyList<string> effectiveScopes,
+        IRequestClaims? requestClaims = null
     )
     {
         var tokenRequest = new CreateSecurityTokenRequest
@@ -61,6 +63,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             OriginalScopes = effectiveScopes,
             EffectiveScopes = effectiveScopes,
             SubjectAuthentication = subjectAuthentication,
+            RequestClaims = requestClaims,
         };
 
         var tokenContext = new SecurityTokenContext(
@@ -91,6 +94,50 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
         var command = CreateCommand(subjectAuthentication: null, ["openid"]);
 
         await Handler.HandleAsync(command, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenIdTokenClaimsRequested_AddsThemToCopiedClaimTypes()
+    {
+        var requestClaims = new RequestClaims
+        {
+            IdToken = new RequestClaimDictionary
+            {
+                ["custom_claim"] = new RequestClaim { Essential = true },
+            },
+        };
+        var command = CreateCommand(CreateSubjectAuthentication(), ["openid"], requestClaims);
+
+        List<string>? capturedClaimTypes = null;
+        MockClaimsService
+            .Setup(x =>
+                x.CopyClaims(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<ICollection<Claim>>(),
+                    true,
+                    It.IsAny<IEnumerable<string>>()
+                )
+            )
+            .Callback(
+                (ClaimsPrincipal _, ICollection<Claim> _, bool _, IEnumerable<string> claimTypes) =>
+                    capturedClaimTypes = claimTypes.ToList()
+            )
+            .Verifiable();
+        MockClaimsService
+            .Setup(x =>
+                x.CopyClaims(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<ICollection<Claim>>(),
+                    false,
+                    It.IsAny<IEnumerable<string>>()
+                )
+            )
+            .Verifiable();
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.NotNull(capturedClaimTypes);
+        Assert.Contains("custom_claim", capturedClaimTypes);
     }
 
     [Fact]

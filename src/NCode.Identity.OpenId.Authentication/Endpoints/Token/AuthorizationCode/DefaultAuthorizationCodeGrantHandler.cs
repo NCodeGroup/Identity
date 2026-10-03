@@ -145,11 +145,8 @@ internal class DefaultAuthorizationCodeGrantHandler(
             EffectiveScopes = effectiveScopes,
             AuthorizationCode = tokenRequest.AuthorizationCode,
             SubjectAuthentication = subjectAuthentication,
+            RequestClaims = authorizationRequest.Claims,
         };
-
-        // TODO: in order to support the 'claims' parameter, we need to somehow
-        // pass it from the original authorization request to each of these token
-        // creation methods.
 
         {
             var securityToken = await TokenService.CreateAccessTokenAsync(

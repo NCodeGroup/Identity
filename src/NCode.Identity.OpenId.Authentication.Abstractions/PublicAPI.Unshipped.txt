@@ -614,6 +614,8 @@ NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.Or
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.OriginalScopes.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RefreshToken.get -> string?
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RefreshToken.init -> void
+NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RequestClaims.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims?
+NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RequestClaims.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.State.get -> string?
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.State.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.SubjectAuthentication.get -> NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication?

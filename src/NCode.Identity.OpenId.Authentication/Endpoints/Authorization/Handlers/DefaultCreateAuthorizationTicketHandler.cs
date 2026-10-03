@@ -78,6 +78,7 @@ internal class DefaultCreateAuthorizationTicketHandler(
             EffectiveScopes = authorizationRequest.Scopes,
             AuthorizationCode = ticket.AuthorizationCode,
             SubjectAuthentication = subjectAuthentication,
+            RequestClaims = authorizationRequest.Claims,
         };
 
         if (responseTypes.Contains(OpenIdConstants.ResponseTypes.Token))

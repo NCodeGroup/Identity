@@ -104,6 +104,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
             .Returns(OpenIdConstants.GrantTypes.AuthorizationCode)
             .Verifiable();
         mockAuthRequest.SetupGet(x => x.Nonce).Returns("nonce-value").Verifiable();
+        mockAuthRequest.SetupGet(x => x.Claims).Returns((IRequestClaims?)null).Verifiable();
         IReadOnlyList<string> scopes = ["openid"];
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(scopes).Verifiable();
 

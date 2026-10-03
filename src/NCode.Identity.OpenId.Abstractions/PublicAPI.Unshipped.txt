@@ -179,6 +179,7 @@ const NCode.Identity.OpenId.OpenIdConstants.ParameterSeparatorString = " " -> st
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.AuthorizationCode = "authorization_code" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.Continue = "continue" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.RefreshToken = "refresh_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.UserInfoClaims = "userinfo_claims" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.Consent = "consent" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.CreateAccount = "create" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.Login = "login" -> string!

@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
@@ -43,6 +44,18 @@ public interface ITenantStrategy
     /// </summary>
     /// <returns>The <c>RoutePattern</c> instance for the tenant.</returns>
     RoutePattern GetTenantRoute();
+
+    /// <summary>
+    /// Attempts to determine the tenant identifier for the current HTTP request from the request alone, without a
+    /// store round-trip. This enables the caller to probe the tenant cache before loading the tenant. Strategies that
+    /// cannot identify the tenant without the store (for example, dynamic-by-host, which maps a domain to a tenant)
+    /// return <see langword="false"/>.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
+    /// <param name="tenantId">When this method returns <see langword="true"/>, contains the resolved tenant identifier.</param>
+    /// <returns><see langword="true"/> if the tenant identifier was determined without a store round-trip; otherwise,
+    /// <see langword="false"/>.</returns>
+    bool TryGetTenantId(HttpContext httpContext, [NotNullWhen(true)] out string? tenantId);
 
     /// <summary>
     /// Resolves the <see cref="PersistedTenant"/> for the current HTTP request using this strategy.

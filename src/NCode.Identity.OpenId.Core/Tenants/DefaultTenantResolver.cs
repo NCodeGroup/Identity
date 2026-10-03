@@ -18,6 +18,7 @@
 #endregion
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.Options;
@@ -55,6 +56,10 @@ internal class DefaultTenantResolver(
 
     /// <inheritdoc />
     public RoutePattern GetTenantRoute() => Selected.GetTenantRoute();
+
+    /// <inheritdoc />
+    public bool TryGetTenantId(HttpContext httpContext, [NotNullWhen(true)] out string? tenantId) =>
+        Selected.TryGetTenantId(httpContext, out tenantId);
 
     /// <inheritdoc />
     public async ValueTask<PersistedTenant> ResolveTenantAsync(

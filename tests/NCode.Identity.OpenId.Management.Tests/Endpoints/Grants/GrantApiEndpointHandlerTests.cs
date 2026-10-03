@@ -156,6 +156,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.ListGrantsAsync(
             httpContext,
+            TenantId,
             subjectId: null,
             clientId: null,
             cursor: null,
@@ -193,6 +194,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.ListGrantsAsync(
             httpContext,
+            TenantId,
             subjectId: "subject-1",
             clientId: "client-1",
             cursor: null,
@@ -213,6 +215,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.ListGrantsAsync(
             httpContext,
+            TenantId,
             subjectId: null,
             clientId: null,
             cursor: null,
@@ -236,6 +239,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         // No authorization or store scaffold: a strict-mock failure would mean the guard ran too late.
         var result = await Handler.RevokeGrantsAsync(
             httpContext,
+            TenantId,
             subjectId: null,
             clientId: null,
             CancellationToken.None
@@ -270,6 +274,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.RevokeGrantsAsync(
             httpContext,
+            TenantId,
             subjectId: "subject-1",
             clientId: null,
             CancellationToken.None
@@ -288,6 +293,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.RevokeGrantsAsync(
             httpContext,
+            TenantId,
             subjectId: "subject-1",
             clientId: null,
             CancellationToken.None
@@ -312,7 +318,12 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetGrantAsync(httpContext, GrantId, CancellationToken.None);
+        var result = await Handler.GetGrantAsync(
+            httpContext,
+            TenantId,
+            GrantId,
+            CancellationToken.None
+        );
 
         var json = Assert.IsType<JsonHttpResult<GrantResource>>(result);
         Assert.Equal(GrantId, json.Value?.GrantId);
@@ -331,7 +342,12 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetGrantAsync(httpContext, GrantId, CancellationToken.None);
+        var result = await Handler.GetGrantAsync(
+            httpContext,
+            TenantId,
+            GrantId,
+            CancellationToken.None
+        );
 
         Assert.IsType<NotFound>(result);
     }
@@ -343,7 +359,12 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetGrantAsync(httpContext, GrantId, CancellationToken.None);
+        var result = await Handler.GetGrantAsync(
+            httpContext,
+            TenantId,
+            GrantId,
+            CancellationToken.None
+        );
 
         Assert.IsType<ForbidHttpResult>(result);
     }
@@ -374,7 +395,12 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.RevokeGrantAsync(httpContext, GrantId, CancellationToken.None);
+        var result = await Handler.RevokeGrantAsync(
+            httpContext,
+            TenantId,
+            GrantId,
+            CancellationToken.None
+        );
 
         Assert.IsType<NoContent>(result);
         Assert.NotNull(grant.RevokedWhen);
@@ -395,7 +421,12 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         var httpContext = CreateHttpContext(authenticated: true);
 
         // No UpdateAsync/SaveChangesAsync scaffold: a strict-mock failure would mean an idempotent revoke wrote.
-        var result = await Handler.RevokeGrantAsync(httpContext, GrantId, CancellationToken.None);
+        var result = await Handler.RevokeGrantAsync(
+            httpContext,
+            TenantId,
+            GrantId,
+            CancellationToken.None
+        );
 
         Assert.IsType<NoContent>(result);
     }
@@ -412,7 +443,12 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.RevokeGrantAsync(httpContext, GrantId, CancellationToken.None);
+        var result = await Handler.RevokeGrantAsync(
+            httpContext,
+            TenantId,
+            GrantId,
+            CancellationToken.None
+        );
 
         Assert.IsType<NotFound>(result);
     }
@@ -424,7 +460,12 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.RevokeGrantAsync(httpContext, GrantId, CancellationToken.None);
+        var result = await Handler.RevokeGrantAsync(
+            httpContext,
+            TenantId,
+            GrantId,
+            CancellationToken.None
+        );
 
         Assert.IsType<ForbidHttpResult>(result);
     }

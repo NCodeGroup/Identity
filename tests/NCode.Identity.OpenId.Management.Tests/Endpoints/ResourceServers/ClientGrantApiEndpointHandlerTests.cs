@@ -142,6 +142,7 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.ListAsync(
             CreateHttpContext(),
+            TenantId,
             ClientId,
             null,
             null,
@@ -184,6 +185,7 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateAsync(
             CreateHttpContext(),
+            TenantId,
             ClientId,
             request,
             CancellationToken.None
@@ -223,6 +225,7 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateAsync(
             CreateHttpContext(),
+            TenantId,
             ClientId,
             request,
             CancellationToken.None

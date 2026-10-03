@@ -33,6 +33,7 @@ using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
@@ -60,6 +61,8 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private Mock<IClientValidator> MockClientValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
+    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
+    private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private ClientApiEndpointHandler Handler { get; }
 
@@ -74,6 +77,8 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         MockClientValidator = MockRepository.Create<IClientValidator>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
+        MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
+        MockTenantStore = MockRepository.Create<ITenantStore>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
             .Setup(x =>
@@ -97,6 +102,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             TimeProvider.System,
             MockCryptoService.Object,
             MockSettingSerializer.Object,
+            MockServerProvider.Object,
             MockResourceOwnershipService.Object,
             NullLogger<ClientApiEndpointHandler>.Instance
         );
@@ -190,6 +196,14 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             TenantId = TenantId,
             ClientId = ClientId,
             ConcurrencyToken = concurrencyToken,
+            Value = EmptyObject(),
+        };
+
+    private static PersistedTenantSettings CreateTenantSettings() =>
+        new()
+        {
+            TenantId = TenantId,
+            ConcurrencyToken = "tenant-settings-ct",
             Value = EmptyObject(),
         };
 
@@ -306,7 +320,12 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.CreateClientAsync(httpContext, request, CancellationToken.None);
+        var result = await Handler.CreateClientAsync(
+            httpContext,
+            TenantId,
+            request,
+            CancellationToken.None
+        );
 
         Assert.IsType<Created<ClientResource>>(result);
         Assert.NotNull(captured);
@@ -339,6 +358,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.ListClientsAsync(
             httpContext,
+            TenantId,
             cursor: null,
             limit: null,
             CancellationToken.None
@@ -358,6 +378,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.ListClientsAsync(
             httpContext,
+            TenantId,
             cursor: null,
             limit: null,
             CancellationToken.None
@@ -383,7 +404,12 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetClientAsync(httpContext, ClientId, CancellationToken.None);
+        var result = await Handler.GetClientAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
 
         var json = Assert.IsType<JsonHttpResult<ClientResource>>(result);
         Assert.Equal(ClientId, json.Value?.ClientId);
@@ -401,7 +427,12 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetClientAsync(httpContext, ClientId, CancellationToken.None);
+        var result = await Handler.GetClientAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
 
         Assert.IsType<NotFound>(result);
     }
@@ -422,7 +453,12 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetSettingsAsync(httpContext, ClientId, CancellationToken.None);
+        var result = await Handler.GetSettingsAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
 
         var json = Assert.IsType<JsonHttpResult<ClientSettingsResource>>(result);
         Assert.Equal(ClientId, json.Value?.ClientId);
@@ -439,7 +475,12 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetSettingsAsync(httpContext, ClientId, CancellationToken.None);
+        var result = await Handler.GetSettingsAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
 
         Assert.IsType<NotFound>(result);
     }
@@ -456,6 +497,14 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateClient("client-ct"))
             .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenantSettings())
+            .Verifiable();
         MockSettingSerializer
             .Setup(x =>
                 x.DeserializeSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
@@ -466,10 +515,12 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var descriptor = new SettingDescriptor<bool> { Name = "claims_parameter_supported" };
         var effective = CreateSettingCollection(descriptor.Create(true));
-        var httpContext = CreateHttpContextWithClientMerge(authenticated: true, effective);
+        SetupServerProvider(effective);
+        var httpContext = CreateHttpContextWithEnvironment(authenticated: true);
 
         var result = await Handler.GetEffectiveSettingsAsync(
             httpContext,
+            TenantId,
             ClientId,
             CancellationToken.None
         );
@@ -493,6 +544,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetEffectiveSettingsAsync(
             httpContext,
+            TenantId,
             ClientId,
             CancellationToken.None
         );
@@ -505,34 +557,40 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         var list = settings.ToList();
         var mock = new Mock<ISettingCollection>(MockBehavior.Loose);
         mock.Setup(x => x.GetEnumerator()).Returns(() => list.GetEnumerator());
+        mock.Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>())).Returns(mock.Object);
         return mock.Object;
     }
 
-    private static HttpContext CreateHttpContextWithClientMerge(
-        bool authenticated,
-        ISettingCollection effectiveSettings
-    )
+    private void SetupServerProvider(ISettingCollection effectiveSettings)
+    {
+        var mockServerCollection = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
+        mockServerCollection
+            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
+            .Returns(effectiveSettings);
+
+        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
+        mockProvider.Setup(x => x.Collection).Returns(mockServerCollection.Object);
+
+        var mockServer = new Mock<OpenIdServer>(MockBehavior.Loose);
+        mockServer.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
+
+        MockServerProvider
+            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockServer.Object)
+            .Verifiable();
+    }
+
+    private static HttpContext CreateHttpContextWithEnvironment(bool authenticated)
     {
         var identity = authenticated
             ? new ClaimsIdentity(authenticationType: "test")
             : new ClaimsIdentity();
         var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
 
-        var mockParent = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
-        mockParent.Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>())).Returns(effectiveSettings);
-
-        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
-        mockProvider.Setup(x => x.Collection).Returns(mockParent.Object);
-
-        var mockTenant = new Mock<OpenIdTenant>(MockBehavior.Loose);
-        mockTenant.Setup(x => x.TenantId).Returns(TenantId);
-        mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
-
         var mockEnvironment = new Mock<OpenIdEnvironment>(MockBehavior.Loose);
         mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(JsonSerializerOptions.Default);
 
         var mockContext = new Mock<OpenIdContext>(MockBehavior.Loose);
-        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object);
         mockContext.Setup(x => x.Environment).Returns(mockEnvironment.Object);
 
         httpContext.Features.Set<IOpenIdContextFeature>(
@@ -619,7 +677,12 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetSecretsAsync(httpContext, ClientId, CancellationToken.None);
+        var result = await Handler.GetSecretsAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
 
         var json = Assert.IsType<JsonHttpResult<ClientSecretsResource>>(result);
         Assert.Equal(ClientId, json.Value?.ClientId);
@@ -637,7 +700,12 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetSecretsAsync(httpContext, ClientId, CancellationToken.None);
+        var result = await Handler.GetSecretsAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
 
         Assert.IsType<NotFound>(result);
     }
@@ -675,6 +743,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateSecretAsync(
             httpContext,
+            TenantId,
             ClientId,
             CreateSecretRequest(),
             CancellationToken.None
@@ -698,6 +767,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateSecretAsync(
             httpContext,
+            TenantId,
             ClientId,
             CreateSecretRequest(),
             CancellationToken.None
@@ -726,6 +796,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetSecretAsync(
             httpContext,
+            TenantId,
             ClientId,
             "secret-1",
             CancellationToken.None
@@ -750,6 +821,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetSecretAsync(
             httpContext,
+            TenantId,
             ClientId,
             "missing",
             CancellationToken.None
@@ -773,7 +845,13 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        await Handler.GetSecretAsync(httpContext, ClientId, "secret-1", CancellationToken.None);
+        await Handler.GetSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            CancellationToken.None
+        );
 
         var node = Assert.IsType<ResourceNode>(capturedResource);
         Assert.Equal(TenantId, node.TenantId);

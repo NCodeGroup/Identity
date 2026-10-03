@@ -1,4 +1,5 @@
 @host = https://localhost:5001
+@tenantId = default
 
 # NCode.Identity.OpenId management API — collection (list) endpoints.
 #
@@ -21,12 +22,12 @@
 GET {{host}}/.well-known/openid-configuration
 Accept: application/json
 
-### List clients (first page) — scoped to the request's tenant
-GET {{host}}/api/clients?limit=50
+### List clients (first page) — scoped to the addressed tenant
+GET {{host}}/api/tenants/{{tenantId}}/clients?limit=50
 Accept: application/json
 
 ### List clients (next page) — replace the cursor with the previous response's continuationToken
-GET {{host}}/api/clients?limit=50&cursor=REPLACE_WITH_continuationToken
+GET {{host}}/api/tenants/{{tenantId}}/clients?limit=50&cursor=REPLACE_WITH_continuationToken
 Accept: application/json
 
 ### List servers (central-admin)
@@ -37,12 +38,12 @@ Accept: application/json
 GET {{host}}/api/tenants?limit=50
 Accept: application/json
 
-### List resource servers (APIs) — scoped to the request's tenant
-GET {{host}}/api/resource-servers?limit=50
+### List resource servers (APIs) — scoped to the addressed tenant
+GET {{host}}/api/tenants/{{tenantId}}/resource-servers?limit=50
 Accept: application/json
 
 ### Create a resource server (API)
-POST {{host}}/api/resource-servers
+POST {{host}}/api/tenants/{{tenantId}}/resource-servers
 Content-Type: application/json
 
 {
@@ -53,11 +54,11 @@ Content-Type: application/json
 }
 
 ### Get a resource server by its opaque id
-GET {{host}}/api/resource-servers/REPLACE_WITH_ResourceServerId
+GET {{host}}/api/tenants/{{tenantId}}/resource-servers/REPLACE_WITH_ResourceServerId
 Accept: application/json
 
 ### Add a scope (permission) to a resource server
-POST {{host}}/api/resource-servers/REPLACE_WITH_ResourceServerId/scopes
+POST {{host}}/api/tenants/{{tenantId}}/resource-servers/REPLACE_WITH_ResourceServerId/scopes
 Content-Type: application/json
 
 {
@@ -66,18 +67,18 @@ Content-Type: application/json
 }
 
 ### List a resource server's scopes
-GET {{host}}/api/resource-servers/REPLACE_WITH_ResourceServerId/scopes
+GET {{host}}/api/tenants/{{tenantId}}/resource-servers/REPLACE_WITH_ResourceServerId/scopes
 Accept: application/json
 
 ### Delete a resource server (409 when it is a system resource server or still has client grants)
-DELETE {{host}}/api/resource-servers/REPLACE_WITH_ResourceServerId
+DELETE {{host}}/api/tenants/{{tenantId}}/resource-servers/REPLACE_WITH_ResourceServerId
 
 ### List a client's grants (its authorizations to resource servers) — first page
-GET {{host}}/api/clients/REPLACE_WITH_ClientId/grants?limit=50
+GET {{host}}/api/tenants/{{tenantId}}/clients/REPLACE_WITH_ClientId/grants?limit=50
 Accept: application/json
 
 ### Grant a client access to a resource server with a subset of its scopes (422 when a scope is not defined on the API)
-POST {{host}}/api/clients/REPLACE_WITH_ClientId/grants
+POST {{host}}/api/tenants/{{tenantId}}/clients/REPLACE_WITH_ClientId/grants
 Content-Type: application/json
 
 {
@@ -86,11 +87,11 @@ Content-Type: application/json
 }
 
 ### Get a client's grant to a specific resource server
-GET {{host}}/api/clients/REPLACE_WITH_ClientId/grants/REPLACE_WITH_ResourceServerId
+GET {{host}}/api/tenants/{{tenantId}}/clients/REPLACE_WITH_ClientId/grants/REPLACE_WITH_ResourceServerId
 Accept: application/json
 
 ### Replace the granted scopes for a client's grant (422 when a scope is not defined on the API) — returns 204
-PUT {{host}}/api/clients/REPLACE_WITH_ClientId/grants/REPLACE_WITH_ResourceServerId
+PUT {{host}}/api/tenants/{{tenantId}}/clients/REPLACE_WITH_ClientId/grants/REPLACE_WITH_ResourceServerId
 Content-Type: application/json
 
 {
@@ -98,36 +99,36 @@ Content-Type: application/json
 }
 
 ### Revoke a client's grant to a resource server — returns 204
-DELETE {{host}}/api/clients/REPLACE_WITH_ClientId/grants/REPLACE_WITH_ResourceServerId
+DELETE {{host}}/api/tenants/{{tenantId}}/clients/REPLACE_WITH_ClientId/grants/REPLACE_WITH_ResourceServerId
 
-### List grants (first page) — scoped to the request's tenant
-GET {{host}}/api/grants?limit=50
+### List grants (first page) — scoped to the addressed tenant
+GET {{host}}/api/tenants/{{tenantId}}/grants?limit=50
 Accept: application/json
 
 ### List grants (next page) — replace the cursor with the previous response's continuationToken
-GET {{host}}/api/grants?limit=50&cursor=REPLACE_WITH_continuationToken
+GET {{host}}/api/tenants/{{tenantId}}/grants?limit=50&cursor=REPLACE_WITH_continuationToken
 Accept: application/json
 
 ### List grants for a subject (e.g. triage one user's sessions)
-GET {{host}}/api/grants?subjectId=REPLACE_WITH_SubjectId&limit=50
+GET {{host}}/api/tenants/{{tenantId}}/grants?subjectId=REPLACE_WITH_SubjectId&limit=50
 Accept: application/json
 
 ### List grants for a client
-GET {{host}}/api/grants?clientId=REPLACE_WITH_ClientId&limit=50
+GET {{host}}/api/tenants/{{tenantId}}/grants?clientId=REPLACE_WITH_ClientId&limit=50
 Accept: application/json
 
 ### Get a single grant by its opaque GrantId
-GET {{host}}/api/grants/REPLACE_WITH_GrantId
+GET {{host}}/api/tenants/{{tenantId}}/grants/REPLACE_WITH_GrantId
 Accept: application/json
 
 ### Revoke a grant (soft-revoke: sets RevokedWhen, keeps the row; idempotent) — returns 204
-DELETE {{host}}/api/grants/REPLACE_WITH_GrantId
+DELETE {{host}}/api/tenants/{{tenantId}}/grants/REPLACE_WITH_GrantId
 
 ### Bulk-revoke all of a subject's grants ("sign the user out everywhere") — returns { "revoked": N }
-DELETE {{host}}/api/grants?subjectId=REPLACE_WITH_SubjectId
+DELETE {{host}}/api/tenants/{{tenantId}}/grants?subjectId=REPLACE_WITH_SubjectId
 Accept: application/json
 
 ### Bulk-revoke all of a client's grants ("kill a compromised client's tokens") — returns { "revoked": N }
-DELETE {{host}}/api/grants?clientId=REPLACE_WITH_ClientId
+DELETE {{host}}/api/tenants/{{tenantId}}/grants?clientId=REPLACE_WITH_ClientId
 Accept: application/json
 

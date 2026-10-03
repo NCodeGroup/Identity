@@ -23,7 +23,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
-using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Grants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -34,9 +33,9 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Grants;
 
 /*
 
-GET    api/grants
-GET    api/grants/{grantId}
-DELETE api/grants/{grantId}
+GET    api/tenants/{tenantId}/grants
+GET    api/tenants/{tenantId}/grants/{grantId}
+DELETE api/tenants/{tenantId}/grants/{grantId}
 
 */
 
@@ -49,7 +48,7 @@ internal class GrantApiEndpointHandler(
     IAuthorizationService authorizationService,
     TimeProvider timeProvider,
     ICryptoService cryptoService
-) : BaseApiEndpointHandler, IManagementEndpointProvider
+) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -109,6 +108,7 @@ internal class GrantApiEndpointHandler(
     [EndpointName("api/grants/list")]
     internal virtual async ValueTask<IResult> ListGrantsAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromQuery] string? subjectId,
         [FromQuery] string? clientId,
         [FromQuery] string? cursor,
@@ -116,8 +116,7 @@ internal class GrantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        // A grant list is scoped to the request's tenant (the query filter enforces it); authorize for that tenant.
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
+        // A grant list is scoped to the addressed tenant (the query filter enforces it); authorize for that tenant.
         var effectiveLimit = NormalizeLimit(limit);
 
         return await ProcessListAsync(
@@ -154,6 +153,7 @@ internal class GrantApiEndpointHandler(
     [EndpointName("api/grants/revoke-many")]
     internal virtual async ValueTask<IResult> RevokeGrantsAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromQuery] string? subjectId,
         [FromQuery] string? clientId,
         CancellationToken cancellationToken
@@ -167,8 +167,6 @@ internal class GrantApiEndpointHandler(
                 statusCode: StatusCodes.Status400BadRequest
             );
         }
-
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
@@ -206,14 +204,13 @@ internal class GrantApiEndpointHandler(
     [EndpointName("api/grants/get")]
     internal virtual async ValueTask<IResult> GetGrantAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string grantId,
         CancellationToken cancellationToken
     )
     {
-        // Grants carry an optional tenant, so authorization is evaluated against the request's tenant scope (the
+        // Grants carry an optional tenant, so authorization is evaluated against the addressed tenant scope (the
         // query filter guarantees a returned grant belongs to that tenant) rather than the grant instance.
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
-
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             new TenantScopeResource(tenantId),
@@ -248,12 +245,11 @@ internal class GrantApiEndpointHandler(
     [EndpointName("api/grants/revoke")]
     internal virtual async ValueTask<IResult> RevokeGrantAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string grantId,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
-
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             new TenantScopeResource(tenantId),

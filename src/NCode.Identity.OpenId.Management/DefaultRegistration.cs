@@ -86,13 +86,20 @@ public static class DefaultRegistration
                 >()
             );
 
-            builder.AddEndpointGroupProvider<ManagementEndpointGroupProvider>();
-            builder.AddManagementEndpointProvider<ServerApiEndpointHandler>();
-            builder.AddManagementEndpointProvider<TenantApiEndpointHandler>();
-            builder.AddManagementEndpointProvider<ClientApiEndpointHandler>();
-            builder.AddManagementEndpointProvider<GrantApiEndpointHandler>();
-            builder.AddManagementEndpointProvider<ResourceServerApiEndpointHandler>();
-            builder.AddManagementEndpointProvider<ClientGrantApiEndpointHandler>();
+            builder.AddEndpointGroup<ManagementRootGroup>();
+            builder.AddEndpointGroup<TenantManagementGroup>();
+            builder.AddEndpointGroup<ClientManagementGroup>();
+
+            builder.AddEndpointProvider<ServerApiEndpointHandler>(ManagementRootGroup.GroupName);
+            builder.AddEndpointProvider<TenantApiEndpointHandler>(ManagementRootGroup.GroupName);
+            builder.AddEndpointProvider<ClientApiEndpointHandler>(TenantManagementGroup.GroupName);
+            builder.AddEndpointProvider<GrantApiEndpointHandler>(TenantManagementGroup.GroupName);
+            builder.AddEndpointProvider<ResourceServerApiEndpointHandler>(
+                TenantManagementGroup.GroupName
+            );
+            builder.AddEndpointProvider<ClientGrantApiEndpointHandler>(
+                ClientManagementGroup.GroupName
+            );
 
             return builder.NewBuilder<OpenIdManagementLibrary>();
         }

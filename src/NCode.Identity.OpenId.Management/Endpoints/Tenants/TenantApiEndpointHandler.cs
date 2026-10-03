@@ -74,7 +74,7 @@ internal class TenantApiEndpointHandler(
     IOpenIdServerProvider serverProvider,
     IResourceOwnershipService resourceOwnershipService,
     ILogger<TenantApiEndpointHandler> logger
-) : BaseOwnableApiEndpointHandler, IManagementEndpointProvider
+) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;

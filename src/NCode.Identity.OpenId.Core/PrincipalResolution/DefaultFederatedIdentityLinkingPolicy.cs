@@ -17,8 +17,9 @@
 #endregion
 
 using System.Security.Claims;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Settings;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.PrincipalResolution;
@@ -26,13 +27,13 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// <summary>
 /// Provides the default implementation of <see cref="IFederatedIdentityLinkingPolicy"/>: a new identity whose verified
 /// join key (an email address) matches an existing identity is attached to that identity's principal; otherwise a new
-/// principal is provisioned. Two already-established principals are never merged automatically.
+/// principal is provisioned. Two already-established principals are never merged automatically. The join/verified claim
+/// names and linking knobs are per-tenant settings on the shared request environment (ADR-0035/ADR-0036).
 /// </summary>
-internal class DefaultFederatedIdentityLinkingPolicy(
-    IOptions<FederatedIdentityLinkingOptions> optionsAccessor
-) : IFederatedIdentityLinkingPolicy
+internal class DefaultFederatedIdentityLinkingPolicy(IHttpContextAccessor httpContextAccessor)
+    : IFederatedIdentityLinkingPolicy
 {
-    private IOptions<FederatedIdentityLinkingOptions> OptionsAccessor { get; } = optionsAccessor;
+    private IHttpContextAccessor HttpContextAccessor { get; } = httpContextAccessor;
 
     /// <inheritdoc />
     public async ValueTask<FederatedIdentityLinkDecision> ResolveLinkAsync(
@@ -41,9 +42,11 @@ internal class DefaultFederatedIdentityLinkingPolicy(
         CancellationToken cancellationToken
     )
     {
-        var options = OptionsAccessor.Value;
+        var settings = AmbientTenantSettings.GetRequired(HttpContextAccessor);
 
-        var joinKey = user.FindFirstValue(options.JoinClaimName);
+        var joinKey = user.FindFirstValue(
+            settings.GetValue(OpenIdSettingKeys.FederatedIdentityJoinClaim)
+        );
         if (string.IsNullOrEmpty(joinKey))
         {
             // No join key is asserted; nothing is recorded and nothing can be linked.
@@ -51,13 +54,19 @@ internal class DefaultFederatedIdentityLinkingPolicy(
         }
 
         // An unverified join key is neither recorded nor matchable, so it cannot become a takeover vector.
-        if (options.RequireVerifiedJoinKey && !IsVerified(user, options.VerifiedClaimName))
+        if (
+            settings.GetValue(OpenIdSettingKeys.FederatedIdentityRequireVerified)
+            && !IsVerified(
+                user,
+                settings.GetValue(OpenIdSettingKeys.FederatedIdentityVerifiedClaim)
+            )
+        )
         {
             return new FederatedIdentityLinkDecision();
         }
 
         // Explicit-only linking records the verified join key for later explicit linking but never auto-attaches.
-        if (options.ExplicitOnly)
+        if (settings.GetValue(OpenIdSettingKeys.FederatedIdentityExplicitOnly))
         {
             return new FederatedIdentityLinkDecision { JoinKey = joinKey };
         }

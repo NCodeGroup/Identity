@@ -17,12 +17,16 @@
 #endregion
 
 using System.Security.Claims;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.PrincipalResolution;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -35,8 +39,31 @@ public sealed class FederatedPrincipalResolverTests
     private const string Subject = "upstream-subject-1";
     private const string GeneratedId = "generated-id";
 
-    private static IOptions<PrincipalResolutionOptions> CreateOptions() =>
-        Options.Create(new PrincipalResolutionOptions());
+    private static IHttpContextAccessor CreateHttpContextAccessor(MockRepository mocks)
+    {
+        var settings = mocks.Create<IReadOnlySettingCollection>();
+        settings.Setup(x => x.GetValue(OpenIdSettingKeys.PrincipalSourceClaim)).Returns("sub");
+        settings.Setup(x => x.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim)).Returns("iss");
+
+        var provider = mocks.Create<IReadOnlySettingCollectionProvider>();
+        provider.Setup(x => x.Collection).Returns(settings.Object);
+
+        var tenant = mocks.Create<OpenIdTenant>();
+        tenant.Setup(x => x.SettingsProvider).Returns(provider.Object);
+
+        var context = mocks.Create<OpenIdContext>();
+        context.Setup(x => x.Tenant).Returns(tenant.Object);
+
+        var feature = mocks.Create<IOpenIdContextFeature>();
+        feature.Setup(x => x.OpenIdContext).Returns(context.Object);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Features.Set(feature.Object);
+
+        var accessor = mocks.Create<IHttpContextAccessor>();
+        accessor.Setup(x => x.HttpContext).Returns(httpContext);
+        return accessor.Object;
+    }
 
     private static ClaimsPrincipal CreateUser(params Claim[] claims) =>
         new(new ClaimsIdentity(claims, "test"));
@@ -74,7 +101,7 @@ public sealed class FederatedPrincipalResolverTests
         var resolver = new FederatedPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object,
-            CreateOptions()
+            CreateHttpContextAccessor(mocks)
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
@@ -115,7 +142,7 @@ public sealed class FederatedPrincipalResolverTests
         var resolver = new FederatedPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object,
-            CreateOptions()
+            CreateHttpContextAccessor(mocks)
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
@@ -137,7 +164,7 @@ public sealed class FederatedPrincipalResolverTests
         var resolver = new FederatedPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object,
-            CreateOptions()
+            CreateHttpContextAccessor(mocks)
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
@@ -168,7 +195,7 @@ public sealed class FederatedPrincipalResolverTests
         var resolver = new FederatedPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object,
-            CreateOptions()
+            CreateHttpContextAccessor(mocks)
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
@@ -200,7 +227,7 @@ public sealed class FederatedPrincipalResolverTests
         var resolver = new FederatedPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object,
-            CreateOptions()
+            CreateHttpContextAccessor(mocks)
         );
 
         var result = await resolver.ResolvePrincipalIdAsync(
@@ -266,7 +293,7 @@ public sealed class FederatedPrincipalResolverTests
         var resolver = new FederatedPrincipalResolver(
             crypto.Object,
             linkingPolicy.Object,
-            CreateOptions()
+            CreateHttpContextAccessor(mocks)
         );
 
         var result = await resolver.ResolvePrincipalIdAsync(
@@ -340,7 +367,7 @@ public sealed class FederatedPrincipalResolverTests
         var resolver = new FederatedPrincipalResolver(
             crypto.Object,
             linkingPolicy.Object,
-            CreateOptions()
+            CreateHttpContextAccessor(mocks)
         );
 
         var result = await resolver.ResolvePrincipalIdAsync(
@@ -373,7 +400,7 @@ public sealed class FederatedPrincipalResolverTests
         var resolver = new FederatedPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object,
-            CreateOptions()
+            CreateHttpContextAccessor(mocks)
         );
 
         // Subject present but no issuer: cannot form a durable identity, so the subject value is used as-is.

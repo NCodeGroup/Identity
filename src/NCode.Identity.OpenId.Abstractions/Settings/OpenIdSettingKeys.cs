@@ -29,6 +29,42 @@ namespace NCode.Identity.OpenId.Settings;
 public static class OpenIdSettingKeys
 {
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'principal_source_claim' setting.
+    /// </summary>
+    public static SettingKey<string> PrincipalSourceClaim =>
+        new(OpenIdSettingNames.PrincipalSourceClaim);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'principal_issuer_claim' setting.
+    /// </summary>
+    public static SettingKey<string> PrincipalIssuerClaim =>
+        new(OpenIdSettingNames.PrincipalIssuerClaim);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'federated_identity_join_claim' setting.
+    /// </summary>
+    public static SettingKey<string> FederatedIdentityJoinClaim =>
+        new(OpenIdSettingNames.FederatedIdentityJoinClaim);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'federated_identity_verified_claim' setting.
+    /// </summary>
+    public static SettingKey<string> FederatedIdentityVerifiedClaim =>
+        new(OpenIdSettingNames.FederatedIdentityVerifiedClaim);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'federated_identity_require_verified' setting.
+    /// </summary>
+    public static SettingKey<bool> FederatedIdentityRequireVerified =>
+        new(OpenIdSettingNames.FederatedIdentityRequireVerified);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'federated_identity_explicit_only' setting.
+    /// </summary>
+    public static SettingKey<bool> FederatedIdentityExplicitOnly =>
+        new(OpenIdSettingNames.FederatedIdentityExplicitOnly);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'access_token_encryption_alg_values_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> AccessTokenEncryptionAlgValuesSupported =>

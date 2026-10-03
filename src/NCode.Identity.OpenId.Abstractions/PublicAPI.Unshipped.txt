@@ -214,10 +214,6 @@ const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.AccessToken = "access_tok
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.Bearer = "Bearer" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.IdToken = "id_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.RefreshToken = "refresh_token" -> string!
-const NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.DefaultJoinClaimName = "email" -> string!
-const NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.DefaultVerifiedClaimName = "email_verified" -> string!
-const NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.DefaultIssuerClaimName = "iss" -> string!
-const NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.DefaultSourceClaimName = "sub" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported = "access_token_encryption_alg_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenEncryptionEncValuesSupported = "access_token_encryption_enc_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenEncryptionRequired = "access_token_encryption_required" -> string!
@@ -482,27 +478,11 @@ NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.JoinKey.
 NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.JoinKey.init -> void
 NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.LinkedPrincipalId.get -> string?
 NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.LinkedPrincipalId.init -> void
-NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions
-NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.ExplicitOnly.get -> bool
-NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.ExplicitOnly.set -> void
-NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.FederatedIdentityLinkingOptions() -> void
-NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.JoinClaimName.get -> string!
-NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.JoinClaimName.set -> void
-NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.RequireVerifiedJoinKey.get -> bool
-NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.RequireVerifiedJoinKey.set -> void
-NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.VerifiedClaimName.get -> string!
-NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.VerifiedClaimName.set -> void
 NCode.Identity.OpenId.PrincipalResolution.IFederatedIdentityLinkingPolicy
 NCode.Identity.OpenId.PrincipalResolution.IFederatedIdentityLinkingPolicy.ResolveLinkAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision!>
 NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver
 NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver.ResolvePrincipalIdAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
 NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver.ResolvePrincipalIdOrDefaultAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
-NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions
-NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.IssuerClaimName.get -> string!
-NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.IssuerClaimName.set -> void
-NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.PrincipalResolutionOptions() -> void
-NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.SourceClaimName.get -> string!
-NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.SourceClaimName.set -> void
 NCode.Identity.OpenId.ResourceServers.ISystemResourceServerProvider
 NCode.Identity.OpenId.ResourceServers.ISystemResourceServerProvider.GetDescriptor() -> NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor!
 NCode.Identity.OpenId.ResourceServers.ISystemResourceServerSeeder
@@ -684,3 +664,15 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoEncryptionEncVal
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoEncryptionZipValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 virtual NCode.Identity.OpenId.Contexts.OpenIdContext.ErrorFactory.get -> NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PrincipalSourceClaim = "principal_source_claim" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PrincipalIssuerClaim = "principal_issuer_claim" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityJoinClaim = "federated_identity_join_claim" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityVerifiedClaim = "federated_identity_verified_claim" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityRequireVerified = "federated_identity_require_verified" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityExplicitOnly = "federated_identity_explicit_only" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PrincipalSourceClaim.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PrincipalIssuerClaim.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityJoinClaim.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityVerifiedClaim.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityRequireVerified.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityExplicitOnly.get -> NCode.Identity.Settings.SettingKey<bool>

@@ -76,4 +76,26 @@ public class DiscoveryEndpointTests(PlaygroundApplicationFactory factory)
         Assert.False(root.TryGetProperty("access_token_lifetime", out _));
         Assert.False(root.TryGetProperty("require_pkce", out _));
     }
+
+    [Fact]
+    public async Task GetDiscovery_AdvertisesClaimsParameterSupported()
+    {
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.GetAsync("/.well-known/openid-configuration");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+
+        // The 'claims' request parameter is now honored end-to-end (ADR-0039), so it is advertised.
+        Assert.True(
+            root.TryGetProperty("claims_parameter_supported", out var claimsParameterSupported)
+        );
+        Assert.True(claimsParameterSupported.GetBoolean());
+    }
 }

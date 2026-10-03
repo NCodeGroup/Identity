@@ -286,12 +286,12 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // claims_parameter_supported: whether the OIDC "claims" request parameter is honored (default false; WIP, not yet implemented).
+            // claims_parameter_supported: whether the OIDC "claims" request parameter is honored (default true; ADR-0039).
             // Ceiling (And): once a parent disables it, a child cannot re-enable it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.ClaimsParameterSupported,
-                Default = false, // TODO: this is still a WIP
+                Default = true,
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = And,

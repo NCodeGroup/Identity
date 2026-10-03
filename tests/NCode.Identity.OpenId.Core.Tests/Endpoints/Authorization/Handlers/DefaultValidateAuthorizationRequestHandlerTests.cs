@@ -204,5 +204,42 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         Assert.Null(exception);
     }
 
+    [Fact]
+    public void ValidateSupportedValues_ClaimsRequestedAndSupported_DoesNotThrow()
+    {
+        var (mockSettings, mockRequest) = CreateScaffold();
+
+        var claimsParameterSupported = true;
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.ClaimsParameterSupported,
+                    out claimsParameterSupported
+                )
+            )
+            .Returns(true);
+
+        var mockClaims = CreateLooseMock<IRequestClaims>();
+        IReadOnlyDictionary<string, IRequestClaim?> userInfo = new Dictionary<
+            string,
+            IRequestClaim?
+        >
+        {
+            ["email"] = null,
+        };
+        IReadOnlyDictionary<string, IRequestClaim?> idToken = new Dictionary<string, IRequestClaim?>
+        {
+            ["sub"] = null,
+        };
+        mockClaims.SetupGet(x => x.UserInfo).Returns(userInfo);
+        mockClaims.SetupGet(x => x.IdToken).Returns(idToken);
+        mockRequest.SetupGet(x => x.Claims).Returns(mockClaims.Object);
+
+        var exception = Record.Exception(() =>
+            InvokeValidateSupportedValues(mockSettings, mockRequest)
+        );
+        Assert.Null(exception);
+    }
+
     #endregion
 }

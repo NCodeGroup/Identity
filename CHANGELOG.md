@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- End-to-end support for the OpenID Connect `claims` request parameter
+  ([OIDC Core 5.5](https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter)), now advertised as
+  `claims_parameter_supported: true` in discovery. Requested `claims.id_token` claims are added on top of the
+  scope-driven claims during ID-token issuance, and requested `claims.userinfo` claims are honored at the UserInfo
+  endpoint: when an access token is issued for a request that carried `claims.userinfo`, the requested claims are
+  persisted as a short-lived stateful grant (`OpenIdConstants.PersistedGrantTypes.UserInfoClaims`) keyed by the access
+  token's `jti` and bounded by its lifetime, then resolved at UserInfo — the access token itself is never inflated.
+  `value`/`values` are advisory and `essential` is best-effort; a host can impose stricter semantics with a
+  higher-priority claims handler. See [ADR-0039](docs/adr/0039-claims-request-parameter.md).
 - Data-driven resource ownership: persisted `(principal, role, resource-node)` role assignments
   (`PersistedRoleAssignment` / `IRoleAssignmentStore`), an additive `OwnershipHandler` that grants a principal every
   operation except `Create` on a resource it owns (or an ancestor node), and creator-as-owner on client, resource

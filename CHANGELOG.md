@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- Endpoint route-group composition is now declarative and unified across the OpenID protocol and management surfaces.
+  A family declares a named `IEndpointGroup` (`Name`, `ParentName`, `Prefix`, and a `Configure` that attaches shared
+  filters) and registers its endpoints keyed by group name (`AddEndpointProvider<T>(groupName)`); the route builder
+  materializes groups parent-first and maps each group's keyed `IEndpointProvider` children into it. The management
+  surface composes a hierarchy — `api` (`/api`) → `api/tenant` (`/tenants/{tenantId}`) → `api/tenant/client`
+  (`/clients/{clientId}`) — so tenant-bound families (clients, grants, resource servers, client grants) nest under the
+  tenant and map only their relative sub-routes, and the protocol surface is a single `openid` group. This replaces the
+  imperative `IEndpointGroupProvider` tier and the per-family marker interfaces, which were removed. See
+  [ADR-0042](docs/adr/0042-management-api-route-driven-tenant-scope.md).
 - The management `/api` surface derives its ambient tenant scope from the route's `{tenantId}` segment rather than the
   request's protocol-resolved tenant, so a central-admin caller can administer a tenant by id while the persistence-layer
   query filter confines the read fail-closed ([ADR-0018](docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md));

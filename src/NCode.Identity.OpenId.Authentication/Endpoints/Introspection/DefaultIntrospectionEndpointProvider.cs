@@ -41,7 +41,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
 /// </summary>
 internal class DefaultIntrospectionEndpointProvider(
     IClientAuthenticationService clientAuthenticationService
-) : IOpenIdEndpointProvider
+) : IEndpointProvider
 {
     private IClientAuthenticationService ClientAuthenticationService { get; } =
         clientAuthenticationService;

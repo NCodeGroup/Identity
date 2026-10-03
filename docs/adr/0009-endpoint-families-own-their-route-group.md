@@ -1,6 +1,8 @@
 # 0009. Endpoint families own their route group and cross-cutting endpoint filters
 
-- **Status:** Accepted
+- **Status:** Accepted — the `IEndpointGroupProvider` tier is superseded by the declarative named-group hierarchy
+  (`IEndpointGroup`) in [ADR-0042](0042-management-api-route-driven-tenant-scope.md); the principle that a family owns
+  its route group and cross-cutting filters persists, now expressed as a group node rather than an imperative provider.
 - **Date:** 2026-09-28
 - **Deciders:** NCode.Identity maintainers
 

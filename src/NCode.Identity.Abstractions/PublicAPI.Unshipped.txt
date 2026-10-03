@@ -62,7 +62,6 @@ NCode.Identity.Claims.SerializableClaimsPrincipal.SerializableClaimsPrincipal() 
 NCode.Identity.Endpoints.EndpointProviderRegistration
 NCode.Identity.Endpoints.EndpointProviderRegistration.extension(NCode.Registration.IServiceBuilder!)
 NCode.Identity.Endpoints.EndpointProviderRegistration.extension(NCode.Registration.IServiceBuilder!).AddEndpointGroup<T>() -> void
-NCode.Identity.Endpoints.EndpointProviderRegistration.extension(NCode.Registration.IServiceBuilder!).AddEndpointGroupProvider<T>() -> void
 NCode.Identity.Endpoints.EndpointProviderRegistration.extension(NCode.Registration.IServiceBuilder!).AddEndpointProvider<T>() -> void
 NCode.Identity.Endpoints.EndpointProviderRegistration.extension(NCode.Registration.IServiceBuilder!).AddEndpointProvider<T>(string! groupName) -> void
 NCode.Identity.Endpoints.EndpointRouteBuilderExtensions
@@ -73,8 +72,6 @@ NCode.Identity.Endpoints.IEndpointGroup.Configure(Microsoft.AspNetCore.Routing.R
 NCode.Identity.Endpoints.IEndpointGroup.Name.get -> string!
 NCode.Identity.Endpoints.IEndpointGroup.ParentName.get -> string?
 NCode.Identity.Endpoints.IEndpointGroup.Prefix.get -> string!
-NCode.Identity.Endpoints.IEndpointGroupProvider
-NCode.Identity.Endpoints.IEndpointGroupProvider.Map(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> void
 NCode.Identity.Endpoints.IEndpointProvider
 NCode.Identity.Endpoints.IEndpointProvider.Map(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> void
 NCode.Identity.Endpoints.IIdentityEndpointRouteBuilder

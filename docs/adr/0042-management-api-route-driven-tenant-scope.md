@@ -72,6 +72,12 @@ Everything follows from that rule:
   ([ADR-0031](0031-control-plane-management-resource-server-and-root-tenant-seeding.md),
   [ADR-0034](0034-persisted-role-assignments-and-ownership.md)); `default` remains the workload tenant. This ADR changes
   how the management surface is routed and scoped, not the tenancy model.
+- **Route-group composition is declarative and unified across both planes.** Groups are named `IEndpointGroup` nodes
+  (`Name`, `ParentName`, `Prefix`, and a `Configure` that attaches filters); endpoint providers register **keyed by
+  group name**, and the route builder materializes each group parent-first (memoized) and maps that group's keyed
+  `IEndpointProvider` children into it. Both the management hierarchy above and the OpenID protocol surface (a single
+  `openid` group with an empty prefix that installs the environment and exception filters) compose through this one
+  mechanism, replacing the imperative `IEndpointGroupProvider` tier of [ADR-0009](0009-endpoint-families-own-their-route-group.md).
 
 ## Options considered
 
@@ -101,6 +107,9 @@ Everything follows from that rule:
   "deliberately not by-id" is superseded: all three effective-settings endpoints are now by-id and form one hierarchy.
 - The server/root-tenant identity duplication (the `(Server, rootTenantId)` node is typed `Server` but keyed by the
   root _tenant_ id) is left intact; unifying it is a separate, optional follow-up.
+- The declarative named-group mechanism (`IEndpointGroup` + keyed providers) replaces the imperative
+  `IEndpointGroupProvider` tier across **both** the management and protocol surfaces, so route prefixes and shared
+  filters are declared once per group and there is a single composition mechanism rather than two.
 
 ## References
 

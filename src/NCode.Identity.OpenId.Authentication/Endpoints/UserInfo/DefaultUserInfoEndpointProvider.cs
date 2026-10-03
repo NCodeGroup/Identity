@@ -39,7 +39,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 /// mediator command, then delegates to the <see cref="GetUserInfoClaimsCommand"/> so that the default and
 /// application-provided enrichers contribute the subject's claims.
 /// </summary>
-internal class DefaultUserInfoEndpointProvider : IOpenIdEndpointProvider
+internal class DefaultUserInfoEndpointProvider : IEndpointProvider
 {
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>

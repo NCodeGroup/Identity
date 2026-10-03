@@ -65,7 +65,7 @@ internal class DefaultClientSettingDescriptorDataSource(
                 Default = AuthMethods,
 
                 IsDiscoverable = true,
-                OnMerge = (current, other) => current.Intersect(other).ToList(),
+                OnMerge = SettingMerge.Intersect,
             };
         }
     }

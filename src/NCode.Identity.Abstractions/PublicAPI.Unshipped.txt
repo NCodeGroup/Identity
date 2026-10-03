@@ -213,6 +213,7 @@ NCode.Identity.Settings.SettingKey<TValue>.SettingKey(string! SettingName) -> vo
 NCode.Identity.Settings.SettingKey<TValue>.SettingName.get -> string!
 NCode.Identity.Settings.SettingKey<TValue>.SettingName.init -> void
 NCode.Identity.Settings.SettingKey<TValue>.ValueType.get -> System.Type!
+NCode.Identity.Settings.SettingMerge
 override NCode.Identity.Models.UriDescriptor.ToString() -> string!
 override NCode.Identity.Settings.Setting<TValue>.GetValue() -> object!
 override NCode.Identity.Settings.SettingDescriptor<TValue>.Create(object! value) -> NCode.Identity.Settings.Setting!
@@ -225,6 +226,14 @@ static NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.Handled() -> NCode.I
 static NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.Handled(Microsoft.AspNetCore.Http.IResult! httpResult) -> NCode.Identity.Endpoints.ReadOnlyEndpointDisposition
 static NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.UnHandled() -> NCode.Identity.Endpoints.ReadOnlyEndpointDisposition
 static NCode.Identity.Settings.SettingDescriptor<TValue>.implicit operator NCode.Identity.Settings.SettingKey<TValue>(NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor) -> NCode.Identity.Settings.SettingKey<TValue>
+static NCode.Identity.Settings.SettingMerge.And(bool current, bool other) -> bool
+static NCode.Identity.Settings.SettingMerge.Intersect<T>(System.Collections.Generic.IEnumerable<T>! current, System.Collections.Generic.IEnumerable<T>! other) -> System.Collections.Generic.List<T>!
+static NCode.Identity.Settings.SettingMerge.Keep<T>(T current, T _) -> T
+static NCode.Identity.Settings.SettingMerge.Max<T>(T current, T other) -> T
+static NCode.Identity.Settings.SettingMerge.Min<T>(T current, T other) -> T
+static NCode.Identity.Settings.SettingMerge.Or(bool current, bool other) -> bool
+static NCode.Identity.Settings.SettingMerge.Replace<T>(T _, T other) -> T
+static NCode.Identity.Settings.SettingMerge.Union<T>(System.Collections.Generic.IEnumerable<T>! current, System.Collections.Generic.IEnumerable<T>! other) -> System.Collections.Generic.List<T>!
 virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Create(TValue value) -> NCode.Identity.Settings.Setting<TValue>!
 virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Format(NCode.Identity.Settings.Setting<TValue>! setting) -> object!
 virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Merge(NCode.Identity.Settings.Setting<TValue>! current, NCode.Identity.Settings.Setting<TValue>! other) -> NCode.Identity.Settings.Setting<TValue>!

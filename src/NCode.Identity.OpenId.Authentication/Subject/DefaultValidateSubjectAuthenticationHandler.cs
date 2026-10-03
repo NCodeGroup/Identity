@@ -151,8 +151,11 @@ internal class DefaultValidateSubjectAuthenticationHandler(
         IReadOnlySettingCollection settings
     )
     {
-        var allowed = settings.GetValue(OpenIdSettingKeys.AllowedIdentityProviders);
-        return allowed.Count == 0 || allowed.Contains(receivedIdp, StringComparer.Ordinal);
+        // An unset allowlist imposes no restriction (ADR-0010); a set allowlist (which merges as a
+        // ceiling via intersection) is explicit, so a narrowed-to-empty list denies every IdP.
+        if (!settings.TryGetValue(OpenIdSettingKeys.AllowedIdentityProviders, out var allowed))
+            return true;
+        return allowed.Contains(receivedIdp, StringComparer.Ordinal);
     }
 
     private static bool IsRequestedIdpValid(string? receivedIdp, IOpenIdRequest openIdRequest)

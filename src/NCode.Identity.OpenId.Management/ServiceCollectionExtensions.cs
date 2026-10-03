@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Management;
 [PublicAPI]
 public static class ServiceCollectionExtensions
 {
-    extension(IServiceCollection services)
+    extension(IServiceCollection serviceCollection)
     {
         /// <summary>
         /// Registers the specified <see cref="IAuthorizationHandler"/> implementation as a singleton.
@@ -42,10 +42,10 @@ public static class ServiceCollectionExtensions
         >()
             where THandler : class, IAuthorizationHandler
         {
-            services.TryAddEnumerable(
+            serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IAuthorizationHandler, THandler>()
             );
-            return services;
+            return serviceCollection;
         }
     }
 }

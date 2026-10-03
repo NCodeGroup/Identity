@@ -41,15 +41,15 @@ public sealed class TenantStoreLifecycleTests : IDisposable
 
     public TenantStoreLifecycleTests()
     {
-        var services = new ServiceCollection();
-        services.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
-        services.AddSingleton<IdValueGenerator>();
-        services.AddSingleton<UseIdGeneratorConvention>();
-        services.AddDbContext<OpenIdDbContext>(options =>
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
+        serviceCollection.AddSingleton<IdValueGenerator>();
+        serviceCollection.AddSingleton<UseIdGeneratorConvention>();
+        serviceCollection.AddDbContext<OpenIdDbContext>(options =>
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = services.BuildServiceProvider();
+        _provider = serviceCollection.BuildServiceProvider();
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);

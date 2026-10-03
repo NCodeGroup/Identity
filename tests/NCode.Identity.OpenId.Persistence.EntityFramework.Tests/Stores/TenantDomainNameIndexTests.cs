@@ -40,12 +40,12 @@ public sealed class TenantDomainNameIndexTests : IDisposable
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
 
-        var services = new ServiceCollection();
-        services.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
-        services.AddSingleton<IdValueGenerator>();
-        services.AddSingleton<UseIdGeneratorConvention>();
-        services.AddDbContext<OpenIdDbContext>(options => options.UseSqlite(_connection));
-        _provider = services.BuildServiceProvider();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
+        serviceCollection.AddSingleton<IdValueGenerator>();
+        serviceCollection.AddSingleton<UseIdGeneratorConvention>();
+        serviceCollection.AddDbContext<OpenIdDbContext>(options => options.UseSqlite(_connection));
+        _provider = serviceCollection.BuildServiceProvider();
 
         using var scope = _provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();

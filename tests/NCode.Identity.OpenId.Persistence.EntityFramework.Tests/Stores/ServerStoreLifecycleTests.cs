@@ -39,15 +39,15 @@ public sealed class ServerStoreLifecycleTests : IDisposable
 
     public ServerStoreLifecycleTests()
     {
-        var services = new ServiceCollection();
-        services.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
-        services.AddSingleton<IdValueGenerator>();
-        services.AddSingleton<UseIdGeneratorConvention>();
-        services.AddDbContext<OpenIdDbContext>(options =>
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
+        serviceCollection.AddSingleton<IdValueGenerator>();
+        serviceCollection.AddSingleton<UseIdGeneratorConvention>();
+        serviceCollection.AddDbContext<OpenIdDbContext>(options =>
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
-        _provider = services.BuildServiceProvider();
+        _provider = serviceCollection.BuildServiceProvider();
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         _store = new ServerStore(
             Mock.Of<IStoreProvider>(),

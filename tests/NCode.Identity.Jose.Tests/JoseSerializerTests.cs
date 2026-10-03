@@ -44,9 +44,9 @@ public class JoseSerializerTests : BaseTests
 
     public JoseSerializerTests()
     {
-        var services = new ServiceCollection();
-        ConfigureServices(services);
-        ServiceProvider = services.BuildServiceProvider();
+        var serviceCollection = new ServiceCollection();
+        ConfigureServices(serviceCollection);
+        ServiceProvider = serviceCollection.BuildServiceProvider();
 
         AlgorithmCollectionProvider =
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>();
@@ -57,10 +57,10 @@ public class JoseSerializerTests : BaseTests
         JoseSerializer = MockJoseSerializer.Object;
     }
 
-    private static void ConfigureServices(IServiceCollection services)
+    private static void ConfigureServices(IServiceCollection serviceCollection)
     {
-        services.AddSecretsLibrary();
-        services.AddJoseLibrary();
+        serviceCollection.AddSecretsLibrary();
+        serviceCollection.AddJoseLibrary();
     }
 
     protected override async ValueTask DisposeAsyncCore()

@@ -37,8 +37,8 @@ public class UserInfoEndpointTests
         PlaygroundApplicationFactory factory
     ) =>
         factory.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services
+            builder.ConfigureTestServices(serviceCollection =>
+                serviceCollection
                     .AddAuthentication(TestSubjectAuthenticationHandler.SchemeName)
                     .AddScheme<AuthenticationSchemeOptions, TestSubjectAuthenticationHandler>(
                         TestSubjectAuthenticationHandler.SchemeName,

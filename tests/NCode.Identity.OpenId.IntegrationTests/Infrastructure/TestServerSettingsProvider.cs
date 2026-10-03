@@ -17,6 +17,7 @@
 #endregion
 
 using NCode.Identity.OpenId.Authentication.Settings;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;

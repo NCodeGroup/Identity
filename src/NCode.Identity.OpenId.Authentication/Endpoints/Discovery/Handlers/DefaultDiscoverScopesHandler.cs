@@ -17,9 +17,9 @@
 #endregion
 
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands;
-using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 

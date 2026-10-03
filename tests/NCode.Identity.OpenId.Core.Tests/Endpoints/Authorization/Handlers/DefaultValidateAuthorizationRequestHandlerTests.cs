@@ -19,10 +19,10 @@
 using Moq;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using Xunit;
 

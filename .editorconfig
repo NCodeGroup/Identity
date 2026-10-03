@@ -89,3 +89,9 @@ dotnet_diagnostic.CA2012.severity = none
 dotnet_diagnostic.CA2215.severity = none
 # Unused usings in tests are low-value and cleaned by `dotnet format`; keep IDE0005 off there.
 dotnet_diagnostic.IDE0005.severity = none
+
+# ── EF Core generated migrations ────────────────────────────────────────────
+# Migrations are scaffolded by `dotnet ef`, not hand-edited; treat them as generated code so the
+# analyzer / warnings-as-errors gates (e.g. CA1861) don't apply to the generated output.
+[**/Migrations/*.cs]
+generated_code = true

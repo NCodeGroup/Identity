@@ -48,7 +48,7 @@ internal static class DefaultRegistration
         {
             var newBuilder = builder.NewBuilder<OpenIdAuthenticationEndpoints>();
 
-            newBuilder.AddEndpointGroupProvider<OpenIdEndpointGroupProvider>();
+            newBuilder.AddEndpointGroup<OpenIdEndpointGroup>();
 
             newBuilder.AddAuthorizationEndpoint();
             newBuilder.AddContinueEndpoint();

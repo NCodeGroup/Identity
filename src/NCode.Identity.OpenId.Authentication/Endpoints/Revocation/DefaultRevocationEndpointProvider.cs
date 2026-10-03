@@ -39,7 +39,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Revocation;
 /// </summary>
 internal class DefaultRevocationEndpointProvider(
     IClientAuthenticationService clientAuthenticationService
-) : IOpenIdEndpointProvider
+) : IEndpointProvider
 {
     private IClientAuthenticationService ClientAuthenticationService { get; } =
         clientAuthenticationService;

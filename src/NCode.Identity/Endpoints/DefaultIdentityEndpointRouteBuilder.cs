@@ -28,14 +28,10 @@ namespace NCode.Identity.Endpoints;
 /// </summary>
 internal class DefaultIdentityEndpointRouteBuilder(
     IEnumerable<IEndpointGroup> endpointGroups,
-    IEnumerable<IEndpointGroupProvider> endpointGroupProviders,
     IEnumerable<IEndpointProvider> endpointProviders
 ) : IIdentityEndpointRouteBuilder
 {
     private ImmutableArray<IEndpointGroup> EndpointGroups { get; } = [.. endpointGroups];
-
-    private ImmutableArray<IEndpointGroupProvider> EndpointGroupProviders { get; } =
-    [.. endpointGroupProviders];
 
     private ImmutableArray<IEndpointProvider> EndpointProviders { get; } = [.. endpointProviders];
 
@@ -45,12 +41,6 @@ internal class DefaultIdentityEndpointRouteBuilder(
         // Named groups own their route group and conventions; each is materialized parent-first and its keyed
         // IEndpointProvider children are mapped into it.
         MapNamedGroups(endpoints);
-
-        // Grouped families that still own their mapping imperatively (legacy IEndpointGroupProvider).
-        foreach (var endpointGroupProvider in EndpointGroupProviders)
-        {
-            endpointGroupProvider.Map(endpoints);
-        }
 
         // Ungrouped providers map directly onto the root.
         foreach (var endpointProvider in EndpointProviders)

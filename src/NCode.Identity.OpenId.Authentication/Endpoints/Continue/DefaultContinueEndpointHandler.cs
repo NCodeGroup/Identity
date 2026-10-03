@@ -40,7 +40,7 @@ internal class DefaultContinueEndpointHandler(
     ILogger<DefaultContinueEndpointHandler> logger,
     IPersistedGrantService persistedGrantService,
     IContinueProviderSelector continueProviderSelector
-) : IOpenIdEndpointProvider
+) : IEndpointProvider
 {
     private ILogger<DefaultContinueEndpointHandler> Logger { get; } = logger;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;

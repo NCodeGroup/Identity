@@ -51,7 +51,7 @@ internal class DefaultAuthorizationEndpointHandler(
     IClientAuthenticationService clientAuthenticationService,
     IAuthorizationEndpointLogic authorizationEndpointLogic,
     IKnownParameterCollectionProvider knownParameterCollectionProvider
-) : IOpenIdEndpointProvider
+) : IEndpointProvider
 {
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
     private IClientAuthenticationService ClientAuthenticationService { get; } =

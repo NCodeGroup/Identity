@@ -47,7 +47,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 internal class DefaultTokenEndpointProvider(
     IClientAuthenticationService clientAuthenticationService,
     IKnownParameterCollectionProvider knownParameterCollectionProvider
-) : IOpenIdEndpointProvider
+) : IEndpointProvider
 {
     private IClientAuthenticationService ClientAuthenticationService { get; } =
         clientAuthenticationService;

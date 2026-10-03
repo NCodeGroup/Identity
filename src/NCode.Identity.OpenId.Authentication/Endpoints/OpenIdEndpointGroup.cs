@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2025 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Collections.Immutable;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -26,33 +25,34 @@ using NCode.Identity.OpenId.Contexts;
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
 
 /// <summary>
-/// An <see cref="IEndpointGroupProvider"/> that maps all OpenID endpoints into a shared route group and installs the
-/// shared pipeline filters: the <see cref="OpenIdEnvironmentEndpointFilter"/> that materializes the OpenID request
-/// environment (so every endpoint retrieves the same <see cref="OpenIdContext"/>), and the
-/// <see cref="OpenIdExceptionEndpointFilter"/> that renders exceptions as standard OpenID error responses.
+/// The route group for the OpenID protocol endpoints. An empty prefix preserves each endpoint's absolute route (for
+/// example <c>/oauth2/token</c>) while still grouping them so the shared pipeline filters apply only to OpenID
+/// endpoints: the <see cref="OpenIdEnvironmentEndpointFilter"/> that materializes the request environment (and opens
+/// the resolved tenant's ambient scope) and the <see cref="OpenIdExceptionEndpointFilter"/> that renders exceptions as
+/// standard OpenID error responses.
 /// </summary>
-internal sealed class OpenIdEndpointGroupProvider(
-    IEnumerable<IOpenIdEndpointProvider> endpointProviders
-) : IEndpointGroupProvider
+internal sealed class OpenIdEndpointGroup : IEndpointGroup
 {
-    private ImmutableArray<IOpenIdEndpointProvider> EndpointProviders { get; } =
-    [.. endpointProviders];
+    /// <summary>
+    /// The <see cref="IEndpointGroup.Name"/> of the OpenID protocol group.
+    /// </summary>
+    public const string GroupName = "openid";
 
     /// <inheritdoc />
-    public void Map(IEndpointRouteBuilder endpoints)
-    {
-        // An empty prefix preserves each endpoint's absolute route (e.g. /oauth2/token) while still
-        // grouping them so the shared filters are scoped to OpenID endpoints only.
-        var group = endpoints.MapGroup(string.Empty);
+    public string Name => GroupName;
 
+    /// <inheritdoc />
+    public string? ParentName => null;
+
+    /// <inheritdoc />
+    public string Prefix => string.Empty;
+
+    /// <inheritdoc />
+    public void Configure(RouteGroupBuilder group)
+    {
         // The environment filter is outermost so the ambient tenant scope it opens is still active while the exception
         // filter renders an error.
         group.AddEndpointFilter<RouteGroupBuilder, OpenIdEnvironmentEndpointFilter>();
         group.AddEndpointFilter<RouteGroupBuilder, OpenIdExceptionEndpointFilter>();
-
-        foreach (var endpointProvider in EndpointProviders)
-        {
-            endpointProvider.Map(group);
-        }
     }
 }

@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
 /// <summary>
 /// Provides a default implementation of the required services and handlers used by the discovery endpoint.
 /// </summary>
-internal class DefaultDiscoveryEndpointHandler : IOpenIdEndpointProvider
+internal class DefaultDiscoveryEndpointHandler : IEndpointProvider
 {
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>

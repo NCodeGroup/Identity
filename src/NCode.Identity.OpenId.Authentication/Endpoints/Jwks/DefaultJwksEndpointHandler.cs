@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 /// </summary>
 /// <seealso href="https://datatracker.ietf.org/doc/html/rfc7517">RFC 7517 - JSON Web Key (JWK)</seealso>
 internal class DefaultJwksEndpointHandler(IEnumerable<IJsonWebKeyConverter> jsonWebKeyConverters)
-    : IOpenIdEndpointProvider
+    : IEndpointProvider
 {
     private ImmutableArray<IJsonWebKeyConverter> JsonWebKeyConverters { get; } =
     [.. jsonWebKeyConverters];

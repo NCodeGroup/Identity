@@ -17,8 +17,6 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Endpoints;
 using NCode.Registration;
 
@@ -33,19 +31,15 @@ internal static class OpenIdEndpointProviderRegistration
     extension(IServiceBuilder builder)
     {
         /// <summary>
-        /// Registers an <see cref="IOpenIdEndpointProvider"/> implementation so that it is mapped into the
-        /// OpenID route group by the <see cref="OpenIdEndpointGroupProvider"/> instead of directly onto the
-        /// root <see cref="IEndpointProvider"/> collection.
+        /// Registers an OpenID protocol endpoint provider so that it is mapped into the shared OpenID route group
+        /// (<see cref="OpenIdEndpointGroup"/>) rather than directly onto the root endpoint collection.
         /// </summary>
         public void AddOpenIdEndpointProvider<
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T
         >()
-            where T : class, IOpenIdEndpointProvider
+            where T : class, IEndpointProvider
         {
-            var serviceCollection = builder.ServiceCollection;
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IOpenIdEndpointProvider, T>()
-            );
+            builder.AddEndpointProvider<T>(OpenIdEndpointGroup.GroupName);
         }
     }
 }

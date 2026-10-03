@@ -26,16 +26,19 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Operations;
@@ -56,6 +59,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IClientValidator> MockClientValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
+    private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private ClientApiEndpointHandler Handler { get; }
 
@@ -69,6 +73,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockClientValidator = MockRepository.Create<IClientValidator>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
+        MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
             .Setup(x =>
@@ -91,6 +96,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             MockSecretGenerator.Object,
             TimeProvider.System,
             MockCryptoService.Object,
+            MockSettingSerializer.Object,
             MockResourceOwnershipService.Object,
             NullLogger<ClientApiEndpointHandler>.Instance
         );
@@ -436,6 +442,103 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         var result = await Handler.GetSettingsAsync(httpContext, ClientId, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region GetEffectiveSettingsAsync Tests
+
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenFoundAndAuthorized_ReturnsFlatSettings()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        MockSettingSerializer
+            .Setup(x =>
+                x.DeserializeSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+            )
+            .Returns(Array.Empty<Setting>())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var descriptor = new SettingDescriptor<bool> { Name = "claims_parameter_supported" };
+        var effective = CreateSettingCollection(descriptor.Create(true));
+        var httpContext = CreateHttpContextWithClientMerge(authenticated: true, effective);
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            httpContext,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<ClientEffectiveSettingsResource>>(result);
+        Assert.Equal(ClientId, json.Value?.ClientId);
+        Assert.Equal(TenantId, json.Value?.TenantId);
+        Assert.True(json.Value!.Settings.GetProperty("claims_parameter_supported").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            httpContext,
+            ClientId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    private static ISettingCollection CreateSettingCollection(params Setting[] settings)
+    {
+        var list = settings.ToList();
+        var mock = new Mock<ISettingCollection>(MockBehavior.Loose);
+        mock.Setup(x => x.GetEnumerator()).Returns(() => list.GetEnumerator());
+        return mock.Object;
+    }
+
+    private static HttpContext CreateHttpContextWithClientMerge(
+        bool authenticated,
+        ISettingCollection effectiveSettings
+    )
+    {
+        var identity = authenticated
+            ? new ClaimsIdentity(authenticationType: "test")
+            : new ClaimsIdentity();
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+
+        var mockParent = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
+        mockParent.Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>())).Returns(effectiveSettings);
+
+        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
+        mockProvider.Setup(x => x.Collection).Returns(mockParent.Object);
+
+        var mockTenant = new Mock<OpenIdTenant>(MockBehavior.Loose);
+        mockTenant.Setup(x => x.TenantId).Returns(TenantId);
+        mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
+
+        var mockEnvironment = new Mock<OpenIdEnvironment>(MockBehavior.Loose);
+        mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(JsonSerializerOptions.Default);
+
+        var mockContext = new Mock<OpenIdContext>(MockBehavior.Loose);
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object);
+        mockContext.Setup(x => x.Environment).Returns(mockEnvironment.Object);
+
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature => feature.OpenIdContext == mockContext.Object)
+        );
+        return httpContext;
     }
 
     #endregion

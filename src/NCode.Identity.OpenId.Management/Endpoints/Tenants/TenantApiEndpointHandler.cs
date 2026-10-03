@@ -36,6 +36,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
@@ -43,6 +44,8 @@ using SystemTextJsonPatch.Exceptions;
 namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 
 /*
+
+GET   api/tenant/effective-settings
 
 GET   api/tenants/{tenantId}
 
@@ -119,6 +122,12 @@ internal class TenantApiEndpointHandler(
             .MapPost("/{tenantId}/owners", AddOwnerAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created);
         tenants.MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync);
+
+        // Current-tenant (singular) read of the resolved, merged settings view.
+        endpoints
+            .MapGet("/tenant/effective-settings", GetEffectiveSettingsAsync)
+            .WithTags("Tenants")
+            .Produces<TenantEffectiveSettingsResource>();
     }
 
     /// <summary>
@@ -152,6 +161,26 @@ internal class TenantApiEndpointHandler(
             TenantId = settings.TenantId,
             ConcurrencyToken = settings.ConcurrencyToken,
             Settings = settings.Value,
+        };
+    }
+
+    /// <summary>
+    /// Maps a tenant's effective (merged) <see cref="IReadOnlySettingCollection"/> to its
+    /// <see cref="TenantEffectiveSettingsResource"/> representation: a flat JSON object of setting name to formatted
+    /// value, using the same representation as the discovery document, ordered by name for a stable dump.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the settings.</param>
+    /// <param name="settings">The effective <see cref="IReadOnlySettingCollection"/> to map.</param>
+    /// <returns>The mapped <see cref="TenantEffectiveSettingsResource"/>.</returns>
+    internal virtual TenantEffectiveSettingsResource ToTenantEffectiveSettingsResource(
+        string tenantId,
+        IReadOnlySettingCollection settings
+    )
+    {
+        return new TenantEffectiveSettingsResource
+        {
+            TenantId = tenantId,
+            Settings = ToEffectiveSettingsElement(settings),
         };
     }
 
@@ -439,6 +468,30 @@ internal class TenantApiEndpointHandler(
             node,
             Operations.Read,
             ToTenantSettingsResource
+        );
+    }
+
+    /// <summary>
+    /// Handles <c>GET api/tenant/effective-settings</c>, returning the resolved, merged settings view for the request's
+    /// current tenant — the server baseline, the tenant's persisted overrides, and descriptor defaults combined through
+    /// the settings merge pipeline, including settings that are not advertised in discovery. Authorization requires the
+    /// same <c>Read</c> permission on the tenant as reading its persisted settings.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/tenant/effective-settings/get")]
+    internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(HttpContext httpContext)
+    {
+        var tenant = httpContext.GetOpenIdContext().Tenant;
+        var tenantId = tenant.TenantId;
+
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+        return await ProcessGetAsync(
+            httpContext,
+            tenant.SettingsProvider.Collection,
+            node,
+            Operations.Read,
+            settings => ToTenantEffectiveSettingsResource(tenantId, settings)
         );
     }
 

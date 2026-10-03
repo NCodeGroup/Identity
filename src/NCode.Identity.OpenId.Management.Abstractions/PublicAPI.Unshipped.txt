@@ -23,6 +23,14 @@ NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.Secrets
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.Secrets.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource.ClientEffectiveSettingsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource.ClientId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource.ClientId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSettingsResource
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSettingsResource.ClientId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSettingsResource.ClientId.init -> void
@@ -215,6 +223,12 @@ NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource.Secrets
 NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource.ServerId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource.ServerId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource.ServerSecretsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource
+NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource.ServerEffectiveSettingsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource.ServerId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource.ServerId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource.Settings.init -> void
 NCode.Identity.OpenId.Management.Contracts.Servers.ServerSettingsResource
 NCode.Identity.OpenId.Management.Contracts.Servers.ServerSettingsResource.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Servers.ServerSettingsResource.ConcurrencyToken.init -> void
@@ -253,6 +267,12 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.TenantSecretsResource.Secrets
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantSecretsResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantSecretsResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantSecretsResource.TenantSecretsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEffectiveSettingsResource
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEffectiveSettingsResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEffectiveSettingsResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEffectiveSettingsResource.TenantEffectiveSettingsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEffectiveSettingsResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEffectiveSettingsResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantSettingsResource
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantSettingsResource.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantSettingsResource.ConcurrencyToken.init -> void

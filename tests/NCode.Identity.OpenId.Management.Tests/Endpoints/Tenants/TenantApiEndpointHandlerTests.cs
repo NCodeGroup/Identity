@@ -33,9 +33,12 @@ using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Operations;
@@ -339,6 +342,75 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.GetSettingsAsync(httpContext, TenantId, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region GetEffectiveSettingsAsync Tests
+
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenAuthorized_ReturnsFlatSettings()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var descriptor = new SettingDescriptor<bool> { Name = "claims_parameter_supported" };
+        var settings = CreateSettingCollection(descriptor.Create(true));
+        var httpContext = CreateHttpContextWithTenantSettings(authenticated: true, settings);
+
+        var result = await Handler.GetEffectiveSettingsAsync(httpContext);
+
+        var json = Assert.IsType<JsonHttpResult<TenantEffectiveSettingsResource>>(result);
+        Assert.Equal(TenantId, json.Value?.TenantId);
+        Assert.True(json.Value!.Settings.GetProperty("claims_parameter_supported").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContextWithTenantSettings(
+            authenticated: false,
+            CreateSettingCollection()
+        );
+
+        var result = await Handler.GetEffectiveSettingsAsync(httpContext);
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    private static IReadOnlySettingCollection CreateSettingCollection(params Setting[] settings)
+    {
+        var list = settings.ToList();
+        var mock = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
+        mock.Setup(x => x.GetEnumerator()).Returns(() => list.GetEnumerator());
+        return mock.Object;
+    }
+
+    private static HttpContext CreateHttpContextWithTenantSettings(
+        bool authenticated,
+        IReadOnlySettingCollection settings
+    )
+    {
+        var identity = authenticated
+            ? new ClaimsIdentity(authenticationType: "test")
+            : new ClaimsIdentity();
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+
+        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
+        mockProvider.Setup(x => x.Collection).Returns(settings);
+
+        var mockTenant = new Mock<OpenIdTenant>(MockBehavior.Loose);
+        mockTenant.Setup(x => x.TenantId).Returns(TenantId);
+        mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
+
+        var mockContext = new Mock<OpenIdContext>(MockBehavior.Loose);
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object);
+
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature => feature.OpenIdContext == mockContext.Object)
+        );
+        return httpContext;
     }
 
     #endregion

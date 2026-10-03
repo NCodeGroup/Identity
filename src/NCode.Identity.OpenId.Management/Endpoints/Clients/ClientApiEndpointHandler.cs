@@ -36,6 +36,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
@@ -48,6 +49,7 @@ GET   api/clients/{clientId}
 
 GET   api/clients/{clientId}/settings
 PATCH api/clients/{clientId}/settings
+GET   api/clients/{clientId}/effective-settings
 
 GET    api/clients/{clientId}/secrets
 POST   api/clients/{clientId}/secrets
@@ -67,6 +69,7 @@ internal class ClientApiEndpointHandler(
     ISecretGenerator secretGenerator,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
+    ISettingSerializer settingSerializer,
     IResourceOwnershipService resourceOwnershipService,
     ILogger<ClientApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IManagementEndpointProvider
@@ -76,6 +79,7 @@ internal class ClientApiEndpointHandler(
     private IClientValidator ClientValidator { get; } = clientValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -103,6 +107,9 @@ internal class ClientApiEndpointHandler(
 
         clients.MapGet("/{clientId}/settings", GetSettingsAsync).Produces<ClientSettingsResource>();
         clients.MapPatch("/{clientId}/settings", UpdateSettingsAsync);
+        clients
+            .MapGet("/{clientId}/effective-settings", GetEffectiveSettingsAsync)
+            .Produces<ClientEffectiveSettingsResource>();
 
         clients.MapGet("/{clientId}/secrets", GetSecretsAsync).Produces<ClientSecretsResource>();
         clients
@@ -152,6 +159,46 @@ internal class ClientApiEndpointHandler(
             ClientId = settings.ClientId,
             ConcurrencyToken = settings.ConcurrencyToken,
             Settings = settings.Value,
+        };
+    }
+
+    /// <summary>
+    /// Merges an OpenID Client's persisted settings onto the request tenant's effective settings, producing the same
+    /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the client at runtime.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="client">The <see cref="PersistedClient"/> whose settings to merge.</param>
+    /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>.</returns>
+    internal virtual IReadOnlySettingCollection MergeClientSettings(
+        OpenIdContext openIdContext,
+        PersistedClient client
+    )
+    {
+        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
+        var clientSettings = SettingSerializer.DeserializeSettings(
+            client.Settings.Value,
+            jsonOptions
+        );
+        return openIdContext.Tenant.SettingsProvider.Collection.Merge(clientSettings);
+    }
+
+    /// <summary>
+    /// Maps an OpenID Client's effective <see cref="IReadOnlySettingCollection"/> to its
+    /// <see cref="ClientEffectiveSettingsResource"/> representation.
+    /// </summary>
+    /// <param name="client">The <see cref="PersistedClient"/> that owns the settings.</param>
+    /// <param name="settings">The client's effective <see cref="IReadOnlySettingCollection"/>.</param>
+    /// <returns>The mapped <see cref="ClientEffectiveSettingsResource"/>.</returns>
+    internal virtual ClientEffectiveSettingsResource ToClientEffectiveSettingsResource(
+        PersistedClient client,
+        IReadOnlySettingCollection settings
+    )
+    {
+        return new ClientEffectiveSettingsResource
+        {
+            TenantId = client.TenantId,
+            ClientId = client.ClientId,
+            Settings = ToEffectiveSettingsElement(settings),
         };
     }
 
@@ -448,6 +495,48 @@ internal class ClientApiEndpointHandler(
             node,
             Operations.Read,
             ToClientSettingsResource
+        );
+    }
+
+    /// <summary>
+    /// Handles <c>GET api/clients/{clientId}/effective-settings</c>, returning the resolved, merged settings view for
+    /// the specified OpenID Client — the client's persisted settings merged onto the request tenant's effective
+    /// settings through the settings merge pipeline, including settings that are not advertised in discovery.
+    /// Authorization requires the same <c>Read</c> permission on the client as reading its persisted settings.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="clientId">The identifier of the OpenID Client.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/clients/effective-settings/get")]
+    internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
+        HttpContext httpContext,
+        [FromRoute] string clientId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IClientStore>();
+
+        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
+        if (client is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var effectiveSettings = MergeClientSettings(openIdContext, client);
+        var node = ResourceNode.For(
+            openIdContext.Tenant.TenantId,
+            ResourceNodeTypes.Client,
+            clientId
+        );
+        return await ProcessGetAsync(
+            httpContext,
+            effectiveSettings,
+            node,
+            Operations.Read,
+            settings => ToClientEffectiveSettingsResource(client, settings)
         );
     }
 

@@ -26,15 +26,18 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Servers;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
@@ -47,6 +50,7 @@ GET   api/servers/{serverId}
 
 GET   api/servers/{serverId}/settings
 PATCH api/servers/{serverId}/settings
+GET   api/servers/{serverId}/effective-settings
 
 GET    api/servers/{serverId}/secrets
 POST   api/servers/{serverId}/secrets
@@ -66,6 +70,7 @@ internal class ServerApiEndpointHandler(
     ISecretGenerator secretGenerator,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
+    IOpenIdServerProvider serverProvider,
     ILogger<ServerApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IManagementEndpointProvider
 {
@@ -73,6 +78,7 @@ internal class ServerApiEndpointHandler(
     private IServerValidator ServerValidator { get; } = serverValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
     private ILogger<ServerApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -95,6 +101,9 @@ internal class ServerApiEndpointHandler(
 
         servers.MapGet("/{serverId}/settings", GetSettingsAsync).Produces<ServerSettingsResource>();
         servers.MapPatch("/{serverId}/settings", UpdateSettingsAsync);
+        servers
+            .MapGet("/{serverId}/effective-settings", GetEffectiveSettingsAsync)
+            .Produces<ServerEffectiveSettingsResource>();
 
         servers.MapGet("/{serverId}/secrets", GetSecretsAsync).Produces<ServerSecretsResource>();
         servers
@@ -333,6 +342,64 @@ internal class ServerApiEndpointHandler(
             Operations.Read,
             ToServerSettingsResource
         );
+    }
+
+    /// <summary>
+    /// Handles <c>GET api/servers/{serverId}/effective-settings</c>, returning the server's resolved settings — its own
+    /// settings with descriptor defaults applied. The server is the root of the merge hierarchy, so this is the
+    /// baseline that tenants (and in turn clients) inherit from, including settings that are not advertised in
+    /// discovery. Authorization requires the same <c>Read</c> permission as reading its persisted settings.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    [EndpointName("api/servers/effective-settings/get")]
+    internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IServerStore>();
+
+        var serverSettings = await store.GetSettingsOrDefaultAsync(serverId, cancellationToken);
+        if (serverSettings is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
+
+        // Authorize like the raw settings read (against the persisted settings); the body is the resolved view.
+        return await ProcessGetAsync(
+            httpContext,
+            server.SettingsProvider.Collection,
+            authorizationResource: serverSettings,
+            Operations.Read,
+            settings => ToServerEffectiveSettingsResource(serverId, settings)
+        );
+    }
+
+    /// <summary>
+    /// Maps an OpenID Server's effective <see cref="IReadOnlySettingCollection"/> to its
+    /// <see cref="ServerEffectiveSettingsResource"/> representation.
+    /// </summary>
+    /// <param name="serverId">The identifier of the OpenID Server that owns the settings.</param>
+    /// <param name="settings">The server's effective <see cref="IReadOnlySettingCollection"/>.</param>
+    /// <returns>The mapped <see cref="ServerEffectiveSettingsResource"/>.</returns>
+    internal virtual ServerEffectiveSettingsResource ToServerEffectiveSettingsResource(
+        string serverId,
+        IReadOnlySettingCollection settings
+    )
+    {
+        return new ServerEffectiveSettingsResource
+        {
+            ServerId = serverId,
+            Settings = ToEffectiveSettingsElement(settings),
+        };
     }
 
     /// <summary>

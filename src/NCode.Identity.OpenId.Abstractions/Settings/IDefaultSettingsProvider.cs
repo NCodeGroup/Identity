@@ -19,7 +19,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.Settings;
 
-namespace NCode.Identity.OpenId.Authentication.Settings;
+namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Contributes baseline (off-the-shelf) values into the server's root <see cref="ISettingCollection"/>.

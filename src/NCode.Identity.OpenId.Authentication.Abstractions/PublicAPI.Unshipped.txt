@@ -492,8 +492,6 @@ NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary
 NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary.ConfigureMethod.get -> string!
 NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary.DisplayName.get -> string!
 NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary.OpenIdAuthenticationLibrary() -> void
-NCode.Identity.OpenId.Authentication.Settings.IDefaultSettingsProvider
-NCode.Identity.OpenId.Authentication.Settings.IDefaultSettingsProvider.Configure(NCode.Identity.Settings.ISettingCollection! settings) -> void
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectCommand
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectCommand.AuthenticateSubjectCommand() -> void
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectCommand.AuthenticateSubjectCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext) -> void

@@ -554,6 +554,8 @@ NCode.Identity.OpenId.Servers.IOpenIdServerProvider
 NCode.Identity.OpenId.Servers.IOpenIdServerProvider.GetAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
 NCode.Identity.OpenId.Servers.OpenIdServer
 NCode.Identity.OpenId.Servers.OpenIdServer.OpenIdServer() -> void
+NCode.Identity.OpenId.Settings.IDefaultSettingsProvider
+NCode.Identity.OpenId.Settings.IDefaultSettingsProvider.Configure(NCode.Identity.Settings.ISettingCollection! settings) -> void
 NCode.Identity.OpenId.Settings.OpenIdSettingKeys
 NCode.Identity.OpenId.Settings.OpenIdSettingNames
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions

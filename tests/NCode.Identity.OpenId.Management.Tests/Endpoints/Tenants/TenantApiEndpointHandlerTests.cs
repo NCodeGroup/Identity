@@ -18,7 +18,6 @@
 #endregion
 
 using System.Security.Claims;
-using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;

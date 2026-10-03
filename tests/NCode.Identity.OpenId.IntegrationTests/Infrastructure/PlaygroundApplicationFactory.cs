@@ -32,6 +32,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Playground;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;

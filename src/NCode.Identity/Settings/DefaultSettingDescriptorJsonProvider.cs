@@ -24,6 +24,12 @@ namespace NCode.Identity.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingDescriptorJsonProvider"/> abstraction.
 /// </summary>
+/// <remarks>
+/// An unknown setting (one with no registered descriptor) is given an ad-hoc descriptor whose value type is inferred
+/// from the JSON: string → <see cref="string"/>, true/false → <see cref="bool"/>, number → <see cref="double"/>,
+/// array → <c>List&lt;string&gt;</c>, and anything else → <see cref="JsonElement"/>. A non-string array therefore fails
+/// to deserialize, so ad-hoc settings are expected to be a string, boolean, number, or string array.
+/// </remarks>
 internal class DefaultSettingDescriptorJsonProvider(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : ISettingDescriptorJsonProvider

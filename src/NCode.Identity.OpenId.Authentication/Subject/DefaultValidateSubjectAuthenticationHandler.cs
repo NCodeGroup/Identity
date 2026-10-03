@@ -112,8 +112,10 @@ internal class DefaultValidateSubjectAuthenticationHandler(
             return ValueTask.CompletedTask;
         }
 
-        // verify the client's max age
-        var clientMaxAge = settings.GetValue(OpenIdSettingKeys.SubjectMaxAge);
+        // verify the client's max age (an unset subject_max_age imposes no freshness constraint)
+        var clientMaxAge = settings.TryGetValue(OpenIdSettingKeys.SubjectMaxAge, out var maxAge)
+            ? maxAge
+            : (TimeSpan?)null;
         if (!ValidateMaxAge(authTime, clientMaxAge, clockSkew))
         {
             const string message =

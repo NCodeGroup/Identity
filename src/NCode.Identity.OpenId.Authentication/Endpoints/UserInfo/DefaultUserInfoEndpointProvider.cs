@@ -39,11 +39,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 /// mediator command, then delegates to the <see cref="GetUserInfoClaimsCommand"/> so that the default and
 /// application-provided enrichers contribute the subject's claims.
 /// </summary>
-internal class DefaultUserInfoEndpointProvider(IOpenIdContextFactory contextFactory)
-    : IOpenIdEndpointProvider
+internal class DefaultUserInfoEndpointProvider : IOpenIdEndpointProvider
 {
-    private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
-
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
         endpoints
@@ -62,11 +59,7 @@ internal class DefaultUserInfoEndpointProvider(IOpenIdContextFactory contextFact
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = await ContextFactory.CreateAsync(
-            httpContext,
-            mediator,
-            cancellationToken
-        );
+        var openIdContext = httpContext.GetOpenIdContext();
 
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdContext.ErrorFactory;

@@ -30,7 +30,6 @@ using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 
@@ -39,13 +38,11 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 /// </summary>
 internal class DefaultContinueEndpointHandler(
     ILogger<DefaultContinueEndpointHandler> logger,
-    IOpenIdContextFactory contextFactory,
     IPersistedGrantService persistedGrantService,
     IContinueProviderSelector continueProviderSelector
 ) : IOpenIdEndpointProvider
 {
     private ILogger<DefaultContinueEndpointHandler> Logger { get; } = logger;
-    private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private IContinueProviderSelector ContinueProviderSelector { get; } = continueProviderSelector;
 
@@ -63,7 +60,6 @@ internal class DefaultContinueEndpointHandler(
 
     private async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
-        [FromServices] IMediator mediator,
         [FromQuery] string? state,
         CancellationToken cancellationToken
     )
@@ -74,11 +70,7 @@ internal class DefaultContinueEndpointHandler(
             return TypedResults.BadRequest();
         }
 
-        var openIdContext = await ContextFactory.CreateAsync(
-            httpContext,
-            mediator,
-            cancellationToken
-        );
+        var openIdContext = httpContext.GetOpenIdContext();
 
         var tenantId = openIdContext.Tenant.TenantId;
 

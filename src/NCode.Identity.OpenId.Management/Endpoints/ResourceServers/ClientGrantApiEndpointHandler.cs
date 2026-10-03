@@ -23,11 +23,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
@@ -50,13 +50,11 @@ internal class ClientGrantApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     IClientGrantValidator clientGrantValidator,
-    IAmbientTenantAccessor ambientTenantAccessor,
     ICryptoService cryptoService
 ) : BaseApiEndpointHandler, IManagementEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IClientGrantValidator ClientGrantValidator { get; } = clientGrantValidator;
-    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
@@ -67,10 +65,7 @@ internal class ClientGrantApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var grants = endpoints
-            .MapGroup("/clients/{clientId}/grants")
-            .AddEndpointFilter<AmbientTenantScopeEndpointFilter>()
-            .WithTags("ClientGrants");
+        var grants = endpoints.MapGroup("/clients/{clientId}/grants").WithTags("ClientGrants");
 
         grants.MapGet("", ListAsync).Produces<CollectionResource<ClientGrantResource>>();
         grants
@@ -106,7 +101,7 @@ internal class ClientGrantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         var effectiveLimit = NormalizeLimit(limit);
 
         return await ProcessListAsync(
@@ -159,7 +154,7 @@ internal class ClientGrantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var grantStore = storeManager.GetStore<IClientGrantStore>();

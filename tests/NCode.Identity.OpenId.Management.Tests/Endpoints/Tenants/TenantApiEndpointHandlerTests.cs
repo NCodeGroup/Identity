@@ -162,7 +162,14 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var identity = authenticated
             ? new ClaimsIdentity(authenticationType: "test")
             : new ClaimsIdentity();
-        return new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        // The shared environment filter publishes the context in the pipeline; emulate it for direct handler calls.
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature =>
+                feature.OpenIdContext == Mock.Of<OpenIdContext>()
+            )
+        );
+        return httpContext;
     }
 
     private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
@@ -844,7 +851,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateTenantAsync(
             httpContext,
-            Mock.Of<OpenIdContext>(),
             CreateTenantRequest(),
             CancellationToken.None
         );
@@ -879,7 +885,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateTenantAsync(
             httpContext,
-            Mock.Of<OpenIdContext>(),
             CreateTenantRequest(),
             CancellationToken.None
         );

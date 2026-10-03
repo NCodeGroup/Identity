@@ -237,11 +237,12 @@ internal class TenantApiEndpointHandler(
     [EndpointName("api/tenants/create")]
     internal virtual async ValueTask<IResult> CreateTenantAsync(
         HttpContext httpContext,
-        OpenIdContext openIdContext,
         [FromBody] CreateTenantRequest request,
         CancellationToken cancellationToken
     )
     {
+        var openIdContext = httpContext.GetOpenIdContext();
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 

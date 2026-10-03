@@ -23,11 +23,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Grants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Grants;
@@ -47,13 +47,11 @@ DELETE api/grants/{grantId}
 internal class GrantApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
-    IAmbientTenantAccessor ambientTenantAccessor,
     TimeProvider timeProvider,
     ICryptoService cryptoService
 ) : BaseApiEndpointHandler, IManagementEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
@@ -65,12 +63,7 @@ internal class GrantApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        // The tenant-scope filter establishes the ambient tenant so tenant-scoped data access never materializes
-        // another tenant's grants; a cross-tenant grant is simply not found.
-        var grants = endpoints
-            .MapGroup("/grants")
-            .AddEndpointFilter<AmbientTenantScopeEndpointFilter>()
-            .WithTags("Grants");
+        var grants = endpoints.MapGroup("/grants").WithTags("Grants");
 
         grants.MapGet("", ListGrantsAsync).Produces<CollectionResource<GrantResource>>();
         grants
@@ -124,7 +117,7 @@ internal class GrantApiEndpointHandler(
     )
     {
         // A grant list is scoped to the request's tenant (the query filter enforces it); authorize for that tenant.
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         var effectiveLimit = NormalizeLimit(limit);
 
         return await ProcessListAsync(
@@ -175,7 +168,7 @@ internal class GrantApiEndpointHandler(
             );
         }
 
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
@@ -219,7 +212,7 @@ internal class GrantApiEndpointHandler(
     {
         // Grants carry an optional tenant, so authorization is evaluated against the request's tenant scope (the
         // query filter guarantees a returned grant belongs to that tenant) rather than the grant instance.
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
@@ -259,7 +252,7 @@ internal class GrantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,

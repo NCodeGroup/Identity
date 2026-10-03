@@ -290,7 +290,9 @@ NCode.Identity.OpenId.Contexts.OpenIdContext
 NCode.Identity.OpenId.Contexts.OpenIdContext.DisposeAsync() -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Contexts.OpenIdContext.OpenIdContext() -> void
 NCode.Identity.OpenId.Contexts.OpenIdContextHttpContextExtensions
-static NCode.Identity.OpenId.Contexts.OpenIdContext.BindAsync(Microsoft.AspNetCore.Http.HttpContext! context) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Contexts.OpenIdContext?>
+NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter
+NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.InvokeAsync(Microsoft.AspNetCore.Http.EndpointFilterInvocationContext! context, Microsoft.AspNetCore.Http.EndpointFilterDelegate! next) -> System.Threading.Tasks.ValueTask<object?>
+NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.OpenIdEnvironmentEndpointFilter(NCode.Identity.OpenId.Contexts.IOpenIdContextFactory! openIdContextFactory, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor! ambientTenantAccessor) -> void
 static NCode.Identity.OpenId.Contexts.OpenIdContextHttpContextExtensions.GetOpenIdContext(this Microsoft.AspNetCore.Http.HttpContext! httpContext) -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 static NCode.Identity.OpenId.Contexts.OpenIdContextHttpContextExtensions.GetOpenIdContextOrDefault(this Microsoft.AspNetCore.Http.HttpContext! httpContext) -> NCode.Identity.OpenId.Contexts.OpenIdContext?
 NCode.Identity.OpenId.Environments.IOpenIdEnvironmentFactory

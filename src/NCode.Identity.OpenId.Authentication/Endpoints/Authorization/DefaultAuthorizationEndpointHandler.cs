@@ -48,14 +48,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 /// </summary>
 internal class DefaultAuthorizationEndpointHandler(
     ILogger<DefaultAuthorizationEndpointHandler> logger,
-    IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService,
     IAuthorizationEndpointLogic authorizationEndpointLogic,
     IKnownParameterCollectionProvider knownParameterCollectionProvider
 ) : IOpenIdEndpointProvider
 {
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
-    private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } =
         clientAuthenticationService;
     private IAuthorizationEndpointLogic AuthorizationEndpointLogic { get; } =
@@ -114,11 +112,7 @@ internal class DefaultAuthorizationEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = await ContextFactory.CreateAsync(
-            httpContext,
-            mediator,
-            cancellationToken
-        );
+        var openIdContext = httpContext.GetOpenIdContext();
 
         var errorFactory = openIdContext.ErrorFactory;
 

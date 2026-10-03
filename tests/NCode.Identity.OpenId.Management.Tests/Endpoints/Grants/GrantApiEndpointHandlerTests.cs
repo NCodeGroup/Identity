@@ -22,11 +22,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Grants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -42,7 +43,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IGrantStore> MockGrantStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
-    private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private GrantApiEndpointHandler Handler { get; }
 
@@ -53,13 +53,11 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockGrantStore = MockRepository.Create<IGrantStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
-        MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
 
         Handler = new GrantApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
-            MockAmbientTenantAccessor.Object,
             TimeProvider.System,
             MockCryptoService.Object
         );
@@ -106,7 +104,17 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         var identity = authenticated
             ? new ClaimsIdentity(authenticationType: "test")
             : new ClaimsIdentity();
-        return new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        // The shared environment filter publishes the context in the pipeline; emulate it for direct handler calls.
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature =>
+                feature.OpenIdContext
+                == Mock.Of<OpenIdContext>(context =>
+                    context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == TenantId)
+                )
+            )
+        );
+        return httpContext;
     }
 
     private static PersistedGrant CreateGrant(DateTimeOffset? revokedWhen = null) =>
@@ -133,7 +141,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task ListGrantsAsync_WhenAuthorized_ReturnsPage()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockGrantStore
@@ -165,7 +172,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task ListGrantsAsync_WhenFiltered_PassesSubjectAndClientToStore()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockGrantStore
@@ -201,7 +207,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task ListGrantsAsync_WhenForbidden_ReturnsForbidWithoutQueryingStore()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -243,7 +248,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task RevokeGrantsAsync_WhenAuthorized_RevokesAndReturnsCount()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockGrantStore
@@ -278,7 +282,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task RevokeGrantsAsync_WhenForbidden_ReturnsForbidWithoutQueryingStore()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -300,7 +303,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task GetGrantAsync_WhenFoundAndAuthorized_ReturnsJson()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockGrantStore
@@ -320,7 +322,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task GetGrantAsync_WhenNotFound_ReturnsNotFound()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockGrantStore
@@ -338,7 +339,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task GetGrantAsync_WhenForbidden_ReturnsForbidWithoutQueryingStore()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -355,7 +355,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task RevokeGrantAsync_WhenActive_SoftRevokesAndReturnsNoContent()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
 
@@ -384,7 +383,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task RevokeGrantAsync_WhenAlreadyRevoked_ReturnsNoContentWithoutUpdate()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
 
@@ -405,7 +403,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task RevokeGrantAsync_WhenNotFound_ReturnsNotFound()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockGrantStore
@@ -423,7 +420,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task RevokeGrantAsync_WhenForbidden_ReturnsForbidWithoutQueryingStore()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);

@@ -29,7 +29,7 @@ using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -46,7 +46,6 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private Mock<IResourceServerStore> MockStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<IResourceServerValidator> MockValidator { get; }
-    private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private ResourceServerApiEndpointHandler Handler { get; }
@@ -59,8 +58,6 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockStore = MockRepository.Create<IResourceServerStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockValidator = MockRepository.Create<IResourceServerValidator>();
-        MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId);
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -81,7 +78,6 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockValidator.Object,
-            MockAmbientTenantAccessor.Object,
             MockCryptoService.Object,
             MockResourceOwnershipService.Object,
             NullLogger<ResourceServerApiEndpointHandler>.Instance
@@ -117,11 +113,23 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
-    private static HttpContext CreateHttpContext() =>
-        new DefaultHttpContext
+    private static HttpContext CreateHttpContext()
+    {
+        var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(new ClaimsIdentity(authenticationType: "test")),
         };
+        // The shared environment filter publishes the context in the pipeline; emulate it for direct handler calls.
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature =>
+                feature.OpenIdContext
+                == Mock.Of<OpenIdContext>(context =>
+                    context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == TenantId)
+                )
+            )
+        );
+        return httpContext;
+    }
 
     private static PersistedResourceServer CreateResourceServer(
         bool isSystem = false,
@@ -143,7 +151,6 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task ListAsync_WhenAuthorized_ReturnsPage()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
@@ -173,7 +180,6 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateAsync_WhenAuthorized_ReturnsCreated()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         MockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
             .Returns("generated-rs-id")
@@ -211,7 +217,6 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateAsync(
             CreateHttpContext(),
-            Mock.Of<OpenIdContext>(),
             request,
             CancellationToken.None
         );

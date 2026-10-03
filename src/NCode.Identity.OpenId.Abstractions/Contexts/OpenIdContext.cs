@@ -74,16 +74,6 @@ public abstract class OpenIdContext : IAsyncDisposable
     /// </summary>
     public abstract string EndpointName { get; }
 
-    /// <summary>
-    /// Binds the ambient <see cref="OpenIdContext"/> as a minimal-API endpoint parameter, so any OpenID endpoint can
-    /// receive it directly without extra plumbing. The OpenID pipeline publishes the context on the request at entry.
-    /// </summary>
-    /// <param name="context">The <see cref="HttpContext"/> for the current request.</param>
-    /// <returns>The ambient <see cref="OpenIdContext"/>, or <c>null</c> when the request has not entered the OpenID
-    /// pipeline.</returns>
-    public static ValueTask<OpenIdContext?> BindAsync(HttpContext context) =>
-        ValueTask.FromResult(context.GetOpenIdContextOrDefault());
-
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {

@@ -25,7 +25,7 @@ using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Authentication.Servers;
+namespace NCode.Identity.OpenId.Servers;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdServer"/> abstraction.

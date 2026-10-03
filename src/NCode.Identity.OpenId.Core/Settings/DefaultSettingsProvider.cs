@@ -19,7 +19,7 @@
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 
-namespace NCode.Identity.OpenId.Authentication.Settings;
+namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides the built-in, off-the-shelf baseline for the <c>*_supported</c> server settings so that a host

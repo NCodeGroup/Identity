@@ -22,7 +22,7 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;
 
-namespace NCode.Identity.OpenId.Authentication.Servers;
+namespace NCode.Identity.OpenId.Servers;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdServerProvider"/> abstraction.

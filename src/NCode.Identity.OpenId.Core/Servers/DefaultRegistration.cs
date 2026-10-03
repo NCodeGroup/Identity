@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2025 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,35 +17,30 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.OpenId.Tenants;
 using NCode.Registration;
 
-namespace NCode.Identity.OpenId.Authentication.Tenants;
+namespace NCode.Identity.OpenId.Servers;
 
 /// <summary>
-/// Provides extension methods to configure services and handlers for OpenId Tenant services.
+/// Provides extension methods to configure services for the OpenID server.
 /// </summary>
 internal static class DefaultRegistration
 {
-    /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
-    extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
+    /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdCoreLibrary"/>.</param>
+    extension(IServiceBuilder<OpenIdCoreLibrary> builder)
     {
         /// <summary>
-        /// Configures services and handlers for OpenId Tenant services.
+        /// Configures the OpenID server services.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
-        public IServiceBuilder<OpenIdAuthenticationLibrary> AddTenantServices()
+        public IServiceBuilder<OpenIdCoreLibrary> AddServerServices()
         {
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.AddMemoryCache();
-
-            serviceCollection.TryAddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
-
-            serviceCollection.TryAddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
+            serviceCollection.TryAddSingleton<IOpenIdServerFactory, DefaultOpenIdServerFactory>();
+            serviceCollection.TryAddSingleton<IOpenIdServerProvider, DefaultOpenIdServerProvider>();
 
             return builder;
         }

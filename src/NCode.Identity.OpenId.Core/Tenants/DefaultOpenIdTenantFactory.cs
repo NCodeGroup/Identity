@@ -40,7 +40,7 @@ using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Authentication.Tenants;
+namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Provides the default implementation of the <see cref="IOpenIdTenantFactory"/> abstraction. Tenant selection is

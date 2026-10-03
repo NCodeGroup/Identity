@@ -25,7 +25,7 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 
-namespace NCode.Identity.OpenId.Authentication.Settings;
+namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> for a collection of <see cref="Setting"/> instances

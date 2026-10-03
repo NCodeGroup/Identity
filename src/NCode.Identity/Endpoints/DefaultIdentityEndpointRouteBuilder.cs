@@ -17,7 +17,9 @@
 #endregion
 
 using System.Collections.Immutable;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace NCode.Identity.Endpoints;
 
@@ -25,10 +27,13 @@ namespace NCode.Identity.Endpoints;
 /// Provides a default implementation of the <see cref="IIdentityEndpointRouteBuilder"/> abstraction.
 /// </summary>
 internal class DefaultIdentityEndpointRouteBuilder(
+    IEnumerable<IEndpointGroup> endpointGroups,
     IEnumerable<IEndpointGroupProvider> endpointGroupProviders,
     IEnumerable<IEndpointProvider> endpointProviders
 ) : IIdentityEndpointRouteBuilder
 {
+    private ImmutableArray<IEndpointGroup> EndpointGroups { get; } = [.. endpointGroups];
+
     private ImmutableArray<IEndpointGroupProvider> EndpointGroupProviders { get; } =
     [.. endpointGroupProviders];
 
@@ -37,7 +42,11 @@ internal class DefaultIdentityEndpointRouteBuilder(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        // Grouped families (e.g. OpenID) own their own route group and conventions.
+        // Named groups own their route group and conventions; each is materialized parent-first and its keyed
+        // IEndpointProvider children are mapped into it.
+        MapNamedGroups(endpoints);
+
+        // Grouped families that still own their mapping imperatively (legacy IEndpointGroupProvider).
         foreach (var endpointGroupProvider in EndpointGroupProviders)
         {
             endpointGroupProvider.Map(endpoints);
@@ -47,6 +56,49 @@ internal class DefaultIdentityEndpointRouteBuilder(
         foreach (var endpointProvider in EndpointProviders)
         {
             endpointProvider.Map(endpoints);
+        }
+    }
+
+    private void MapNamedGroups(IEndpointRouteBuilder endpoints)
+    {
+        if (EndpointGroups.IsEmpty)
+        {
+            return;
+        }
+
+        var serviceProvider = endpoints.ServiceProvider;
+        var groupsByName = EndpointGroups.ToDictionary(group => group.Name, StringComparer.Ordinal);
+        var built = new Dictionary<string, RouteGroupBuilder>(StringComparer.Ordinal);
+
+        RouteGroupBuilder Build(string name)
+        {
+            if (built.TryGetValue(name, out var existing))
+            {
+                return existing;
+            }
+
+            var group = groupsByName[name];
+            IEndpointRouteBuilder parent = group.ParentName is null
+                ? endpoints
+                : Build(group.ParentName);
+
+            var routeGroup = parent.MapGroup(group.Prefix);
+            group.Configure(routeGroup);
+            built[name] = routeGroup;
+            return routeGroup;
+        }
+
+        foreach (var group in EndpointGroups)
+        {
+            var routeGroup = Build(group.Name);
+            foreach (
+                var endpointProvider in serviceProvider.GetKeyedServices<IEndpointProvider>(
+                    group.Name
+                )
+            )
+            {
+                endpointProvider.Map(routeGroup);
+            }
         }
     }
 }

@@ -48,6 +48,35 @@ public static class EndpointProviderRegistration
         }
 
         /// <summary>
+        /// Registers an <see cref="IEndpointProvider"/> implementation to be mapped into the named
+        /// <see cref="IEndpointGroup"/> identified by <paramref name="groupName"/> rather than onto the root endpoint
+        /// route builder.
+        /// </summary>
+        /// <param name="groupName">The <see cref="IEndpointGroup.Name"/> of the group the provider is mapped into.</param>
+        public void AddEndpointProvider<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T
+        >(string groupName)
+            where T : class, IEndpointProvider
+        {
+            var serviceCollection = builder.ServiceCollection;
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.KeyedSingleton<IEndpointProvider, T>(groupName)
+            );
+        }
+
+        /// <summary>
+        /// Registers an <see cref="IEndpointGroup"/> that declares a named node in the endpoint route-group hierarchy.
+        /// </summary>
+        public void AddEndpointGroup<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T
+        >()
+            where T : class, IEndpointGroup
+        {
+            var serviceCollection = builder.ServiceCollection;
+            serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IEndpointGroup, T>());
+        }
+
+        /// <summary>
         /// Registers an <see cref="IEndpointGroupProvider"/> implementation.
         /// </summary>
         public void AddEndpointGroupProvider<

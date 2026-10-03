@@ -19,14 +19,11 @@
 using JetBrains.Annotations;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Messages;
-using NCode.Identity.OpenId.Authentication.Servers;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Subject;
-using NCode.Identity.OpenId.Authentication.Tenants;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Mediator;
 using NCode.Registration;
@@ -58,14 +55,11 @@ public static class DefaultRegistration
 
             newBuilder
                 .AddClientServices()
-                .AddContextServices()
+                .AddClientSettingServices()
                 .AddEndpoints()
                 .AddLogicServices()
                 .AddMessageServices()
-                .AddServerServices()
-                .AddSettingServices()
                 .AddSubjectServices()
-                .AddTenantServices()
                 .AddTokenServices();
 
             return newBuilder;

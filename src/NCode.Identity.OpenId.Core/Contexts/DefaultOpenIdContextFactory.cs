@@ -26,7 +26,7 @@ using NCode.Identity.OpenId.Tenants;
 using NCode.Mediator;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Authentication.Contexts;
+namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdContextFactory"/> abstraction.

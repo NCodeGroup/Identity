@@ -25,7 +25,7 @@ using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Authentication.Tenants;
+namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdTenant"/> abstraction.

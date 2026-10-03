@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2025 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,25 +18,24 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.OpenId.Contexts;
 using NCode.Registration;
 
-namespace NCode.Identity.OpenId.Authentication.Contexts;
+namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
-/// Provides extension methods to configure services and handlers for OpenId Context services.
+/// Provides extension methods to configure services for the OpenID request context.
 /// </summary>
 internal static class DefaultRegistration
 {
-    /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdAuthenticationLibrary"/>.</param>
-    extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
+    /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="OpenIdCoreLibrary"/>.</param>
+    extension(IServiceBuilder<OpenIdCoreLibrary> builder)
     {
         /// <summary>
-        /// Configures services and handlers for OpenId Context services.
+        /// Configures the OpenID request-context services.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
-        public IServiceBuilder<OpenIdAuthenticationLibrary> AddContextServices()
+        public IServiceBuilder<OpenIdCoreLibrary> AddContextServices()
         {
             var serviceCollection = builder.ServiceCollection;
 

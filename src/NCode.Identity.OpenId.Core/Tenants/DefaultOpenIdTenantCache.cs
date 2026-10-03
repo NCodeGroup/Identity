@@ -26,7 +26,7 @@ using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Authentication.Tenants;
+namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdTenantCache"/> abstraction that uses <see cref="IMemoryCache"/>

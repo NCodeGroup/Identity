@@ -50,6 +50,11 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<ITenantResolver, DefaultTenantResolver>();
 
+            // The materialized tenant (settings + secrets, merged server->tenant) and its cache (ADR-0036).
+            serviceCollection.AddMemoryCache();
+            serviceCollection.TryAddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
+            serviceCollection.TryAddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
+
             serviceCollection.TryAddSingleton<
                 ISystemResourceServerSeeder,
                 DefaultSystemResourceServerSeeder

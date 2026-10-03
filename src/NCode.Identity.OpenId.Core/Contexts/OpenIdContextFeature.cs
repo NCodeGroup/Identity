@@ -20,7 +20,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;
 
-namespace NCode.Identity.OpenId.Authentication.Contexts;
+namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdContextFeature"/> abstraction.

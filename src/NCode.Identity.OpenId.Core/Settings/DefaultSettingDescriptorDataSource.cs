@@ -17,23 +17,19 @@
 #endregion
 
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 
-namespace NCode.Identity.OpenId.Authentication.Settings;
+namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides the default implementation for a data source collection of <see cref="SettingDescriptor"/> instances supported by this library.
 /// </summary>
-internal class DefaultSettingDescriptorDataSource(
-    INullChangeToken nullChangeToken,
-    IServiceProvider serviceProvider
-) : ICollectionDataSource<SettingDescriptor>
+internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeToken)
+    : ICollectionDataSource<SettingDescriptor>
 {
     private const bool IsStdDiscoverable = true;
     private const bool IsNonStdDiscoverable = false;
@@ -62,19 +58,6 @@ internal class DefaultSettingDescriptorDataSource(
     ) => current.Intersect(other).ToList();
 
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
-
-    private IServiceProvider ServiceProvider { get; } = serviceProvider;
-
-    private List<string>? AuthMethodsOrNull { get; set; }
-    private List<string> AuthMethods => AuthMethodsOrNull ??= GetAuthMethods();
-
-    private List<string> GetAuthMethods()
-    {
-        return ServiceProvider
-            .GetServices<IClientAuthenticationHandler>()
-            .Select(handler => handler.AuthenticationMethod)
-            .ToList();
-    }
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken;
@@ -628,16 +611,6 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = false,
                 OnMerge = Replace,
-            };
-
-            // token_endpoint_auth_methods_supported
-            yield return new SettingDescriptor<IReadOnlyCollection<string>>
-            {
-                Name = OpenIdSettingNames.TokenEndpointAuthMethodsSupported,
-                Default = AuthMethods,
-
-                IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect,
             };
 
             // token_endpoint_auth_signing_alg_values_supported

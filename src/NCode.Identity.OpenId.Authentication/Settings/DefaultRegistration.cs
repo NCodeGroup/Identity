@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2025 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,14 +20,14 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
-using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Settings;
 
 /// <summary>
-/// Provides extension methods to configure services and handlers for OpenId Setting services.
+/// Provides extension methods to contribute the authentication slice's protocol-specific setting descriptors to the
+/// shared, composable setting-descriptor catalog.
 /// </summary>
 internal static class DefaultRegistration
 {
@@ -35,23 +35,19 @@ internal static class DefaultRegistration
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
         /// <summary>
-        /// Configures services and handlers for OpenId Setting services.
+        /// Contributes the client-authentication-dependent setting descriptors to the catalog.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
-        public IServiceBuilder<OpenIdAuthenticationLibrary> AddSettingServices()
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddClientSettingServices()
         {
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICollectionDataSource<SettingDescriptor>,
-                    DefaultSettingDescriptorDataSource
+                    DefaultClientSettingDescriptorDataSource
                 >()
-            );
-
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IDefaultSettingsProvider, DefaultSettingsProvider>()
             );
 
             return builder;

@@ -25,12 +25,12 @@ using NCode.Collections.Providers;
 using NCode.Collections.Providers.PeriodicPolling;
 using NCode.Disposables;
 using NCode.Identity.OpenId;
-using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -40,7 +40,7 @@ using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Authentication.Servers;
+namespace NCode.Identity.OpenId.Servers;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdServerFactory"/> abstraction.

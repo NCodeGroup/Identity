@@ -22,6 +22,7 @@ using NCode.Collections.Providers;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
+using static NCode.Identity.Settings.SettingMerge;
 
 namespace NCode.Identity.OpenId.Settings;
 
@@ -33,29 +34,6 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
 {
     private const bool IsStdDiscoverable = true;
     private const bool IsNonStdDiscoverable = false;
-
-    /// <summary>
-    /// Provides a merge function that returns the logical <c>AND</c> of the two values.
-    /// </summary>
-    public static bool And(bool current, bool other) => current && other;
-
-    /// <summary>
-    /// Provides a merge function that returns the logical <c>OR</c> of the two values.
-    /// </summary>
-    public static bool Or(bool current, bool other) => current || other;
-
-    /// <summary>
-    /// Provides a merge function that always returns the other value.
-    /// </summary>
-    public static TValue Replace<TValue>(TValue _, TValue other) => other;
-
-    /// <summary>
-    /// Provides a merge function that returns the intersection of the two collections.
-    /// </summary>
-    public static List<TItem> Intersect<TItem>(
-        IEnumerable<TItem> current,
-        IEnumerable<TItem> other
-    ) => current.Intersect(other).ToList();
 
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
 
@@ -114,7 +92,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Or,
             };
 
             // federated_identity_explicit_only (ADR-0035)
@@ -124,7 +102,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Or,
             };
 
             // access_token_encryption_alg_values_supported
@@ -152,7 +130,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Or,
             };
 
             // access_token_encryption_zip_values_supported
@@ -171,7 +149,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = TimeSpan.FromMinutes(5.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Min,
             };
 
             // access_token_signing_alg_values_supported
@@ -209,7 +187,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = And,
             };
 
             // allow_plain_code_challenge_method
@@ -219,7 +197,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = And,
             };
 
             // allow_unsafe_token_response
@@ -229,17 +207,16 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = And,
             };
 
             // allowed_identity_providers
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AllowedIdentityProviders,
-                Default = [],
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Intersect,
             };
 
             // authorization_authenticate_scheme
@@ -275,7 +252,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = TimeSpan.FromMinutes(5.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Min,
             };
 
             // claims_locales_supported
@@ -294,7 +271,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = false, // TODO: this is still a WIP
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = And,
             };
 
             // claims_supported
@@ -321,7 +298,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Or,
             };
 
             // claim_types_supported
@@ -341,7 +318,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = TimeSpan.FromMinutes(5),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Min,
             };
 
             // continue_authorization_lifetime
@@ -351,7 +328,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = TimeSpan.FromMinutes(15),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Min,
             };
 
             // display_values_supported
@@ -397,7 +374,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Or,
             };
 
             // id_token_encryption_zip_values_supported
@@ -416,7 +393,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = TimeSpan.FromMinutes(5.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Min,
             };
 
             // id_token_signing_alg_values_supported
@@ -481,7 +458,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = TimeSpan.FromDays(30.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Min,
             };
 
             // refresh_token_rotation_enabled
@@ -491,7 +468,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Or,
             };
 
             // request_object_encryption_alg_values_supported
@@ -547,7 +524,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = true,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = And,
             };
 
             // request_uri_parameter_supported
@@ -557,7 +534,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = true,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = And,
             };
 
             // request_uri_require_strict_content_type
@@ -567,7 +544,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Or,
             };
 
             // request_uri_expected_content_type
@@ -587,7 +564,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Or,
             };
 
             // require_request_uri_registration
@@ -596,7 +573,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Name = OpenIdSettingNames.RequireRequestUriRegistration,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Or,
             };
 
             // response_modes_supported
@@ -643,7 +620,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Name = OpenIdSettingNames.SubjectMaxAge,
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Min,
             };
 
             // subject_type
@@ -661,7 +638,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Name = OpenIdSettingNames.SubjectTypesSupported,
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Replace,
+                OnMerge = Intersect,
             };
 
             // tenant_issuer
@@ -670,7 +647,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 Name = OpenIdSettingNames.TenantIssuer,
 
                 IsDiscoverable = false,
-                OnMerge = Replace,
+                OnMerge = Keep,
             };
 
             // token_endpoint_auth_signing_alg_values_supported

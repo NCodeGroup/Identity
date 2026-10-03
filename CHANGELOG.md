@@ -105,6 +105,17 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- Setting merge is now a first-class policy expressed through a public `SettingMerge` vocabulary of lattice dual pairs
+  (`Min`/`Max`, `And`/`Or`, `Intersect`/`Union`, `Keep`/`Replace`) in `NCode.Identity.Abstractions`, so host-authored
+  descriptors reuse it. Each built-in setting is mapped to a **ceiling** (a parent caps the child), a **floor** (a
+  parent sets an un-loosenable minimum), or an **override**, chosen by the setting's value polarity. A more-specific
+  scope (tenant/client) can no longer loosen a broader scope's security-relevant setting: token/code lifetimes,
+  `clock_skew`, and `subject_max_age` are ceilings a child may only shorten; `require_pkce`, the `*_encryption_required`
+  flags, `claims_supported_is_strict`, `refresh_token_rotation_enabled`, and the `federated_identity_*` requirement
+  flags are floors; `allow_*` and `request(_uri)_parameter_supported` are ceilings; `allowed_identity_providers` and
+  `subject_types_supported` merge as intersect ceilings; and `tenant_issuer` is parent-owned (`Keep`).
+  `allowed_identity_providers` is now fail-closed — unset means unrestricted, but an explicit (or narrowed-to-empty)
+  allowlist denies every IdP. See [ADR-0038](docs/adr/0038-setting-merge-lattice-duals.md).
 - Probe the tenant cache before reading the tenant store on the resolution hot path. `ITenantResolver` and
   `ITenantStrategy` gain `TryGetTenantId(httpContext, out tenantId)`, a store-free identity probe satisfied by the
   static-single (configured id) and dynamic-by-path (route value) strategies; `DefaultOpenIdTenantFactory` uses it to

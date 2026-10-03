@@ -22,26 +22,19 @@ using Microsoft.AspNetCore.Routing;
 namespace NCode.Identity.Endpoints;
 
 /// <summary>
-/// Declares a named node in the endpoint route-group hierarchy: its relative <see cref="Prefix"/>, its optional
-/// <see cref="ParentName"/>, and the conventions (such as endpoint filters) applied to the resulting
-/// <see cref="RouteGroupBuilder"/>. The route builder materializes each group parent-first and maps every
-/// <see cref="IEndpointProvider"/> registered under the group's <see cref="Name"/> into it, so a prefix and its shared
-/// filters are declared exactly once and child families inherit them.
+/// Declares a node in the endpoint route-group hierarchy: its relative <see cref="Prefix"/>, the conventions applied to
+/// its <see cref="RouteGroupBuilder"/> (via <see cref="Configure"/>), and the endpoints and child groups it contains
+/// (via <see cref="Build"/>). A group owns its own contents: registering a root group recursively registers the whole
+/// subtree, and the route builder materializes each group parent-first and maps every endpoint registered under it, so
+/// a prefix, its shared filters, and its children are all declared in one place.
 /// </summary>
 [PublicAPI]
 public interface IEndpointGroup
 {
     /// <summary>
-    /// Gets the unique name of the group; this is the key under which an <see cref="IEndpointProvider"/> is registered
-    /// to be mapped into the group.
+    /// Gets the unique name of the group; endpoints and child groups are registered under this name.
     /// </summary>
     string Name { get; }
-
-    /// <summary>
-    /// Gets the <see cref="Name"/> of the parent group this group nests under, or <c>null</c> when the group is rooted
-    /// directly on the top-level endpoint route builder.
-    /// </summary>
-    string? ParentName { get; }
 
     /// <summary>
     /// Gets the relative route prefix for the group (for example, <c>/api</c> or <c>/tenants/{tenantId}</c>). An empty
@@ -50,8 +43,16 @@ public interface IEndpointGroup
     string Prefix { get; }
 
     /// <summary>
-    /// Applies the group's shared conventions (such as endpoint filters) to the created <see cref="RouteGroupBuilder"/>.
+    /// Applies the group's shared conventions (such as endpoint filters) to its <see cref="RouteGroupBuilder"/>. The
+    /// default implementation applies none.
     /// </summary>
     /// <param name="group">The <see cref="RouteGroupBuilder"/> created for this group.</param>
-    void Configure(RouteGroupBuilder group);
+    void Configure(RouteGroupBuilder group) { }
+
+    /// <summary>
+    /// Declares the endpoints and child groups contained by this group via the supplied
+    /// <see cref="IEndpointGroupBuilder"/>. The default implementation declares none.
+    /// </summary>
+    /// <param name="builder">The <see cref="IEndpointGroupBuilder"/> scoped to this group.</param>
+    void Build(IEndpointGroupBuilder builder) { }
 }

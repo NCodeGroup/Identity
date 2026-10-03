@@ -38,9 +38,14 @@ internal class DefaultIdentityEndpointRouteBuilder(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        // Named groups own their route group and conventions; each is materialized parent-first and its keyed
-        // IEndpointProvider children are mapped into it.
-        MapNamedGroups(endpoints);
+        var serviceProvider = endpoints.ServiceProvider;
+
+        // Each root group owns its subtree: it is materialized, then its endpoints and child groups are mapped into it
+        // recursively (both resolved keyed by the group's name).
+        foreach (var group in EndpointGroups)
+        {
+            MapGroup(group, endpoints, serviceProvider);
+        }
 
         // Ungrouped providers map directly onto the root.
         foreach (var endpointProvider in EndpointProviders)
@@ -49,46 +54,25 @@ internal class DefaultIdentityEndpointRouteBuilder(
         }
     }
 
-    private void MapNamedGroups(IEndpointRouteBuilder endpoints)
+    private static void MapGroup(
+        IEndpointGroup group,
+        IEndpointRouteBuilder parent,
+        IServiceProvider serviceProvider
+    )
     {
-        if (EndpointGroups.IsEmpty)
+        var routeGroup = parent.MapGroup(group.Prefix);
+        group.Configure(routeGroup);
+
+        foreach (
+            var endpointProvider in serviceProvider.GetKeyedServices<IEndpointProvider>(group.Name)
+        )
         {
-            return;
+            endpointProvider.Map(routeGroup);
         }
 
-        var serviceProvider = endpoints.ServiceProvider;
-        var groupsByName = EndpointGroups.ToDictionary(group => group.Name, StringComparer.Ordinal);
-        var built = new Dictionary<string, RouteGroupBuilder>(StringComparer.Ordinal);
-
-        RouteGroupBuilder Build(string name)
+        foreach (var childGroup in serviceProvider.GetKeyedServices<IEndpointGroup>(group.Name))
         {
-            if (built.TryGetValue(name, out var existing))
-            {
-                return existing;
-            }
-
-            var group = groupsByName[name];
-            IEndpointRouteBuilder parent = group.ParentName is null
-                ? endpoints
-                : Build(group.ParentName);
-
-            var routeGroup = parent.MapGroup(group.Prefix);
-            group.Configure(routeGroup);
-            built[name] = routeGroup;
-            return routeGroup;
-        }
-
-        foreach (var group in EndpointGroups)
-        {
-            var routeGroup = Build(group.Name);
-            foreach (
-                var endpointProvider in serviceProvider.GetKeyedServices<IEndpointProvider>(
-                    group.Name
-                )
-            )
-            {
-                endpointProvider.Map(routeGroup);
-            }
+            MapGroup(childGroup, routeGroup, serviceProvider);
         }
     }
 }

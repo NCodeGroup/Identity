@@ -72,12 +72,19 @@ Everything follows from that rule:
   ([ADR-0031](0031-control-plane-management-resource-server-and-root-tenant-seeding.md),
   [ADR-0034](0034-persisted-role-assignments-and-ownership.md)); `default` remains the workload tenant. This ADR changes
   how the management surface is routed and scoped, not the tenancy model.
-- **Route-group composition is declarative and unified across both planes.** Groups are named `IEndpointGroup` nodes
-  (`Name`, `ParentName`, `Prefix`, and a `Configure` that attaches filters); endpoint providers register **keyed by
-  group name**, and the route builder materializes each group parent-first (memoized) and maps that group's keyed
-  `IEndpointProvider` children into it. Both the management hierarchy above and the OpenID protocol surface (a single
-  `openid` group with an empty prefix that installs the environment and exception filters) compose through this one
-  mechanism, replacing the imperative `IEndpointGroupProvider` tier of [ADR-0009](0009-endpoint-families-own-their-route-group.md).
+- **Route-group composition is declarative, hierarchical, and unified across both planes.** Groups are named
+  `IEndpointGroup` nodes that **own their contents**: each exposes a `Name` and `Prefix`, an optional `Configure` that
+  attaches route-group filters, and a `Build(IEndpointGroupBuilder)` that declares — colocated in the group itself —
+  the endpoints (`AddEndpoint<T>()`) and child groups (`AddGroup<T>()`) it contains. Registering a single root group
+  (`AddEndpointGroup<ManagementRootGroup>()`) walks that declaration and registers the whole subtree: endpoints are
+  keyed by their owning group's name, and each child group is registered keyed by its parent's name and then asked to
+  `Build` its own subtree in turn. The route builder materializes each root and recurses — creating the group with its
+  `Prefix`, running `Configure`, mapping the group's keyed `IEndpointProvider` children into it, then descending into
+  the group's keyed child `IEndpointGroup` nodes. Both the management hierarchy above and the OpenID protocol surface
+  (a single `openid` group with an empty prefix that installs the environment and exception filters) compose through
+  this one mechanism, replacing the imperative `IEndpointGroupProvider` tier of
+  [ADR-0009](0009-endpoint-families-own-their-route-group.md). A group's hierarchy and its contents are declared in one
+  place, so there is no separate, disjoint list of which endpoint belongs to which group.
 
 ## Options considered
 
@@ -107,15 +114,18 @@ Everything follows from that rule:
   "deliberately not by-id" is superseded: all three effective-settings endpoints are now by-id and form one hierarchy.
 - The server/root-tenant identity duplication (the `(Server, rootTenantId)` node is typed `Server` but keyed by the
   root _tenant_ id) is left intact; unifying it is a separate, optional follow-up.
-- The declarative named-group mechanism (`IEndpointGroup` + keyed providers) replaces the imperative
-  `IEndpointGroupProvider` tier across **both** the management and protocol surfaces, so route prefixes and shared
-  filters are declared once per group and there is a single composition mechanism rather than two.
+- The declarative named-group mechanism (`IEndpointGroup` that owns its contents via `Build`, plus keyed providers)
+  replaces the imperative `IEndpointGroupProvider` tier across **both** the management and protocol surfaces, so a
+  group's route prefix, shared filters, endpoints, and child groups are all declared once, colocated in the group, and
+  the entire tree is registered by registering its root. There is a single composition mechanism rather than two, and
+  no separate mapping of endpoints to groups to keep in sync.
 
 ## References
 
-- Code: `ManagementEndpointGroupProvider`, the management environment/scope filter, `OpenIdDbContext.ApplyTenantScopeFilter`,
-  `IAmbientTenantAccessor` / `DefaultAmbientTenantAccessor`, `ClientApiEndpointHandler`, `TenantApiEndpointHandler`,
-  `ServerApiEndpointHandler`, `OwnershipHandler`.
+- Code: `IEndpointGroup` / `IEndpointGroupBuilder` and the `ManagementRootGroup` → `TenantManagementGroup` →
+  `ClientManagementGroup` hierarchy, the `OpenIdEndpointGroup`, the management environment/scope filters,
+  `OpenIdDbContext.ApplyTenantScopeFilter`, `IAmbientTenantAccessor` / `DefaultAmbientTenantAccessor`,
+  `ClientApiEndpointHandler`, `TenantApiEndpointHandler`, `ServerApiEndpointHandler`, `OwnershipHandler`.
 - [ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md) — the persistence-layer ambient-scope query
   filter this builds on.
 - [ADR-0017](0017-tenant-resolution-shared-abstraction-and-management-boundary.md) — the superseded boundary that

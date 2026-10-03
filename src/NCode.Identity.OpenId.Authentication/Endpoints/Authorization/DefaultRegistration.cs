@@ -49,9 +49,6 @@ internal static class DefaultRegistration
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<OpenIdAuthenticationEndpoints> AddAuthorizationEndpoint()
         {
-            // Endpoints
-            builder.AddOpenIdEndpointProvider<DefaultAuthorizationEndpointHandler>();
-
             // Messages
             builder.AddMessageFactory<AuthorizationRequestMessage>();
             builder.AddMessageFactory<AuthorizationRequestObject>();

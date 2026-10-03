@@ -89,7 +89,7 @@ internal class ClientGrantApiEndpointHandler(
         };
 
     /// <summary>
-    /// Handles <c>GET api/clients/{clientId}/grants</c>.
+    /// Handles <c>GET api/tenants/{tenantId}/clients/{clientId}/grants</c>.
     /// </summary>
     [EndpointName("api/clients/grants/list")]
     internal virtual async ValueTask<IResult> ListAsync(
@@ -124,7 +124,7 @@ internal class ClientGrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/clients/{clientId}/grants/{resourceServerId}</c>.
+    /// Handles <c>GET api/tenants/{tenantId}/clients/{clientId}/grants/{resourceServerId}</c>.
     /// </summary>
     [EndpointName("api/clients/grants/get")]
     internal virtual async ValueTask<IResult> GetAsync(
@@ -143,7 +143,7 @@ internal class ClientGrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/clients/{clientId}/grants</c>, authorizing a client to a resource server with scopes.
+    /// Handles <c>POST api/tenants/{tenantId}/clients/{clientId}/grants</c>, authorizing a client to a resource server with scopes.
     /// </summary>
     [EndpointName("api/clients/grants/create")]
     internal virtual async ValueTask<IResult> CreateAsync(
@@ -190,7 +190,7 @@ internal class ClientGrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>PUT api/clients/{clientId}/grants/{resourceServerId}</c>, replacing the granted scopes.
+    /// Handles <c>PUT api/tenants/{tenantId}/clients/{clientId}/grants/{resourceServerId}</c>, replacing the granted scopes.
     /// </summary>
     [EndpointName("api/clients/grants/update")]
     internal virtual async ValueTask<IResult> UpdateAsync(
@@ -237,7 +237,7 @@ internal class ClientGrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/clients/{clientId}/grants/{resourceServerId}</c>, revoking the client's authorization.
+    /// Handles <c>DELETE api/tenants/{tenantId}/clients/{clientId}/grants/{resourceServerId}</c>, revoking the client's authorization.
     /// </summary>
     [EndpointName("api/clients/grants/delete")]
     internal virtual async ValueTask<IResult> DeleteAsync(

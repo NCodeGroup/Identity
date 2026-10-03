@@ -37,8 +37,6 @@ internal static class DefaultRegistration
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<OpenIdAuthenticationEndpoints> AddJwksEndpoint()
         {
-            builder.AddOpenIdEndpointProvider<DefaultJwksEndpointHandler>();
-
             var serviceCollection = builder.ServiceCollection;
 
             // The registry is the single, discoverable source of truth for which EC curves are published.

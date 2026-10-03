@@ -95,10 +95,11 @@ internal class GrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/grants</c>, returning a page of persisted grants in the request's tenant, optionally
+    /// Handles <c>GET api/tenants/{tenantId}/grants</c>, returning a page of persisted grants in the addressed tenant, optionally
     /// filtered to a subject and/or a client.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="subjectId">When specified, restricts the page to grants for this subject.</param>
     /// <param name="clientId">When specified, restricts the page to grants for this client.</param>
     /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
@@ -141,11 +142,12 @@ internal class GrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/grants?subjectId=&amp;clientId=</c>, bulk soft-revoking every active grant in the
-    /// request's tenant that matches the specified subject and/or client. At least one filter is required so a
+    /// Handles <c>DELETE api/tenants/{tenantId}/grants?subjectId=&amp;clientId=</c>, bulk soft-revoking every active grant in the
+    /// addressed tenant that matches the specified subject and/or client. At least one filter is required so a
     /// tenant-wide revoke cannot happen by accident. Revocation is idempotent and the row is retained for audit.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="subjectId">When specified, restricts the revocation to grants for this subject.</param>
     /// <param name="clientId">When specified, restricts the revocation to grants for this client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -195,9 +197,10 @@ internal class GrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/grants/{grantId}</c>, returning the specified persisted grant's metadata.
+    /// Handles <c>GET api/tenants/{tenantId}/grants/{grantId}</c>, returning the specified persisted grant's metadata.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="grantId">The opaque identifier of the grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
@@ -235,10 +238,11 @@ internal class GrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/grants/{grantId}</c>, soft-revoking the specified grant. The grant row is retained for
+    /// Handles <c>DELETE api/tenants/{tenantId}/grants/{grantId}</c>, soft-revoking the specified grant. The grant row is retained for
     /// audit; only its <c>RevokedWhen</c> timestamp is set. Revocation is idempotent.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="grantId">The opaque identifier of the grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>

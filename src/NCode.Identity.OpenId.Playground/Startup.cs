@@ -20,7 +20,7 @@
 using IdGen.DependencyInjection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Management;

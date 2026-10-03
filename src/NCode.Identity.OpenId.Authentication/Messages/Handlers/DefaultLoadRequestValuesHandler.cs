@@ -53,7 +53,8 @@ internal class DefaultLoadRequestValuesHandler
                 !httpRequest.ContentType?.StartsWith(
                     expectedContentType,
                     StringComparison.OrdinalIgnoreCase
-                ) ?? false
+                )
+                ?? false
             )
             {
                 throw errorFactory

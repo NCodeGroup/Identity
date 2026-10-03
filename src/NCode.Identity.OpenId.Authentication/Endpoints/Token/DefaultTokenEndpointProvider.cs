@@ -17,13 +17,13 @@
 
 #endregion
 
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
@@ -69,25 +69,36 @@ internal class DefaultTokenEndpointProvider(
             .Collection.OrderBy(parameter => parameter.Name)
             .ToDictionary(
                 parameter => parameter.Name,
-                _ => new OpenApiSchema
-                {
-                    Type = "string",
-                    Nullable = true,
-                    Default = new OpenApiString(string.Empty),
-                }
+                IOpenApiSchema (_) =>
+                    new OpenApiSchema
+                    {
+                        Type = JsonSchemaType.String | JsonSchemaType.Null,
+                        Default = JsonValue.Create(string.Empty),
+                    }
             );
 
         return new OpenApiOperation
         {
             OperationId = OpenIdConstants.EndpointNames.Token,
-            Tags = [new OpenApiTag { Name = OpenIdConstants.EndpointTags.OpenId }],
+            Tags = new HashSet<OpenApiTagReference>
+            {
+                new(
+                    OpenIdConstants.EndpointTags.OpenId,
+                    hostDocument: null,
+                    externalResource: null
+                ),
+            },
             RequestBody = new OpenApiRequestBody
             {
-                Content = new Dictionary<string, OpenApiMediaType>
+                Content = new Dictionary<string, IOpenApiMediaType>
                 {
-                    [OpenIdConstants.ContentType] = new()
+                    [OpenIdConstants.ContentType] = new OpenApiMediaType
                     {
-                        Schema = new OpenApiSchema { Type = "object", Properties = properties },
+                        Schema = new OpenApiSchema
+                        {
+                            Type = JsonSchemaType.Object,
+                            Properties = properties,
+                        },
                     },
                 },
             },

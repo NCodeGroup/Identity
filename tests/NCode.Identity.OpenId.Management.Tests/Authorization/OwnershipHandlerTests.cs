@@ -18,7 +18,9 @@
 
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -82,21 +84,40 @@ public class OwnershipHandlerTests
         resolver
             .Setup(x =>
                 x.ResolvePrincipalIdOrDefaultAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .ReturnsAsync(
-                (ClaimsPrincipal callerUser, IStoreManager _, CancellationToken _) =>
-                    callerUser.FindFirstValue("sub")
+                (
+                    OpenIdContext _,
+                    ClaimsPrincipal callerUser,
+                    IStoreManager _,
+                    CancellationToken _
+                ) => callerUser.FindFirstValue("sub")
             );
         store
             .Setup(x => x.GetByPrincipalAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(assignments.ToList());
 
+        // OwnershipHandler reads the ambient OpenIdContext from the request (the one blessed async-local seam).
+        var openIdContext = mocks.Create<OpenIdContext>();
+        var feature = mocks.Create<IOpenIdContextFeature>();
+        feature.Setup(x => x.OpenIdContext).Returns(openIdContext.Object);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Features.Set(feature.Object);
+        var accessor = mocks.Create<IHttpContextAccessor>();
+        accessor.Setup(x => x.HttpContext).Returns(httpContext);
+
         var options = Options.Create(new TenantResolutionOptions { RootTenantId = RootTenantId });
-        var handler = new OwnershipHandler(factory.Object, resolver.Object, options);
+        var handler = new OwnershipHandler(
+            factory.Object,
+            resolver.Object,
+            accessor.Object,
+            options
+        );
         var context = new AuthorizationHandlerContext([requirement], user, resource);
 
         await handler.HandleAsync(context);

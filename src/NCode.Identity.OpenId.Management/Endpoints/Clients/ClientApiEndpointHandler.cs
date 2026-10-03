@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
@@ -93,11 +94,11 @@ internal class ClientApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        // The tenant-scope filter establishes the ambient tenant so tenant-scoped data access never materializes
-        // another tenant's resources; a cross-tenant resource is simply not found.
+        // The ambient tenant scope keeps tenant-scoped data access from materializing another tenant's resources; a
+        // cross-tenant resource is simply not found. The OpenIdContext itself is built for the whole /api group.
         var clients = endpoints
             .MapGroup("/clients")
-            .AddEndpointFilter<OpenIdEnvironmentEndpointFilter>()
+            .AddEndpointFilter<AmbientTenantScopeEndpointFilter>()
             .WithTags("Clients");
 
         clients
@@ -250,6 +251,7 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/create")]
     internal virtual async ValueTask<IResult> CreateClientAsync(
         HttpContext httpContext,
+        OpenIdContext openIdContext,
         [FromBody] CreateClientRequest request,
         CancellationToken cancellationToken
     )
@@ -300,6 +302,7 @@ internal class ClientApiEndpointHandler(
 
         await store.AddAsync(client, cancellationToken);
         await ResourceOwnershipService.AssignCreatorAsync(
+            openIdContext,
             httpContext.User,
             storeManager,
             client.TenantId,

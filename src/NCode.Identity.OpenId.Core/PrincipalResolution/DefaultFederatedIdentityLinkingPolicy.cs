@@ -17,7 +17,7 @@
 #endregion
 
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Persistence.Stores;
@@ -30,19 +30,17 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// principal is provisioned. Two already-established principals are never merged automatically. The join/verified claim
 /// names and linking knobs are per-tenant settings on the shared request environment (ADR-0035/ADR-0036).
 /// </summary>
-internal class DefaultFederatedIdentityLinkingPolicy(IHttpContextAccessor httpContextAccessor)
-    : IFederatedIdentityLinkingPolicy
+internal class DefaultFederatedIdentityLinkingPolicy : IFederatedIdentityLinkingPolicy
 {
-    private IHttpContextAccessor HttpContextAccessor { get; } = httpContextAccessor;
-
     /// <inheritdoc />
     public async ValueTask<FederatedIdentityLinkDecision> ResolveLinkAsync(
+        OpenIdContext openIdContext,
         ClaimsPrincipal user,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
-        var settings = AmbientTenantSettings.GetRequired(HttpContextAccessor);
+        var settings = openIdContext.Tenant.SettingsProvider.Collection;
 
         var joinKey = user.FindFirstValue(
             settings.GetValue(OpenIdSettingKeys.FederatedIdentityJoinClaim)

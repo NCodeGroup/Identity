@@ -40,8 +40,6 @@ internal static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.AddHttpContextAccessor();
-
             serviceCollection.TryAddSingleton<
                 IFederatedIdentityLinkingPolicy,
                 DefaultFederatedIdentityLinkingPolicy

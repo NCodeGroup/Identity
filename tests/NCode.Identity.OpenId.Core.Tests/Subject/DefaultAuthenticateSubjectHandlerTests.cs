@@ -57,6 +57,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         mockResolver
             .Setup(x =>
                 x.ResolvePrincipalIdAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()

@@ -69,7 +69,7 @@ internal class GrantApiEndpointHandler(
         // another tenant's grants; a cross-tenant grant is simply not found.
         var grants = endpoints
             .MapGroup("/grants")
-            .AddEndpointFilter<OpenIdEnvironmentEndpointFilter>()
+            .AddEndpointFilter<AmbientTenantScopeEndpointFilter>()
             .WithTags("Grants");
 
         grants.MapGet("", ListGrantsAsync).Produces<CollectionResource<GrantResource>>();

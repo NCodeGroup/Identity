@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
@@ -75,6 +76,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         MockResourceOwnershipService
             .Setup(x =>
                 x.AssignCreatorAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<string>(),
@@ -293,7 +295,12 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.CreateClientAsync(httpContext, request, CancellationToken.None);
+        var result = await Handler.CreateClientAsync(
+            httpContext,
+            Mock.Of<OpenIdContext>(),
+            request,
+            CancellationToken.None
+        );
 
         Assert.IsType<Created<ClientResource>>(result);
         Assert.NotNull(captured);
@@ -312,7 +319,12 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         var httpContext = CreateHttpContext(authenticated: true);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await Handler.CreateClientAsync(httpContext, request, CancellationToken.None)
+            await Handler.CreateClientAsync(
+                httpContext,
+                Mock.Of<OpenIdContext>(),
+                request,
+                CancellationToken.None
+            )
         );
     }
 

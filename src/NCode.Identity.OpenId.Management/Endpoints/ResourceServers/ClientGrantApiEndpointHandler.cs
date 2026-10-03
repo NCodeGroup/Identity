@@ -69,7 +69,7 @@ internal class ClientGrantApiEndpointHandler(
     {
         var grants = endpoints
             .MapGroup("/clients/{clientId}/grants")
-            .AddEndpointFilter<OpenIdEnvironmentEndpointFilter>()
+            .AddEndpointFilter<AmbientTenantScopeEndpointFilter>()
             .WithTags("ClientGrants");
 
         grants.MapGet("", ListAsync).Produces<CollectionResource<ClientGrantResource>>();

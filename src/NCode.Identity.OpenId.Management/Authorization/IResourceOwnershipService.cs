@@ -18,6 +18,7 @@
 
 using System.Security.Claims;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
@@ -37,6 +38,8 @@ public interface IResourceOwnershipService
     /// subject principal (for example a service token), the resource starts with no owner and the tenant and global
     /// realms continue to manage it.
     /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request, whose tenant settings
+    /// configure how the creating principal is resolved.</param>
     /// <param name="user">The <see cref="ClaimsPrincipal"/> that created the resource.</param>
     /// <param name="storeManager">The unit of work the resource is being created in.</param>
     /// <param name="tenantId">The identifier of the tenant that owns the resource.</param>
@@ -45,6 +48,7 @@ public interface IResourceOwnershipService
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask AssignCreatorAsync(
+        OpenIdContext openIdContext,
         ClaimsPrincipal user,
         IStoreManager storeManager,
         string tenantId,

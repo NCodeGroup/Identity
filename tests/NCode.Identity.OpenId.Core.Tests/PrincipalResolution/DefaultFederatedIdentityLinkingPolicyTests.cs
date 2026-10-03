@@ -17,7 +17,6 @@
 #endregion
 
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -36,7 +35,7 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
     private const string JoinKey = "user@example.com";
     private const string MatchedPrincipalId = "principal-9";
 
-    private static IHttpContextAccessor CreateHttpContextAccessor(
+    private static OpenIdContext CreateOpenIdContext(
         MockRepository mocks,
         bool explicitOnly = false,
         bool requireVerified = true
@@ -64,16 +63,7 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
 
         var context = mocks.Create<OpenIdContext>();
         context.Setup(x => x.Tenant).Returns(tenant.Object);
-
-        var feature = mocks.Create<IOpenIdContextFeature>();
-        feature.Setup(x => x.OpenIdContext).Returns(context.Object);
-
-        var httpContext = new DefaultHttpContext();
-        httpContext.Features.Set(feature.Object);
-
-        var accessor = mocks.Create<IHttpContextAccessor>();
-        accessor.Setup(x => x.HttpContext).Returns(httpContext);
-        return accessor.Object;
+        return context.Object;
     }
 
     private static ClaimsPrincipal CreateUser(params Claim[] claims) =>
@@ -99,9 +89,11 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
         var mocks = new MockRepository(MockBehavior.Strict);
         var manager = mocks.Create<IStoreManager>();
 
-        var policy = new DefaultFederatedIdentityLinkingPolicy(CreateHttpContextAccessor(mocks));
+        var openIdContext = CreateOpenIdContext(mocks);
+        var policy = new DefaultFederatedIdentityLinkingPolicy();
 
         var decision = await policy.ResolveLinkAsync(
+            openIdContext,
             CreateUser(),
             manager.Object,
             CancellationToken.None
@@ -117,9 +109,11 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
         var mocks = new MockRepository(MockBehavior.Strict);
         var manager = mocks.Create<IStoreManager>();
 
-        var policy = new DefaultFederatedIdentityLinkingPolicy(CreateHttpContextAccessor(mocks));
+        var openIdContext = CreateOpenIdContext(mocks);
+        var policy = new DefaultFederatedIdentityLinkingPolicy();
 
         var decision = await policy.ResolveLinkAsync(
+            openIdContext,
             CreateUser(new Claim("email", JoinKey), new Claim("email_verified", "false")),
             manager.Object,
             CancellationToken.None
@@ -136,11 +130,11 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
         var mocks = new MockRepository(MockBehavior.Strict);
         var manager = mocks.Create<IStoreManager>();
 
-        var policy = new DefaultFederatedIdentityLinkingPolicy(
-            CreateHttpContextAccessor(mocks, explicitOnly: true)
-        );
+        var openIdContext = CreateOpenIdContext(mocks, explicitOnly: true);
+        var policy = new DefaultFederatedIdentityLinkingPolicy();
 
         var decision = await policy.ResolveLinkAsync(
+            openIdContext,
             VerifiedUser(),
             manager.Object,
             CancellationToken.None
@@ -166,9 +160,11 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
             .ReturnsAsync([Identity(MatchedPrincipalId)])
             .Verifiable();
 
-        var policy = new DefaultFederatedIdentityLinkingPolicy(CreateHttpContextAccessor(mocks));
+        var openIdContext = CreateOpenIdContext(mocks);
+        var policy = new DefaultFederatedIdentityLinkingPolicy();
 
         var decision = await policy.ResolveLinkAsync(
+            openIdContext,
             VerifiedUser(),
             manager.Object,
             CancellationToken.None
@@ -195,9 +191,11 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
             .ReturnsAsync([])
             .Verifiable();
 
-        var policy = new DefaultFederatedIdentityLinkingPolicy(CreateHttpContextAccessor(mocks));
+        var openIdContext = CreateOpenIdContext(mocks);
+        var policy = new DefaultFederatedIdentityLinkingPolicy();
 
         var decision = await policy.ResolveLinkAsync(
+            openIdContext,
             VerifiedUser(),
             manager.Object,
             CancellationToken.None

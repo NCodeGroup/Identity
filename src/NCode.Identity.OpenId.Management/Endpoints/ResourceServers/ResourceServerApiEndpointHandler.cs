@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
@@ -87,7 +88,7 @@ internal class ResourceServerApiEndpointHandler(
     {
         var resourceServers = endpoints
             .MapGroup("/resource-servers")
-            .AddEndpointFilter<OpenIdEnvironmentEndpointFilter>()
+            .AddEndpointFilter<AmbientTenantScopeEndpointFilter>()
             .WithTags("ResourceServers");
 
         resourceServers
@@ -209,6 +210,7 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/create")]
     internal virtual async ValueTask<IResult> CreateAsync(
         HttpContext httpContext,
+        OpenIdContext openIdContext,
         [FromBody] CreateResourceServerRequest request,
         CancellationToken cancellationToken
     )
@@ -247,6 +249,7 @@ internal class ResourceServerApiEndpointHandler(
 
         await store.AddAsync(resourceServer, cancellationToken);
         await ResourceOwnershipService.AssignCreatorAsync(
+            openIdContext,
             httpContext.User,
             storeManager,
             resourceServer.TenantId,

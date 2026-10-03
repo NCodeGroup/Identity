@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
@@ -236,6 +237,7 @@ internal class TenantApiEndpointHandler(
     [EndpointName("api/tenants/create")]
     internal virtual async ValueTask<IResult> CreateTenantAsync(
         HttpContext httpContext,
+        OpenIdContext openIdContext,
         [FromBody] CreateTenantRequest request,
         CancellationToken cancellationToken
     )
@@ -280,6 +282,7 @@ internal class TenantApiEndpointHandler(
 
         await store.AddAsync(tenant, cancellationToken);
         await ResourceOwnershipService.AssignCreatorAsync(
+            openIdContext,
             httpContext.User,
             storeManager,
             tenant.TenantId,

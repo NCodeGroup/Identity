@@ -20,8 +20,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageOutputPath>$(MSBuildThisFileDirectory)artifacts/packages</PackageOutputPath>
     <PackageReadmeFile Condition="Exists('$(MSBuildProjectDirectory)\README.md')"
-      >README.md</PackageReadmeFile
-    >
+      >README.md</PackageReadmeFile>
     <PackageTags>oauth;oauth2;oidc;openid-connect;jwt;jose;jws;jwe;jwk;identity;authentication;security</PackageTags>
     <PackageReleaseNotes>See the changelog: https://github.com/NCodeGroup/Identity/blob/main/CHANGELOG.md</PackageReleaseNotes>
   </PropertyGroup>

@@ -34,6 +34,7 @@ using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;
@@ -45,17 +46,17 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 
 /*
 
-GET   api/clients/{clientId}
+GET   api/tenants/{tenantId}/clients/{clientId}
 
-GET   api/clients/{clientId}/settings
-PATCH api/clients/{clientId}/settings
-GET   api/clients/{clientId}/effective-settings
+GET   api/tenants/{tenantId}/clients/{clientId}/settings
+PATCH api/tenants/{tenantId}/clients/{clientId}/settings
+GET   api/tenants/{tenantId}/clients/{clientId}/effective-settings
 
-GET    api/clients/{clientId}/secrets
-POST   api/clients/{clientId}/secrets
-GET    api/clients/{clientId}/secrets/{secretId}
-PUT    api/clients/{clientId}/secrets/{secretId}
-DELETE api/clients/{clientId}/secrets/{secretId}
+GET    api/tenants/{tenantId}/clients/{clientId}/secrets
+POST   api/tenants/{tenantId}/clients/{clientId}/secrets
+GET    api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}
+PUT    api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}
+DELETE api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}
 
 */
 
@@ -70,9 +71,10 @@ internal class ClientApiEndpointHandler(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
+    IOpenIdServerProvider serverProvider,
     IResourceOwnershipService resourceOwnershipService,
     ILogger<ClientApiEndpointHandler> logger
-) : BaseOwnableApiEndpointHandler, IManagementEndpointProvider
+) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -80,6 +82,7 @@ internal class ClientApiEndpointHandler(
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -163,23 +166,43 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Merges an OpenID Client's persisted settings onto the request tenant's effective settings, producing the same
+    /// Merges an OpenID Client's persisted settings onto the addressed tenant's effective settings, producing the same
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the client at runtime.
+    /// The tenant's effective view is reconstructed by id (the server baseline merged with the tenant's persisted
+    /// overrides), so the preview is independent of the request's resolved tenant (ADR-0042).
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
     /// <param name="client">The <see cref="PersistedClient"/> whose settings to merge.</param>
-    /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>.</returns>
-    internal virtual IReadOnlySettingCollection MergeClientSettings(
+    /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the owning tenant's
+    /// settings are absent.</returns>
+    internal virtual async ValueTask<IReadOnlySettingCollection?> MergeClientSettingsAsync(
         OpenIdContext openIdContext,
-        PersistedClient client
+        string tenantId,
+        PersistedClient client,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
     )
     {
+        var tenantSettings = await storeManager
+            .GetStore<ITenantStore>()
+            .GetSettingsOrDefaultAsync(tenantId, cancellationToken);
+        if (tenantSettings is null)
+        {
+            return null;
+        }
+
         var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var clientSettings = SettingSerializer.DeserializeSettings(
-            client.Settings.Value,
-            jsonOptions
+        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
+
+        var tenantEffective = server.SettingsProvider.Collection.Merge(
+            SettingSerializer.DeserializeSettings(tenantSettings.Value, jsonOptions)
         );
-        return openIdContext.Tenant.SettingsProvider.Collection.Merge(clientSettings);
+        return tenantEffective.Merge(
+            SettingSerializer.DeserializeSettings(client.Settings.Value, jsonOptions)
+        );
     }
 
     /// <summary>
@@ -229,13 +252,13 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/list")]
     internal virtual async ValueTask<IResult> ListClientsAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromQuery] string? cursor,
         [FromQuery] int? limit,
         CancellationToken cancellationToken
     )
     {
-        // A client list is scoped to the request's tenant (the query filter enforces it); authorize for that tenant.
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
+        // A client list is scoped to the addressed tenant (the query filter enforces it); authorize for that tenant.
         var effectiveLimit = NormalizeLimit(limit);
 
         return await ProcessListAsync(
@@ -263,6 +286,7 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/get")]
     internal virtual async ValueTask<IResult> GetClientAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         CancellationToken cancellationToken
     )
@@ -272,11 +296,7 @@ internal class ClientApiEndpointHandler(
 
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
 
-        var node = ResourceNode.For(
-            httpContext.GetOpenIdContext().Tenant.TenantId,
-            ResourceNodeTypes.Client,
-            clientId
-        );
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(httpContext, client, node, Operations.Read, ToClientResource);
     }
 
@@ -290,12 +310,12 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/create")]
     internal virtual async ValueTask<IResult> CreateClientAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromBody] CreateClientRequest request,
         CancellationToken cancellationToken
     )
     {
         var openIdContext = httpContext.GetOpenIdContext();
-        var tenantId = openIdContext.Tenant.TenantId;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
@@ -351,7 +371,10 @@ internal class ClientApiEndpointHandler(
 
         // The store assigns the row token on insert (ADR-0012), so no re-read is needed.
         httpContext.Response.Headers.ETag = client.ConcurrencyToken;
-        return TypedResults.Created($"/clients/{client.ClientId}", ToClientResource(client));
+        return TypedResults.Created(
+            $"/tenants/{tenantId}/clients/{client.ClientId}",
+            ToClientResource(client)
+        );
     }
 
     /// <summary>
@@ -474,6 +497,7 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/settings/get")]
     internal virtual async ValueTask<IResult> GetSettingsAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         CancellationToken cancellationToken
     )
@@ -484,11 +508,7 @@ internal class ClientApiEndpointHandler(
         // The client store has no dedicated settings getter; the client is loaded whole (settings included).
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
 
-        var node = ResourceNode.For(
-            httpContext.GetOpenIdContext().Tenant.TenantId,
-            ResourceNodeTypes.Client,
-            clientId
-        );
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
             client?.Settings,
@@ -511,6 +531,7 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/effective-settings/get")]
     internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         CancellationToken cancellationToken
     )
@@ -525,12 +546,19 @@ internal class ClientApiEndpointHandler(
         }
 
         var openIdContext = httpContext.GetOpenIdContext();
-        var effectiveSettings = MergeClientSettings(openIdContext, client);
-        var node = ResourceNode.For(
-            openIdContext.Tenant.TenantId,
-            ResourceNodeTypes.Client,
-            clientId
+        var effectiveSettings = await MergeClientSettingsAsync(
+            openIdContext,
+            tenantId,
+            client,
+            storeManager,
+            cancellationToken
         );
+        if (effectiveSettings is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
             effectiveSettings,
@@ -625,6 +653,7 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/secrets/get")]
     internal virtual async ValueTask<IResult> GetSecretsAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         CancellationToken cancellationToken
     )
@@ -634,11 +663,7 @@ internal class ClientApiEndpointHandler(
 
         var clientSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
 
-        var node = ResourceNode.For(
-            httpContext.GetOpenIdContext().Tenant.TenantId,
-            ResourceNodeTypes.Client,
-            clientId
-        );
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
             clientSecrets,
@@ -659,6 +684,7 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/secrets/create")]
     internal virtual async ValueTask<IResult> CreateSecretAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromBody] CreateSecretRequest request,
         CancellationToken cancellationToken
@@ -730,7 +756,7 @@ internal class ClientApiEndpointHandler(
         // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
         httpContext.Response.Headers.ETag = generatedSecret.ConcurrencyToken;
         return TypedResults.Created(
-            $"/clients/{clientId}/secrets/{secretId}",
+            $"/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}",
             ToSecretResource(generatedSecret)
         );
     }
@@ -746,6 +772,7 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/secrets/get-one")]
     internal virtual async ValueTask<IResult> GetSecretAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromRoute] string secretId,
         CancellationToken cancellationToken
@@ -765,11 +792,7 @@ internal class ClientApiEndpointHandler(
             ? null
             : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
 
-        var node = ResourceNode.For(
-            httpContext.GetOpenIdContext().Tenant.TenantId,
-            ResourceNodeTypes.Client,
-            clientId
-        );
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
             scoped,
@@ -905,11 +928,11 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessListOwnersAsync(
             httpContext,
             tenantId,
@@ -926,19 +949,19 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromBody] AddOwnerRequest request,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessAddOwnerAsync(
             httpContext,
             tenantId,
             ResourceNodeTypes.Client,
             clientId,
             request,
-            $"/clients/{clientId}/owners",
+            $"/tenants/{tenantId}/clients/{clientId}/owners",
             (storeManager, token) => ClientExistsAsync(storeManager, clientId, token),
             cancellationToken
         );
@@ -951,12 +974,12 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/owners/remove")]
     internal virtual async ValueTask<IResult> RemoveOwnerAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromRoute] string principalId,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessRemoveOwnerAsync(
             httpContext,
             tenantId,

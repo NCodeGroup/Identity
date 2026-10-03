@@ -166,6 +166,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.ListAsync(
             CreateHttpContext(),
+            TenantId,
             null,
             null,
             CancellationToken.None
@@ -217,6 +218,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateAsync(
             CreateHttpContext(),
+            TenantId,
             request,
             CancellationToken.None
         );
@@ -287,6 +289,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateScopeAsync(
             CreateHttpContext(),
+            TenantId,
             ResourceServerId,
             new CreateScopeRequest { Value = "read:x", Description = "Read." },
             CancellationToken.None

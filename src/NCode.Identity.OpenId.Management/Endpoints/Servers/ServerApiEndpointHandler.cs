@@ -72,7 +72,7 @@ internal class ServerApiEndpointHandler(
     ICryptoService cryptoService,
     IOpenIdServerProvider serverProvider,
     ILogger<ServerApiEndpointHandler> logger
-) : BaseApiEndpointHandler, IManagementEndpointProvider
+) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IServerValidator ServerValidator { get; } = serverValidator;

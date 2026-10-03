@@ -23,7 +23,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
-using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -34,11 +33,11 @@ namespace NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 
 /*
 
-GET    api/clients/{clientId}/grants
-POST   api/clients/{clientId}/grants
-GET    api/clients/{clientId}/grants/{resourceServerId}
-PUT    api/clients/{clientId}/grants/{resourceServerId}
-DELETE api/clients/{clientId}/grants/{resourceServerId}
+GET    api/tenants/{tenantId}/clients/{clientId}/grants
+POST   api/tenants/{tenantId}/clients/{clientId}/grants
+GET    api/tenants/{tenantId}/clients/{clientId}/grants/{resourceServerId}
+PUT    api/tenants/{tenantId}/clients/{clientId}/grants/{resourceServerId}
+DELETE api/tenants/{tenantId}/clients/{clientId}/grants/{resourceServerId}
 
 */
 
@@ -51,7 +50,7 @@ internal class ClientGrantApiEndpointHandler(
     IAuthorizationService authorizationService,
     IClientGrantValidator clientGrantValidator,
     ICryptoService cryptoService
-) : BaseApiEndpointHandler, IManagementEndpointProvider
+) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IClientGrantValidator ClientGrantValidator { get; } = clientGrantValidator;
@@ -65,7 +64,7 @@ internal class ClientGrantApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var grants = endpoints.MapGroup("/clients/{clientId}/grants").WithTags("ClientGrants");
+        var grants = endpoints.MapGroup("/grants").WithTags("ClientGrants");
 
         grants.MapGet("", ListAsync).Produces<CollectionResource<ClientGrantResource>>();
         grants
@@ -95,13 +94,13 @@ internal class ClientGrantApiEndpointHandler(
     [EndpointName("api/clients/grants/list")]
     internal virtual async ValueTask<IResult> ListAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromQuery] string? cursor,
         [FromQuery] int? limit,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         var effectiveLimit = NormalizeLimit(limit);
 
         return await ProcessListAsync(
@@ -149,13 +148,12 @@ internal class ClientGrantApiEndpointHandler(
     [EndpointName("api/clients/grants/create")]
     internal virtual async ValueTask<IResult> CreateAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromBody] CreateClientGrantRequest request,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var grantStore = storeManager.GetStore<IClientGrantStore>();
 
@@ -186,7 +184,7 @@ internal class ClientGrantApiEndpointHandler(
 
         httpContext.Response.Headers.ETag = grant.ConcurrencyToken;
         return TypedResults.Created(
-            $"/clients/{clientId}/grants/{request.ResourceServerId}",
+            $"/tenants/{tenantId}/clients/{clientId}/grants/{request.ResourceServerId}",
             ToResource(grant)
         );
     }

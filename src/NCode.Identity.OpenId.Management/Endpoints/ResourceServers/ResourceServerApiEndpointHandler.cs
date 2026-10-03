@@ -39,17 +39,17 @@ namespace NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 
 /*
 
-GET    api/resource-servers
-POST   api/resource-servers
-GET    api/resource-servers/{resourceServerId}
-PATCH  api/resource-servers/{resourceServerId}
-DELETE api/resource-servers/{resourceServerId}
+GET    api/tenants/{tenantId}/resource-servers
+POST   api/tenants/{tenantId}/resource-servers
+GET    api/tenants/{tenantId}/resource-servers/{resourceServerId}
+PATCH  api/tenants/{tenantId}/resource-servers/{resourceServerId}
+DELETE api/tenants/{tenantId}/resource-servers/{resourceServerId}
 
-GET    api/resource-servers/{resourceServerId}/scopes
-POST   api/resource-servers/{resourceServerId}/scopes
-GET    api/resource-servers/{resourceServerId}/scopes/{scopeValue}
-PUT    api/resource-servers/{resourceServerId}/scopes/{scopeValue}
-DELETE api/resource-servers/{resourceServerId}/scopes/{scopeValue}
+GET    api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes
+POST   api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes
+GET    api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}
+PUT    api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}
+DELETE api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}
 
 */
 
@@ -63,7 +63,7 @@ internal class ResourceServerApiEndpointHandler(
     ICryptoService cryptoService,
     IResourceOwnershipService resourceOwnershipService,
     ILogger<ResourceServerApiEndpointHandler> logger
-) : BaseOwnableApiEndpointHandler, IManagementEndpointProvider
+) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -146,12 +146,12 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/list")]
     internal virtual async ValueTask<IResult> ListAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromQuery] string? cursor,
         [FromQuery] int? limit,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         var effectiveLimit = NormalizeLimit(limit);
 
         return await ProcessListAsync(
@@ -175,6 +175,7 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/get")]
     internal virtual async ValueTask<IResult> GetAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
         CancellationToken cancellationToken
     )
@@ -184,11 +185,7 @@ internal class ResourceServerApiEndpointHandler(
 
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
 
-        var node = ResourceNode.For(
-            httpContext.GetOpenIdContext().Tenant.TenantId,
-            ResourceNodeTypes.ResourceServer,
-            resourceServerId
-        );
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
         return await ProcessGetAsync(
             httpContext,
             resourceServer,
@@ -204,12 +201,12 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/create")]
     internal virtual async ValueTask<IResult> CreateAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromBody] CreateResourceServerRequest request,
         CancellationToken cancellationToken
     )
     {
         var openIdContext = httpContext.GetOpenIdContext();
-        var tenantId = openIdContext.Tenant.TenantId;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IResourceServerStore>();
@@ -255,7 +252,7 @@ internal class ResourceServerApiEndpointHandler(
 
         httpContext.Response.Headers.ETag = resourceServer.ConcurrencyToken;
         return TypedResults.Created(
-            $"/resource-servers/{resourceServerId}",
+            $"/tenants/{tenantId}/resource-servers/{resourceServerId}",
             ToResourceServerResource(resourceServer)
         );
     }
@@ -387,6 +384,7 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/scopes/create")]
     internal virtual async ValueTask<IResult> CreateScopeAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
         [FromBody] CreateScopeRequest request,
         CancellationToken cancellationToken
@@ -434,7 +432,7 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         return TypedResults.Created(
-            $"/resource-servers/{resourceServerId}/scopes/{request.Value}",
+            $"/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{request.Value}",
             ToScopeResource(persistedScope)
         );
     }
@@ -576,11 +574,11 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessListOwnersAsync(
             httpContext,
             tenantId,
@@ -598,19 +596,19 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
         [FromBody] AddOwnerRequest request,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessAddOwnerAsync(
             httpContext,
             tenantId,
             ResourceNodeTypes.ResourceServer,
             resourceServerId,
             request,
-            $"/resource-servers/{resourceServerId}/owners",
+            $"/tenants/{tenantId}/resource-servers/{resourceServerId}/owners",
             (storeManager, token) =>
                 ResourceServerExistsAsync(storeManager, resourceServerId, token),
             cancellationToken
@@ -624,12 +622,12 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/owners/remove")]
     internal virtual async ValueTask<IResult> RemoveOwnerAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
         [FromRoute] string principalId,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessRemoveOwnerAsync(
             httpContext,
             tenantId,

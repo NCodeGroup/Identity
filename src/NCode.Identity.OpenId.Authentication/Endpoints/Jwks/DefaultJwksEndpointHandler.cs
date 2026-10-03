@@ -23,9 +23,9 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Endpoints;
-using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.Secrets.Keys;
 using NCode.Mediator;
 

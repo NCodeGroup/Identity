@@ -23,7 +23,7 @@ using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Authentication.Servers;
+namespace NCode.Identity.OpenId.Servers;
 
 /// <summary>
 /// Provides contextual information and configuration details for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server.

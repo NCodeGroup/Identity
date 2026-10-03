@@ -17,7 +17,7 @@
 #endregion
 
 using System.Text.Json;
-using NCode.Identity.OpenId.Authentication.Contexts;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;

@@ -19,7 +19,6 @@
 using Moq;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages;
@@ -27,7 +26,8 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
-using NCode.Identity.OpenId.Authentication.Tenants;
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Logic;
 using NCode.PropertyBag;
 using Xunit;

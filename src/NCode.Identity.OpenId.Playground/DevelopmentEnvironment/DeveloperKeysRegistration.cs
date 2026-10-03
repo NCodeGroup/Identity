@@ -19,7 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.OpenId.Authentication.Tenants;
+using NCode.Identity.OpenId.Tenants;
 
 namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 

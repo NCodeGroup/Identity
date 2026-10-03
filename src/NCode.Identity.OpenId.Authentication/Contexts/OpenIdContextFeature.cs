@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -15,6 +15,10 @@
 //    limitations under the License.
 
 #endregion
+
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Tenants;
 
 namespace NCode.Identity.OpenId.Authentication.Contexts;
 

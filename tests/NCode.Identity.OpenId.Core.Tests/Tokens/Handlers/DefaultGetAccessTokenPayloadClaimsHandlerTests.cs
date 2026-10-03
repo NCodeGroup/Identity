@@ -23,12 +23,12 @@ using Moq;
 using NCode.Identity.Jose;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Subject;
-using NCode.Identity.OpenId.Authentication.Tenants;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Tenants;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Tokens.Handlers;

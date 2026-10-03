@@ -1,4 +1,12 @@
 #nullable enable
+abstract NCode.Identity.OpenId.Contexts.OpenIdContext.DisposeAsyncCore() -> System.Threading.Tasks.ValueTask
+abstract NCode.Identity.OpenId.Contexts.OpenIdContext.EndpointName.get -> string!
+abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Environment.get -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
+abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Http.get -> Microsoft.AspNetCore.Http.HttpContext!
+abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Mediator.get -> NCode.Mediator.IMediator!
+abstract NCode.Identity.OpenId.Contexts.OpenIdContext.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Server.get -> NCode.Identity.OpenId.Servers.OpenIdServer!
+abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Tenant.get -> NCode.Identity.OpenId.Tenants.OpenIdTenant!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.CreateError(string! errorCode) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.CreateMessage(string! typeDiscriminator, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters) -> NCode.Identity.OpenId.Messages.IOpenIdMessage!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.DataProtector.get -> Microsoft.AspNetCore.DataProtection.IDataProtector!
@@ -9,6 +17,18 @@ abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.JsonSerializerOpti
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.KnownParameters.get -> NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollection!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 abstract NCode.Identity.OpenId.Messages.Parameters.KnownParameter.ValueType.get -> System.Type!
+abstract NCode.Identity.OpenId.Servers.OpenIdServer.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+abstract NCode.Identity.OpenId.Servers.OpenIdServer.SecretsProvider.get -> NCode.Identity.Secrets.Logic.ISecretKeyCollectionProvider!
+abstract NCode.Identity.OpenId.Servers.OpenIdServer.ServerId.get -> string!
+abstract NCode.Identity.OpenId.Servers.OpenIdServer.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.BaseAddress.get -> NCode.Identity.Models.UriDescriptor
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.DisplayName.get -> string!
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.DisposeAsyncCore() -> System.Threading.Tasks.ValueTask
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.Issuer.get -> string!
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SecretsProvider.get -> NCode.Identity.Secrets.Logic.ISecretKeyCollectionProvider!
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.TenantId.get -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferencePrefixes.IdentityProvider = "idp:" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ConfirmationBySms = "sms" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ConfirmationByTelephone = "tel" -> string!
@@ -266,6 +286,13 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.UserInfoSigningAlgValues
 const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultDisplayName = "Default Tenant" -> string!
 const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultTenantId = "default" -> string!
 const NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DefaultRootTenantId = "root" -> string!
+NCode.Identity.OpenId.Contexts.IOpenIdContextFactory
+NCode.Identity.OpenId.Contexts.IOpenIdContextFactory.CreateAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Mediator.IMediator! mediator, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Contexts.OpenIdContext!>
+NCode.Identity.OpenId.Contexts.IOpenIdContextFeature
+NCode.Identity.OpenId.Contexts.IOpenIdContextFeature.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Contexts.OpenIdContext
+NCode.Identity.OpenId.Contexts.OpenIdContext.DisposeAsync() -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Contexts.OpenIdContext.OpenIdContext() -> void
 NCode.Identity.OpenId.Environments.IOpenIdEnvironmentFactory
 NCode.Identity.OpenId.Environments.IOpenIdEnvironmentFactory.Create() -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
 NCode.Identity.OpenId.Environments.IOpenIdEnvironmentProvider
@@ -521,6 +548,12 @@ NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImpleme
 NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.set -> void
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider.GetJsonConverters(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.JsonConverter!>!
+NCode.Identity.OpenId.Servers.IOpenIdServerFactory
+NCode.Identity.OpenId.Servers.IOpenIdServerFactory.CreateAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
+NCode.Identity.OpenId.Servers.IOpenIdServerProvider
+NCode.Identity.OpenId.Servers.IOpenIdServerProvider.GetAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
+NCode.Identity.OpenId.Servers.OpenIdServer
+NCode.Identity.OpenId.Servers.OpenIdServer.OpenIdServer() -> void
 NCode.Identity.OpenId.Settings.OpenIdSettingKeys
 NCode.Identity.OpenId.Settings.OpenIdSettingNames
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions
@@ -535,6 +568,11 @@ NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantIdRouteParameterN
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantIdRouteParameterName.set -> void
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.get -> Microsoft.AspNetCore.Http.PathString
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.set -> void
+NCode.Identity.OpenId.Tenants.IOpenIdTenantCache
+NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.SetAsync(string! tenantId, NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!> tenant, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.TryGetAsync(string! tenantId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
+NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory
+NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory.CreateTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Servers.OpenIdServer! openIdServer, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
 NCode.Identity.OpenId.Tenants.ITenantResolver
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
 NCode.Identity.OpenId.Tenants.ITenantResolver.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
@@ -542,6 +580,9 @@ NCode.Identity.OpenId.Tenants.ITenantStrategy
 NCode.Identity.OpenId.Tenants.ITenantStrategy.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
 NCode.Identity.OpenId.Tenants.ITenantStrategy.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantStrategy.StrategyCode.get -> string!
+NCode.Identity.OpenId.Tenants.OpenIdTenant
+NCode.Identity.OpenId.Tenants.OpenIdTenant.DisposeAsync() -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Tenants.OpenIdTenant.OpenIdTenant() -> void
 NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions
 NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DisplayName.get -> string!
 NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DisplayName.set -> void
@@ -640,3 +681,4 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoEncryptionAlgVal
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoEncryptionZipValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+virtual NCode.Identity.OpenId.Contexts.OpenIdContext.ErrorFactory.get -> NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!

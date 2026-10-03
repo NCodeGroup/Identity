@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -21,7 +21,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Mediator;
 
-namespace NCode.Identity.OpenId.Authentication.Contexts;
+namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
 /// Provides the ability to create an <see cref="OpenIdContext"/> instance that encapsulates all

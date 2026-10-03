@@ -20,11 +20,11 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Disposables;
-using NCode.Identity.OpenId.Authentication.Servers;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Servers;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Authentication.Tenants;
+namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Provides the ability to create <see cref="OpenIdTenant"/> instances from the current HTTP request.

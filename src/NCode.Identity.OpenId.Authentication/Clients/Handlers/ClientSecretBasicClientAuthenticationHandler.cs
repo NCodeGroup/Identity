@@ -21,7 +21,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Buffers;
 using NCode.Disposables;
 using NCode.Encoders;
-using NCode.Identity.OpenId.Authentication.Contexts;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;

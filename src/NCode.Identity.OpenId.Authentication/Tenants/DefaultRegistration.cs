@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Tenants;

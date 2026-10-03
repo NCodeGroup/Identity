@@ -20,8 +20,8 @@
 using System.Text.Json;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Logic;
-using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;

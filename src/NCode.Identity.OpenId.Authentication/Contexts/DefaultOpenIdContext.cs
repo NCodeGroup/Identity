@@ -20,9 +20,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using NCode.Disposables;
-using NCode.Identity.OpenId.Authentication.Servers;
-using NCode.Identity.OpenId.Authentication.Tenants;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Mediator;
 using NCode.PropertyBag;
 

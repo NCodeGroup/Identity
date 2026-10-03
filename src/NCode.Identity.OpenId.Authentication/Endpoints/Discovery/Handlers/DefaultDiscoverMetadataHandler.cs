@@ -44,25 +44,22 @@ internal class DefaultDiscoverMetadataHandler(
         CancellationToken cancellationToken
     )
     {
-        var (openIdContext, metadata, showAll) = command;
+        var (openIdContext, metadata) = command;
 
-        DiscoverSettings(openIdContext, metadata, showAll);
+        DiscoverSettings(openIdContext, metadata);
 
-        DiscoverEndpoints(metadata, openIdContext.Http, showAll);
+        DiscoverEndpoints(metadata, openIdContext.Http);
 
         return ValueTask.CompletedTask;
     }
 
     private static void DiscoverSettings(
         OpenIdContext openIdContext,
-        IDictionary<string, object> metadata,
-        bool showAll
+        IDictionary<string, object> metadata
     )
     {
         var settings = openIdContext.Tenant.SettingsProvider.Collection;
-        var settingsToShow = settings.Where(setting =>
-            showAll || setting.Descriptor.IsDiscoverable
-        );
+        var settingsToShow = settings.Where(setting => setting.Descriptor.IsDiscoverable);
         var settingsToAdd = settingsToShow.Where(setting =>
             !metadata.ContainsKey(setting.Descriptor.Name)
         );
@@ -73,11 +70,7 @@ internal class DefaultDiscoverMetadataHandler(
         }
     }
 
-    private void DiscoverEndpoints(
-        IDictionary<string, object> metadata,
-        HttpContext httpContext,
-        bool showAll
-    )
+    private void DiscoverEndpoints(IDictionary<string, object> metadata, HttpContext httpContext)
     {
         var routeValues = new { };
 
@@ -86,7 +79,7 @@ internal class DefaultDiscoverMetadataHandler(
             var discoverable =
                 endpoint.Metadata.GetMetadata<IOpenIdEndpointDiscoverableMetadata>()?.IsDiscoverable
                 ?? false;
-            if (!discoverable && !showAll)
+            if (!discoverable)
                 continue;
 
             var suppressLinkGeneration =

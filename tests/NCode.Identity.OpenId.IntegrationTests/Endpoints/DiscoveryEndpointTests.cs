@@ -51,4 +51,29 @@ public class DiscoveryEndpointTests(PlaygroundApplicationFactory factory)
         Assert.True(root.TryGetProperty("jwks_uri", out var jwksUri));
         Assert.False(string.IsNullOrEmpty(jwksUri.GetString()));
     }
+
+    [Fact]
+    public async Task GetDiscovery_DoesNotExposeNonDiscoverableSettings_EvenWithShowAllQuery()
+    {
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        // The 'showAll' override was removed; passing it must have no effect and non-discoverable
+        // settings must stay hidden from anonymous discovery.
+        using var response = await client.GetAsync(
+            "/.well-known/openid-configuration?showAll=true"
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+
+        // These settings carry a default (so they exist in the effective collection) but are
+        // marked non-discoverable, so they must never appear in the discovery document.
+        Assert.False(root.TryGetProperty("access_token_lifetime", out _));
+        Assert.False(root.TryGetProperty("require_pkce", out _));
+    }
 }

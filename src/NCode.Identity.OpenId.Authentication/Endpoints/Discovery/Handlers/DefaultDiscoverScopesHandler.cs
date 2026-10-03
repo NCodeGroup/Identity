@@ -48,7 +48,7 @@ internal class DefaultDiscoverScopesHandler(
         CancellationToken cancellationToken
     )
     {
-        var (openIdContext, metadata, _) = command;
+        var (openIdContext, metadata) = command;
 
         // The OIDC runtime does not establish an ambient tenant scope, so set it explicitly here so the
         // persistence-layer tenant query filter applies to the resource-server reads (ADR-0018).

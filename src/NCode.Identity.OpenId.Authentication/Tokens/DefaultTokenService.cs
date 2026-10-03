@@ -29,6 +29,7 @@ using NCode.Identity.Logic;
 using NCode.Identity.Models;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
@@ -218,6 +219,16 @@ internal class DefaultTokenService(
         var expiresWhen = createdWhen + lifetime;
         var tokenLifetime = new TimePeriod { StartTime = createdWhen, EndTime = expiresWhen };
 
+        await PersistUserInfoClaimsGrantAsync(
+            openIdContext,
+            openIdClient,
+            tokenRequest,
+            payloadClaims,
+            createdWhen,
+            lifetime,
+            cancellationToken
+        );
+
         var filteredClaims = FilterClaims(settings, subjectClaims);
         var effectiveClaims = ticket.HasValue
             ? EnsureAuthTime(openIdContext, ticket.Value, tokenRequest, filteredClaims)
@@ -271,6 +282,60 @@ internal class DefaultTokenService(
         );
 
         return securityToken;
+    }
+
+    private async ValueTask PersistUserInfoClaimsGrantAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        CreateSecurityTokenRequest tokenRequest,
+        Dictionary<string, object> payloadClaims,
+        DateTimeOffset createdWhen,
+        TimeSpan lifetime,
+        CancellationToken cancellationToken
+    )
+    {
+        // Persist the UserInfo claims requested via the 'claims' parameter so the UserInfo endpoint can honor them,
+        // keyed by the access token's jti and bounded by its lifetime (ADR-0039). Nothing is stored when none were
+        // requested, so the common case adds no write.
+        var requestClaims = tokenRequest.RequestClaims;
+        var userInfoClaims = requestClaims?.UserInfo;
+        if (requestClaims is null || userInfoClaims is null || userInfoClaims.Count == 0)
+        {
+            return;
+        }
+
+        if (
+            !payloadClaims.TryGetValue(JoseClaimNames.Payload.Jti, out var jtiValue)
+            || jtiValue is not string jti
+            || string.IsNullOrEmpty(jti)
+        )
+        {
+            return;
+        }
+
+        var tenantId = openIdContext.Tenant.TenantId;
+        var grantId = PersistedGrantService.CreateGrantId(
+            tenantId,
+            OpenIdConstants.PersistedGrantTypes.UserInfoClaims,
+            jti
+        );
+
+        var grant = new PersistedGrant<IRequestClaims>
+        {
+            TenantId = tenantId,
+            ClientId = openIdClient.ClientId,
+            SubjectId = tokenRequest.SubjectAuthentication?.SubjectId,
+            Payload = requestClaims,
+        };
+
+        await PersistedGrantService.AddAsync(
+            openIdContext,
+            grantId,
+            grant,
+            createdWhen,
+            lifetime,
+            cancellationToken
+        );
     }
 
     /// <inheritdoc />

@@ -204,6 +204,13 @@ public static partial class OpenIdConstants
         /// Identifies a persisted grant for a <c>refresh token</c>.
         /// </summary>
         public const string RefreshToken = "refresh_token";
+
+        /// <summary>
+        /// Identifies a persisted grant that carries the UserInfo claims requested via the OpenID Connect
+        /// <c>claims</c> request parameter, keyed by the access token's <c>jti</c> so the UserInfo endpoint can honor
+        /// them (ADR-0039).
+        /// </summary>
+        public const string UserInfoClaims = "userinfo_claims";
     }
 
     /// <summary>

@@ -48,6 +48,13 @@ internal static class DefaultRegistration
                 >()
             );
 
+            builder.ServiceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<GetUserInfoClaimsCommand>,
+                    DefaultGetRequestedUserInfoClaimsHandler
+                >()
+            );
+
             return builder;
         }
     }

@@ -27,14 +27,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -58,6 +59,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<ITenantValidator> MockTenantValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
+    private Mock<ISettingSerializer> MockSettingSerializer { get; }
+    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private TenantApiEndpointHandler Handler { get; }
 
@@ -71,6 +74,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockTenantValidator = MockRepository.Create<ITenantValidator>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
+        MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
+        MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
             .Setup(x =>
@@ -93,6 +98,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockSecretGenerator.Object,
             TimeProvider.System,
             MockCryptoService.Object,
+            MockSettingSerializer.Object,
+            MockServerProvider.Object,
             MockResourceOwnershipService.Object,
             NullLogger<TenantApiEndpointHandler>.Instance
         );
@@ -349,15 +356,32 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     #region GetEffectiveSettingsAsync Tests
 
     [Fact]
-    public async Task GetEffectiveSettingsAsync_WhenAuthorized_ReturnsFlatSettings()
+    public async Task GetEffectiveSettingsAsync_WhenFoundAndAuthorized_ReturnsFlatSettings()
     {
-        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettings("settings-ct"))
+            .Verifiable();
+        MockSettingSerializer
+            .Setup(x =>
+                x.DeserializeSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+            )
+            .Returns(Array.Empty<Setting>())
+            .Verifiable();
 
         var descriptor = new SettingDescriptor<bool> { Name = "claims_parameter_supported" };
-        var settings = CreateSettingCollection(descriptor.Create(true));
-        var httpContext = CreateHttpContextWithTenantSettings(authenticated: true, settings);
+        var effective = CreateSettingCollection(descriptor.Create(true));
+        SetupServerProvider(effective);
+        SetupAuthorization(AuthorizationResult.Success());
 
-        var result = await Handler.GetEffectiveSettingsAsync(httpContext);
+        var httpContext = CreateHttpContextWithEnvironment(authenticated: true);
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            httpContext,
+            TenantId,
+            CancellationToken.None
+        );
 
         var json = Assert.IsType<JsonHttpResult<TenantEffectiveSettingsResource>>(result);
         Assert.Equal(TenantId, json.Value?.TenantId);
@@ -365,47 +389,92 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEffectiveSettingsAsync_WhenUnauthenticated_ReturnsUnauthorized()
+    public async Task GetEffectiveSettingsAsync_WhenNotFound_ReturnsNotFound()
     {
-        SetupAuthorization(AuthorizationResult.Failed());
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedTenantSettings?)null)
+            .Verifiable();
 
-        var httpContext = CreateHttpContextWithTenantSettings(
-            authenticated: false,
-            CreateSettingCollection()
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            httpContext,
+            TenantId,
+            CancellationToken.None
         );
 
-        var result = await Handler.GetEffectiveSettingsAsync(httpContext);
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettings("settings-ct"))
+            .Verifiable();
+        MockSettingSerializer
+            .Setup(x =>
+                x.DeserializeSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+            )
+            .Returns(Array.Empty<Setting>())
+            .Verifiable();
+        SetupServerProvider(CreateSettingCollection());
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContextWithEnvironment(authenticated: false);
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            httpContext,
+            TenantId,
+            CancellationToken.None
+        );
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
 
-    private static IReadOnlySettingCollection CreateSettingCollection(params Setting[] settings)
+    private void SetupServerProvider(ISettingCollection effectiveSettings)
+    {
+        var mockServerCollection = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
+        mockServerCollection
+            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
+            .Returns(effectiveSettings);
+
+        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
+        mockProvider.Setup(x => x.Collection).Returns(mockServerCollection.Object);
+
+        var mockServer = new Mock<OpenIdServer>(MockBehavior.Loose);
+        mockServer.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
+
+        MockServerProvider
+            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockServer.Object)
+            .Verifiable();
+    }
+
+    private static ISettingCollection CreateSettingCollection(params Setting[] settings)
     {
         var list = settings.ToList();
-        var mock = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
+        var mock = new Mock<ISettingCollection>(MockBehavior.Loose);
         mock.Setup(x => x.GetEnumerator()).Returns(() => list.GetEnumerator());
         return mock.Object;
     }
 
-    private static HttpContext CreateHttpContextWithTenantSettings(
-        bool authenticated,
-        IReadOnlySettingCollection settings
-    )
+    private static HttpContext CreateHttpContextWithEnvironment(bool authenticated)
     {
         var identity = authenticated
             ? new ClaimsIdentity(authenticationType: "test")
             : new ClaimsIdentity();
         var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
 
-        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
-        mockProvider.Setup(x => x.Collection).Returns(settings);
-
-        var mockTenant = new Mock<OpenIdTenant>(MockBehavior.Loose);
-        mockTenant.Setup(x => x.TenantId).Returns(TenantId);
-        mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
+        var mockEnvironment = new Mock<OpenIdEnvironment>(MockBehavior.Loose);
+        mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(JsonSerializerOptions.Default);
 
         var mockContext = new Mock<OpenIdContext>(MockBehavior.Loose);
-        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object);
+        mockContext.Setup(x => x.Environment).Returns(mockEnvironment.Object);
 
         httpContext.Features.Set<IOpenIdContextFeature>(
             Mock.Of<IOpenIdContextFeature>(feature => feature.OpenIdContext == mockContext.Object)

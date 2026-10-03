@@ -34,6 +34,7 @@ using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;
@@ -45,12 +46,11 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 
 /*
 
-GET   api/tenant/effective-settings
-
 GET   api/tenants/{tenantId}
 
 GET   api/tenants/{tenantId}/settings
 PATCH api/tenants/{tenantId}/settings
+GET   api/tenants/{tenantId}/effective-settings
 
 GET    api/tenants/{tenantId}/secrets
 POST   api/tenants/{tenantId}/secrets
@@ -70,6 +70,8 @@ internal class TenantApiEndpointHandler(
     ISecretGenerator secretGenerator,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
+    ISettingSerializer settingSerializer,
+    IOpenIdServerProvider serverProvider,
     IResourceOwnershipService resourceOwnershipService,
     ILogger<TenantApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IManagementEndpointProvider
@@ -79,6 +81,8 @@ internal class TenantApiEndpointHandler(
     private ITenantValidator TenantValidator { get; } = tenantValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -106,6 +110,9 @@ internal class TenantApiEndpointHandler(
 
         tenants.MapGet("/{tenantId}/settings", GetSettingsAsync).Produces<TenantSettingsResource>();
         tenants.MapPatch("/{tenantId}/settings", UpdateSettingsAsync);
+        tenants
+            .MapGet("/{tenantId}/effective-settings", GetEffectiveSettingsAsync)
+            .Produces<TenantEffectiveSettingsResource>();
 
         tenants.MapGet("/{tenantId}/secrets", GetSecretsAsync).Produces<TenantSecretsResource>();
         tenants
@@ -122,12 +129,6 @@ internal class TenantApiEndpointHandler(
             .MapPost("/{tenantId}/owners", AddOwnerAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created);
         tenants.MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync);
-
-        // Current-tenant (singular) read of the resolved, merged settings view.
-        endpoints
-            .MapGet("/tenant/effective-settings", GetEffectiveSettingsAsync)
-            .WithTags("Tenants")
-            .Produces<TenantEffectiveSettingsResource>();
     }
 
     /// <summary>
@@ -472,27 +473,69 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenant/effective-settings</c>, returning the resolved, merged settings view for the request's
-    /// current tenant — the server baseline, the tenant's persisted overrides, and descriptor defaults combined through
-    /// the settings merge pipeline, including settings that are not advertised in discovery. Authorization requires the
-    /// same <c>Read</c> permission on the tenant as reading its persisted settings.
+    /// Handles <c>GET api/tenants/{tenantId}/effective-settings</c>, returning the resolved, merged settings view for
+    /// the specified OpenID Tenant — the server baseline, the tenant's persisted overrides, and descriptor defaults
+    /// combined through the settings merge pipeline, including settings that are not advertised in discovery.
+    /// Authorization requires the same <c>Read</c> permission on the tenant as reading its persisted settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
-    [EndpointName("api/tenant/effective-settings/get")]
-    internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(HttpContext httpContext)
+    [EndpointName("api/tenants/effective-settings/get")]
+    internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        CancellationToken cancellationToken
+    )
     {
-        var tenant = httpContext.GetOpenIdContext().Tenant;
-        var tenantId = tenant.TenantId;
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var tenantSettings = await store.GetSettingsOrDefaultAsync(tenantId, cancellationToken);
+        if (tenantSettings is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var effectiveSettings = await MergeTenantSettingsAsync(
+            openIdContext,
+            tenantSettings,
+            cancellationToken
+        );
 
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
         return await ProcessGetAsync(
             httpContext,
-            tenant.SettingsProvider.Collection,
+            effectiveSettings,
             node,
             Operations.Read,
             settings => ToTenantEffectiveSettingsResource(tenantId, settings)
         );
+    }
+
+    /// <summary>
+    /// Merges a tenant's persisted settings onto the server's effective settings, producing the same effective
+    /// <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the tenant at runtime.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="tenantSettings">The <see cref="PersistedTenantSettings"/> whose values to merge.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>.</returns>
+    internal virtual async ValueTask<IReadOnlySettingCollection> MergeTenantSettingsAsync(
+        OpenIdContext openIdContext,
+        PersistedTenantSettings tenantSettings,
+        CancellationToken cancellationToken
+    )
+    {
+        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
+        var deserializedSettings = SettingSerializer.DeserializeSettings(
+            tenantSettings.Value,
+            jsonOptions
+        );
+        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
+        return server.SettingsProvider.Collection.Merge(deserializedSettings);
     }
 
     /// <summary>

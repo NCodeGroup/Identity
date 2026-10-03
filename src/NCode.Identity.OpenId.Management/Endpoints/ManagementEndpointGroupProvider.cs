@@ -21,7 +21,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Endpoints;
-using NCode.Identity.OpenId.Contexts;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
@@ -40,10 +39,10 @@ internal sealed class ManagementEndpointGroupProvider(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        // Materialize the OpenID request environment (and open the ambient tenant scope) for every management endpoint
-        // via the same shared filter the protocol endpoints use; each endpoint retrieves the OpenIdContext from the
-        // request. Tenant/server rows are not tenant-scoped, so the ambient scope is a harmless no-op for them.
-        var group = endpoints.MapGroup("/api").AddEndpointFilter<OpenIdEnvironmentEndpointFilter>();
+        // Materialize the OpenID request environment (and publish the OpenIdContext) for every management endpoint, and
+        // open the ambient tenant scope from the route's {tenantId} when present so tenant-bound reads are confined to
+        // the addressed tenant (ADR-0042); control-plane routes carry no {tenantId} and act on unscoped rows.
+        var group = endpoints.MapGroup("/api").AddEndpointFilter<ManagementScopeEndpointFilter>();
 
         foreach (var endpointProvider in EndpointProviders)
         {

@@ -8,17 +8,30 @@ change to the public API is a **major** version bump.
 
 ## [Unreleased]
 
+### Changed
+
+- The management `/api` surface derives its ambient tenant scope from the route's `{tenantId}` segment rather than the
+  request's protocol-resolved tenant, so a central-admin caller can administer a tenant by id while the persistence-layer
+  query filter confines the read fail-closed ([ADR-0018](docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md));
+  absent a route `{tenantId}` (control-plane routes) it falls back to the resolved tenant, a no-op for the unscoped
+  server/tenant rows those routes act on. The tenant effective-settings endpoint is consequently addressed by id —
+  `GET /api/tenants/{tenantId}/effective-settings` (was `GET /api/tenant/effective-settings`, the request's current
+  tenant) — reconstructing the view from the server baseline merged with the addressed tenant's persisted overrides.
+  Nesting the remaining tenant-bound families (clients, grants, resource servers) under `/api/tenants/{tenantId}/…`
+  follows. See [ADR-0042](docs/adr/0042-management-api-route-driven-tenant-scope.md).
+
 ### Added
 
 - Authenticated **effective-settings** preview endpoints that return the resolved, merged settings view (server
   baseline + tenant/client overrides + descriptor defaults) as a flat `name → value` JSON object — using the same value
   representation as the discovery document but including settings that are not discoverable — for each settings-bearing
-  entity: `GET /api/tenant/effective-settings` (the request's current tenant), `GET /api/clients/{clientId}/
+  entity: `GET /api/tenants/{tenantId}/effective-settings`, `GET /api/clients/{clientId}/
 effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each is gated by the same `Read`
   authorization as reading that entity's raw settings and carries no `ETag` (a merged view spans multiple persisted
   entities). This is the gated replacement for the removed anonymous discovery `showAll` override. New wire contracts
   `TenantEffectiveSettingsResource`, `ClientEffectiveSettingsResource`, and `ServerEffectiveSettingsResource`. See
-  [ADR-0040](docs/adr/0040-effective-settings-preview-endpoints.md).
+  [ADR-0040](docs/adr/0040-effective-settings-preview-endpoints.md) (the tenant endpoint is addressed by id per
+  [ADR-0042](docs/adr/0042-management-api-route-driven-tenant-scope.md)).
 - End-to-end support for the OpenID Connect `claims` request parameter
   ([OIDC Core 5.5](https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter)), now advertised as
   `claims_parameter_supported: true` in discovery. Requested `claims.id_token` claims are added on top of the

@@ -1,6 +1,6 @@
 # 40. Effective-settings preview endpoints for tenant, client, and server
 
-- **Status:** Accepted
+- **Status:** Accepted (the tenant "not by-id" decision is superseded by [ADR-0042](0042-management-api-route-driven-tenant-scope.md))
 - **Date:** 2026-10-03
 - **Deciders:** NCode Group
 

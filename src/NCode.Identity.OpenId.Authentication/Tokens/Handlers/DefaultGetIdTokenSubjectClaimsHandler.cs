@@ -84,10 +84,13 @@ internal class DefaultGetIdTokenSubjectClaimsHandler(IClaimsService claimsServic
             claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Phone);
         }
 
-        // TODO: add specific claims requested by the client via the 'claims' request parameter.
-        // https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter
-        // Deferred: requires the parsed 'claims' request parameter to be carried on the token request
-        // (CreateSecurityTokenRequest) so it is available here.
+        // claims requested via the OpenID Connect 'claims' request parameter (ADR-0039); value/values are advisory and
+        // essential is best-effort, so a requested claim is emitted only when the subject actually has it.
+        var requestedIdTokenClaims = tokenRequest.RequestClaims?.IdToken;
+        if (requestedIdTokenClaims is not null)
+        {
+            claimTypes.UnionWith(requestedIdTokenClaims.Keys);
+        }
 
         ClaimsService.CopyClaims(sourceClaims, targetClaims, preventDuplicates: true, claimTypes);
 

@@ -204,6 +204,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(["api"]).Verifiable();
         mockAuthRequest.SetupGet(x => x.Nonce).Returns((string?)null).Verifiable();
         mockAuthRequest.SetupGet(x => x.State).Returns((string?)null).Verifiable();
+        mockAuthRequest.SetupGet(x => x.Claims).Returns((IRequestClaims?)null).Verifiable();
 
         var authorizationGrant = new AuthorizationGrant(
             mockAuthRequest.Object,

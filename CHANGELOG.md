@@ -10,14 +10,17 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
-- Endpoint route-group composition is now declarative and unified across the OpenID protocol and management surfaces.
-  A family declares a named `IEndpointGroup` (`Name`, `ParentName`, `Prefix`, and a `Configure` that attaches shared
-  filters) and registers its endpoints keyed by group name (`AddEndpointProvider<T>(groupName)`); the route builder
-  materializes groups parent-first and maps each group's keyed `IEndpointProvider` children into it. The management
-  surface composes a hierarchy — `api` (`/api`) → `api/tenant` (`/tenants/{tenantId}`) → `api/tenant/client`
+- Endpoint route-group composition is now declarative, hierarchical, and unified across the OpenID protocol and
+  management surfaces. A named `IEndpointGroup` **owns its contents**: it exposes a `Name` and `Prefix`, an optional
+  `Configure` that attaches shared filters, and a `Build(IEndpointGroupBuilder)` that declares the endpoints
+  (`AddEndpoint<T>()`) and child groups (`AddGroup<T>()`) it contains. Registering a single root group
+  (`AddEndpointGroup<TRoot>()`) walks that declaration and registers the whole subtree; the route builder materializes
+  each group with its prefix and filters, maps the group's endpoints, and recurses into its child groups. The
+  management surface composes a hierarchy — `api` (`/api`) → `api/tenant` (`/tenants/{tenantId}`) → `api/tenant/client`
   (`/clients/{clientId}`) — so tenant-bound families (clients, grants, resource servers, client grants) nest under the
   tenant and map only their relative sub-routes, and the protocol surface is a single `openid` group. This replaces the
-  imperative `IEndpointGroupProvider` tier and the per-family marker interfaces, which were removed. See
+  imperative `IEndpointGroupProvider` tier, the per-family marker interfaces, and the separate keyed
+  `AddEndpointProvider<T>(groupName)` / `AddOpenIdEndpointProvider<T>()` registration calls, which were removed. See
   [ADR-0042](docs/adr/0042-management-api-route-driven-tenant-scope.md).
 - The management `/api` surface derives its ambient tenant scope from the route's `{tenantId}` segment rather than the
   request's protocol-resolved tenant, so a central-admin caller can administer a tenant by id while the persistence-layer

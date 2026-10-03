@@ -141,7 +141,7 @@ internal class ResourceServerApiEndpointHandler(
         };
 
     /// <summary>
-    /// Handles <c>GET api/resource-servers</c>, returning a page of resource servers in the request's tenant.
+    /// Handles <c>GET api/tenants/{tenantId}/resource-servers</c>, returning a page of resource servers in the addressed tenant.
     /// </summary>
     [EndpointName("api/resource-servers/list")]
     internal virtual async ValueTask<IResult> ListAsync(
@@ -170,7 +170,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/resource-servers/{resourceServerId}</c>.
+    /// Handles <c>GET api/tenants/{tenantId}/resource-servers/{resourceServerId}</c>.
     /// </summary>
     [EndpointName("api/resource-servers/get")]
     internal virtual async ValueTask<IResult> GetAsync(
@@ -196,7 +196,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/resource-servers</c>, creating a new resource server.
+    /// Handles <c>POST api/tenants/{tenantId}/resource-servers</c>, creating a new resource server.
     /// </summary>
     [EndpointName("api/resource-servers/create")]
     internal virtual async ValueTask<IResult> CreateAsync(
@@ -258,7 +258,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>PATCH api/resource-servers/{resourceServerId}</c>.
+    /// Handles <c>PATCH api/tenants/{tenantId}/resource-servers/{resourceServerId}</c>.
     /// </summary>
     [EndpointName("api/resource-servers/update")]
     internal virtual async ValueTask<IResult> UpdateAsync(
@@ -319,7 +319,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/resource-servers/{resourceServerId}</c>. System resource servers and resource servers
+    /// Handles <c>DELETE api/tenants/{tenantId}/resource-servers/{resourceServerId}</c>. System resource servers and resource servers
     /// still referenced by a client grant cannot be removed (<c>409 Conflict</c>).
     /// </summary>
     [EndpointName("api/resource-servers/delete")]
@@ -356,7 +356,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/resource-servers/{resourceServerId}/scopes</c>.
+    /// Handles <c>GET api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes</c>.
     /// </summary>
     [EndpointName("api/resource-servers/scopes/list")]
     internal virtual async ValueTask<IResult> ListScopesAsync(
@@ -379,7 +379,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/resource-servers/{resourceServerId}/scopes</c>.
+    /// Handles <c>POST api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes</c>.
     /// </summary>
     [EndpointName("api/resource-servers/scopes/create")]
     internal virtual async ValueTask<IResult> CreateScopeAsync(
@@ -438,7 +438,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/resource-servers/{resourceServerId}/scopes/{scopeValue}</c>.
+    /// Handles <c>GET api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}</c>.
     /// </summary>
     [EndpointName("api/resource-servers/scopes/get")]
     internal virtual async ValueTask<IResult> GetScopeAsync(
@@ -460,7 +460,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>PUT api/resource-servers/{resourceServerId}/scopes/{scopeValue}</c>.
+    /// Handles <c>PUT api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}</c>.
     /// </summary>
     [EndpointName("api/resource-servers/scopes/update")]
     internal virtual async ValueTask<IResult> UpdateScopeAsync(
@@ -514,7 +514,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/resource-servers/{resourceServerId}/scopes/{scopeValue}</c>. A system scope cannot be
+    /// Handles <c>DELETE api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}</c>. A system scope cannot be
     /// removed (<c>409 Conflict</c>).
     /// </summary>
     [EndpointName("api/resource-servers/scopes/delete")]
@@ -569,7 +569,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/resource-servers/{resourceServerId}/owners</c>, returning the resource server's owners.
+    /// Handles <c>GET api/tenants/{tenantId}/resource-servers/{resourceServerId}/owners</c>, returning the resource server's owners.
     /// </summary>
     [EndpointName("api/resource-servers/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
@@ -591,7 +591,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/resource-servers/{resourceServerId}/owners</c>, granting a principal ownership.
+    /// Handles <c>POST api/tenants/{tenantId}/resource-servers/{resourceServerId}/owners</c>, granting a principal ownership.
     /// </summary>
     [EndpointName("api/resource-servers/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
@@ -616,7 +616,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/resource-servers/{resourceServerId}/owners/{principalId}</c>, revoking ownership. Refused
+    /// Handles <c>DELETE api/tenants/{tenantId}/resource-servers/{resourceServerId}/owners/{principalId}</c>, revoking ownership. Refused
     /// when it would leave the resource server with no owner.
     /// </summary>
     [EndpointName("api/resource-servers/owners/remove")]

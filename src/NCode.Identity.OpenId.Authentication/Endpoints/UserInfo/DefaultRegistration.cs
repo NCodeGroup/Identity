@@ -39,8 +39,6 @@ internal static class DefaultRegistration
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<OpenIdAuthenticationEndpoints> AddUserInfoEndpoint()
         {
-            builder.AddOpenIdEndpointProvider<DefaultUserInfoEndpointProvider>();
-
             builder.ServiceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<GetUserInfoClaimsCommand>,

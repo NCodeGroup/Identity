@@ -36,8 +36,6 @@ internal static class DefaultRegistration
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<OpenIdAuthenticationEndpoints> AddContinueEndpoint()
         {
-            builder.AddOpenIdEndpointProvider<DefaultContinueEndpointHandler>();
-
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddSingleton<IContinueService, DefaultContinueService>();

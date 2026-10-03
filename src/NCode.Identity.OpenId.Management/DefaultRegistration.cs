@@ -86,20 +86,9 @@ public static class DefaultRegistration
                 >()
             );
 
+            // The root group declares its own endpoints and child groups (ADR-0042); registering it wires the whole
+            // /api tree.
             builder.AddEndpointGroup<ManagementRootGroup>();
-            builder.AddEndpointGroup<TenantManagementGroup>();
-            builder.AddEndpointGroup<ClientManagementGroup>();
-
-            builder.AddEndpointProvider<ServerApiEndpointHandler>(ManagementRootGroup.GroupName);
-            builder.AddEndpointProvider<TenantApiEndpointHandler>(ManagementRootGroup.GroupName);
-            builder.AddEndpointProvider<ClientApiEndpointHandler>(TenantManagementGroup.GroupName);
-            builder.AddEndpointProvider<GrantApiEndpointHandler>(TenantManagementGroup.GroupName);
-            builder.AddEndpointProvider<ResourceServerApiEndpointHandler>(
-                TenantManagementGroup.GroupName
-            );
-            builder.AddEndpointProvider<ClientGrantApiEndpointHandler>(
-                ClientManagementGroup.GroupName
-            );
 
             return builder.NewBuilder<OpenIdManagementLibrary>();
         }

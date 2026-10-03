@@ -50,8 +50,6 @@ internal static class DefaultRegistration
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<OpenIdAuthenticationEndpoints> AddTokenEndpoint()
         {
-            builder.AddOpenIdEndpointProvider<DefaultTokenEndpointProvider>();
-
             builder.AddMessageFactory<TokenRequest>();
             builder.AddMessageFactory<TokenResponse>();
 

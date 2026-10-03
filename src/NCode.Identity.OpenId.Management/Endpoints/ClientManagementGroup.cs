@@ -16,8 +16,8 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Endpoints;
+using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
@@ -37,14 +37,11 @@ internal sealed class ClientManagementGroup : IEndpointGroup
     public string Name => GroupName;
 
     /// <inheritdoc />
-    public string? ParentName => TenantManagementGroup.GroupName;
-
-    /// <inheritdoc />
     public string Prefix => "/clients/{clientId}";
 
     /// <inheritdoc />
-    public void Configure(RouteGroupBuilder group)
+    public void Build(IEndpointGroupBuilder builder)
     {
-        // No additional conventions; the tenant scope is inherited from the parent group.
+        builder.AddEndpoint<ClientGrantApiEndpointHandler>();
     }
 }

@@ -41,8 +41,6 @@ internal static class DefaultRegistration
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<OpenIdAuthenticationEndpoints> AddRevocationEndpoint()
         {
-            builder.AddOpenIdEndpointProvider<DefaultRevocationEndpointProvider>();
-
             builder.AddMessageFactory<TokenRevocationRequest>();
 
             builder.ServiceCollection.TryAddEnumerable(

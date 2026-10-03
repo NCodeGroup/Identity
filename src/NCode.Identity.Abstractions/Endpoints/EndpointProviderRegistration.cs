@@ -48,32 +48,19 @@ public static class EndpointProviderRegistration
         }
 
         /// <summary>
-        /// Registers an <see cref="IEndpointProvider"/> implementation to be mapped into the named
-        /// <see cref="IEndpointGroup"/> identified by <paramref name="groupName"/> rather than onto the root endpoint
-        /// route builder.
-        /// </summary>
-        /// <param name="groupName">The <see cref="IEndpointGroup.Name"/> of the group the provider is mapped into.</param>
-        public void AddEndpointProvider<
-            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T
-        >(string groupName)
-            where T : class, IEndpointProvider
-        {
-            var serviceCollection = builder.ServiceCollection;
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.KeyedSingleton<IEndpointProvider, T>(groupName)
-            );
-        }
-
-        /// <summary>
-        /// Registers an <see cref="IEndpointGroup"/> that declares a named node in the endpoint route-group hierarchy.
+        /// Registers a root <see cref="IEndpointGroup"/> and recursively registers the endpoints and child groups it
+        /// declares via <see cref="IEndpointGroup.Build"/>. The root is mapped onto the top-level endpoint route
+        /// builder; each child group nests under its parent and inherits the parent's conventions.
         /// </summary>
         public void AddEndpointGroup<
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T
         >()
-            where T : class, IEndpointGroup
+            where T : class, IEndpointGroup, new()
         {
             var serviceCollection = builder.ServiceCollection;
-            serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IEndpointGroup, T>());
+            var root = new T();
+            serviceCollection.TryAddEnumerable(ServiceDescriptor.Singleton<IEndpointGroup>(root));
+            root.Build(new EndpointGroupBuilder(serviceCollection, root.Name));
         }
     }
 }

@@ -87,7 +87,7 @@ internal class ResourceServerApiEndpointHandler(
     {
         var resourceServers = endpoints
             .MapGroup("/resource-servers")
-            .AddEndpointFilter<TenantScopeEndpointFilter>()
+            .AddEndpointFilter<OpenIdEnvironmentEndpointFilter>()
             .WithTags("ResourceServers");
 
         resourceServers

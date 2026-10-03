@@ -17,25 +17,26 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Exceptions;
-using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.OpenId.Tenants;
+using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
-/// A reusable endpoint filter that establishes the ambient tenant scope for tenant-bound endpoint families, so that
-/// tenant-scoped data access can never materialize another tenant's resources (defense against cross-tenant data
-/// leaks). A tenant-bound resource is always owned by the request's tenant, so the scope is established for every
-/// tenant strategy — including static-single, which has a single real tenant.
+/// A reusable endpoint filter that materializes the shared OpenID request environment for tenant-bound management
+/// endpoints: it builds the <see cref="OpenIdContext"/> (the server and the resolved, settings/secrets-bearing tenant)
+/// and opens the ambient tenant scope that tenant-scoped data access reads (ADR-0018/ADR-0036). Management requests thus
+/// run the same environment the OpenID protocol endpoints do, rather than a separate tenant-only path.
 /// </summary>
-internal sealed class TenantScopeEndpointFilter(
-    ITenantResolver tenantResolver,
+internal sealed class OpenIdEnvironmentEndpointFilter(
+    IOpenIdContextFactory openIdContextFactory,
     IAmbientTenantAccessor ambientTenantAccessor
 ) : IEndpointFilter
 {
-    private ITenantResolver TenantResolver { get; } = tenantResolver;
+    private IOpenIdContextFactory OpenIdContextFactory { get; } = openIdContextFactory;
 
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
@@ -46,12 +47,14 @@ internal sealed class TenantScopeEndpointFilter(
     )
     {
         var httpContext = context.HttpContext;
+        var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
 
-        PersistedTenant ambientTenant;
+        OpenIdContext openIdContext;
         try
         {
-            ambientTenant = await TenantResolver.ResolveTenantAsync(
+            openIdContext = await OpenIdContextFactory.CreateAsync(
                 httpContext,
+                mediator,
                 httpContext.RequestAborted
             );
         }
@@ -61,7 +64,7 @@ internal sealed class TenantScopeEndpointFilter(
             return exception.HttpResult;
         }
 
-        using var scope = AmbientTenantAccessor.BeginScope(ambientTenant.TenantId);
+        using var scope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
         return await next(context);
     }
 }

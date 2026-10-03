@@ -33,11 +33,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
 /// <summary>
 /// Provides a default implementation of the required services and handlers used by the discovery endpoint.
 /// </summary>
-internal class DefaultDiscoveryEndpointHandler(IOpenIdContextFactory contextFactory)
-    : IOpenIdEndpointProvider
+internal class DefaultDiscoveryEndpointHandler : IOpenIdEndpointProvider
 {
-    private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
-
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
         endpoints
@@ -53,11 +50,7 @@ internal class DefaultDiscoveryEndpointHandler(IOpenIdContextFactory contextFact
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = await ContextFactory.CreateAsync(
-            httpContext,
-            mediator,
-            cancellationToken
-        );
+        var openIdContext = httpContext.GetOpenIdContext();
 
         var openIdEnvironment = openIdContext.Environment;
 

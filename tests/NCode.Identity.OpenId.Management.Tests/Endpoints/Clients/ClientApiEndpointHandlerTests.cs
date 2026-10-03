@@ -32,7 +32,7 @@ using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -55,7 +55,6 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IClientValidator> MockClientValidator { get; }
-    private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private ClientApiEndpointHandler Handler { get; }
@@ -69,8 +68,6 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockClientValidator = MockRepository.Create<IClientValidator>();
-        MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId);
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -91,7 +88,6 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockClientValidator.Object,
-            MockAmbientTenantAccessor.Object,
             MockSecretGenerator.Object,
             TimeProvider.System,
             MockCryptoService.Object,
@@ -167,7 +163,17 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         var identity = authenticated
             ? new ClaimsIdentity(authenticationType: "test")
             : new ClaimsIdentity();
-        return new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        // The shared environment filter publishes the context in the pipeline; emulate it for direct handler calls.
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature =>
+                feature.OpenIdContext
+                == Mock.Of<OpenIdContext>(context =>
+                    context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == TenantId)
+                )
+            )
+        );
+        return httpContext;
     }
 
     private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
@@ -265,7 +271,6 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         SetupResourceId("generated-id");
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
 
         PersistedClient? captured = null;
         MockClientValidator
@@ -295,37 +300,13 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.CreateClientAsync(
-            httpContext,
-            Mock.Of<OpenIdContext>(),
-            request,
-            CancellationToken.None
-        );
+        var result = await Handler.CreateClientAsync(httpContext, request, CancellationToken.None);
 
         Assert.IsType<Created<ClientResource>>(result);
         Assert.NotNull(captured);
         Assert.Equal(TenantId, captured.TenantId);
         Assert.Equal(TenantId, captured.Settings.TenantId);
         Assert.Equal(TenantId, captured.Secrets.TenantId);
-    }
-
-    [Fact]
-    public async Task CreateClientAsync_WhenNoAmbientTenant_ThrowsBeforeStore()
-    {
-        // No store scaffold is set up, so a strict-mock failure here would mean the guard ran too late.
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns((string?)null).Verifiable();
-
-        var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await Handler.CreateClientAsync(
-                httpContext,
-                Mock.Of<OpenIdContext>(),
-                request,
-                CancellationToken.None
-            )
-        );
     }
 
     #endregion
@@ -335,7 +316,6 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task ListClientsAsync_WhenAuthorized_ReturnsPage()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockClientStore
@@ -366,7 +346,6 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task ListClientsAsync_WhenForbidden_ReturnsForbidWithoutQueryingStore()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);

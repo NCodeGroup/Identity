@@ -31,7 +31,6 @@ using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
@@ -61,7 +60,6 @@ internal class ResourceServerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     IResourceServerValidator resourceServerValidator,
-    IAmbientTenantAccessor ambientTenantAccessor,
     ICryptoService cryptoService,
     IResourceOwnershipService resourceOwnershipService,
     ILogger<ResourceServerApiEndpointHandler> logger
@@ -70,7 +68,6 @@ internal class ResourceServerApiEndpointHandler(
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IResourceServerValidator ResourceServerValidator { get; } = resourceServerValidator;
-    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -86,10 +83,7 @@ internal class ResourceServerApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var resourceServers = endpoints
-            .MapGroup("/resource-servers")
-            .AddEndpointFilter<AmbientTenantScopeEndpointFilter>()
-            .WithTags("ResourceServers");
+        var resourceServers = endpoints.MapGroup("/resource-servers").WithTags("ResourceServers");
 
         resourceServers
             .MapGet("", ListAsync)
@@ -157,7 +151,7 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         var effectiveLimit = NormalizeLimit(limit);
 
         return await ProcessListAsync(
@@ -191,7 +185,7 @@ internal class ResourceServerApiEndpointHandler(
         var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
 
         var node = ResourceNode.For(
-            AmbientTenantAccessor.GetRequiredTenantId(),
+            httpContext.GetOpenIdContext().Tenant.TenantId,
             ResourceNodeTypes.ResourceServer,
             resourceServerId
         );
@@ -210,12 +204,12 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/create")]
     internal virtual async ValueTask<IResult> CreateAsync(
         HttpContext httpContext,
-        OpenIdContext openIdContext,
         [FromBody] CreateResourceServerRequest request,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var openIdContext = httpContext.GetOpenIdContext();
+        var tenantId = openIdContext.Tenant.TenantId;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IResourceServerStore>();
@@ -586,7 +580,7 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessListOwnersAsync(
             httpContext,
             tenantId,
@@ -609,7 +603,7 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessAddOwnerAsync(
             httpContext,
             tenantId,
@@ -635,7 +629,7 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessRemoveOwnerAsync(
             httpContext,
             tenantId,

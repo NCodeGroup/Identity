@@ -45,12 +45,10 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 /// Provides a default implementation of the required services and handlers used by the token endpoint.
 /// </summary>
 internal class DefaultTokenEndpointProvider(
-    IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService,
     IKnownParameterCollectionProvider knownParameterCollectionProvider
 ) : IOpenIdEndpointProvider
 {
-    private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } =
         clientAuthenticationService;
     private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
@@ -106,11 +104,7 @@ internal class DefaultTokenEndpointProvider(
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = await ContextFactory.CreateAsync(
-            httpContext,
-            mediator,
-            cancellationToken
-        );
+        var openIdContext = httpContext.GetOpenIdContext();
 
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdContext.ErrorFactory;

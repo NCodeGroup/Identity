@@ -20,14 +20,12 @@ using System.Collections.Immutable;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.Secrets.Keys;
-using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 
@@ -38,12 +36,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 /// tokens issued by this authorization server.
 /// </summary>
 /// <seealso href="https://datatracker.ietf.org/doc/html/rfc7517">RFC 7517 - JSON Web Key (JWK)</seealso>
-internal class DefaultJwksEndpointHandler(
-    IOpenIdContextFactory contextFactory,
-    IEnumerable<IJsonWebKeyConverter> jsonWebKeyConverters
-) : IOpenIdEndpointProvider
+internal class DefaultJwksEndpointHandler(IEnumerable<IJsonWebKeyConverter> jsonWebKeyConverters)
+    : IOpenIdEndpointProvider
 {
-    private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private ImmutableArray<IJsonWebKeyConverter> JsonWebKeyConverters { get; } =
     [.. jsonWebKeyConverters];
 
@@ -57,15 +52,10 @@ internal class DefaultJwksEndpointHandler(
 
     private async ValueTask<JsonHttpResult<JsonWebKeySetResult>> HandleRouteAsync(
         HttpContext httpContext,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = await ContextFactory.CreateAsync(
-            httpContext,
-            mediator,
-            cancellationToken
-        );
+        var openIdContext = httpContext.GetOpenIdContext();
 
         var openIdEnvironment = openIdContext.Environment;
         var secretKeys = openIdContext.Tenant.SecretsProvider.Collection;

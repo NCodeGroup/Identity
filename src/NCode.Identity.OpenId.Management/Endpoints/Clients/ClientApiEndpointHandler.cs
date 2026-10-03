@@ -34,7 +34,6 @@ using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Persistence.Stores;
@@ -65,7 +64,6 @@ internal class ClientApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     IClientValidator clientValidator,
-    IAmbientTenantAccessor ambientTenantAccessor,
     ISecretGenerator secretGenerator,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
@@ -76,7 +74,6 @@ internal class ClientApiEndpointHandler(
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IClientValidator ClientValidator { get; } = clientValidator;
-    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
@@ -94,12 +91,7 @@ internal class ClientApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        // The ambient tenant scope keeps tenant-scoped data access from materializing another tenant's resources; a
-        // cross-tenant resource is simply not found. The OpenIdContext itself is built for the whole /api group.
-        var clients = endpoints
-            .MapGroup("/clients")
-            .AddEndpointFilter<AmbientTenantScopeEndpointFilter>()
-            .WithTags("Clients");
+        var clients = endpoints.MapGroup("/clients").WithTags("Clients");
 
         clients
             .MapPost("", CreateClientAsync)
@@ -196,7 +188,7 @@ internal class ClientApiEndpointHandler(
     )
     {
         // A client list is scoped to the request's tenant (the query filter enforces it); authorize for that tenant.
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         var effectiveLimit = NormalizeLimit(limit);
 
         return await ProcessListAsync(
@@ -234,7 +226,7 @@ internal class ClientApiEndpointHandler(
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
 
         var node = ResourceNode.For(
-            AmbientTenantAccessor.GetRequiredTenantId(),
+            httpContext.GetOpenIdContext().Tenant.TenantId,
             ResourceNodeTypes.Client,
             clientId
         );
@@ -251,14 +243,12 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/create")]
     internal virtual async ValueTask<IResult> CreateClientAsync(
         HttpContext httpContext,
-        OpenIdContext openIdContext,
         [FromBody] CreateClientRequest request,
         CancellationToken cancellationToken
     )
     {
-        // A client is always owned by the request's tenant, which the tenant-scope filter already resolved. Resolve
-        // it before acquiring the store manager so the fail-fast guard does not open a unit of work.
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var openIdContext = httpContext.GetOpenIdContext();
+        var tenantId = openIdContext.Tenant.TenantId;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
@@ -448,7 +438,7 @@ internal class ClientApiEndpointHandler(
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
 
         var node = ResourceNode.For(
-            AmbientTenantAccessor.GetRequiredTenantId(),
+            httpContext.GetOpenIdContext().Tenant.TenantId,
             ResourceNodeTypes.Client,
             clientId
         );
@@ -556,7 +546,7 @@ internal class ClientApiEndpointHandler(
         var clientSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
 
         var node = ResourceNode.For(
-            AmbientTenantAccessor.GetRequiredTenantId(),
+            httpContext.GetOpenIdContext().Tenant.TenantId,
             ResourceNodeTypes.Client,
             clientId
         );
@@ -687,7 +677,7 @@ internal class ClientApiEndpointHandler(
             : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
 
         var node = ResourceNode.For(
-            AmbientTenantAccessor.GetRequiredTenantId(),
+            httpContext.GetOpenIdContext().Tenant.TenantId,
             ResourceNodeTypes.Client,
             clientId
         );
@@ -830,7 +820,7 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessListOwnersAsync(
             httpContext,
             tenantId,
@@ -852,7 +842,7 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessAddOwnerAsync(
             httpContext,
             tenantId,
@@ -877,7 +867,7 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantId = AmbientTenantAccessor.GetRequiredTenantId();
+        var tenantId = httpContext.GetOpenIdContext().Tenant.TenantId;
         return await ProcessRemoveOwnerAsync(
             httpContext,
             tenantId,

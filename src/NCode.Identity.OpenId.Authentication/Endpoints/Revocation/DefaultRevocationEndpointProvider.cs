@@ -38,11 +38,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Revocation;
 /// shell: it authenticates the client and parses the request, then delegates revocation to the mediator.
 /// </summary>
 internal class DefaultRevocationEndpointProvider(
-    IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService
 ) : IOpenIdEndpointProvider
 {
-    private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } =
         clientAuthenticationService;
 
@@ -64,11 +62,7 @@ internal class DefaultRevocationEndpointProvider(
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = await ContextFactory.CreateAsync(
-            httpContext,
-            mediator,
-            cancellationToken
-        );
+        var openIdContext = httpContext.GetOpenIdContext();
 
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdContext.ErrorFactory;

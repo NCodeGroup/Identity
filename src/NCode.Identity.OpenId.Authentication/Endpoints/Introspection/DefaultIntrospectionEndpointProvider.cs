@@ -40,11 +40,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
 /// the token's active state and claims.
 /// </summary>
 internal class DefaultIntrospectionEndpointProvider(
-    IOpenIdContextFactory contextFactory,
     IClientAuthenticationService clientAuthenticationService
 ) : IOpenIdEndpointProvider
 {
-    private IOpenIdContextFactory ContextFactory { get; } = contextFactory;
     private IClientAuthenticationService ClientAuthenticationService { get; } =
         clientAuthenticationService;
 
@@ -66,11 +64,7 @@ internal class DefaultIntrospectionEndpointProvider(
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = await ContextFactory.CreateAsync(
-            httpContext,
-            mediator,
-            cancellationToken
-        );
+        var openIdContext = httpContext.GetOpenIdContext();
 
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdContext.ErrorFactory;

@@ -102,16 +102,14 @@ expressed this way, so a tenant can override the server default at runtime.
   three-way split.
 - Per-tenant behavioral knobs (including the [ADR-0035](0035-federated-principals-and-identity-resolution.md) resolution
   and linking knobs) become tenant settings with server defaults, overridable at runtime.
-- The `OpenIdContext` is threaded explicitly from the pipeline entry to every call site rather than fetched from an
-  async-local accessor. It is a bindable minimal-API parameter (a static `BindAsync` reading the request feature the
-  context factory publishes) and is exposed via `HttpContext.GetOpenIdContext()`, so a new OpenID endpoint receives the
-  context with no extra plumbing. The one exception is the ASP.NET Core ownership authorization handler, which the
-  framework invokes without the context in hand and which therefore reads it from the request (the single blessed
-  async-local seam).
-- Materializing the environment and opening the tenant data-scope are separate concerns: the management `/api` group
-  builds the `OpenIdContext` for every endpoint, while the ambient tenant scope is opened only on the tenant-scoped
-  subgroups, so cross-tenant endpoints (tenants, servers) run the environment without being restricted to one tenant's
-  rows.
+- A single shared endpoint filter (`OpenIdEnvironmentEndpointFilter`) materializes the environment for **every** OpenID
+  endpoint — authentication (protocol) and management alike. It builds the `OpenIdContext`, publishes it on the request
+  as an `IOpenIdContextFeature`, and opens the ambient tenant scope; it is installed once on each family's route group.
+  Endpoints and services retrieve the context from the request via `HttpContext.GetOpenIdContext()` rather than building
+  it themselves, so the two surfaces run identical pipelines and a new endpoint needs no context plumbing.
+- Opening the ambient tenant scope in that one filter is safe for the central-admin surfaces: `TenantEntity` and
+  `ServerEntity` are not tenant-scoped (`ISupportTenantEntity`), so the scope correctly restricts client/grant/etc. rows
+  while being a harmless no-op for `/tenants` and `/servers` listings.
 - The move is broad — namespaces, `using` directives across the authentication slice, and the published API surface of
   several packages shift. This lands during the pre-release window, where a clean cutover is preferred over compatibility
   shims ([ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)).

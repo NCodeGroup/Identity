@@ -21,11 +21,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -43,7 +44,6 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
     private Mock<IClientGrantStore> MockStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<IClientGrantValidator> MockValidator { get; }
-    private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private ClientGrantApiEndpointHandler Handler { get; }
 
@@ -55,14 +55,12 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
         MockStore = MockRepository.Create<IClientGrantStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockValidator = MockRepository.Create<IClientGrantValidator>();
-        MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
 
         Handler = new ClientGrantApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockValidator.Object,
-            MockAmbientTenantAccessor.Object,
             MockCryptoService.Object
         );
     }
@@ -98,11 +96,23 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
-    private static HttpContext CreateHttpContext() =>
-        new DefaultHttpContext
+    private static HttpContext CreateHttpContext()
+    {
+        var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(new ClaimsIdentity(authenticationType: "test")),
         };
+        // The shared environment filter publishes the context in the pipeline; emulate it for direct handler calls.
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature =>
+                feature.OpenIdContext
+                == Mock.Of<OpenIdContext>(context =>
+                    context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == TenantId)
+                )
+            )
+        );
+        return httpContext;
+    }
 
     private static PersistedClientGrant CreateGrant() =>
         new()
@@ -119,7 +129,6 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task ListAsync_WhenAuthorized_ReturnsPage()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
@@ -146,7 +155,6 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateAsync_WhenValid_ReturnsCreated()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupStore();
         MockValidator
             .Setup(x =>
@@ -188,7 +196,6 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateAsync_WhenScopeUnknown_ReturnsUnprocessableEntity()
     {
-        MockAmbientTenantAccessor.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupStore();
         MockValidator
             .Setup(x =>

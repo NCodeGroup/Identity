@@ -116,6 +116,10 @@ change to the public API is a **major** version bump.
   `subject_types_supported` merge as intersect ceilings; and `tenant_issuer` is parent-owned (`Keep`).
   `allowed_identity_providers` is now fail-closed — unset means unrestricted, but an explicit (or narrowed-to-empty)
   allowlist denies every IdP. See [ADR-0038](docs/adr/0038-setting-merge-lattice-duals.md).
+- Relocated the default `claims_supported` list from the descriptor literal into the replaceable
+  `IDefaultSettingsProvider` baseline, so a host that enables `claims_supported_is_strict` can extend the allow-list
+  instead of being frozen by the library's defaults; the advertised default is unchanged
+  ([ADR-0010](docs/adr/0010-supported-settings-unset-means-unrestricted.md)).
 - Probe the tenant cache before reading the tenant store on the resolution hot path. `ITenantResolver` and
   `ITenantStrategy` gain `TryGetTenantId(httpContext, out tenantId)`, a store-free identity probe satisfied by the
   static-single (configured id) and dynamic-by-path (route value) strategies; `DefaultOpenIdTenantFactory` uses it to

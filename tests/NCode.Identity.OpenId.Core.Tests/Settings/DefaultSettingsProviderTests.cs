@@ -43,7 +43,7 @@ public class DefaultSettingsProviderTests : BaseTests
             .Verifiable();
 
     [Fact]
-    public void Configure_SetsTheStandardBaselineCeilings()
+    public void Configure_SetsTheStandardBaseline()
     {
         var mockSettings = CreateStrictMock<ISettingCollection>();
 
@@ -76,6 +76,17 @@ public class DefaultSettingsProviderTests : BaseTests
             OpenIdConstants.ResponseTypes.Code,
             OpenIdConstants.ResponseTypes.IdToken,
             OpenIdConstants.ResponseTypes.Token
+        );
+        SetupBaseline(
+            mockSettings,
+            OpenIdSettingKeys.ClaimsSupported,
+            [
+                .. OpenIdConstants.ProtocolClaims,
+                .. OpenIdConstants.ClaimsByScope.Profile,
+                .. OpenIdConstants.ClaimsByScope.Email,
+                .. OpenIdConstants.ClaimsByScope.Address,
+                .. OpenIdConstants.ClaimsByScope.Phone,
+            ]
         );
 
         var provider = new DefaultSettingsProvider();

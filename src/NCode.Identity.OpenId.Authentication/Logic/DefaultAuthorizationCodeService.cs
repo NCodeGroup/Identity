@@ -23,10 +23,10 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Contexts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Models;
-using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
+using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Logic;
 

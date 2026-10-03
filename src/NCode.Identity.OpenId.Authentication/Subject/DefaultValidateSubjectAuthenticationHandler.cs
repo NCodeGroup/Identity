@@ -22,10 +22,10 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Logging;
-using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 

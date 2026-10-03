@@ -35,10 +35,10 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Messages;
 using NCode.Identity.OpenId.Authentication.Messages.Commands;
-using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;

@@ -18,7 +18,7 @@
 
 using System.Text.Json;
 using NCode.Identity.OpenId.Authentication.Contexts;
-using NCode.Identity.OpenId.Authentication.Settings;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Logic;

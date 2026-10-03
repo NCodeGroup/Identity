@@ -22,9 +22,9 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Logic;
-using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 

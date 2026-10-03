@@ -198,6 +198,71 @@ const NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.
 const NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkingOptions.DefaultVerifiedClaimName = "email_verified" -> string!
 const NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.DefaultIssuerClaimName = "iss" -> string!
 const NCode.Identity.OpenId.PrincipalResolution.PrincipalResolutionOptions.DefaultSourceClaimName = "sub" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported = "access_token_encryption_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenEncryptionEncValuesSupported = "access_token_encryption_enc_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenEncryptionRequired = "access_token_encryption_required" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenEncryptionZipValuesSupported = "access_token_encryption_zip_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenLifetime = "access_token_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenSigningAlgValuesSupported = "access_token_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenType = "access_token_type" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AcrValuesSupported = "acr_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowedIdentityProviders = "allowed_identity_providers" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowLoopbackRedirect = "allow_loopback_redirect" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowPlainCodeChallengeMethod = "allow_plain_code_challenge_method" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowUnsafeTokenResponse = "allow_unsafe_token_response" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationAuthenticateScheme = "authorization_authenticate_scheme" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationChallengeScheme = "authorization_challenge_scheme" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationCodeLifetime = "authorization_code_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsLocalesSupported = "claims_locales_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsParameterSupported = "claims_parameter_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsSupported = "claims_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsSupportedIsStrict = "claims_supported_is_strict" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimTypesSupported = "claim_types_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClockSkew = "clock_skew" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ContinueAuthorizationLifetime = "continue_authorization_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DisplayValuesSupported = "display_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.GrantTypesSupported = "grant_types_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenEncryptionAlgValuesSupported = "id_token_encryption_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenEncryptionEncValuesSupported = "id_token_encryption_enc_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenEncryptionRequired = "id_token_encryption_required" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenEncryptionZipValuesSupported = "id_token_encryption_zip_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenLifetime = "id_token_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.OpenIdProviderPolicyUri = "op_policy_uri" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.OpenIdProviderTermsOfServiceUri = "op_tos_uri" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PromptValuesSupported = "prompt_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RedirectUris = "redirect_uris" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenExpirationPolicy = "refresh_token_expiration_policy" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenLifetime = "refresh_token_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenRotationEnabled = "refresh_token_rotation_enabled" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported = "request_object_encryption_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported = "request_object_encryption_enc_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectEncryptionZipValuesSupported = "request_object_encryption_zip_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectExpectedAudience = "request_object_expected_audience" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectSigningAlgValuesSupported = "request_object_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestParameterSupported = "request_parameter_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestUriExpectedContentType = "request_uri_expected_content_type" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestUriParameterSupported = "request_uri_parameter_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestUriRequireStrictContentType = "request_uri_require_strict_content_type" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireCodeChallenge = "require_pkce" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireRequestObject = "require_request_object" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireRequestUriRegistration = "require_request_uri_registration" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ResponseModesSupported = "response_modes_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ResponseTypesSupported = "response_types_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ScopesSupported = "scopes_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendIdClaimsInAccessToken = "send_id_claims_in_access_token" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ServiceDocumentation = "service_documentation" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectMaxAge = "subject_max_age" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectType = "subject_type" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectTypesSupported = "subject_types_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantIssuer = "tenant_issuer" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenEndpointAuthMethodsSupported = "token_endpoint_auth_methods_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported = "token_endpoint_auth_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.UiLocalesSupported = "ui_locales_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.UserInfoEncryptionAlgValuesSupported = "userinfo_encryption_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.UserInfoEncryptionEncValuesSupported = "userinfo_encryption_enc_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.UserInfoEncryptionZipValuesSupported = "userinfo_encryption_zip_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.UserInfoSigningAlgValuesSupported = "userinfo_signing_alg_values_supported" -> string!
 const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultDisplayName = "Default Tenant" -> string!
 const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultTenantId = "default" -> string!
 const NCode.Identity.OpenId.Tenants.TenantResolutionOptions.DefaultRootTenantId = "root" -> string!
@@ -456,6 +521,8 @@ NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImpleme
 NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.set -> void
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider.GetJsonConverters(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.JsonConverter!>!
+NCode.Identity.OpenId.Settings.OpenIdSettingKeys
+NCode.Identity.OpenId.Settings.OpenIdSettingNames
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.DynamicByHostTenantOptions() -> void
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.RegexPattern.get -> string!
@@ -509,3 +576,67 @@ static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Email.get -> System.C
 static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Phone.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Profile.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 static NCode.Identity.OpenId.OpenIdConstants.ProtocolClaims.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenEncryptionRequired.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenEncryptionZipValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenType.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AcrValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowedIdentityProviders.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowLoopbackRedirect.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowPlainCodeChallengeMethod.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowUnsafeTokenResponse.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationAuthenticateScheme.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationChallengeScheme.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationCodeLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsLocalesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsParameterSupported.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsSupportedIsStrict.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClockSkew.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ContinueAuthorizationLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DisplayValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.GrantTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionRequired.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionZipValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.OpenIdProviderPolicyUri.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.OpenIdProviderTermsOfServiceUri.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PromptValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RedirectUris.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenExpirationPolicy.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenRotationEnabled.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectEncryptionZipValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectExpectedAudience.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestParameterSupported.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestUriExpectedContentType.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestUriParameterSupported.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestUriRequireStrictContentType.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireCodeChallenge.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireRequestObject.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireRequestUriRegistration.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ResponseModesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ResponseTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendIdClaimsInAccessToken.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ServiceDocumentation.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectMaxAge.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectType.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantIssuer.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TokenEndpointAuthMethodsSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UiLocalesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoEncryptionZipValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>

@@ -20,7 +20,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.Settings;
 
-namespace NCode.Identity.OpenId.Authentication.Settings;
+namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Contains constants for known <see cref="SettingKey{TValue}"/> instances.

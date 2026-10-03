@@ -22,6 +22,7 @@ using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Settings;

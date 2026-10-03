@@ -33,10 +33,10 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Options;
-using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Settings;
 

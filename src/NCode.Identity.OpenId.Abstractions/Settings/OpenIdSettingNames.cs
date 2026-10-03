@@ -19,7 +19,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Authentication.Settings;
+namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Contains constants for various <c>OAuth</c> and <c>OpenID Connect</c> setting names.

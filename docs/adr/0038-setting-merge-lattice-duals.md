@@ -33,12 +33,12 @@ and **override** (the child wins, no restriction). Which primitive realizes a ce
 value polarity, so the vocabulary ships **both halves of every pair** and the author selects the half whose polarity
 makes the intent true:
 
-| Domain | meet (narrowing) | join (widening) | projections |
-| --- | --- | --- | --- |
-| Ordered (`IComparable<T>`) | `Min` | `Max` | — |
-| Boolean | `And` | `Or` | — |
-| Collection | `Intersect` | `Union` | — |
-| Value | — | — | `Keep` (parent wins) / `Replace` (child wins) |
+| Domain                     | meet (narrowing) | join (widening) | projections                                   |
+| -------------------------- | ---------------- | --------------- | --------------------------------------------- |
+| Ordered (`IComparable<T>`) | `Min`            | `Max`           | —                                             |
+| Boolean                    | `And`            | `Or`            | —                                             |
+| Collection                 | `Intersect`      | `Union`         | —                                             |
+| Value                      | —                | —               | `Keep` (parent wins) / `Replace` (child wins) |
 
 `SettingMerge` lives in `NCode.Identity.Abstractions` (namespace `NCode.Identity.Settings`) so host-authored
 descriptors reuse the same vocabulary; the default implementations that consume it stay internal

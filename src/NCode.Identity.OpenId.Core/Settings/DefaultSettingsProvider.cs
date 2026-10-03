@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides the built-in, off-the-shelf baseline for the <c>*_supported</c> server settings so that a host
-/// which configures nothing still gets a sensible, spec-compliant ceiling. Registered by default and
+/// which configures nothing still gets a sensible, spec-compliant baseline. Registered by default and
 /// replaceable/extendable by hosts.
 /// </summary>
 internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
@@ -67,6 +67,19 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
                 OpenIdConstants.ResponseTypes.Code,
                 OpenIdConstants.ResponseTypes.IdToken,
                 OpenIdConstants.ResponseTypes.Token,
+            ]
+        );
+
+        // claims_supported is advisory by default; it only becomes an enforcement allow-list when
+        // claims_supported_is_strict is enabled, so the baseline is kept host-extendable (ADR-0010).
+        settings.Set(
+            OpenIdSettingKeys.ClaimsSupported,
+            [
+                .. OpenIdConstants.ProtocolClaims,
+                .. OpenIdConstants.ClaimsByScope.Profile,
+                .. OpenIdConstants.ClaimsByScope.Email,
+                .. OpenIdConstants.ClaimsByScope.Address,
+                .. OpenIdConstants.ClaimsByScope.Phone,
             ]
         );
     }

@@ -278,14 +278,6 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ClaimsSupported,
-                Default =
-                [
-                    .. OpenIdConstants.ProtocolClaims,
-                    .. OpenIdConstants.ClaimsByScope.Profile,
-                    .. OpenIdConstants.ClaimsByScope.Email,
-                    .. OpenIdConstants.ClaimsByScope.Address,
-                    .. OpenIdConstants.ClaimsByScope.Phone,
-                ],
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Replace,

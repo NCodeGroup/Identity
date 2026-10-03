@@ -1,7 +1,4 @@
 #nullable enable
-const NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.DefaultSectionName = "OpenId" -> string!
-const NCode.Identity.OpenId.Authentication.Options.OpenIdServerOptions.DefaultServerId = "default" -> string!
-const NCode.Identity.OpenId.Authentication.Options.OpenIdServerOptions.SettingsSubsection = "Server:Settings" -> string!
 NCode.Identity.OpenId.Authentication.Contexts.OpenIdContextFeature
 NCode.Identity.OpenId.Authentication.Contexts.OpenIdContextFeature.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Authentication.Contexts.OpenIdContextFeature.OpenIdContext.init -> void
@@ -227,43 +224,12 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Scop
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenResponse() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenType.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenType.set -> void
-NCode.Identity.OpenId.Authentication.Logic.GetSubjectIdDelegate
-NCode.Identity.OpenId.Authentication.Logic.GetSubjectIdentityDelegate
 NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters
 NCode.Identity.OpenId.Authentication.Messages.Parsers.AuthenticationParameterParsers
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.GetSubjectId.get -> NCode.Identity.OpenId.Authentication.Logic.GetSubjectIdDelegate!
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.GetSubjectId.set -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.GetSubjectIdentity.get -> NCode.Identity.OpenId.Authentication.Logic.GetSubjectIdentityDelegate!
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.GetSubjectIdentity.set -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.JsonOptionsConfigurators.get -> System.Collections.Generic.List<System.Action<System.Text.Json.JsonSerializerOptions!>!>!
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.OpenIdOptions() -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.SectionName.get -> string!
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.SectionName.set -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.Server.get -> NCode.Identity.OpenId.Authentication.Options.OpenIdServerOptions!
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.Server.set -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.Tenant.get -> NCode.Identity.OpenId.Authentication.Options.OpenIdTenantOptions!
-NCode.Identity.OpenId.Authentication.Options.OpenIdOptions.Tenant.set -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdServerOptions
-NCode.Identity.OpenId.Authentication.Options.OpenIdServerOptions.OpenIdServerOptions() -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdServerOptions.SecretsPeriodicRefreshInterval.get -> System.TimeSpan
-NCode.Identity.OpenId.Authentication.Options.OpenIdServerOptions.SecretsPeriodicRefreshInterval.set -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdServerOptions.ServerId.get -> string!
-NCode.Identity.OpenId.Authentication.Options.OpenIdServerOptions.ServerId.set -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdServerOptions.SettingsPeriodicRefreshInterval.get -> System.TimeSpan
-NCode.Identity.OpenId.Authentication.Options.OpenIdServerOptions.SettingsPeriodicRefreshInterval.set -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdTenantOptions
-NCode.Identity.OpenId.Authentication.Options.OpenIdTenantOptions.OpenIdTenantOptions() -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdTenantOptions.SecretsPeriodicRefreshInterval.get -> System.TimeSpan
-NCode.Identity.OpenId.Authentication.Options.OpenIdTenantOptions.SecretsPeriodicRefreshInterval.set -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdTenantOptions.SettingsPeriodicRefreshInterval.get -> System.TimeSpan
-NCode.Identity.OpenId.Authentication.Options.OpenIdTenantOptions.SettingsPeriodicRefreshInterval.set -> void
-NCode.Identity.OpenId.Authentication.Options.OpenIdTenantOptions.TenantCacheExpiration.get -> System.TimeSpan
-NCode.Identity.OpenId.Authentication.Options.OpenIdTenantOptions.TenantCacheExpiration.set -> void
 NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory
 NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory.CollectionDataSourceFactory.get -> NCode.Collections.Providers.ICollectionDataSourceFactory!
-NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory.DefaultOpenIdTenantFactory(NCode.Identity.OpenId.Tenants.ITenantResolver! tenantResolver, Microsoft.AspNetCore.Routing.Template.TemplateBinderFactory! templateBinderFactory, Microsoft.Extensions.Options.IOptions<NCode.Identity.OpenId.Authentication.Options.OpenIdOptions!>! optionsAccessor, NCode.Persistence.Stores.IStoreManagerFactory! storeManagerFactory, NCode.Identity.OpenId.Tenants.IOpenIdTenantCache! tenantCache, NCode.Identity.Settings.IReadOnlySettingCollectionProviderFactory! settingCollectionProviderFactory, NCode.Identity.Settings.ISettingSerializer! settingSerializer, NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer! secretSerializer, NCode.Identity.Secrets.Logic.ISecretKeyCollectionProviderFactory! secretKeyCollectionProviderFactory, NCode.Collections.Providers.ICollectionDataSourceFactory! collectionDataSourceFactory) -> void
-NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory.OpenIdOptions.get -> NCode.Identity.OpenId.Authentication.Options.OpenIdOptions!
+NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory.DefaultOpenIdTenantFactory(NCode.Identity.OpenId.Tenants.ITenantResolver! tenantResolver, Microsoft.AspNetCore.Routing.Template.TemplateBinderFactory! templateBinderFactory, Microsoft.Extensions.Options.IOptions<NCode.Identity.OpenId.OpenIdOptions!>! optionsAccessor, NCode.Persistence.Stores.IStoreManagerFactory! storeManagerFactory, NCode.Identity.OpenId.Tenants.IOpenIdTenantCache! tenantCache, NCode.Identity.Settings.IReadOnlySettingCollectionProviderFactory! settingCollectionProviderFactory, NCode.Identity.Settings.ISettingSerializer! settingSerializer, NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer! secretSerializer, NCode.Identity.Secrets.Logic.ISecretKeyCollectionProviderFactory! secretKeyCollectionProviderFactory, NCode.Collections.Providers.ICollectionDataSourceFactory! collectionDataSourceFactory) -> void
+NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory.OpenIdOptions.get -> NCode.Identity.OpenId.OpenIdOptions!
 NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory.SecretKeyCollectionProviderFactory.get -> NCode.Identity.Secrets.Logic.ISecretKeyCollectionProviderFactory!
 NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory.SecretSerializer.get -> NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer!
 NCode.Identity.OpenId.Authentication.Tenants.DefaultOpenIdTenantFactory.SettingCollectionProviderFactory.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProviderFactory!

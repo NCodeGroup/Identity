@@ -19,7 +19,7 @@
 using System.Security.Claims;
 using NCode.Identity.Jose;
 
-namespace NCode.Identity.OpenId.Authentication.Logic;
+namespace NCode.Identity.OpenId.Logic;
 
 /// <summary>
 /// Provides default implementations for various operations related to <see cref="ClaimsPrincipal"/>.

@@ -19,8 +19,8 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
-using NCode.Identity.OpenId.Authentication.Options;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;

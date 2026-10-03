@@ -20,7 +20,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using NCode.Disposables;
-using NCode.Identity.OpenId.Authentication.Options;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;

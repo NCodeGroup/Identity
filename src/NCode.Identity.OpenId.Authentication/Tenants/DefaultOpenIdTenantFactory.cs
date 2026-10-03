@@ -25,7 +25,7 @@ using NCode.Collections.Providers;
 using NCode.Collections.Providers.PeriodicPolling;
 using NCode.Disposables;
 using NCode.Identity.Models;
-using NCode.Identity.OpenId.Authentication.Options;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;

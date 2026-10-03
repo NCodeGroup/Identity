@@ -24,7 +24,7 @@ using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Collections.Providers.PeriodicPolling;
 using NCode.Disposables;
-using NCode.Identity.OpenId.Authentication.Options;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;

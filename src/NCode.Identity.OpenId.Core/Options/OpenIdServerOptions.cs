@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -19,32 +19,38 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Authentication.Options;
+namespace NCode.Identity.OpenId;
 
 /// <summary>
-/// Contains the options that are used to configure how a resolved tenant is materialized (settings/secrets refresh
-/// and caching). Tenant <em>selection</em> is configured separately via
-/// <see cref="NCode.Identity.OpenId.Tenants.TenantResolutionOptions"/>.
+/// Contains the options used to configure the OpenID server.
 /// </summary>
 [PublicAPI]
-public sealed class OpenIdTenantOptions
+public sealed class OpenIdServerOptions
 {
     /// <summary>
-    /// Gets or sets the period of time after which the settings for a tenant are refreshed.
+    /// Contains the default value for the server's identifier.
+    /// </summary>
+    public const string DefaultServerId = "default";
+
+    /// <summary>
+    /// Contains the configuration subsection name for the settings of the server.
+    /// </summary>
+    public const string SettingsSubsection = "Server:Settings";
+
+    /// <summary>
+    /// Gets or sets the identifier for the server.
+    /// </summary>
+    public string ServerId { get; set; } = DefaultServerId;
+
+    /// <summary>
+    /// Gets or sets the period of time after which the settings for the server are refreshed.
     /// The default value is 5 minutes.
     /// </summary>
     public TimeSpan SettingsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(5.0);
 
     /// <summary>
-    /// Gets or sets the period of time after which the secrets for a tenant are refreshed.
+    /// Gets or sets the period of time after which the secrets for the server are refreshed.
     /// The default value is 15 minutes.
     /// </summary>
     public TimeSpan SecretsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(15.0);
-
-    /// <summary>
-    /// Gets or sets the period of time after which a tenant is removed from the cache.
-    /// The cache uses a sliding expiration.
-    /// The default value is 4 hours.
-    /// </summary>
-    public TimeSpan TenantCacheExpiration { get; set; } = TimeSpan.FromHours(4.0);
 }

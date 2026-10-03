@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using NCode.Identity.Endpoints;
-using NCode.Identity.OpenId.Authentication.Options;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Playground.DevelopmentEnvironment;

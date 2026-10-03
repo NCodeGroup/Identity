@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -20,9 +20,9 @@ using System.Security.Claims;
 using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Jose;
-using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Logic;
 
-namespace NCode.Identity.OpenId.Authentication.Options;
+namespace NCode.Identity.OpenId;
 
 /// <summary>
 /// Contains the options used to configure OpenID.

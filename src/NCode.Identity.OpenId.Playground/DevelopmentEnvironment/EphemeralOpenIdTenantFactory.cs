@@ -23,7 +23,7 @@ using NCode.Collections.Providers;
 using NCode.Disposables;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Models;
-using NCode.Identity.OpenId.Authentication.Options;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Tenants;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;

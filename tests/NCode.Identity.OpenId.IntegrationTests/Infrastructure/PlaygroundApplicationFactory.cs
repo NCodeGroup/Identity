@@ -250,20 +250,20 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         builder.UseSolutionRelativeContentRoot("src/NCode.Identity.OpenId.Playground");
         builder.UseEnvironment(Microsoft.Extensions.Hosting.Environments.Development);
 
-        builder.ConfigureTestServices(services =>
+        builder.ConfigureTestServices(serviceCollection =>
         {
             // Replace the Playground's shared in-memory database with a per-factory isolated one.
-            services.RemoveAll<DbContextOptions<OpenIdDbContext>>();
-            services.RemoveAll<IDbContextFactory<OpenIdDbContext>>();
+            serviceCollection.RemoveAll<DbContextOptions<OpenIdDbContext>>();
+            serviceCollection.RemoveAll<IDbContextFactory<OpenIdDbContext>>();
 
             var databaseRoot = new InMemoryDatabaseRoot();
-            services.AddDbContextFactory<OpenIdDbContext>(options =>
+            serviceCollection.AddDbContextFactory<OpenIdDbContext>(options =>
                 options.UseInMemoryDatabase(DatabaseName, databaseRoot)
             );
 
             // Widen the server ceiling (registered after the library default, so it unions on top):
             // enables the client_credentials grant and a custom "api" scope for integration coverage.
-            services.AddSingleton<IDefaultSettingsProvider, TestServerSettingsProvider>();
+            serviceCollection.AddSingleton<IDefaultSettingsProvider, TestServerSettingsProvider>();
         });
     }
 }

@@ -37,7 +37,7 @@ public static class DeveloperKeysRegistration
 {
     private const string DeveloperApplicationName = "NCode.Identity.OpenId.Playground";
 
-    extension(IServiceCollection services)
+    extension(IServiceCollection serviceCollection)
     {
         /// <summary>
         /// Replaces the default tenant factory with one that generates an ephemeral in-memory
@@ -48,11 +48,11 @@ public static class DeveloperKeysRegistration
         public IServiceCollection AddEphemeralDeveloperKeys()
         {
             // Replace the single tenant factory with one that generates an ephemeral in-memory RSA signing key.
-            services.Replace(
+            serviceCollection.Replace(
                 ServiceDescriptor.Singleton<IOpenIdTenantFactory, EphemeralOpenIdTenantFactory>()
             );
 
-            return services;
+            return serviceCollection;
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ public static class DeveloperKeysRegistration
 
             // Persist the key ring so persisted secrets can be unprotected across restarts. On Windows the ring is
             // encrypted at rest with DPAPI; on other platforms it is stored unprotected (development only).
-            var dataProtection = services
+            var dataProtection = serviceCollection
                 .AddDataProtection()
                 .PersistKeysToFileSystem(keyRingDirectory)
                 .SetApplicationName(DeveloperApplicationName);
@@ -80,14 +80,14 @@ public static class DeveloperKeysRegistration
                 dataProtection.ProtectKeysWithDpapi();
             }
 
-            services.Replace(
+            serviceCollection.Replace(
                 ServiceDescriptor.Singleton<
                     IOpenIdTenantFactory,
                     DeveloperSigningKeyOpenIdTenantFactory
                 >()
             );
 
-            return services;
+            return serviceCollection;
         }
     }
 }

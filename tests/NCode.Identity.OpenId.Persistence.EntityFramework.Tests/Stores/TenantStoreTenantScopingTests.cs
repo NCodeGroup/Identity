@@ -46,12 +46,12 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
 
     public TenantStoreTenantScopingTests()
     {
-        var services = new ServiceCollection();
-        services.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
-        services.AddSingleton<IdValueGenerator>();
-        services.AddSingleton<UseIdGeneratorConvention>();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
+        serviceCollection.AddSingleton<IdValueGenerator>();
+        serviceCollection.AddSingleton<UseIdGeneratorConvention>();
 
-        _provider = services.BuildServiceProvider();
+        _provider = serviceCollection.BuildServiceProvider();
 
         var options = new DbContextOptionsBuilder<OpenIdDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))

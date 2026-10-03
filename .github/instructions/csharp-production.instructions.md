@@ -206,6 +206,9 @@ rationale.
   block, using `TryAdd*` so a consumer can override a default. Register a stateless capability as a singleton; register
   a long-running loop as an `AddHostedService<T>` over a `BackgroundService`. Wire-up stays out of the type that does
   the work, so the work stays constructor-injectable and testable.
+- 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
+  property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
+  shape; keep it uniform everywhere, including tests.
 
 ## 5. Formatting & build gates
 

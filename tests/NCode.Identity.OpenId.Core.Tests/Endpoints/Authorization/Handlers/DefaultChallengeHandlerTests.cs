@@ -43,11 +43,11 @@ public class DefaultChallengeHandlerTests : BaseTests
         var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         var mockAuthService = CreateStrictMock<IAuthenticationService>();
 
-        var services = new ServiceCollection();
-        services.AddSingleton(mockAuthService.Object);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(mockAuthService.Object);
         var httpContext = new DefaultHttpContext
         {
-            RequestServices = services.BuildServiceProvider(),
+            RequestServices = serviceCollection.BuildServiceProvider(),
         };
 
         mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();

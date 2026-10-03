@@ -44,20 +44,20 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
     private IConfiguration Configuration { get; } = configuration;
     private IWebHostEnvironment HostEnvironment { get; } = hostEnvironment;
 
-    public void ConfigureServices(IServiceCollection services)
+    public void ConfigureServices(IServiceCollection serviceCollection)
     {
         const int generatorId = 1;
-        services.AddIdGen(generatorId);
+        serviceCollection.AddIdGen(generatorId);
 
-        services.AddRouting();
-        services.AddAntiforgery();
+        serviceCollection.AddRouting();
+        serviceCollection.AddAntiforgery();
 
-        services.AddHealthChecks();
-        services.AddHttpLogging(options =>
+        serviceCollection.AddHealthChecks();
+        serviceCollection.AddHttpLogging(options =>
         {
             options.LoggingFields = HttpLoggingFields.All;
         });
-        services.AddHttpClient();
+        serviceCollection.AddHttpClient();
 
         var openIdOptionsSectionName = Environment.GetEnvironmentVariable(
             "OpenId_OptionsSectionName"
@@ -67,22 +67,24 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
             openIdOptionsSectionName = OpenIdOptions.DefaultSectionName;
         }
 
-        services.Configure<OpenIdOptions>(Configuration.GetSection(openIdOptionsSectionName));
-        services.Configure<OpenIdOptions>(options =>
+        serviceCollection.Configure<OpenIdOptions>(
+            Configuration.GetSection(openIdOptionsSectionName)
+        );
+        serviceCollection.Configure<OpenIdOptions>(options =>
             options.SectionName = openIdOptionsSectionName
         );
 
         // Tenant selection is configured separately from tenant materialization; defaults resolve the
         // single "default" tenant when this section is absent.
-        services.Configure<TenantResolutionOptions>(
+        serviceCollection.Configure<TenantResolutionOptions>(
             Configuration.GetSection($"{openIdOptionsSectionName}:TenantResolution")
         );
 
-        services.AddEndpointsApiExplorer();
+        serviceCollection.AddEndpointsApiExplorer();
 
         // TODO
-        services.AddIdentityServer();
-        services.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
+        serviceCollection.AddIdentityServer();
+        serviceCollection.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
 
         // DEVELOPMENT ONLY: choose how signing keys are provided (see ADR-0002). The default is ephemeral,
         // in-memory keys (hermetic, ideal for tests). Local running can opt into persistent developer keys —
@@ -100,14 +102,14 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
             var keyRingDirectory = new DirectoryInfo(
                 Path.Combine(HostEnvironment.ContentRootPath, "App_Data", "dp-keys")
             );
-            services.AddDeveloperSigningKey(keyRingDirectory);
+            serviceCollection.AddDeveloperSigningKey(keyRingDirectory);
         }
         else
         {
-            services.AddEphemeralDeveloperKeys();
+            serviceCollection.AddEphemeralDeveloperKeys();
         }
 
-        services.AddDatabaseDeveloperPageExceptionFilter();
+        serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 
         // Select the database provider. A configured 'OpenId' connection string uses SQL Server; otherwise the
         // Playground uses a local SQLite file when persistent developer keys are enabled (so state survives
@@ -115,7 +117,7 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
         // from migrations), or a zero-setup in-memory database.
         var connectionString = Configuration.GetConnectionString("OpenId");
         var migrationsAssembly = typeof(Startup).Assembly.GetName().Name;
-        services.AddDbContextFactory<OpenIdDbContext>(builder =>
+        serviceCollection.AddDbContextFactory<OpenIdDbContext>(builder =>
         {
             if (!string.IsNullOrEmpty(connectionString))
             {
@@ -143,8 +145,8 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
             }
         });
 
-        services.AddControllers();
-        services.AddSwaggerGen(c =>
+        serviceCollection.AddControllers();
+        serviceCollection.AddSwaggerGen(c =>
         {
             c.SwaggerDoc(
                 "v1",

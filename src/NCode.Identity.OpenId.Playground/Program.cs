@@ -21,10 +21,10 @@ using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.OpenApi;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.Server;
 using NCode.Registration.AspNetCore;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,7 +42,7 @@ serviceCollection.AddHttpLogging(options =>
 
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
 
-serviceCollection.AddEndpointsApiExplorer();
+serviceCollection.AddOpenApi();
 
 // TODO
 serviceCollection.AddIdentityServer().AddConfiguration(configuration, openIdOptionsSectionName);
@@ -86,14 +86,6 @@ serviceCollection.AddDbContextFactory<OpenIdDbContext>(dbOptions =>
     }
 });
 
-serviceCollection.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc(
-        "v1",
-        new OpenApiInfo { Title = "NCode.Identity.OpenId.Playground", Version = "v1" }
-    );
-});
-
 await using var app = builder.Build();
 
 await InitializeDatabaseAsync(app);
@@ -101,10 +93,8 @@ await InitializeDatabaseAsync(app);
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "NCode.Identity.OpenId.Playground v1")
-    );
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpLogging();

@@ -180,6 +180,7 @@ NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointConventionBuilderEx
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithOpenIdDiscoverable(bool isDiscoverable = true) -> TBuilder
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithOpenIdExceptionHandler(NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler! exceptionHandler) -> TBuilder
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithOpenIdExceptionHandler(System.Func<Microsoft.AspNetCore.Http.HttpContext!, NCode.Identity.OpenId.Environments.OpenIdEnvironment!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler!>>! getter) -> TBuilder
+NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithOpenIdFormParameters(NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollectionProvider! knownParameterCollectionProvider, string! operationId) -> TBuilder
 NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest
 NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.Token.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.Token.set -> void

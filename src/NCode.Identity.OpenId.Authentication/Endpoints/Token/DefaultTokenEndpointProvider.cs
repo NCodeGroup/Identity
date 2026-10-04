@@ -17,13 +17,10 @@
 
 #endregion
 
-using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
-using Microsoft.OpenApi;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
@@ -59,51 +56,13 @@ internal class DefaultTokenEndpointProvider(
         endpoints
             .MapPost(OpenIdConstants.EndpointPaths.Token, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Token)
-            .WithMetadata(CreateOpenApiOperationMetadata())
+            .WithTags(OpenIdConstants.EndpointTags.OpenId)
+            .WithOpenIdFormParameters(
+                KnownParameterCollectionProvider,
+                OpenIdConstants.EndpointNames.Token
+            )
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
-
-    private OpenApiOperation CreateOpenApiOperationMetadata()
-    {
-        var properties = KnownParameterCollectionProvider
-            .Collection.OrderBy(parameter => parameter.Name)
-            .ToDictionary(
-                parameter => parameter.Name,
-                IOpenApiSchema (_) =>
-                    new OpenApiSchema
-                    {
-                        Type = JsonSchemaType.String | JsonSchemaType.Null,
-                        Default = JsonValue.Create(string.Empty),
-                    }
-            );
-
-        return new OpenApiOperation
-        {
-            OperationId = OpenIdConstants.EndpointNames.Token,
-            Tags = new HashSet<OpenApiTagReference>
-            {
-                new(
-                    OpenIdConstants.EndpointTags.OpenId,
-                    hostDocument: null,
-                    externalResource: null
-                ),
-            },
-            RequestBody = new OpenApiRequestBody
-            {
-                Content = new Dictionary<string, OpenApiMediaType>
-                {
-                    [OpenIdConstants.ContentType] = new OpenApiMediaType
-                    {
-                        Schema = new OpenApiSchema
-                        {
-                            Type = JsonSchemaType.Object,
-                            Properties = properties,
-                        },
-                    },
-                },
-            },
-        };
-    }
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>
         MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header)
@@ -111,12 +70,12 @@ internal class DefaultTokenEndpointProvider(
 
     private async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
         var openIdContext = httpContext.GetOpenIdContext();
 
+        var mediator = openIdContext.Mediator;
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdContext.ErrorFactory;
 

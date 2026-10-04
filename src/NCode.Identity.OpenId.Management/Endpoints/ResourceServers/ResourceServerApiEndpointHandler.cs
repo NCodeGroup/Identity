@@ -83,7 +83,9 @@ internal class ResourceServerApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var resourceServers = endpoints.MapGroup("/resource-servers").WithTags("ResourceServers");
+        var resourceServers = endpoints
+            .MapGroup("/resource-servers")
+            .WithTags(OpenIdConstants.EndpointTags.ResourceServers);
 
         resourceServers
             .MapGet("", ListAsync)

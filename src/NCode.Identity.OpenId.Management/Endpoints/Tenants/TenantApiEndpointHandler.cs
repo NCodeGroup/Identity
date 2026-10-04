@@ -98,7 +98,7 @@ internal class TenantApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var tenants = endpoints.MapGroup("/tenants").WithTags("Tenants");
+        var tenants = endpoints.MapGroup("/tenants").WithTags(OpenIdConstants.EndpointTags.Tenants);
 
         tenants
             .MapPost("", CreateTenantAsync)

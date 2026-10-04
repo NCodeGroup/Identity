@@ -18,7 +18,6 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -49,6 +48,7 @@ internal class DefaultRevocationEndpointProvider(
         endpoints
             .MapPost(OpenIdConstants.EndpointPaths.Revocation, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Revocation)
+            .WithTags(OpenIdConstants.EndpointTags.OpenId)
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
 
@@ -58,12 +58,12 @@ internal class DefaultRevocationEndpointProvider(
 
     internal virtual async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
         var openIdContext = httpContext.GetOpenIdContext();
 
+        var mediator = openIdContext.Mediator;
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdContext.ErrorFactory;
 

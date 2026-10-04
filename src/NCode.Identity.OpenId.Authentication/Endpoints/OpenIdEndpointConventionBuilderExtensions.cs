@@ -17,10 +17,13 @@
 
 #endregion
 
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.OpenApi;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
+using NCode.Identity.OpenId.Messages.Parameters;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
 
@@ -65,5 +68,60 @@ public static class OpenIdEndpointConventionBuilderExtensions
         /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
         public TBuilder WithOpenIdExceptionHandler(IOpenIdExceptionHandler exceptionHandler) =>
             builder.WithOpenIdExceptionHandler((_, _, _) => ValueTask.FromResult(exceptionHandler));
+
+        /// <summary>
+        /// Adds an <see cref="OpenApiOperation"/> to the <see cref="IEndpointConventionBuilder"/> describing an
+        /// <c>application/x-www-form-urlencoded</c> request body whose properties are all the known <c>OAuth</c>
+        /// and <c>OpenID Connect</c> parameters.
+        /// </summary>
+        /// <param name="knownParameterCollectionProvider">The <see cref="IKnownParameterCollectionProvider"/> used to enumerate the known parameters.</param>
+        /// <param name="operationId">The unique identifier for the OpenAPI operation.</param>
+        /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
+        public TBuilder WithOpenIdFormParameters(
+            IKnownParameterCollectionProvider knownParameterCollectionProvider,
+            string operationId
+        ) =>
+            builder.WithMetadata(
+                CreateFormUrlEncodedOperation(knownParameterCollectionProvider, operationId)
+            );
+    }
+
+    private static OpenApiOperation CreateFormUrlEncodedOperation(
+        IKnownParameterCollectionProvider knownParameterCollectionProvider,
+        string operationId
+    )
+    {
+        ArgumentNullException.ThrowIfNull(knownParameterCollectionProvider);
+
+        var properties = knownParameterCollectionProvider
+            .Collection.OrderBy(parameter => parameter.Name)
+            .ToDictionary(
+                parameter => parameter.Name,
+                IOpenApiSchema (_) =>
+                    new OpenApiSchema
+                    {
+                        Type = JsonSchemaType.String | JsonSchemaType.Null,
+                        Default = JsonValue.Create(string.Empty),
+                    }
+            );
+
+        return new OpenApiOperation
+        {
+            OperationId = operationId,
+            RequestBody = new OpenApiRequestBody
+            {
+                Content = new Dictionary<string, OpenApiMediaType>
+                {
+                    [OpenIdConstants.ContentType] = new OpenApiMediaType
+                    {
+                        Schema = new OpenApiSchema
+                        {
+                            Type = JsonSchemaType.Object,
+                            Properties = properties,
+                        },
+                    },
+                },
+            },
+        };
     }
 }

@@ -18,7 +18,6 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Results;
@@ -50,17 +49,18 @@ internal class DefaultUserInfoEndpointProvider : IEndpointProvider
                 HandleRouteAsync
             )
             .WithName(OpenIdConstants.EndpointNames.UserInfo)
+            .WithTags(OpenIdConstants.EndpointTags.OpenId)
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
 
     internal virtual async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
         var openIdContext = httpContext.GetOpenIdContext();
 
+        var mediator = openIdContext.Mediator;
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdContext.ErrorFactory;
 

@@ -34,4 +34,5 @@ internal static class EventIds
     public const int AuditSucceeded = Base + 3;
     public const int AuditFailed = Base + 4;
     public const int AuditRecorded = Base + 5;
+    public const int BackgroundEventDropped = Base + 6;
 }

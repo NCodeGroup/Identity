@@ -37,12 +37,18 @@ namespace NCode.Identity.Events;
 internal class DefaultEventPublisher(
     IServiceScopeFactory serviceScopeFactory,
     IServiceProviderIsService serviceProviderIsService,
+    IEnumerable<IBackgroundEventQueue> backgroundEventQueues,
     ILogger<DefaultEventPublisher> logger
 ) : IEventPublisher
 {
     private IServiceScopeFactory ServiceScopeFactory { get; } = serviceScopeFactory;
     private IServiceProviderIsService ServiceProviderIsService { get; } = serviceProviderIsService;
     private ILogger<DefaultEventPublisher> Logger { get; } = logger;
+
+    // Optional: present only when background delivery has been enabled. When absent, handlers marked
+    // for background delivery run inline (graceful degradation).
+    private IBackgroundEventQueue? BackgroundEventQueue { get; } =
+        backgroundEventQueues.FirstOrDefault();
 
     // Cached per runtime event type: the closed IEventHandler<> service types to resolve plus the
     // delegate that invokes each. Only the type-plan is cached; handler instances are resolved per
@@ -72,8 +78,57 @@ internal class DefaultEventPublisher(
     {
         // Background and singleton callers alike get a correctly-scoped dependency graph.
         using var scope = ServiceScopeFactory.CreateScope();
-        var provider = scope.ServiceProvider;
+        var subscribers = ResolveSubscribers(scope.ServiceProvider, plan);
 
+        var queue = BackgroundEventQueue;
+        var hasBackground = false;
+
+        foreach (var (handler, invoker, _) in subscribers)
+        {
+            if (queue is not null && handler is ISupportBackgroundDelivery)
+            {
+                hasBackground = true;
+                continue;
+            }
+
+            await InvokeSubscriberAsync(handler, invoker, @event, cancellationToken);
+        }
+
+        if (hasBackground && queue is not null)
+        {
+            await queue.EnqueueAsync(@event, cancellationToken);
+        }
+    }
+
+    // Invokes the handlers marked for background delivery, in a fresh scope, outside the request.
+    internal async ValueTask DispatchBackgroundAsync(
+        IEvent @event,
+        CancellationToken cancellationToken
+    )
+    {
+        var plan = GetPlan(@event.GetType());
+        if (plan.Length == 0)
+            return;
+
+        using var scope = ServiceScopeFactory.CreateScope();
+        var subscribers = ResolveSubscribers(scope.ServiceProvider, plan);
+
+        foreach (var (handler, invoker, _) in subscribers)
+        {
+            if (handler is ISupportBackgroundDelivery)
+            {
+                await InvokeSubscriberAsync(handler, invoker, @event, cancellationToken);
+            }
+        }
+    }
+
+    // Resolves the handler instances for the plan from the given scope, ordered by descending priority.
+    private static List<(
+        object Handler,
+        EventHandlerInvoker Invoker,
+        int Priority
+    )> ResolveSubscribers(IServiceProvider provider, EventHandlerBinding[] plan)
+    {
         var subscribers = new List<(object Handler, EventHandlerInvoker Invoker, int Priority)>();
         foreach (var (handlerServiceType, invoker) in plan)
         {
@@ -89,20 +144,27 @@ internal class DefaultEventPublisher(
             }
         }
 
-        foreach (var (handler, invoker, _) in subscribers.OrderByDescending(item => item.Priority))
+        return [.. subscribers.OrderByDescending(item => item.Priority)];
+    }
+
+    private async ValueTask InvokeSubscriberAsync(
+        object handler,
+        EventHandlerInvoker invoker,
+        IEvent @event,
+        CancellationToken cancellationToken
+    )
+    {
+        try
         {
-            try
-            {
-                await invoker(handler, @event, cancellationToken);
-            }
-            catch (Exception exception)
-            {
-                Logger.EventHandlerFailed(
-                    handler.GetType().FullName ?? handler.GetType().Name,
-                    @event.GetType().FullName ?? @event.GetType().Name,
-                    exception
-                );
-            }
+            await invoker(handler, @event, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            Logger.EventHandlerFailed(
+                handler.GetType().FullName ?? handler.GetType().Name,
+                @event.GetType().FullName ?? @event.GetType().Name,
+                exception
+            );
         }
     }
 

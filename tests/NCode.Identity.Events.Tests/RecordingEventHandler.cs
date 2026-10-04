@@ -22,7 +22,7 @@ namespace NCode.Identity.Events;
 /// A test event handler that records the events it observes, appends its name to a shared invocation
 /// order, and can be configured with a priority and to throw.
 /// </summary>
-internal sealed class RecordingEventHandler<TEvent>(
+internal class RecordingEventHandler<TEvent>(
     string name,
     IList<string> invocationOrder,
     int priority = 0,

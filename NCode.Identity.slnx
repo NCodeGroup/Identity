@@ -43,5 +43,6 @@
     <Project Path="tests/NCode.Identity.Secrets.Abstractions.Tests/NCode.Identity.Secrets.Abstractions.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Secrets.Persistence.Tests/NCode.Identity.Secrets.Persistence.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Secrets.Tests/NCode.Identity.Secrets.Tests.csproj" />
+    <Project Path="tests/NCode.Identity.Server.Tests/NCode.Identity.Server.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Tests/NCode.Identity.Tests.csproj" />
 </Solution>

@@ -48,14 +48,20 @@ internal class DefaultJwksEndpointHandler(IEnumerable<IJsonWebKeyConverter> json
             .MapGet(OpenIdConstants.EndpointPaths.Jwks, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Jwks)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
-            .WithSummary("JSON Web Key Set (JWKS)")
-            .WithDescription(
-                "Returns the tenant's public signing keys as a JSON Web Key Set (RFC 7517). Clients and resource "
-                    + "servers use these keys to verify the signatures of issued ID tokens and JWT access tokens."
-            )
+            .Produces<JsonWebKeySetResult>(StatusCodes.Status200OK)
             .WithOpenIdDiscoverable();
 
-    private async ValueTask<JsonHttpResult<JsonWebKeySetResult>> HandleRouteAsync(
+    /// <summary>
+    /// JSON Web Key Set (JWKS).
+    /// </summary>
+    /// <remarks>
+    /// Returns the tenant's public signing keys as a JSON Web Key Set (RFC 7517). Clients and resource servers use
+    /// these keys to verify the signatures of issued ID tokens and JWT access tokens.
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The tenant's public signing keys as a JSON Web Key Set.</response>
+    internal async ValueTask<JsonHttpResult<JsonWebKeySetResult>> HandleRouteAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
     )

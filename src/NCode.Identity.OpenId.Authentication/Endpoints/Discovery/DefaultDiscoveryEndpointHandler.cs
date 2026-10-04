@@ -40,15 +40,21 @@ internal class DefaultDiscoveryEndpointHandler : IEndpointProvider
             .MapGet(OpenIdConstants.EndpointPaths.Discovery, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Discovery)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
-            .WithSummary("OpenID Connect discovery document")
-            .WithDescription(
-                "Returns the OpenID Provider configuration metadata defined by OpenID Connect Discovery 1.0: the "
-                    + "issuer, endpoint URLs, and the supported scopes, response types, claims, and signing "
-                    + "algorithms. Clients use this document to configure themselves automatically."
-            )
+            .Produces<DiscoveryResult>(StatusCodes.Status200OK)
             .WithOpenIdDiscoverable();
 
-    private async ValueTask<JsonHttpResult<DiscoveryResult>> HandleRouteAsync(
+    /// <summary>
+    /// OpenID Connect discovery document.
+    /// </summary>
+    /// <remarks>
+    /// Returns the OpenID Provider configuration metadata defined by OpenID Connect Discovery 1.0: the issuer,
+    /// endpoint URLs, and the supported scopes, response types, claims, and signing algorithms. Clients use this
+    /// document to configure themselves automatically.
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The OpenID Provider configuration metadata document.</response>
+    internal async ValueTask<JsonHttpResult<DiscoveryResult>> HandleRouteAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
     )

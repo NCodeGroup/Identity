@@ -31,12 +31,12 @@ internal class DefaultSettingCollectionFactory(
     /// <inheritdoc />
     public ISettingCollection Create()
     {
-        return new SettingCollection(SettingDescriptorCollectionProvider);
+        return new DefaultSettingCollection(SettingDescriptorCollectionProvider);
     }
 
     /// <inheritdoc />
     public ISettingCollection Create(IEnumerable<Setting> settings)
     {
-        return new SettingCollection(SettingDescriptorCollectionProvider, settings);
+        return new DefaultSettingCollection(SettingDescriptorCollectionProvider, settings);
     }
 }

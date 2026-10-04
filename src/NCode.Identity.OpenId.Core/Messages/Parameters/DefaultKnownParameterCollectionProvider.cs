@@ -31,7 +31,7 @@ internal class DefaultKnownParameterCollectionProvider(
 {
     private ICollectionProvider<KnownParameter, IKnownParameterCollection> Inner { get; } =
         collectionProviderFactory.Create(
-            items => new KnownParameterCollection(items),
+            items => new DefaultKnownParameterCollection(items),
             dataSources,
             owns: false
         );

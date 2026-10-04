@@ -26,29 +26,32 @@ namespace NCode.Identity.OpenId.Messages;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdError"/> abstraction.
 /// </summary>
-internal sealed class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError, ISupportOpenIdError
+internal sealed class DefaultOpenIdError
+    : OpenIdMessage<DefaultOpenIdError>,
+        IOpenIdError,
+        ISupportOpenIdError
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdError"/> class.
+    /// Initializes a new instance of the <see cref="DefaultOpenIdError"/> class.
     /// </summary>
-    public OpenIdError()
+    public DefaultOpenIdError()
     {
         // nothing
     }
 
     /// <inheritdoc />
-    private OpenIdError(OpenIdError other)
+    private DefaultOpenIdError(DefaultOpenIdError other)
         : base(other)
     {
         // nothing
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="OpenIdError"/> class with the specified <see cref="OpenIdEnvironment"/> and error code.
+    /// Initializes a new instance of the <see cref="DefaultOpenIdError"/> class with the specified <see cref="OpenIdEnvironment"/> and error code.
     /// </summary>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> associated with the current instance.</param>
     /// <param name="errorCode">The value for the <c>error</c> parameter.</param>
-    public OpenIdError(OpenIdEnvironment openIdEnvironment, string errorCode)
+    public DefaultOpenIdError(OpenIdEnvironment openIdEnvironment, string errorCode)
         : base(openIdEnvironment)
     {
         Code = errorCode;
@@ -93,5 +96,5 @@ internal sealed class OpenIdError : OpenIdMessage<OpenIdError>, IOpenIdError, IS
     }
 
     /// <inheritdoc />
-    public override OpenIdError Clone() => new(this);
+    public override DefaultOpenIdError Clone() => new(this);
 }

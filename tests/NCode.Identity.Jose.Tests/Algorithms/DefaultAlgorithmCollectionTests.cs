@@ -21,7 +21,7 @@ using NCode.Identity.Jose.Algorithms;
 
 namespace NCode.Identity.Jose.Tests.Algorithms;
 
-public class AlgorithmCollectionTests : BaseTests
+public class DefaultAlgorithmCollectionTests : BaseTests
 {
     [Fact]
     public void Algorithms_ReturnsExpected()
@@ -65,7 +65,7 @@ public class AlgorithmCollectionTests : BaseTests
         mockAlgorithm2.Setup(x => x.Type).Returns(AlgorithmType.DigitalSignature).Verifiable();
         mockAlgorithm3.Setup(x => x.Type).Returns(AlgorithmType.Unspecified).Verifiable();
 
-        var algorithms = new AlgorithmCollection(
+        var algorithms = new DefaultAlgorithmCollection(
             new[] { mockAlgorithm1.Object, mockAlgorithm2.Object, mockAlgorithm3.Object }
         );
         Assert.Equal(3, algorithms.Count);
@@ -98,7 +98,7 @@ public class AlgorithmCollectionTests : BaseTests
         mockAlgorithm2.Setup(x => x.Type).Returns(AlgorithmType.KeyManagement).Verifiable();
         mockAlgorithm3.Setup(x => x.Type).Returns(AlgorithmType.Unspecified).Verifiable();
 
-        var algorithms = new AlgorithmCollection(
+        var algorithms = new DefaultAlgorithmCollection(
             new[] { mockAlgorithm1.Object, mockAlgorithm2.Object, mockAlgorithm3.Object }
         );
         Assert.Equal(3, algorithms.Count);
@@ -134,7 +134,7 @@ public class AlgorithmCollectionTests : BaseTests
             .Verifiable();
         mockAlgorithm3.Setup(x => x.Type).Returns(AlgorithmType.Unspecified).Verifiable();
 
-        var algorithms = new AlgorithmCollection(
+        var algorithms = new DefaultAlgorithmCollection(
             new[] { mockAlgorithm1.Object, mockAlgorithm2.Object, mockAlgorithm3.Object }
         );
         Assert.Equal(3, algorithms.Count);
@@ -176,7 +176,7 @@ public class AlgorithmCollectionTests : BaseTests
         mockAlgorithm2.Setup(x => x.Type).Returns(AlgorithmType.Compression).Verifiable();
         mockAlgorithm3.Setup(x => x.Type).Returns(AlgorithmType.Unspecified).Verifiable();
 
-        var algorithms = new AlgorithmCollection(
+        var algorithms = new DefaultAlgorithmCollection(
             new[] { mockAlgorithm1.Object, mockAlgorithm2.Object, mockAlgorithm3.Object }
         );
         Assert.Equal(3, algorithms.Count);

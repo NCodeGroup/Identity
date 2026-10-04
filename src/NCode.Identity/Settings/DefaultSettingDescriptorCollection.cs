@@ -26,7 +26,7 @@ namespace NCode.Identity.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingDescriptorCollection"/> abstraction.
 /// </summary>
-internal class SettingDescriptorCollection(IEnumerable<SettingDescriptor> descriptors)
+internal class DefaultSettingDescriptorCollection(IEnumerable<SettingDescriptor> descriptors)
     : ISettingDescriptorCollection
 {
     private FrozenDictionary<string, SettingDescriptor> Descriptors { get; } =

@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdEndpointExceptionHandlerMetadata"/> abstraction.
 /// </summary>
-internal class OpenIdEndpointExceptionHandlerMetadata(
+internal class DefaultOpenIdEndpointExceptionHandlerMetadata(
     Func<
         HttpContext,
         OpenIdEnvironment,

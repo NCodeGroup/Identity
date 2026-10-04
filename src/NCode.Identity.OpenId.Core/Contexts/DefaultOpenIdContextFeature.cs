@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Contexts;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdContextFeature"/> abstraction.
 /// </summary>
-public class OpenIdContextFeature : IOpenIdContextFeature
+internal class DefaultOpenIdContextFeature : IOpenIdContextFeature
 {
     /// <inheritdoc />
     public required OpenIdContext OpenIdContext { get; init; }

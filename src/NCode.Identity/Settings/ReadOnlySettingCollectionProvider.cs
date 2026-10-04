@@ -40,7 +40,7 @@ internal class ReadOnlySettingCollectionProvider(
     /// <inheritdoc />
     protected override IReadOnlySettingCollection CreateCollection(IEnumerable<Setting> items)
     {
-        return new SettingCollection(SettingDescriptorCollectionProvider, items);
+        return new DefaultSettingCollection(SettingDescriptorCollectionProvider, items);
     }
 
     private static IEnumerable<Setting> Merge(IEnumerable<IEnumerable<Setting>> collections)

@@ -45,7 +45,7 @@ internal static class DefaultRegistration
                 DefaultFederatedIdentityLinkingPolicy
             >();
 
-            serviceCollection.TryAddSingleton<IPrincipalResolver, FederatedPrincipalResolver>();
+            serviceCollection.TryAddSingleton<IPrincipalResolver, DefaultPrincipalResolver>();
 
             return builder;
         }

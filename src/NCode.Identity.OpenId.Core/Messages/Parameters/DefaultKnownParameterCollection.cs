@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Messages.Parameters;
 /// <summary>
 /// Provides a default implementation of the <see cref="IKnownParameterCollection"/> abstraction.
 /// </summary>
-internal class KnownParameterCollection(IEnumerable<KnownParameter> knownParameters)
+internal class DefaultKnownParameterCollection(IEnumerable<KnownParameter> knownParameters)
     : IKnownParameterCollection
 {
     private FrozenDictionary<string, KnownParameter> KnownParameters { get; } =

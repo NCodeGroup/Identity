@@ -104,5 +104,5 @@ internal class DefaultOpenIdContextFactory(
     /// Factory method to create a new instance of <see cref="IOpenIdContextFeature"/>.
     /// </summary>
     protected internal virtual IOpenIdContextFeature CreateFeature(OpenIdContext openIdContext) =>
-        new OpenIdContextFeature { OpenIdContext = openIdContext };
+        new DefaultOpenIdContextFeature { OpenIdContext = openIdContext };
 }

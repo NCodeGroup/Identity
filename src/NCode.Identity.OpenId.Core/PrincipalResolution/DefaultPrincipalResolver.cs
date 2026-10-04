@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// does not match, as an upstream <c>(issuer, subject)</c> external connection identity. The source and issuer claim
 /// names are per-tenant settings on the shared request environment (ADR-0035/ADR-0036).
 /// </summary>
-internal class FederatedPrincipalResolver(
+internal class DefaultPrincipalResolver(
     ICryptoService cryptoService,
     IFederatedIdentityLinkingPolicy linkingPolicy
 ) : IPrincipalResolver

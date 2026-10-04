@@ -115,6 +115,13 @@ the `GlobalAdmin` role claim:
 - **Explicit opt-in.** Absent the configuration the seeder does nothing; a bootstrap credential is never created by the
   default registrations, mirroring the explicit-opt-in posture of development keys
   ([ADR-0002](0002-ephemeral-development-keys.md)).
+- **The `client_credentials` grant is a separate host opt-in.** The baseline `grant_types_supported` ships with
+  `client_credentials` **off** (it permits only `authorization_code`, `implicit`, and `refresh_token`), and the setting
+  is an intersect-merged ceiling ([ADR-0010](0010-supported-settings-unset-means-unrestricted.md)) that cannot be
+  widened per-client. A host that uses the bootstrap administrator must therefore enable the grant **at the server
+  level** — for example `OpenId:Server:Settings:grant_types_supported` in configuration, whose value replaces the root
+  baseline (configuration is applied last when the root settings are assembled, so it widens rather than narrows). Until
+  it is enabled the bootstrap client authenticates successfully but the token request is rejected `unauthorized_client`.
 
 The bootstrap is a seam, not the destination: it exists to create the first durable administrator. The data-driven
 `(principal, role, resource-node)` assignments and service principals ([ADR-0033](0033-authorization-model-scopes-roles-and-ownership.md)

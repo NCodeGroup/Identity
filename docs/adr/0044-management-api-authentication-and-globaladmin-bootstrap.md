@@ -1,6 +1,8 @@
 # 44. The management API authenticates self-issued bearer tokens, and the first GlobalAdmin is bootstrapped from configuration
 
-- **Status:** Proposed
+- **Status:** Proposed (the bootstrap administrator `ISystemTenantSeeder` decided here was reshaped into an
+  `ICommandHandler<SeedTenantCommand>` by [ADR-0045](0045-tenant-provisioning-and-seeding-pipeline.md); the bootstrap
+  policy itself is unchanged)
 - **Date:** 2026-10-04
 - **Deciders:** NCode Group
 

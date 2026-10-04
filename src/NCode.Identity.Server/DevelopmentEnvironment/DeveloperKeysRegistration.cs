@@ -22,6 +22,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Server.DevelopmentEnvironment;
+using NCode.Mediator;
 
 namespace NCode.Identity.Server;
 
@@ -109,10 +111,12 @@ public static class DeveloperKeysRegistration
                 dataProtection.ProtectKeysWithDpapi();
             }
 
-            serviceCollection.Replace(
+            // The production tenant factory reads secrets from the store; this development-only seed handler ensures a
+            // persisted RSA signing key exists (and heals an undecryptable one) on the tenant seed path (ADR-0045).
+            serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    IOpenIdTenantFactory,
-                    DeveloperSigningKeyOpenIdTenantFactory
+                    ICommandHandler<SeedTenantCommand>,
+                    DeveloperSigningKeySeedHandler
                 >()
             );
 

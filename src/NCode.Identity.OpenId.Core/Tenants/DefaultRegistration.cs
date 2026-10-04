@@ -21,8 +21,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Core.ResourceServers;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.OpenId.ResourceServers;
 using NCode.Identity.OpenId.Tenants.Strategies;
+using NCode.Mediator;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Tenants;
@@ -59,15 +59,15 @@ internal static class DefaultRegistration
             serviceCollection.AddRouting();
             serviceCollection.TryAddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
 
-            serviceCollection.TryAddSingleton<
-                ISystemResourceServerSeeder,
-                DefaultSystemResourceServerSeeder
-            >();
+            // Tenants are provisioned and seeded through one mediator-driven pipeline: the provisioner opens a single
+            // unit of work and fans SeedTenantCommand out to every seed handler (ADR-0045).
+            serviceCollection.AddMediator();
+            serviceCollection.TryAddScoped<ITenantProvisioner, DefaultTenantProvisioner>();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    ISystemResourceServerProvider,
-                    DefaultOpenIdIdentityResourceServerProvider
+                    ICommandHandler<SeedTenantCommand>,
+                    OpenIdIdentityResourceServerSeedHandler
                 >()
             );
 

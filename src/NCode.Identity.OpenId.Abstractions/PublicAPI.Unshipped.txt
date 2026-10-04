@@ -300,8 +300,27 @@ NCode.Identity.OpenId.Contexts.OpenIdContextHttpContextExtensions
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.InvokeAsync(Microsoft.AspNetCore.Http.EndpointFilterInvocationContext! context, Microsoft.AspNetCore.Http.EndpointFilterDelegate! next) -> System.Threading.Tasks.ValueTask<object?>
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.OpenIdEnvironmentEndpointFilter(NCode.Identity.OpenId.Contexts.IOpenIdContextFactory! openIdContextFactory, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor! ambientTenantAccessor) -> void
-NCode.Identity.OpenId.Tenants.ISystemTenantSeeder
-NCode.Identity.OpenId.Tenants.ISystemTenantSeeder.SeedAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Tenants.ITenantProvisioner
+NCode.Identity.OpenId.Tenants.ITenantProvisioner.ProvisionAsync(string! tenantId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
+NCode.Identity.OpenId.Tenants.SeedTenantCommand
+NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.get -> NCode.Identity.OpenId.Tenants.TenantSeedContext!
+NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.init -> void
+NCode.Identity.OpenId.Tenants.SeedTenantCommand.SeedTenantCommand() -> void
+NCode.Identity.OpenId.Tenants.SeedTenantCommand.SeedTenantCommand(NCode.Identity.OpenId.Tenants.TenantSeedContext! Context) -> void
+NCode.Identity.OpenId.Tenants.TenantPlane
+NCode.Identity.OpenId.Tenants.TenantPlane.Root = 1 -> NCode.Identity.OpenId.Tenants.TenantPlane
+NCode.Identity.OpenId.Tenants.TenantPlane.Workload = 0 -> NCode.Identity.OpenId.Tenants.TenantPlane
+NCode.Identity.OpenId.Tenants.TenantSeedContext
+NCode.Identity.OpenId.Tenants.TenantSeedContext.IsNewlyProvisioned.get -> bool
+NCode.Identity.OpenId.Tenants.TenantSeedContext.IsNewlyProvisioned.init -> void
+NCode.Identity.OpenId.Tenants.TenantSeedContext.Plane.get -> NCode.Identity.OpenId.Tenants.TenantPlane
+NCode.Identity.OpenId.Tenants.TenantSeedContext.Plane.init -> void
+NCode.Identity.OpenId.Tenants.TenantSeedContext.StoreManager.get -> NCode.Persistence.Stores.IStoreManager!
+NCode.Identity.OpenId.Tenants.TenantSeedContext.StoreManager.init -> void
+NCode.Identity.OpenId.Tenants.TenantSeedContext.Tenant.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!
+NCode.Identity.OpenId.Tenants.TenantSeedContext.Tenant.init -> void
+NCode.Identity.OpenId.Tenants.TenantSeedContext.TenantId.get -> string!
+NCode.Identity.OpenId.Tenants.TenantSeedContext.TenantSeedContext() -> void
 static NCode.Identity.OpenId.Contexts.OpenIdContextHttpContextExtensions.GetOpenIdContext(this Microsoft.AspNetCore.Http.HttpContext! httpContext) -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 static NCode.Identity.OpenId.Contexts.OpenIdContextHttpContextExtensions.GetOpenIdContextOrDefault(this Microsoft.AspNetCore.Http.HttpContext! httpContext) -> NCode.Identity.OpenId.Contexts.OpenIdContext?
 NCode.Identity.OpenId.Environments.IOpenIdEnvironmentFactory
@@ -498,29 +517,6 @@ NCode.Identity.OpenId.PrincipalResolution.IFederatedIdentityLinkingPolicy.Resolv
 NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver
 NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver.ResolvePrincipalIdAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
 NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver.ResolvePrincipalIdOrDefaultAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
-NCode.Identity.OpenId.ResourceServers.ISystemResourceServerProvider
-NCode.Identity.OpenId.ResourceServers.ISystemResourceServerProvider.GetDescriptor() -> NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor!
-NCode.Identity.OpenId.ResourceServers.ISystemResourceServerSeeder
-NCode.Identity.OpenId.ResourceServers.ISystemResourceServerSeeder.SeedAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Identifier.get -> string!
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Identifier.init -> void
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Name.get -> string!
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Name.init -> void
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Plane.get -> NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Plane.init -> void
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Scopes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor!>!
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.Scopes.init -> void
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerDescriptor.SystemResourceServerDescriptor() -> void
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane.Control = 1 -> NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane
-NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane.Tenant = 0 -> NCode.Identity.OpenId.ResourceServers.SystemResourceServerPlane
-NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor
-NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.Description.get -> string?
-NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.Description.init -> void
-NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.SystemScopeDescriptor() -> void
-NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.Value.get -> string!
-NCode.Identity.OpenId.ResourceServers.SystemScopeDescriptor.Value.init -> void
 NCode.Identity.OpenId.Results.OpenIdRedirectResult
 NCode.Identity.OpenId.Results.OpenIdRedirectResult.AjaxStatusCode.get -> int?
 NCode.Identity.OpenId.Results.OpenIdRedirectResult.AjaxStatusCode.init -> void

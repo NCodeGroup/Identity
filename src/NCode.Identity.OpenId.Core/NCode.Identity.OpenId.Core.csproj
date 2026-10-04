@@ -21,6 +21,7 @@
         <PackageReference Include="NCode.Base64Url" />
         <PackageReference Include="NCode.Collections.Providers" />
         <PackageReference Include="NCode.Disposables" />
+        <PackageReference Include="NCode.Mediator" />
         <PackageReference Include="NCode.PasswordGenerator" />
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
         <PackageReference Include="System.Linq.Async" />

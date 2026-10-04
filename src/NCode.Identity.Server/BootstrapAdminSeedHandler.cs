@@ -25,45 +25,43 @@ using Microsoft.Extensions.Options;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Server.Logging;
-using NCode.Persistence.Stores;
+using NCode.Mediator;
 
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Seeds the configured bootstrap administrator client into the workload tenant on the lazy tenant-resolution path,
-/// alongside the system resource servers. Because it runs on every resolution (not only fresh provisioning) and only
-/// creates the client when it is absent, it also seeds an already-provisioned tenant. The client's management-audience
-/// tokens are stamped with the <c>GlobalAdmin</c> role by <see cref="BootstrapAdminAccessTokenClaimsHandler"/>, so an
-/// operator can make the first authorized management call. The operation is idempotent and inert unless a bootstrap
-/// client id and secret are configured.
+/// Seeds the configured bootstrap administrator client into the workload tenant as part of the tenant seed fan-out.
+/// The client's management-audience tokens are stamped with the <c>GlobalAdmin</c> role by
+/// <see cref="BootstrapAdminAccessTokenClaimsHandler"/>, so an operator can make the first authorized management call.
+/// The handler is idempotent and inert unless a bootstrap client id and secret are configured; it never targets the
+/// control-plane root tenant.
 /// </summary>
-internal sealed class BootstrapAdminTenantSeeder(
+internal sealed class BootstrapAdminSeedHandler(
     IOptions<BootstrapAdminOptions> bootstrapOptionsAccessor,
-    IOptions<TenantResolutionOptions> tenantOptionsAccessor,
-    IStoreManagerFactory storeManagerFactory,
-    IAmbientTenantAccessor ambientTenantAccessor,
     IDataProtectorFactory<PersistedSecret> dataProtectorFactory,
     TimeProvider timeProvider,
-    ILogger<BootstrapAdminTenantSeeder> logger
-) : ISystemTenantSeeder
+    ILogger<BootstrapAdminSeedHandler> logger
+) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
     private BootstrapAdminOptions Options { get; } = bootstrapOptionsAccessor.Value;
-    private string RootTenantId { get; } = tenantOptionsAccessor.Value.RootTenantId;
-    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private IDataProtectorFactory<PersistedSecret> DataProtectorFactory { get; } =
         dataProtectorFactory;
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private ILogger<BootstrapAdminTenantSeeder> Logger { get; } = logger;
+    private ILogger<BootstrapAdminSeedHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
-    public async ValueTask SeedAsync(string tenantId, CancellationToken cancellationToken)
+    public int MediatorPriority => DefaultMediatorPriorities.Low;
+
+    /// <inheritdoc />
+    public async ValueTask HandleAsync(
+        SeedTenantCommand command,
+        CancellationToken cancellationToken
+    )
     {
         var clientId = Options.ClientId;
         var clientSecret = Options.ClientSecret;
@@ -72,14 +70,14 @@ internal sealed class BootstrapAdminTenantSeeder(
             return;
         }
 
-        if (!TargetsTenant(tenantId))
+        var context = command.Context;
+        if (!TargetsTenant(context))
         {
             return;
         }
 
-        using var tenantScope = AmbientTenantAccessor.BeginScope(tenantId);
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
+        var tenantId = context.TenantId;
+        var store = context.StoreManager.GetStore<IClientStore>();
 
         var existing = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (existing is not null)
@@ -91,21 +89,21 @@ internal sealed class BootstrapAdminTenantSeeder(
         var persistedClient = CreateClient(tenantId, clientId, clientSecret);
 
         await store.AddAsync(persistedClient, cancellationToken);
-        await storeManager.SaveChangesAsync(cancellationToken);
 
         Logger.BootstrapAdminClientSeeded(clientId, tenantId);
     }
 
-    private bool TargetsTenant(string tenantId)
+    private bool TargetsTenant(TenantSeedContext context)
     {
-        var configuredTenantId = Options.TenantId;
-        if (!string.IsNullOrEmpty(configuredTenantId))
+        // The bootstrap administrator is a workload-plane client; it is never seeded into the control-plane root tenant.
+        if (context.Plane != TenantPlane.Workload)
         {
-            return string.Equals(tenantId, configuredTenantId, StringComparison.Ordinal);
+            return false;
         }
 
-        // Absent an explicit target, seed into the workload tenant, never the control-plane root tenant.
-        return !string.Equals(tenantId, RootTenantId, StringComparison.Ordinal);
+        var configuredTenantId = Options.TenantId;
+        return string.IsNullOrEmpty(configuredTenantId)
+            || string.Equals(context.TenantId, configuredTenantId, StringComparison.Ordinal);
     }
 
     private PersistedClient CreateClient(string tenantId, string clientId, string clientSecret)

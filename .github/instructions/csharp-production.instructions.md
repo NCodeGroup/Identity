@@ -347,6 +347,15 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   recording in code, put the ADR reference in a **`//` code comment** (which never ships) — this is what "link to the
   ADR rather than inlining the rationale" (file header) means: the link lives in `//`, the ADR doc, or the `CHANGELOG`,
   **never** in consumer-facing `///`.
+- 👁 **A minimal-API handler's `///` reaches its OpenAPI operation only under specific conditions.** `<summary>` /
+  `<remarks>` become the operation description and `<param>` / `<response code="NNN">desc</response>` annotate it, but
+  only when **all** hold: (1) the handler's **defining** project references `Microsoft.AspNetCore.OpenApi` and calls
+  `AddOpenApi(...)` (which turns on the per-assembly XML-comment source generator); (2) the handler method is
+  `internal` or more visible — a `private` handler's XML is silently ignored; and (3) the endpoint carries **no** fluent
+  `.WithSummary()` / `.WithDescription()` — fluent metadata makes the generator skip that operation entirely (use
+  fluent **or** XML, never both). A `<response code="NNN">` only *describes* a response entry that already exists (the
+  default `200`, or one declared via `.Produces`); to add a non-200 entry (`400`/`401`/`204`/`302`…) call
+  `.Produces(StatusCodes.StatusNNN)` / `.Produces<T>()` in the map and let the `<response>` attach its description.
 
 ## 11. Logging
 

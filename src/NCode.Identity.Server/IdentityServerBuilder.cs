@@ -114,6 +114,7 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
             options.AddDocumentTransformer<TagGroupsDocumentTransformer>();
             options.AddDocumentTransformer<SecuritySchemeDocumentTransformer>();
             options.AddDocumentTransformer<TokenEndpointExamplesDocumentTransformer>();
+            options.AddDocumentTransformer<BootstrapTokenExampleDocumentTransformer>();
         });
     }
 }

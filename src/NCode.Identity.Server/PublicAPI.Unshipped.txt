@@ -2,8 +2,15 @@
 NCode.Identity.Server.DefaultRegistration
 NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddIdentityServer() -> NCode.Identity.Server.IIdentityServerBuilder!
+NCode.Identity.Server.DeveloperKeyMode
+NCode.Identity.Server.DeveloperKeyMode.Ephemeral = 0 -> NCode.Identity.Server.DeveloperKeyMode
+NCode.Identity.Server.DeveloperKeyMode.PersistentSigningKey = 1 -> NCode.Identity.Server.DeveloperKeyMode
+NCode.Identity.Server.DeveloperKeyModeConfiguration
+NCode.Identity.Server.DeveloperKeyModeConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!)
+NCode.Identity.Server.DeveloperKeyModeConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!).GetDeveloperKeyMode() -> NCode.Identity.Server.DeveloperKeyMode
 NCode.Identity.Server.DeveloperKeysRegistration
 NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperKeys(NCode.Identity.Server.DeveloperKeyMode mode, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperSigningKey(System.IO.DirectoryInfo! keyRingDirectory) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEphemeralDeveloperKeys() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Server.DeveloperSigningKeyOpenIdTenantFactory
@@ -14,6 +21,9 @@ NCode.Identity.Server.IdentityServer
 NCode.Identity.Server.IdentityServer.ConfigureMethod.get -> string!
 NCode.Identity.Server.IdentityServer.DisplayName.get -> string!
 NCode.Identity.Server.IdentityServer.IdentityServer() -> void
+NCode.Identity.Server.IdentityServerBuilderExtensions
+NCode.Identity.Server.IdentityServerBuilderExtensions.extension(NCode.Identity.Server.IIdentityServerBuilder!)
+NCode.Identity.Server.IdentityServerBuilderExtensions.extension(NCode.Identity.Server.IIdentityServerBuilder!).AddConfiguration(Microsoft.Extensions.Configuration.IConfiguration! configuration, string? sectionName = null) -> NCode.Identity.Server.IIdentityServerBuilder!
 NCode.Identity.Server.IIdentityServerBuilder
 NCode.Identity.Server.IIdentityServerBuilder.DataProtectionBuilder.get -> Microsoft.AspNetCore.DataProtection.IDataProtectionBuilder!
 NCode.Identity.Server.IIdentityServerBuilder.IdentityLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!

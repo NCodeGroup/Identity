@@ -20,6 +20,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using NCode.Identity.OpenId.Tenants;
 
 namespace NCode.Identity.Server;
@@ -40,6 +41,33 @@ public static class DeveloperKeysRegistration
 
     extension(IServiceCollection serviceCollection)
     {
+        /// <summary>
+        /// Applies the development-only signing-key setup selected by <paramref name="mode"/>:
+        /// <see cref="DeveloperKeyMode.Ephemeral"/> uses in-memory keys, while
+        /// <see cref="DeveloperKeyMode.PersistentSigningKey"/> seeds a persisted key and stores the data-protection
+        /// key ring under <c>App_Data/dp-keys</c> (relative to the content root) so it survives restarts. Must not be
+        /// used in production.
+        /// </summary>
+        /// <param name="mode">The <see cref="DeveloperKeyMode"/> that selects which setup to apply.</param>
+        /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> whose content root anchors the key-ring
+        /// directory when <paramref name="mode"/> is <see cref="DeveloperKeyMode.PersistentSigningKey"/>.</param>
+        /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        public IServiceCollection AddDeveloperKeys(
+            DeveloperKeyMode mode,
+            IHostEnvironment hostEnvironment
+        )
+        {
+            if (mode is DeveloperKeyMode.PersistentSigningKey)
+            {
+                var keyRingDirectory = new DirectoryInfo(
+                    Path.Combine(hostEnvironment.ContentRootPath, "App_Data", "dp-keys")
+                );
+                return serviceCollection.AddDeveloperSigningKey(keyRingDirectory);
+            }
+
+            return serviceCollection.AddEphemeralDeveloperKeys();
+        }
+
         /// <summary>
         /// Replaces the default tenant factory with one that generates an ephemeral in-memory
         /// <c>RSA</c> signing key, so that token signing and the JWKS endpoint work out-of-the-box for local

@@ -120,73 +120,90 @@ public sealed class DeveloperSigningKeyOpenIdTenantFactory(
         );
     }
 
-    private async ValueTask EnsureSigningKeyAsync(
+    // Internal rather than private so the self-heal behavior can be unit-tested directly; see
+    // NCode.Identity.Server.Tests. Invoked only from GetTenantSecretsAsync.
+    internal async ValueTask EnsureSigningKeyAsync(
         PersistedTenant persistedTenant,
         CancellationToken cancellationToken
     )
     {
-        if (HasUsableSecret(persistedTenant.Secrets))
+        var (hasUsableSecret, unusableSecretIds) = InspectSecrets(persistedTenant.Secrets);
+
+        // Nothing to heal: at least one usable key and no undecryptable secrets left to trip the read path.
+        if (hasUsableSecret && unusableSecretIds.Count == 0)
         {
             return;
         }
 
-        var generatedSecret = SecretGenerator.GenerateSecret(
-            new GenerateSecretRequest
-            {
-                SecretId = CryptoService.GenerateResourceId(),
-                SecretType = SecretTypes.Rsa,
-                KeySizeBits = RsaKeySizeBits,
-                Use = SecretKeyUses.Signature,
-                Algorithm = AlgorithmCodes.DigitalSignature.RsaSha256,
-                CreatedWhen = TimeProvider.GetUtcNow(),
-                ExpiresWhen = TimeProvider.GetUtcNow().AddYears(100),
-            }
-        );
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        await store.AddSecretAsync(persistedTenant.TenantId, generatedSecret, cancellationToken);
+        // Prune secrets that cannot be unprotected (e.g. the data-protection key ring changed when switching
+        // machines) so the base read path does not fail deserializing them.
+        foreach (var secretId in unusableSecretIds)
+        {
+            await store.RemoveSecretAsync(persistedTenant.TenantId, secretId, cancellationToken);
+        }
+
+        // Seed a fresh signing key only when none of the surviving secrets are usable.
+        if (!hasUsableSecret)
+        {
+            var generatedSecret = SecretGenerator.GenerateSecret(
+                new GenerateSecretRequest
+                {
+                    SecretId = CryptoService.GenerateResourceId(),
+                    SecretType = SecretTypes.Rsa,
+                    KeySizeBits = RsaKeySizeBits,
+                    Use = SecretKeyUses.Signature,
+                    Algorithm = AlgorithmCodes.DigitalSignature.RsaSha256,
+                    CreatedWhen = TimeProvider.GetUtcNow(),
+                    ExpiresWhen = TimeProvider.GetUtcNow().AddYears(100),
+                }
+            );
+
+            await store.AddSecretAsync(
+                persistedTenant.TenantId,
+                generatedSecret,
+                cancellationToken
+            );
+        }
+
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        // Refresh the loaded state so the base read path observes the newly-seeded secret.
+        // Refresh the loaded state so the base read path observes the pruned and/or seeded secrets.
         persistedTenant.Secrets = await store.GetSecretsAsync(
             persistedTenant.TenantId,
             cancellationToken
         );
     }
 
-    private bool HasUsableSecret(PersistedTenantSecrets secrets)
+    // Deserializes each persisted secret individually so a single undecryptable secret (e.g. protected by a
+    // now-unavailable data-protection key) can be identified for pruning instead of failing the whole batch.
+    private (bool HasUsableSecret, IReadOnlyCollection<string> UnusableSecretIds) InspectSecrets(
+        PersistedTenantSecrets secrets
+    )
     {
-        if (secrets.Value.Count == 0)
-        {
-            return false;
-        }
+        var hasUsableSecret = false;
+        var unusableSecretIds = new List<string>();
 
-        // A secret protected by a now-unavailable data-protection key cannot be unprotected; treat that as
-        // "no usable key" so the dev key self-heals (regenerates) rather than failing every request.
-        IReadOnlyCollection<SecretKey> secretKeys;
-        try
+        foreach (var persistedSecret in secrets.Value)
         {
-            secretKeys = SecretSerializer.DeserializeSecrets(secrets.Value);
-        }
-        catch (Exception exception)
-            when (exception
-                    is CryptographicException
-                        or FormatException
-                        or InvalidOperationException
-            )
-        {
-            return false;
-        }
-
-        try
-        {
-            return secretKeys.Count > 0;
-        }
-        finally
-        {
-            foreach (var secretKey in secretKeys)
+            SecretKey? secretKey = null;
+            try
+            {
+                secretKey = SecretSerializer.DeserializeSecret(persistedSecret);
+                hasUsableSecret = true;
+            }
+            catch (Exception exception)
+                when (exception
+                        is CryptographicException
+                            or FormatException
+                            or InvalidOperationException
+                )
+            {
+                unusableSecretIds.Add(persistedSecret.SecretId);
+            }
+            finally
             {
                 if (secretKey is IDisposable disposable)
                 {
@@ -194,5 +211,7 @@ public sealed class DeveloperSigningKeyOpenIdTenantFactory(
                 }
             }
         }
+
+        return (hasUsableSecret, unusableSecretIds);
     }
 }

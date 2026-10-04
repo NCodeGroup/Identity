@@ -21,15 +21,16 @@ using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using NCode.Identity.OpenId;
-using NCode.Identity.Server;
 
-namespace NCode.Identity.OpenId.Playground;
+namespace NCode.Identity.Server.OpenApi;
 
 /// <summary>
-/// A development-only OpenAPI transformer that appends a pre-filled <c>client_credentials</c> example for the configured
-/// bootstrap administrator to the token endpoint, so an operator can obtain the GlobalAdmin token from Scalar in one
-/// click. It is inert unless the bootstrap administrator is configured, and runs after the generic token examples are
-/// added by the composition root.
+/// An OpenAPI transformer that appends a pre-filled <c>client_credentials</c> example for the configured bootstrap
+/// administrator to the token endpoint, so an operator can obtain the GlobalAdmin token from a renderer such as Scalar
+/// in one click. It also marks the four <c>client_credentials</c> form fields required with default values so the
+/// renderer shows them pre-checked and populated (otherwise every optional field starts unchecked and is omitted from
+/// the request). It is inert unless the bootstrap administrator is configured, and runs after the generic token
+/// examples are added by the composition root.
 /// </summary>
 internal sealed class BootstrapTokenExampleDocumentTransformer(
     IOptions<BootstrapAdminOptions> optionsAccessor
@@ -64,6 +65,14 @@ internal sealed class BootstrapTokenExampleDocumentTransformer(
             return Task.CompletedTask;
         }
 
+        (string Name, string Value)[] fields =
+        [
+            (OpenIdConstants.Parameters.GrantType, OpenIdConstants.GrantTypes.ClientCredentials),
+            (OpenIdConstants.Parameters.ClientId, clientId),
+            (OpenIdConstants.Parameters.ClientSecret, clientSecret),
+            (OpenIdConstants.Parameters.Scope, BootstrapScope),
+        ];
+
         var example = new OpenApiExample
         {
             Summary = "Client credentials (bootstrap admin)",
@@ -83,15 +92,48 @@ internal sealed class BootstrapTokenExampleDocumentTransformer(
         foreach (var operation in operations.Values)
         {
             if (
-                operation.RequestBody?.Content is { } content
-                && content.TryGetValue(OpenIdConstants.ContentType, out var mediaType)
-                && mediaType.Examples is { } examples
+                operation.RequestBody?.Content is not { } content
+                || !content.TryGetValue(OpenIdConstants.ContentType, out var mediaType)
             )
+            {
+                continue;
+            }
+
+            if (mediaType.Examples is { } examples)
             {
                 examples[ExampleKey] = example;
             }
+
+            PrefillBootstrapFields(mediaType.Schema, fields);
         }
 
         return Task.CompletedTask;
+    }
+
+    private static void PrefillBootstrapFields(
+        IOpenApiSchema? schema,
+        IReadOnlyList<(string Name, string Value)> fields
+    )
+    {
+        if (schema is not OpenApiSchema formSchema || formSchema.Properties is not { } properties)
+        {
+            return;
+        }
+
+        // Required fields render pre-checked in a renderer such as Scalar; the default supplies the pre-filled value.
+        formSchema.Required ??= new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var (name, value) in fields)
+        {
+            if (
+                properties.TryGetValue(name, out var property)
+                && property is OpenApiSchema fieldSchema
+            )
+            {
+                fieldSchema.Default = JsonValue.Create(value);
+            }
+
+            formSchema.Required.Add(name);
+        }
     }
 }

@@ -23,6 +23,15 @@ NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.D
 NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperKeys(NCode.Identity.Server.DeveloperKeyMode mode, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperSigningKey(System.IO.DirectoryInfo! keyRingDirectory) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEphemeralDeveloperKeys() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions
+NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
+NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapIdentityServerApiReference(System.Action<NCode.Identity.Server.IdentityServerApiReferenceOptions!>? configureOptions = null) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+NCode.Identity.Server.IdentityServerApiReferenceOptions
+NCode.Identity.Server.IdentityServerApiReferenceOptions.IdentityServerApiReferenceOptions() -> void
+NCode.Identity.Server.IdentityServerApiReferenceOptions.MapApiReferenceUi.get -> bool
+NCode.Identity.Server.IdentityServerApiReferenceOptions.MapApiReferenceUi.set -> void
+NCode.Identity.Server.IdentityServerApiReferenceOptions.MapOpenApiDocument.get -> bool
+NCode.Identity.Server.IdentityServerApiReferenceOptions.MapOpenApiDocument.set -> void
 NCode.Identity.Server.EphemeralOpenIdTenantFactory
 NCode.Identity.Server.EphemeralOpenIdTenantFactory.EphemeralOpenIdTenantFactory(NCode.Identity.OpenId.Tenants.ITenantResolver! tenantResolver, Microsoft.AspNetCore.Routing.Template.TemplateBinderFactory! templateBinderFactory, Microsoft.Extensions.Options.IOptions<NCode.Identity.OpenId.OpenIdOptions!>! optionsAccessor, NCode.Persistence.Stores.IStoreManagerFactory! storeManagerFactory, NCode.Identity.OpenId.Tenants.IOpenIdTenantCache! tenantCache, NCode.Identity.Settings.IReadOnlySettingCollectionProviderFactory! settingCollectionProviderFactory, NCode.Identity.Settings.ISettingSerializer! settingSerializer, NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer! secretSerializer, NCode.Identity.Secrets.Logic.ISecretKeyCollectionProviderFactory! secretKeyCollectionProviderFactory, NCode.Collections.Providers.ICollectionDataSourceFactory! collectionDataSourceFactory, NCode.Identity.Secrets.Logic.ISecretKeyFactory! secretKeyFactory) -> void
 NCode.Identity.Server.IdentityServer

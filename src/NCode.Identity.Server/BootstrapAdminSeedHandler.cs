@@ -23,6 +23,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Extensions.DataProtection;
+using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
@@ -44,6 +45,7 @@ namespace NCode.Identity.Server;
 internal sealed class BootstrapAdminSeedHandler(
     IOptions<BootstrapAdminOptions> bootstrapOptionsAccessor,
     IDataProtectorFactory<PersistedSecret> dataProtectorFactory,
+    ICryptoService cryptoService,
     TimeProvider timeProvider,
     ILogger<BootstrapAdminSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
@@ -51,6 +53,7 @@ internal sealed class BootstrapAdminSeedHandler(
     private BootstrapAdminOptions Options { get; } = bootstrapOptionsAccessor.Value;
     private IDataProtectorFactory<PersistedSecret> DataProtectorFactory { get; } =
         dataProtectorFactory;
+    private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<BootstrapAdminSeedHandler> Logger { get; } = logger;
 
@@ -115,7 +118,7 @@ internal sealed class BootstrapAdminSeedHandler(
 
         await store.AddSecretAsync(
             clientId,
-            CreatePersistedSecret(clientId, clientSecret),
+            CreatePersistedSecret(clientSecret),
             cancellationToken
         );
     }
@@ -135,7 +138,7 @@ internal sealed class BootstrapAdminSeedHandler(
 
     private PersistedClient CreateClient(string tenantId, string clientId, string clientSecret)
     {
-        var persistedSecret = CreatePersistedSecret(clientId, clientSecret);
+        var persistedSecret = CreatePersistedSecret(clientSecret);
 
         var emptySettings = JsonSerializer.SerializeToElement(new Dictionary<string, object>());
 
@@ -159,7 +162,7 @@ internal sealed class BootstrapAdminSeedHandler(
         };
     }
 
-    private PersistedSecret CreatePersistedSecret(string clientId, string clientSecret)
+    private PersistedSecret CreatePersistedSecret(string clientSecret)
     {
         var protector = DataProtectorFactory.CreateDataProtector();
         var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
@@ -169,9 +172,9 @@ internal sealed class BootstrapAdminSeedHandler(
         var now = TimeProvider.GetUtcNow();
         return new PersistedSecret
         {
-            // A unique id per secret so a refresh (remove-then-add in one unit of work) never collides with the
-            // outgoing secret's id.
-            SecretId = $"{clientId}-{Guid.NewGuid():N}",
+            // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so a refresh (remove-then-add
+            // in one unit of work) never collides with the outgoing secret's id, and the id reveals nothing.
+            SecretId = CryptoService.GenerateResourceId(),
             Use = null,
             Algorithm = null,
             CreatedWhen = now,

@@ -20,5 +20,6 @@
         <PackageReference Include="JetBrains.Annotations" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Scalar.AspNetCore" />
     </ItemGroup>
 </Project>

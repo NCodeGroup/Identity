@@ -8,7 +8,11 @@
           "name": "C#: NCode.Identity.OpenId.Playground Debug",
           "type": "dotnet",
           "request": "launch",
-          "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj"
+          "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj",
+          "justMyCode": true,
+          "logging": {
+            "moduleLoad": false
+          }
         }
 
     ]

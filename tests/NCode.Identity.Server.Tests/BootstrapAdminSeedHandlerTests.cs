@@ -19,6 +19,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Extensions.DataProtection;
+using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -37,11 +38,13 @@ public class BootstrapAdminSeedHandlerTests : BaseTests
     {
         // Strict mocks: none of these collaborators are touched on the no-op guard paths.
         var mockDataProtectorFactory = CreateStrictMock<IDataProtectorFactory<PersistedSecret>>();
+        var mockCryptoService = CreateStrictMock<ICryptoService>();
         var mockLogger = CreateLooseMock<ILogger<BootstrapAdminSeedHandler>>();
 
         return new BootstrapAdminSeedHandler(
             Options.Create(bootstrapOptions),
             mockDataProtectorFactory.Object,
+            mockCryptoService.Object,
             TimeProvider.System,
             mockLogger.Object
         );

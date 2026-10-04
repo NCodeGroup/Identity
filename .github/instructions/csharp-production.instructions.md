@@ -359,9 +359,26 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   `AddOpenApi(...)` (which turns on the per-assembly XML-comment source generator); (2) the handler method is
   `internal` or more visible — a `private` handler's XML is silently ignored; and (3) the endpoint carries **no** fluent
   `.WithSummary()` / `.WithDescription()` — fluent metadata makes the generator skip that operation entirely (use
-  fluent **or** XML, never both). A `<response code="NNN">` only *describes* a response entry that already exists (the
+  fluent **or** XML, never both). A `<response code="NNN">` only _describes_ a response entry that already exists (the
   default `200`, or one declared via `.Produces`); to add a non-200 entry (`400`/`401`/`204`/`302`…) call
   `.Produces(StatusCodes.StatusNNN)` / `.Produces<T>()` in the map and let the `<response>` attach its description.
+- 👁 **OpenAPI document contributions belong in the composition layer, not the host.** The document describes the
+  server's own endpoints, so register document transformers (security schemes, tag groups, request/response examples)
+  in the composition root's `AddOpenApi(...)`, and expose the document and the API-reference UI through the server's
+  turnkey map extension — a host never re-declares them. See
+  [ADR-0046](../../docs/adr/0046-api-reference-openapi-document-and-scalar.md).
+- 👁 **Never embed secret material in a served OpenAPI document or renderer configuration.** A renderer may pre-fill
+  credentials for a one-click login, but pre-filling a **secret** bakes it into the served config where anyone who can
+  load the reference page can read it — pre-fill a secret **only in Development**. The login flow itself (for example
+  OAuth2 `client_credentials`) must be wired in **every** environment so the production cold-start/bootstrap path works;
+  only the secret pre-fill is environment-gated. See
+  [ADR-0046](../../docs/adr/0046-api-reference-openapi-document-and-scalar.md) and
+  [ADR-0011](../../docs/adr/0011-secret-management-api.md).
+- 👁 **A renderer builds a `x-www-form-urlencoded` body from the schema, not from examples.** Optional schema
+  properties render unchecked and are omitted from the request, and a named `example` is not applied to form fields. To
+  make a field pre-checked and pre-filled, a document transformer marks it `required` and sets its schema `Default`;
+  the renderer's credential location must match the endpoint (the token endpoint reads `client_secret_post` from the
+  **body**). See [ADR-0046](../../docs/adr/0046-api-reference-openapi-document-and-scalar.md).
 
 ## 11. Logging
 

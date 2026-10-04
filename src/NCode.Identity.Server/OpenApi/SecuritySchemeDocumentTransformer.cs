@@ -35,6 +35,15 @@ internal sealed class SecuritySchemeDocumentTransformer : IOpenApiDocumentTransf
     /// </summary>
     public const string BearerSchemeName = "Bearer";
 
+    /// <summary>
+    /// The name of the OAuth 2.0 client-credentials security scheme declared in the OpenAPI document.
+    /// </summary>
+    public const string OAuth2SchemeName = "OAuth2";
+
+    // Authority is role-based (GlobalAdmin), so any management-audience scope authenticates the dashboard; this one
+    // simply binds the 'urn:ncode:management' audience. See ADR-0044.
+    internal const string ManagementAudienceScope = "read:clients";
+
     private static readonly FrozenSet<string> ManagementTagNames = new[]
     {
         OpenIdConstants.EndpointTags.Clients,
@@ -64,18 +73,47 @@ internal sealed class SecuritySchemeDocumentTransformer : IOpenApiDocumentTransf
                 + "token endpoint (for example, the client_credentials grant).",
         };
 
+        var oauth2Scheme = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.OAuth2,
+            Description =
+                "OAuth 2.0 client-credentials against the token endpoint for the 'urn:ncode:management' audience. "
+                + "A renderer such as Scalar can run the flow and apply the resulting access token to every request.",
+            Flows = new OpenApiOAuthFlows
+            {
+                ClientCredentials = new OpenApiOAuthFlow
+                {
+                    TokenUrl = new Uri(OpenIdConstants.EndpointPaths.Token, UriKind.Relative),
+                    Scopes = new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        [ManagementAudienceScope] =
+                            "Bind the management audience (urn:ncode:management).",
+                    },
+                },
+            },
+        };
+
         document.Components ??= new OpenApiComponents();
         document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>(
             StringComparer.Ordinal
         );
         document.Components.SecuritySchemes[BearerSchemeName] = bearerScheme;
+        document.Components.SecuritySchemes[OAuth2SchemeName] = oauth2Scheme;
 
         if (document.Paths is null)
         {
             return Task.CompletedTask;
         }
 
-        var requirement = new OpenApiSecurityRequirement
+        var oauth2Requirement = new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference(OAuth2SchemeName, document)] = new List<string>
+            {
+                ManagementAudienceScope,
+            },
+        };
+
+        var bearerRequirement = new OpenApiSecurityRequirement
         {
             [new OpenApiSecuritySchemeReference(BearerSchemeName, document)] = new List<string>(),
         };
@@ -100,8 +138,10 @@ internal sealed class SecuritySchemeDocumentTransformer : IOpenApiDocumentTransf
                     continue;
                 }
 
+                // Both are offered (OpenAPI OR-semantics): run the OAuth 2.0 flow, or paste a bearer token.
                 operation.Security ??= [];
-                operation.Security.Add(requirement);
+                operation.Security.Add(oauth2Requirement);
+                operation.Security.Add(bearerRequirement);
             }
         }
 

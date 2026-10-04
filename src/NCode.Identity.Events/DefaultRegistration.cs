@@ -56,6 +56,10 @@ public static class DefaultRegistration
             );
 
             serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IEventHandler<IEvent>, DefaultEventTracingHandler>()
+            );
+
+            serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IEventHandler<IAuditEvent>,
                     DefaultAuditLoggingHandler

@@ -75,6 +75,6 @@ opt-in conveniences, never defaults.
 
 - `NCode.Identity.Server/DevelopmentEnvironment/EphemeralOpenIdTenantFactory.cs`
 - `NCode.Identity.Server/DevelopmentEnvironment/DeveloperKeysRegistration.cs`
-- `NCode.Identity.OpenId.Playground/Startup.cs` (opt-in wired in by the EXE host)
+- `NCode.Identity.OpenId.Playground/Program.cs` (opt-in wired in by the EXE host)
 - `NCode.Identity.OpenId.Authentication/Tokens/DefaultTokenService.cs` (signing key source = tenant secrets)
 - `NCode.Identity.OpenId.IntegrationTests/` (asserts JWKS publishes the ephemeral signing key over HTTP)

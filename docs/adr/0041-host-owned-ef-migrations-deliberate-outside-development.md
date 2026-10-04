@@ -63,7 +63,7 @@ finds them.
 
 ## References
 
-- Code: `NCode.Identity.OpenId.Playground` — `Program.InitializeDatabase`, `Startup` (`MigrationsAssembly` wiring),
+- Code: `NCode.Identity.OpenId.Playground` — `Program` (host wiring, `MigrationsAssembly`, and `InitializeDatabase`),
   `OpenIdDbContextDesignTimeFactory`, `Migrations/`; `OpenIdDbContext`.
 - Prior art: [ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md) (pre-release churn),
   [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) (decisions live in the repo).

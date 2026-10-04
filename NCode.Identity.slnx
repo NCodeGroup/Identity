@@ -9,6 +9,8 @@
         <File Path="README.md" />
     </Folder>
     <Project Path="src/NCode.Identity.Abstractions/NCode.Identity.Abstractions.csproj" />
+    <Project Path="src/NCode.Identity.Events.Abstractions/NCode.Identity.Events.Abstractions.csproj" />
+    <Project Path="src/NCode.Identity.Events/NCode.Identity.Events.csproj" />
     <Project Path="src/NCode.Identity.Jose.Abstractions/NCode.Identity.Jose.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.Jose/NCode.Identity.Jose.csproj" />
     <Project Path="src/NCode.Identity.JsonWebTokens/NCode.Identity.JsonWebTokens.csproj" />
@@ -34,6 +36,7 @@
     <Project Path="src/NCode.Registration/NCode.Registration.csproj" />
     <Project Path="src/NCode.Registration.AspNetCore/NCode.Registration.AspNetCore.csproj" />
     <Project Path="tests/NCode.Identity.Abstractions.Tests/NCode.Identity.Abstractions.Tests.csproj" />
+    <Project Path="tests/NCode.Identity.Events.Tests/NCode.Identity.Events.Tests.csproj" />
     <Project Path="tests/NCode.Identity.JsonWebTokens.Tests/NCode.Identity.JsonWebTokens.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Jose.Tests/NCode.Identity.Jose.Tests.csproj" />
     <Project Path="tests/NCode.Identity.OpenId.Core.Tests/NCode.Identity.OpenId.Core.Tests.csproj" />

@@ -83,8 +83,12 @@ defines:
   `TryAddEnumerable` so any number of subscribers coexist and consumers add their own without touching
   framework code.
 
-- **`ISupportEventPriority`** — optional ordered delivery, mirroring `ISupportMediatorPriority` /
-  `DefaultMediatorPriorities`. A companion `DefaultEventPriorities` supplies the standard bands.
+- **`ISupportHandlerPriority`** — optional ordered delivery, structurally mirroring
+  `ISupportMediatorPriority` / `DefaultMediatorPriorities` (a companion `DefaultHandlerPriorities`
+  supplies the standard bands). The noun is deliberately the **participant** (`HandlerPriority`), not the
+  subsystem: the mediator can use the subsystem noun because "mediator" is not a data object, but an
+  event _is_ a data object, so `EventPriority` would misread as "the event's priority" rather than "this
+  handler's order." The priority sorts participants, so it is named for them.
 
 - **`IEventPublisher`** — the dispatcher: `ValueTask PublishAsync<TEvent>(TEvent @event, …)`. It
   resolves the matching handlers, orders them by priority, and invokes each inside a try/catch so one
@@ -145,7 +149,7 @@ foreach (var handler in Resolve(scopeProvider, plan).OrderByDescending(Priority)
 }
 ```
 
-Priority is sorted on the resolved **instances** each publish (because `ISupportEventPriority` lives on
+Priority is sorted on the resolved **instances** each publish (because `ISupportHandlerPriority` lives on
 the instance), not baked into the plan; the handler count is small, so this is cheap. The exact-type
 level resolves generically with no reflection; only the base-type fan-out needs `MakeGenericType`, so
 that path is annotated `[RequiresDynamicCode]` / `[RequiresUnreferencedCode]` (mirroring the mediator's
@@ -352,6 +356,21 @@ example.
   registration, async `ValueTask` handlers, priority ordering, or hierarchical dispatch without
   substantial glue, and `IObservable` pushes consumers toward Rx they otherwise do not need.
 
+- **A dynamic metadata bag on the event contract** (`IDictionary<string, object>`, an `IPropertyBag`, or a
+  `[JsonExtensionData]` member on `IEvent`). Rejected: it is the opposite of the typed, immutable,
+  cataloged, schema-versioned event this ADR commits to. `[JsonExtensionData]` is for a DTO deserialized
+  _from_ an external producer — events are authored and serialized _out_, so there is no upstream field to
+  capture; `SchemaVersion` is the right forward/back-compat lever. An `object`-valued bag makes the record
+  effectively mutable and reference-equal, is a redaction landmine (arbitrary values can smuggle
+  secrets/PII past the never-serialize-secrets rule, worst of all for audit events shipped to external
+  sinks), and erodes the curated catalog by inviting magic-string keys instead of reviewed typed fields.
+  The house `IPropertyBag` is specifically unsuited here: it holds arbitrary in-process `object` values for
+  capability passing, exactly what must not reach a serialized audit record. Event extensibility is
+  **subtyping plus the catalog**; if genuinely open-ended audit attributes are ever needed, the only
+  sanctioned form is a bounded, immutable `IReadOnlyDictionary<string, string>` on the **audit envelope**
+  (serialization-safe, redaction-tractable, complementing — never replacing — typed fields), added when a
+  real consumer needs it, not speculatively.
+
 - **A dedicated event seam below the mediator (chosen).** Reaches every layer, isolates observer
   failures by construction, reuses the familiar `TryAddEnumerable` + priority conventions, gives
   auditing a first-class home, and keeps the mediator reserved for result-shaping seams.
@@ -413,4 +432,4 @@ example.
 - [`src/NCode.Identity.OpenId.Authentication.Abstractions/Tokens/Commands/SecurityTokenIssuedEvent.cs`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Tokens/Commands/SecurityTokenIssuedEvent.cs)
   — the lone pre-existing event, mis-modeled as a mediator command, re-homed as the first worked example.
 - `ISupportMediatorPriority` / `DefaultMediatorPriorities` (NCode.Mediator) — the prior art
-  `ISupportEventPriority` / `DefaultEventPriorities` mirror.
+  `ISupportHandlerPriority` / `DefaultHandlerPriorities` mirror.

@@ -1,0 +1,47 @@
+#nullable enable
+abstract NCode.Identity.Events.Audit.AuditEvent.Action.get -> string!
+const NCode.Identity.Events.Audit.AuditOutcome.Failure = "failure" -> string!
+const NCode.Identity.Events.Audit.AuditOutcome.Success = "success" -> string!
+NCode.Identity.Events.Audit.AuditEvent
+NCode.Identity.Events.Audit.AuditEvent.ClientId.get -> string?
+NCode.Identity.Events.Audit.AuditEvent.ClientId.init -> void
+NCode.Identity.Events.Audit.AuditEvent.CorrelationId.get -> string?
+NCode.Identity.Events.Audit.AuditEvent.CorrelationId.init -> void
+NCode.Identity.Events.Audit.AuditEvent.EventId.get -> System.Guid
+NCode.Identity.Events.Audit.AuditEvent.EventId.init -> void
+NCode.Identity.Events.Audit.AuditEvent.Outcome.get -> string!
+NCode.Identity.Events.Audit.AuditEvent.Outcome.init -> void
+NCode.Identity.Events.Audit.AuditEvent.Reason.get -> string?
+NCode.Identity.Events.Audit.AuditEvent.Reason.init -> void
+NCode.Identity.Events.Audit.AuditEvent.SubjectId.get -> string?
+NCode.Identity.Events.Audit.AuditEvent.SubjectId.init -> void
+NCode.Identity.Events.Audit.AuditEvent.TenantId.get -> string?
+NCode.Identity.Events.Audit.AuditEvent.TenantId.init -> void
+NCode.Identity.Events.Audit.AuditEvent.Timestamp.get -> System.DateTimeOffset
+NCode.Identity.Events.Audit.AuditEvent.Timestamp.init -> void
+NCode.Identity.Events.Audit.AuditOutcome
+NCode.Identity.Events.Audit.IAuditEvent
+NCode.Identity.Events.Audit.IAuditEvent.Action.get -> string!
+NCode.Identity.Events.Audit.IAuditEvent.ClientId.get -> string?
+NCode.Identity.Events.Audit.IAuditEvent.CorrelationId.get -> string?
+NCode.Identity.Events.Audit.IAuditEvent.EventId.get -> System.Guid
+NCode.Identity.Events.Audit.IAuditEvent.Outcome.get -> string!
+NCode.Identity.Events.Audit.IAuditEvent.Reason.get -> string?
+NCode.Identity.Events.Audit.IAuditEvent.SchemaVersion.get -> int
+NCode.Identity.Events.Audit.IAuditEvent.SubjectId.get -> string?
+NCode.Identity.Events.Audit.IAuditEvent.TenantId.get -> string?
+NCode.Identity.Events.Audit.IAuditEvent.Timestamp.get -> System.DateTimeOffset
+NCode.Identity.Events.DefaultHandlerPriorities
+NCode.Identity.Events.IEvent
+NCode.Identity.Events.IEventHandler<TEvent>
+NCode.Identity.Events.IEventHandler<TEvent>.HandleAsync(TEvent event, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Events.IEventPublisher
+NCode.Identity.Events.IEventPublisher.HasSubscribers<TEvent>() -> bool
+NCode.Identity.Events.IEventPublisher.PublishAsync<TEvent>(TEvent event, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Events.ISupportHandlerPriority
+NCode.Identity.Events.ISupportHandlerPriority.HandlerPriority.get -> int
+static NCode.Identity.Events.DefaultHandlerPriorities.High.get -> int
+static NCode.Identity.Events.DefaultHandlerPriorities.High.set -> void
+static NCode.Identity.Events.DefaultHandlerPriorities.Low.get -> int
+static NCode.Identity.Events.DefaultHandlerPriorities.Low.set -> void
+virtual NCode.Identity.Events.Audit.AuditEvent.SchemaVersion.get -> int

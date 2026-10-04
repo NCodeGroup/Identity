@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -67,7 +68,9 @@ internal class DefaultContinueEndpointHandler(
 
     private async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
-        [FromQuery] string? state,
+        [FromQuery]
+        [Description("The opaque value that identifies the paused authorization flow to resume.")]
+            string? state,
         CancellationToken cancellationToken
     )
     {

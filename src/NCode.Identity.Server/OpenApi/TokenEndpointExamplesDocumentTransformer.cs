@@ -75,14 +75,30 @@ internal sealed class TokenEndpointExamplesDocumentTransformer : IOpenApiDocumen
     {
         var properties = new Dictionary<string, IOpenApiSchema>(StringComparer.Ordinal)
         {
-            [OpenIdConstants.Parameters.GrantType] = StringSchema(),
-            [OpenIdConstants.Parameters.ClientId] = StringSchema(),
-            [OpenIdConstants.Parameters.ClientSecret] = StringSchema(),
-            [OpenIdConstants.Parameters.Scope] = StringSchema(),
-            [OpenIdConstants.Parameters.AuthorizationCode] = StringSchema(),
-            [OpenIdConstants.Parameters.RedirectUri] = StringSchema(),
-            [OpenIdConstants.Parameters.CodeVerifier] = StringSchema(),
-            [OpenIdConstants.Parameters.RefreshToken] = StringSchema(),
+            [OpenIdConstants.Parameters.GrantType] = StringSchema(
+                "The grant type being requested, such as authorization_code, client_credentials, or refresh_token."
+            ),
+            [OpenIdConstants.Parameters.ClientId] = StringSchema(
+                "The identifier issued to the client during registration."
+            ),
+            [OpenIdConstants.Parameters.ClientSecret] = StringSchema(
+                "The client's secret, for clients that authenticate with a shared secret."
+            ),
+            [OpenIdConstants.Parameters.Scope] = StringSchema(
+                "A space-delimited list of requested scopes."
+            ),
+            [OpenIdConstants.Parameters.AuthorizationCode] = StringSchema(
+                "The authorization code returned by the authorization endpoint (authorization_code grant)."
+            ),
+            [OpenIdConstants.Parameters.RedirectUri] = StringSchema(
+                "The client's redirect URI; must match the value used in the authorization request."
+            ),
+            [OpenIdConstants.Parameters.CodeVerifier] = StringSchema(
+                "The PKCE code verifier (RFC 7636) matching the code_challenge sent to the authorization endpoint."
+            ),
+            [OpenIdConstants.Parameters.RefreshToken] = StringSchema(
+                "The refresh token previously issued to the client (refresh_token grant)."
+            ),
         };
 
         var mediaType = new OpenApiMediaType
@@ -106,7 +122,8 @@ internal sealed class TokenEndpointExamplesDocumentTransformer : IOpenApiDocumen
         };
     }
 
-    private static OpenApiSchema StringSchema() => new() { Type = JsonSchemaType.String };
+    private static OpenApiSchema StringSchema(string description) =>
+        new() { Type = JsonSchemaType.String, Description = description };
 
     private static OpenApiExample ClientCredentialsExample() =>
         new()

@@ -23,12 +23,12 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Messages.Parameters;
 
-public class KnownParameterCollectionTests
+public class DefaultKnownParameterCollectionTests
 {
     private static KnownParameter KnownParameter(string name) =>
         new KnownParameter<string>(name, new StringParser()) { AllowMissingStringValues = true };
 
-    private static KnownParameterCollection CreateCollection() =>
+    private static DefaultKnownParameterCollection CreateCollection() =>
         new([KnownParameter("a"), KnownParameter("b")]);
 
     #region Count / Enumeration Tests

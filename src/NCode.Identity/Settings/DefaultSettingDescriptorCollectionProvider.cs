@@ -32,7 +32,7 @@ internal class DefaultSettingDescriptorCollectionProvider(
 {
     private ICollectionProvider<SettingDescriptor, ISettingDescriptorCollection> Inner { get; } =
         collectionProviderFactory.Create(
-            items => new SettingDescriptorCollection(items),
+            items => new DefaultSettingDescriptorCollection(items),
             dataSources,
             owns: false
         );

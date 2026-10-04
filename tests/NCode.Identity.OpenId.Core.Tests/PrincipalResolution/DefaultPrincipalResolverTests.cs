@@ -31,7 +31,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.PrincipalResolution;
 
-public sealed class FederatedPrincipalResolverTests
+public sealed class DefaultPrincipalResolverTests
 {
     private const string PrincipalId = "principal-1";
     private const string Issuer = "https://issuer.example";
@@ -88,7 +88,7 @@ public sealed class FederatedPrincipalResolverTests
             .ReturnsAsync(Principal(PrincipalId))
             .Verifiable();
 
-        var resolver = new FederatedPrincipalResolver(
+        var resolver = new DefaultPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );
@@ -129,7 +129,7 @@ public sealed class FederatedPrincipalResolverTests
             .ReturnsAsync(Identity(PrincipalId))
             .Verifiable();
 
-        var resolver = new FederatedPrincipalResolver(
+        var resolver = new DefaultPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );
@@ -151,7 +151,7 @@ public sealed class FederatedPrincipalResolverTests
         var mocks = new MockRepository(MockBehavior.Strict);
         var manager = mocks.Create<IStoreManager>();
 
-        var resolver = new FederatedPrincipalResolver(
+        var resolver = new DefaultPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );
@@ -182,7 +182,7 @@ public sealed class FederatedPrincipalResolverTests
             .ReturnsAsync((PersistedFederatedPrincipal?)null)
             .Verifiable();
 
-        var resolver = new FederatedPrincipalResolver(
+        var resolver = new DefaultPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );
@@ -214,7 +214,7 @@ public sealed class FederatedPrincipalResolverTests
             .ReturnsAsync(Principal(PrincipalId))
             .Verifiable();
 
-        var resolver = new FederatedPrincipalResolver(
+        var resolver = new DefaultPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );
@@ -281,7 +281,7 @@ public sealed class FederatedPrincipalResolverTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var resolver = new FederatedPrincipalResolver(crypto.Object, linkingPolicy.Object);
+        var resolver = new DefaultPrincipalResolver(crypto.Object, linkingPolicy.Object);
 
         var result = await resolver.ResolvePrincipalIdAsync(
             CreateOpenIdContext(mocks),
@@ -353,7 +353,7 @@ public sealed class FederatedPrincipalResolverTests
             )
             .Returns(ValueTask.CompletedTask);
 
-        var resolver = new FederatedPrincipalResolver(crypto.Object, linkingPolicy.Object);
+        var resolver = new DefaultPrincipalResolver(crypto.Object, linkingPolicy.Object);
 
         var result = await resolver.ResolvePrincipalIdAsync(
             CreateOpenIdContext(mocks),
@@ -383,7 +383,7 @@ public sealed class FederatedPrincipalResolverTests
             .Setup(x => x.GetOrDefaultAsync(Subject, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedFederatedPrincipal?)null);
 
-        var resolver = new FederatedPrincipalResolver(
+        var resolver = new DefaultPrincipalResolver(
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );

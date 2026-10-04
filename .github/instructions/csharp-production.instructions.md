@@ -163,15 +163,19 @@ rationale.
 
 - ✅ **One type per file.** An interface and its implementation are two files. (A generic interface and its
   strongly-typed sibling of the same name — `IFoo` + `IFoo<T>` — may share a file, as they are one contract in two arities.)
-- 👁 **The single canonical implementation of an `IFoo` is named `DefaultFoo`** — strip the `I`, prepend `Default`
-  (`IJoseSerializer` → `DefaultJoseSerializer`, `IJsonWebTokenService` → `DefaultJsonWebTokenService`,
-  `ITokenService` → `DefaultTokenService`). This is the ASP.NET Core idiom (`DefaultHttpContextFactory`): it keeps the
-  bare concept name free, separates interface from implementation, and signals a replaceable default. Applies
-  regardless of the interface's visibility. **Two carve-outs, when the class is _not_ "the one canonical impl":**
-  (a) one of several variants named for what makes it specific (`DefaultAuthorizationCodeGrantHandler`,
+- 👁 **The single canonical implementation of an `IFoo` that a consumer resolves through DI and never names directly
+  is named `DefaultFoo`** — strip the `I`, prepend `Default` (`IJoseSerializer` → `DefaultJoseSerializer`,
+  `IJsonWebTokenService` → `DefaultJsonWebTokenService`, `ITokenService` → `DefaultTokenService`). This is the ASP.NET
+  Core idiom (`DefaultHttpContextFactory`): it keeps the bare concept name free, separates interface from
+  implementation, and signals a replaceable default. The rule is about the **implementation**, which therefore stays
+  `internal` (§2) and is reached only through the interface; the `IFoo` itself may be `public` or `internal` — that is
+  what "regardless of the interface's visibility" means. **Three carve-outs, when the class is _not_ "the one canonical
+  DI impl":** (a) one of several variants named for what makes it specific (`DefaultAuthorizationCodeGrantHandler`,
   `DefaultClientCredentialsGrantHandler` — each a distinct `ITokenGrantHandler`); (b) an implementation of a
-  **framework** interface follows that framework's own pattern name. See
-  [ADR-0006](../../docs/adr/0006-single-canonical-impl-is-defaultfoo.md).
+  **framework** interface follows that framework's own pattern name; (c) a **public, developer-facing
+  data / message / model / result type a consumer constructs and names directly** keeps the bare concept name
+  (`AuthorizationTicket`, `TokenRequest`, `ResourceNode` — never `Default*`), even when it implements an `IFoo` seam.
+  See [ADR-0006](../../docs/adr/0006-single-canonical-impl-is-defaultfoo.md).
 - 👁 **No nested types**, with two exceptions: (a) a private nested type that must **close over the enclosing type's
   generic type parameter**; (b) a nested `static` class that groups a related **constant vocabulary** (only `const`
   fields — no behavior, no state). Everything else is its own top-level file.

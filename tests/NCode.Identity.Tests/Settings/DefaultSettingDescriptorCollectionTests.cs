@@ -19,9 +19,9 @@
 
 namespace NCode.Identity.Settings;
 
-public class SettingDescriptorCollectionTests
+public class DefaultSettingDescriptorCollectionTests
 {
-    private static SettingDescriptorCollection CreateCollection() =>
+    private static DefaultSettingDescriptorCollection CreateCollection() =>
         new([
             new SettingDescriptor<string> { Name = "a" },
             new SettingDescriptor<int> { Name = "b" },

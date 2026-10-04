@@ -41,7 +41,7 @@ public static class OpenIdEndpointConventionBuilderExtensions
         /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
         public TBuilder WithOpenIdDiscoverable(bool isDiscoverable = true) =>
             builder.WithMetadata(
-                new OpenIdEndpointDiscoverableMetadata { IsDiscoverable = isDiscoverable }
+                new DefaultOpenIdEndpointDiscoverableMetadata { IsDiscoverable = isDiscoverable }
             );
 
         /// <summary>
@@ -56,7 +56,7 @@ public static class OpenIdEndpointConventionBuilderExtensions
                 CancellationToken,
                 ValueTask<IOpenIdExceptionHandler>
             > getter
-        ) => builder.WithMetadata(new OpenIdEndpointExceptionHandlerMetadata(getter));
+        ) => builder.WithMetadata(new DefaultOpenIdEndpointExceptionHandlerMetadata(getter));
 
         /// <summary>
         /// Adds <see cref="IOpenIdExceptionHandler"/> to the <see cref="IEndpointConventionBuilder"/> to indicate the exception handler for the endpoint.

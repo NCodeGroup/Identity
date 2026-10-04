@@ -2,10 +2,6 @@
 const NCode.Identity.OpenId.OpenIdOptions.DefaultSectionName = "OpenId" -> string!
 const NCode.Identity.OpenId.OpenIdServerOptions.DefaultServerId = "default" -> string!
 const NCode.Identity.OpenId.OpenIdServerOptions.SettingsSubsection = "Server:Settings" -> string!
-NCode.Identity.OpenId.Contexts.OpenIdContextFeature
-NCode.Identity.OpenId.Contexts.OpenIdContextFeature.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
-NCode.Identity.OpenId.Contexts.OpenIdContextFeature.OpenIdContext.init -> void
-NCode.Identity.OpenId.Contexts.OpenIdContextFeature.OpenIdContextFeature() -> void
 NCode.Identity.OpenId.DefaultRegistration
 NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdCoreLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!

@@ -78,7 +78,8 @@ internal class DefaultOpenIdEnvironment(
     IOpenIdError IOpenIdErrorFactory.Create(string errorCode) => CreateError(errorCode);
 
     /// <inheritdoc />
-    public override IOpenIdError CreateError(string errorCode) => new OpenIdError(this, errorCode);
+    public override IOpenIdError CreateError(string errorCode) =>
+        new DefaultOpenIdError(this, errorCode);
 
     /// <inheritdoc />
     public override IOpenIdMessage CreateMessage(

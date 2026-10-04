@@ -25,16 +25,16 @@ namespace NCode.Identity.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingCollection"/> abstraction.
 /// </summary>
-internal class SettingCollection : ISettingCollection
+internal class DefaultSettingCollection : ISettingCollection
 {
     private Dictionary<string, Setting> Store { get; }
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SettingCollection"/> class that is empty.
+    /// Initializes a new instance of the <see cref="DefaultSettingCollection"/> class that is empty.
     /// </summary>
     /// <param name="settingDescriptorCollectionProvider">The <see cref="ISettingDescriptorCollectionProvider"/> instance.</param>
-    public SettingCollection(
+    public DefaultSettingCollection(
         ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
     )
     {
@@ -43,11 +43,11 @@ internal class SettingCollection : ISettingCollection
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SettingCollection"/> class with the specified settings.
+    /// Initializes a new instance of the <see cref="DefaultSettingCollection"/> class with the specified settings.
     /// </summary>
     /// <param name="settingDescriptorCollectionProvider">The <see cref="ISettingDescriptorCollectionProvider"/> instance.</param>
     /// <param name="settings">The collection of <see cref="Setting"/> instances to initialize the collection with.</param>
-    public SettingCollection(
+    public DefaultSettingCollection(
         ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
         IEnumerable<Setting> settings
     )
@@ -56,7 +56,7 @@ internal class SettingCollection : ISettingCollection
         SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
     }
 
-    private SettingCollection(
+    private DefaultSettingCollection(
         ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
         Dictionary<string, Setting> store
     )
@@ -197,6 +197,6 @@ internal class SettingCollection : ISettingCollection
             newStore.TryAdd(settingName, currentSetting);
         }
 
-        return new SettingCollection(SettingDescriptorCollectionProvider, newStore);
+        return new DefaultSettingCollection(SettingDescriptorCollectionProvider, newStore);
     }
 }

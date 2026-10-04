@@ -32,5 +32,5 @@ internal class DefaultAlgorithmCollectionProvider(
 {
     /// <inheritdoc />
     protected override IAlgorithmCollection CreateCollection(IEnumerable<Algorithm> items) =>
-        new AlgorithmCollection(items);
+        new DefaultAlgorithmCollection(items);
 }

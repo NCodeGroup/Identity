@@ -40,7 +40,7 @@ internal static class DefaultRegistration
         [PublicAPI]
         public IServiceBuilder<OpenIdCoreLibrary> AddMessageServices()
         {
-            builder.AddMessageFactory<OpenIdError>();
+            builder.AddMessageFactory<DefaultOpenIdError>();
             builder.AddMessageFactory<OpenIdMessage>();
 
             var serviceCollection = builder.ServiceCollection;

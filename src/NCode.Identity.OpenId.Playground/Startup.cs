@@ -20,10 +20,7 @@
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
-using NCode.Identity.OpenId;
-using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
-using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server;
 using NCode.Registration.AspNetCore;
 
@@ -55,28 +52,13 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
         var openIdOptionsSectionName = Environment.GetEnvironmentVariable(
             "OpenId_OptionsSectionName"
         );
-        if (string.IsNullOrEmpty(openIdOptionsSectionName))
-        {
-            openIdOptionsSectionName = OpenIdOptions.DefaultSectionName;
-        }
-
-        serviceCollection.Configure<OpenIdOptions>(
-            Configuration.GetSection(openIdOptionsSectionName)
-        );
-        serviceCollection.Configure<OpenIdOptions>(options =>
-            options.SectionName = openIdOptionsSectionName
-        );
-
-        // Tenant selection is configured separately from tenant materialization; defaults resolve the
-        // single "default" tenant when this section is absent.
-        serviceCollection.Configure<TenantResolutionOptions>(
-            Configuration.GetSection($"{openIdOptionsSectionName}:TenantResolution")
-        );
 
         serviceCollection.AddEndpointsApiExplorer();
 
         // TODO
-        serviceCollection.AddIdentityServer();
+        serviceCollection
+            .AddIdentityServer()
+            .AddConfiguration(Configuration, openIdOptionsSectionName);
         serviceCollection.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
 
         // DEVELOPMENT ONLY: choose how signing keys are provided (see ADR-0002). The default is ephemeral,
@@ -84,23 +66,8 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
         // seeded through the store and surviving restarts — via 'DeveloperKeys:Mode=PersistentSigningKey' (set
         // in launchSettings.json, so test hosts keep the ephemeral default). Production must supply a stable,
         // securely-managed signing key instead.
-        var usePersistentDeveloperKeys = string.Equals(
-            Configuration["DeveloperKeys:Mode"],
-            "PersistentSigningKey",
-            StringComparison.OrdinalIgnoreCase
-        );
-
-        if (usePersistentDeveloperKeys)
-        {
-            var keyRingDirectory = new DirectoryInfo(
-                Path.Combine(HostEnvironment.ContentRootPath, "App_Data", "dp-keys")
-            );
-            serviceCollection.AddDeveloperSigningKey(keyRingDirectory);
-        }
-        else
-        {
-            serviceCollection.AddEphemeralDeveloperKeys();
-        }
+        var developerKeyMode = Configuration.GetDeveloperKeyMode();
+        serviceCollection.AddDeveloperKeys(developerKeyMode, HostEnvironment);
 
         serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -119,7 +86,7 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
                     sql => sql.MigrationsAssembly(migrationsAssembly)
                 );
             }
-            else if (usePersistentDeveloperKeys)
+            else if (developerKeyMode is DeveloperKeyMode.PersistentSigningKey)
             {
                 var databasePath = Path.Combine(
                     HostEnvironment.ContentRootPath,

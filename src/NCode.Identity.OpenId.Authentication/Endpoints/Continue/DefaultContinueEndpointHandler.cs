@@ -56,6 +56,13 @@ internal class DefaultContinueEndpointHandler(
             )
             .WithName(OpenIdConstants.EndpointNames.Continue)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
+            .WithSummary("Continue a paused authorization flow")
+            .WithDescription(
+                "Resumes an authorization request that was interrupted for user interaction such as login or "
+                    + "consent. The paused flow is identified by the opaque 'state' value issued when it was "
+                    + "suspended. This is an internal redirect target used by the authorization server, not a "
+                    + "public protocol endpoint."
+            )
             .WithOpenIdDiscoverable(false);
 
     private async ValueTask<IResult> HandleRouteAsync(

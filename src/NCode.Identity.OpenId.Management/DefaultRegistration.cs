@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -26,6 +27,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Grants;
 using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
+using NCode.Identity.OpenId.Management.OpenApi;
 using NCode.Identity.OpenId.Management.ResourceServers;
 using NCode.Identity.OpenId.ResourceServers;
 using NCode.Registration;
@@ -58,6 +60,11 @@ public static class DefaultRegistration
             serviceCollection.AddAuthorizationHandler<GlobalAdminHandler>();
             serviceCollection.AddAuthorizationHandler<TenantAdminHandler>();
             serviceCollection.AddAuthorizationHandler<OwnershipHandler>();
+
+            // Enrich the OpenAPI document with descriptions for the management API's shared path parameters.
+            serviceCollection.AddOpenApi(openApiOptions =>
+                openApiOptions.AddDocumentTransformer<ManagementPathParameterDocumentTransformer>()
+            );
 
             serviceCollection.TryAddSingleton<
                 IResourceOwnershipService,

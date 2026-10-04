@@ -51,6 +51,13 @@ internal class DefaultIntrospectionEndpointProvider(
             .MapPost(OpenIdConstants.EndpointPaths.Introspection, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Introspection)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
+            .WithSummary("Introspect a token (RFC 7662)")
+            .WithDescription(
+                "Reports the active state and metadata of an access or refresh token (OAuth 2.0 Token "
+                    + "Introspection, RFC 7662). The caller authenticates, then submits the token to inspect as "
+                    + "application/x-www-form-urlencoded form data. The response indicates whether the token is "
+                    + "active and, when active, returns its claims."
+            )
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
 

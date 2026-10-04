@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// Provides the default implementation of <see cref="IPrincipalResolver"/>, which resolves an authenticated caller to
 /// a federated principal: the subject claim is interpreted first as a server-owned <c>PrincipalId</c> and, when that
 /// does not match, as an upstream <c>(issuer, subject)</c> external connection identity. The source and issuer claim
-/// names are per-tenant settings on the shared request environment (ADR-0035/ADR-0036).
+/// names are per-tenant settings on the shared request environment.
 /// </summary>
 internal class DefaultPrincipalResolver(
     ICryptoService cryptoService,

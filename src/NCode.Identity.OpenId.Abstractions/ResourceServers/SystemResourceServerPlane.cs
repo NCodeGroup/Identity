@@ -21,8 +21,7 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.ResourceServers;
 
 /// <summary>
-/// Identifies the deployment plane into which a system-owned resource server is seeded
-/// (<see href="../../../docs/adr/0024-control-plane-and-per-tenant-planes.md">ADR-0024</see>).
+/// Identifies the deployment plane into which a system-owned resource server is seeded.
 /// </summary>
 [PublicAPI]
 public enum SystemResourceServerPlane

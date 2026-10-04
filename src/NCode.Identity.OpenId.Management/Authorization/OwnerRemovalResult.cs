@@ -21,7 +21,7 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Authorization;
 
 /// <summary>
-/// Describes the outcome of removing an owner from a resource (ADR-0034).
+/// Describes the outcome of removing an owner from a resource.
 /// </summary>
 [PublicAPI]
 public enum OwnerRemovalResult

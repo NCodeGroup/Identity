@@ -115,7 +115,7 @@ internal abstract class BaseStore<TItem, TEntity> : IStore
     /// <summary>
     /// Returns an already-tracked entity matching the predicate without querying the database. EF identity
     /// resolution would return this same tracked instance from a query anyway, so a <c>Local</c>-first lookup
-    /// avoids a redundant round-trip when the entity was already loaded in the current unit of work (ADR-0012).
+    /// avoids a redundant round-trip when the entity was already loaded in the current unit of work.
     /// </summary>
     /// <param name="predicate">The predicate to match against the tracked (local) entities.</param>
     /// <returns>The tracked entity if one matches; otherwise <c>null</c>.</returns>

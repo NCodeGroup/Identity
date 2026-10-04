@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 
 /// <summary>
 /// Represents the request body to create a new server secret. The key material is generated server-side; the
-/// caller never supplies it. See ADR-0011.
+/// caller never supplies it.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]

@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Contexts;
 /// <see cref="OpenIdContext"/> (the server and the resolved, settings/secrets-bearing tenant), publishes it on the
 /// request as an <see cref="IOpenIdContextFeature"/> so endpoints and services can retrieve it, and opens the ambient
 /// tenant scope that tenant-scoped data access reads. Installing this once per endpoint group means the authentication
-/// (protocol) endpoints and the management endpoints run the exact same environment pipeline (ADR-0018/ADR-0036).
+/// (protocol) endpoints and the management endpoints run the exact same environment pipeline.
 /// </summary>
 [PublicAPI]
 public sealed class OpenIdEnvironmentEndpointFilter(

@@ -18,13 +18,12 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Management.Contracts.Grants;
 
 /// <summary>
-/// Represents the REST resource for a <see cref="PersistedGrant"/> instance. This is a metadata-only projection:
-/// the internal <c>HashedKey</c> and the grant <c>PayloadJson</c> are intentionally never exposed.
+/// Represents a grant resource. This is a metadata-only projection; sensitive grant material, such as hashed
+/// keys and payload contents, is never exposed.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]

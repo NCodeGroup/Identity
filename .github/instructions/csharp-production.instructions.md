@@ -338,6 +338,15 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   summary; never collapse them onto one line.
 - 👁 **A property summary follows the Microsoft convention** — open with **"Gets or sets"**, **"Gets"**, or **"Sets"**
   according to its accessors.
+- 👁 **No internal citations in `///` doc comments.** A `///` comment ships to consumers — it lands in the package's
+  XML-doc file (IntelliSense) and, for any type on an HTTP API surface, is surfaced into the generated **OpenAPI**
+  document (.NET's XML-comment integration turns a DTO/property `<summary>` into a schema `description`). So a `///`
+  comment must read as a clean, self-contained **public** description: never an ADR number (`ADR-0011`), a
+  `<see href="../../../docs/adr/…">` link (a broken relative path for a consumer), or an internal implementation name
+  (a persistence column, an internal type). Keep the behavioral prose; drop the citation. When the _why_ is worth
+  recording in code, put the ADR reference in a **`//` code comment** (which never ships) — this is what "link to the
+  ADR rather than inlining the rationale" (file header) means: the link lives in `//`, the ADR doc, or the `CHANGELOG`,
+  **never** in consumer-facing `///`.
 
 ## 11. Logging
 

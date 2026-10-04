@@ -36,8 +36,7 @@ public static partial class OpenIdConstants
         /// <summary>
         /// Contains the reserved audience identifier for the single management resource server, which gates the whole
         /// management API: 'urn:ncode:management'. Its tenant-plane scope families are seeded into every tenant; its
-        /// control-plane (server and tenant provisioning) families are seeded only into the root tenant
-        /// (<see href="../../../docs/adr/0033-authorization-model-scopes-roles-and-ownership.md">ADR-0033</see>).
+        /// control-plane (server and tenant provisioning) families are seeded only into the root tenant.
         /// </summary>
         public const string Management = "urn:ncode:management";
     }

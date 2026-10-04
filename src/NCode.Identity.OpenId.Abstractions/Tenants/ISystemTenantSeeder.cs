@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Contributes additional seeding to a freshly-provisioned tenant, on the same lazy, resolve-time path that seeds the
-/// reserved system resource servers (ADR-0031). Implementations are collected and invoked once per tenant when it is
+/// reserved system resource servers. Implementations are collected and invoked once per tenant when it is
 /// first provisioned; each is responsible for its own idempotency and unit of work, and should act only on the tenant
 /// it targets (for example, only the control-plane root tenant, or only a workload tenant).
 /// </summary>

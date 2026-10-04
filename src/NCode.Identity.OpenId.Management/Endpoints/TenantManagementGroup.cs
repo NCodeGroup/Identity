@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// <summary>
 /// The tenant-plane management route group (<c>/api/tenants/{tenantId}</c>). It opens the ambient tenant scope from the
 /// route's <c>tenantId</c> via <see cref="TenantScopeEndpointFilter"/>, so every tenant-bound family nested under it
-/// (clients, grants, resource servers) is confined to the addressed tenant fail-closed (ADR-0042). The family handlers
+/// (clients, grants, resource servers) is confined to the addressed tenant fail-closed. The family handlers
 /// map only their own relative sub-routes; the tenant prefix lives here.
 /// </summary>
 internal sealed class TenantManagementGroup : IEndpointGroup

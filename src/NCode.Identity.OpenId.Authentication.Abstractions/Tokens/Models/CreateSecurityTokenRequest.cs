@@ -75,7 +75,7 @@ public readonly record struct CreateSecurityTokenRequest
 
     /// <summary>
     /// Gets the claims requested via the OpenID Connect <c>claims</c> request parameter, or <see langword="null"/>
-    /// when none were requested. Honored additively on top of the scope-driven claims (ADR-0039).
+    /// when none were requested. Honored additively on top of the scope-driven claims.
     /// </summary>
     public IRequestClaims? RequestClaims { get; init; }
 

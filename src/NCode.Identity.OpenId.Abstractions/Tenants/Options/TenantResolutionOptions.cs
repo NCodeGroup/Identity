@@ -42,7 +42,7 @@ public sealed class TenantResolutionOptions
 
     /// <summary>
     /// Gets or sets the identifier of the root (control-plane) tenant, into which the control-plane management
-    /// resource server is seeded (<see href="../../../docs/adr/0024-control-plane-and-per-tenant-planes.md">ADR-0024</see>).
+    /// resource server is seeded.
     /// The default value is <see cref="DefaultRootTenantId"/>.
     /// </summary>
     public string RootTenantId { get; set; } = DefaultRootTenantId;

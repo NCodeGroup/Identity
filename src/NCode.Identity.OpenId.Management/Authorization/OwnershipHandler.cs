@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// <see cref="IResourceNode"/> when the principal holds a role assignment at that node or an ancestor (its tenant, or
 /// the server root). This realizes ownership: an <c>Owner</c> assignment at an instance lets the principal manage that
 /// instance (and everything beneath it) without any tenant-wide role. Ownership grants every operation except
-/// <see cref="Operations.Create"/> — creating a new resource is authority at the parent node (ADR-0034).
+/// <see cref="Operations.Create"/> — creating a new resource is authority at the parent node.
 /// </summary>
 internal class OwnershipHandler(
     IStoreManagerFactory storeManagerFactory,

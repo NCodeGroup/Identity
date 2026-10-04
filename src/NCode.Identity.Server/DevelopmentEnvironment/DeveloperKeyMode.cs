@@ -22,7 +22,7 @@ namespace NCode.Identity.Server;
 
 /// <summary>
 /// Specifies how <strong>development-only</strong> signing keys are provided to the OpenID server. Must never be
-/// used in production, where a stable, securely-managed signing key is required (see ADR-0002).
+/// used in production, where a stable, securely-managed signing key is required.
 /// </summary>
 [PublicAPI]
 public enum DeveloperKeyMode

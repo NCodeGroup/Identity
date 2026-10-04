@@ -32,7 +32,7 @@ namespace NCode.Identity.Server;
 /// </summary>
 /// <remarks>
 /// This is intentionally NOT part of the default registrations: production deployments must supply a
-/// stable, securely-managed signing key. See ADR-0002 for the rationale.
+/// stable, securely-managed signing key.
 /// </remarks>
 [PublicAPI]
 public static class DeveloperKeysRegistration

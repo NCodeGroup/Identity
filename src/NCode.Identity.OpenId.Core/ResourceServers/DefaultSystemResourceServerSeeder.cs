@@ -31,8 +31,7 @@ namespace NCode.Identity.OpenId.Core.ResourceServers;
 /// <summary>
 /// Provides a default implementation of <see cref="ISystemResourceServerSeeder"/> that seeds every registered
 /// <see cref="ISystemResourceServerProvider"/> whose <see cref="SystemResourceServerDescriptor.Plane"/> applies to
-/// the tenant being seeded. Control-plane providers are seeded only into the root tenant
-/// (<see href="../../../docs/adr/0024-control-plane-and-per-tenant-planes.md">ADR-0024</see>).
+/// the tenant being seeded. Control-plane providers are seeded only into the root tenant.
 /// </summary>
 internal class DefaultSystemResourceServerSeeder(
     IStoreManagerFactory storeManagerFactory,

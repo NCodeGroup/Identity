@@ -24,8 +24,7 @@ namespace NCode.Identity.OpenId.Management.ResourceServers;
 /// Contributes the tenant-plane scope families of the reserved management resource server (<c>urn:ncode:management</c>),
 /// seeded into every tenant: a tenant's own settings and secrets, plus its clients, client secrets, resource servers,
 /// client grants, and grants. The control-plane provisioning families (servers and tenants) are contributed separately
-/// and seeded only into the root tenant
-/// (<see href="../../../docs/adr/0033-authorization-model-scopes-roles-and-ownership.md">ADR-0033</see>).
+/// and seeded only into the root tenant.
 /// </summary>
 internal class ManagementResourceServerProvider : ISystemResourceServerProvider
 {

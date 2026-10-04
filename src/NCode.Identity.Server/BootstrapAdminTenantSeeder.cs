@@ -36,8 +36,8 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Seeds the configured bootstrap administrator client into the workload tenant when it is first provisioned (ADR-0044),
-/// on the same control-plane / tenant provisioning path that seeds the system resource servers (ADR-0031). The client's
+/// Seeds the configured bootstrap administrator client into the workload tenant when it is first provisioned,
+/// on the same control-plane / tenant provisioning path that seeds the system resource servers. The client's
 /// management-audience tokens are stamped with the <c>GlobalAdmin</c> role by
 /// <see cref="BootstrapAdminAccessTokenClaimsHandler"/>, so an operator can make the first authorized management call.
 /// The operation is idempotent and inert unless a bootstrap client id and secret are configured.

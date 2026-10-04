@@ -29,37 +29,37 @@ public static class OpenIdSettingNames
 {
     /// <summary>
     /// Contains the name of the <c>principal_source_claim</c> setting (the claim carrying the subject used to resolve
-    /// the principal; see ADR-0035).
+    /// the principal).
     /// </summary>
     public const string PrincipalSourceClaim = "principal_source_claim";
 
     /// <summary>
     /// Contains the name of the <c>principal_issuer_claim</c> setting (the claim carrying the upstream issuer used to
-    /// resolve an external connection identity; see ADR-0035).
+    /// resolve an external connection identity).
     /// </summary>
     public const string PrincipalIssuerClaim = "principal_issuer_claim";
 
     /// <summary>
     /// Contains the name of the <c>federated_identity_join_claim</c> setting (the claim whose value deterministically
-    /// links identities, such as an email address; see ADR-0035).
+    /// links identities, such as an email address).
     /// </summary>
     public const string FederatedIdentityJoinClaim = "federated_identity_join_claim";
 
     /// <summary>
     /// Contains the name of the <c>federated_identity_verified_claim</c> setting (the claim indicating the join key is
-    /// verified; see ADR-0035).
+    /// verified).
     /// </summary>
     public const string FederatedIdentityVerifiedClaim = "federated_identity_verified_claim";
 
     /// <summary>
     /// Contains the name of the <c>federated_identity_require_verified</c> setting (whether the join key must be
-    /// verified before it is recorded and used to link identities; see ADR-0035).
+    /// verified before it is recorded and used to link identities).
     /// </summary>
     public const string FederatedIdentityRequireVerified = "federated_identity_require_verified";
 
     /// <summary>
     /// Contains the name of the <c>federated_identity_explicit_only</c> setting (whether linking is explicit-only and a
-    /// new identity is never automatically attached to an existing principal; see ADR-0035).
+    /// new identity is never automatically attached to an existing principal).
     /// </summary>
     public const string FederatedIdentityExplicitOnly = "federated_identity_explicit_only";
 

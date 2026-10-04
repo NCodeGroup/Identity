@@ -26,7 +26,7 @@ namespace NCode.Identity.Server;
 
 /// <summary>
 /// A token-issuance handler that stamps the <c>GlobalAdmin</c> role claim onto the access tokens of the configured
-/// bootstrap administrator client. This is the cold-start bridge (ADR-0044): the claim-based
+/// bootstrap administrator client. This is the cold-start bridge: the claim-based
 /// <c>GlobalAdminHandler</c> is unchanged, and the role is conferred only on the one configured client.
 /// </summary>
 internal sealed class BootstrapAdminAccessTokenClaimsHandler(

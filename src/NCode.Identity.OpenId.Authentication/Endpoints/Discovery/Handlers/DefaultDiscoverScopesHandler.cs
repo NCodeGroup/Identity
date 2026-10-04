@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Handlers;
 
 /// <summary>
 /// Contributes the <c>scopes_supported</c> discovery metadata, derived from the scopes defined on the tenant's
-/// enabled resource servers (ADR-0026).
+/// enabled resource servers.
 /// </summary>
 internal class DefaultDiscoverScopesHandler(
     IStoreManagerFactory storeManagerFactory,

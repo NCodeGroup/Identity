@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// (the server and the request's resolved tenant) and publishes the <see cref="OpenIdContext"/> for endpoints and the
 /// authorization handler to read. It does <b>not</b> open a tenant scope: control-plane endpoints act on unscoped
 /// server/tenant rows, and tenant-bound endpoints open their scope from the route's <c>tenantId</c> via the
-/// <see cref="TenantScopeEndpointFilter"/> on the tenant-plane group (ADR-0042).
+/// <see cref="TenantScopeEndpointFilter"/> on the tenant-plane group.
 /// </summary>
 internal sealed class ManagementEnvironmentEndpointFilter(
     IOpenIdContextFactory openIdContextFactory

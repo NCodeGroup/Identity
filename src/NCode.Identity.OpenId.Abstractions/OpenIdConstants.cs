@@ -238,7 +238,7 @@ public static partial class OpenIdConstants
         /// <summary>
         /// Identifies a persisted grant that carries the UserInfo claims requested via the OpenID Connect
         /// <c>claims</c> request parameter, keyed by the access token's <c>jti</c> so the UserInfo endpoint can honor
-        /// them (ADR-0039).
+        /// them.
         /// </summary>
         public const string UserInfoClaims = "userinfo_claims";
     }

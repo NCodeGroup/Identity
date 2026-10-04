@@ -169,7 +169,7 @@ internal class ClientApiEndpointHandler(
     /// Merges an OpenID Client's persisted settings onto the addressed tenant's effective settings, producing the same
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the client at runtime.
     /// The tenant's effective view is reconstructed by id (the server baseline merged with the tenant's persisted
-    /// overrides), so the preview is independent of the request's resolved tenant (ADR-0042).
+    /// overrides), so the preview is independent of the request's resolved tenant.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>

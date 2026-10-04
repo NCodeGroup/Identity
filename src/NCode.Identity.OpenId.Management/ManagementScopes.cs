@@ -37,7 +37,7 @@ internal static class ManagementScopes
 
     /// <summary>
     /// Contains the resource-family segments of a management scope value. A family is an entity or one of its leaves
-    /// (settings, secrets), so that roles can be composed at per-leaf granularity (ADR-0033).
+    /// (settings, secrets), so that roles can be composed at per-leaf granularity.
     /// </summary>
     internal static class Families
     {

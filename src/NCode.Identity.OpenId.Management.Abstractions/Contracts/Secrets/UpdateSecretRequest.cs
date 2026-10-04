@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 
 /// <summary>
 /// Represents the request body to update the metadata of an existing server secret. Key material is immutable
-/// once generated (rotation is create-new + delete-old). See ADR-0011.
+/// once generated; to rotate a secret, create a new one and delete the old one.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]

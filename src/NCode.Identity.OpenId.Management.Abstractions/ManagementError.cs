@@ -21,9 +21,8 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management;
 
 /// <summary>
-/// Represents a precondition failure produced by a management operation's validation pipeline. It carries the
-/// HTTP status and a fixed, safe detail message that is returned to the caller (never a raw exception message).
-/// See <see href="../../../docs/adr/0013-management-precondition-mediator-pipeline.md">ADR-0013</see>.
+/// Represents a validation failure produced by a management operation. It carries the HTTP status code and a
+/// fixed, safe detail message that is returned to the caller (never a raw exception message).
 /// </summary>
 [PublicAPI]
 public sealed class ManagementError

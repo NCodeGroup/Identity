@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// Provides the default implementation of <see cref="IFederatedIdentityLinkingPolicy"/>: a new identity whose verified
 /// join key (an email address) matches an existing identity is attached to that identity's principal; otherwise a new
 /// principal is provisioned. Two already-established principals are never merged automatically. The join/verified claim
-/// names and linking knobs are per-tenant settings on the shared request environment (ADR-0035/ADR-0036).
+/// names and linking knobs are per-tenant settings on the shared request environment.
 /// </summary>
 internal class DefaultFederatedIdentityLinkingPolicy : IFederatedIdentityLinkingPolicy
 {

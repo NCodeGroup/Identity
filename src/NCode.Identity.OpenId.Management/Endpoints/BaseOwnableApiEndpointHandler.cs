@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
 /// Provides common functionality for management API endpoint handlers whose resources are ownable, including the
-/// owner-management endpoints (list, grant, revoke) and the one-owner invariant (ADR-0034).
+/// owner-management endpoints (list, grant, revoke) and the one-owner invariant.
 /// </summary>
 internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 {

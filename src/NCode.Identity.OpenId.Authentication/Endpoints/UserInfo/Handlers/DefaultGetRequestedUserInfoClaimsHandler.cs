@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Handlers;
 
 /// <summary>
 /// Provides a handler for <see cref="GetUserInfoClaimsCommand"/> that honors the UserInfo claims requested via the
-/// OpenID Connect <c>claims</c> request parameter (ADR-0039). Those claims were persisted at access-token issuance as a
+/// OpenID Connect <c>claims</c> request parameter. Those claims were persisted at access-token issuance as a
 /// grant keyed by the token's <c>jti</c>; this handler resolves that grant and copies each requested claim from the
 /// authenticated subject when present, additive to the scope-driven claims. <c>value</c>/<c>values</c> are advisory and
 /// <c>essential</c> is best-effort, so a requested claim the subject does not carry is simply omitted.

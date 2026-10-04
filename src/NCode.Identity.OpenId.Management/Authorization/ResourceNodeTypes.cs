@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 
 /// <summary>
 /// Contains the controlled vocabulary of built-in resource node types that a role assignment may target. A role
-/// assigned at a node applies to that node and every resource beneath it (ADR-0034). Applications may assign ownership
+/// assigned at a node applies to that node and every resource beneath it. Applications may assign ownership
 /// at their own node types using application-defined values.
 /// </summary>
 [PublicAPI]

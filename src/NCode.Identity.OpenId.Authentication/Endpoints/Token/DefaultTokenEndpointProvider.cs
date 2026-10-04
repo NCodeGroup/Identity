@@ -57,17 +57,12 @@ internal class DefaultTokenEndpointProvider(
             .MapPost(OpenIdConstants.EndpointPaths.Token, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Token)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
-            .WithSummary("Token endpoint (OAuth 2.0)")
-            .WithDescription(
-                "Issues access tokens, refresh tokens, and ID tokens for the supported OAuth 2.0 / OpenID Connect "
-                    + "grant types (for example authorization_code, client_credentials, and refresh_token). The "
-                    + "client authenticates and submits the grant parameters as application/x-www-form-urlencoded "
-                    + "form data."
-            )
             .WithOpenIdFormParameters(
                 KnownParameterCollectionProvider,
                 OpenIdConstants.EndpointNames.Token
             )
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
 
@@ -75,7 +70,19 @@ internal class DefaultTokenEndpointProvider(
         MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header)
         && header.MediaType.Equals(OpenIdConstants.ContentType, StringComparison.OrdinalIgnoreCase);
 
-    private async ValueTask<IResult> HandleRouteAsync(
+    /// <summary>
+    /// Token endpoint (OAuth 2.0).
+    /// </summary>
+    /// <remarks>
+    /// Issues access tokens, refresh tokens, and ID tokens for the supported OAuth 2.0 / OpenID Connect grant types
+    /// (for example authorization_code, client_credentials, and refresh_token). The client authenticates and submits
+    /// the grant parameters as application/x-www-form-urlencoded form data.
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The issued tokens: access_token, token_type, and expires_in, plus id_token, refresh_token, and scope when applicable.</response>
+    /// <response code="400">An OAuth 2.0 error response carrying an error code and an optional error_description.</response>
+    internal async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
     )

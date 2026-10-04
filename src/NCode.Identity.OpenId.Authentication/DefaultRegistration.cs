@@ -53,6 +53,9 @@ public static class DefaultRegistration
             // authentication services (IAuthenticationService / IAuthenticationSchemeProvider).
             serviceCollection.AddAuthentication();
 
+            // Wires up the OpenAPI pipeline so the XML-comment source generator documents this plane's endpoints.
+            serviceCollection.AddOpenApi();
+
             serviceCollection.VerifyIsRegistered<JoseLibrary>();
 
             var newBuilder = builder.NewBuilder<OpenIdAuthenticationLibrary>();

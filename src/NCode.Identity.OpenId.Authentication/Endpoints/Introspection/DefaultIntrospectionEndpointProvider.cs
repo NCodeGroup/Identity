@@ -51,13 +51,6 @@ internal class DefaultIntrospectionEndpointProvider(
             .MapPost(OpenIdConstants.EndpointPaths.Introspection, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Introspection)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
-            .WithSummary("Introspect a token (RFC 7662)")
-            .WithDescription(
-                "Reports the active state and metadata of an access or refresh token (OAuth 2.0 Token "
-                    + "Introspection, RFC 7662). The caller authenticates, then submits the token to inspect as "
-                    + "application/x-www-form-urlencoded form data. The response indicates whether the token is "
-                    + "active and, when active, returns its claims."
-            )
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
 
@@ -65,6 +58,17 @@ internal class DefaultIntrospectionEndpointProvider(
         MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header)
         && header.MediaType.Equals(OpenIdConstants.ContentType, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Introspect a token (RFC 7662).
+    /// </summary>
+    /// <remarks>
+    /// Reports the active state and metadata of an access or refresh token (OAuth 2.0 Token Introspection,
+    /// RFC 7662). The caller authenticates, then submits the token to inspect as application/x-www-form-urlencoded
+    /// form data.
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">Whether the token is active and, when active, its claims.</response>
     internal virtual async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken

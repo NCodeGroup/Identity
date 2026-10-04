@@ -50,15 +50,23 @@ internal class DefaultUserInfoEndpointProvider : IEndpointProvider
             )
             .WithName(OpenIdConstants.EndpointNames.UserInfo)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
-            .WithSummary("UserInfo endpoint (OpenID Connect)")
-            .WithDescription(
-                "Returns claims about the authenticated end-user identified by the presented access token "
-                    + "(OpenID Connect Core). The access token is sent as a Bearer credential; the returned claims "
-                    + "depend on the scopes granted during authorization."
-            )
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized)
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
 
+    /// <summary>
+    /// UserInfo endpoint (OpenID Connect).
+    /// </summary>
+    /// <remarks>
+    /// Returns claims about the authenticated end-user identified by the presented access token (OpenID Connect
+    /// Core). The access token is sent as a Bearer credential; the returned claims depend on the scopes granted
+    /// during authorization.
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The authenticated end-user's claims.</response>
+    /// <response code="401">The access token is missing, invalid, or expired.</response>
     internal virtual async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken

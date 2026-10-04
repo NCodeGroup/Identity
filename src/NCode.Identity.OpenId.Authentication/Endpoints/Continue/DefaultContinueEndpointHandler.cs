@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -57,20 +56,23 @@ internal class DefaultContinueEndpointHandler(
             )
             .WithName(OpenIdConstants.EndpointNames.Continue)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
-            .WithSummary("Continue a paused authorization flow")
-            .WithDescription(
-                "Resumes an authorization request that was interrupted for user interaction such as login or "
-                    + "consent. The paused flow is identified by the opaque 'state' value issued when it was "
-                    + "suspended. This is an internal redirect target used by the authorization server, not a "
-                    + "public protocol endpoint."
-            )
             .WithOpenIdDiscoverable(false);
 
-    private async ValueTask<IResult> HandleRouteAsync(
+    /// <summary>
+    /// Continue a paused authorization flow.
+    /// </summary>
+    /// <remarks>
+    /// Resumes an authorization request that was interrupted for user interaction such as login or consent. The
+    /// paused flow is identified by the opaque <c>state</c> value issued when it was suspended. This is an internal
+    /// redirect target used by the authorization server, not a public protocol endpoint.
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="state">The opaque value that identifies the paused authorization flow to resume.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The authorization flow was resumed.</response>
+    internal async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
-        [FromQuery]
-        [Description("The opaque value that identifies the paused authorization flow to resume.")]
-            string? state,
+        [FromQuery] string? state,
         CancellationToken cancellationToken
     )
     {

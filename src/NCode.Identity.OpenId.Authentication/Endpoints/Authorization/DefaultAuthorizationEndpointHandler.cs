@@ -69,13 +69,6 @@ internal class DefaultAuthorizationEndpointHandler(
             )
             .WithName(OpenIdConstants.EndpointNames.Authorization)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
-            .WithSummary("Authorization endpoint (OAuth 2.0 / OpenID Connect)")
-            .WithDescription(
-                "Begins an OAuth 2.0 / OpenID Connect authorization request. Parameters such as response_type, "
-                    + "client_id, redirect_uri, scope, and state are supplied as query-string values (GET) or form "
-                    + "values (POST). On success the user-agent is redirected back to the client's redirect_uri with "
-                    + "an authorization code or tokens, according to the requested response_type and response_mode."
-            )
             .WithOpenIdFormParameters(
                 KnownParameterCollectionProvider,
                 OpenIdConstants.EndpointNames.Authorization
@@ -83,7 +76,17 @@ internal class DefaultAuthorizationEndpointHandler(
             .WithOpenIdDiscoverable();
     }
 
-    private async ValueTask<IResult> HandleRouteAsync(
+    /// <summary>
+    /// Authorization endpoint (OAuth 2.0 / OpenID Connect).
+    /// </summary>
+    /// <remarks>
+    /// Begins an OAuth 2.0 / OpenID Connect authorization request. Parameters such as response_type, client_id,
+    /// redirect_uri, scope, and state are supplied as query-string values (GET) or form values (POST).
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The authorization response. Depending on the requested response_mode, the user-agent is redirected to the client's redirect_uri with the result, or an auto-submitting form is returned.</response>
+    internal async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
     )

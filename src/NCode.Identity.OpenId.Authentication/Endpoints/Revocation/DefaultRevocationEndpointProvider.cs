@@ -49,13 +49,6 @@ internal class DefaultRevocationEndpointProvider(
             .MapPost(OpenIdConstants.EndpointPaths.Revocation, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Revocation)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
-            .WithSummary("Revoke a token (RFC 7009)")
-            .WithDescription(
-                "Revokes a previously issued access token or refresh token. The client authenticates, then "
-                    + "submits the token to invalidate as application/x-www-form-urlencoded form data. The response "
-                    + "is always 200 OK, even when the token is unknown or already revoked, so that callers cannot "
-                    + "probe token validity."
-            )
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
 
@@ -63,6 +56,16 @@ internal class DefaultRevocationEndpointProvider(
         MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header)
         && header.MediaType.Equals(OpenIdConstants.ContentType, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Revoke a token (RFC 7009).
+    /// </summary>
+    /// <remarks>
+    /// Revokes a previously issued access or refresh token. The client authenticates, then submits the token to
+    /// invalidate as application/x-www-form-urlencoded form data.
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The request was processed. Returned even for an unknown or already-revoked token, so callers cannot probe token validity.</response>
     internal virtual async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken

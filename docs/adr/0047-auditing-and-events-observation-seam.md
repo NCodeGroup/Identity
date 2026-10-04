@@ -35,12 +35,12 @@ The forces that shape the design, in priority order:
    `NCode.Mediator.Abstractions` itself carries no web coupling, so this force future-proofs the design
    rather than forcing it.
 
-A single event already exists — `SecurityTokenIssuedEvent` in
-[`src/NCode.Identity.OpenId.Authentication.Abstractions/Tokens/Commands/SecurityTokenIssuedEvent.cs`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Tokens/Commands/SecurityTokenIssuedEvent.cs) —
-modeled as a void mediator `ICommand` and dispatched from `DefaultTokenService` and
-`DefaultAuthorizationCodeService`. It is a _notification_, not a result-shaping command, yet on the
-mediator it is **not** fault-isolated: a throwing handler aborts the issuance. That latent hazard is
-itself evidence for a safe-by-default observation seam.
+The token-issued notification is the canonical example. It is a _notification_, not a result-shaping
+command: no handler returns a value, and a throwing handler must not fail the issuance. Modeled as a
+void mediator `ICommand` it would be mis-placed — on the mediator it is **not** fault-isolated, so a
+throwing handler aborts the issuance, and it is confined to the OpenID layer. That latent hazard is
+itself evidence for a safe-by-default observation seam; the notification belongs on the event seam as
+`TokenIssuedAuditEvent`, carrying the token's metadata and never its value.
 
 The mediator (`NCode.Mediator`) handles the **transport mechanics** well — multi-handler dispatch,
 priority ordering, DI-driven enumeration, polymorphic runtime-type resolution, and pre/post and
@@ -429,7 +429,8 @@ example.
 - [ADR-0006](./0006-single-canonical-impl-is-defaultfoo.md) — `DefaultEventPublisher` naming.
 - [ADR-0025](./0025-pre-release-posture-and-auth0-parity-plus.md) — breaking-change latitude for
   re-homing `SecurityTokenIssuedEvent`.
-- [`src/NCode.Identity.OpenId.Authentication.Abstractions/Tokens/Commands/SecurityTokenIssuedEvent.cs`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Tokens/Commands/SecurityTokenIssuedEvent.cs)
-  — the lone pre-existing event, mis-modeled as a mediator command, re-homed as the first worked example.
+- [`src/NCode.Identity.OpenId.Authentication.Abstractions/Auditing/TokenIssuedAuditEvent.cs`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Auditing/TokenIssuedAuditEvent.cs)
+  and [`DefaultAuditEventRecorder`](../../src/NCode.Identity.OpenId.Authentication/Auditing/DefaultAuditEventRecorder.cs)
+  — the re-homed token-issued notification (formerly the mediator `SecurityTokenIssuedEvent`) and its recorder facade, the first worked example.
 - `ISupportMediatorPriority` / `DefaultMediatorPriorities` (NCode.Mediator) — the prior art
   `ISupportHandlerPriority` / `DefaultHandlerPriorities` mirror.

@@ -28,6 +28,7 @@ using NCode.Identity.JsonWebTokens;
 using NCode.Identity.Logic;
 using NCode.Identity.Models;
 using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
@@ -53,7 +54,8 @@ internal class DefaultTokenService(
     ICredentialSelector credentialSelector,
     IJsonWebTokenService jsonWebTokenService,
     IPersistedGrantService persistedGrantService,
-    IClientScopeService clientScopeService
+    IClientScopeService clientScopeService,
+    IAuditEventRecorder auditEventRecorder
 ) : ITokenService
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
@@ -64,6 +66,7 @@ internal class DefaultTokenService(
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
+    private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
 
     private static IEnumerable<Claim> FilterClaims(
         IReadOnlySettingCollection settings,
@@ -276,8 +279,11 @@ internal class DefaultTokenService(
         };
         var subjectId = tokenRequest.SubjectAuthentication?.SubjectId;
 
-        await mediator.SendAsync(
-            new SecurityTokenIssuedEvent(openIdContext, openIdClient, subjectId, securityToken),
+        await AuditEventRecorder.RecordTokenIssuedAsync(
+            openIdContext,
+            openIdClient,
+            subjectId,
+            securityToken,
             cancellationToken
         );
 
@@ -436,8 +442,11 @@ internal class DefaultTokenService(
 
         var subjectId = tokenRequest.SubjectAuthentication?.SubjectId;
 
-        await mediator.SendAsync(
-            new SecurityTokenIssuedEvent(openIdContext, openIdClient, subjectId, securityToken),
+        await AuditEventRecorder.RecordTokenIssuedAsync(
+            openIdContext,
+            openIdClient,
+            subjectId,
+            securityToken,
             cancellationToken
         );
 
@@ -453,7 +462,6 @@ internal class DefaultTokenService(
     )
     {
         var settings = openIdClient.Settings;
-        var mediator = openIdContext.Mediator;
 
         var subjectAuthentication = tokenRequest.SubjectAuthentication;
 
@@ -513,8 +521,11 @@ internal class DefaultTokenService(
             TokenLifetime = tokenLifetime,
         };
 
-        await mediator.SendAsync(
-            new SecurityTokenIssuedEvent(openIdContext, openIdClient, subjectId, securityToken),
+        await AuditEventRecorder.RecordTokenIssuedAsync(
+            openIdContext,
+            openIdClient,
+            subjectId,
+            securityToken,
             cancellationToken
         );
 

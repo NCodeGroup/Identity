@@ -36,11 +36,12 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Seeds the configured bootstrap administrator client into the workload tenant when it is first provisioned,
-/// on the same control-plane / tenant provisioning path that seeds the system resource servers. The client's
-/// management-audience tokens are stamped with the <c>GlobalAdmin</c> role by
-/// <see cref="BootstrapAdminAccessTokenClaimsHandler"/>, so an operator can make the first authorized management call.
-/// The operation is idempotent and inert unless a bootstrap client id and secret are configured.
+/// Seeds the configured bootstrap administrator client into the workload tenant on the lazy tenant-resolution path,
+/// alongside the system resource servers. Because it runs on every resolution (not only fresh provisioning) and only
+/// creates the client when it is absent, it also seeds an already-provisioned tenant. The client's management-audience
+/// tokens are stamped with the <c>GlobalAdmin</c> role by <see cref="BootstrapAdminAccessTokenClaimsHandler"/>, so an
+/// operator can make the first authorized management call. The operation is idempotent and inert unless a bootstrap
+/// client id and secret are configured.
 /// </summary>
 internal sealed class BootstrapAdminTenantSeeder(
     IOptions<BootstrapAdminOptions> bootstrapOptionsAccessor,

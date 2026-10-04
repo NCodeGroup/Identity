@@ -133,13 +133,13 @@ internal class StaticSingleTenantStrategy(
 
             // A freshly-provisioned tenant is self-contained: seed its reserved system resource servers.
             await SystemResourceServerSeeder.SeedAsync(tenantId, cancellationToken);
+        }
 
-            // Then run any additional provisioning seeders (for example, the bootstrap administrator client); each
-            // targets the tenant it applies to and manages its own idempotency.
-            foreach (var seeder in SystemTenantSeeders)
-            {
-                await seeder.SeedAsync(tenantId, cancellationToken);
-            }
+        // Tenant seeders (for example, the bootstrap administrator client) run on every resolution, not only on fresh
+        // provisioning, so they can seed an already-provisioned tenant; each is idempotent and self-limiting.
+        foreach (var seeder in SystemTenantSeeders)
+        {
+            await seeder.SeedAsync(tenantId, cancellationToken);
         }
 
         return persistedTenant;

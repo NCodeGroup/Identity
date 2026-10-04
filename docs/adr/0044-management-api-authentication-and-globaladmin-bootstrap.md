@@ -94,11 +94,12 @@ the `GlobalAdmin` role claim:
 - **Configuration, not a generated secret.** The operator supplies a client id and secret through configuration
   (environment variables sourced from a secret store). This is the industry-standard first-admin pattern (Keycloak's
   `KEYCLOAK_ADMIN*`, Grafana's `GF_SECURITY_ADMIN_*`), and it is deterministic, rotatable, and never logged.
-- **Idempotent seeding on the tenant-provisioning path.** The bootstrap client is seeded by a tenant-provisioning
-  contributor (`ISystemTenantSeeder`) invoked on the same lazy, resolve-time path that seeds the system resource
+- **Idempotent seeding on the tenant-resolution path.** The bootstrap client is seeded by a tenant seeder
+  (`ISystemTenantSeeder`) invoked on the lazy, resolve-time path that provisions tenants and seeds the system resource
   servers ([ADR-0031](0031-control-plane-management-resource-server-and-root-tenant-seeding.md)) — not a startup hosted
-  service, which ADR-0031 deliberately avoids. It creates the client only when it is absent
-  (`IClientStore.GetOrDefaultAsync`), writing through the normal persistence path so the credential is DbContext-agnostic
+  service, which ADR-0031 deliberately avoids. It runs on **every** resolution (not only when the tenant is first
+  provisioned), creating the client only when it is absent (`IClientStore.GetOrDefaultAsync`), so it seeds an
+  already-provisioned tenant too. It writes through the normal persistence path so the credential is DbContext-agnostic
   ([ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md),
   [ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md)) and visible to the management API like any
   other client ([ADR-0021](0021-developer-signing-keys-seeded-through-persistence.md) is the precedent for
@@ -165,9 +166,10 @@ registration on `IdentityServerBuilder`), and the host configures the renderer.
 - The bootstrap credential is durable, rotatable, and idempotent across restarts and replicas; it is never logged and is
   protected at rest. Operators should scope it to cold start and provision durable administrators promptly, then disable
   or rotate it.
-- Because seeding is on the tenant-provisioning path, the operator's first `client_credentials` token request
-  self-bootstraps: the request resolves (and provisions) the tenant — seeding the client — before client authentication
-  runs, so that first call succeeds with no warm-up. This holds in production as well as development; the production
+- Because seeding is on the tenant-resolution path, the operator's first `client_credentials` token request
+  self-bootstraps: the request resolves the tenant — seeding the client if absent — before client authentication
+  runs, so that first call succeeds with no warm-up, whether the tenant is brand new or already provisioned. This holds
+  in production as well as development; the production
   prerequisites are the established ones — schema applied out of band ([ADR-0041](0041-host-owned-ef-migrations-deliberate-outside-development.md))
   and a persistent Data Protection key ring so the protected secret round-trips ([ADR-0021](0021-developer-signing-keys-seeded-through-persistence.md)).
 - GlobalAdmin authority is carried by the token's `role` claim, not its `scope`. The management endpoints authorize on

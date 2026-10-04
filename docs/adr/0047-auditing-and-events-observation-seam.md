@@ -161,9 +161,11 @@ exact-type only; universal sinks then register per concrete event type instead o
 - **Synchronous, in-request, awaited, fault-isolated, priority-ordered** is the default — the caller
   `await`s `PublishAsync`, every handler runs, failures are caught and logged.
 - **Fire-and-forget / background** is an opt-in capability provided by the implementation package (a
-  bounded `IBackgroundEventQueue` drained by a hosted service) for slow or external sinks, so the
-  abstraction stays small and the low-level packages pull in no hosting dependency. A handler opts into
-  background delivery; the request path is never blocked on it.
+  bounded `IBackgroundEventQueue` drained by a hosted service, enabled by `AddBackgroundEventDelivery()`)
+  for slow or external sinks, so the abstraction stays small and the low-level packages pull in no
+  hosting dependency unless it is enabled. A handler opts in by implementing `ISupportBackgroundDelivery`;
+  the publisher runs the other handlers inline and defers the marked ones to the queue, and when the
+  capability is not enabled a marked handler simply runs inline. The request path is never blocked on it.
 - **Background delivery crosses the request boundary**, so it works from a **snapshot**, not ambient
   state: the event envelope captures correlation/trace id, tenant, actor, and client **at publish time**
   (the `HttpContext` and request scope are gone by the time a background handler runs), and the drain

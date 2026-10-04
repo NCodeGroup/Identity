@@ -1,5 +1,6 @@
 #nullable enable
 NCode.Identity.Events.DefaultRegistration
 NCode.Identity.Events.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Events.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddBackgroundEventDelivery() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Events.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEventHandler<TEvent, THandler>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Events.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEventServices() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

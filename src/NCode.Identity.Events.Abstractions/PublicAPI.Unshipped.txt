@@ -32,12 +32,15 @@ NCode.Identity.Events.Audit.IAuditEvent.SubjectId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.TenantId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.Timestamp.get -> System.DateTimeOffset
 NCode.Identity.Events.DefaultHandlerPriorities
+NCode.Identity.Events.IBackgroundEventQueue
+NCode.Identity.Events.IBackgroundEventQueue.EnqueueAsync(NCode.Identity.Events.IEvent! event, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Events.IEvent
 NCode.Identity.Events.IEventHandler<TEvent>
 NCode.Identity.Events.IEventHandler<TEvent>.HandleAsync(TEvent event, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Events.IEventPublisher
 NCode.Identity.Events.IEventPublisher.HasSubscribers<TEvent>() -> bool
 NCode.Identity.Events.IEventPublisher.PublishAsync<TEvent>(TEvent event, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Events.ISupportBackgroundDelivery
 NCode.Identity.Events.ISupportHandlerPriority
 NCode.Identity.Events.ISupportHandlerPriority.HandlerPriority.get -> int
 static NCode.Identity.Events.DefaultHandlerPriorities.High.get -> int

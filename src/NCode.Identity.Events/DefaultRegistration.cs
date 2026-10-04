@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using NCode.Identity.Events.Audit;
 
 namespace NCode.Identity.Events;
@@ -45,7 +46,12 @@ public static class DefaultRegistration
         {
             ArgumentNullException.ThrowIfNull(serviceCollection);
 
-            serviceCollection.TryAddSingleton<IEventPublisher, DefaultEventPublisher>();
+            // Register the concrete publisher so the background dispatcher can reach its internal
+            // background-dispatch path, and expose it through the IEventPublisher contract.
+            serviceCollection.TryAddSingleton<DefaultEventPublisher>();
+            serviceCollection.TryAddSingleton<IEventPublisher>(serviceProvider =>
+                serviceProvider.GetRequiredService<DefaultEventPublisher>()
+            );
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IEventHandler<IEvent>, DefaultEventLoggingHandler>()
@@ -87,6 +93,28 @@ public static class DefaultRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Scoped<IEventHandler<TEvent>, THandler>()
             );
+
+            return serviceCollection;
+        }
+
+        /// <summary>
+        /// Enables background delivery so handlers that implement <see cref="ISupportBackgroundDelivery"/>
+        /// are invoked on a background worker instead of inline on the publishing path.
+        /// </summary>
+        /// <returns>
+        /// The same <see cref="IServiceCollection"/> instance so that calls can be chained.
+        /// </returns>
+        [PublicAPI]
+        public IServiceCollection AddBackgroundEventDelivery()
+        {
+            ArgumentNullException.ThrowIfNull(serviceCollection);
+
+            serviceCollection.TryAddSingleton<DefaultBackgroundEventQueue>();
+            serviceCollection.TryAddSingleton<IBackgroundEventQueue>(serviceProvider =>
+                serviceProvider.GetRequiredService<DefaultBackgroundEventQueue>()
+            );
+
+            serviceCollection.AddHostedService<BackgroundEventDispatcher>();
 
             return serviceCollection;
         }

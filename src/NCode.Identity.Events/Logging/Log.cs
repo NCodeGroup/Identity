@@ -47,6 +47,13 @@ internal static partial class Log
     internal static partial void EventPublished(this ILogger logger, string eventType);
 
     [LoggerMessage(
+        EventId = EventIds.BackgroundEventDropped,
+        Level = LogLevel.Warning,
+        Message = "The background event queue is full; event '{EventType}' was dropped."
+    )]
+    internal static partial void BackgroundEventDropped(this ILogger logger, string eventType);
+
+    [LoggerMessage(
         EventId = EventIds.AuditSucceeded,
         Level = LogLevel.Information,
         Message = "Audit '{Action}' succeeded (outcome={Outcome}, subject={SubjectId}, client={ClientId}, tenant={TenantId}, correlation={CorrelationId}, eventId={EventId})."

@@ -16,23 +16,19 @@
 
 #endregion
 
-namespace NCode.Identity.Events.Logging;
+using JetBrains.Annotations;
+
+namespace NCode.Identity.Events;
 
 /// <summary>
-/// Defines the reserved logging event IDs for the <c>NCode.Identity.Events</c> package.
+/// Marks an <see cref="IEventHandler{TEvent}"/> that should be invoked on a background worker rather
+/// than inline on the publishing path, so a slow or external sink never blocks the caller.
 /// </summary>
 /// <remarks>
-/// This package reserves the <c>14000</c>–<c>14999</c> band per the logging conventions. Values are append-only:
-/// never renumber or reuse a shipped identifier.
+/// Background delivery is only active when it has been enabled (see the background event delivery
+/// registration); otherwise a handler marked for background delivery runs inline. Because background
+/// delivery crosses the request boundary, a marked handler observes only what the event payload
+/// carries, not ambient request state.
 /// </remarks>
-internal static class EventIds
-{
-    private const int Base = 14000;
-
-    public const int EventHandlerFailed = Base + 1;
-    public const int EventPublished = Base + 2;
-    public const int AuditSucceeded = Base + 3;
-    public const int AuditFailed = Base + 4;
-    public const int AuditRecorded = Base + 5;
-    public const int BackgroundEventDropped = Base + 6;
-}
+[PublicAPI]
+public interface ISupportBackgroundDelivery;

@@ -19,29 +19,15 @@
 namespace NCode.Identity.Events;
 
 /// <summary>
-/// A test event handler that records the events it observes, appends its name to a shared invocation
-/// order, and can be configured with a priority and to throw.
+/// A test <see cref="IBackgroundEventQueue"/> that records the events handed to it.
 /// </summary>
-internal class RecordingEventHandler<TEvent>(
-    string name,
-    IList<string> invocationOrder,
-    int priority = 0,
-    bool throws = false
-) : IEventHandler<TEvent>, ISupportHandlerPriority
-    where TEvent : IEvent
+internal sealed class FakeBackgroundEventQueue : IBackgroundEventQueue
 {
-    public List<TEvent> Received { get; } = [];
+    public List<IEvent> Enqueued { get; } = [];
 
-    public int HandlerPriority => priority;
-
-    public ValueTask HandleAsync(TEvent @event, CancellationToken cancellationToken)
+    public ValueTask EnqueueAsync(IEvent @event, CancellationToken cancellationToken)
     {
-        invocationOrder.Add(name);
-        Received.Add(@event);
-
-        if (throws)
-            throw new InvalidOperationException($"Handler '{name}' failed.");
-
+        Enqueued.Add(@event);
         return ValueTask.CompletedTask;
     }
 }

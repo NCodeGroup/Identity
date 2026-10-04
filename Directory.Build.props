@@ -20,11 +20,8 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <!-- CS1573: missing XML param docs are not fatal. -->
-    <WarningsNotAsErrors>CS1573</WarningsNotAsErrors>
     <!-- Fail builds on the CI server for security vulnerability advisories, but not locally. -->
-    <WarningsNotAsErrors Condition="'$(CI)' == ''"
-      >$(WarningsNotAsErrors),NU1901,NU1902,NU1903,NU1904</WarningsNotAsErrors>
+    <WarningsNotAsErrors Condition="'$(CI)' == ''">NU1901,NU1902,NU1903,NU1904</WarningsNotAsErrors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(CI)' == 'true'">

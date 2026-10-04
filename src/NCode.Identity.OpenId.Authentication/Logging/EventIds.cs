@@ -40,4 +40,7 @@ internal static class EventIds
     public const int ContinueProviderNotHandled = Base + 9;
     public const int PasswordGrantNotSupported = Base + 10;
     public const int SubjectValidationFailed = Base + 11;
+    public const int ClientAuthenticationClientNotFound = Base + 12;
+    public const int ClientAuthenticationCredentialDeserializationFailed = Base + 13;
+    public const int ClientAuthenticationSecretMismatch = Base + 14;
 }

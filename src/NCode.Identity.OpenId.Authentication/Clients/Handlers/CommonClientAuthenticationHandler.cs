@@ -20,7 +20,9 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using NCode.Buffers;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -40,7 +42,8 @@ internal abstract class CommonClientAuthenticationHandler(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
-    ISecretSerializer secretSerializer
+    ISecretSerializer secretSerializer,
+    ILogger logger
 ) : IClientAuthenticationHandler
 {
     /// <summary>
@@ -62,6 +65,11 @@ internal abstract class CommonClientAuthenticationHandler(
     /// Gets the <see cref="ISecretSerializer"/> instance.
     /// </summary>
     protected ISecretSerializer SecretSerializer { get; } = secretSerializer;
+
+    /// <summary>
+    /// Gets the <see cref="ILogger"/> instance.
+    /// </summary>
+    protected ILogger Logger { get; } = logger;
 
     /// <inheritdoc />
     public abstract string AuthenticationMethod { get; }
@@ -97,17 +105,40 @@ internal abstract class CommonClientAuthenticationHandler(
             || persistedClient.IsDisabled
             || !string.Equals(tenantId, persistedClient.TenantId, StringComparison.Ordinal)
         )
+        {
+            Logger.ClientAuthenticationClientNotFound(clientId, tenantId);
             return new ClientAuthenticationResult(
                 openIdContext
                     .ErrorFactory.InvalidClient()
                     .WithStatusCode(StatusCodes.Status400BadRequest)
             );
+        }
 
-        var publicClient = await CreatePublicClientAsync(
-            openIdContext,
-            persistedClient,
-            cancellationToken
-        );
+        OpenIdClient publicClient;
+        try
+        {
+            publicClient = await CreatePublicClientAsync(
+                openIdContext,
+                persistedClient,
+                cancellationToken
+            );
+        }
+        catch (Exception exception)
+            when (exception
+                    is CryptographicException
+                        or FormatException
+                        or InvalidOperationException
+            )
+        {
+            // A stored credential could not be deserialized (for example a secret protected by a
+            // data-protection key that is no longer available); surface it as invalid_client with a diagnostic.
+            Logger.ClientAuthenticationCredentialDeserializationFailed(clientId, exception);
+            return new ClientAuthenticationResult(
+                openIdContext
+                    .ErrorFactory.InvalidClient()
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+            );
+        }
 
         if (!hasClientSecret)
             return new ClientAuthenticationResult(publicClient);
@@ -168,6 +199,7 @@ internal abstract class CommonClientAuthenticationHandler(
         }
 
         // client secret was specified but failed to verify
+        Logger.ClientAuthenticationSecretMismatch(publicClient.ClientId);
         return new ClientAuthenticationResult(
             openIdContext
                 .ErrorFactory.InvalidClient()

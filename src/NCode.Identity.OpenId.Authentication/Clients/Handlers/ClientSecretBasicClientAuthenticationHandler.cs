@@ -18,6 +18,7 @@
 
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using NCode.Buffers;
 using NCode.Disposables;
 using NCode.Encoders;
@@ -36,13 +37,15 @@ internal class ClientSecretBasicClientAuthenticationHandler(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
-    ISecretSerializer secretSerializer
+    ISecretSerializer secretSerializer,
+    ILogger<ClientSecretBasicClientAuthenticationHandler> logger
 )
     : CommonClientAuthenticationHandler(
         storeManagerFactory,
         clientFactory,
         settingSerializer,
-        secretSerializer
+        secretSerializer,
+        logger
     ),
         IClientAuthenticationHandler
 {

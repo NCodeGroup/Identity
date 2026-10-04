@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;
@@ -31,13 +32,15 @@ internal class ClientSecretPostClientAuthenticationHandler(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
-    ISecretSerializer secretSerializer
+    ISecretSerializer secretSerializer,
+    ILogger<ClientSecretPostClientAuthenticationHandler> logger
 )
     : CommonClientAuthenticationHandler(
         storeManagerFactory,
         clientFactory,
         settingSerializer,
-        secretSerializer
+        secretSerializer,
+        logger
     ),
         IClientAuthenticationHandler
 {

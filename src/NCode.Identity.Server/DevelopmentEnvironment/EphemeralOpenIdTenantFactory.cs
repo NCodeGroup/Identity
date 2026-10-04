@@ -17,6 +17,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
@@ -36,7 +37,7 @@ using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
+namespace NCode.Identity.Server;
 
 /// <summary>
 /// A <strong>development-only</strong> <see cref="DefaultOpenIdTenantFactory"/> that provides

@@ -81,6 +81,6 @@ ADR only changes **how** the developer key is realized — from intercepting the
 - [ADR-0011](0011-secret-management-api.md) — server-side secret generation reused to seed the dev key.
 - [ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md) — tenant-owned families (the tenant and its
   secrets) are not query-scoped, so seeding and reading the tenant secret is unaffected by the ambient tenant filter.
-- Code: `NCode.Identity.OpenId.Playground.DevelopmentEnvironment.DeveloperSigningKeyOpenIdTenantFactory`,
-  `NCode.Identity.OpenId.Playground.DevelopmentEnvironment.DeveloperKeysRegistration.AddDeveloperSigningKey`,
-  `NCode.Identity.OpenId.Playground.Startup` (mode selection + SQLite provider).
+- Code: `NCode.Identity.Server.DeveloperSigningKeyOpenIdTenantFactory`,
+  `NCode.Identity.Server.DeveloperKeysRegistration.AddDeveloperSigningKey`,
+  `NCode.Identity.OpenId.Playground.Startup` (mode selection + SQLite provider in the EXE host).

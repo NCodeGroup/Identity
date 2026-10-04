@@ -17,14 +17,12 @@
 
 #endregion
 
-using IdGen.DependencyInjection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
-using NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server;
 using NCode.Registration.AspNetCore;
@@ -46,10 +44,6 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
 
     public void ConfigureServices(IServiceCollection serviceCollection)
     {
-        const int generatorId = 1;
-        serviceCollection.AddIdGen(generatorId);
-
-        serviceCollection.AddRouting();
         serviceCollection.AddAntiforgery();
 
         serviceCollection.AddHealthChecks();
@@ -57,7 +51,6 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
         {
             options.LoggingFields = HttpLoggingFields.All;
         });
-        serviceCollection.AddHttpClient();
 
         var openIdOptionsSectionName = Environment.GetEnvironmentVariable(
             "OpenId_OptionsSectionName"
@@ -145,7 +138,6 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
             }
         });
 
-        serviceCollection.AddControllers();
         serviceCollection.AddSwaggerGen(c =>
         {
             c.SwaggerDoc(
@@ -178,7 +170,6 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapEndpointGroups();
-            endpoints.MapControllers().WithHttpLogging(HttpLoggingFields.All);
             endpoints.MapHealthChecks("/health").WithName("health_endpoint");
         });
     }

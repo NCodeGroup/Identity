@@ -56,6 +56,9 @@ internal static class DefaultRegistration
 
             var serviceCollection = builder.ServiceCollection;
 
+            // DefaultLoadAuthorizationRequestHandler fetches request_uri payloads via IHttpClientFactory (from AddHttpClient).
+            serviceCollection.AddHttpClient();
+
             // Logic
             serviceCollection.TryAddSingleton<
                 IAuthorizationEndpointLogic,

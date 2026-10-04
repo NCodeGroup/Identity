@@ -109,6 +109,47 @@ public class TokenEndpointClientCredentialsTests
         Assert.True(document.RootElement.TryGetProperty("error", out _));
     }
 
+    [Fact]
+    public async Task PostToken_ClientAuthenticationResult_IsScopedPerRequest()
+    {
+        using var factory = new PlaygroundApplicationFactory();
+        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            ClientId,
+            "it-rs-api",
+            "https://api.integration.test",
+            TestServerSettingsProvider.ApiScope
+        );
+
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        // A wrong secret must be rejected, a later correct secret must still succeed, and a wrong secret after a
+        // success must still be rejected. If the client-authentication result were cached on the singleton service
+        // instead of the request, the first result would stick for every subsequent request.
+        using var wrong = await client.PostAsync("/oauth2/token", CreateBody("wrong-secret"));
+        Assert.Equal(HttpStatusCode.BadRequest, wrong.StatusCode);
+
+        using var correct = await client.PostAsync("/oauth2/token", CreateBody(ClientSecret));
+        var correctBody = await correct.Content.ReadAsStringAsync();
+        Assert.True(correct.StatusCode == HttpStatusCode.OK, correctBody);
+
+        using var wrongAgain = await client.PostAsync("/oauth2/token", CreateBody("wrong-secret"));
+        Assert.Equal(HttpStatusCode.BadRequest, wrongAgain.StatusCode);
+    }
+
+    private static FormUrlEncodedContent CreateBody(string clientSecret) =>
+        new(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["client_id"] = ClientId,
+                ["client_secret"] = clientSecret,
+                ["scope"] = TestServerSettingsProvider.ApiScope,
+            }
+        );
+
     private static JsonDocument DecodeJwtPayload(string jwt)
     {
         var payloadSegment = jwt.Split('.')[1];

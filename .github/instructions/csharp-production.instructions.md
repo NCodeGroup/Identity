@@ -210,6 +210,12 @@ rationale.
   block, using `TryAdd*` so a consumer can override a default. Register a stateless capability as a singleton; register
   a long-running loop as an `AddHostedService<T>` over a `BackgroundService`. Wire-up stays out of the type that does
   the work, so the work stays constructor-injectable and testable.
+- 👁 **A singleton service must be stateless — never memoize per-request state in an instance field.** A singleton is
+  shared by every request, so a cached result on the instance (`_result ??= await …`) leaks one request's answer to all
+  others — a correctness and security hole (a client-authentication result that sticks after the first call let any
+  later request reuse it regardless of its credentials). Memoize per-request state on the **request** instead
+  (`HttpContext.Items`, the `OpenIdContext`), or keep the service genuinely stateless. Making the service scoped is not
+  a fix when a singleton consumer captures it (captive dependency re-singletons it), so prefer request-scoped storage.
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.

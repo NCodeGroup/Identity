@@ -50,6 +50,12 @@ internal class DefaultUserInfoEndpointProvider : IEndpointProvider
             )
             .WithName(OpenIdConstants.EndpointNames.UserInfo)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
+            .WithSummary("UserInfo endpoint (OpenID Connect)")
+            .WithDescription(
+                "Returns claims about the authenticated end-user identified by the presented access token "
+                    + "(OpenID Connect Core). The access token is sent as a Bearer credential; the returned claims "
+                    + "depend on the scopes granted during authorization."
+            )
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
 

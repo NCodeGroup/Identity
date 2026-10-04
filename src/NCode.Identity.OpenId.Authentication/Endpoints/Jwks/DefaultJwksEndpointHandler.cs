@@ -48,6 +48,11 @@ internal class DefaultJwksEndpointHandler(IEnumerable<IJsonWebKeyConverter> json
             .MapGet(OpenIdConstants.EndpointPaths.Jwks, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Jwks)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
+            .WithSummary("JSON Web Key Set (JWKS)")
+            .WithDescription(
+                "Returns the tenant's public signing keys as a JSON Web Key Set (RFC 7517). Clients and resource "
+                    + "servers use these keys to verify the signatures of issued ID tokens and JWT access tokens."
+            )
             .WithOpenIdDiscoverable();
 
     private async ValueTask<JsonHttpResult<JsonWebKeySetResult>> HandleRouteAsync(

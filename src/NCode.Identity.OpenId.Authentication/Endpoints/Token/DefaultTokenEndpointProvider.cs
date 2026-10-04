@@ -57,6 +57,13 @@ internal class DefaultTokenEndpointProvider(
             .MapPost(OpenIdConstants.EndpointPaths.Token, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Token)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
+            .WithSummary("Token endpoint (OAuth 2.0)")
+            .WithDescription(
+                "Issues access tokens, refresh tokens, and ID tokens for the supported OAuth 2.0 / OpenID Connect "
+                    + "grant types (for example authorization_code, client_credentials, and refresh_token). The "
+                    + "client authenticates and submits the grant parameters as application/x-www-form-urlencoded "
+                    + "form data."
+            )
             .WithOpenIdFormParameters(
                 KnownParameterCollectionProvider,
                 OpenIdConstants.EndpointNames.Token

@@ -21,10 +21,11 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Contributes additional seeding to a freshly-provisioned tenant, on the same lazy, resolve-time path that seeds the
-/// reserved system resource servers. Implementations are collected and invoked once per tenant when it is
-/// first provisioned; each is responsible for its own idempotency and unit of work, and should act only on the tenant
-/// it targets (for example, only the control-plane root tenant, or only a workload tenant).
+/// Contributes additional seeding to a resolved tenant, on the same lazy, resolve-time path that provisions tenants and
+/// seeds the reserved system resource servers (ADR-0031). Implementations are collected and invoked whenever a tenant is
+/// resolved — not only when it is first provisioned — so they may run more than once; each is responsible for its own
+/// idempotency and unit of work, and should act only on the tenant it targets (for example, only a workload tenant, or
+/// skip the control-plane root tenant).
 /// </summary>
 [PublicAPI]
 public interface ISystemTenantSeeder

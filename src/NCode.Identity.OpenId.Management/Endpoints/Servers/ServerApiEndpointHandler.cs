@@ -97,10 +97,14 @@ internal class ServerApiEndpointHandler(
             .Produces<ServerResource>(StatusCodes.Status201Created);
         servers.MapGet("", ListServersAsync).Produces<CollectionResource<ServerResource>>();
         servers.MapGet("/{serverId}", GetServerAsync).Produces<ServerResource>();
-        servers.MapDelete("/{serverId}", DeleteServerAsync);
+        servers
+            .MapDelete("/{serverId}", DeleteServerAsync)
+            .Produces(StatusCodes.Status204NoContent);
 
         servers.MapGet("/{serverId}/settings", GetSettingsAsync).Produces<ServerSettingsResource>();
-        servers.MapPatch("/{serverId}/settings", UpdateSettingsAsync);
+        servers
+            .MapPatch("/{serverId}/settings", UpdateSettingsAsync)
+            .Produces(StatusCodes.Status204NoContent);
         servers
             .MapGet("/{serverId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<ServerEffectiveSettingsResource>();
@@ -110,8 +114,12 @@ internal class ServerApiEndpointHandler(
             .MapPost("/{serverId}/secrets", CreateSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created);
         servers.MapGet("/{serverId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
-        servers.MapPut("/{serverId}/secrets/{secretId}", UpdateSecretAsync);
-        servers.MapDelete("/{serverId}/secrets/{secretId}", DeleteSecretAsync);
+        servers
+            .MapPut("/{serverId}/secrets/{secretId}", UpdateSecretAsync)
+            .Produces(StatusCodes.Status204NoContent);
+        servers
+            .MapDelete("/{serverId}/secrets/{secretId}", DeleteSecretAsync)
+            .Produces(StatusCodes.Status204NoContent);
     }
 
     /// <summary>
@@ -161,13 +169,13 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/servers</c>, returning a page of OpenID Servers.
+    /// Lists the OpenID servers.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
     /// <param name="limit">The maximum number of servers to return on the page.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">A page of servers.</response>
     [EndpointName("api/servers/list")]
     internal virtual async ValueTask<IResult> ListServersAsync(
         HttpContext httpContext,
@@ -195,12 +203,12 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/servers/{serverId}</c>, returning the specified OpenID Server resource.
+    /// Gets an OpenID server.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The requested server.</response>
     [EndpointName("api/servers/get")]
     internal virtual async ValueTask<IResult> GetServerAsync(
         HttpContext httpContext,
@@ -217,12 +225,12 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/servers</c>, creating a new OpenID Server.
+    /// Creates an OpenID server.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="request">The <see cref="CreateServerRequest"/> describing the server to create.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="201">The created server.</response>
     [EndpointName("api/servers/create")]
     internal virtual async ValueTask<IResult> CreateServerAsync(
         HttpContext httpContext,
@@ -275,13 +283,13 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/servers/{serverId}</c>, removing a server. The removal is rejected with
-    /// <c>409 Conflict</c> while the server still has secrets.
+    /// Deletes an OpenID server.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="204">The server was deleted.</response>
+    /// <response code="409">The server still has secrets and cannot be deleted.</response>
     [EndpointName("api/servers/delete")]
     internal virtual async ValueTask<IResult> DeleteServerAsync(
         HttpContext httpContext,
@@ -318,12 +326,12 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/servers/{serverId}/settings</c>, returning the settings for the specified OpenID Server.
+    /// Gets a server's settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The server's settings.</response>
     [EndpointName("api/servers/settings/get")]
     internal virtual async ValueTask<IResult> GetSettingsAsync(
         HttpContext httpContext,
@@ -345,15 +353,12 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/servers/{serverId}/effective-settings</c>, returning the server's resolved settings — its own
-    /// settings with descriptor defaults applied. The server is the root of the merge hierarchy, so this is the
-    /// baseline that tenants (and in turn clients) inherit from, including settings that are not advertised in
-    /// discovery. Authorization requires the same <c>Read</c> permission as reading its persisted settings.
+    /// Gets a server's effective (resolved) settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The server's effective settings.</response>
     [EndpointName("api/servers/effective-settings/get")]
     internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
         HttpContext httpContext,
@@ -403,15 +408,14 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>PATCH api/servers/{serverId}/settings</c>, applying a JSON Patch document to the settings for the
-    /// specified OpenID Server. Honors an <c>If-Match</c> precondition and returns the refreshed <c>ETag</c>.
+    /// Updates a server's settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="204">The server's settings were updated.</response>
     [EndpointName("api/servers/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
@@ -480,12 +484,12 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/servers/{serverId}/secrets</c>, returning the secrets for the specified OpenID Server.
+    /// Lists a server's secrets.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The server's secrets.</response>
     [EndpointName("api/servers/secrets/get")]
     internal virtual async ValueTask<IResult> GetSecretsAsync(
         HttpContext httpContext,
@@ -507,13 +511,13 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/servers/{serverId}/secrets</c>, generating a new server-side secret and persisting it.
+    /// Creates a server secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
     /// <param name="request">The <see cref="CreateSecretRequest"/> describing the secret to generate.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="201">The created secret.</response>
     [EndpointName("api/servers/secrets/create")]
     internal virtual async ValueTask<IResult> CreateSecretAsync(
         HttpContext httpContext,
@@ -594,13 +598,13 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/servers/{serverId}/secrets/{secretId}</c>, returning a single server secret.
+    /// Gets a server secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The requested secret.</response>
     [EndpointName("api/servers/secrets/get-one")]
     internal virtual async ValueTask<IResult> GetSecretAsync(
         HttpContext httpContext,
@@ -618,8 +622,7 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>PUT api/servers/{serverId}/secrets/{secretId}</c>, updating a secret's metadata. Key material
-    /// is immutable. Honors an <c>If-Match</c> precondition.
+    /// Updates a server secret's metadata.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
@@ -627,7 +630,7 @@ internal class ServerApiEndpointHandler(
     /// <param name="request">The <see cref="UpdateSecretRequest"/> with the new metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="204">The secret was updated.</response>
     [EndpointName("api/servers/secrets/update")]
     internal virtual async ValueTask<IResult> UpdateSecretAsync(
         HttpContext httpContext,
@@ -686,13 +689,13 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/servers/{serverId}/secrets/{secretId}</c>, removing a server secret.
+    /// Deletes a server secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="serverId">The identifier of the OpenID Server.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="204">The secret was deleted.</response>
     [EndpointName("api/servers/secrets/delete")]
     internal virtual async ValueTask<IResult> DeleteSecretAsync(
         HttpContext httpContext,

@@ -70,7 +70,7 @@ internal class GrantApiEndpointHandler(
             .Produces<GrantRevocationResult>()
             .Produces(StatusCodes.Status400BadRequest);
         grants.MapGet("/{grantId}", GetGrantAsync).Produces<GrantResource>();
-        grants.MapDelete("/{grantId}", RevokeGrantAsync);
+        grants.MapDelete("/{grantId}", RevokeGrantAsync).Produces(StatusCodes.Status204NoContent);
     }
 
     /// <summary>
@@ -95,8 +95,7 @@ internal class GrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/grants</c>, returning a page of persisted grants in the addressed tenant, optionally
-    /// filtered to a subject and/or a client.
+    /// Lists the grants in a tenant.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
@@ -105,7 +104,7 @@ internal class GrantApiEndpointHandler(
     /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
     /// <param name="limit">The maximum number of grants to return on the page.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">A page of grants.</response>
     [EndpointName("api/grants/list")]
     internal virtual async ValueTask<IResult> ListGrantsAsync(
         HttpContext httpContext,
@@ -142,16 +141,15 @@ internal class GrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/tenants/{tenantId}/grants?subjectId=&amp;clientId=</c>, bulk soft-revoking every active grant in the
-    /// addressed tenant that matches the specified subject and/or client. At least one filter is required so a
-    /// tenant-wide revoke cannot happen by accident. Revocation is idempotent and the row is retained for audit.
+    /// Bulk-revokes a tenant's grants, filtered by subject and/or client. At least one filter is required.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="subjectId">When specified, restricts the revocation to grants for this subject.</param>
     /// <param name="clientId">When specified, restricts the revocation to grants for this client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The number of grants that were revoked.</response>
+    /// <response code="400">Neither a subject nor a client filter was supplied.</response>
     [EndpointName("api/grants/revoke-many")]
     internal virtual async ValueTask<IResult> RevokeGrantsAsync(
         HttpContext httpContext,
@@ -197,13 +195,13 @@ internal class GrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/grants/{grantId}</c>, returning the specified persisted grant's metadata.
+    /// Gets a grant.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="grantId">The opaque identifier of the grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The requested grant.</response>
     [EndpointName("api/grants/get")]
     internal virtual async ValueTask<IResult> GetGrantAsync(
         HttpContext httpContext,
@@ -238,14 +236,13 @@ internal class GrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/tenants/{tenantId}/grants/{grantId}</c>, soft-revoking the specified grant. The grant row is retained for
-    /// audit; only its <c>RevokedWhen</c> timestamp is set. Revocation is idempotent.
+    /// Revokes a grant.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="grantId">The opaque identifier of the grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="204">The grant was revoked.</response>
     [EndpointName("api/grants/revoke")]
     internal virtual async ValueTask<IResult> RevokeGrantAsync(
         HttpContext httpContext,

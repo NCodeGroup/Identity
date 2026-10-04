@@ -94,8 +94,12 @@ internal class ResourceServerApiEndpointHandler(
             .MapPost("", CreateAsync)
             .Produces<ResourceServerResource>(StatusCodes.Status201Created);
         resourceServers.MapGet("/{resourceServerId}", GetAsync).Produces<ResourceServerResource>();
-        resourceServers.MapPatch("/{resourceServerId}", UpdateAsync);
-        resourceServers.MapDelete("/{resourceServerId}", DeleteAsync);
+        resourceServers
+            .MapPatch("/{resourceServerId}", UpdateAsync)
+            .Produces(StatusCodes.Status204NoContent);
+        resourceServers
+            .MapDelete("/{resourceServerId}", DeleteAsync)
+            .Produces(StatusCodes.Status204NoContent);
 
         resourceServers
             .MapGet("/{resourceServerId}/scopes", ListScopesAsync)
@@ -106,8 +110,12 @@ internal class ResourceServerApiEndpointHandler(
         resourceServers
             .MapGet("/{resourceServerId}/scopes/{scopeValue}", GetScopeAsync)
             .Produces<ScopeResource>();
-        resourceServers.MapPut("/{resourceServerId}/scopes/{scopeValue}", UpdateScopeAsync);
-        resourceServers.MapDelete("/{resourceServerId}/scopes/{scopeValue}", DeleteScopeAsync);
+        resourceServers
+            .MapPut("/{resourceServerId}/scopes/{scopeValue}", UpdateScopeAsync)
+            .Produces(StatusCodes.Status204NoContent);
+        resourceServers
+            .MapDelete("/{resourceServerId}/scopes/{scopeValue}", DeleteScopeAsync)
+            .Produces(StatusCodes.Status204NoContent);
 
         resourceServers
             .MapGet("/{resourceServerId}/owners", ListOwnersAsync)
@@ -115,7 +123,9 @@ internal class ResourceServerApiEndpointHandler(
         resourceServers
             .MapPost("/{resourceServerId}/owners", AddOwnerAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created);
-        resourceServers.MapDelete("/{resourceServerId}/owners/{principalId}", RemoveOwnerAsync);
+        resourceServers
+            .MapDelete("/{resourceServerId}/owners/{principalId}", RemoveOwnerAsync)
+            .Produces(StatusCodes.Status204NoContent);
     }
 
     internal virtual ScopeResource ToScopeResource(PersistedScope scope) =>
@@ -143,8 +153,9 @@ internal class ResourceServerApiEndpointHandler(
         };
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/resource-servers</c>, returning a page of resource servers in the addressed tenant.
+    /// Lists the resource servers (APIs) in a tenant.
     /// </summary>
+    /// <response code="200">A page of resource servers.</response>
     [EndpointName("api/resource-servers/list")]
     internal virtual async ValueTask<IResult> ListAsync(
         HttpContext httpContext,
@@ -172,8 +183,9 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/resource-servers/{resourceServerId}</c>.
+    /// Gets a resource server (API).
     /// </summary>
+    /// <response code="200">The requested resource server.</response>
     [EndpointName("api/resource-servers/get")]
     internal virtual async ValueTask<IResult> GetAsync(
         HttpContext httpContext,
@@ -198,8 +210,9 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/tenants/{tenantId}/resource-servers</c>, creating a new resource server.
+    /// Creates a resource server (API).
     /// </summary>
+    /// <response code="201">The created resource server.</response>
     [EndpointName("api/resource-servers/create")]
     internal virtual async ValueTask<IResult> CreateAsync(
         HttpContext httpContext,
@@ -260,8 +273,9 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>PATCH api/tenants/{tenantId}/resource-servers/{resourceServerId}</c>.
+    /// Updates a resource server (API).
     /// </summary>
+    /// <response code="204">The resource server was updated.</response>
     [EndpointName("api/resource-servers/update")]
     internal virtual async ValueTask<IResult> UpdateAsync(
         HttpContext httpContext,
@@ -321,9 +335,10 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/tenants/{tenantId}/resource-servers/{resourceServerId}</c>. System resource servers and resource servers
-    /// still referenced by a client grant cannot be removed (<c>409 Conflict</c>).
+    /// Deletes a resource server (API).
     /// </summary>
+    /// <response code="204">The resource server was deleted.</response>
+    /// <response code="409">The resource server is a system server or is still referenced by a client grant.</response>
     [EndpointName("api/resource-servers/delete")]
     internal virtual async ValueTask<IResult> DeleteAsync(
         HttpContext httpContext,
@@ -358,8 +373,9 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes</c>.
+    /// Lists a resource server's scopes.
     /// </summary>
+    /// <response code="200">The resource server's scopes.</response>
     [EndpointName("api/resource-servers/scopes/list")]
     internal virtual async ValueTask<IResult> ListScopesAsync(
         HttpContext httpContext,
@@ -381,8 +397,10 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes</c>.
+    /// Creates a scope on a resource server.
     /// </summary>
+    /// <response code="201">The created scope.</response>
+    /// <response code="409">A scope with the same value already exists.</response>
     [EndpointName("api/resource-servers/scopes/create")]
     internal virtual async ValueTask<IResult> CreateScopeAsync(
         HttpContext httpContext,
@@ -440,8 +458,9 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}</c>.
+    /// Gets a scope on a resource server.
     /// </summary>
+    /// <response code="200">The requested scope.</response>
     [EndpointName("api/resource-servers/scopes/get")]
     internal virtual async ValueTask<IResult> GetScopeAsync(
         HttpContext httpContext,
@@ -462,8 +481,9 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>PUT api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}</c>.
+    /// Updates a scope on a resource server.
     /// </summary>
+    /// <response code="204">The scope was updated.</response>
     [EndpointName("api/resource-servers/scopes/update")]
     internal virtual async ValueTask<IResult> UpdateScopeAsync(
         HttpContext httpContext,
@@ -516,9 +536,10 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}</c>. A system scope cannot be
-    /// removed (<c>409 Conflict</c>).
+    /// Deletes a scope on a resource server.
     /// </summary>
+    /// <response code="204">The scope was deleted.</response>
+    /// <response code="409">The scope is a system scope and cannot be removed.</response>
     [EndpointName("api/resource-servers/scopes/delete")]
     internal virtual async ValueTask<IResult> DeleteScopeAsync(
         HttpContext httpContext,
@@ -571,8 +592,9 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/resource-servers/{resourceServerId}/owners</c>, returning the resource server's owners.
+    /// Lists a resource server's owners.
     /// </summary>
+    /// <response code="200">A page of the resource server's owners.</response>
     [EndpointName("api/resource-servers/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
@@ -593,8 +615,9 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/tenants/{tenantId}/resource-servers/{resourceServerId}/owners</c>, granting a principal ownership.
+    /// Adds an owner to a resource server.
     /// </summary>
+    /// <response code="201">The owner was added.</response>
     [EndpointName("api/resource-servers/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
@@ -618,9 +641,9 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/tenants/{tenantId}/resource-servers/{resourceServerId}/owners/{principalId}</c>, revoking ownership. Refused
-    /// when it would leave the resource server with no owner.
+    /// Removes an owner from a resource server.
     /// </summary>
+    /// <response code="204">The owner was removed.</response>
     [EndpointName("api/resource-servers/owners/remove")]
     internal virtual async ValueTask<IResult> RemoveOwnerAsync(
         HttpContext httpContext,

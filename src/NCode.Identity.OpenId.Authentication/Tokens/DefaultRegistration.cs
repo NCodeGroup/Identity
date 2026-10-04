@@ -45,6 +45,14 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<ITokenService, DefaultTokenService>();
 
+            serviceCollection.TryAddSingleton<
+                ICommandResponseHandler<
+                    AuthenticateAccessTokenCommand,
+                    AuthenticateAccessTokenDisposition
+                >,
+                DefaultAuthenticateAccessTokenHandler
+            >();
+
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<GetIdTokenSubjectClaimsCommand>,

@@ -66,6 +66,12 @@ public static class IdentityServerBuilderExtensions
                 configuration.GetSection($"{resolvedSectionName}:TenantResolution")
             );
 
+            // The bootstrap administrator credential is sourced from its own top-level section so it can be supplied
+            // out of band (for example, environment variables); absent it, the feature stays inert (ADR-0044).
+            serviceCollection.Configure<BootstrapAdminOptions>(
+                configuration.GetSection(BootstrapAdminOptions.DefaultSectionName)
+            );
+
             return builder;
         }
     }

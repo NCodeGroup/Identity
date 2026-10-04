@@ -45,7 +45,9 @@ internal sealed class ManagementRootGroup : IEndpointGroup
 
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group) =>
-        group.AddEndpointFilter<RouteGroupBuilder, ManagementEnvironmentEndpointFilter>();
+        group
+            .AddEndpointFilter<RouteGroupBuilder, ManagementEnvironmentEndpointFilter>()
+            .AddEndpointFilter<RouteGroupBuilder, ManagementAuthenticationEndpointFilter>();
 
     /// <inheritdoc />
     public void ConfigureServices(IEndpointGroupBuilder builder)

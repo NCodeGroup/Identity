@@ -19,7 +19,6 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using NCode.Buffers;
-using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
@@ -31,6 +30,7 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode;
 

@@ -10,11 +10,25 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- The hierarchical endpoint-group mechanism (`IEndpointGroup`, `IEndpointGroupBuilder`, `IEndpointProvider`, the
+  route-tree builder, and the endpoint/operation disposition types) moved out of `NCode.Identity.Abstractions` into a new
+  cross-cutting package, **`NCode.Registration.AspNetCore`**, that layers on `NCode.Registration` and the ASP.NET Core
+  shared framework. `IEndpointGroupBuilder` now **is** an `IServiceBuilder` (it inherits it) rather than exposing a bare
+  `IServiceCollection`, so a group's `ConfigureServices` registers its endpoints, child groups, and the services those
+  endpoints depend on — including `AddMessageFactory<T>()` — through one registration surface. The separate per-family
+  `AddXxxEndpoint()` chain is gone: each endpoint family registers its own provider and services, and the group invokes
+  each family once, so no endpoint is listed twice. Public types moved namespace
+  (`NCode.Identity.Endpoints` → `NCode.Registration.AspNetCore`) and three symbols were renamed
+  (`IIdentityEndpointRouteBuilder` → `IEndpointTreeRouteBuilder`, `MapIdentityEndpoints()` → `MapEndpointGroups()`, and
+  the route-builder default implementation). See
+  [ADR-0043](docs/adr/0043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md).
 - Endpoint route-group composition is now declarative, hierarchical, and unified across the OpenID protocol and
   management surfaces. A named `IEndpointGroup` **owns its contents**: it exposes a `Name` and `Prefix`, an optional
-  `Configure` that attaches shared filters, and a `Build(IEndpointGroupBuilder)` that declares the endpoints
-  (`AddEndpoint<T>()`) and child groups (`AddGroup<T>()`) it contains. Registering a single root group
-  (`AddEndpointGroup<TRoot>()`) walks that declaration and registers the whole subtree; the route builder materializes
+  `ConfigureRoutes` that attaches shared route-group filters when routes are mapped, and a
+  `ConfigureServices(IEndpointGroupBuilder)` that registers at startup the endpoints (`AddEndpoint<T>()`) and child
+  groups (`AddGroup<T>()`) it contains, plus the services those endpoints depend on (via the builder's
+  `ServiceCollection`). Registering a single root group (`AddEndpointGroup<TRoot>()`) walks that declaration and
+  registers the whole subtree; the route builder materializes
   each group with its prefix and filters, maps the group's endpoints, and recurses into its child groups. The
   management surface composes a hierarchy — `api` (`/api`) → `api/tenant` (`/tenants/{tenantId}`) → `api/tenant/client`
   (`/clients/{clientId}`) — so tenant-bound families (clients, grants, resource servers, client grants) nest under the

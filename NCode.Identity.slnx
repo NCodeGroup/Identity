@@ -32,6 +32,7 @@
     <Project Path="src/NCode.Identity/NCode.Identity.csproj" />
     <Project Path="src/NCode.Persistence.Abstractions/NCode.Persistence.Abstractions.csproj" />
     <Project Path="src/NCode.Registration/NCode.Registration.csproj" />
+    <Project Path="src/NCode.Registration.AspNetCore/NCode.Registration.AspNetCore.csproj" />
     <Project Path="tests/NCode.Identity.Abstractions.Tests/NCode.Identity.Abstractions.Tests.csproj" />
     <Project Path="tests/NCode.Identity.JsonWebTokens.Tests/NCode.Identity.JsonWebTokens.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Jose.Tests/NCode.Identity.Jose.Tests.csproj" />

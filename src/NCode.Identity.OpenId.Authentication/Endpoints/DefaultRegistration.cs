@@ -18,16 +18,8 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.Endpoints;
-using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
-using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
-using NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
-using NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
-using NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
-using NCode.Identity.OpenId.Authentication.Endpoints.Revocation;
-using NCode.Identity.OpenId.Authentication.Endpoints.Token;
-using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 using NCode.Registration;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
 
@@ -49,15 +41,6 @@ internal static class DefaultRegistration
             var newBuilder = builder.NewBuilder<OpenIdAuthenticationEndpoints>();
 
             newBuilder.AddEndpointGroup<OpenIdEndpointGroup>();
-
-            newBuilder.AddAuthorizationEndpoint();
-            newBuilder.AddContinueEndpoint();
-            newBuilder.AddDiscoveryEndpoint();
-            newBuilder.AddJwksEndpoint();
-            newBuilder.AddTokenEndpoint();
-            newBuilder.AddRevocationEndpoint();
-            newBuilder.AddIntrospectionEndpoint();
-            newBuilder.AddUserInfoEndpoint();
 
             return builder;
         }

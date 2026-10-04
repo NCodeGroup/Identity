@@ -17,10 +17,10 @@
 #endregion
 
 using Microsoft.AspNetCore.Authentication;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 

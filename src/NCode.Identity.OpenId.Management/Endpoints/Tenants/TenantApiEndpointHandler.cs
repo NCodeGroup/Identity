@@ -24,7 +24,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
-using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -39,6 +38,7 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
+using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Exceptions;
 

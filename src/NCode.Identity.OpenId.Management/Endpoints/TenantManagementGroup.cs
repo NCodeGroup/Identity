@@ -19,10 +19,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Grants;
 using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
@@ -46,15 +46,15 @@ internal sealed class TenantManagementGroup : IEndpointGroup
     public string Prefix => "/tenants/{tenantId}";
 
     /// <inheritdoc />
-    public void Configure(RouteGroupBuilder group) =>
+    public void ConfigureRoutes(RouteGroupBuilder group) =>
         group.AddEndpointFilter<RouteGroupBuilder, TenantScopeEndpointFilter>();
 
     /// <inheritdoc />
-    public void Build(IEndpointGroupBuilder builder)
+    public void ConfigureServices(IEndpointGroupBuilder builder)
     {
-        builder.AddEndpoint<ClientApiEndpointHandler>();
-        builder.AddEndpoint<GrantApiEndpointHandler>();
-        builder.AddEndpoint<ResourceServerApiEndpointHandler>();
+        builder.AddClientEndpoint();
+        builder.AddGrantEndpoint();
+        builder.AddResourceServerEndpoint();
         builder.AddGroup<ClientManagementGroup>();
     }
 }

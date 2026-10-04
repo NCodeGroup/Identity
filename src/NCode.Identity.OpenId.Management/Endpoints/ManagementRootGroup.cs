@@ -19,9 +19,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
@@ -44,14 +44,14 @@ internal sealed class ManagementRootGroup : IEndpointGroup
     public string Prefix => "/api";
 
     /// <inheritdoc />
-    public void Configure(RouteGroupBuilder group) =>
+    public void ConfigureRoutes(RouteGroupBuilder group) =>
         group.AddEndpointFilter<RouteGroupBuilder, ManagementEnvironmentEndpointFilter>();
 
     /// <inheritdoc />
-    public void Build(IEndpointGroupBuilder builder)
+    public void ConfigureServices(IEndpointGroupBuilder builder)
     {
-        builder.AddEndpoint<ServerApiEndpointHandler>();
-        builder.AddEndpoint<TenantApiEndpointHandler>();
+        builder.AddServerEndpoint();
+        builder.AddTenantEndpoint();
         builder.AddGroup<TenantManagementGroup>();
     }
 }

@@ -19,5 +19,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+        <ProjectReference Include="..\NCode.Registration.AspNetCore\NCode.Registration.AspNetCore.csproj" />
     </ItemGroup>
 </Project>

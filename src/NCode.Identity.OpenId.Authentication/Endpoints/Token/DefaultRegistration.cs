@@ -19,7 +19,6 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.ClientCredentials;
@@ -33,7 +32,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Messages;
 using NCode.Mediator;
-using NCode.Registration;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 
@@ -42,14 +41,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 /// </summary>
 internal static class DefaultRegistration
 {
-    extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
+    extension(IEndpointGroupBuilder builder)
     {
         /// <summary>
         /// Configures services and handlers for the OpenId Token endpoint.
         /// </summary>
-        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<OpenIdAuthenticationEndpoints> AddTokenEndpoint()
+        public void AddTokenEndpoint()
         {
+            builder.AddEndpoint<DefaultTokenEndpointProvider>();
+
             builder.AddMessageFactory<TokenRequest>();
             builder.AddMessageFactory<TokenResponse>();
 
@@ -134,8 +134,6 @@ internal static class DefaultRegistration
                     DefaultValidatePasswordGrantHandler
                 >()
             );
-
-            return builder;
         }
     }
 }

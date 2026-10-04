@@ -19,8 +19,8 @@
 
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 

@@ -19,11 +19,10 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Handlers;
 using NCode.Mediator;
-using NCode.Registration;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
 
@@ -32,14 +31,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
 /// </summary>
 internal static class DefaultRegistration
 {
-    extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
+    extension(IEndpointGroupBuilder builder)
     {
         /// <summary>
         /// Configures services and handlers for the OpenId Discovery endpoint.
         /// </summary>
-        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<OpenIdAuthenticationEndpoints> AddDiscoveryEndpoint()
+        public void AddDiscoveryEndpoint()
         {
+            builder.AddEndpoint<DefaultDiscoveryEndpointHandler>();
+
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddEnumerable(
@@ -55,8 +55,6 @@ internal static class DefaultRegistration
                     DefaultDiscoverScopesHandler
                 >()
             );
-
-            return builder;
         }
     }
 }

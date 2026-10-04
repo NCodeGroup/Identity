@@ -18,11 +18,10 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Handlers;
 using NCode.Mediator;
-using NCode.Registration;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 
@@ -31,14 +30,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 /// </summary>
 internal static class DefaultRegistration
 {
-    extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
+    extension(IEndpointGroupBuilder builder)
     {
         /// <summary>
         /// Configures services and handlers for the OpenId <c>UserInfo</c> endpoint (OpenID Connect Core 5.3).
         /// </summary>
-        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<OpenIdAuthenticationEndpoints> AddUserInfoEndpoint()
+        public void AddUserInfoEndpoint()
         {
+            builder.AddEndpoint<DefaultUserInfoEndpointProvider>();
+
             builder.ServiceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<GetUserInfoClaimsCommand>,
@@ -52,8 +52,6 @@ internal static class DefaultRegistration
                     DefaultGetRequestedUserInfoClaimsHandler
                 >()
             );
-
-            return builder;
         }
     }
 }

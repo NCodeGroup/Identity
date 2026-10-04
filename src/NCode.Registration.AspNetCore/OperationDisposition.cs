@@ -1,6 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-// Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,18 +19,18 @@
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Endpoints;
+namespace NCode.Registration.AspNetCore;
 
 /// <summary>
 /// Indicates the disposition of an operation.
 /// </summary>
 [PublicAPI]
-public readonly record struct ReadOnlyOperationDisposition<TError>
+public sealed class OperationDisposition<TError>
 {
     /// <summary>
     /// Gets or sets the error that occurred during the operation.
     /// </summary>
-    public TError? Error { get; init; }
+    public TError? Error { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether the operation was successful.

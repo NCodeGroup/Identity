@@ -17,9 +17,8 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Logic;
-using NCode.Registration;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 
@@ -28,14 +27,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 /// </summary>
 internal static class DefaultRegistration
 {
-    extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
+    extension(IEndpointGroupBuilder builder)
     {
         /// <summary>
         /// Configures services and handlers for the OpenId Continue endpoint.
         /// </summary>
-        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<OpenIdAuthenticationEndpoints> AddContinueEndpoint()
+        public void AddContinueEndpoint()
         {
+            builder.AddEndpoint<DefaultContinueEndpointHandler>();
+
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddSingleton<IContinueService, DefaultContinueService>();
@@ -43,8 +43,6 @@ internal static class DefaultRegistration
                 IContinueProviderSelector,
                 DefaultContinueProviderSelector
             >();
-
-            return builder;
         }
     }
 }

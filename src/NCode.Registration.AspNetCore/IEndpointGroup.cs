@@ -19,14 +19,15 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Routing;
 
-namespace NCode.Identity.Endpoints;
+namespace NCode.Registration.AspNetCore;
 
 /// <summary>
-/// Declares a node in the endpoint route-group hierarchy: its relative <see cref="Prefix"/>, the conventions applied to
-/// its <see cref="RouteGroupBuilder"/> (via <see cref="Configure"/>), and the endpoints and child groups it contains
-/// (via <see cref="Build"/>). A group owns its own contents: registering a root group recursively registers the whole
-/// subtree, and the route builder materializes each group parent-first and maps every endpoint registered under it, so
-/// a prefix, its shared filters, and its children are all declared in one place.
+/// Declares a node in the endpoint route-group hierarchy: its relative <see cref="Prefix"/>, the endpoints, child
+/// groups, and services it registers at startup (via <see cref="ConfigureServices"/>), and the conventions applied to
+/// its <see cref="RouteGroupBuilder"/> when routes are mapped (via <see cref="ConfigureRoutes"/>). A group owns its own
+/// contents: registering a root group recursively registers the whole subtree, and the route builder materializes each
+/// group parent-first and maps every endpoint registered under it, so a prefix, its shared filters, and its children
+/// are all declared in one place.
 /// </summary>
 [PublicAPI]
 public interface IEndpointGroup
@@ -47,12 +48,14 @@ public interface IEndpointGroup
     /// default implementation applies none.
     /// </summary>
     /// <param name="group">The <see cref="RouteGroupBuilder"/> created for this group.</param>
-    void Configure(RouteGroupBuilder group) { }
+    void ConfigureRoutes(RouteGroupBuilder group) { }
 
     /// <summary>
-    /// Declares the endpoints and child groups contained by this group via the supplied
-    /// <see cref="IEndpointGroupBuilder"/>. The default implementation declares none.
+    /// Registers the group's contents at startup via the supplied <see cref="IEndpointGroupBuilder"/>: the endpoints
+    /// (<see cref="IEndpointGroupBuilder.AddEndpoint{T}"/>) and child groups (<see cref="IEndpointGroupBuilder.AddGroup{T}"/>)
+    /// it contains, plus the services those endpoints depend on (the builder is itself an <see cref="IServiceBuilder"/>).
+    /// The default implementation registers none.
     /// </summary>
     /// <param name="builder">The <see cref="IEndpointGroupBuilder"/> scoped to this group.</param>
-    void Build(IEndpointGroupBuilder builder) { }
+    void ConfigureServices(IEndpointGroupBuilder builder) { }
 }

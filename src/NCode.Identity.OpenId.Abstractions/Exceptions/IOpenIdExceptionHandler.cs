@@ -19,9 +19,9 @@
 using System.Runtime.ExceptionServices;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Environments;
 using NCode.Mediator;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Exceptions;
 

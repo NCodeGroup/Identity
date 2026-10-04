@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
-namespace NCode.Identity.Endpoints;
+namespace NCode.Registration.AspNetCore;
 
 /// <summary>
 /// Indicates whether an endpoint was handled and optionally provides the HTTP response to return.

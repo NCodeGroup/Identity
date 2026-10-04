@@ -17,7 +17,6 @@
 #endregion
 
 using Microsoft.AspNetCore.Authentication;
-using NCode.Identity.Endpoints;
 using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
@@ -31,6 +30,7 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 

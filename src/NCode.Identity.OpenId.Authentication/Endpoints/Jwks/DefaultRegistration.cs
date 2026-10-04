@@ -18,9 +18,8 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
-using NCode.Registration;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 
@@ -29,14 +28,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 /// </summary>
 internal static class DefaultRegistration
 {
-    extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
+    extension(IEndpointGroupBuilder builder)
     {
         /// <summary>
         /// Configures services and handlers for the OpenId <c>JSON Web Key Set (JWKS)</c> endpoint.
         /// </summary>
-        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<OpenIdAuthenticationEndpoints> AddJwksEndpoint()
+        public void AddJwksEndpoint()
         {
+            builder.AddEndpoint<DefaultJwksEndpointHandler>();
+
             var serviceCollection = builder.ServiceCollection;
 
             // The registry is the single, discoverable source of truth for which EC curves are published.
@@ -55,8 +55,6 @@ internal static class DefaultRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IJsonWebKeyConverter, EccJsonWebKeyConverter>()
             );
-
-            return builder;
         }
     }
 }

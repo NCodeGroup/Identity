@@ -19,15 +19,17 @@
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Endpoints;
+namespace NCode.Registration.AspNetCore;
 
 /// <summary>
-/// Declares the endpoints and child groups contained by an <see cref="IEndpointGroup"/>. An instance is scoped to a
-/// single group and passed to its <see cref="IEndpointGroup.Build"/>, so every endpoint and child group it adds is
-/// nested under that group.
+/// Declares the endpoints and child groups contained by an <see cref="IEndpointGroup"/>. It is itself an
+/// <see cref="IServiceBuilder"/>, so a group registers the services its endpoints depend on — including builder-level
+/// helpers such as message factories — alongside the <see cref="AddEndpoint{T}"/> calls that declare them. An instance
+/// is scoped to a single group and passed to its <see cref="IEndpointGroup.ConfigureServices"/>, so every endpoint and
+/// child group it adds is nested under that group.
 /// </summary>
 [PublicAPI]
-public interface IEndpointGroupBuilder
+public interface IEndpointGroupBuilder : IServiceBuilder
 {
     /// <summary>
     /// Adds an <see cref="IEndpointProvider"/> endpoint to the current group.

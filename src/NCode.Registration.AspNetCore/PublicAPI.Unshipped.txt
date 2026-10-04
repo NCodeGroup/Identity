@@ -1,0 +1,45 @@
+#nullable enable
+NCode.Registration.AspNetCore.DefaultRegistration
+NCode.Registration.AspNetCore.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Registration.AspNetCore.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEndpointGroupRouting() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Registration.AspNetCore.EndpointProviderRegistration
+NCode.Registration.AspNetCore.EndpointProviderRegistration.extension(NCode.Registration.IServiceBuilder!)
+NCode.Registration.AspNetCore.EndpointProviderRegistration.extension(NCode.Registration.IServiceBuilder!).AddEndpointGroup<T>() -> void
+NCode.Registration.AspNetCore.EndpointProviderRegistration.extension(NCode.Registration.IServiceBuilder!).AddEndpointProvider<T>() -> void
+NCode.Registration.AspNetCore.EndpointRouteBuilderExtensions
+NCode.Registration.AspNetCore.EndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
+NCode.Registration.AspNetCore.EndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapEndpointGroups() -> void
+NCode.Registration.AspNetCore.IEndpointGroup
+NCode.Registration.AspNetCore.IEndpointGroup.ConfigureRoutes(Microsoft.AspNetCore.Routing.RouteGroupBuilder! group) -> void
+NCode.Registration.AspNetCore.IEndpointGroup.ConfigureServices(NCode.Registration.AspNetCore.IEndpointGroupBuilder! builder) -> void
+NCode.Registration.AspNetCore.IEndpointGroup.Name.get -> string!
+NCode.Registration.AspNetCore.IEndpointGroup.Prefix.get -> string!
+NCode.Registration.AspNetCore.IEndpointGroupBuilder
+NCode.Registration.AspNetCore.IEndpointGroupBuilder.AddEndpoint<T>() -> void
+NCode.Registration.AspNetCore.IEndpointGroupBuilder.AddGroup<T>() -> void
+NCode.Registration.AspNetCore.IEndpointProvider
+NCode.Registration.AspNetCore.IEndpointProvider.Map(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> void
+NCode.Registration.AspNetCore.IEndpointTreeRouteBuilder
+NCode.Registration.AspNetCore.IEndpointTreeRouteBuilder.Map(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> void
+NCode.Registration.AspNetCore.OperationDisposition<TError>
+NCode.Registration.AspNetCore.OperationDisposition<TError>.Error.get -> TError?
+NCode.Registration.AspNetCore.OperationDisposition<TError>.Error.set -> void
+NCode.Registration.AspNetCore.OperationDisposition<TError>.HasError.get -> bool
+NCode.Registration.AspNetCore.OperationDisposition<TError>.OperationDisposition() -> void
+NCode.Registration.AspNetCore.OperationDisposition<TError>.Succeeded.get -> bool
+NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition
+NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition.HasHttpResult.get -> bool
+NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition.HttpResult.get -> Microsoft.AspNetCore.Http.IResult?
+NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition.HttpResult.init -> void
+NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition.ReadOnlyEndpointDisposition() -> void
+NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition.WasHandled.get -> bool
+NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition.WasHandled.init -> void
+NCode.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>
+NCode.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>.Error.get -> TError?
+NCode.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>.Error.init -> void
+NCode.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>.HasError.get -> bool
+NCode.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>.ReadOnlyOperationDisposition() -> void
+NCode.Registration.AspNetCore.ReadOnlyOperationDisposition<TError>.Succeeded.get -> bool
+static NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition.Handled() -> NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition
+static NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition.Handled(Microsoft.AspNetCore.Http.IResult! httpResult) -> NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition
+static NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition.UnHandled() -> NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition

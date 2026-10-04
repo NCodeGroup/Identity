@@ -18,14 +18,18 @@
 
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication;
+using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Management;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Server.OpenApi;
+using NCode.Mediator;
 using NCode.PropertyBag;
 using NCode.Registration;
 
@@ -85,10 +89,27 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
             IdentityLibraryBuilder.AddOpenIdAuthenticationLibrary();
         OpenIdManagementLibraryBuilder = IdentityLibraryBuilder.AddOpenIdManagementLibrary();
 
+        // The bootstrap administrator client's management tokens are stamped with the GlobalAdmin role at issuance
+        // (ADR-0044); the handler is a no-op unless a bootstrap client id is configured.
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICommandHandler<GetAccessTokenPayloadClaimsCommand>,
+                BootstrapAdminAccessTokenClaimsHandler
+            >()
+        );
+
+        // The bootstrap administrator client is seeded into the workload tenant on the same lazy provisioning path
+        // that seeds the system resource servers (ADR-0031/0044); inert unless a bootstrap client is configured.
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<ISystemTenantSeeder, BootstrapAdminTenantSeeder>()
+        );
+
         // The OpenAPI document describes this server's own endpoints, so the composition root owns its
         // registration and grouping rather than leaving each host to re-wire it.
         serviceCollection.AddOpenApi(options =>
-            options.AddDocumentTransformer<TagGroupsDocumentTransformer>()
-        );
+        {
+            options.AddDocumentTransformer<TagGroupsDocumentTransformer>();
+            options.AddDocumentTransformer<SecuritySchemeDocumentTransformer>();
+        });
     }
 }

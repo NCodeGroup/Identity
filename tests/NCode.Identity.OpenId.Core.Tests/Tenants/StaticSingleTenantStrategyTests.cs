@@ -37,7 +37,8 @@ public sealed class StaticSingleTenantStrategyTests
         new(
             storeManagerFactory,
             Options.Create(new TenantResolutionOptions { StaticSingle = options }),
-            seeder
+            seeder,
+            []
         );
 
     [Fact]

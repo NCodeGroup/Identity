@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
@@ -35,13 +36,17 @@ namespace NCode.Identity.OpenId.Tenants.Strategies;
 internal class StaticSingleTenantStrategy(
     IStoreManagerFactory storeManagerFactory,
     IOptions<TenantResolutionOptions> optionsAccessor,
-    ISystemResourceServerSeeder systemResourceServerSeeder
+    ISystemResourceServerSeeder systemResourceServerSeeder,
+    IEnumerable<ISystemTenantSeeder> systemTenantSeeders
 ) : TenantStrategy(storeManagerFactory)
 {
     private const string RootDisplayName = "Root Tenant";
 
     private ISystemResourceServerSeeder SystemResourceServerSeeder { get; } =
         systemResourceServerSeeder;
+
+    private ImmutableArray<ISystemTenantSeeder> SystemTenantSeeders { get; } =
+    [.. systemTenantSeeders];
 
     private StaticSingleTenantOptions Options =>
         optionsAccessor.Value.StaticSingle ?? new StaticSingleTenantOptions();
@@ -128,6 +133,13 @@ internal class StaticSingleTenantStrategy(
 
             // A freshly-provisioned tenant is self-contained: seed its reserved system resource servers.
             await SystemResourceServerSeeder.SeedAsync(tenantId, cancellationToken);
+
+            // Then run any additional provisioning seeders (for example, the bootstrap administrator client); each
+            // targets the tenant it applies to and manages its own idempotency.
+            foreach (var seeder in SystemTenantSeeders)
+            {
+                await seeder.SeedAsync(tenantId, cancellationToken);
+            }
         }
 
         return persistedTenant;

@@ -1,4 +1,14 @@
 #nullable enable
+const NCode.Identity.Server.BootstrapAdminOptions.DefaultSectionName = "BootstrapAdmin" -> string!
+NCode.Identity.Server.BootstrapAdminOptions
+NCode.Identity.Server.BootstrapAdminOptions.BootstrapAdminOptions() -> void
+NCode.Identity.Server.BootstrapAdminOptions.ClientId.get -> string?
+NCode.Identity.Server.BootstrapAdminOptions.ClientId.set -> void
+NCode.Identity.Server.BootstrapAdminOptions.ClientSecret.get -> string?
+NCode.Identity.Server.BootstrapAdminOptions.ClientSecret.set -> void
+NCode.Identity.Server.BootstrapAdminOptions.IsEnabled.get -> bool
+NCode.Identity.Server.BootstrapAdminOptions.TenantId.get -> string?
+NCode.Identity.Server.BootstrapAdminOptions.TenantId.set -> void
 NCode.Identity.Server.DefaultRegistration
 NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddIdentityServer() -> NCode.Identity.Server.IIdentityServerBuilder!

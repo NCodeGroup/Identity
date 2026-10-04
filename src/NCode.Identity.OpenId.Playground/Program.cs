@@ -92,7 +92,8 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
     app.MapOpenApi();
-    app.MapScalarApiReference();
+    // "Bearer" matches the scheme name declared by SecuritySchemeDocumentTransformer in NCode.Identity.Server.
+    app.MapScalarApiReference(options => options.AddPreferredSecuritySchemes("Bearer"));
 }
 
 app.UseHttpLogging();

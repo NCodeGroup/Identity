@@ -40,7 +40,7 @@ using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
+namespace NCode.Identity.Server;
 
 /// <summary>
 /// A <strong>development-only</strong> <see cref="DefaultOpenIdTenantFactory"/> that ensures the tenant has a

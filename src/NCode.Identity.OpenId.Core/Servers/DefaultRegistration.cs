@@ -16,6 +16,7 @@
 
 #endregion
 
+using IdGen;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Registration;
@@ -38,6 +39,10 @@ internal static class DefaultRegistration
         public IServiceBuilder<OpenIdCoreLibrary> AddServerServices()
         {
             var serviceCollection = builder.ServiceCollection;
+
+            // DefaultOpenIdServerFactory and the persistence stores mint entity ids via IIdGenerator<long>. Register a
+            // single-node default (generator id 0); multi-node hosts override it with AddIdGen(nodeId) to keep ids unique.
+            serviceCollection.TryAddSingleton<IIdGenerator<long>>(new IdGenerator(0));
 
             serviceCollection.TryAddSingleton<IOpenIdServerFactory, DefaultOpenIdServerFactory>();
             serviceCollection.TryAddSingleton<IOpenIdServerProvider, DefaultOpenIdServerProvider>();

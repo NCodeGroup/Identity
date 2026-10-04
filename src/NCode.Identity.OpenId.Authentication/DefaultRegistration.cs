@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints;
@@ -48,6 +49,9 @@ public static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.AddMediator();
+            // Subject and authorization handlers call HttpContext.AuthenticateAsync, which requires the ASP.NET Core
+            // authentication services (IAuthenticationService / IAuthenticationSchemeProvider).
+            serviceCollection.AddAuthentication();
 
             serviceCollection.VerifyIsRegistered<JoseLibrary>();
 

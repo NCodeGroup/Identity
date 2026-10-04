@@ -63,9 +63,8 @@ opt-in conveniences, never defaults.
 
 ### Follow-ups
 
-- Promote the opt-in from the Playground into a reusable library (e.g. a
-  `NCode.Identity.Server` development extension) so any host can consume it, rather than each app
-  re-implementing it.
+- Done: the opt-in now lives in the `NCode.Identity.Server` composition root (a development extension) so any
+  host can consume it, rather than each app re-implementing it. The Playground is just the EXE host that wires it in.
 - Provide first-class production key-management registration and guidance.
 - A related latent issue was discovered while building the harness: the server/tenant
   "create-if-missing" path is **not idempotent under concurrency** (a duplicate-key race when two
@@ -74,8 +73,8 @@ opt-in conveniences, never defaults.
 
 ## References
 
-- `NCode.Identity.OpenId.Playground/DevelopmentEnvironment/EphemeralStaticSingleOpenIdTenantProvider.cs`
-- `NCode.Identity.OpenId.Playground/DevelopmentEnvironment/DeveloperKeysRegistration.cs`
-- `NCode.Identity.OpenId.Playground/Startup.cs` (opt-in wired in)
+- `NCode.Identity.Server/DevelopmentEnvironment/EphemeralOpenIdTenantFactory.cs`
+- `NCode.Identity.Server/DevelopmentEnvironment/DeveloperKeysRegistration.cs`
+- `NCode.Identity.OpenId.Playground/Startup.cs` (opt-in wired in by the EXE host)
 - `NCode.Identity.OpenId.Authentication/Tokens/DefaultTokenService.cs` (signing key source = tenant secrets)
 - `NCode.Identity.OpenId.IntegrationTests/` (asserts JWKS publishes the ephemeral signing key over HTTP)

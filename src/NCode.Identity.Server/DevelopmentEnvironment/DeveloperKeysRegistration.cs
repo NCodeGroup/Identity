@@ -18,10 +18,11 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Tenants;
 
-namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
+namespace NCode.Identity.Server;
 
 /// <summary>
 /// Provides an explicit, <strong>development-only</strong> opt-in that makes the OpenID server fully
@@ -35,7 +36,7 @@ namespace NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 [PublicAPI]
 public static class DeveloperKeysRegistration
 {
-    private const string DeveloperApplicationName = "NCode.Identity.OpenId.Playground";
+    private const string DeveloperApplicationName = "NCode.Identity.Server";
 
     extension(IServiceCollection serviceCollection)
     {

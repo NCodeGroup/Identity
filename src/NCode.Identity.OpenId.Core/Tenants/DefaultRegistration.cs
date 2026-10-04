@@ -54,6 +54,9 @@ internal static class DefaultRegistration
             // The materialized tenant (settings + secrets, merged server->tenant) and its cache (ADR-0036).
             serviceCollection.AddMemoryCache();
             serviceCollection.TryAddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
+
+            // DefaultOpenIdTenantFactory binds the tenant base-address route via TemplateBinderFactory (from AddRouting).
+            serviceCollection.AddRouting();
             serviceCollection.TryAddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
 
             serviceCollection.TryAddSingleton<

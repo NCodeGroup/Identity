@@ -10,6 +10,13 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- The development-only signing-key opt-ins moved out of the `NCode.Identity.OpenId.Playground` host and into the
+  `NCode.Identity.Server` composition root, so any host can consume them rather than each app re-implementing them
+  (the Playground is just the EXE host that wires them in). `AddEphemeralDeveloperKeys()`,
+  `AddDeveloperSigningKey(DirectoryInfo)`, and the `EphemeralOpenIdTenantFactory` /
+  `DeveloperSigningKeyOpenIdTenantFactory` types now live under the `NCode.Identity.Server` namespace. See
+  [ADR-0002](docs/adr/0002-ephemeral-development-keys.md) and
+  [ADR-0021](docs/adr/0021-developer-signing-keys-seeded-through-persistence.md).
 - The hierarchical endpoint-group mechanism (`IEndpointGroup`, `IEndpointGroupBuilder`, `IEndpointProvider`, the
   route-tree builder, and the endpoint/operation disposition types) moved out of `NCode.Identity.Abstractions` into a new
   cross-cutting package, **`NCode.Registration.AspNetCore`**, that layers on `NCode.Registration` and the ASP.NET Core

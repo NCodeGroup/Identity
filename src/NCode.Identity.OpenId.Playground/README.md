@@ -5,7 +5,7 @@ A runnable ASP.NET Core reference host for the OpenID Connect + OAuth 2.0 librar
 
 ## Database providers
 
-The host selects its persistence provider at startup (`Startup.ConfigureServices`):
+The host selects its persistence provider at startup (in `Program.cs`):
 
 | Condition                                                        | Provider                                    | State                     | Typical use                                         |
 | ---------------------------------------------------------------- | ------------------------------------------- | ------------------------- | --------------------------------------------------- |

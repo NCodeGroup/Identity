@@ -83,4 +83,4 @@ ADR only changes **how** the developer key is realized — from intercepting the
   secrets) are not query-scoped, so seeding and reading the tenant secret is unaffected by the ambient tenant filter.
 - Code: `NCode.Identity.Server.DeveloperSigningKeyOpenIdTenantFactory`,
   `NCode.Identity.Server.DeveloperKeysRegistration.AddDeveloperSigningKey`,
-  `NCode.Identity.OpenId.Playground.Startup` (mode selection + SQLite provider in the EXE host).
+  `NCode.Identity.OpenId.Playground.Program` (mode selection + SQLite provider in the EXE host).

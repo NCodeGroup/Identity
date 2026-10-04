@@ -10,6 +10,10 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- The `NCode.Identity.OpenId.Playground` host migrated to the modern ASP.NET Core minimal-hosting model: the
+  `Startup` class and the `Host.CreateDefaultBuilder`/`UseStartup` bootstrap were replaced by a single top-level
+  `Program.cs` using `WebApplication.CreateBuilder(...)`. The integration tests are unaffected — they still boot
+  through `WebApplicationFactory<PlaygroundApiMarker>`.
 - The development-only signing-key opt-ins moved out of the `NCode.Identity.OpenId.Playground` host and into the
   `NCode.Identity.Server` composition root, so any host can consume them rather than each app re-implementing them
   (the Playground is just the EXE host that wires them in). `AddEphemeralDeveloperKeys()`,

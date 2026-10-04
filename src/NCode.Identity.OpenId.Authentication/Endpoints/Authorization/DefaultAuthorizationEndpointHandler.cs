@@ -102,7 +102,7 @@ internal class DefaultAuthorizationEndpointHandler(
             },
             RequestBody = new OpenApiRequestBody
             {
-                Content = new Dictionary<string, IOpenApiMediaType>
+                Content = new Dictionary<string, OpenApiMediaType>
                 {
                     [OpenIdConstants.ContentType] = new OpenApiMediaType
                     {

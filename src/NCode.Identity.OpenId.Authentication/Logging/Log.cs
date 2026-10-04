@@ -70,6 +70,38 @@ internal static partial class Log
     internal static partial void FailedToFetchRequestUri(this ILogger logger, Exception exception);
 
     [LoggerMessage(
+        EventId = EventIds.ClientAuthenticationClientNotFound,
+        Level = LogLevel.Information,
+        Message = "Client authentication failed: client '{ClientId}' was not found, is disabled, or does not belong to tenant '{TenantId}'."
+    )]
+    internal static partial void ClientAuthenticationClientNotFound(
+        this ILogger logger,
+        string clientId,
+        string tenantId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientAuthenticationCredentialDeserializationFailed,
+        Level = LogLevel.Warning,
+        Message = "Client authentication failed: a stored credential for client '{ClientId}' could not be deserialized (for example, a secret protected by an unavailable data-protection key)."
+    )]
+    internal static partial void ClientAuthenticationCredentialDeserializationFailed(
+        this ILogger logger,
+        string clientId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientAuthenticationSecretMismatch,
+        Level = LogLevel.Information,
+        Message = "Client authentication failed: the presented secret for client '{ClientId}' did not match any stored secret."
+    )]
+    internal static partial void ClientAuthenticationSecretMismatch(
+        this ILogger logger,
+        string clientId
+    );
+
+    [LoggerMessage(
         EventId = EventIds.MissingStateParameter,
         Level = LogLevel.Information,
         Message = "Missing 'state' parameter."

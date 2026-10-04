@@ -105,11 +105,15 @@ internal class TenantApiEndpointHandler(
             .Produces<TenantResource>(StatusCodes.Status201Created);
         tenants.MapGet("", ListTenantsAsync).Produces<CollectionResource<TenantResource>>();
         tenants.MapGet("/{tenantId}", GetTenantAsync).Produces<TenantResource>();
-        tenants.MapPatch("/{tenantId}", UpdateTenantAsync);
-        tenants.MapDelete("/{tenantId}", DeleteTenantAsync);
+        tenants.MapPatch("/{tenantId}", UpdateTenantAsync).Produces(StatusCodes.Status204NoContent);
+        tenants
+            .MapDelete("/{tenantId}", DeleteTenantAsync)
+            .Produces(StatusCodes.Status204NoContent);
 
         tenants.MapGet("/{tenantId}/settings", GetSettingsAsync).Produces<TenantSettingsResource>();
-        tenants.MapPatch("/{tenantId}/settings", UpdateSettingsAsync);
+        tenants
+            .MapPatch("/{tenantId}/settings", UpdateSettingsAsync)
+            .Produces(StatusCodes.Status204NoContent);
         tenants
             .MapGet("/{tenantId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<TenantEffectiveSettingsResource>();
@@ -119,8 +123,12 @@ internal class TenantApiEndpointHandler(
             .MapPost("/{tenantId}/secrets", CreateSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created);
         tenants.MapGet("/{tenantId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
-        tenants.MapPut("/{tenantId}/secrets/{secretId}", UpdateSecretAsync);
-        tenants.MapDelete("/{tenantId}/secrets/{secretId}", DeleteSecretAsync);
+        tenants
+            .MapPut("/{tenantId}/secrets/{secretId}", UpdateSecretAsync)
+            .Produces(StatusCodes.Status204NoContent);
+        tenants
+            .MapDelete("/{tenantId}/secrets/{secretId}", DeleteSecretAsync)
+            .Produces(StatusCodes.Status204NoContent);
 
         tenants
             .MapGet("/{tenantId}/owners", ListOwnersAsync)
@@ -128,7 +136,9 @@ internal class TenantApiEndpointHandler(
         tenants
             .MapPost("/{tenantId}/owners", AddOwnerAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created);
-        tenants.MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync);
+        tenants
+            .MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync)
+            .Produces(StatusCodes.Status204NoContent);
     }
 
     /// <summary>
@@ -201,13 +211,13 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants</c>, returning a page of OpenID Tenants.
+    /// Lists the OpenID tenants.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
     /// <param name="limit">The maximum number of tenants to return on the page.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">A page of tenants.</response>
     [EndpointName("api/tenants/list")]
     internal virtual async ValueTask<IResult> ListTenantsAsync(
         HttpContext httpContext,
@@ -235,12 +245,12 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}</c>, returning the specified OpenID Tenant resource.
+    /// Gets an OpenID tenant.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The requested tenant.</response>
     [EndpointName("api/tenants/get")]
     internal virtual async ValueTask<IResult> GetTenantAsync(
         HttpContext httpContext,
@@ -258,12 +268,12 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/tenants</c>, creating a new OpenID Tenant.
+    /// Creates an OpenID tenant.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="request">The <see cref="CreateTenantRequest"/> describing the tenant to create.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="201">The created tenant.</response>
     [EndpointName("api/tenants/create")]
     internal virtual async ValueTask<IResult> CreateTenantAsync(
         HttpContext httpContext,
@@ -329,15 +339,14 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>PATCH api/tenants/{tenantId}</c>, applying a JSON Patch document to a tenant's metadata.
-    /// Honors an <c>If-Match</c> precondition.
+    /// Updates an OpenID tenant.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="request">The JSON Patch document to apply to the tenant metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="204">The tenant was updated.</response>
     [EndpointName("api/tenants/update")]
     internal virtual async ValueTask<IResult> UpdateTenantAsync(
         HttpContext httpContext,
@@ -402,13 +411,13 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/tenants/{tenantId}</c>, removing a tenant. The removal is rejected with
-    /// <c>409 Conflict</c> while the tenant still has clients or secrets.
+    /// Deletes an OpenID tenant.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="204">The tenant was deleted.</response>
+    /// <response code="409">The tenant still has clients or secrets and cannot be deleted.</response>
     [EndpointName("api/tenants/delete")]
     internal virtual async ValueTask<IResult> DeleteTenantAsync(
         HttpContext httpContext,
@@ -444,12 +453,12 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/settings</c>, returning the settings for the specified OpenID Tenant.
+    /// Gets a tenant's settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The tenant's settings.</response>
     [EndpointName("api/tenants/settings/get")]
     internal virtual async ValueTask<IResult> GetSettingsAsync(
         HttpContext httpContext,
@@ -473,15 +482,12 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/effective-settings</c>, returning the resolved, merged settings view for
-    /// the specified OpenID Tenant — the server baseline, the tenant's persisted overrides, and descriptor defaults
-    /// combined through the settings merge pipeline, including settings that are not advertised in discovery.
-    /// Authorization requires the same <c>Read</c> permission on the tenant as reading its persisted settings.
+    /// Gets a tenant's effective (resolved) settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The tenant's effective settings.</response>
     [EndpointName("api/tenants/effective-settings/get")]
     internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
         HttpContext httpContext,
@@ -539,15 +545,14 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>PATCH api/tenants/{tenantId}/settings</c>, applying a JSON Patch document to the settings for the
-    /// specified OpenID Tenant. Honors an <c>If-Match</c> precondition and returns the refreshed <c>ETag</c>.
+    /// Updates a tenant's settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="204">The tenant's settings were updated.</response>
     [EndpointName("api/tenants/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
@@ -613,12 +618,12 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/secrets</c>, returning the secrets for the specified OpenID Tenant.
+    /// Lists a tenant's secrets.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The tenant's secrets.</response>
     [EndpointName("api/tenants/secrets/get")]
     internal virtual async ValueTask<IResult> GetSecretsAsync(
         HttpContext httpContext,
@@ -642,13 +647,13 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/tenants/{tenantId}/secrets</c>, generating a new server-side secret and persisting it.
+    /// Creates a tenant secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="request">The <see cref="CreateSecretRequest"/> describing the secret to generate.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="201">The created secret.</response>
     [EndpointName("api/tenants/secrets/create")]
     internal virtual async ValueTask<IResult> CreateSecretAsync(
         HttpContext httpContext,
@@ -729,13 +734,13 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/secrets/{secretId}</c>, returning a single tenant secret.
+    /// Gets a tenant secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="200">The requested secret.</response>
     [EndpointName("api/tenants/secrets/get-one")]
     internal virtual async ValueTask<IResult> GetSecretAsync(
         HttpContext httpContext,
@@ -761,8 +766,7 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>PUT api/tenants/{tenantId}/secrets/{secretId}</c>, updating a secret's metadata. Key material
-    /// is immutable. Honors an <c>If-Match</c> precondition.
+    /// Updates a tenant secret's metadata.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
@@ -770,7 +774,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="request">The <see cref="UpdateSecretRequest"/> with the new metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="204">The secret was updated.</response>
     [EndpointName("api/tenants/secrets/update")]
     internal virtual async ValueTask<IResult> UpdateSecretAsync(
         HttpContext httpContext,
@@ -829,13 +833,13 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/tenants/{tenantId}/secrets/{secretId}</c>, removing a tenant secret.
+    /// Deletes a tenant secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    /// <response code="204">The secret was deleted.</response>
     [EndpointName("api/tenants/secrets/delete")]
     internal virtual async ValueTask<IResult> DeleteSecretAsync(
         HttpContext httpContext,
@@ -871,8 +875,9 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/owners</c>, returning the tenant's owners.
+    /// Lists a tenant's owners.
     /// </summary>
+    /// <response code="200">A page of the tenant's owners.</response>
     [EndpointName("api/tenants/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
@@ -891,8 +896,9 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/tenants/{tenantId}/owners</c>, granting a principal ownership of the tenant.
+    /// Adds an owner to a tenant.
     /// </summary>
+    /// <response code="201">The owner was added.</response>
     [EndpointName("api/tenants/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
@@ -914,9 +920,9 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/tenants/{tenantId}/owners/{principalId}</c>, revoking a principal's ownership of the
-    /// tenant. Refused when it would leave the tenant with no owner.
+    /// Removes an owner from a tenant.
     /// </summary>
+    /// <response code="204">The owner was removed.</response>
     [EndpointName("api/tenants/owners/remove")]
     internal virtual async ValueTask<IResult> RemoveOwnerAsync(
         HttpContext httpContext,

@@ -76,8 +76,11 @@ internal class ClientGrantApiEndpointHandler(
         grants.MapGet("/{resourceServerId}", GetAsync).Produces<ClientGrantResource>();
         grants
             .MapPut("/{resourceServerId}", UpdateAsync)
+            .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status422UnprocessableEntity);
-        grants.MapDelete("/{resourceServerId}", DeleteAsync);
+        grants
+            .MapDelete("/{resourceServerId}", DeleteAsync)
+            .Produces(StatusCodes.Status204NoContent);
     }
 
     internal virtual ClientGrantResource ToResource(PersistedClientGrant grant) =>
@@ -91,8 +94,9 @@ internal class ClientGrantApiEndpointHandler(
         };
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/clients/{clientId}/grants</c>.
+    /// Lists a client's resource-server grants.
     /// </summary>
+    /// <response code="200">A page of the client's grants.</response>
     [EndpointName("api/clients/grants/list")]
     internal virtual async ValueTask<IResult> ListAsync(
         HttpContext httpContext,
@@ -126,8 +130,9 @@ internal class ClientGrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>GET api/tenants/{tenantId}/clients/{clientId}/grants/{resourceServerId}</c>.
+    /// Gets a client's grant for a resource server.
     /// </summary>
+    /// <response code="200">The requested grant.</response>
     [EndpointName("api/clients/grants/get")]
     internal virtual async ValueTask<IResult> GetAsync(
         HttpContext httpContext,
@@ -145,8 +150,10 @@ internal class ClientGrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>POST api/tenants/{tenantId}/clients/{clientId}/grants</c>, authorizing a client to a resource server with scopes.
+    /// Grants a client access to a resource server with a set of scopes.
     /// </summary>
+    /// <response code="201">The created grant.</response>
+    /// <response code="422">The request references an unknown resource server or scopes it does not define.</response>
     [EndpointName("api/clients/grants/create")]
     internal virtual async ValueTask<IResult> CreateAsync(
         HttpContext httpContext,
@@ -192,8 +199,10 @@ internal class ClientGrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>PUT api/tenants/{tenantId}/clients/{clientId}/grants/{resourceServerId}</c>, replacing the granted scopes.
+    /// Replaces the scopes of a client's grant for a resource server.
     /// </summary>
+    /// <response code="204">The grant was updated.</response>
+    /// <response code="422">The request references scopes the resource server does not define.</response>
     [EndpointName("api/clients/grants/update")]
     internal virtual async ValueTask<IResult> UpdateAsync(
         HttpContext httpContext,
@@ -239,8 +248,9 @@ internal class ClientGrantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Handles <c>DELETE api/tenants/{tenantId}/clients/{clientId}/grants/{resourceServerId}</c>, revoking the client's authorization.
+    /// Revokes a client's grant for a resource server.
     /// </summary>
+    /// <response code="204">The grant was deleted.</response>
     [EndpointName("api/clients/grants/delete")]
     internal virtual async ValueTask<IResult> DeleteAsync(
         HttpContext httpContext,

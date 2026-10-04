@@ -19,6 +19,7 @@
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Logic;
 using NCode.Identity.Models;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Models;
@@ -36,12 +37,14 @@ namespace NCode.Identity.OpenId.Authentication.Logic;
 internal class DefaultAuthorizationCodeService(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
-    IPersistedGrantService persistedGrantService
+    IPersistedGrantService persistedGrantService,
+    IAuditEventRecorder auditEventRecorder
 ) : IAuthorizationCodeService
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
+    private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
 
     /// <inheritdoc />
     public async ValueTask<SecurityToken> CreateAuthorizationCodeAsync(
@@ -52,8 +55,6 @@ internal class DefaultAuthorizationCodeService(
         CancellationToken cancellationToken
     )
     {
-        var mediator = openIdContext.Mediator;
-
         var tenantId = openIdContext.Tenant.TenantId;
         var clientId = openIdClient.ClientId;
         var subjectId = subjectAuthentication.SubjectId;
@@ -99,8 +100,11 @@ internal class DefaultAuthorizationCodeService(
             TokenLifetime = tokenLifetime,
         };
 
-        await mediator.SendAsync(
-            new SecurityTokenIssuedEvent(openIdContext, openIdClient, subjectId, securityToken),
+        await AuditEventRecorder.RecordTokenIssuedAsync(
+            openIdContext,
+            openIdClient,
+            subjectId,
+            securityToken,
             cancellationToken
         );
 

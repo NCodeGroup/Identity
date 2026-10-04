@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,20 +17,23 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Tokens.Models;
-using NCode.Identity.OpenId.Contexts;
-using NCode.Mediator;
+using NCode.Identity.Events.Audit;
 
-namespace NCode.Identity.OpenId.Authentication.Tokens.Commands;
+namespace NCode.Identity.OpenId.Authentication.Auditing;
 
 /// <summary>
-/// Represents a mediator event that is raised when a security token is issued.
+/// An audit event raised when a security token is issued. It carries the token's non-sensitive
+/// metadata only; the token value itself is never present on the event.
 /// </summary>
 [PublicAPI]
-public readonly record struct SecurityTokenIssuedEvent(
-    OpenIdContext OpenIdContext,
-    OpenIdClient OpenIdClient,
-    string? SubjectId,
-    SecurityToken SecurityToken
-) : ICommand;
+public sealed record TokenIssuedAuditEvent : AuditEvent
+{
+    /// <inheritdoc />
+    public override string Action => "token.issued";
+
+    /// <summary>
+    /// Gets the type of the issued token (for example an access token, id token, refresh token, or
+    /// authorization code).
+    /// </summary>
+    public required string TokenType { get; init; }
+}

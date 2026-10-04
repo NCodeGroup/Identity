@@ -19,6 +19,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Events;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId;
@@ -75,6 +76,7 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
         : base(serviceCollection)
     {
         serviceCollection.AddPropertyBag();
+        serviceCollection.AddEventServices();
 
         DataProtectionBuilder = serviceCollection.AddDataProtection();
         SecretsLibraryBuilder = serviceCollection.AddSecretsLibrary();

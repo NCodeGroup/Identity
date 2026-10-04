@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 using NCode.Mediator;
@@ -44,6 +45,8 @@ internal static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddSingleton<ITokenService, DefaultTokenService>();
+
+            serviceCollection.TryAddSingleton<IAuditEventRecorder, DefaultAuditEventRecorder>();
 
             serviceCollection.TryAddSingleton<
                 ICommandResponseHandler<

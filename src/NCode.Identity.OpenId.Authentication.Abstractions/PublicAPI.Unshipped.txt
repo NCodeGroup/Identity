@@ -17,6 +17,11 @@ const NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.Auth
 const NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationSourceTypes.Union = "union" -> string!
 const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.Form = "form" -> string!
 const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.Query = "query" -> string!
+NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder
+NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordTokenIssuedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string? subjectId, NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken securityToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent
+NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.TokenType.get -> string!
+NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.TokenType.init -> void
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.Client.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient?
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.ClientAuthenticationResult() -> void
@@ -596,17 +601,6 @@ NCode.Identity.OpenId.Authentication.Tokens.Commands.GetIdTokenSubjectClaimsComm
 NCode.Identity.OpenId.Authentication.Tokens.Commands.GetIdTokenSubjectClaimsCommand.SubjectClaims.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Commands.GetIdTokenSubjectClaimsCommand.TokenContext.get -> NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityTokenContext
 NCode.Identity.OpenId.Authentication.Tokens.Commands.GetIdTokenSubjectClaimsCommand.TokenContext.init -> void
-NCode.Identity.OpenId.Authentication.Tokens.Commands.SecurityTokenIssuedEvent
-NCode.Identity.OpenId.Authentication.Tokens.Commands.SecurityTokenIssuedEvent.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
-NCode.Identity.OpenId.Authentication.Tokens.Commands.SecurityTokenIssuedEvent.OpenIdClient.init -> void
-NCode.Identity.OpenId.Authentication.Tokens.Commands.SecurityTokenIssuedEvent.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
-NCode.Identity.OpenId.Authentication.Tokens.Commands.SecurityTokenIssuedEvent.OpenIdContext.init -> void
-NCode.Identity.OpenId.Authentication.Tokens.Commands.SecurityTokenIssuedEvent.SecurityToken.get -> NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken
-NCode.Identity.OpenId.Authentication.Tokens.Commands.SecurityTokenIssuedEvent.SecurityToken.init -> void
-NCode.Identity.OpenId.Authentication.Tokens.Commands.SecurityTokenIssuedEvent.SecurityTokenIssuedEvent() -> void
-NCode.Identity.OpenId.Authentication.Tokens.Commands.SecurityTokenIssuedEvent.SecurityTokenIssuedEvent(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, string? SubjectId, NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken SecurityToken) -> void
-NCode.Identity.OpenId.Authentication.Tokens.Commands.SecurityTokenIssuedEvent.SubjectId.get -> string?
-NCode.Identity.OpenId.Authentication.Tokens.Commands.SecurityTokenIssuedEvent.SubjectId.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.ITokenService
 NCode.Identity.OpenId.Authentication.Tokens.ITokenService.CreateAccessTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest tokenRequest, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken>
 NCode.Identity.OpenId.Authentication.Tokens.ITokenService.CreateIdTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest tokenRequest, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken>
@@ -660,6 +654,7 @@ NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityTokenContext.TokenReq
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityTokenContext.TokenRequest.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityTokenContext.TokenType.get -> string!
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityTokenContext.TokenType.init -> void
+override NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebKey.KeyType.get -> string!
 override NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.KeyType.get -> string!
 static NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.Undefined.get -> NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult

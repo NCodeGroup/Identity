@@ -31,7 +31,7 @@
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "bootstrap-dev-secret"
       },
-      "dotnetRunMessages": "true",
+      "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:5001;http://localhost:5000"
     },
     "Docker": {

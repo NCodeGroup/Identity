@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
+using NCode.Identity.OpenId.Playground;
 using NCode.Identity.Server;
 using NCode.Registration.AspNetCore;
 using Scalar.AspNetCore;
@@ -45,6 +46,11 @@ var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_Option
 // TODO
 serviceCollection.AddIdentityServer().AddConfiguration(configuration, openIdOptionsSectionName);
 serviceCollection.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();
+
+// Development-only: pre-fill the bootstrap admin client_credentials example on the token endpoint in Scalar.
+serviceCollection.AddOpenApi(options =>
+    options.AddDocumentTransformer<BootstrapTokenExampleDocumentTransformer>()
+);
 
 // DEVELOPMENT ONLY: choose how signing keys are provided (see ADR-0002). The default is ephemeral,
 // in-memory keys (hermetic, ideal for tests). Local running can opt into persistent developer keys —

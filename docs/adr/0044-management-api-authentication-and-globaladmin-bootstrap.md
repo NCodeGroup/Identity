@@ -170,6 +170,15 @@ registration on `IdentityServerBuilder`), and the host configures the renderer.
   runs, so that first call succeeds with no warm-up. This holds in production as well as development; the production
   prerequisites are the established ones — schema applied out of band ([ADR-0041](0041-host-owned-ef-migrations-deliberate-outside-development.md))
   and a persistent Data Protection key ring so the protected secret round-trips ([ADR-0021](0021-developer-signing-keys-seeded-through-persistence.md)).
+- GlobalAdmin authority is carried by the token's `role` claim, not its `scope`. The management endpoints authorize on
+  role and ownership, never on the token's scopes, so the bootstrap token's scope (`read:clients` in the example) is
+  incidental — it only binds the `urn:ncode:management` audience the authentication step validates. This is deliberate
+  and durable: a GlobalAdmin's authority is cross-plane (the control-plane `servers`/`tenants` families plus every
+  workload tenant), but the control-plane scopes are seeded only into the root tenant
+  ([ADR-0031](0031-control-plane-management-resource-server-and-root-tenant-seeding.md)) and are not even requestable
+  from the workload tenant the bootstrap client lives in, so no single requestable scope could represent it. Even if
+  token-scope enforcement arrives for scoped delegation ([ADR-0026](0026-scope-enforcement-via-resource-servers-and-client-grants.md)),
+  GlobalAdmin keeps its role-based bypass.
 - The `#if DEBUG` bypass in `GlobalAdminHandler` is now the development-only affordance behind enforced authorization,
   and is removed when the data-driven assignment model lands.
 - Claim-minted `GlobalAdmin` conferral is a cold-start bridge; when persisted assignments and service principals arrive

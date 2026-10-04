@@ -18,7 +18,6 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -51,6 +50,7 @@ internal class DefaultIntrospectionEndpointProvider(
         endpoints
             .MapPost(OpenIdConstants.EndpointPaths.Introspection, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Introspection)
+            .WithTags(OpenIdConstants.EndpointTags.OpenId)
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
 
@@ -60,12 +60,12 @@ internal class DefaultIntrospectionEndpointProvider(
 
     internal virtual async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
         var openIdContext = httpContext.GetOpenIdContext();
 
+        var mediator = openIdContext.Mediator;
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdContext.ErrorFactory;
 

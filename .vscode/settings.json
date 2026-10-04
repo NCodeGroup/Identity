@@ -8,5 +8,6 @@
   "editor.formatOnSave": true,
   "[csharp]": {
     "editor.defaultFormatter": "csharpier.csharpier-vscode"
-  }
+  },
+  "dotnet.defaultSolution": "NCode.Identity.slnx"
 }

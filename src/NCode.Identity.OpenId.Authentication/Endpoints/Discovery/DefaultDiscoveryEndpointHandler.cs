@@ -20,7 +20,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results;
@@ -45,12 +44,12 @@ internal class DefaultDiscoveryEndpointHandler : IEndpointProvider
 
     private async ValueTask<JsonHttpResult<DiscoveryResult>> HandleRouteAsync(
         HttpContext httpContext,
-        [FromServices] IMediator mediator,
         CancellationToken cancellationToken
     )
     {
         var openIdContext = httpContext.GetOpenIdContext();
 
+        var mediator = openIdContext.Mediator;
         var openIdEnvironment = openIdContext.Environment;
 
         var result = new DiscoveryResult { Issuer = openIdContext.Tenant.Issuer };

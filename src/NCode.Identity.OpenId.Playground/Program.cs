@@ -42,8 +42,6 @@ serviceCollection.AddHttpLogging(options =>
 
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
 
-serviceCollection.AddOpenApi();
-
 // TODO
 serviceCollection.AddIdentityServer().AddConfiguration(configuration, openIdOptionsSectionName);
 serviceCollection.AddEntityFrameworkPersistenceServices<OpenIdDbContext>();

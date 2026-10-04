@@ -98,7 +98,7 @@ internal class ClientApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var clients = endpoints.MapGroup("/clients").WithTags("Clients");
+        var clients = endpoints.MapGroup("/clients").WithTags(OpenIdConstants.EndpointTags.Clients);
 
         clients
             .MapPost("", CreateClientAsync)

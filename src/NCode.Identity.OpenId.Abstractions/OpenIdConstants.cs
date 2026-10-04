@@ -143,7 +143,7 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
-    /// Contains the OpenAPI tag names applied to <c>OAuth</c> and <c>OpenID Connect</c> endpoints.
+    /// Contains the OpenAPI tag names applied to <c>OAuth</c>, <c>OpenID Connect</c>, and management endpoints.
     /// </summary>
     public static class EndpointTags
     {
@@ -151,6 +151,36 @@ public static partial class OpenIdConstants
         /// Contains the OpenAPI tag applied to all <c>OAuth</c> and <c>OpenID Connect</c> endpoints.
         /// </summary>
         public const string OpenId = "oidc";
+
+        /// <summary>
+        /// Contains the OpenAPI tag applied to the <c>clients</c> management endpoints.
+        /// </summary>
+        public const string Clients = "Clients";
+
+        /// <summary>
+        /// Contains the OpenAPI tag applied to the <c>grants</c> management endpoints.
+        /// </summary>
+        public const string Grants = "Grants";
+
+        /// <summary>
+        /// Contains the OpenAPI tag applied to the <c>client grants</c> management endpoints.
+        /// </summary>
+        public const string ClientGrants = "ClientGrants";
+
+        /// <summary>
+        /// Contains the OpenAPI tag applied to the <c>resource servers</c> management endpoints.
+        /// </summary>
+        public const string ResourceServers = "ResourceServers";
+
+        /// <summary>
+        /// Contains the OpenAPI tag applied to the <c>servers</c> management endpoints.
+        /// </summary>
+        public const string Servers = "Servers";
+
+        /// <summary>
+        /// Contains the OpenAPI tag applied to the <c>tenants</c> management endpoints.
+        /// </summary>
+        public const string Tenants = "Tenants";
     }
 
     /// <summary>

@@ -90,7 +90,7 @@ internal class ServerApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var servers = endpoints.MapGroup("/servers").WithTags("Servers");
+        var servers = endpoints.MapGroup("/servers").WithTags(OpenIdConstants.EndpointTags.Servers);
 
         servers
             .MapPost("", CreateServerAsync)

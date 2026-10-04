@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Authentication;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Server.OpenApi;
 using NCode.PropertyBag;
 using NCode.Registration;
 
@@ -83,5 +84,11 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
         OpenIdAuthenticationLibraryBuilder =
             IdentityLibraryBuilder.AddOpenIdAuthenticationLibrary();
         OpenIdManagementLibraryBuilder = IdentityLibraryBuilder.AddOpenIdManagementLibrary();
+
+        // The OpenAPI document describes this server's own endpoints, so the composition root owns its
+        // registration and grouping rather than leaving each host to re-wire it.
+        serviceCollection.AddOpenApi(options =>
+            options.AddDocumentTransformer<TagGroupsDocumentTransformer>()
+        );
     }
 }

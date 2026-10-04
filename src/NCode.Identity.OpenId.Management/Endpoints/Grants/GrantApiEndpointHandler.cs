@@ -62,7 +62,7 @@ internal class GrantApiEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        var grants = endpoints.MapGroup("/grants").WithTags("Grants");
+        var grants = endpoints.MapGroup("/grants").WithTags(OpenIdConstants.EndpointTags.Grants);
 
         grants.MapGet("", ListGrantsAsync).Produces<CollectionResource<GrantResource>>();
         grants

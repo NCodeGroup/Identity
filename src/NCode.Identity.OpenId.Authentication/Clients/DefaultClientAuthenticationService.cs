@@ -29,7 +29,9 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// </summary>
 internal class DefaultClientAuthenticationService : IClientAuthenticationService
 {
-    private ClientAuthenticationResult? ResultOrDefault { get; set; }
+    // Per-request memoization key. The result is cached on the HttpContext so it is scoped to the current request;
+    // this service is a singleton, so an instance field would leak one request's result to every other request.
+    private static readonly object CacheKey = new();
 
     /// <inheritdoc />
     public async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
@@ -37,7 +39,18 @@ internal class DefaultClientAuthenticationService : IClientAuthenticationService
         CancellationToken cancellationToken
     )
     {
-        return ResultOrDefault ??= await AuthenticateCoreAsync(openIdContext, cancellationToken);
+        var items = openIdContext.Http.Items;
+        if (
+            items.TryGetValue(CacheKey, out var cached)
+            && cached is ClientAuthenticationResult result
+        )
+        {
+            return result;
+        }
+
+        var authenticationResult = await AuthenticateCoreAsync(openIdContext, cancellationToken);
+        items[CacheKey] = authenticationResult;
+        return authenticationResult;
     }
 
     private static async ValueTask<ClientAuthenticationResult> AuthenticateCoreAsync(

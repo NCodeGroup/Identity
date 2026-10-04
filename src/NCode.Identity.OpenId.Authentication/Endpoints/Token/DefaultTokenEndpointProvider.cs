@@ -20,11 +20,13 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -43,13 +45,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 /// </summary>
 internal class DefaultTokenEndpointProvider(
     IClientAuthenticationService clientAuthenticationService,
-    IKnownParameterCollectionProvider knownParameterCollectionProvider
+    IKnownParameterCollectionProvider knownParameterCollectionProvider,
+    ILogger<DefaultTokenEndpointProvider> logger
 ) : IEndpointProvider
 {
     private IClientAuthenticationService ClientAuthenticationService { get; } =
         clientAuthenticationService;
     private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
         knownParameterCollectionProvider;
+    private ILogger<DefaultTokenEndpointProvider> Logger { get; } = logger;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
@@ -119,6 +123,7 @@ internal class DefaultTokenEndpointProvider(
 
         if (!authResult.HasClient)
         {
+            Logger.TokenRequestClientAuthenticationRequired();
             return errorFactory
                 .InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest)

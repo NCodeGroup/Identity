@@ -30,5 +30,5 @@ internal static class EventIds
     private const int Base = 12000;
 
     public const int BootstrapAdminClientSeeded = Base + 1;
-    public const int BootstrapAdminClientAlreadyExists = Base + 2;
+    public const int BootstrapAdminClientSecretRefreshed = Base + 2;
 }

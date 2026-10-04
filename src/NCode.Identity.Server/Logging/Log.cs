@@ -39,12 +39,13 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.BootstrapAdminClientAlreadyExists,
-        Level = LogLevel.Debug,
-        Message = "Bootstrap administrator client already exists in tenant '{TenantId}'; skipping seeding"
+        EventId = EventIds.BootstrapAdminClientSecretRefreshed,
+        Level = LogLevel.Information,
+        Message = "Refreshed the bootstrap administrator client '{ClientId}' secret in tenant '{TenantId}'"
     )]
-    internal static partial void BootstrapAdminClientAlreadyExists(
+    internal static partial void BootstrapAdminClientSecretRefreshed(
         this ILogger logger,
+        string clientId,
         string tenantId
     );
 }

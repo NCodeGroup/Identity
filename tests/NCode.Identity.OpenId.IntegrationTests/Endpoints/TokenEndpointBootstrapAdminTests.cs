@@ -19,6 +19,7 @@
 using System.Buffers.Text;
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
@@ -117,10 +118,69 @@ public class TokenEndpointBootstrapAdminTests
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
     }
 
+    [Fact]
+    public async Task PostToken_WhenBootstrapClientHasStaleSecret_HealsAndIssuesToken()
+    {
+        using var factory = new BootstrapConfiguredFactory();
+
+        // Stage the bootstrap client with a secret that does not match configuration (as a prior run's now-unusable
+        // data-protection keys would leave it). The provisioning pass on the first token request must heal it to the
+        // configured secret before client authentication; without the self-heal this request fails invalid_client.
+        await factory.SeedClientDirectlyAsync(BootstrapClientId, "stale-secret-value");
+
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var content = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["client_id"] = BootstrapClientId,
+                ["client_secret"] = BootstrapClientSecret,
+                ["scope"] = ManagementScope,
+            }
+        );
+
+        using var response = await client.PostAsync("/oauth2/token", content);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        using var document = JsonDocument.Parse(body);
+        Assert.True(document.RootElement.TryGetProperty("access_token", out var accessToken));
+        Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
+
+        using var payload = DecodeJwtPayload(accessToken.GetString()!);
+        Assert.Equal("GlobalAdmin", payload.RootElement.GetProperty("role").GetString());
+    }
+
     private static JsonDocument DecodeJwtPayload(string jwt)
     {
         var payloadSegment = jwt.Split('.')[1];
         var payloadBytes = Base64Url.DecodeFromChars(payloadSegment);
         return JsonDocument.Parse(payloadBytes);
+    }
+
+    /// <summary>
+    /// A factory that supplies the bootstrap administrator credential through configuration, so both the direct
+    /// seeding helpers and the configured bootstrap feature operate on the same host and in-memory database.
+    /// </summary>
+    private sealed class BootstrapConfiguredFactory : PlaygroundApplicationFactory
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+            builder.ConfigureAppConfiguration(
+                (_, config) =>
+                    config.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
+                            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecret,
+                        }
+                    )
+            );
+        }
     }
 }

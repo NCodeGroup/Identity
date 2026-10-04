@@ -100,8 +100,10 @@ the `GlobalAdmin` role claim:
   (`ISystemTenantSeeder`) invoked on the lazy, resolve-time path that provisions tenants and seeds the system resource
   servers ([ADR-0031](0031-control-plane-management-resource-server-and-root-tenant-seeding.md)) — not a startup hosted
   service, which ADR-0031 deliberately avoids. It runs on **every** resolution (not only when the tenant is first
-  provisioned), creating the client only when it is absent (`IClientStore.GetOrDefaultAsync`), so it seeds an
-  already-provisioned tenant too. It writes through the normal persistence path so the credential is DbContext-agnostic
+  provisioned), creating the client when it is absent and, when it already exists, **re-protecting its secret from
+  configuration** so a stale or undecryptable stored secret (for example after a data-protection key-ring change) is
+  healed rather than leaving the bootstrap client permanently unable to authenticate. It writes through the normal
+  persistence path so the credential is DbContext-agnostic
   ([ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md),
   [ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md)) and visible to the management API like any
   other client ([ADR-0021](0021-developer-signing-keys-seeded-through-persistence.md) is the precedent for

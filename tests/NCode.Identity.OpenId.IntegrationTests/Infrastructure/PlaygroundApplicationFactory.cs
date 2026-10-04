@@ -243,6 +243,100 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 
+    /// <summary>
+    /// Directly persists the tenant and a confidential client whose stored secret is protected from
+    /// <paramref name="storedSecret"/>, without an HTTP warm-up that would let a configured bootstrap seeder create
+    /// the client first. Use this to stage a pre-existing client (for example with a stale secret) that a later
+    /// request's provisioning pass must reconcile.
+    /// </summary>
+    public async Task SeedClientDirectlyAsync(string clientId, string storedSecret)
+    {
+        using var scope = Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+
+        var tenantStore = storeManager.GetStore<ITenantStore>();
+        if (await tenantStore.GetOrDefaultAsync(TenantId, CancellationToken.None) is null)
+        {
+            await tenantStore.AddAsync(CreateEmptyTenant(TenantId), CancellationToken.None);
+            await storeManager.SaveChangesAsync(CancellationToken.None);
+        }
+
+        var protector = serviceProvider
+            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
+            .CreateDataProtector();
+        var secretBytes = Encoding.UTF8.GetBytes(storedSecret);
+        var writer = new ArrayBufferWriter<byte>();
+        protector.ProtectSpan(secretBytes, ref writer);
+
+        var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
+            new Dictionary<string, object>()
+        );
+
+        var clientStore = storeManager.GetStore<IClientStore>();
+        await clientStore.AddAsync(
+            new PersistedClient
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                IsDisabled = false,
+                Settings = new PersistedClientSettings
+                {
+                    TenantId = TenantId,
+                    ClientId = clientId,
+                    Value = emptySettingsJson,
+                },
+                Secrets = new PersistedClientSecrets
+                {
+                    TenantId = TenantId,
+                    ClientId = clientId,
+                    Value =
+                    [
+                        new PersistedSecret
+                        {
+                            SecretId = $"{clientId}-secret",
+                            Use = null,
+                            Algorithm = null,
+                            CreatedWhen = DateTimeOffset.UnixEpoch,
+                            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
+                            SecretType = SecretTypes.Symmetric,
+                            KeySizeBits = secretBytes.Length * 8,
+                            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+                        },
+                    ],
+                },
+            },
+            CancellationToken.None
+        );
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
+    private static PersistedTenant CreateEmptyTenant(string tenantId) =>
+        new()
+        {
+            TenantId = tenantId,
+            DomainName = null,
+            ConcurrencyToken = Guid.NewGuid().ToString("N"),
+            IsDisabled = false,
+            DisplayName = tenantId,
+            Settings = new PersistedTenantSettings
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = Guid.NewGuid().ToString("N"),
+                Value = System.Text.Json.JsonSerializer.SerializeToElement(null, typeof(object)),
+            },
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = Guid.NewGuid().ToString("N"),
+                Value = [],
+            },
+        };
+
     /// <inheritdoc />
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

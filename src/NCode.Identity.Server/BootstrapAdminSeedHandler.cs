@@ -82,7 +82,11 @@ internal sealed class BootstrapAdminSeedHandler(
         var existing = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (existing is not null)
         {
-            Logger.BootstrapAdminClientAlreadyExists(tenantId);
+            // The configured secret is authoritative. Re-protect it with the current data-protection keys so a stale
+            // or undecryptable stored secret (for example after a key-ring change) is healed instead of leaving the
+            // bootstrap client permanently unable to authenticate.
+            await RefreshClientSecretAsync(store, clientId, clientSecret, cancellationToken);
+            Logger.BootstrapAdminClientSecretRefreshed(clientId, tenantId);
             return;
         }
 
@@ -91,6 +95,29 @@ internal sealed class BootstrapAdminSeedHandler(
         await store.AddAsync(persistedClient, cancellationToken);
 
         Logger.BootstrapAdminClientSeeded(clientId, tenantId);
+    }
+
+    private async ValueTask RefreshClientSecretAsync(
+        IClientStore store,
+        string clientId,
+        string clientSecret,
+        CancellationToken cancellationToken
+    )
+    {
+        var existingSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
+        if (existingSecrets is not null)
+        {
+            foreach (var secret in existingSecrets.Value)
+            {
+                await store.RemoveSecretAsync(clientId, secret.SecretId, cancellationToken);
+            }
+        }
+
+        await store.AddSecretAsync(
+            clientId,
+            CreatePersistedSecret(clientId, clientSecret),
+            cancellationToken
+        );
     }
 
     private bool TargetsTenant(TenantSeedContext context)
@@ -108,23 +135,7 @@ internal sealed class BootstrapAdminSeedHandler(
 
     private PersistedClient CreateClient(string tenantId, string clientId, string clientSecret)
     {
-        var protector = DataProtectorFactory.CreateDataProtector();
-        var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(secretBytes, ref writer);
-
-        var now = TimeProvider.GetUtcNow();
-        var persistedSecret = new PersistedSecret
-        {
-            SecretId = $"{clientId}-secret",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = now,
-            ExpiresWhen = now.AddYears(100),
-            SecretType = SecretTypes.Symmetric,
-            KeySizeBits = secretBytes.Length * 8,
-            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
-        };
+        var persistedSecret = CreatePersistedSecret(clientId, clientSecret);
 
         var emptySettings = JsonSerializer.SerializeToElement(new Dictionary<string, object>());
 
@@ -145,6 +156,29 @@ internal sealed class BootstrapAdminSeedHandler(
                 ClientId = clientId,
                 Value = [persistedSecret],
             },
+        };
+    }
+
+    private PersistedSecret CreatePersistedSecret(string clientId, string clientSecret)
+    {
+        var protector = DataProtectorFactory.CreateDataProtector();
+        var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
+        var writer = new ArrayBufferWriter<byte>();
+        protector.ProtectSpan(secretBytes, ref writer);
+
+        var now = TimeProvider.GetUtcNow();
+        return new PersistedSecret
+        {
+            // A unique id per secret so a refresh (remove-then-add in one unit of work) never collides with the
+            // outgoing secret's id.
+            SecretId = $"{clientId}-{Guid.NewGuid():N}",
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = now,
+            ExpiresWhen = now.AddYears(100),
+            SecretType = SecretTypes.Symmetric,
+            KeySizeBits = secretBytes.Length * 8,
+            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
         };
     }
 }

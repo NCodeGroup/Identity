@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,15 +21,15 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace NCode.Identity.Endpoints;
+namespace NCode.Registration.AspNetCore;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IIdentityEndpointRouteBuilder"/> abstraction.
+/// Provides a default implementation of the <see cref="IEndpointTreeRouteBuilder"/> abstraction.
 /// </summary>
-internal class DefaultIdentityEndpointRouteBuilder(
+internal class DefaultEndpointTreeRouteBuilder(
     IEnumerable<IEndpointGroup> endpointGroups,
     IEnumerable<IEndpointProvider> endpointProviders
-) : IIdentityEndpointRouteBuilder
+) : IEndpointTreeRouteBuilder
 {
     private ImmutableArray<IEndpointGroup> EndpointGroups { get; } = [.. endpointGroups];
 
@@ -61,7 +61,7 @@ internal class DefaultIdentityEndpointRouteBuilder(
     )
     {
         var routeGroup = parent.MapGroup(group.Prefix);
-        group.Configure(routeGroup);
+        group.ConfigureRoutes(routeGroup);
 
         foreach (
             var endpointProvider in serviceProvider.GetKeyedServices<IEndpointProvider>(group.Name)

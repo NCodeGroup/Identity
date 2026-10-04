@@ -1,7 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,17 +19,17 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Routing;
 
-namespace NCode.Identity.Endpoints;
+namespace NCode.Registration.AspNetCore;
 
 /// <summary>
-/// Provides the ability to map identity endpoints to the HTTP request pipeline.
+/// Provides the ability for providers to map endpoints onto the HTTP request pipeline.
 /// </summary>
 [PublicAPI]
-public interface IIdentityEndpointRouteBuilder
+public interface IEndpointProvider
 {
     /// <summary>
-    /// Maps all the identity endpoints that have been registered with the service provider.
+    /// Adds a <see cref="RouteEndpoint"/> to the <see cref="IEndpointRouteBuilder"/> for a specific endpoint(s).
     /// </summary>
-    /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> instance to map the endpoints to.</param>
+    /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> instance.</param>
     void Map(IEndpointRouteBuilder endpoints);
 }

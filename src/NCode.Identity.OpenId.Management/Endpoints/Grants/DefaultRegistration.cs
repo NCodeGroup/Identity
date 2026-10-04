@@ -1,7 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,20 +16,23 @@
 
 #endregion
 
-using JetBrains.Annotations;
-using Microsoft.AspNetCore.Routing;
+using NCode.Registration.AspNetCore;
 
-namespace NCode.Identity.Endpoints;
+namespace NCode.Identity.OpenId.Management.Endpoints.Grants;
 
 /// <summary>
-/// Provides the ability for providers to configure identity endpoints.
+/// Provides extension methods to configure services and handlers for the management Grants endpoint.
 /// </summary>
-[PublicAPI]
-public interface IEndpointProvider
+internal static class DefaultRegistration
 {
-    /// <summary>
-    /// Adds a <see cref="RouteEndpoint"/> to the <see cref="IEndpointRouteBuilder"/> for a specific identity endpoint(s).
-    /// </summary>
-    /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> instance.</param>
-    void Map(IEndpointRouteBuilder endpoints);
+    extension(IEndpointGroupBuilder builder)
+    {
+        /// <summary>
+        /// Registers the management Grants endpoint.
+        /// </summary>
+        public void AddGrantEndpoint()
+        {
+            builder.AddEndpoint<GrantApiEndpointHandler>();
+        }
+    }
 }

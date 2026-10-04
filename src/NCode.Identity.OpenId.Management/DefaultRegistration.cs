@@ -19,7 +19,6 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -30,6 +29,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Identity.OpenId.Management.ResourceServers;
 using NCode.Identity.OpenId.ResourceServers;
 using NCode.Registration;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management;
 
@@ -59,18 +59,10 @@ public static class DefaultRegistration
             serviceCollection.AddAuthorizationHandler<TenantAdminHandler>();
             serviceCollection.AddAuthorizationHandler<OwnershipHandler>();
 
-            serviceCollection.TryAddSingleton<ITenantValidator, DefaultTenantValidator>();
-            serviceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
-            serviceCollection.TryAddSingleton<IServerValidator, DefaultServerValidator>();
             serviceCollection.TryAddSingleton<
                 IResourceOwnershipService,
                 DefaultResourceOwnershipService
             >();
-            serviceCollection.TryAddSingleton<
-                IResourceServerValidator,
-                DefaultResourceServerValidator
-            >();
-            serviceCollection.TryAddSingleton<IClientGrantValidator, DefaultClientGrantValidator>();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

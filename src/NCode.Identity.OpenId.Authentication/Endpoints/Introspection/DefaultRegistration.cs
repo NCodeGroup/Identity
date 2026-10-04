@@ -18,13 +18,12 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages;
 using NCode.Identity.OpenId.Messages;
 using NCode.Mediator;
-using NCode.Registration;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
 
@@ -33,14 +32,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
 /// </summary>
 internal static class DefaultRegistration
 {
-    extension(IServiceBuilder<OpenIdAuthenticationEndpoints> builder)
+    extension(IEndpointGroupBuilder builder)
     {
         /// <summary>
         /// Configures services and handlers for the OpenId <c>Token Introspection</c> endpoint (RFC 7662).
         /// </summary>
-        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<OpenIdAuthenticationEndpoints> AddIntrospectionEndpoint()
+        public void AddIntrospectionEndpoint()
         {
+            builder.AddEndpoint<DefaultIntrospectionEndpointProvider>();
+
             builder.AddMessageFactory<TokenIntrospectionRequest>();
 
             builder.ServiceCollection.TryAddEnumerable(
@@ -49,8 +49,6 @@ internal static class DefaultRegistration
                     DefaultIntrospectTokenHandler
                 >()
             );
-
-            return builder;
         }
     }
 }

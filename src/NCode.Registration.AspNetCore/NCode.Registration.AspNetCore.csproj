@@ -1,10 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
-        <LangVersion>latest</LangVersion>
-        <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>NCode.Identity</RootNamespace>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NCode.Registration.AspNetCore</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,11 +13,9 @@
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" />
-        <PackageReference Include="NCode.Collections.Providers.Abstractions" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
-        <ProjectReference Include="..\NCode.Registration.AspNetCore\NCode.Registration.AspNetCore.csproj" />
     </ItemGroup>
 </Project>

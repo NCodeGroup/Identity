@@ -21,13 +21,13 @@ using IdGen.DependencyInjection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Playground.DevelopmentEnvironment;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server;
+using NCode.Registration.AspNetCore;
 
 /*
  *
@@ -177,7 +177,7 @@ internal class Startup(IConfiguration configuration, IWebHostEnvironment hostEnv
 
         app.UseEndpoints(endpoints =>
         {
-            endpoints.MapIdentityEndpoints();
+            endpoints.MapEndpointGroups();
             endpoints.MapControllers().WithHttpLogging(HttpLoggingFields.All);
             endpoints.MapHealthChecks("/health").WithName("health_endpoint");
         });

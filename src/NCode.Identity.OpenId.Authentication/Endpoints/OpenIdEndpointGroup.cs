@@ -19,7 +19,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
@@ -29,6 +28,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Revocation;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
 
@@ -37,8 +37,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// example <c>/oauth2/token</c>) while still grouping them so the shared pipeline filters apply only to OpenID
 /// endpoints: the <see cref="OpenIdEnvironmentEndpointFilter"/> that materializes the request environment (and opens
 /// the resolved tenant's ambient scope) and the <see cref="OpenIdExceptionEndpointFilter"/> that renders exceptions as
-/// standard OpenID error responses. The group declares the protocol endpoints it contains; their services are
-/// registered by each endpoint's own registration.
+/// standard OpenID error responses. The group declares the protocol endpoints it contains by invoking each endpoint
+/// family's own registration, which adds the endpoint provider and the services it depends on.
 /// </summary>
 internal sealed class OpenIdEndpointGroup : IEndpointGroup
 {
@@ -54,7 +54,7 @@ internal sealed class OpenIdEndpointGroup : IEndpointGroup
     public string Prefix => string.Empty;
 
     /// <inheritdoc />
-    public void Configure(RouteGroupBuilder group)
+    public void ConfigureRoutes(RouteGroupBuilder group)
     {
         // The environment filter is outermost so the ambient tenant scope it opens is still active while the exception
         // filter renders an error.
@@ -63,15 +63,15 @@ internal sealed class OpenIdEndpointGroup : IEndpointGroup
     }
 
     /// <inheritdoc />
-    public void Build(IEndpointGroupBuilder builder)
+    public void ConfigureServices(IEndpointGroupBuilder builder)
     {
-        builder.AddEndpoint<DefaultAuthorizationEndpointHandler>();
-        builder.AddEndpoint<DefaultContinueEndpointHandler>();
-        builder.AddEndpoint<DefaultDiscoveryEndpointHandler>();
-        builder.AddEndpoint<DefaultJwksEndpointHandler>();
-        builder.AddEndpoint<DefaultTokenEndpointProvider>();
-        builder.AddEndpoint<DefaultRevocationEndpointProvider>();
-        builder.AddEndpoint<DefaultIntrospectionEndpointProvider>();
-        builder.AddEndpoint<DefaultUserInfoEndpointProvider>();
+        builder.AddAuthorizationEndpoint();
+        builder.AddContinueEndpoint();
+        builder.AddDiscoveryEndpoint();
+        builder.AddJwksEndpoint();
+        builder.AddTokenEndpoint();
+        builder.AddRevocationEndpoint();
+        builder.AddIntrospectionEndpoint();
+        builder.AddUserInfoEndpoint();
     }
 }

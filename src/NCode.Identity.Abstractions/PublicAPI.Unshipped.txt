@@ -59,44 +59,6 @@ NCode.Identity.Claims.SerializableClaimsPrincipal
 NCode.Identity.Claims.SerializableClaimsPrincipal.Identities.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Claims.SerializableClaimsIdentity!>!
 NCode.Identity.Claims.SerializableClaimsPrincipal.Identities.init -> void
 NCode.Identity.Claims.SerializableClaimsPrincipal.SerializableClaimsPrincipal() -> void
-NCode.Identity.Endpoints.EndpointProviderRegistration
-NCode.Identity.Endpoints.EndpointProviderRegistration.extension(NCode.Registration.IServiceBuilder!)
-NCode.Identity.Endpoints.EndpointProviderRegistration.extension(NCode.Registration.IServiceBuilder!).AddEndpointGroup<T>() -> void
-NCode.Identity.Endpoints.EndpointProviderRegistration.extension(NCode.Registration.IServiceBuilder!).AddEndpointProvider<T>() -> void
-NCode.Identity.Endpoints.EndpointRouteBuilderExtensions
-NCode.Identity.Endpoints.EndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
-NCode.Identity.Endpoints.EndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapIdentityEndpoints() -> void
-NCode.Identity.Endpoints.IEndpointGroup
-NCode.Identity.Endpoints.IEndpointGroup.Build(NCode.Identity.Endpoints.IEndpointGroupBuilder! builder) -> void
-NCode.Identity.Endpoints.IEndpointGroup.Configure(Microsoft.AspNetCore.Routing.RouteGroupBuilder! group) -> void
-NCode.Identity.Endpoints.IEndpointGroup.Name.get -> string!
-NCode.Identity.Endpoints.IEndpointGroup.Prefix.get -> string!
-NCode.Identity.Endpoints.IEndpointGroupBuilder
-NCode.Identity.Endpoints.IEndpointGroupBuilder.AddEndpoint<T>() -> void
-NCode.Identity.Endpoints.IEndpointGroupBuilder.AddGroup<T>() -> void
-NCode.Identity.Endpoints.IEndpointProvider
-NCode.Identity.Endpoints.IEndpointProvider.Map(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> void
-NCode.Identity.Endpoints.IIdentityEndpointRouteBuilder
-NCode.Identity.Endpoints.IIdentityEndpointRouteBuilder.Map(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> void
-NCode.Identity.Endpoints.OperationDisposition<TError>
-NCode.Identity.Endpoints.OperationDisposition<TError>.Error.get -> TError?
-NCode.Identity.Endpoints.OperationDisposition<TError>.Error.set -> void
-NCode.Identity.Endpoints.OperationDisposition<TError>.HasError.get -> bool
-NCode.Identity.Endpoints.OperationDisposition<TError>.OperationDisposition() -> void
-NCode.Identity.Endpoints.OperationDisposition<TError>.Succeeded.get -> bool
-NCode.Identity.Endpoints.ReadOnlyEndpointDisposition
-NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.HasHttpResult.get -> bool
-NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.HttpResult.get -> Microsoft.AspNetCore.Http.IResult?
-NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.HttpResult.init -> void
-NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.ReadOnlyEndpointDisposition() -> void
-NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.WasHandled.get -> bool
-NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.WasHandled.init -> void
-NCode.Identity.Endpoints.ReadOnlyOperationDisposition<TError>
-NCode.Identity.Endpoints.ReadOnlyOperationDisposition<TError>.Error.get -> TError?
-NCode.Identity.Endpoints.ReadOnlyOperationDisposition<TError>.Error.init -> void
-NCode.Identity.Endpoints.ReadOnlyOperationDisposition<TError>.HasError.get -> bool
-NCode.Identity.Endpoints.ReadOnlyOperationDisposition<TError>.ReadOnlyOperationDisposition() -> void
-NCode.Identity.Endpoints.ReadOnlyOperationDisposition<TError>.Succeeded.get -> bool
 NCode.Identity.Exceptions.HttpResultException
 NCode.Identity.Exceptions.HttpResultException.HttpResult.get -> Microsoft.AspNetCore.Http.IResult!
 NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult) -> void
@@ -228,9 +190,6 @@ override NCode.Identity.Settings.SettingDescriptor<TValue>.Format(NCode.Identity
 override NCode.Identity.Settings.SettingDescriptor<TValue>.HasDefault.get -> bool
 override NCode.Identity.Settings.SettingDescriptor<TValue>.Merge(NCode.Identity.Settings.Setting! current, NCode.Identity.Settings.Setting! other) -> NCode.Identity.Settings.Setting!
 override NCode.Identity.Settings.SettingDescriptor<TValue>.ValueType.get -> System.Type!
-static NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.Handled() -> NCode.Identity.Endpoints.ReadOnlyEndpointDisposition
-static NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.Handled(Microsoft.AspNetCore.Http.IResult! httpResult) -> NCode.Identity.Endpoints.ReadOnlyEndpointDisposition
-static NCode.Identity.Endpoints.ReadOnlyEndpointDisposition.UnHandled() -> NCode.Identity.Endpoints.ReadOnlyEndpointDisposition
 static NCode.Identity.Settings.SettingDescriptor<TValue>.implicit operator NCode.Identity.Settings.SettingKey<TValue>(NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor) -> NCode.Identity.Settings.SettingKey<TValue>
 static NCode.Identity.Settings.SettingMerge.And(bool current, bool other) -> bool
 static NCode.Identity.Settings.SettingMerge.Intersect<T>(System.Collections.Generic.IEnumerable<T>! current, System.Collections.Generic.IEnumerable<T>! other) -> System.Collections.Generic.List<T>!

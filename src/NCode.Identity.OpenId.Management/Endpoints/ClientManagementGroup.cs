@@ -16,8 +16,8 @@
 
 #endregion
 
-using NCode.Identity.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
@@ -40,8 +40,8 @@ internal sealed class ClientManagementGroup : IEndpointGroup
     public string Prefix => "/clients/{clientId}";
 
     /// <inheritdoc />
-    public void Build(IEndpointGroupBuilder builder)
+    public void ConfigureServices(IEndpointGroupBuilder builder)
     {
-        builder.AddEndpoint<ClientGrantApiEndpointHandler>();
+        builder.AddClientGrantEndpoint();
     }
 }

@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,32 +17,24 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Logic;
 using NCode.Registration.AspNetCore;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
+namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 
 /// <summary>
-/// Provides extension methods to configure services and handlers for the OpenId Continue endpoint.
+/// Provides extension methods to configure services and handlers for the management Clients endpoint.
 /// </summary>
 internal static class DefaultRegistration
 {
     extension(IEndpointGroupBuilder builder)
     {
         /// <summary>
-        /// Configures services and handlers for the OpenId Continue endpoint.
+        /// Registers the management Clients endpoint and the services it depends on.
         /// </summary>
-        public void AddContinueEndpoint()
+        public void AddClientEndpoint()
         {
-            builder.AddEndpoint<DefaultContinueEndpointHandler>();
-
-            var serviceCollection = builder.ServiceCollection;
-
-            serviceCollection.TryAddSingleton<IContinueService, DefaultContinueService>();
-            serviceCollection.TryAddSingleton<
-                IContinueProviderSelector,
-                DefaultContinueProviderSelector
-            >();
+            builder.AddEndpoint<ClientApiEndpointHandler>();
+            builder.ServiceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
         }
     }
 }

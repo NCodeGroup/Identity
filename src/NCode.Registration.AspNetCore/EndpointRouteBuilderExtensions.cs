@@ -1,6 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-// Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,12 +20,10 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace NCode.Identity.Endpoints;
-
-// TODO
+namespace NCode.Registration.AspNetCore;
 
 /// <summary>
-/// Provides the ability to map identity endpoints to the HTTP request pipeline.
+/// Provides the ability to map the registered endpoint-group hierarchy onto the HTTP request pipeline.
 /// </summary>
 [PublicAPI]
 public static class EndpointRouteBuilderExtensions
@@ -34,12 +32,12 @@ public static class EndpointRouteBuilderExtensions
     extension(IEndpointRouteBuilder endpoints)
     {
         /// <summary>
-        /// Maps all the identity endpoints that have been registered with the service provider.
+        /// Maps all the endpoint groups and providers that have been registered with the service provider.
         /// </summary>
-        public void MapIdentityEndpoints()
+        public void MapEndpointGroups()
         {
             endpoints
-                .ServiceProvider.GetRequiredService<IIdentityEndpointRouteBuilder>()
+                .ServiceProvider.GetRequiredService<IEndpointTreeRouteBuilder>()
                 .Map(endpoints);
         }
     }

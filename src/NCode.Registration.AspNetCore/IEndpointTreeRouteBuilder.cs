@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,31 +16,20 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Routing;
 
-namespace NCode.Identity.Endpoints;
+namespace NCode.Registration.AspNetCore;
 
 /// <summary>
-/// Indicates the disposition of an operation.
+/// Provides the ability to map the registered endpoint-group hierarchy onto the HTTP request pipeline.
 /// </summary>
 [PublicAPI]
-public sealed class OperationDisposition<TError>
+public interface IEndpointTreeRouteBuilder
 {
     /// <summary>
-    /// Gets or sets the error that occurred during the operation.
+    /// Maps all the endpoint groups and providers that have been registered with the service provider.
     /// </summary>
-    public TError? Error { get; set; }
-
-    /// <summary>
-    /// Gets a value indicating whether the operation was successful.
-    /// </summary>
-    [MemberNotNullWhen(false, nameof(Error))]
-    public bool Succeeded => Error is null;
-
-    /// <summary>
-    /// Gets a value indicating whether <see cref="Error"/> is not <see langword="null"/>.
-    /// </summary>
-    [MemberNotNullWhen(true, nameof(Error))]
-    public bool HasError => Error is not null;
+    /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/> instance to map the endpoints to.</param>
+    void Map(IEndpointRouteBuilder endpoints);
 }

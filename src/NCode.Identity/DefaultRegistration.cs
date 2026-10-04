@@ -21,10 +21,10 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Claims;
-using NCode.Identity.Endpoints;
 using NCode.Identity.Logic;
 using NCode.Identity.Settings;
 using NCode.Registration;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity;
 
@@ -53,10 +53,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IClaimsSerializer>(DefaultClaimsSerializer.Singleton);
 
             // Endpoints
-            serviceCollection.TryAddSingleton<
-                IIdentityEndpointRouteBuilder,
-                DefaultIdentityEndpointRouteBuilder
-            >();
+            serviceCollection.AddEndpointGroupRouting();
 
             // Logic
             serviceCollection.TryAddSingleton<ICryptoService, DefaultCryptoService>();

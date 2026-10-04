@@ -417,6 +417,7 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
     | `11000`–`11999` | `NCode.Registration`                                |
     | `12000`–`12999` | `NCode.Identity.Server`                             |
     | `13000`–`13999` | `NCode.Identity.OpenId.Playground`                  |
+    | `14000`–`14999` | `NCode.Identity.Events`                             |
 
 ## 12. Configuration & options
 

@@ -16,25 +16,26 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.ResourceServers;
+namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Describes a single scope on a system resource server that is seeded into a tenant.
+/// Identifies the deployment plane a tenant belongs to, so that seeding contributors can target the control plane
+/// and the workload plane consistently.
 /// </summary>
 [PublicAPI]
-[ExcludeFromCodeCoverage]
-public sealed class SystemScopeDescriptor
+public enum TenantPlane
 {
     /// <summary>
-    /// Gets the value of the scope (for example, <c>openid</c> or <c>read:clients</c>).
+    /// The workload plane, which holds a tenant's own clients, resource servers, scopes, and grants. This is the
+    /// plane of every tenant other than the root tenant.
     /// </summary>
-    public required string Value { get; init; }
+    Workload = 0,
 
     /// <summary>
-    /// Gets the human-readable description of the scope, or <c>null</c> when none is provided.
+    /// The control plane, which administers servers and tenants. This is the plane of the root tenant, whose
+    /// identifier is <see cref="TenantResolutionOptions.RootTenantId"/>.
     /// </summary>
-    public required string? Description { get; init; }
+    Root = 1,
 }

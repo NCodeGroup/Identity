@@ -98,10 +98,13 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
             >()
         );
 
-        // The bootstrap administrator client is seeded into the workload tenant on the same lazy provisioning path
-        // that seeds the system resource servers (ADR-0031/0044); inert unless a bootstrap client is configured.
+        // The bootstrap administrator client is seeded into the workload tenant on the same tenant seed fan-out that
+        // seeds the system resource servers (ADR-0045); inert unless a bootstrap client is configured.
         serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<ISystemTenantSeeder, BootstrapAdminTenantSeeder>()
+            ServiceDescriptor.Singleton<
+                ICommandHandler<SeedTenantCommand>,
+                BootstrapAdminSeedHandler
+            >()
         );
 
         // The OpenAPI document describes this server's own endpoints, so the composition root owns its

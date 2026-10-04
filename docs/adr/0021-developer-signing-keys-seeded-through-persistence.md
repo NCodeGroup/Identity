@@ -1,6 +1,8 @@
 # 21. Developer signing keys are seeded through the persistence layer, not injected at the read path
 
-- **Status:** Accepted
+- **Status:** Accepted (the single-source-of-truth policy stands; the developer key's realization moved from the
+  read-path `DeveloperSigningKeyOpenIdTenantFactory` to a seed handler by
+  [ADR-0045](0045-tenant-provisioning-and-seeding-pipeline.md))
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
 

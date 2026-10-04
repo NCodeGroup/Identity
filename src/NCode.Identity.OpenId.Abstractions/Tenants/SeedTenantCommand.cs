@@ -17,20 +17,16 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Mediator;
 
-namespace NCode.Identity.OpenId.ResourceServers;
+namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Contributes a reserved, system-owned resource server that is seeded into a tenant. Multiple providers are
-/// registered as a collection so that each subsystem (for example, the OpenID Connect identity API and the
-/// management API) can contribute its own system resource server.
+/// Represents a mediator command that seeds a tenant with its reserved, system-owned data (for example, the system
+/// resource servers and any bootstrap data). Every registered handler runs, fanning out the seed across the
+/// subsystems that contribute to a tenant. Handlers share the unit of work on <see cref="TenantSeedContext"/> and
+/// must be idempotent, because a tenant may be seeded more than once (for example, when reconciling after an upgrade).
 /// </summary>
+/// <param name="Context">The shared <see cref="TenantSeedContext"/> for the tenant being seeded.</param>
 [PublicAPI]
-public interface ISystemResourceServerProvider
-{
-    /// <summary>
-    /// Gets the descriptor for the system resource server to seed.
-    /// </summary>
-    /// <returns>The <see cref="SystemResourceServerDescriptor"/> describing the resource server and its scopes.</returns>
-    SystemResourceServerDescriptor GetDescriptor();
-}
+public readonly record struct SeedTenantCommand(TenantSeedContext Context) : ICommand;

@@ -29,7 +29,8 @@ using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Identity.OpenId.Management.OpenApi;
 using NCode.Identity.OpenId.Management.ResourceServers;
-using NCode.Identity.OpenId.ResourceServers;
+using NCode.Identity.OpenId.Tenants;
+using NCode.Mediator;
 using NCode.Registration;
 using NCode.Registration.AspNetCore;
 
@@ -61,9 +62,9 @@ public static class DefaultRegistration
             serviceCollection.AddAuthorizationHandler<TenantAdminHandler>();
             serviceCollection.AddAuthorizationHandler<OwnershipHandler>();
 
-            // Enrich the OpenAPI document with descriptions for the management API's shared path parameters.
+            // Enrich the OpenAPI document with descriptions for the management API's shared parameters.
             serviceCollection.AddOpenApi(openApiOptions =>
-                openApiOptions.AddDocumentTransformer<ManagementPathParameterDocumentTransformer>()
+                openApiOptions.AddDocumentTransformer<ManagementParameterDocumentTransformer>()
             );
 
             serviceCollection.TryAddSingleton<
@@ -73,15 +74,8 @@ public static class DefaultRegistration
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    ISystemResourceServerProvider,
-                    ManagementResourceServerProvider
-                >()
-            );
-
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ISystemResourceServerProvider,
-                    ControlManagementResourceServerProvider
+                    ICommandHandler<SeedTenantCommand>,
+                    ManagementResourceServerSeedHandler
                 >()
             );
 

@@ -17,14 +17,11 @@
 
 #endregion
 
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.ResourceServers;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Tenants.Strategies;
@@ -35,23 +32,11 @@ namespace NCode.Identity.OpenId.Tenants.Strategies;
 /// </summary>
 internal class StaticSingleTenantStrategy(
     IStoreManagerFactory storeManagerFactory,
-    IOptions<TenantResolutionOptions> optionsAccessor,
-    ISystemResourceServerSeeder systemResourceServerSeeder,
-    IEnumerable<ISystemTenantSeeder> systemTenantSeeders
+    IOptions<TenantResolutionOptions> optionsAccessor
 ) : TenantStrategy(storeManagerFactory)
 {
-    private const string RootDisplayName = "Root Tenant";
-
-    private ISystemResourceServerSeeder SystemResourceServerSeeder { get; } =
-        systemResourceServerSeeder;
-
-    private ImmutableArray<ISystemTenantSeeder> SystemTenantSeeders { get; } =
-    [.. systemTenantSeeders];
-
     private StaticSingleTenantOptions Options =>
         optionsAccessor.Value.StaticSingle ?? new StaticSingleTenantOptions();
-
-    private string RootTenantId => optionsAccessor.Value.RootTenantId;
 
     /// <inheritdoc />
     public override string StrategyCode => OpenIdConstants.TenantStrategyCodes.StaticSingle;
@@ -91,85 +76,11 @@ internal class StaticSingleTenantStrategy(
         if (string.IsNullOrEmpty(displayName))
             displayName = StaticSingleTenantOptions.DefaultDisplayName;
 
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
+        // Lazily provision and seed on first resolution. The provisioner ensures the root tenant first, then the
+        // workload tenant, and runs the seed fan-out for each within a single unit of work (ADR-0045). The mediator
+        // is request-scoped, so the provisioner is resolved from the request's service provider.
+        var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
 
-        // The root (control-plane) tenant must exist so that its control-plane management resource server is seeded,
-        // even when the workload tenant differs from the root tenant (ADR-0024).
-        if (!string.Equals(tenantId, RootTenantId, StringComparison.Ordinal))
-        {
-            await EnsureTenantAsync(
-                store,
-                storeManager,
-                RootTenantId,
-                RootDisplayName,
-                cancellationToken
-            );
-        }
-
-        return await EnsureTenantAsync(
-            store,
-            storeManager,
-            tenantId,
-            displayName,
-            cancellationToken
-        );
-    }
-
-    private async ValueTask<PersistedTenant> EnsureTenantAsync(
-        ITenantStore store,
-        IStoreManager storeManager,
-        string tenantId,
-        string displayName,
-        CancellationToken cancellationToken
-    )
-    {
-        var persistedTenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
-        if (persistedTenant is null)
-        {
-            persistedTenant = CreateEmptyPersistedTenant(tenantId, displayName);
-            await store.AddAsync(persistedTenant, cancellationToken);
-            await storeManager.SaveChangesAsync(cancellationToken);
-
-            // A freshly-provisioned tenant is self-contained: seed its reserved system resource servers.
-            await SystemResourceServerSeeder.SeedAsync(tenantId, cancellationToken);
-        }
-
-        // Tenant seeders (for example, the bootstrap administrator client) run on every resolution, not only on fresh
-        // provisioning, so they can seed an already-provisioned tenant; each is idempotent and self-limiting.
-        foreach (var seeder in SystemTenantSeeders)
-        {
-            await seeder.SeedAsync(tenantId, cancellationToken);
-        }
-
-        return persistedTenant;
-    }
-
-    private static PersistedTenant CreateEmptyPersistedTenant(string tenantId, string displayName)
-    {
-        var settings = new PersistedTenantSettings
-        {
-            TenantId = tenantId,
-            ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            Value = JsonSerializer.SerializeToElement(null, typeof(object)),
-        };
-
-        var secrets = new PersistedTenantSecrets
-        {
-            TenantId = tenantId,
-            ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            Value = [],
-        };
-
-        return new PersistedTenant
-        {
-            TenantId = tenantId,
-            DomainName = null,
-            ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            IsDisabled = false,
-            DisplayName = displayName,
-            Settings = settings,
-            Secrets = secrets,
-        };
+        return await provisioner.ProvisionAsync(tenantId, displayName, cancellationToken);
     }
 }

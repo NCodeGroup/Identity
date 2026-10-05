@@ -758,7 +758,9 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         var generated = CreatePersistedSecret();
         MockSecretGenerator
             .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
-            .Returns(generated)
+            .Returns(
+                new GeneratedSecret { Secret = generated, SecretMaterial = "revealed-material" }
+            )
             .Verifiable();
         MockClientStore
             .Setup(x => x.AddSecretAsync(ClientId, generated, It.IsAny<CancellationToken>()))
@@ -779,9 +781,49 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var created = Assert.IsType<Created<SecretResource>>(result);
+        var created = Assert.IsType<Created<CreatedSecretResource>>(result);
         Assert.Equal("secret-1", created.Value?.SecretId);
+        Assert.Equal("revealed-material", created.Value?.SecretMaterial);
         Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenAsymmetric_DoesNotRevealMaterial()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
+
+        var generated = CreatePersistedSecret();
+        MockSecretGenerator
+            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, generated, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<CreatedSecretResource>>(result);
+        Assert.Null(created.Value?.SecretMaterial);
     }
 
     [Fact]

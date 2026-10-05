@@ -548,7 +548,7 @@ internal class ServerApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
-        PersistedSecret generatedSecret;
+        GeneratedSecret generatedSecret;
         try
         {
             generatedSecret = SecretGenerator.GenerateSecret(
@@ -576,7 +576,7 @@ internal class ServerApiEndpointHandler(
 
         try
         {
-            await store.AddSecretAsync(serverId, generatedSecret, cancellationToken);
+            await store.AddSecretAsync(serverId, generatedSecret.Secret, cancellationToken);
         }
         catch (InvalidOperationException exception)
         {
@@ -590,10 +590,10 @@ internal class ServerApiEndpointHandler(
         await storeManager.SaveChangesAsync(cancellationToken);
 
         // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
-        httpContext.Response.Headers.ETag = generatedSecret.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
         return TypedResults.Created(
             $"/servers/{serverId}/secrets/{secretId}",
-            ToSecretResource(generatedSecret)
+            ToSecretResource(generatedSecret.Secret)
         );
     }
 

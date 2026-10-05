@@ -37,9 +37,9 @@ internal class DefaultSecretGenerator(IDataProtectorFactory<PersistedSecret> dat
     private IDataProtector DataProtector { get; } = dataProtectorFactory.CreateDataProtector();
 
     /// <inheritdoc />
-    public PersistedSecret GenerateSecret(GenerateSecretRequest request)
+    public GeneratedSecret GenerateSecret(GenerateSecretRequest request)
     {
-        var (encodedValue, keySizeBits) = request.SecretType switch
+        var (encodedValue, keySizeBits, secretMaterial) = request.SecretType switch
         {
             SecretTypes.Symmetric => GenerateSymmetric(request.KeySizeBits),
             SecretTypes.Rsa => GenerateRsa(request.KeySizeBits),
@@ -49,7 +49,7 @@ internal class DefaultSecretGenerator(IDataProtectorFactory<PersistedSecret> dat
             ),
         };
 
-        return new PersistedSecret
+        var secret = new PersistedSecret
         {
             SecretId = request.SecretId,
             Use = request.Use,
@@ -60,9 +60,13 @@ internal class DefaultSecretGenerator(IDataProtectorFactory<PersistedSecret> dat
             KeySizeBits = keySizeBits,
             EncodedValue = encodedValue,
         };
+
+        return new GeneratedSecret { Secret = secret, SecretMaterial = secretMaterial };
     }
 
-    private (string EncodedValue, int KeySizeBits) GenerateSymmetric(int keySizeBits)
+    private (string EncodedValue, int KeySizeBits, string? SecretMaterial) GenerateSymmetric(
+        int keySizeBits
+    )
     {
         if (keySizeBits <= 0 || keySizeBits % 8 != 0)
         {
@@ -76,16 +80,23 @@ internal class DefaultSecretGenerator(IDataProtectorFactory<PersistedSecret> dat
         using var _ = BufferFactory.Rent(keySizeBytes, isSensitive: true, out Span<byte> span);
         RandomNumberGenerator.Fill(span);
 
-        return (Protect(span), keySizeBits);
+        // Reveal-once plaintext for symmetric shared secrets (ADR-0050); asymmetric private keys stay null.
+        var secretMaterial = Base64Url.Encode(span);
+
+        return (Protect(span), keySizeBits, secretMaterial);
     }
 
-    private (string EncodedValue, int KeySizeBits) GenerateRsa(int keySizeBits)
+    private (string EncodedValue, int KeySizeBits, string? SecretMaterial) GenerateRsa(
+        int keySizeBits
+    )
     {
         using var rsa = RSA.Create(keySizeBits);
-        return (ExportProtectedPkcs8(rsa), rsa.KeySize);
+        return (ExportProtectedPkcs8(rsa), rsa.KeySize, null);
     }
 
-    private (string EncodedValue, int KeySizeBits) GenerateEcc(int keySizeBits)
+    private (string EncodedValue, int KeySizeBits, string? SecretMaterial) GenerateEcc(
+        int keySizeBits
+    )
     {
         var curve = keySizeBits switch
         {
@@ -99,7 +110,7 @@ internal class DefaultSecretGenerator(IDataProtectorFactory<PersistedSecret> dat
         };
 
         using var ecdsa = ECDsa.Create(curve);
-        return (ExportProtectedPkcs8(ecdsa), ecdsa.KeySize);
+        return (ExportProtectedPkcs8(ecdsa), ecdsa.KeySize, null);
     }
 
     private string ExportProtectedPkcs8(AsymmetricAlgorithm algorithm)

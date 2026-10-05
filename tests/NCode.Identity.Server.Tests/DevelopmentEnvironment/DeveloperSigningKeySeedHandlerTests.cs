@@ -58,7 +58,7 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
         var secretGenerator = CreateStrictMock<ISecretGenerator>();
         secretGenerator
             .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
-            .Returns(generatedSecret)
+            .Returns(new GeneratedSecret { Secret = generatedSecret, SecretMaterial = null })
             .Verifiable();
 
         var cryptoService = CreateStrictMock<ICryptoService>();
@@ -173,7 +173,7 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
         var secretGenerator = CreateStrictMock<ISecretGenerator>();
         secretGenerator
             .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
-            .Returns(generatedSecret)
+            .Returns(new GeneratedSecret { Secret = generatedSecret, SecretMaterial = null })
             .Verifiable();
 
         var cryptoService = CreateStrictMock<ICryptoService>();

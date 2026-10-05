@@ -64,12 +64,18 @@ public class DefaultSecretGeneratorTests
     {
         var request = CreateRequest(SecretTypes.Symmetric, 256);
 
-        var persisted = _generator.GenerateSecret(request);
+        var generated = _generator.GenerateSecret(request);
+        var persisted = generated.Secret;
 
         Assert.Equal("gen-1", persisted.SecretId);
         Assert.Equal(SecretTypes.Symmetric, persisted.SecretType);
         Assert.Equal(256, persisted.KeySizeBits);
         Assert.NotEmpty(persisted.EncodedValue);
+
+        // ADR-0050: symmetric secrets reveal their one-time unprotected material, distinct from the protected value.
+        Assert.NotNull(generated.SecretMaterial);
+        Assert.NotEmpty(generated.SecretMaterial);
+        Assert.NotEqual(persisted.EncodedValue, generated.SecretMaterial);
 
         var secretKey = _serializer.DeserializeSecret(persisted);
 
@@ -94,10 +100,14 @@ public class DefaultSecretGeneratorTests
     {
         var request = CreateRequest(SecretTypes.Rsa, 2048);
 
-        var persisted = _generator.GenerateSecret(request);
+        var generated = _generator.GenerateSecret(request);
+        var persisted = generated.Secret;
 
         Assert.Equal(SecretTypes.Rsa, persisted.SecretType);
         Assert.Equal(2048, persisted.KeySizeBits);
+
+        // ADR-0050: asymmetric private keys are never revealed.
+        Assert.Null(generated.SecretMaterial);
 
         var secretKey = _serializer.DeserializeSecret(persisted);
 
@@ -114,10 +124,14 @@ public class DefaultSecretGeneratorTests
     {
         var request = CreateRequest(SecretTypes.Ecc, 256);
 
-        var persisted = _generator.GenerateSecret(request);
+        var generated = _generator.GenerateSecret(request);
+        var persisted = generated.Secret;
 
         Assert.Equal(SecretTypes.Ecc, persisted.SecretType);
         Assert.Equal(256, persisted.KeySizeBits);
+
+        // ADR-0050: asymmetric private keys are never revealed.
+        Assert.Null(generated.SecretMaterial);
 
         var secretKey = _serializer.DeserializeSecret(persisted);
 
@@ -142,7 +156,7 @@ public class DefaultSecretGeneratorTests
     {
         var request = CreateRequest(SecretTypes.Symmetric, 256);
 
-        var persisted = _generator.GenerateSecret(request);
+        var persisted = _generator.GenerateSecret(request).Secret;
 
         Assert.Equal(request.Use, persisted.Use);
         Assert.Equal(request.Algorithm, persisted.Algorithm);

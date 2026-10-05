@@ -52,8 +52,14 @@ NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.SecretType.get ->
 NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.SecretType.init -> void
 NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Use.get -> string?
 NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Use.init -> void
+NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret
+NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret.GeneratedSecret() -> void
+NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret.Secret.get -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret.Secret.init -> void
+NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret.SecretMaterial.get -> string?
+NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret.SecretMaterial.init -> void
 NCode.Identity.Secrets.Persistence.Logic.ISecretGenerator
-NCode.Identity.Secrets.Persistence.Logic.ISecretGenerator.GenerateSecret(NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+NCode.Identity.Secrets.Persistence.Logic.ISecretGenerator.GenerateSecret(NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret!
 NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer
 NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer.DeserializeSecret(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret) -> NCode.Identity.Secrets.Keys.SecretKey!
 NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer.DeserializeSecrets(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! persistedSecrets) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!

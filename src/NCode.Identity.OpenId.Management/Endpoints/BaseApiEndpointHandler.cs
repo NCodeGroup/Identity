@@ -164,6 +164,33 @@ internal abstract class BaseApiEndpointHandler
     }
 
     /// <summary>
+    /// Maps a single <see cref="PersistedSecret"/> instance to its <see cref="CreatedSecretResource"/>
+    /// representation, carrying the one-time unprotected key material to reveal (ADR-0050). Used only by the
+    /// client-secret create path; every read path returns the material-free <see cref="SecretResource"/>.
+    /// </summary>
+    /// <param name="secret">The <see cref="PersistedSecret"/> instance to map.</param>
+    /// <param name="secretMaterial">The one-time unprotected material to reveal, or <c>null</c> when none.</param>
+    /// <returns>The mapped <see cref="CreatedSecretResource"/>.</returns>
+    internal virtual CreatedSecretResource ToCreatedSecretResource(
+        PersistedSecret secret,
+        string? secretMaterial
+    )
+    {
+        return new CreatedSecretResource
+        {
+            SecretId = secret.SecretId,
+            ConcurrencyToken = secret.ConcurrencyToken,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            CreatedWhen = secret.CreatedWhen,
+            ExpiresWhen = secret.ExpiresWhen,
+            SecretType = secret.SecretType,
+            KeySizeBits = secret.KeySizeBits,
+            SecretMaterial = secretMaterial,
+        };
+    }
+
+    /// <summary>
     /// Processes an HTTP <c>GET</c> request for the specified value, returning the value as-is when found and authorized.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>

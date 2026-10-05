@@ -693,7 +693,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         var generated = CreatePersistedSecret();
         MockSecretGenerator
             .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
-            .Returns(generated)
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockServerStore
             .Setup(x => x.AddSecretAsync(ServerId, generated, It.IsAny<CancellationToken>()))
@@ -803,7 +803,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         var generated = CreatePersistedSecret();
         MockSecretGenerator
             .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
-            .Returns(generated)
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockServerStore
             .Setup(x => x.AddSecretAsync(ServerId, generated, It.IsAny<CancellationToken>()))

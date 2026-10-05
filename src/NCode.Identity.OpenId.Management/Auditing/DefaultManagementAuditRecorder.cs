@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 
@@ -54,6 +55,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
+            Source = GetSource(httpContext),
             TenantId = tenantId,
             SubjectId = subjectId,
             ClientId = clientId,
@@ -80,6 +82,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
+            Source = GetSource(httpContext),
             TenantId = tenantId,
             SubjectId = subjectId,
             ClientId = clientId,
@@ -106,6 +109,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
+            Source = GetSource(httpContext),
             TenantId = tenantId,
             ClientId = clientId,
             Outcome = AuditOutcome.Success,
@@ -134,6 +138,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
+            Source = GetSource(httpContext),
             TenantId = tenantId,
             ClientId = clientId,
             Outcome = AuditOutcome.Success,
@@ -160,6 +165,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
+            Source = GetSource(httpContext),
             TenantId = tenantId,
             Outcome = AuditOutcome.Success,
             ResourceId = tenantId,
@@ -186,6 +192,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
+            Source = GetSource(httpContext),
             TenantId = tenantId,
             Outcome = AuditOutcome.Success,
             ResourceId = secretId,
@@ -198,6 +205,13 @@ internal class DefaultManagementAuditRecorder(
 
     private static string? GetCorrelationId(HttpContext httpContext) =>
         Activity.Current?.Id ?? httpContext.TraceIdentifier;
+
+    private static string? GetSource(HttpContext httpContext)
+    {
+        var endpoint = httpContext.GetEndpoint();
+        return endpoint?.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName
+            ?? endpoint?.DisplayName;
+    }
 
     private static string? GetActorId(HttpContext httpContext) =>
         httpContext.User.FindFirstValue("sub")

@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Grants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -44,6 +45,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     private Mock<IGrantStore> MockGrantStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
+    private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private GrantApiEndpointHandler Handler { get; }
 
     public GrantApiEndpointHandlerTests()
@@ -54,10 +56,12 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         MockGrantStore = MockRepository.Create<IGrantStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
+        MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
 
         Handler = new GrantApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
+            MockManagementAuditRecorder.Object,
             TimeProvider.System,
             MockCryptoService.Object
         );
@@ -270,6 +274,20 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordGrantsRevokedAsync(
+                    It.IsAny<HttpContext>(),
+                    TenantId,
+                    "subject-1",
+                    null,
+                    3,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.RevokeGrantsAsync(
@@ -390,6 +408,20 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockStoreManager
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordGrantRevokedAsync(
+                    It.IsAny<HttpContext>(),
+                    TenantId,
+                    "subject-1",
+                    "client-1",
+                    "authorization_code",
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 

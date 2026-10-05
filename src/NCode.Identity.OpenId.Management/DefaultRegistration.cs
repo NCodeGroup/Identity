@@ -20,6 +20,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -70,6 +71,11 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<
                 IResourceOwnershipService,
                 DefaultResourceOwnershipService
+            >();
+
+            serviceCollection.TryAddSingleton<
+                IManagementAuditRecorder,
+                DefaultManagementAuditRecorder
             >();
 
             serviceCollection.TryAddEnumerable(

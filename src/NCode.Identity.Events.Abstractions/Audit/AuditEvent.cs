@@ -51,6 +51,9 @@ public abstract record AuditEvent : IAuditEvent
     public string? SubjectId { get; init; }
 
     /// <inheritdoc />
+    public string? ActorId { get; init; }
+
+    /// <inheritdoc />
     public string? ClientId { get; init; }
 
     /// <inheritdoc />

@@ -28,6 +28,12 @@ The coding-convention instruction files are the single source of truth, auto-app
 [`csharp-testing.instructions.md`](.github/instructions/csharp-testing.instructions.md). The _reasoning_ behind
 non-obvious decisions lives in [`docs/adr/`](docs/adr/).
 
+## Known pending work
+
+[`BACKLOG.md`](BACKLOG.md) is the single source of truth for documented pending work — deferred decisions, feature
+gaps, and follow-ups. Record pending/deferred items **there** (and a non-obvious decision in an ADR), not in chat
+history or volatile agent memory ([ADR-0008](docs/adr/0008-conventions-and-lessons-live-in-the-repository.md)).
+
 ## Build, test & contributing
 
 Run [`./build/dod.ps1`](build/dod.ps1) — the single Definition of Done (tool-restore, CSharpier check, restore,

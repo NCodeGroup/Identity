@@ -27,6 +27,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
@@ -62,6 +63,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
+    private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private TenantApiEndpointHandler Handler { get; }
 
     public TenantApiEndpointHandlerTests()
@@ -91,6 +93,31 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             )
             .Returns(ValueTask.CompletedTask);
 
+        MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordTenantChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordTenantSecretChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
+
         Handler = new TenantApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
@@ -101,6 +128,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockSettingSerializer.Object,
             MockServerProvider.Object,
             MockResourceOwnershipService.Object,
+            MockManagementAuditRecorder.Object,
             NullLogger<TenantApiEndpointHandler>.Instance
         );
     }

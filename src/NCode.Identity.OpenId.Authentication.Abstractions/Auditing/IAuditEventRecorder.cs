@@ -113,4 +113,23 @@ public interface IAuditEventRecorder
         string? reason,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Records that authenticating a client at the token endpoint failed.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="clientId">The identifier of the client that failed authentication.</param>
+    /// <param name="reason">A short, non-sensitive reason authentication failed.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordClientAuthenticationFailedAsync(
+        OpenIdContext openIdContext,
+        string clientId,
+        string? reason,
+        CancellationToken cancellationToken
+    );
 }

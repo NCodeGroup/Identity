@@ -54,4 +54,23 @@ public interface IAuditEventRecorder
         SecurityToken securityToken,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Records that a token (a refresh-token grant) was revoked.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that revoked the token.</param>
+    /// <param name="subjectId">The identifier of the subject the revoked token was issued for, if any.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordTokenRevokedAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string? subjectId,
+        CancellationToken cancellationToken
+    );
 }

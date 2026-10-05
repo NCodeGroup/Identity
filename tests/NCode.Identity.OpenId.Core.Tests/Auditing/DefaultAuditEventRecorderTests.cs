@@ -279,6 +279,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockError.Setup(x => x.Code).Returns("invalid_request").Verifiable();
         mockError
@@ -299,7 +300,6 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         await recorder.RecordOpenIdErrorAsync(
             mockContext.Object,
             mockError.Object,
-            "api/token",
             CancellationToken.None
         );
 
@@ -322,6 +322,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockError.Setup(x => x.Code).Returns(OpenIdConstants.ErrorCodes.AccessDenied).Verifiable();
         mockError.Setup(x => x.Description).Returns((string?)null).Verifiable();
@@ -339,7 +340,6 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         await recorder.RecordOpenIdErrorAsync(
             mockContext.Object,
             mockError.Object,
-            endpointName: null,
             CancellationToken.None
         );
 
@@ -348,7 +348,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, captured.ErrorCode);
         Assert.Null(captured.ErrorDescription);
         Assert.Null(captured.StatusCode);
-        Assert.Null(captured.EndpointName);
+        Assert.Equal("api/authorize", captured.EndpointName);
     }
 
     #endregion

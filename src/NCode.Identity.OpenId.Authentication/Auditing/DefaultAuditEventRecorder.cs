@@ -154,7 +154,6 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
     public ValueTask RecordOpenIdErrorAsync(
         OpenIdContext openIdContext,
         IOpenIdError error,
-        string? endpointName,
         CancellationToken cancellationToken
     )
     {
@@ -176,7 +175,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             ErrorCode = error.Code,
             ErrorDescription = error.Description,
             StatusCode = error.StatusCode,
-            EndpointName = endpointName,
+            EndpointName = openIdContext.EndpointName,
         };
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);

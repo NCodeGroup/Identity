@@ -139,7 +139,6 @@ public interface IAuditEventRecorder
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
     /// <param name="error">The <see cref="IOpenIdError"/> that was returned; only its non-sensitive metadata is recorded.</param>
-    /// <param name="endpointName">The name of the endpoint that produced the error, if known.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
     /// </param>
@@ -149,7 +148,6 @@ public interface IAuditEventRecorder
     ValueTask RecordOpenIdErrorAsync(
         OpenIdContext openIdContext,
         IOpenIdError error,
-        string? endpointName,
         CancellationToken cancellationToken
     );
 }

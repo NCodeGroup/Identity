@@ -1,4 +1,10 @@
 #nullable enable
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Client = "client" -> string!
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ClientSecret = "client.secret" -> string!
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Tenant = "tenant" -> string!
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.TenantSecret = "tenant.secret" -> string!
+NCode.Identity.OpenId.Management.Auditing.ClientChangedAuditEvent
+NCode.Identity.OpenId.Management.Auditing.ClientSecretChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.GrantType.get -> string?
 NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.GrantType.init -> void
@@ -6,8 +12,11 @@ NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCount.get -> long
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCount.init -> void
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordGrantRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? clientId, string? grantType, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordGrantsRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? clientId, long revokedCount, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes
 NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest
 NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.AddOwnerRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.PrincipalId.get -> string!
@@ -323,5 +332,7 @@ NCode.Identity.OpenId.Management.ManagementError.Detail.init -> void
 NCode.Identity.OpenId.Management.ManagementError.ManagementError() -> void
 NCode.Identity.OpenId.Management.ManagementError.StatusCode.get -> int
 NCode.Identity.OpenId.Management.ManagementError.StatusCode.init -> void
+override NCode.Identity.OpenId.Management.Auditing.ClientChangedAuditEvent.ResourceType.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.ClientSecretChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.Action.get -> string!

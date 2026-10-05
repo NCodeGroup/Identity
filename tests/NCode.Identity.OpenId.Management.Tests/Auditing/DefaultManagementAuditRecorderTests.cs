@@ -17,6 +17,7 @@
 #endregion
 
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.Events;
@@ -132,6 +133,108 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Null(captured.ClientId);
         Assert.Equal(7, captured.RevokedCount);
         Assert.Equal("admin-1", captured.ActorId);
+    }
+
+    #endregion
+
+    #region RecordClientChangedAsync Tests
+
+    [Fact]
+    public async Task RecordClientChangedAsync_PublishesClientChangedAuditEventWithSnapshot()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        ClientChangedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<ClientChangedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (ClientChangedAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultManagementAuditRecorder(
+            mockPublisher.Object,
+            TimeProvider.System
+        );
+
+        var httpContext = CreateHttpContext("admin-1");
+        var resourceValues = JsonSerializer.SerializeToElement(new { isDisabled = false });
+
+        await recorder.RecordClientChangedAsync(
+            httpContext,
+            "tenant-1",
+            "client-1",
+            ResourceChangeTypes.Created,
+            resourceValues,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("client.created", captured.Action);
+        Assert.Equal(ManagementResourceTypes.Client, captured.ResourceType);
+        Assert.Equal(ResourceChangeTypes.Created, captured.ChangeType);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("client-1", captured.ClientId);
+        Assert.Equal("client-1", captured.ResourceId);
+        Assert.Equal("admin-1", captured.ActorId);
+        Assert.NotNull(captured.ResourceValues);
+    }
+
+    #endregion
+
+    #region RecordClientSecretChangedAsync Tests
+
+    [Fact]
+    public async Task RecordClientSecretChangedAsync_PublishesSecretChangedAuditEventWithIds()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        ClientSecretChangedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<ClientSecretChangedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (ClientSecretChangedAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultManagementAuditRecorder(
+            mockPublisher.Object,
+            TimeProvider.System
+        );
+
+        var httpContext = CreateHttpContext("admin-1");
+
+        await recorder.RecordClientSecretChangedAsync(
+            httpContext,
+            "tenant-1",
+            "client-1",
+            "secret-1",
+            ResourceChangeTypes.Deleted,
+            resourceValues: null,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("client.secret.deleted", captured.Action);
+        Assert.Equal(ManagementResourceTypes.ClientSecret, captured.ResourceType);
+        Assert.Equal(ResourceChangeTypes.Deleted, captured.ChangeType);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("client-1", captured.ClientId);
+        Assert.Equal("secret-1", captured.ResourceId);
+        Assert.Equal("admin-1", captured.ActorId);
+        Assert.Null(captured.ResourceValues);
     }
 
     #endregion

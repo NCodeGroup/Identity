@@ -66,6 +66,11 @@ internal abstract class BaseApiEndpointHandler
         return JsonSerializer.SerializeToElement(jsonObject);
     }
 
+    // A *Resource projection is the vetted non-sensitive view of a persisted entity; serializing one
+    // yields an audit snapshot that cannot leak secret material.
+    private protected static JsonElement ToResourceValues<T>(T resource) =>
+        JsonSerializer.SerializeToElement(resource, JsonSerializerOptions.Web);
+
     /// <summary>
     /// Converts the specified <see cref="JsonElement"/> into a mutable <see cref="JsonObject"/>, returning an empty
     /// object when the element is <c>null</c> or not a JSON object.

@@ -125,7 +125,7 @@ internal class ClientApiEndpointHandler(
         clients.MapGet("/{clientId}/secrets", GetSecretsAsync).Produces<ClientSecretsResource>();
         clients
             .MapPost("/{clientId}/secrets", CreateSecretAsync)
-            .Produces<SecretResource>(StatusCodes.Status201Created);
+            .Produces<CreatedSecretResource>(StatusCodes.Status201Created);
         clients.MapGet("/{clientId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
         clients
             .MapPut("/{clientId}/secrets/{secretId}", UpdateSecretAsync)
@@ -764,7 +764,7 @@ internal class ClientApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
-        PersistedSecret generatedSecret;
+        GeneratedSecret generatedSecret;
         try
         {
             generatedSecret = SecretGenerator.GenerateSecret(
@@ -792,7 +792,7 @@ internal class ClientApiEndpointHandler(
 
         try
         {
-            await store.AddSecretAsync(clientId, generatedSecret, cancellationToken);
+            await store.AddSecretAsync(clientId, generatedSecret.Secret, cancellationToken);
         }
         catch (InvalidOperationException exception)
         {
@@ -805,7 +805,7 @@ internal class ClientApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        var secretResource = ToSecretResource(generatedSecret);
+        var secretResource = ToSecretResource(generatedSecret.Secret);
 
         await ManagementAuditRecorder.RecordClientSecretChangedAsync(
             httpContext,
@@ -818,10 +818,12 @@ internal class ClientApiEndpointHandler(
         );
 
         // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
-        httpContext.Response.Headers.ETag = generatedSecret.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
+
+        // The one-time material is revealed here only (ADR-0050); the audit snapshot above stays material-free.
         return TypedResults.Created(
             $"/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}",
-            secretResource
+            ToCreatedSecretResource(generatedSecret.Secret, generatedSecret.SecretMaterial)
         );
     }
 

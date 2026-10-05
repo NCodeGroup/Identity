@@ -724,7 +724,7 @@ internal class TenantApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
-        PersistedSecret generatedSecret;
+        GeneratedSecret generatedSecret;
         try
         {
             generatedSecret = SecretGenerator.GenerateSecret(
@@ -752,7 +752,7 @@ internal class TenantApiEndpointHandler(
 
         try
         {
-            await store.AddSecretAsync(tenantId, generatedSecret, cancellationToken);
+            await store.AddSecretAsync(tenantId, generatedSecret.Secret, cancellationToken);
         }
         catch (InvalidOperationException exception)
         {
@@ -765,7 +765,7 @@ internal class TenantApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        var secretResource = ToSecretResource(generatedSecret);
+        var secretResource = ToSecretResource(generatedSecret.Secret);
 
         await ManagementAuditRecorder.RecordTenantSecretChangedAsync(
             httpContext,
@@ -777,7 +777,7 @@ internal class TenantApiEndpointHandler(
         );
 
         // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
-        httpContext.Response.Headers.ETag = generatedSecret.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
         return TypedResults.Created($"/tenants/{tenantId}/secrets/{secretId}", secretResource);
     }
 

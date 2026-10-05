@@ -201,6 +201,26 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.SecretTyp
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.SecretType.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Use.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Use.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.Algorithm.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.Algorithm.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.CreatedSecretResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.CreatedWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.KeySizeBits.get -> int
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.KeySizeBits.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.SecretId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.SecretId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.SecretMaterial.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.SecretMaterial.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.SecretType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.SecretType.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.Use.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.Use.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.Algorithm.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.Algorithm.init -> void

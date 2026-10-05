@@ -626,7 +626,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var generated = CreatePersistedSecret();
         MockSecretGenerator
             .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
-            .Returns(generated)
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockTenantStore
             .Setup(x => x.AddSecretAsync(TenantId, generated, It.IsAny<CancellationToken>()))
@@ -686,7 +686,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var generated = CreatePersistedSecret();
         MockSecretGenerator
             .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
-            .Returns(generated)
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockTenantStore
             .Setup(x => x.AddSecretAsync(TenantId, generated, It.IsAny<CancellationToken>()))

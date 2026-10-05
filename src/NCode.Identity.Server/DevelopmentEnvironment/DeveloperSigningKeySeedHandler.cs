@@ -89,18 +89,20 @@ internal sealed class DeveloperSigningKeySeedHandler(
         PersistedSecret? generatedSecret = null;
         if (!hasUsableSecret)
         {
-            generatedSecret = SecretGenerator.GenerateSecret(
-                new GenerateSecretRequest
-                {
-                    SecretId = CryptoService.GenerateResourceId(),
-                    SecretType = SecretTypes.Rsa,
-                    KeySizeBits = RsaKeySizeBits,
-                    Use = SecretKeyUses.Signature,
-                    Algorithm = AlgorithmCodes.DigitalSignature.RsaSha256,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
-                    ExpiresWhen = TimeProvider.GetUtcNow().AddYears(100),
-                }
-            );
+            generatedSecret = SecretGenerator
+                .GenerateSecret(
+                    new GenerateSecretRequest
+                    {
+                        SecretId = CryptoService.GenerateResourceId(),
+                        SecretType = SecretTypes.Rsa,
+                        KeySizeBits = RsaKeySizeBits,
+                        Use = SecretKeyUses.Signature,
+                        Algorithm = AlgorithmCodes.DigitalSignature.RsaSha256,
+                        CreatedWhen = TimeProvider.GetUtcNow(),
+                        ExpiresWhen = TimeProvider.GetUtcNow().AddYears(100),
+                    }
+                )
+                .Secret;
 
             await store.AddSecretAsync(tenant.TenantId, generatedSecret, cancellationToken);
         }

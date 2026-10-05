@@ -30,10 +30,11 @@ public interface ISecretGenerator
 {
     /// <summary>
     /// Generates fresh key material for the requested secret type and size, data-protects it, and returns a
-    /// <see cref="PersistedSecret"/> ready to be persisted. The returned secret's
-    /// <see cref="PersistedSecret.ConcurrencyToken"/> is left unset for the store to assign.
+    /// <see cref="GeneratedSecret"/> whose <see cref="GeneratedSecret.Secret"/> is ready to be persisted. The
+    /// returned secret's <see cref="PersistedSecret.ConcurrencyToken"/> is left unset for the store to assign.
     /// </summary>
     /// <param name="request">The <see cref="GenerateSecretRequest"/> describing the secret to generate.</param>
-    /// <returns>The generated <see cref="PersistedSecret"/> with data-protected key material.</returns>
-    PersistedSecret GenerateSecret(GenerateSecretRequest request);
+    /// <returns>The <see cref="GeneratedSecret"/> with data-protected key material and, for symmetric secrets,
+    /// the one-time unprotected material to reveal.</returns>
+    GeneratedSecret GenerateSecret(GenerateSecretRequest request);
 }

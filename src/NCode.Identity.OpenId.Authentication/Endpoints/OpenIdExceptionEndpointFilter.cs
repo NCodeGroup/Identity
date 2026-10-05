@@ -125,14 +125,7 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
         try
         {
             var recorder = httpContext.RequestServices.GetRequiredService<IAuditEventRecorder>();
-            var endpointName = httpContext.GetEndpoint()?.DisplayName;
-
-            await recorder.RecordOpenIdErrorAsync(
-                openIdContext,
-                error,
-                endpointName,
-                httpContext.RequestAborted
-            );
+            await recorder.RecordOpenIdErrorAsync(openIdContext, error, httpContext.RequestAborted);
         }
         catch (Exception exception)
         {

@@ -59,6 +59,11 @@ public static class OpenIdAuditActions
     public const string ClientAuthentication = "client.authentication";
 
     /// <summary>
+    /// The server authenticated (or failed to authenticate) an end-user subject for a protocol flow.
+    /// </summary>
+    public const string SubjectAuthentication = "subject.authentication";
+
+    /// <summary>
     /// A protocol endpoint returned an <c>OAuth</c> or <c>OpenID Connect</c> error response.
     /// </summary>
     public const string Error = "openid.error";

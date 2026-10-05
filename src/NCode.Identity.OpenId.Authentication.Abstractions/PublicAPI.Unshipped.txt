@@ -16,6 +16,7 @@ const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.Authoriza
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.ClientAuthentication = "client.authentication" -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.Error = "openid.error" -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.RefreshTokenReplay = "token.refresh.replay" -> string!
+const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.SubjectAuthentication = "subject.authentication" -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.TokenIssued = "token.issued" -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.TokenRevoked = "token.revoked" -> string!
 const NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationSourceTypes.Form = "form" -> string!
@@ -33,6 +34,8 @@ NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordAuthoriz
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordClientAuthenticationFailedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! clientId, string? reason, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordOpenIdErrorAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Messages.IOpenIdError! error, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordRefreshTokenReplayAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string? subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordSubjectAuthenticatedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordSubjectAuthenticationFailedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string? reason, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordTokenIssuedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string? subjectId, NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken securityToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordTokenRevokedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string? subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions
@@ -44,6 +47,7 @@ NCode.Identity.OpenId.Authentication.Auditing.OpenIdErrorEvent.ErrorDescription.
 NCode.Identity.OpenId.Authentication.Auditing.OpenIdErrorEvent.StatusCode.get -> int?
 NCode.Identity.OpenId.Authentication.Auditing.OpenIdErrorEvent.StatusCode.init -> void
 NCode.Identity.OpenId.Authentication.Auditing.RefreshTokenReplayAuditEvent
+NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.TokenType.get -> string!
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.TokenType.init -> void
@@ -685,6 +689,7 @@ override NCode.Identity.OpenId.Authentication.Auditing.AuthorizationGrantedAudit
 override NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.OpenIdErrorEvent.Action.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.RefreshTokenReplayAuditEvent.Action.get -> string!
+override NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.TokenRevokedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebKey.KeyType.get -> string!

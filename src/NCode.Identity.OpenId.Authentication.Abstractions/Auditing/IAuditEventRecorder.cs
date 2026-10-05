@@ -135,6 +135,41 @@ public interface IAuditEventRecorder
     );
 
     /// <summary>
+    /// Records that the server successfully authenticated an end-user subject for a protocol flow.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="subjectId">The identifier of the authenticated subject.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordSubjectAuthenticatedAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records that the server failed to authenticate an end-user subject for a protocol flow (for
+    /// example, an invalid or expired session, or an unresolvable subject identifier).
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="reason">A short, non-sensitive reason the authentication failed.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordSubjectAuthenticationFailedAsync(
+        OpenIdContext openIdContext,
+        string? reason,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Records that a refresh token was presented whose grant had already been revoked (a token-reuse
     /// signal), distinct from a benign expiry.
     /// </summary>

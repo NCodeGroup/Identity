@@ -220,4 +220,50 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
     }
 
     #endregion
+
+    #region Client Authentication Tests
+
+    [Fact]
+    public async Task RecordClientAuthenticationFailedAsync_PublishesFailedAuditEventWithReason()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+
+        ClientAuthenticationFailedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<ClientAuthenticationFailedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (ClientAuthenticationFailedAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordClientAuthenticationFailedAsync(
+            mockContext.Object,
+            "client-1",
+            "client_not_found",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("client.authentication", captured.Action);
+        Assert.Equal(AuditOutcome.Failure, captured.Outcome);
+        Assert.Equal("client-1", captured.ClientId);
+        Assert.Equal("client_not_found", captured.Reason);
+        Assert.Null(captured.SubjectId);
+    }
+
+    #endregion
 }

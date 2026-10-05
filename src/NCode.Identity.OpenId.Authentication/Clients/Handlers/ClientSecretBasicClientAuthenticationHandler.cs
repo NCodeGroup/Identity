@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Buffers;
 using NCode.Disposables;
 using NCode.Encoders;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -38,6 +39,7 @@ internal class ClientSecretBasicClientAuthenticationHandler(
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
+    IAuditEventRecorder auditEventRecorder,
     ILogger<ClientSecretBasicClientAuthenticationHandler> logger
 )
     : CommonClientAuthenticationHandler(
@@ -45,6 +47,7 @@ internal class ClientSecretBasicClientAuthenticationHandler(
         clientFactory,
         settingSerializer,
         secretSerializer,
+        auditEventRecorder,
         logger
     ),
         IClientAuthenticationHandler

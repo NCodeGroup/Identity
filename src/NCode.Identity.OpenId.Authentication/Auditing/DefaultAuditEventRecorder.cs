@@ -126,4 +126,26 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
+
+    /// <inheritdoc />
+    public ValueTask RecordClientAuthenticationFailedAsync(
+        OpenIdContext openIdContext,
+        string clientId,
+        string? reason,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new ClientAuthenticationFailedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = Activity.Current?.Id,
+            TenantId = openIdContext.Tenant.TenantId,
+            ClientId = clientId,
+            Outcome = AuditOutcome.Failure,
+            Reason = reason,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
 }

@@ -22,6 +22,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Buffers;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -43,6 +44,7 @@ internal abstract class CommonClientAuthenticationHandler(
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
+    IAuditEventRecorder auditEventRecorder,
     ILogger logger
 ) : IClientAuthenticationHandler
 {
@@ -65,6 +67,11 @@ internal abstract class CommonClientAuthenticationHandler(
     /// Gets the <see cref="ISecretSerializer"/> instance.
     /// </summary>
     protected ISecretSerializer SecretSerializer { get; } = secretSerializer;
+
+    /// <summary>
+    /// Gets the <see cref="IAuditEventRecorder"/> instance.
+    /// </summary>
+    protected IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
 
     /// <summary>
     /// Gets the <see cref="ILogger"/> instance.
@@ -107,6 +114,12 @@ internal abstract class CommonClientAuthenticationHandler(
         )
         {
             Logger.ClientAuthenticationClientNotFound(clientId, tenantId);
+            await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+                openIdContext,
+                clientId,
+                "client_not_found",
+                cancellationToken
+            );
             return new ClientAuthenticationResult(
                 openIdContext
                     .ErrorFactory.InvalidClient()
@@ -133,6 +146,12 @@ internal abstract class CommonClientAuthenticationHandler(
             // A stored credential could not be deserialized (for example a secret protected by a
             // data-protection key that is no longer available); surface it as invalid_client with a diagnostic.
             Logger.ClientAuthenticationCredentialDeserializationFailed(clientId, exception);
+            await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+                openIdContext,
+                clientId,
+                "credential_deserialization_failed",
+                cancellationToken
+            );
             return new ClientAuthenticationResult(
                 openIdContext
                     .ErrorFactory.InvalidClient()
@@ -200,6 +219,12 @@ internal abstract class CommonClientAuthenticationHandler(
 
         // client secret was specified but failed to verify
         Logger.ClientAuthenticationSecretMismatch(publicClient.ClientId);
+        await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+            openIdContext,
+            publicClient.ClientId,
+            "invalid_client_secret",
+            cancellationToken
+        );
         return new ClientAuthenticationResult(
             openIdContext
                 .ErrorFactory.InvalidClient()

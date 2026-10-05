@@ -18,6 +18,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -35,6 +36,7 @@ internal class NoneClientAuthenticationHandler(
     IOpenIdClientFactory clientFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
+    IAuditEventRecorder auditEventRecorder,
     ILogger<NoneClientAuthenticationHandler> logger
 )
     : CommonClientAuthenticationHandler(
@@ -42,6 +44,7 @@ internal class NoneClientAuthenticationHandler(
         clientFactory,
         settingSerializer,
         secretSerializer,
+        auditEventRecorder,
         logger
     ),
         IClientAuthenticationHandler

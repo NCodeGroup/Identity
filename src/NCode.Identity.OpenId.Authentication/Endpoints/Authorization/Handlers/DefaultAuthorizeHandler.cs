@@ -18,6 +18,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Logging;
@@ -33,9 +34,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthorizeCommand"/> message.
 /// </summary>
-internal class DefaultAuthorizeHandler(ILogger<DefaultAuthorizeHandler> logger)
-    : ICommandResponseHandler<AuthorizeCommand, AuthorizeDisposition>
+internal class DefaultAuthorizeHandler(
+    IAuditEventRecorder auditEventRecorder,
+    ILogger<DefaultAuthorizeHandler> logger
+) : ICommandResponseHandler<AuthorizeCommand, AuthorizeDisposition>
 {
+    private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
     private ILogger<DefaultAuthorizeHandler> Logger { get; } = logger;
 
     internal virtual AuthorizeDisposition Failed(IOpenIdError error) => new(error);
@@ -92,11 +96,30 @@ internal class DefaultAuthorizeHandler(ILogger<DefaultAuthorizeHandler> logger)
         );
         if (subjectDisposition.HasError)
         {
+            // A no-prompt request that cannot interact is a genuine denial; otherwise the user agent is
+            // challenged to interact, which is not an authorization decision.
+            if (noPrompt)
+            {
+                await AuditEventRecorder.RecordAuthorizationDeniedAsync(
+                    openIdContext,
+                    openIdClient,
+                    authenticationTicket.SubjectId,
+                    subjectDisposition.Error.Code,
+                    cancellationToken
+                );
+            }
+
             return InteractionRequired(errorFactory, noPrompt);
         }
 
         // TODO: check consent
 
+        await AuditEventRecorder.RecordAuthorizationGrantedAsync(
+            openIdContext,
+            openIdClient,
+            authenticationTicket.SubjectId,
+            cancellationToken
+        );
         return Authorized();
     }
 

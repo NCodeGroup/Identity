@@ -41,4 +41,10 @@ public static class AuditOutcome
     /// The outcome code indicating the audited operation failed.
     /// </summary>
     public const string Failure = "failure";
+
+    /// <summary>
+    /// The outcome code indicating the audited operation was denied (for example an authorization
+    /// request that was refused, as opposed to an unexpected failure).
+    /// </summary>
+    public const string Denied = "denied";
 }

@@ -131,4 +131,93 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
     }
 
     #endregion
+
+    #region Authorization Decision Tests
+
+    [Fact]
+    public async Task RecordAuthorizationGrantedAsync_PublishesGrantedAuditEvent()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockClient = MockRepository.Create<OpenIdClient>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
+
+        AuthorizationGrantedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<AuthorizationGrantedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (AuthorizationGrantedAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordAuthorizationGrantedAsync(
+            mockContext.Object,
+            mockClient.Object,
+            "subject-1",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("authorization.granted", captured.Action);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Equal("subject-1", captured.SubjectId);
+    }
+
+    [Fact]
+    public async Task RecordAuthorizationDeniedAsync_PublishesDeniedAuditEventWithReason()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockClient = MockRepository.Create<OpenIdClient>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
+
+        AuthorizationDeniedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<AuthorizationDeniedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (AuthorizationDeniedAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordAuthorizationDeniedAsync(
+            mockContext.Object,
+            mockClient.Object,
+            "subject-1",
+            "login_required",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("authorization.denied", captured.Action);
+        Assert.Equal(AuditOutcome.Denied, captured.Outcome);
+        Assert.Equal("login_required", captured.Reason);
+    }
+
+    #endregion
 }

@@ -23,6 +23,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -35,6 +36,8 @@ namespace NCode.Identity.OpenId.Core.Tests.Subject;
 
 public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 {
+    private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; set; } = null!;
+
     #region Scaffolding
 
     private DefaultAuthenticateSubjectHandler CreateHandler(
@@ -65,10 +68,13 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             )
             .ReturnsAsync(resolvedPrincipalId ?? subjectId ?? string.Empty);
 
+        MockAuditEventRecorder = CreateLooseMock<IAuditEventRecorder>();
+
         return new DefaultAuthenticateSubjectHandler(
             Options.Create(new OpenIdOptions { GetSubjectId = _ => subjectId }),
             mockFactory.Object,
-            mockResolver.Object
+            mockResolver.Object,
+            MockAuditEventRecorder.Object
         );
     }
 
@@ -128,6 +134,25 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsUndefined);
+        // No credentials were presented; this is not a login event and must not be audited.
+        MockAuditEventRecorder.Verify(
+            x =>
+                x.RecordSubjectAuthenticationFailedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Never
+        );
+        MockAuditEventRecorder.Verify(
+            x =>
+                x.RecordSubjectAuthenticatedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -140,6 +165,15 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
         Assert.True(result.HasError);
         Assert.Same(mockError.Object, result.Error);
+        MockAuditEventRecorder.Verify(
+            x =>
+                x.RecordSubjectAuthenticationFailedAsync(
+                    command.OpenIdContext,
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -153,6 +187,15 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
         Assert.True(result.HasError);
         Assert.Same(mockError.Object, result.Error);
+        MockAuditEventRecorder.Verify(
+            x =>
+                x.RecordSubjectAuthenticationFailedAsync(
+                    command.OpenIdContext,
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -165,6 +208,15 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
         Assert.True(result.IsAuthenticated);
         Assert.Equal("subject-id", result.Ticket.Value.SubjectId);
+        MockAuditEventRecorder.Verify(
+            x =>
+                x.RecordSubjectAuthenticatedAsync(
+                    command.OpenIdContext,
+                    "subject-id",
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Fact]

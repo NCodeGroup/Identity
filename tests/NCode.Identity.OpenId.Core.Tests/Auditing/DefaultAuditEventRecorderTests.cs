@@ -135,6 +135,99 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
     #endregion
 
+    #region RecordSubjectAuthenticatedAsync Tests
+
+    [Fact]
+    public async Task RecordSubjectAuthenticatedAsync_PublishesSuccessAuditEventWithSubject()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
+
+        SubjectAuthenticationAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<SubjectAuthenticationAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (SubjectAuthenticationAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordSubjectAuthenticatedAsync(
+            mockContext.Object,
+            "subject-1",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("subject.authentication", captured.Action);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Equal("api/authorize", captured.Source);
+    }
+
+    #endregion
+
+    #region RecordSubjectAuthenticationFailedAsync Tests
+
+    [Fact]
+    public async Task RecordSubjectAuthenticationFailedAsync_PublishesFailureAuditEventWithReason()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
+
+        SubjectAuthenticationAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<SubjectAuthenticationAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (SubjectAuthenticationAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordSubjectAuthenticationFailedAsync(
+            mockContext.Object,
+            "Failed to authenticate the end-user.",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("subject.authentication", captured.Action);
+        Assert.Equal(AuditOutcome.Failure, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Null(captured.SubjectId);
+        Assert.Equal("Failed to authenticate the end-user.", captured.Reason);
+        Assert.Equal("api/authorize", captured.Source);
+    }
+
+    #endregion
+
     #region Authorization Decision Tests
 
     [Fact]

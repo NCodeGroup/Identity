@@ -21,6 +21,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -39,12 +40,14 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 internal class DefaultAuthenticateSubjectHandler(
     IOptions<OpenIdOptions> optionsAccessor,
     IStoreManagerFactory storeManagerFactory,
-    IPrincipalResolver principalResolver
+    IPrincipalResolver principalResolver,
+    IAuditEventRecorder auditEventRecorder
 ) : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
+    private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
 
     internal virtual AuthenticateSubjectDisposition Undefined() => new();
 
@@ -73,6 +76,11 @@ internal class DefaultAuthenticateSubjectHandler(
 
         if (baseResult.Failure is not null)
         {
+            await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
+                openIdContext,
+                "Failed to authenticate the end-user.",
+                cancellationToken
+            );
             return Failed(
                 errorFactory
                     .AccessDenied("Failed to authenticate the end-user.")
@@ -90,6 +98,11 @@ internal class DefaultAuthenticateSubjectHandler(
         var subjectId = Options.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
         {
+            await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
+                openIdContext,
+                "Unable to determine the end-user's subject id.",
+                cancellationToken
+            );
             return Failed(
                 errorFactory.AccessDenied("Unable to determine the end-user's subject id.")
             );
@@ -111,6 +124,12 @@ internal class DefaultAuthenticateSubjectHandler(
             authenticationProperties,
             subject,
             principalId
+        );
+
+        await AuditEventRecorder.RecordSubjectAuthenticatedAsync(
+            openIdContext,
+            principalId,
+            cancellationToken
         );
 
         return Authenticated(ticket);

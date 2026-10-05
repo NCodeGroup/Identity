@@ -30,13 +30,16 @@ namespace NCode.Identity.OpenId.Results;
 /// </summary>
 /// <param name="response">The <see cref="IOpenIdResponse"/> that contains information about the <c>OAuth</c> or <c>OpenID Connect</c> operation.</param>
 [PublicAPI]
-public sealed class OpenIdResult<T>(T response) : IResult
+public sealed class OpenIdResult<T>(T response) : IResult, IOpenIdResult
     where T : class, IOpenIdResponse
 {
     /// <summary>
     /// Gets the response that contains the information about the <c>OAuth</c> or <c>OpenID Connect</c> operation.
     /// </summary>
     public T Response { get; } = response;
+
+    /// <inheritdoc />
+    IOpenIdResponse IOpenIdResult.Response => Response;
 
     /// <inheritdoc />
     public async Task ExecuteAsync(HttpContext httpContext)

@@ -44,4 +44,5 @@ internal static class EventIds
     public const int ClientAuthenticationCredentialDeserializationFailed = Base + 13;
     public const int ClientAuthenticationSecretMismatch = Base + 14;
     public const int TokenRequestClientAuthenticationRequired = Base + 15;
+    public const int OpenIdErrorAuditFailed = Base + 16;
 }

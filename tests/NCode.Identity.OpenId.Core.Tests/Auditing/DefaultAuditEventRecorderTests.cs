@@ -23,6 +23,7 @@ using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Tenants;
 using Xunit;
 
@@ -263,6 +264,91 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("client_not_found", captured.Reason);
         Assert.Null(captured.SubjectId);
+    }
+
+    #endregion
+
+    #region RecordOpenIdErrorAsync Tests
+
+    [Fact]
+    public async Task RecordOpenIdErrorAsync_WhenGenericError_PublishesFailureOutcomeWithMetadata()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockError = MockRepository.Create<IOpenIdError>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockError.Setup(x => x.Code).Returns("invalid_request").Verifiable();
+        mockError
+            .Setup(x => x.Description)
+            .Returns("The request is missing a parameter.")
+            .Verifiable();
+        mockError.Setup(x => x.StatusCode).Returns(400).Verifiable();
+
+        OpenIdErrorEvent? captured = null;
+        mockPublisher
+            .Setup(x => x.PublishAsync(It.IsAny<OpenIdErrorEvent>(), It.IsAny<CancellationToken>()))
+            .Callback((OpenIdErrorEvent auditEvent, CancellationToken _) => captured = auditEvent)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordOpenIdErrorAsync(
+            mockContext.Object,
+            mockError.Object,
+            "api/token",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("openid.error", captured.Action);
+        Assert.Equal(AuditOutcome.Failure, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("invalid_request", captured.ErrorCode);
+        Assert.Equal("The request is missing a parameter.", captured.ErrorDescription);
+        Assert.Equal(400, captured.StatusCode);
+        Assert.Equal("api/token", captured.EndpointName);
+    }
+
+    [Fact]
+    public async Task RecordOpenIdErrorAsync_WhenAccessDenied_PublishesDeniedOutcome()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockError = MockRepository.Create<IOpenIdError>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockError.Setup(x => x.Code).Returns(OpenIdConstants.ErrorCodes.AccessDenied).Verifiable();
+        mockError.Setup(x => x.Description).Returns((string?)null).Verifiable();
+        mockError.Setup(x => x.StatusCode).Returns((int?)null).Verifiable();
+
+        OpenIdErrorEvent? captured = null;
+        mockPublisher
+            .Setup(x => x.PublishAsync(It.IsAny<OpenIdErrorEvent>(), It.IsAny<CancellationToken>()))
+            .Callback((OpenIdErrorEvent auditEvent, CancellationToken _) => captured = auditEvent)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordOpenIdErrorAsync(
+            mockContext.Object,
+            mockError.Object,
+            endpointName: null,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal(AuditOutcome.Denied, captured.Outcome);
+        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, captured.ErrorCode);
+        Assert.Null(captured.ErrorDescription);
+        Assert.Null(captured.StatusCode);
+        Assert.Null(captured.EndpointName);
     }
 
     #endregion

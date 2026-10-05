@@ -19,9 +19,15 @@
 using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
+using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Results;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
 
@@ -33,6 +39,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// </summary>
 internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
 {
+    // Sentinel on HttpContext.Items so a single error is audited at most once per request.
+    private const string ErrorPublishedKey = "NCode.Identity.OpenId.ErrorAudited";
+
     /// <inheritdoc />
     public async ValueTask<object?> InvokeAsync(
         EndpointFilterInvocationContext context,
@@ -42,7 +51,9 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
         var httpContext = context.HttpContext;
         try
         {
-            return await next(context);
+            var result = await next(context);
+            await TryPublishErrorAsync(httpContext, result);
+            return result;
         }
         catch (Exception exception)
         {
@@ -55,6 +66,11 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
             var cancellationToken = httpContext.RequestAborted;
             var openIdContext = feature.OpenIdContext;
             var openIdEnvironment = openIdContext.Environment;
+
+            // A protocol exception already carries its error; audit it before rendering so the record
+            // survives even if the handler throws. The sentinel de-dupes the disposition publish below.
+            if (exception is OpenIdException openIdException)
+                await PublishErrorAsync(httpContext, openIdContext, openIdException.Error);
 
             var handler = await GetExceptionHandlerAsync(
                 httpContext,
@@ -70,7 +86,60 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
                 cancellationToken
             );
 
+            await TryPublishErrorAsync(httpContext, disposition.HttpResult);
+
             return disposition.HttpResult;
+        }
+    }
+
+    // Audits an OpenID error response from the single funnel, covering both the direct-return and thrown
+    // paths. Error-ness of an OpenIdResult is a property of its wrapped response value, not its type.
+    private static ValueTask TryPublishErrorAsync(HttpContext httpContext, object? result)
+    {
+        var error = result switch
+        {
+            IOpenIdResult { Response: IOpenIdError openIdError } => openIdError,
+            ISupportOpenIdError { Error: { } supportedError } => supportedError,
+            _ => null,
+        };
+        if (error is null)
+            return ValueTask.CompletedTask;
+
+        var feature = httpContext.Features.Get<IOpenIdContextFeature>();
+        if (feature is null)
+            return ValueTask.CompletedTask;
+
+        return PublishErrorAsync(httpContext, feature.OpenIdContext, error);
+    }
+
+    private static async ValueTask PublishErrorAsync(
+        HttpContext httpContext,
+        OpenIdContext openIdContext,
+        IOpenIdError error
+    )
+    {
+        if (!httpContext.Items.TryAdd(ErrorPublishedKey, true))
+            return;
+
+        // Auditing must never influence the response; a failure to record is logged and swallowed.
+        try
+        {
+            var recorder = httpContext.RequestServices.GetRequiredService<IAuditEventRecorder>();
+            var endpointName = httpContext.GetEndpoint()?.DisplayName;
+
+            await recorder.RecordOpenIdErrorAsync(
+                openIdContext,
+                error,
+                endpointName,
+                httpContext.RequestAborted
+            );
+        }
+        catch (Exception exception)
+        {
+            httpContext
+                .RequestServices.GetRequiredService<ILoggerFactory>()
+                .CreateLogger<OpenIdExceptionEndpointFilter>()
+                .OpenIdErrorAuditFailed(exception);
         }
     }
 

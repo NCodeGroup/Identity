@@ -300,6 +300,8 @@ NCode.Identity.OpenId.Contexts.OpenIdContextHttpContextExtensions
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.InvokeAsync(Microsoft.AspNetCore.Http.EndpointFilterInvocationContext! context, Microsoft.AspNetCore.Http.EndpointFilterDelegate! next) -> System.Threading.Tasks.ValueTask<object?>
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.OpenIdEnvironmentEndpointFilter(NCode.Identity.OpenId.Contexts.IOpenIdContextFactory! openIdContextFactory, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor! ambientTenantAccessor) -> void
+NCode.Identity.OpenId.Results.IOpenIdResult
+NCode.Identity.OpenId.Results.IOpenIdResult.Response.get -> NCode.Identity.OpenId.Messages.IOpenIdResponse!
 NCode.Identity.OpenId.Tenants.ITenantProvisioner
 NCode.Identity.OpenId.Tenants.ITenantProvisioner.ProvisionAsync(string! tenantId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.SeedTenantCommand

@@ -22,6 +22,7 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Authentication.Auditing;
 
@@ -144,6 +145,38 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             ClientId = clientId,
             Outcome = AuditOutcome.Failure,
             Reason = reason,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask RecordOpenIdErrorAsync(
+        OpenIdContext openIdContext,
+        IOpenIdError error,
+        string? endpointName,
+        CancellationToken cancellationToken
+    )
+    {
+        var outcome = string.Equals(
+            error.Code,
+            OpenIdConstants.ErrorCodes.AccessDenied,
+            StringComparison.Ordinal
+        )
+            ? AuditOutcome.Denied
+            : AuditOutcome.Failure;
+
+        var auditEvent = new OpenIdErrorEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = Activity.Current?.Id,
+            TenantId = openIdContext.Tenant.TenantId,
+            Outcome = outcome,
+            ErrorCode = error.Code,
+            ErrorDescription = error.Description,
+            StatusCode = error.StatusCode,
+            EndpointName = endpointName,
         };
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);

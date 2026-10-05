@@ -145,4 +145,11 @@ internal static partial class Log
         Message = "Subject validation failed: {Reason}"
     )]
     internal static partial void SubjectValidationFailed(this ILogger logger, string reason);
+
+    [LoggerMessage(
+        EventId = EventIds.OpenIdErrorAuditFailed,
+        Level = LogLevel.Warning,
+        Message = "Failed to publish the OpenID error audit event."
+    )]
+    internal static partial void OpenIdErrorAuditFailed(this ILogger logger, Exception exception);
 }

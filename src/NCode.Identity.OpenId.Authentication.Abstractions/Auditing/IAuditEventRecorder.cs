@@ -20,6 +20,7 @@ using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Authentication.Auditing;
 
@@ -130,6 +131,25 @@ public interface IAuditEventRecorder
         OpenIdContext openIdContext,
         string clientId,
         string? reason,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records that a protocol endpoint returned an <c>OAuth</c> or <c>OpenID Connect</c> error response.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="error">The <see cref="IOpenIdError"/> that was returned; only its non-sensitive metadata is recorded.</param>
+    /// <param name="endpointName">The name of the endpoint that produced the error, if known.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordOpenIdErrorAsync(
+        OpenIdContext openIdContext,
+        IOpenIdError error,
+        string? endpointName,
         CancellationToken cancellationToken
     );
 }

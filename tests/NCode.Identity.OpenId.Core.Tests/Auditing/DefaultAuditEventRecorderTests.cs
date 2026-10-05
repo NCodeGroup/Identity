@@ -87,4 +87,48 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
     }
 
     #endregion
+
+    #region RecordTokenRevokedAsync Tests
+
+    [Fact]
+    public async Task RecordTokenRevokedAsync_PublishesTokenRevokedAuditEventWithMetadata()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockClient = MockRepository.Create<OpenIdClient>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
+
+        TokenRevokedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<TokenRevokedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (TokenRevokedAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordTokenRevokedAsync(
+            mockContext.Object,
+            mockClient.Object,
+            "subject-1",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("token.revoked", captured.Action);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Equal("client-1", captured.ClientId);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("subject-1", captured.SubjectId);
+    }
+
+    #endregion
 }

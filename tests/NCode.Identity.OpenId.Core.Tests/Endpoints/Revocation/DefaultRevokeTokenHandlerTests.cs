@@ -17,6 +17,7 @@
 #endregion
 
 using Moq;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Handlers;
@@ -41,13 +42,16 @@ public class DefaultRevokeTokenHandlerTests : BaseTests
     private const string Token = "refresh-token-value";
 
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
+    private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
     private DefaultRevokeTokenHandler Handler { get; }
 
     public DefaultRevokeTokenHandlerTests()
     {
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
+        MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
         Handler = new DefaultRevokeTokenHandler(
             MockPersistedGrantService.Object,
+            MockAuditEventRecorder.Object,
             TimeProvider.System
         );
     }
@@ -142,6 +146,17 @@ public class DefaultRevokeTokenHandlerTests : BaseTests
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<PersistedGrantId>(),
                     It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordTokenRevokedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>(),
                     It.IsAny<CancellationToken>()
                 )
             )

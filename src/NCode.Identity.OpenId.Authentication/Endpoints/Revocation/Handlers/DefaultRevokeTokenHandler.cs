@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Logic;
@@ -32,10 +33,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Handlers;
 /// </summary>
 internal class DefaultRevokeTokenHandler(
     IPersistedGrantService persistedGrantService,
+    IAuditEventRecorder auditEventRecorder,
     TimeProvider timeProvider
 ) : ICommandHandler<RevokeTokenCommand>, ISupportMediatorPriority
 {
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
+    private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
@@ -87,6 +90,13 @@ internal class DefaultRevokeTokenHandler(
             openIdContext,
             grantId,
             TimeProvider.GetUtcNow(),
+            cancellationToken
+        );
+
+        await AuditEventRecorder.RecordTokenRevokedAsync(
+            openIdContext,
+            openIdClient,
+            grant.Value.SubjectId,
             cancellationToken
         );
     }

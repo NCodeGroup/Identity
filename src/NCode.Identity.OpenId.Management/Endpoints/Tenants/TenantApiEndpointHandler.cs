@@ -24,8 +24,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
@@ -73,6 +75,7 @@ internal class TenantApiEndpointHandler(
     ISettingSerializer settingSerializer,
     IOpenIdServerProvider serverProvider,
     IResourceOwnershipService resourceOwnershipService,
+    IManagementAuditRecorder managementAuditRecorder,
     ILogger<TenantApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
@@ -83,6 +86,7 @@ internal class TenantApiEndpointHandler(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
+    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -333,9 +337,19 @@ internal class TenantApiEndpointHandler(
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var resource = ToTenantResource(tenant);
+
+        await ManagementAuditRecorder.RecordTenantChangedAsync(
+            httpContext,
+            tenant.TenantId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(resource),
+            cancellationToken
+        );
+
         // The store assigns the row token on insert (ADR-0012), so no re-read is needed.
         httpContext.Response.Headers.ETag = tenant.ConcurrencyToken;
-        return TypedResults.Created($"/tenants/{tenant.TenantId}", ToTenantResource(tenant));
+        return TypedResults.Created($"/tenants/{tenant.TenantId}", resource);
     }
 
     /// <summary>
@@ -407,6 +421,14 @@ internal class TenantApiEndpointHandler(
         await store.UpdateAsync(tenant, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordTenantChangedAsync(
+            httpContext,
+            tenant.TenantId,
+            ResourceChangeTypes.Updated,
+            ToResourceValues(ToTenantResource(tenant)),
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -446,8 +468,18 @@ internal class TenantApiEndpointHandler(
             return ToErrorResult(error);
         }
 
+        var resourceValues = ToResourceValues(ToTenantResource(tenant));
+
         await store.RemoveAsync(tenantId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        await ManagementAuditRecorder.RecordTenantChangedAsync(
+            httpContext,
+            tenant.TenantId,
+            ResourceChangeTypes.Deleted,
+            resourceValues,
+            cancellationToken
+        );
 
         return TypedResults.NoContent();
     }
@@ -612,6 +644,14 @@ internal class TenantApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordTenantChangedAsync(
+            httpContext,
+            tenantSettings.TenantId,
+            ResourceChangeTypes.SettingsUpdated,
+            ToResourceValues(ToTenantSettingsResource(tenantSettings)),
+            cancellationToken
+        );
+
         httpContext.Response.Headers.ETag = tenantSettings.ConcurrencyToken;
 
         return TypedResults.NoContent();
@@ -725,12 +765,20 @@ internal class TenantApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var secretResource = ToSecretResource(generatedSecret);
+
+        await ManagementAuditRecorder.RecordTenantSecretChangedAsync(
+            httpContext,
+            tenantId,
+            secretId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(secretResource),
+            cancellationToken
+        );
+
         // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
         httpContext.Response.Headers.ETag = generatedSecret.ConcurrencyToken;
-        return TypedResults.Created(
-            $"/tenants/{tenantId}/secrets/{secretId}",
-            ToSecretResource(generatedSecret)
-        );
+        return TypedResults.Created($"/tenants/{tenantId}/secrets/{secretId}", secretResource);
     }
 
     /// <summary>
@@ -829,6 +877,15 @@ internal class TenantApiEndpointHandler(
         await store.UpdateSecretAsync(tenantId, updated, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordTenantSecretChangedAsync(
+            httpContext,
+            tenantId,
+            secretId,
+            ResourceChangeTypes.Updated,
+            ToResourceValues(ToSecretResource(updated)),
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -868,8 +925,19 @@ internal class TenantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        var secretValues = ToResourceValues(ToSecretResource(secret));
+
         await store.RemoveSecretAsync(tenantId, secretId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        await ManagementAuditRecorder.RecordTenantSecretChangedAsync(
+            httpContext,
+            tenantId,
+            secretId,
+            ResourceChangeTypes.Deleted,
+            secretValues,
+            cancellationToken
+        );
 
         return TypedResults.NoContent();
     }

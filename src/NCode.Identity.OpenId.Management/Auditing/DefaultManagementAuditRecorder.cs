@@ -145,6 +145,57 @@ internal class DefaultManagementAuditRecorder(
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public ValueTask RecordTenantChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new TenantChangedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = GetCorrelationId(httpContext),
+            ActorId = GetActorId(httpContext),
+            TenantId = tenantId,
+            Outcome = AuditOutcome.Success,
+            ResourceId = tenantId,
+            ChangeType = changeType,
+            ResourceValues = resourceValues,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask RecordTenantSecretChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string secretId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new TenantSecretChangedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = GetCorrelationId(httpContext),
+            ActorId = GetActorId(httpContext),
+            TenantId = tenantId,
+            Outcome = AuditOutcome.Success,
+            ResourceId = secretId,
+            ChangeType = changeType,
+            ResourceValues = resourceValues,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
     private static string? GetCorrelationId(HttpContext httpContext) =>
         Activity.Current?.Id ?? httpContext.TraceIdentifier;
 

@@ -68,6 +68,13 @@ public interface IAuditEvent : IEvent
     string? SubjectId { get; }
 
     /// <summary>
+    /// Gets the identifier of the principal that performed the audited operation (for example an
+    /// administrator for a management action), or <see langword="null"/> when there is no distinct
+    /// actor. In subject-driven flows the actor is the subject and this may be left unset.
+    /// </summary>
+    string? ActorId { get; }
+
+    /// <summary>
     /// Gets the identifier of the client involved in the audited operation, or <see langword="null"/>
     /// when there is no client.
     /// </summary>

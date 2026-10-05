@@ -4,6 +4,8 @@ const NCode.Identity.Events.Audit.AuditOutcome.Denied = "denied" -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Failure = "failure" -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Success = "success" -> string!
 NCode.Identity.Events.Audit.AuditEvent
+NCode.Identity.Events.Audit.AuditEvent.ActorId.get -> string?
+NCode.Identity.Events.Audit.AuditEvent.ActorId.init -> void
 NCode.Identity.Events.Audit.AuditEvent.ClientId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.ClientId.init -> void
 NCode.Identity.Events.Audit.AuditEvent.CorrelationId.get -> string?
@@ -23,6 +25,7 @@ NCode.Identity.Events.Audit.AuditEvent.Timestamp.init -> void
 NCode.Identity.Events.Audit.AuditOutcome
 NCode.Identity.Events.Audit.IAuditEvent
 NCode.Identity.Events.Audit.IAuditEvent.Action.get -> string!
+NCode.Identity.Events.Audit.IAuditEvent.ActorId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.ClientId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.CorrelationId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.EventId.get -> System.Guid

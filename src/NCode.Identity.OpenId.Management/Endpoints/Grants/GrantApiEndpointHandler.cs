@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Grants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -46,11 +47,13 @@ DELETE api/tenants/{tenantId}/grants/{grantId}
 internal class GrantApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
+    IManagementAuditRecorder managementAuditRecorder,
     TimeProvider timeProvider,
     ICryptoService cryptoService
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
@@ -191,6 +194,15 @@ internal class GrantApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordGrantsRevokedAsync(
+            httpContext,
+            tenantId,
+            subjectId,
+            clientId,
+            revoked,
+            cancellationToken
+        );
+
         return TypedResults.Json(new GrantRevocationResult { Revoked = revoked });
     }
 
@@ -278,6 +290,15 @@ internal class GrantApiEndpointHandler(
 
             await store.UpdateAsync(grant, cancellationToken);
             await storeManager.SaveChangesAsync(cancellationToken);
+
+            await ManagementAuditRecorder.RecordGrantRevokedAsync(
+                httpContext,
+                tenantId,
+                grant.SubjectId,
+                grant.ClientId,
+                grant.GrantType,
+                cancellationToken
+            );
         }
 
         return TypedResults.NoContent();

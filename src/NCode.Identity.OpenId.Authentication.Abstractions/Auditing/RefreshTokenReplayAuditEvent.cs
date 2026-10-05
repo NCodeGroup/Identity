@@ -22,18 +22,13 @@ using NCode.Identity.Events.Audit;
 namespace NCode.Identity.OpenId.Authentication.Auditing;
 
 /// <summary>
-/// An audit event raised when a security token is issued. It carries the token's non-sensitive
-/// metadata only; the token value itself is never present on the event.
+/// An audit event raised when a refresh token is presented whose grant has already been revoked
+/// (typically rotated away). Presenting a revoked refresh token is a recognized token-theft signal and
+/// is distinct from a benign expiry.
 /// </summary>
 [PublicAPI]
-public sealed record TokenIssuedAuditEvent : AuditEvent
+public sealed record RefreshTokenReplayAuditEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => OpenIdAuditActions.TokenIssued;
-
-    /// <summary>
-    /// Gets the type of the issued token (for example an access token, id token, refresh token, or
-    /// authorization code).
-    /// </summary>
-    public required string TokenType { get; init; }
+    public override string Action => OpenIdAuditActions.RefreshTokenReplay;
 }

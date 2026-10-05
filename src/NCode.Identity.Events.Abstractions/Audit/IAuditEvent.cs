@@ -87,6 +87,12 @@ public interface IAuditEvent : IEvent
     string Action { get; }
 
     /// <summary>
+    /// Gets an optional name of the endpoint, operation, or component that produced the audited
+    /// event (for example <c>api/token</c>), or <see langword="null"/> when not applicable.
+    /// </summary>
+    string? Source { get; }
+
+    /// <summary>
     /// Gets the outcome code of the audited operation, such as <see cref="AuditOutcome.Success"/> or
     /// <see cref="AuditOutcome.Failure"/>. This is an extensible string vocabulary, not a closed set.
     /// </summary>

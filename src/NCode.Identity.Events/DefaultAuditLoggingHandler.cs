@@ -46,6 +46,7 @@ internal class DefaultAuditLoggingHandler(ILogger<DefaultAuditLoggingHandler> lo
             Logger.AuditSucceeded(
                 @event.Action,
                 @event.Outcome,
+                @event.Source,
                 @event.SubjectId,
                 @event.ClientId,
                 @event.TenantId,
@@ -58,6 +59,7 @@ internal class DefaultAuditLoggingHandler(ILogger<DefaultAuditLoggingHandler> lo
             Logger.AuditFailed(
                 @event.Action,
                 @event.Outcome,
+                @event.Source,
                 @event.SubjectId,
                 @event.ClientId,
                 @event.TenantId,
@@ -71,6 +73,7 @@ internal class DefaultAuditLoggingHandler(ILogger<DefaultAuditLoggingHandler> lo
             Logger.AuditRecorded(
                 @event.Action,
                 @event.Outcome,
+                @event.Source,
                 @event.SubjectId,
                 @event.ClientId,
                 @event.TenantId,

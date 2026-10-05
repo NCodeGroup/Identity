@@ -19,6 +19,7 @@
 using System.Globalization;
 using Moq;
 using NCode.Identity.Models;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
@@ -52,6 +53,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
     private Mock<TimeProvider> MockTimeProvider { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private Mock<ITokenService> MockTokenService { get; }
+    private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
     private DefaultRefreshTokenGrantHandler Handler { get; }
 
     public DefaultRefreshTokenGrantHandlerTests()
@@ -59,10 +61,12 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockTokenService = CreateStrictMock<ITokenService>();
+        MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
         Handler = new DefaultRefreshTokenGrantHandler(
             MockTimeProvider.Object,
             MockPersistedGrantService.Object,
-            MockTokenService.Object
+            MockTokenService.Object,
+            MockAuditEventRecorder.Object
         );
     }
 
@@ -252,6 +256,45 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         };
         SetupLookup(mockTokenRequest, revokedGrant);
 
+        // A revoked refresh token presented again is a reuse/replay signal and is audited.
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordRefreshTokenReplayAsync(
+                    mockContext.Object,
+                    mockClient.Object,
+                    null,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenGrantExpired_ReturnsInvalidGrantErrorWithoutReplayAudit()
+    {
+        var (mockContext, mockClient, _, mockTokenRequest, _, mockError) = CreateScaffold();
+
+        var expiredGrant = new PersistedGrant<RefreshTokenGrant>
+        {
+            Status = PersistedGrantStatus.Expired,
+            TenantId = TenantId,
+            ClientId = "client-1",
+            SubjectId = "subject-1",
+            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null),
+        };
+        SetupLookup(mockTokenRequest, expiredGrant);
+
+        // The strict recorder mock has no setup: an expired (benign) token must not be audited as a replay.
         var result = await Handler.HandleAsync(
             mockContext.Object,
             mockClient.Object,

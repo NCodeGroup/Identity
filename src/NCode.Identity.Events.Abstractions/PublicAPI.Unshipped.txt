@@ -21,6 +21,8 @@ NCode.Identity.Events.Audit.AuditEvent.Outcome.get -> string!
 NCode.Identity.Events.Audit.AuditEvent.Outcome.init -> void
 NCode.Identity.Events.Audit.AuditEvent.Reason.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.Reason.init -> void
+NCode.Identity.Events.Audit.AuditEvent.Source.get -> string?
+NCode.Identity.Events.Audit.AuditEvent.Source.init -> void
 NCode.Identity.Events.Audit.AuditEvent.SubjectId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.SubjectId.init -> void
 NCode.Identity.Events.Audit.AuditEvent.TenantId.get -> string?
@@ -37,6 +39,7 @@ NCode.Identity.Events.Audit.IAuditEvent.EventId.get -> System.Guid
 NCode.Identity.Events.Audit.IAuditEvent.Outcome.get -> string!
 NCode.Identity.Events.Audit.IAuditEvent.Reason.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.SchemaVersion.get -> int
+NCode.Identity.Events.Audit.IAuditEvent.Source.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.SubjectId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.TenantId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.Timestamp.get -> System.DateTimeOffset

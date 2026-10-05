@@ -135,6 +135,26 @@ public interface IAuditEventRecorder
     );
 
     /// <summary>
+    /// Records that a refresh token was presented whose grant had already been revoked (a token-reuse
+    /// signal), distinct from a benign expiry.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that presented the refresh token.</param>
+    /// <param name="subjectId">The identifier of the subject the refresh token was issued for, if known.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordRefreshTokenReplayAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string? subjectId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Records that a protocol endpoint returned an <c>OAuth</c> or <c>OpenID Connect</c> error response.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>

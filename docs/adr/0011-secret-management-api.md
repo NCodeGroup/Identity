@@ -1,6 +1,6 @@
 # 0011. Secret management: server-side key generation, no material on the surface
 
-- **Status:** Accepted
+- **Status:** Accepted (create-response reveal refined by [ADR-0050](0050-secret-material-revealed-once-on-create.md))
 - **Date:** 2026-09-29
 - **Deciders:** NCode.Identity maintainers
 

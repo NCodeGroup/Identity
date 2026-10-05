@@ -51,6 +51,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = Activity.Current?.Id,
             TenantId = openIdContext.Tenant.TenantId,
+            Source = openIdContext.EndpointName,
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
             Outcome = AuditOutcome.Success,
@@ -74,6 +75,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = Activity.Current?.Id,
             TenantId = openIdContext.Tenant.TenantId,
+            Source = openIdContext.EndpointName,
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
             Outcome = AuditOutcome.Success,
@@ -96,6 +98,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = Activity.Current?.Id,
             TenantId = openIdContext.Tenant.TenantId,
+            Source = openIdContext.EndpointName,
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
             Outcome = AuditOutcome.Success,
@@ -119,6 +122,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = Activity.Current?.Id,
             TenantId = openIdContext.Tenant.TenantId,
+            Source = openIdContext.EndpointName,
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
             Outcome = AuditOutcome.Denied,
@@ -142,9 +146,33 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = Activity.Current?.Id,
             TenantId = openIdContext.Tenant.TenantId,
+            Source = openIdContext.EndpointName,
             ClientId = clientId,
             Outcome = AuditOutcome.Failure,
             Reason = reason,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask RecordRefreshTokenReplayAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string? subjectId,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new RefreshTokenReplayAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = Activity.Current?.Id,
+            TenantId = openIdContext.Tenant.TenantId,
+            Source = openIdContext.EndpointName,
+            SubjectId = subjectId,
+            ClientId = openIdClient.ClientId,
+            Outcome = AuditOutcome.Denied,
         };
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);
@@ -171,11 +199,12 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = Activity.Current?.Id,
             TenantId = openIdContext.Tenant.TenantId,
+            Source = openIdContext.EndpointName,
             Outcome = outcome,
+            Reason = error.Description ?? error.Code,
             ErrorCode = error.Code,
             ErrorDescription = error.Description,
             StatusCode = error.StatusCode,
-            EndpointName = openIdContext.EndpointName,
         };
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);

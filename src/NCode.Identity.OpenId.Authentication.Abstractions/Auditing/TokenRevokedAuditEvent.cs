@@ -28,5 +28,5 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record TokenRevokedAuditEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => "token.revoked";
+    public override string Action => OpenIdAuditActions.TokenRevoked;
 }

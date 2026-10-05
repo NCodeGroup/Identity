@@ -60,6 +60,9 @@ public abstract record AuditEvent : IAuditEvent
     public abstract string Action { get; }
 
     /// <inheritdoc />
+    public string? Source { get; init; }
+
+    /// <inheritdoc />
     public required string Outcome { get; init; }
 
     /// <inheritdoc />

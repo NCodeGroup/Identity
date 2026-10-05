@@ -28,5 +28,5 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record ClientAuthenticationFailedAuditEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => "client.authentication";
+    public override string Action => OpenIdAuditActions.ClientAuthentication;
 }

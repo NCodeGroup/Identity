@@ -28,5 +28,5 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record AuthorizationDeniedAuditEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => "authorization.denied";
+    public override string Action => OpenIdAuditActions.AuthorizationDenied;
 }

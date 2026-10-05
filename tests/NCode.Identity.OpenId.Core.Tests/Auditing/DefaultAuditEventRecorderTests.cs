@@ -47,6 +47,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         TokenIssuedAuditEvent? captured = null;
@@ -101,6 +102,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         TokenRevokedAuditEvent? captured = null;
@@ -145,6 +147,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         AuthorizationGrantedAuditEvent? captured = null;
@@ -187,6 +190,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         AuthorizationDeniedAuditEvent? captured = null;
@@ -232,6 +236,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
 
         ClientAuthenticationFailedAuditEvent? captured = null;
@@ -310,7 +315,8 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal("invalid_request", captured.ErrorCode);
         Assert.Equal("The request is missing a parameter.", captured.ErrorDescription);
         Assert.Equal(400, captured.StatusCode);
-        Assert.Equal("api/token", captured.EndpointName);
+        Assert.Equal("api/token", captured.Source);
+        Assert.Equal("The request is missing a parameter.", captured.Reason);
     }
 
     [Fact]
@@ -348,7 +354,59 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, captured.ErrorCode);
         Assert.Null(captured.ErrorDescription);
         Assert.Null(captured.StatusCode);
-        Assert.Equal("api/authorize", captured.EndpointName);
+        Assert.Equal("api/authorize", captured.Source);
+        // With no description, the reason falls back to the error code.
+        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, captured.Reason);
+    }
+
+    #endregion
+
+    #region RecordRefreshTokenReplayAsync Tests
+
+    [Fact]
+    public async Task RecordRefreshTokenReplayAsync_PublishesReplayAuditEventWithDeniedOutcome()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockClient = MockRepository.Create<OpenIdClient>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
+
+        RefreshTokenReplayAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<RefreshTokenReplayAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (RefreshTokenReplayAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordRefreshTokenReplayAsync(
+            mockContext.Object,
+            mockClient.Object,
+            "subject-1",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("token.refresh.replay", captured.Action);
+        Assert.Equal(AuditOutcome.Denied, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("client-1", captured.ClientId);
+        Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Equal("api/token", captured.Source);
     }
 
     #endregion

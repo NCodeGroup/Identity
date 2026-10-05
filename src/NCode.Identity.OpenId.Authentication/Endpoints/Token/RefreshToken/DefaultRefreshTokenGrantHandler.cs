@@ -18,6 +18,7 @@
 
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose.Extensions;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
@@ -40,12 +41,14 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 internal class DefaultRefreshTokenGrantHandler(
     TimeProvider timeProvider,
     IPersistedGrantService persistedGrantService,
-    ITokenService tokenService
+    ITokenService tokenService,
+    IAuditEventRecorder auditEventRecorder
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ITokenService TokenService { get; } = tokenService;
+    private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
@@ -93,10 +96,24 @@ internal class DefaultRefreshTokenGrantHandler(
 
         var persistedGrant = persistedGrantOrNull.Value;
         if (persistedGrant.Status != PersistedGrantStatus.Active)
+        {
+            // A revoked grant presented again is a reuse/replay signal (likely rotated away or
+            // revoked on suspicion), distinct from a benign expiry.
             // TODO: refresh_token_reuse_policy (none, revoke_all)
+            if (persistedGrant.Status == PersistedGrantStatus.Revoked)
+            {
+                await AuditEventRecorder.RecordRefreshTokenReplayAsync(
+                    openIdContext,
+                    openIdClient,
+                    persistedGrant.Payload.SubjectAuthentication?.SubjectId,
+                    cancellationToken
+                );
+            }
+
             return errorFactory
                 .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
                 .WithStatusCode(StatusCodes.Status400BadRequest);
+        }
 
         var refreshTokenGrant = persistedGrant.Payload;
 

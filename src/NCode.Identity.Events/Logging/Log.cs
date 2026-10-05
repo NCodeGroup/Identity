@@ -56,12 +56,13 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.AuditSucceeded,
         Level = LogLevel.Information,
-        Message = "Audit '{Action}' succeeded (outcome={Outcome}, subject={SubjectId}, client={ClientId}, tenant={TenantId}, correlation={CorrelationId}, eventId={EventId})."
+        Message = "Audit '{Action}' succeeded (outcome={Outcome}, source={Source}, subject={SubjectId}, client={ClientId}, tenant={TenantId}, correlation={CorrelationId}, eventId={EventId})."
     )]
     internal static partial void AuditSucceeded(
         this ILogger logger,
         string action,
         string outcome,
+        string? source,
         string? subjectId,
         string? clientId,
         string? tenantId,
@@ -72,12 +73,13 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.AuditFailed,
         Level = LogLevel.Warning,
-        Message = "Audit '{Action}' failed (outcome={Outcome}, subject={SubjectId}, client={ClientId}, tenant={TenantId}, correlation={CorrelationId}, eventId={EventId}, reason={Reason})."
+        Message = "Audit '{Action}' failed (outcome={Outcome}, source={Source}, subject={SubjectId}, client={ClientId}, tenant={TenantId}, correlation={CorrelationId}, eventId={EventId}, reason={Reason})."
     )]
     internal static partial void AuditFailed(
         this ILogger logger,
         string action,
         string outcome,
+        string? source,
         string? subjectId,
         string? clientId,
         string? tenantId,
@@ -89,12 +91,13 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.AuditRecorded,
         Level = LogLevel.Information,
-        Message = "Audit '{Action}' recorded (outcome={Outcome}, subject={SubjectId}, client={ClientId}, tenant={TenantId}, correlation={CorrelationId}, eventId={EventId}, reason={Reason})."
+        Message = "Audit '{Action}' recorded (outcome={Outcome}, source={Source}, subject={SubjectId}, client={ClientId}, tenant={TenantId}, correlation={CorrelationId}, eventId={EventId}, reason={Reason})."
     )]
     internal static partial void AuditRecorded(
         this ILogger logger,
         string action,
         string outcome,
+        string? source,
         string? subjectId,
         string? clientId,
         string? tenantId,

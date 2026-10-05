@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record TokenIssuedAuditEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => "token.issued";
+    public override string Action => OpenIdAuditActions.TokenIssued;
 
     /// <summary>
     /// Gets the type of the issued token (for example an access token, id token, refresh token, or

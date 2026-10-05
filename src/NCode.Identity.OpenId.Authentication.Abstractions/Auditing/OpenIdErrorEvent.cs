@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record OpenIdErrorEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => "openid.error";
+    public override string Action => OpenIdAuditActions.Error;
 
     /// <summary>
     /// Gets the <c>OAuth</c> or <c>OpenID Connect</c> error code (the <c>error</c> parameter).
@@ -48,9 +48,4 @@ public sealed record OpenIdErrorEvent : AuditEvent
     /// Gets the HTTP status code used for the error response, if known.
     /// </summary>
     public int? StatusCode { get; init; }
-
-    /// <summary>
-    /// Gets the name of the endpoint that produced the error, if known.
-    /// </summary>
-    public string? EndpointName { get; init; }
 }

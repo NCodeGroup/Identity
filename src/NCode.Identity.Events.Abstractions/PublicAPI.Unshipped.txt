@@ -1,8 +1,13 @@
 #nullable enable
 abstract NCode.Identity.Events.Audit.AuditEvent.Action.get -> string!
+abstract NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ResourceType.get -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Denied = "denied" -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Failure = "failure" -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Success = "success" -> string!
+const NCode.Identity.Events.Audit.ResourceChangeTypes.Created = "created" -> string!
+const NCode.Identity.Events.Audit.ResourceChangeTypes.Deleted = "deleted" -> string!
+const NCode.Identity.Events.Audit.ResourceChangeTypes.SettingsUpdated = "settings.updated" -> string!
+const NCode.Identity.Events.Audit.ResourceChangeTypes.Updated = "updated" -> string!
 NCode.Identity.Events.Audit.AuditEvent
 NCode.Identity.Events.Audit.AuditEvent.ActorId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.ActorId.init -> void
@@ -35,6 +40,19 @@ NCode.Identity.Events.Audit.IAuditEvent.SchemaVersion.get -> int
 NCode.Identity.Events.Audit.IAuditEvent.SubjectId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.TenantId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.Timestamp.get -> System.DateTimeOffset
+NCode.Identity.Events.Audit.IResourceChangeAuditEvent
+NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ChangeType.get -> string!
+NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ResourceId.get -> string?
+NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ResourceType.get -> string!
+NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ResourceValues.get -> System.Text.Json.JsonElement?
+NCode.Identity.Events.Audit.ResourceChangeAuditEvent
+NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ChangeType.get -> string!
+NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ChangeType.init -> void
+NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ResourceId.get -> string?
+NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ResourceId.init -> void
+NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ResourceValues.get -> System.Text.Json.JsonElement?
+NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ResourceValues.init -> void
+NCode.Identity.Events.Audit.ResourceChangeTypes
 NCode.Identity.Events.DefaultHandlerPriorities
 NCode.Identity.Events.IBackgroundEventQueue
 NCode.Identity.Events.IBackgroundEventQueue.EnqueueAsync(NCode.Identity.Events.IEvent! event, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -47,6 +65,7 @@ NCode.Identity.Events.IEventPublisher.PublishAsync<TEvent>(TEvent event, System.
 NCode.Identity.Events.ISupportBackgroundDelivery
 NCode.Identity.Events.ISupportHandlerPriority
 NCode.Identity.Events.ISupportHandlerPriority.HandlerPriority.get -> int
+override NCode.Identity.Events.Audit.ResourceChangeAuditEvent.Action.get -> string!
 static NCode.Identity.Events.DefaultHandlerPriorities.High.get -> int
 static NCode.Identity.Events.DefaultHandlerPriorities.High.set -> void
 static NCode.Identity.Events.DefaultHandlerPriorities.Low.get -> int

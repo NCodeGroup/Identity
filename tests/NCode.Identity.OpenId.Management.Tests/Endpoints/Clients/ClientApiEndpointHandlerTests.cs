@@ -26,6 +26,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
@@ -64,6 +65,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
+    private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private ClientApiEndpointHandler Handler { get; }
 
     public ClientApiEndpointHandlerTests()
@@ -94,6 +96,33 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             )
             .Returns(ValueTask.CompletedTask);
 
+        MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordClientChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordClientSecretChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
+
         Handler = new ClientApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
@@ -104,6 +133,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             MockSettingSerializer.Object,
             MockServerProvider.Object,
             MockResourceOwnershipService.Object,
+            MockManagementAuditRecorder.Object,
             NullLogger<ClientApiEndpointHandler>.Instance
         );
     }

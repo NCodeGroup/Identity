@@ -18,6 +18,7 @@
 
 using System.Diagnostics;
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
@@ -84,6 +85,61 @@ internal class DefaultManagementAuditRecorder(
             ClientId = clientId,
             Outcome = AuditOutcome.Success,
             RevokedCount = revokedCount,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask RecordClientChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string clientId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new ClientChangedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = GetCorrelationId(httpContext),
+            ActorId = GetActorId(httpContext),
+            TenantId = tenantId,
+            ClientId = clientId,
+            Outcome = AuditOutcome.Success,
+            ResourceId = clientId,
+            ChangeType = changeType,
+            ResourceValues = resourceValues,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask RecordClientSecretChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string clientId,
+        string secretId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new ClientSecretChangedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = GetCorrelationId(httpContext),
+            ActorId = GetActorId(httpContext),
+            TenantId = tenantId,
+            ClientId = clientId,
+            Outcome = AuditOutcome.Success,
+            ResourceId = secretId,
+            ChangeType = changeType,
+            ResourceValues = resourceValues,
         };
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);

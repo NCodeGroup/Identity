@@ -16,8 +16,10 @@
 
 #endregion
 
+using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.Events.Audit;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
 
@@ -77,6 +79,63 @@ public interface IManagementAuditRecorder
         string? subjectId,
         string? clientId,
         long revokedCount,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records that an administrator created, updated, or deleted an OpenID client, or updated its settings.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the tenant the client belongs to.</param>
+    /// <param name="clientId">The identifier of the affected client.</param>
+    /// <param name="changeType">
+    /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
+    /// </param>
+    /// <param name="resourceValues">
+    /// A non-sensitive snapshot of the client's values, or <c>null</c> when none is captured.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordClientChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string clientId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records that an administrator created, updated, or deleted a secret belonging to an OpenID client.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the tenant the client belongs to.</param>
+    /// <param name="clientId">The identifier of the client the secret belongs to.</param>
+    /// <param name="secretId">The identifier of the affected secret.</param>
+    /// <param name="changeType">
+    /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
+    /// </param>
+    /// <param name="resourceValues">
+    /// A non-sensitive snapshot of the secret's metadata, or <c>null</c> when none is captured. Never
+    /// contains secret material.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordClientSecretChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string clientId,
+        string secretId,
+        string changeType,
+        JsonElement? resourceValues,
         CancellationToken cancellationToken
     );
 }

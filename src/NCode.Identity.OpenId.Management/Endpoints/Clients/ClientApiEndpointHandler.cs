@@ -24,8 +24,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
@@ -73,6 +75,7 @@ internal class ClientApiEndpointHandler(
     ISettingSerializer settingSerializer,
     IOpenIdServerProvider serverProvider,
     IResourceOwnershipService resourceOwnershipService,
+    IManagementAuditRecorder managementAuditRecorder,
     ILogger<ClientApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
@@ -83,6 +86,7 @@ internal class ClientApiEndpointHandler(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
+    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -382,12 +386,20 @@ internal class ClientApiEndpointHandler(
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var resource = ToClientResource(client);
+
+        await ManagementAuditRecorder.RecordClientChangedAsync(
+            httpContext,
+            client.TenantId,
+            client.ClientId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(resource),
+            cancellationToken
+        );
+
         // The store assigns the row token on insert (ADR-0012), so no re-read is needed.
         httpContext.Response.Headers.ETag = client.ConcurrencyToken;
-        return TypedResults.Created(
-            $"/tenants/{tenantId}/clients/{client.ClientId}",
-            ToClientResource(client)
-        );
+        return TypedResults.Created($"/tenants/{tenantId}/clients/{client.ClientId}", resource);
     }
 
     /// <summary>
@@ -453,6 +465,15 @@ internal class ClientApiEndpointHandler(
         await store.UpdateAsync(client, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordClientChangedAsync(
+            httpContext,
+            client.TenantId,
+            client.ClientId,
+            ResourceChangeTypes.Updated,
+            ToResourceValues(ToClientResource(client)),
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -492,8 +513,19 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(error);
         }
 
+        var resourceValues = ToResourceValues(ToClientResource(client));
+
         await store.RemoveAsync(clientId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        await ManagementAuditRecorder.RecordClientChangedAsync(
+            httpContext,
+            client.TenantId,
+            client.ClientId,
+            ResourceChangeTypes.Deleted,
+            resourceValues,
+            cancellationToken
+        );
 
         return TypedResults.NoContent();
     }
@@ -647,6 +679,15 @@ internal class ClientApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordClientChangedAsync(
+            httpContext,
+            clientSettings.TenantId,
+            clientSettings.ClientId,
+            ResourceChangeTypes.SettingsUpdated,
+            ToResourceValues(ToClientSettingsResource(clientSettings)),
+            cancellationToken
+        );
+
         httpContext.Response.Headers.ETag = clientSettings.ConcurrencyToken;
 
         return TypedResults.NoContent();
@@ -764,11 +805,23 @@ internal class ClientApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var secretResource = ToSecretResource(generatedSecret);
+
+        await ManagementAuditRecorder.RecordClientSecretChangedAsync(
+            httpContext,
+            client.TenantId,
+            clientId,
+            secretId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(secretResource),
+            cancellationToken
+        );
+
         // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
         httpContext.Response.Headers.ETag = generatedSecret.ConcurrencyToken;
         return TypedResults.Created(
             $"/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}",
-            ToSecretResource(generatedSecret)
+            secretResource
         );
     }
 
@@ -884,6 +937,16 @@ internal class ClientApiEndpointHandler(
         await store.UpdateSecretAsync(clientId, updated, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordClientSecretChangedAsync(
+            httpContext,
+            clientSecret.TenantId,
+            clientId,
+            secretId,
+            ResourceChangeTypes.Updated,
+            ToResourceValues(ToSecretResource(updated)),
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -927,8 +990,20 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        var secretValues = ToResourceValues(ToSecretResource(clientSecret.Value));
+
         await store.RemoveSecretAsync(clientId, secretId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        await ManagementAuditRecorder.RecordClientSecretChangedAsync(
+            httpContext,
+            clientSecret.TenantId,
+            clientId,
+            secretId,
+            ResourceChangeTypes.Deleted,
+            secretValues,
+            cancellationToken
+        );
 
         return TypedResults.NoContent();
     }

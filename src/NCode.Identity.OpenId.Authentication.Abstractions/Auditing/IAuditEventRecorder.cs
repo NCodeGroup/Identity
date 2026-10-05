@@ -73,4 +73,44 @@ public interface IAuditEventRecorder
         string? subjectId,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Records that an authorization request was granted for a subject.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> the authorization was granted to.</param>
+    /// <param name="subjectId">The identifier of the subject the authorization was granted for, if any.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordAuthorizationGrantedAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string? subjectId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records that an authorization request was denied for a subject.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> the authorization was denied for.</param>
+    /// <param name="subjectId">The identifier of the subject the authorization was denied for, if any.</param>
+    /// <param name="reason">A short, non-sensitive reason the authorization was denied.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordAuthorizationDeniedAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string? subjectId,
+        string? reason,
+        CancellationToken cancellationToken
+    );
 }

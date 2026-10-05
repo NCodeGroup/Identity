@@ -20,6 +20,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Moq;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
@@ -35,12 +36,14 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Handlers;
 
 public class DefaultAuthorizeHandlerTests : BaseTests
 {
+    private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
     private DefaultAuthorizeHandler Handler { get; }
 
     public DefaultAuthorizeHandlerTests()
     {
         var mockLogger = CreateLooseMock<ILogger<DefaultAuthorizeHandler>>();
-        Handler = new DefaultAuthorizeHandler(mockLogger.Object);
+        MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
+        Handler = new DefaultAuthorizeHandler(MockAuditEventRecorder.Object, mockLogger.Object);
     }
 
     #region Scaffolding
@@ -132,6 +135,17 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         var (command, mockContext, _, mockMediator, _) = CreateScaffold([]);
 
         SetupValidateSubject(mockContext, mockMediator, subjectError: null);
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordAuthorizationGrantedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var result = await Handler.HandleAsync(command, CancellationToken.None);
 
@@ -160,6 +174,18 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         ]);
 
         SetupValidateSubject(mockContext, mockMediator, mockError.Object);
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordAuthorizationDeniedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var result = await Handler.HandleAsync(command, CancellationToken.None);
 

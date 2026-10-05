@@ -1,5 +1,6 @@
 #nullable enable
 abstract NCode.Identity.Events.Audit.AuditEvent.Action.get -> string!
+const NCode.Identity.Events.Audit.AuditOutcome.Denied = "denied" -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Failure = "failure" -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Success = "success" -> string!
 NCode.Identity.Events.Audit.AuditEvent

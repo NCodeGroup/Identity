@@ -31,6 +31,7 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Servers;
+using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -58,6 +59,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IServerValidator> MockServerValidator { get; }
+    private Mock<ISecretValidator> MockSecretValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -72,6 +74,10 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockServerValidator = MockRepository.Create<IServerValidator>();
+        MockSecretValidator = MockRepository.Create<ISecretValidator>();
+        MockSecretValidator
+            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Returns((ManagementError?)null);
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
 
@@ -93,6 +99,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockServerValidator.Object,
+            MockSecretValidator.Object,
             MockSecretGenerator.Object,
             TimeProvider.System,
             MockCryptoService.Object,
@@ -852,6 +859,39 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenValidationFails_ReturnsBadRequest()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateServer("server-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockSecretValidator
+            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Returns(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Detail = "incoherent",
+                }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            ServerId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
     #endregion

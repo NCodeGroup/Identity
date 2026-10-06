@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Grants;
 using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
+using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Identity.OpenId.Management.OpenApi;
@@ -77,6 +78,9 @@ public static class DefaultRegistration
                 IManagementAuditRecorder,
                 DefaultManagementAuditRecorder
             >();
+
+            // Shared by the server/tenant/client secret-create endpoints (ADR-0015).
+            serviceCollection.TryAddSingleton<ISecretValidator, DefaultSecretValidator>();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

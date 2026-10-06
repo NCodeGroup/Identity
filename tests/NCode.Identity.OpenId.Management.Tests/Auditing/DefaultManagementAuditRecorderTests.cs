@@ -336,4 +336,56 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
     }
 
     #endregion
+
+    #region RecordServerSecretChangedAsync Tests
+
+    [Fact]
+    public async Task RecordServerSecretChangedAsync_PublishesSecretChangedAuditEventWithIds()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        ServerSecretChangedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<ServerSecretChangedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (ServerSecretChangedAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultManagementAuditRecorder(
+            mockPublisher.Object,
+            TimeProvider.System
+        );
+
+        var httpContext = CreateHttpContext("admin-1");
+
+        await recorder.RecordServerSecretChangedAsync(
+            httpContext,
+            "server-1",
+            "secret-1",
+            ResourceChangeTypes.Created,
+            resourceValues: null,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("server.secret.created", captured.Action);
+        Assert.Equal(ManagementResourceTypes.ServerSecret, captured.ResourceType);
+        Assert.Equal(ResourceChangeTypes.Created, captured.ChangeType);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Null(captured.TenantId);
+        Assert.Equal("server-1", captured.ServerId);
+        Assert.Equal("secret-1", captured.ResourceId);
+        Assert.Equal("admin-1", captured.ActorId);
+        Assert.Null(captured.ResourceValues);
+    }
+
+    #endregion
 }

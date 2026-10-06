@@ -24,9 +24,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
@@ -58,6 +60,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<IServerValidator> MockServerValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
+    private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private ServerApiEndpointHandler Handler { get; }
 
     public ServerApiEndpointHandlerTests()
@@ -72,6 +75,20 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
 
+        MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordServerSecretChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
+
         Handler = new ServerApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
@@ -80,6 +97,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             TimeProvider.System,
             MockCryptoService.Object,
             MockServerProvider.Object,
+            MockManagementAuditRecorder.Object,
             NullLogger<ServerApiEndpointHandler>.Instance
         );
     }
@@ -716,6 +734,19 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         var created = Assert.IsType<Created<SecretResource>>(result);
         Assert.Equal("secret-1", created.Value?.SecretId);
         Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
+
+        MockManagementAuditRecorder.Verify(
+            x =>
+                x.RecordServerSecretChangedAsync(
+                    httpContext,
+                    ServerId,
+                    "generated-id",
+                    ResourceChangeTypes.Created,
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -925,6 +956,19 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+
+        MockManagementAuditRecorder.Verify(
+            x =>
+                x.RecordServerSecretChangedAsync(
+                    httpContext,
+                    ServerId,
+                    "secret-1",
+                    ResourceChangeTypes.Updated,
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -1013,6 +1057,19 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+
+        MockManagementAuditRecorder.Verify(
+            x =>
+                x.RecordServerSecretChangedAsync(
+                    httpContext,
+                    ServerId,
+                    "secret-1",
+                    ResourceChangeTypes.Deleted,
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Fact]

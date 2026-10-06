@@ -22,59 +22,53 @@ entry when the work lands (and note it in [`CHANGELOG.md`](CHANGELOG.md) if user
 
 ---
 
-## Deferred — evaluated, intentionally not-yet
+## Deferred — evaluated, intentionally not-yet (group `D`)
 
-- **UserInfo access auditing.** The UserInfo endpoint returns end-user PII but is not audited. A
+- **`D1` — UserInfo access auditing.** The UserInfo endpoint returns end-user PII but is not audited. A
   `userinfo.accessed` audit event would give a PII-access trail for compliance, but it is a read on a
   hot path (one event per request) and the subject is already captured at token issuance. Deferred as
   an opt-in; revisit if a compliance requirement needs per-access PII records.
   Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/`,
   `IAuditEventRecorder`.
 
-## Feature gaps — not yet implemented
+## Feature gaps — not yet implemented (group `F`)
 
-- **End-session / RP-initiated logout endpoint.** No OpenID Connect end-session endpoint, session
+- **`F1` — End-session / RP-initiated logout endpoint.** No OpenID Connect end-session endpoint, session
   termination, or back-channel logout notification exists. Until it does, there is no logout operation
   to audit. (ID-token `sid` claim for logout is also not yet emitted.)
-- **Consent persistence and enforcement.** The authorize flow negotiates `prompt` and audits the
+- **`F2` — Consent persistence and enforcement.** The authorize flow negotiates `prompt` and audits the
   grant/deny decision, but there is no persisted consent record or scope pre-approval. See
   `// TODO: check consent` in
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultAuthorizeHandler.cs`.
-- **`device_code` (RFC 8628) and CIBA grants.** Not implemented (TODOs in
+- **`F3` — `device_code` (RFC 8628) and CIBA grants.** Not implemented (TODOs in
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/`).
-- **`refresh_token_reuse_policy` (none / revoke_all).** Refresh-token replay is _detected and audited_
+- **`F4` — `refresh_token_reuse_policy` (none / revoke_all).** Refresh-token replay is _detected and audited_
   (`token.refresh.replay`), but there is no configurable response that revokes the whole token family
   on reuse. See `// TODO: refresh_token_reuse_policy` in
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/RefreshToken/DefaultRefreshTokenGrantHandler.cs`.
 
-## Secrets management
+## Secrets management (group `S`)
 
 Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md)
 (client-secret material revealed once on create).
 
-- **Client-secret rotate endpoint.** Rotation is create-new + delete-old (two calls) per
+- **`S1` — Client-secret rotate endpoint.** Rotation is create-new + delete-old (two calls) per
   [ADR-0011](docs/adr/0011-secret-management-api.md); ADR-0050 notes a convenience `rotate` would inherit
   the same one-time reveal. A `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate`
   returning `CreatedSecretResource` is the natural next increment.
   Touch points: `src/NCode.Identity.OpenId.Management/Endpoints/Clients/ClientApiEndpointHandler.cs`.
-- **Server-secret change auditing.** Tenant- and client-secret create/delete emit audit events
-  (`RecordTenantSecretChangedAsync` / `RecordClientSecretChangedAsync`), but there is no
-  `RecordServerSecretChangedAsync` — server-secret operations are not audited. Decide whether this is
-  intentional (servers are the `GlobalAdmin`-only control plane) or a parity gap to close.
-  Touch points: `src/NCode.Identity.OpenId.Management/Endpoints/Servers/ServerApiEndpointHandler.cs`,
-  `IManagementAuditRecorder`.
-- **Key import / BYOK (needs its own ADR).** Secret creation is server-generation-only; there is no way
+- **`S3` — Key import / BYOK (needs its own ADR).** Secret creation is server-generation-only; there is no way
   to onboard a `private_key_jwt` client (client generates its keypair and registers the **public** half)
   or to import an `x509` certificate — `SecretTypes.Certificate` is defined but `DefaultSecretGenerator`
   refuses it. ADR-0011 explicitly defers import; the `GenerateSecretRequest` `// Future:` note reserves
   room. Import needs its own validation + threat-model ADR before implementation.
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/Logic/GenerateSecretRequest.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`.
-- **Asymmetric public-material exposure.** No read path returns public key material (JWK/PEM) for a
+- **`S4` — Asymmetric public-material exposure.** No read path returns public key material (JWK/PEM) for a
   client's registered public key or for server/tenant signing keys. ADR-0011/ADR-0050 reserve this as a
   deliberate additive option (public material only; private keys stay unreachable).
   Touch points: `src/NCode.Identity.OpenId.Management.Abstractions/Contracts/Secrets/`.
-- **Client-secret storage: hash-at-rest vs reversible protection (needs its own ADR).** A client secret
+- **`S5` — Client-secret storage: hash-at-rest vs reversible protection (needs its own ADR).** A client secret
   is reveal-once and never returned again, so the server only needs to _verify_ a presented value — a
   one-way hash (OWASP-preferred) is safer than today's reversible data-protected `EncodedValue`. But
   symmetric secrets used as actual signing keys (`HS256`) require reversible material. The
@@ -82,7 +76,7 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`.
-- **Create-time secret validation.** The create endpoints do not validate `use` / `algorithm` /
+- **`S6` — Create-time secret validation.** The create endpoints do not validate `use` / `algorithm` /
   `keySizeBits` compatibility (e.g. `use=sig` paired with an encryption algorithm, or an unusual RSA
   size); only `DefaultSecretGenerator`'s hard limits apply. A core validator (per
   [ADR-0015](docs/adr/0015-management-core-validation-via-validators.md)) would reject incoherent

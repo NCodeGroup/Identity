@@ -47,4 +47,9 @@ public static class ManagementResourceTypes
     /// A secret belonging to an OpenID tenant.
     /// </summary>
     public const string TenantSecret = "tenant.secret";
+
+    /// <summary>
+    /// A secret belonging to an OpenID server.
+    /// </summary>
+    public const string ServerSecret = "server.secret";
 }

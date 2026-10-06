@@ -22,34 +22,22 @@ using NCode.Identity.Events.Audit;
 namespace NCode.Identity.OpenId.Management.Auditing;
 
 /// <summary>
-/// Defines the well-known <see cref="IResourceChangeAuditEvent.ResourceType"/> values emitted by the
-/// management API's audit events.
+/// An audit event raised when an administrator creates, updates, or deletes a secret belonging to an
+/// OpenID server. The owning server is carried by <see cref="ServerId"/> and the secret's identifier by
+/// <see cref="IResourceChangeAuditEvent.ResourceId"/>; the event never carries secret material.
 /// </summary>
+/// <remarks>
+/// Servers are the <c>GlobalAdmin</c>-only control plane and have no owning tenant, so
+/// <see cref="IAuditEvent.TenantId"/> is not populated for this event.
+/// </remarks>
 [PublicAPI]
-public static class ManagementResourceTypes
+public sealed record ServerSecretChangedAuditEvent : ResourceChangeAuditEvent
 {
     /// <summary>
-    /// An OpenID client.
+    /// Gets the identifier of the server the secret belongs to.
     /// </summary>
-    public const string Client = "client";
+    public required string ServerId { get; init; }
 
-    /// <summary>
-    /// A secret belonging to an OpenID client.
-    /// </summary>
-    public const string ClientSecret = "client.secret";
-
-    /// <summary>
-    /// An OpenID tenant.
-    /// </summary>
-    public const string Tenant = "tenant";
-
-    /// <summary>
-    /// A secret belonging to an OpenID tenant.
-    /// </summary>
-    public const string TenantSecret = "tenant.secret";
-
-    /// <summary>
-    /// A secret belonging to an OpenID server.
-    /// </summary>
-    public const string ServerSecret = "server.secret";
+    /// <inheritdoc />
+    public override string ResourceType => ManagementResourceTypes.ServerSecret;
 }

@@ -24,8 +24,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Servers;
@@ -71,6 +73,7 @@ internal class ServerApiEndpointHandler(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     IOpenIdServerProvider serverProvider,
+    IManagementAuditRecorder managementAuditRecorder,
     ILogger<ServerApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
@@ -79,6 +82,7 @@ internal class ServerApiEndpointHandler(
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
+    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private ILogger<ServerApiEndpointHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -589,12 +593,20 @@ internal class ServerApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var secretResource = ToSecretResource(generatedSecret.Secret);
+
+        await ManagementAuditRecorder.RecordServerSecretChangedAsync(
+            httpContext,
+            serverId,
+            secretId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(secretResource),
+            cancellationToken
+        );
+
         // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
         httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
-        return TypedResults.Created(
-            $"/servers/{serverId}/secrets/{secretId}",
-            ToSecretResource(generatedSecret.Secret)
-        );
+        return TypedResults.Created($"/servers/{serverId}/secrets/{secretId}", secretResource);
     }
 
     /// <summary>
@@ -685,6 +697,15 @@ internal class ServerApiEndpointHandler(
         await store.UpdateSecretAsync(serverId, updated, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordServerSecretChangedAsync(
+            httpContext,
+            serverId,
+            secretId,
+            ResourceChangeTypes.Updated,
+            ToResourceValues(ToSecretResource(updated)),
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -724,8 +745,19 @@ internal class ServerApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        var secretValues = ToResourceValues(ToSecretResource(secret));
+
         await store.RemoveSecretAsync(serverId, secretId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        await ManagementAuditRecorder.RecordServerSecretChangedAsync(
+            httpContext,
+            serverId,
+            secretId,
+            ResourceChangeTypes.Deleted,
+            secretValues,
+            cancellationToken
+        );
 
         return TypedResults.NoContent();
     }

@@ -191,4 +191,32 @@ public interface IManagementAuditRecorder
         JsonElement? resourceValues,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Records that an administrator created, updated, or deleted a secret belonging to an OpenID server.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the server the secret belongs to.</param>
+    /// <param name="secretId">The identifier of the affected secret.</param>
+    /// <param name="changeType">
+    /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
+    /// </param>
+    /// <param name="resourceValues">
+    /// A non-sensitive snapshot of the secret's metadata, or <c>null</c> when none is captured. Never
+    /// contains secret material.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordServerSecretChangedAsync(
+        HttpContext httpContext,
+        string serverId,
+        string secretId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    );
 }

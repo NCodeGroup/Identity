@@ -203,6 +203,33 @@ internal class DefaultManagementAuditRecorder(
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public ValueTask RecordServerSecretChangedAsync(
+        HttpContext httpContext,
+        string serverId,
+        string secretId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new ServerSecretChangedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = GetCorrelationId(httpContext),
+            ActorId = GetActorId(httpContext),
+            Source = GetSource(httpContext),
+            Outcome = AuditOutcome.Success,
+            ServerId = serverId,
+            ResourceId = secretId,
+            ChangeType = changeType,
+            ResourceValues = resourceValues,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
     private static string? GetCorrelationId(HttpContext httpContext) =>
         Activity.Current?.Id ?? httpContext.TraceIdentifier;
 

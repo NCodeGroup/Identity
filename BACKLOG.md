@@ -76,9 +76,3 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`.
-- **`S6` — Create-time secret validation.** The create endpoints do not validate `use` / `algorithm` /
-  `keySizeBits` compatibility (e.g. `use=sig` paired with an encryption algorithm, or an unusual RSA
-  size); only `DefaultSecretGenerator`'s hard limits apply. A core validator (per
-  [ADR-0015](docs/adr/0015-management-core-validation-via-validators.md)) would reject incoherent
-  combinations with a deterministic `400`.
-  Touch points: the management secret create handlers; the secret entity/core validator.

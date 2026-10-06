@@ -28,6 +28,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\src\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Management\NCode.Identity.OpenId.Management.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
     </ItemGroup>
 </Project>

@@ -32,6 +32,7 @@ using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
+using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -69,6 +70,7 @@ internal class ClientApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     IClientValidator clientValidator,
+    ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
@@ -82,6 +84,7 @@ internal class ClientApiEndpointHandler(
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IClientValidator ClientValidator { get; } = clientValidator;
+    private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -760,6 +763,12 @@ internal class ClientApiEndpointHandler(
         if (!authorizationResult.Succeeded)
         {
             return AuthorizationFailed(httpContext);
+        }
+
+        var validationError = SecretValidator.ValidateCreate(request);
+        if (validationError is not null)
+        {
+            return ToErrorResult(validationError);
         }
 
         var secretId = CryptoService.GenerateResourceId();

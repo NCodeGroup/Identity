@@ -1,8 +1,20 @@
 # 35. Federated principals: one actor, many connection-identities, with a server-owned stable id
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-10-07)
 - **Date:** 2026-10-02
 - **Deciders:** NCode Group
+
+## Amendment (2026-10-07): principals and identities are tenant-scoped
+
+A later decision establishes that **all persisted OpenID data is tenant-scoped except the server root**. This
+supersedes the "global" framing used below: a `FederatedPrincipal` and its `FederatedIdentity` connections are owned by
+a tenant and carry a tenant foreign key, so the same human authenticating in two tenants is two principals — tenant
+isolation is preferred over a cross-tenant singleton. The "one actor, many connection-identities" shape is unchanged
+_within_ a tenant; only the uniqueness scope narrows: the server-owned `PrincipalId` and the `(issuer, subject)`
+natural key are unique **per tenant**, not globally, and resolution runs within the ambient tenant. The persistence
+layer enforces this with a denormalized tenant discriminator and the fail-closed tenant-scope global query filter
+([ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md),
+[ADR-0052](0052-entity-framework-persistence-is-a-framework-plus-slices.md)).
 
 ## Context
 
@@ -161,3 +173,7 @@ no code today:
 - [ADR-0034](0034-persisted-role-assignments-and-ownership.md) — the persisted assignments that reference `PrincipalId`.
 - [ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release, Auth0-parity-plus posture under which
   the principal-identity surface is refined before release.
+- [ADR-0051](0051-local-accounts-behind-a-pluggable-account-source-seam.md) — adds the local kind of connection: a
+  `FederatedIdentity` whose `issuer` is this server, carrying a `LocalAccount` credential/profile/status payload. This
+  completes the definition here — a connection's `issuer` is usually an external IdP, but is this server for a local
+  account — without changing resolution or linking, which stay uniform across both.

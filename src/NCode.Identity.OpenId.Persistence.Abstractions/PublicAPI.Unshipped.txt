@@ -90,12 +90,16 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.Princ
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.PrincipalId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.Subject.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.Subject.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.TenantId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.ConcurrencyToken.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PersistedFederatedPrincipal() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PrincipalId.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PrincipalId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.TenantId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.ClientId.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.ClientId.init -> void

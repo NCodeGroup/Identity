@@ -38,11 +38,16 @@ so a cross-tenant row is never materialized.** "Never fetch what you cannot see"
   `OpenIdDbContext` is created by an `IDbContextFactory` from the root provider). When no scope is active the accessor
   is unscoped.
 - **Enforcement (persistence).** `OpenIdDbContext` applies a global query filter to each tenant-child entity
-  (`ClientEntity`, `ClientSecretEntity`) of the form _"ambient tenant is unset **or** the row's tenant equals the
-  ambient tenant."_ When a scope is active, a row owned by another tenant is never returned by any query, so it is
-  never materialized (defense against cross-tenant leaks). When unset — the runtime, and central-admin surfaces — the
-  filter is a no-op. Tenant-owned families (the tenant itself and its secrets) are intentionally **not** scoped, so
-  tenant and server administration stay central-admin.
+  (every `ISupportTenantEntity`) of the form _"ambient tenant is unset **or** the row's tenant equals the
+  ambient tenant"_ — compared against a denormalized `NormalizedTenantId` discriminator on the row, so the filter is a
+  single indexed-column predicate and the framework stays decoupled from the concrete tenant entity
+  ([ADR-0052](0052-entity-framework-persistence-is-a-framework-plus-slices.md)). When a scope is active, a row owned by
+  another tenant is never returned by any query, so it is never materialized (defense against cross-tenant leaks). When
+  unset — the runtime, and central-admin surfaces — the filter is a no-op. The tenant root itself has no owning-tenant
+  foreign key, so it is **not** an `ISupportTenantEntity` and stays unscoped (discoverable by id during resolution); its
+  tenant-owned rows — including its secrets — **are** scoped like every other tenant-child (tenant resolution and tenant
+  management read them with no ambient scope). The server root and its secrets are **global** (not tenant-scoped), so
+  server administration stays central-admin.
 - **Establishing the scope (management).** A reusable `TenantScopeEndpointFilter` on the tenant-bound endpoint group
   ([ADR-0009](0009-endpoint-families-own-their-route-group.md)) resolves the ambient tenant via `ITenantResolver` and
   opens an `IAmbientTenantAccessor` scope for the duration of the request; an unresolvable tenant short-circuits with
@@ -83,8 +88,9 @@ so a cross-tenant row is never materialized.** "Never fetch what you cannot see"
 - A create derives its owning tenant from the ambient scope, so the request carries no tenant identifier — there is
   nothing for a caller to get wrong, and the same tenant row is not fetched twice (the scope resolution is the
   existence proof, so create needs no separate "parent exists" query).
-- The `OpenIdDbContext` takes an optional `IAmbientTenantAccessor` (defaulting to unscoped), so direct construction
-  (tests, tooling) and consumers without the ambient accessor keep working unchanged.
+- The `OpenIdDbContext` takes a **required** `IAmbientTenantAccessor`: a missing registration fails fast at startup
+  rather than silently running unscoped (fail-closed against a cross-tenant leak), and the unscoped state is modeled by
+  a `null` `TenantId`, not a `null` accessor. Direct construction (tests, tooling) passes an explicit unscoped accessor.
 - The tenant selection rules still have a single source of truth shared by the runtime and the management API, so the
   two can never diverge on "which tenant is this request?"
 - Extracting the scope and removing `ITenantBoundary` are public-API changes on pre-1.0 unshipped surface, so no

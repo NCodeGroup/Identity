@@ -24,15 +24,21 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the data for a persisted federated principal: a single, global representation of a human actor that owns
+/// Contains the data for a persisted federated principal: a tenant-scoped representation of a human actor that owns
 /// many external connection identities (<see cref="PersistedFederatedIdentity"/>). The principal's
 /// <see cref="PrincipalId"/> is the stable, server-generated identifier that authority references and that is emitted
 /// as the <c>sub</c> claim.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PersistedFederatedPrincipal : ISupportConcurrencyToken
+public sealed class PersistedFederatedPrincipal : ISupportTenantId, ISupportConcurrencyToken
 {
+    /// <summary>
+    /// Gets or sets the identifier of the tenant that owns this principal.
+    /// </summary>
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string TenantId { get; init; }
+
     /// <summary>
     /// Gets or sets the server-generated opaque public identifier of the principal.
     /// </summary>

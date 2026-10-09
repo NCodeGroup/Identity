@@ -8,6 +8,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.JsonWebTokens\NCode.Identity.JsonWebTokens.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Accounts.Abstractions\NCode.Identity.OpenId.Accounts.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Authentication.Abstractions\NCode.Identity.OpenId.Authentication.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Messages.Abstractions\NCode.Identity.OpenId.Messages.Abstractions.csproj" />
@@ -21,6 +22,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
         <PackageReference Include="Microsoft.OpenApi" />
         <PackageReference Include="NCode.Base64Url" />
+        <PackageReference Include="NCode.Buffers" />
         <PackageReference Include="NCode.Collections.Providers" />
         <PackageReference Include="NCode.Mediator" />
     </ItemGroup>

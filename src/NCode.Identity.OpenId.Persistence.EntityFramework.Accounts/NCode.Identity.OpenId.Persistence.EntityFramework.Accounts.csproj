@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NCode.Identity.OpenId.Persistence.EntityFramework.Accounts</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.OpenId.Accounts.Abstractions\NCode.Identity.OpenId.Accounts.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Accounts\NCode.Identity.OpenId.Accounts.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.EntityFramework\NCode.Identity.OpenId.Persistence.EntityFramework.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="IdGen" />
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    </ItemGroup>
+</Project>

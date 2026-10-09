@@ -1,0 +1,466 @@
+#region Copyright Preamble
+
+// Copyright @ 2025 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Linq.Expressions;
+using IdGen;
+using Microsoft.EntityFrameworkCore;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
+using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Persistence.Stores;
+
+namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
+
+/// <summary>
+/// Provides a default implementation of <see cref="IServerStore"/> that uses Entity Framework Core for persistence.
+/// </summary>
+internal class ServerStore(
+    IStoreProvider storeProvider,
+    IIdGenerator<long> idGenerator,
+    OpenIdDbContext openIdDbContext
+) : CoreBaseStoreWithResourceId<PersistedServer, ServerEntity>, IServerStore
+{
+    /// <inheritdoc />
+    protected override IStoreProvider StoreProvider { get; } = storeProvider;
+
+    /// <inheritdoc />
+    protected override IIdGenerator<long> IdGenerator { get; } = idGenerator;
+
+    /// <inheritdoc />
+    protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
+
+    /// <summary>
+    /// Maps a <see cref="ServerEntity"/> to a <see cref="PersistedServerSettings"/> instance.
+    /// </summary>
+    /// <param name="serverEntity">The <see cref="ServerEntity"/> instance to map.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly mapped <see cref="PersistedServerSettings"/> instance.</returns>
+    protected internal virtual ValueTask<PersistedServerSettings> MapSettingsAsync(
+        ServerEntity serverEntity,
+        CancellationToken cancellationToken
+    )
+    {
+        return ValueTask.FromResult(
+            new PersistedServerSettings
+            {
+                ServerId = serverEntity.ServerId,
+                ConcurrencyToken = serverEntity.SettingsConcurrencyToken,
+                Value = serverEntity.SettingsJson,
+            }
+        );
+    }
+
+    /// <summary>
+    /// Maps a <see cref="ServerEntity"/> to a <see cref="PersistedServerSecrets"/> instance.
+    /// </summary>
+    /// <param name="serverEntity">The <see cref="ServerEntity"/> instance to map.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly mapped <see cref="PersistedServerSecrets"/> instance.</returns>
+    protected internal virtual ValueTask<PersistedServerSecrets> MapSecretsAsync(
+        ServerEntity serverEntity,
+        CancellationToken cancellationToken
+    )
+    {
+        return ValueTask.FromResult(
+            new PersistedServerSecrets
+            {
+                ServerId = serverEntity.ServerId,
+                ConcurrencyToken = serverEntity.SecretsConcurrencyToken,
+                Value = MapToPersistedSecrets(serverEntity.Secrets),
+            }
+        );
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<PersistedServer> MapFromEntityAsync(
+        ServerEntity entity,
+        CancellationToken cancellationToken
+    )
+    {
+        return new PersistedServer
+        {
+            ServerId = entity.ServerId,
+            ConcurrencyToken = entity.ConcurrencyToken,
+            Settings = await MapSettingsAsync(entity, cancellationToken),
+            Secrets = await MapSecretsAsync(entity, cancellationToken),
+        };
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<ServerEntity?> GetEntityOrDefaultAsync(
+        Expression<Func<ServerEntity, bool>> predicate,
+        CancellationToken cancellationToken
+    )
+    {
+        return GetLocalOrDefault(predicate)
+            ?? await DbContext
+                .Servers.Include(server => server.Secrets)
+                    .ThenInclude(serverSecret => serverSecret.Secret)
+                .SingleOrDefaultAsync(predicate, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<ServerEntity?> GetEntityOrDefaultAsync(
+        string resourceId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedServerId = Normalize(resourceId);
+        return await GetEntityOrDefaultAsync(
+            entity => entity.NormalizedServerId == normalizedServerId,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<IReadOnlyList<ServerEntity>> GetEntityPageAsync(
+        long? afterId,
+        int take,
+        CancellationToken cancellationToken
+    )
+    {
+        var query = DbContext
+            .Servers.Include(server => server.Secrets)
+                .ThenInclude(serverSecret => serverSecret.Secret)
+            .AsQueryable();
+
+        if (afterId is { } id)
+        {
+            query = query.Where(server => server.Id > id);
+        }
+
+        return await query.OrderBy(server => server.Id).Take(take).ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    protected override long GetSortKey(ServerEntity entity) => entity.Id;
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedServerSettings?> GetSettingsOrDefaultAsync(
+        string serverId,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverEntity = await GetEntityOrDefaultAsync(serverId, cancellationToken);
+        if (serverEntity is null)
+        {
+            return null;
+        }
+
+        return await MapSettingsAsync(serverEntity, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedServerSecrets?> GetSecretsOrDefaultAsync(
+        string serverId,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverEntity = await GetEntityOrDefaultAsync(serverId, cancellationToken);
+        if (serverEntity is null)
+        {
+            return null;
+        }
+
+        return await MapSecretsAsync(serverEntity, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public override async ValueTask AddAsync(
+        PersistedServer persistedServer,
+        CancellationToken cancellationToken
+    )
+    {
+        // Assign the row token up front so create can return it without a re-read; the interceptor leaves a
+        // pre-seeded insert token intact (ADR-0012). The sub-resource version columns stay manual.
+        persistedServer.ConcurrencyToken = NextConcurrencyToken();
+        persistedServer.Settings.ConcurrencyToken = NextConcurrencyToken();
+        persistedServer.Secrets.ConcurrencyToken = NextConcurrencyToken();
+
+        var secrets = new List<ServerSecretEntity>(persistedServer.Secrets.Value.Count);
+
+        var serverEntity = new ServerEntity
+        {
+            Id = NextId(),
+            ServerId = persistedServer.ServerId,
+            NormalizedServerId = Normalize(persistedServer.ServerId),
+            ConcurrencyToken = persistedServer.ConcurrencyToken,
+            SettingsConcurrencyToken = persistedServer.Settings.ConcurrencyToken,
+            SecretsConcurrencyToken = persistedServer.Secrets.ConcurrencyToken,
+            SettingsJson = persistedServer.Settings.Value,
+            Secrets = secrets,
+        };
+
+        foreach (var persistedSecret in persistedServer.Secrets.Value)
+        {
+            var secretEntity = MapToSecretEntity(persistedSecret);
+
+            await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
+
+            var serverSecretEntity = new ServerSecretEntity
+            {
+                Id = NextId(),
+
+                Server = serverEntity,
+                ServerId = serverEntity.Id,
+
+                Secret = secretEntity,
+                SecretId = secretEntity.Id,
+            };
+
+            secrets.Add(serverSecretEntity);
+
+            await DbContext.ServerSecrets.AddAsync(serverSecretEntity, cancellationToken);
+        }
+
+        await DbContext.Servers.AddAsync(serverEntity, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public override async ValueTask UpdateAsync(
+        PersistedServer persistedServer,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverId = persistedServer.ServerId;
+        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+
+        if (
+            !string.Equals(
+                persistedServer.ConcurrencyToken,
+                serverEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            throw new DbUpdateConcurrencyException(
+                $"The OpenId Server with ServerId='{serverId}' has been modified by another process. Please reload and try again."
+            );
+        }
+
+        // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-0012).
+        DbContext.Servers.Update(serverEntity);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask UpdateSettingsAsync(
+        PersistedServerSettings persistedServerSettings,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverId = persistedServerSettings.ServerId;
+        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+
+        if (
+            !string.Equals(
+                persistedServerSettings.ConcurrencyToken,
+                serverEntity.SettingsConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            throw new DbUpdateConcurrencyException(
+                $"The settings for OpenId Server with ServerId='{serverId}' have been modified by another process. Please reload and try again."
+            );
+        }
+
+        var nextConcurrencyToken = NextConcurrencyToken();
+
+        serverEntity.SettingsConcurrencyToken = nextConcurrencyToken;
+        serverEntity.SettingsJson = persistedServerSettings.Value;
+
+        DbContext.Servers.Update(serverEntity);
+
+        persistedServerSettings.ConcurrencyToken = nextConcurrencyToken;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedSecret?> GetSecretOrDefaultAsync(
+        string serverId,
+        string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedServerId = Normalize(serverId);
+        var normalizedSecretId = Normalize(secretId);
+
+        var secretEntity = await DbContext
+            .ServerSecrets.Where(serverSecret =>
+                serverSecret.Server.NormalizedServerId == normalizedServerId
+                && serverSecret.Secret.NormalizedSecretId == normalizedSecretId
+            )
+            .Select(serverSecret => serverSecret.Secret)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return secretEntity is null ? null : MapToPersistedSecret(secretEntity);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask AddSecretAsync(
+        string serverId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+
+        var normalizedSecretId = Normalize(persistedSecret.SecretId);
+        var alreadyExists = serverEntity.Secrets.Any(serverSecret =>
+            serverSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (alreadyExists)
+        {
+            throw new InvalidOperationException(
+                $"A secret with SecretId='{persistedSecret.SecretId}' already exists for OpenId Server with ServerId='{serverId}'."
+            );
+        }
+
+        // A created secret cannot have a concurrency conflict, so assign its token up front and return it on
+        // the DTO; the interceptor leaves a pre-seeded insert token intact (ADR-0012).
+        persistedSecret.ConcurrencyToken = NextConcurrencyToken();
+        var secretEntity = MapToSecretEntity(persistedSecret);
+        await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
+
+        var serverSecretEntity = new ServerSecretEntity
+        {
+            Id = NextId(),
+            Server = serverEntity,
+            ServerId = serverEntity.Id,
+            Secret = secretEntity,
+            SecretId = secretEntity.Id,
+        };
+        await DbContext.ServerSecrets.AddAsync(serverSecretEntity, cancellationToken);
+
+        // The server is tracked; mutating the token marks it Modified via change detection.
+        serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask UpdateSecretAsync(
+        string serverId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+
+        var normalizedSecretId = Normalize(persistedSecret.SecretId);
+        var serverSecretEntity = serverEntity.Secrets.SingleOrDefault(serverSecret =>
+            serverSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (serverSecretEntity is null)
+        {
+            throw new InvalidOperationException(
+                $"A secret with SecretId='{persistedSecret.SecretId}' was not found for OpenId Server with ServerId='{serverId}'."
+            );
+        }
+
+        var secretEntity = serverSecretEntity.Secret;
+        if (
+            !string.Equals(
+                persistedSecret.ConcurrencyToken,
+                secretEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            throw new DbUpdateConcurrencyException(
+                $"The secret with SecretId='{persistedSecret.SecretId}' has been modified by another process. Please reload and try again."
+            );
+        }
+
+        // Only metadata is mutable; key material is immutable once generated (see ADR-0011). The secret's
+        // row-level ConcurrencyToken is regenerated by the interceptor on save (ADR-0012).
+        secretEntity.Use = persistedSecret.Use;
+        secretEntity.Algorithm = persistedSecret.Algorithm;
+        secretEntity.ExpiresWhen = persistedSecret.ExpiresWhen.ToUniversalTime();
+
+        serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RemoveSecretAsync(
+        string serverId,
+        string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+
+        var normalizedSecretId = Normalize(secretId);
+        var serverSecretEntity = serverEntity.Secrets.SingleOrDefault(serverSecret =>
+            serverSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (serverSecretEntity is null)
+        {
+            return false;
+        }
+
+        DbContext.ServerSecrets.Remove(serverSecretEntity);
+        DbContext.Secrets.Remove(serverSecretEntity.Secret);
+
+        // The server is tracked; mutating the token marks it Modified via change detection.
+        serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RemoveAsync(string serverId, CancellationToken cancellationToken)
+    {
+        var serverEntity = await GetEntityOrDefaultAsync(serverId, cancellationToken);
+        if (serverEntity is null)
+        {
+            return false;
+        }
+
+        var hasSecrets = await DbContext.ServerSecrets.AnyAsync(
+            serverSecret => serverSecret.ServerId == serverEntity.Id,
+            cancellationToken
+        );
+        if (hasSecrets)
+        {
+            throw new InvalidOperationException(
+                $"The OpenId Server with ServerId='{serverId}' cannot be removed because it still has one or more secrets."
+            );
+        }
+
+        DbContext.Servers.Remove(serverEntity);
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> HasDependentsAsync(
+        string serverId,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverEntity = await GetEntityOrDefaultAsync(serverId, cancellationToken);
+        if (serverEntity is null)
+        {
+            return false;
+        }
+
+        return await DbContext.ServerSecrets.AnyAsync(
+            serverSecret => serverSecret.ServerId == serverEntity.Id,
+            cancellationToken
+        );
+    }
+}

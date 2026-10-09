@@ -21,6 +21,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
+using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
+using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
+using NCode.Identity.OpenId.Persistence.Tenants;
 
 namespace NCode.Identity.OpenId.Playground;
 
@@ -39,7 +42,8 @@ internal sealed class OpenIdDbContextDesignTimeFactory
         // The context resolves its id-generation convention from the application service provider.
         var serviceProvider = new ServiceCollection()
             .AddSingleton<IIdGenerator<long>>(new IdGenerator(0))
-            .AddEntityFrameworkPersistenceServices<OpenIdDbContext>()
+            .AddEntityFrameworkCorePersistence<OpenIdDbContext>()
+            .AddLocalAccountEntityFramework()
             .BuildServiceProvider();
 
         var options = new DbContextOptionsBuilder<OpenIdDbContext>()
@@ -50,6 +54,21 @@ internal sealed class OpenIdDbContextDesignTimeFactory
             .UseApplicationServiceProvider(serviceProvider)
             .Options;
 
-        return new OpenIdDbContext(options);
+        // Migrations only build the model and emit schema, so the context is constructed unscoped; any registered
+        // model contributors still flow through so their entities are included in the generated migration.
+        return new OpenIdDbContext(
+            options,
+            new UnscopedAmbientTenantAccessor(),
+            serviceProvider.GetServices<IOpenIdModelContributor>()
+        );
+    }
+
+    private sealed class UnscopedAmbientTenantAccessor : IAmbientTenantAccessor
+    {
+        public bool IsScoped => false;
+        public string? TenantId => null;
+
+        public IDisposable BeginScope(string tenantId) =>
+            throw new NotSupportedException("Design-time construction is unscoped.");
     }
 }

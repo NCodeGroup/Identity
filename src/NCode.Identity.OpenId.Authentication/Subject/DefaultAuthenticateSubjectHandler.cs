@@ -79,6 +79,7 @@ internal class DefaultAuthenticateSubjectHandler(
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
                 openIdContext,
                 "Failed to authenticate the end-user.",
+                attemptedSubjectId: null,
                 cancellationToken
             );
             return Failed(
@@ -101,6 +102,7 @@ internal class DefaultAuthenticateSubjectHandler(
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
                 openIdContext,
                 "Unable to determine the end-user's subject id.",
+                attemptedSubjectId: null,
                 cancellationToken
             );
             return Failed(

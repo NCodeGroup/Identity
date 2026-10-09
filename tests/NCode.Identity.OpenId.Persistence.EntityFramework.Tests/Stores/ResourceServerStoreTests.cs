@@ -40,10 +40,7 @@ public sealed class ResourceServerStoreTests : IDisposable
     public ResourceServerStoreTests()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
-        serviceCollection.AddSingleton<IdValueGenerator>();
-        serviceCollection.AddSingleton<UseIdGeneratorConvention>();
-        serviceCollection.AddDbContext<OpenIdDbContext>(options =>
+        serviceCollection.AddTestOpenIdDbContext(options =>
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 

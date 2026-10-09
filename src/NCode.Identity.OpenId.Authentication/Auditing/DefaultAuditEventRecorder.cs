@@ -180,6 +180,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
     public ValueTask RecordSubjectAuthenticationFailedAsync(
         OpenIdContext openIdContext,
         string? reason,
+        string? attemptedSubjectId,
         CancellationToken cancellationToken
     )
     {
@@ -192,6 +193,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             Source = openIdContext.EndpointName,
             Outcome = AuditOutcome.Failure,
             Reason = reason,
+            SubjectId = attemptedSubjectId,
         };
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);

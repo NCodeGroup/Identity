@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -25,7 +26,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 /// </summary>
 /// <typeparam name="TItem">The type of the persisted item, also known as a <c>Data Transfer Object</c> or <c>DTO</c>.</typeparam>
 /// <typeparam name="TEntity">The type of the corresponding entity.</typeparam>
-internal abstract class BaseStoreWithResourceId<TItem, TEntity>
+[PublicAPI]
+public abstract class BaseStoreWithResourceId<TItem, TEntity>
     : BaseStore<TItem, TEntity>,
         IStore<TItem>
     where TItem : class

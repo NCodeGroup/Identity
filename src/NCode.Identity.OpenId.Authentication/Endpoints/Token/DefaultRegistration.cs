@@ -128,6 +128,14 @@ internal static class DefaultRegistration
                 DefaultAuthenticatePasswordGrantHandler
             >();
 
+            serviceCollection.TryAddSingleton<
+                ICommandResponseHandler<
+                    CreatePasswordGrantSubjectCommand,
+                    System.Security.Claims.ClaimsPrincipal
+                >,
+                DefaultCreatePasswordGrantSubjectHandler
+            >();
+
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<ValidateTokenGrantCommand<PasswordGrant>>,

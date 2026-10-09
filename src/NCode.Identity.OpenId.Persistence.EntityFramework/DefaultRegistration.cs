@@ -22,13 +22,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
-using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for using Entity Framework with OpenId.
+/// Provides extension methods for <see cref="IServiceCollection"/> to register the reusable Entity Framework
+/// persistence framework (the store-manager, id generation, and the <see cref="AddStore{TDbContext,TService,TImplementation}"/>
+/// helper that slices use to register their stores). Register a schema slice (such as the core OpenID slice) separately
+/// to contribute entities and stores.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
@@ -37,8 +39,10 @@ public static class DefaultRegistration
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
-        /// Registers the required services needed for using Entity Framework with OpenId into the provided <see cref="IServiceCollection"/> instance.
-        /// Make sure to also register the required services for Entity Framework itself.
+        /// Registers the reusable Entity Framework persistence framework (the id generator, the id-generator
+        /// convention, and the store-manager/unit-of-work plumbing) into the provided <see cref="IServiceCollection"/>.
+        /// Make sure to also register the Entity Framework <see cref="DbContext"/> itself and the schema slices whose
+        /// stores you need.
         /// </summary>
         /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> to use.</typeparam>
         /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
@@ -55,28 +59,19 @@ public static class DefaultRegistration
             >();
             serviceCollection.TryAddScoped<IStoreManager, EntityStoreManager<TDbContext>>();
 
-            serviceCollection.AddStore<TDbContext, IServerStore, ServerStore>();
-            serviceCollection.AddStore<TDbContext, ITenantStore, TenantStore>();
-            serviceCollection.AddStore<TDbContext, IClientStore, ClientStore>();
-            serviceCollection.AddStore<TDbContext, IGrantStore, GrantStore>();
-            serviceCollection.AddStore<TDbContext, IResourceServerStore, ResourceServerStore>();
-            serviceCollection.AddStore<TDbContext, IClientGrantStore, ClientGrantStore>();
-            serviceCollection.AddStore<TDbContext, IRoleAssignmentStore, RoleAssignmentStore>();
-            serviceCollection.AddStore<
-                TDbContext,
-                IFederatedPrincipalStore,
-                FederatedPrincipalStore
-            >();
-            serviceCollection.AddStore<
-                TDbContext,
-                IFederatedIdentityStore,
-                FederatedIdentityStore
-            >();
-
             return serviceCollection;
         }
 
-        private void AddStore<TDbContext, TService, TImplementation>()
+        /// <summary>
+        /// Registers a store implementation against the shared <see cref="DbContext"/>. A schema slice calls this for
+        /// each of its stores so they share the framework's unit of work; the store is created with the current
+        /// <see cref="IStoreProvider"/> and <typeparamref name="TDbContext"/>.
+        /// </summary>
+        /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> to use.</typeparam>
+        /// <typeparam name="TService">The store service contract.</typeparam>
+        /// <typeparam name="TImplementation">The store implementation type.</typeparam>
+        [PublicAPI]
+        public void AddStore<TDbContext, TService, TImplementation>()
             where TDbContext : DbContext
             where TService : class
             where TImplementation : class, TService

@@ -1,0 +1,12 @@
+#nullable enable
+NCode.Identity.OpenId.Accounts.Credentials.DefaultRegistration
+NCode.Identity.OpenId.Accounts.Credentials.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.OpenId.Accounts.Credentials.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDefaultPasswordHasher() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.OpenId.Accounts.Credentials.PasswordHasherOptions
+NCode.Identity.OpenId.Accounts.Credentials.PasswordHasherOptions.HashByteCount.get -> int
+NCode.Identity.OpenId.Accounts.Credentials.PasswordHasherOptions.HashByteCount.set -> void
+NCode.Identity.OpenId.Accounts.Credentials.PasswordHasherOptions.Iterations.get -> int
+NCode.Identity.OpenId.Accounts.Credentials.PasswordHasherOptions.Iterations.set -> void
+NCode.Identity.OpenId.Accounts.Credentials.PasswordHasherOptions.PasswordHasherOptions() -> void
+NCode.Identity.OpenId.Accounts.Credentials.PasswordHasherOptions.SaltByteCount.get -> int
+NCode.Identity.OpenId.Accounts.Credentials.PasswordHasherOptions.SaltByteCount.set -> void

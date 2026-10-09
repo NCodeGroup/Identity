@@ -41,10 +41,7 @@ public sealed class TenantDomainNameIndexTests : IDisposable
         _connection.Open();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
-        serviceCollection.AddSingleton<IdValueGenerator>();
-        serviceCollection.AddSingleton<UseIdGeneratorConvention>();
-        serviceCollection.AddDbContext<OpenIdDbContext>(options => options.UseSqlite(_connection));
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
         _provider = serviceCollection.BuildServiceProvider();
 
         using var scope = _provider.CreateScope();

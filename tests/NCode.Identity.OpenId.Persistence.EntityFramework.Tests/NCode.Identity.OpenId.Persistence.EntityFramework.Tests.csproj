@@ -26,6 +26,12 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Persistence.EntityFramework\NCode.Identity.OpenId.Persistence.EntityFramework.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Persistence.EntityFramework.Core\NCode.Identity.OpenId.Persistence.EntityFramework.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="NCode.Identity.OpenId.Persistence.EntityFramework.Core" />
+        <Using Include="NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities" />
+        <Using Include="NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores" />
     </ItemGroup>
 </Project>

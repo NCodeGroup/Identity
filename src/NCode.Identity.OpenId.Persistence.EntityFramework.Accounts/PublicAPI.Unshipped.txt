@@ -1,0 +1,4 @@
+#nullable enable
+NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.DefaultRegistration
+NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddLocalAccountEntityFramework() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

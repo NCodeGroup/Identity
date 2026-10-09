@@ -34,6 +34,7 @@ namespace NCode.Identity.OpenId.Core.PrincipalResolution;
 public sealed class DefaultPrincipalResolverTests
 {
     private const string PrincipalId = "principal-1";
+    private const string TenantId = "tenant-1";
     private const string Issuer = "https://issuer.example";
     private const string Subject = "upstream-subject-1";
     private const string GeneratedId = "generated-id";
@@ -49,6 +50,7 @@ public sealed class DefaultPrincipalResolverTests
 
         var tenant = mocks.Create<OpenIdTenant>();
         tenant.Setup(x => x.SettingsProvider).Returns(provider.Object);
+        tenant.Setup(x => x.TenantId).Returns(TenantId);
 
         var context = mocks.Create<OpenIdContext>();
         context.Setup(x => x.Tenant).Returns(tenant.Object);
@@ -59,11 +61,17 @@ public sealed class DefaultPrincipalResolverTests
         new(new ClaimsIdentity(claims, "test"));
 
     private static PersistedFederatedPrincipal Principal(string principalId) =>
-        new() { PrincipalId = principalId, ConcurrencyToken = string.Empty };
+        new()
+        {
+            TenantId = TenantId,
+            PrincipalId = principalId,
+            ConcurrencyToken = string.Empty,
+        };
 
     private static PersistedFederatedIdentity Identity(string principalId) =>
         new()
         {
+            TenantId = TenantId,
             FederatedIdentityId = "identity-1",
             PrincipalId = principalId,
             Issuer = Issuer,
@@ -365,8 +373,10 @@ public sealed class DefaultPrincipalResolverTests
         Assert.Equal(GeneratedId, result);
         Assert.NotNull(capturedPrincipal);
         Assert.Equal(GeneratedId, capturedPrincipal.PrincipalId);
+        Assert.Equal(TenantId, capturedPrincipal.TenantId);
         Assert.NotNull(capturedIdentity);
         Assert.Equal(GeneratedId, capturedIdentity.PrincipalId);
+        Assert.Equal(TenantId, capturedIdentity.TenantId);
         Assert.Equal(Issuer, capturedIdentity.Issuer);
         Assert.Equal(Subject, capturedIdentity.Subject);
     }

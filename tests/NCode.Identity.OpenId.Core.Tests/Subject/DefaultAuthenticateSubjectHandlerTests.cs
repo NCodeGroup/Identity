@@ -140,6 +140,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
                 x.RecordSubjectAuthenticationFailedAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<string?>(),
+                    It.IsAny<string?>(),
                     It.IsAny<CancellationToken>()
                 ),
             Times.Never
@@ -170,6 +171,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
                 x.RecordSubjectAuthenticationFailedAsync(
                     command.OpenIdContext,
                     It.IsAny<string?>(),
+                    It.IsAny<string?>(),
                     It.IsAny<CancellationToken>()
                 ),
             Times.Once
@@ -191,6 +193,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             x =>
                 x.RecordSubjectAuthenticationFailedAsync(
                     command.OpenIdContext,
+                    It.IsAny<string?>(),
                     It.IsAny<string?>(),
                     It.IsAny<CancellationToken>()
                 ),

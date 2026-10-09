@@ -18,6 +18,7 @@
 
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Serialization;
@@ -29,6 +30,7 @@ namespace NCode.Identity.OpenId.Environments;
 /// </summary>
 internal class DefaultOpenIdEnvironmentFactory(
     ILoggerFactory loggerFactory,
+    IOptions<OpenIdOptions> optionsAccessor,
     IDataProtectionProvider dataProtectionProvider,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
     IOpenIdMessageFactorySelector openIdMessageFactorySelector,
@@ -38,6 +40,7 @@ internal class DefaultOpenIdEnvironmentFactory(
     private EphemeralDataProtectionProvider EphemeralDataProtectionProvider { get; } =
         new(loggerFactory);
 
+    private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private IDataProtectionProvider DataProtectionProvider { get; } = dataProtectionProvider;
     private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
         knownParameterCollectionProvider;
@@ -59,7 +62,9 @@ internal class DefaultOpenIdEnvironmentFactory(
             ephemeralDataProtector,
             KnownParameterCollectionProvider,
             OpenIdMessageFactorySelector,
-            JsonConverterProviders
+            JsonConverterProviders,
+            Options.GetSubjectId,
+            Options.GetSubjectIdentity
         );
 
         return openIdEnvironment;

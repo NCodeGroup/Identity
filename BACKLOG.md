@@ -79,17 +79,6 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
 
 ## Consistency / refactors (group `R`)
 
-- **`R1` — Unify subject-id extraction from a `ClaimsPrincipal`.** The canonical, configurable extraction is
-  `OpenIdOptions.GetSubjectId` (default `sub` → `nameidentifier` → `upn`), but `DefaultManagementAuditRecorder.GetActorId`
-  re-implements a hardcoded subset (`sub ?? nameidentifier`), and `DefaultPrincipalResolver` uses a _different_
-  configurable mechanism (the `PrincipalSourceClaim` tenant setting). The audit recorder cannot simply call
-  `GetSubjectId` because that delegate lives in `OpenId.Core` and the Management package may depend only on
-  `*.Abstractions` ([ADR-0016](docs/adr/0016-implementation-packages-depend-only-on-abstractions.md)). The fix is to
-  hoist a single subject-id extraction contract into an abstractions package (or converge on the `PrincipalSourceClaim`
-  setting) so all three paths share one source of truth.
-  Touch points: `src/NCode.Identity.OpenId.Management/Auditing/DefaultManagementAuditRecorder.cs`,
-  `src/NCode.Identity.OpenId.Core/Logic/DefaultClaimsPrincipalLogic.cs`,
-  `src/NCode.Identity.OpenId.Core/PrincipalResolution/DefaultPrincipalResolver.cs`.
 - **`R2` — No universal `JsonElement` helper home.** `JsonElements` (`EmptyObject` / `IsNullOrUndefined` /
   `OrEmptyObject`) lives in `NCode.Identity.Abstractions`, so only the Identity/OpenId branch can use it;
   `NCode.Identity.Jose.Abstractions` keeps its own `JsonElementExtensions`. A single shared home is blocked by the
@@ -99,6 +88,16 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   low-level package (e.g. `NCode.Json`), which is its own packaging/versioning decision.
   Touch points: `src/NCode.Identity.Abstractions/Json/JsonElements.cs`,
   `src/NCode.Identity.Jose.Abstractions/Extensions/JsonElementExtensions.cs`.
+
+- **`R3` — Subject-claim selection is decided twice.** `OpenIdEnvironment.GetSubjectId` (host-configured `sub` →
+  `nameidentifier` → `upn` priority, [ADR-0053](docs/adr/0053-host-configured-hooks-on-the-openid-environment.md)) and
+  `DefaultPrincipalResolver`'s `PrincipalSourceClaim` tenant setting ([ADR-0035](docs/adr/0035-federated-principals-and-identity-resolution.md))
+  independently decide "which claim is the subject." They agree on the default (`sub`) but can diverge when a host sets
+  `PrincipalSourceClaim` ≠ `sub` or relies on the `nameidentifier`/`upn` fallback — the authenticate gate/fallback id
+  and the claim the resolver keys federated identity on would then differ. Reconcile so both read one configured source.
+  Touch points: `src/NCode.Identity.OpenId.Core/PrincipalResolution/DefaultPrincipalResolver.cs`,
+  `src/NCode.Identity.OpenId.Core/Options/OpenIdOptions.cs`,
+  `src/NCode.Identity.OpenId.Abstractions/Environments/OpenIdEnvironment.cs`.
 
 ## Local accounts (group `A`)
 

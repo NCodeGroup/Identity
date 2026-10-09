@@ -13,6 +13,8 @@ abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.DataProtector.get 
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.EphemeralDataProtector.get -> Microsoft.AspNetCore.DataProtection.IDataProtector!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.ErrorFactory.get -> NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.GetParameterDescriptor(string! parameterName) -> NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.GetSubjectId(System.Security.Claims.ClaimsPrincipal! subject) -> string?
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.GetSubjectIdentity(System.Security.Claims.ClaimsPrincipal! subject) -> System.Security.Claims.ClaimsIdentity!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.JsonSerializerOptions.get -> System.Text.Json.JsonSerializerOptions!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.KnownParameters.get -> NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollection!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!

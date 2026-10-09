@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Environments;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
@@ -39,6 +40,24 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
                 ? new ClaimsPrincipal(new ClaimsIdentity())
                 : new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", actorId)])),
         };
+
+    // The actor id is derived through the host-configured environment seam; mirror the default `sub` extraction.
+    private DefaultManagementAuditRecorder CreateRecorder(IEventPublisher eventPublisher)
+    {
+        var mockEnvironment = MockRepository.Create<OpenIdEnvironment>();
+        mockEnvironment
+            .Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>()))
+            .Returns((ClaimsPrincipal principal) => principal.FindFirst("sub")?.Value);
+
+        var mockEnvironmentProvider = MockRepository.Create<IOpenIdEnvironmentProvider>();
+        mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object);
+
+        return new DefaultManagementAuditRecorder(
+            eventPublisher,
+            mockEnvironmentProvider.Object,
+            TimeProvider.System
+        );
+    }
 
     #region RecordGrantRevokedAsync Tests
 
@@ -58,10 +77,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var recorder = new DefaultManagementAuditRecorder(
-            mockPublisher.Object,
-            TimeProvider.System
-        );
+        var recorder = CreateRecorder(mockPublisher.Object);
 
         var httpContext = CreateHttpContext("admin-1");
 
@@ -109,10 +125,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var recorder = new DefaultManagementAuditRecorder(
-            mockPublisher.Object,
-            TimeProvider.System
-        );
+        var recorder = CreateRecorder(mockPublisher.Object);
 
         var httpContext = CreateHttpContext("admin-1");
 
@@ -155,10 +168,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var recorder = new DefaultManagementAuditRecorder(
-            mockPublisher.Object,
-            TimeProvider.System
-        );
+        var recorder = CreateRecorder(mockPublisher.Object);
 
         var httpContext = CreateHttpContext("admin-1");
         var resourceValues = JsonSerializer.SerializeToElement(new { isDisabled = false });
@@ -208,10 +218,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var recorder = new DefaultManagementAuditRecorder(
-            mockPublisher.Object,
-            TimeProvider.System
-        );
+        var recorder = CreateRecorder(mockPublisher.Object);
 
         var httpContext = CreateHttpContext("admin-1");
 
@@ -257,10 +264,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var recorder = new DefaultManagementAuditRecorder(
-            mockPublisher.Object,
-            TimeProvider.System
-        );
+        var recorder = CreateRecorder(mockPublisher.Object);
 
         var httpContext = CreateHttpContext("admin-1");
         var resourceValues = JsonSerializer.SerializeToElement(new { isDisabled = false });
@@ -308,10 +312,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var recorder = new DefaultManagementAuditRecorder(
-            mockPublisher.Object,
-            TimeProvider.System
-        );
+        var recorder = CreateRecorder(mockPublisher.Object);
 
         var httpContext = CreateHttpContext("admin-1");
 
@@ -359,10 +360,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var recorder = new DefaultManagementAuditRecorder(
-            mockPublisher.Object,
-            TimeProvider.System
-        );
+        var recorder = CreateRecorder(mockPublisher.Object);
 
         var httpContext = CreateHttpContext("admin-1");
 

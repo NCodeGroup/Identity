@@ -18,8 +18,6 @@
 
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Options;
-using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Errors;
@@ -32,11 +30,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthenticateCommand"/> message.
 /// </summary>
-internal class DefaultAuthenticateHandler(IOptions<OpenIdOptions> optionsAccessor)
+internal class DefaultAuthenticateHandler
     : ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectDisposition>
 {
-    private OpenIdOptions Options { get; } = optionsAccessor.Value;
-
     private bool DefaultAuthenticateSchemeFetched { get; set; }
     private string? DefaultAuthenticateSchemeName { get; set; }
 
@@ -94,7 +90,7 @@ internal class DefaultAuthenticateHandler(IOptions<OpenIdOptions> optionsAccesso
 
         // TODO: use the subject_type setting to support PPID (Pairwise Pseudonymous Identifier), aka unique user ID per client/RP
 
-        var subjectId = Options.GetSubjectId(subject);
+        var subjectId = openIdContext.Environment.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
         {
             return Failed(

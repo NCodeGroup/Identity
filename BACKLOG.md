@@ -112,10 +112,6 @@ set-metadata` endpoints mirroring the existing Management package (clients/tenan
   provisioning usable end-to-end.
   Touch points: `src/NCode.Identity.OpenId.Accounts.Abstractions/ILocalAccountProvisioner.cs`,
   `src/NCode.Identity.OpenId.Management/Endpoints/`, `ILocalAccountStore`.
-- **`A2` — No tests for the ASP.NET Core Identity account source.** `AspNetIdentityLocalAccountSource<TUser>` compiles
-  and is in the solution but has no test project, so the second `ILocalAccountSource` implementation (proof the seam is
-  pluggable) is unverified. Add a test project covering `ValidateCredentialsAsync`, `FindBySubjectAsync`, and mapping.
-  Touch points: `src/NCode.Identity.OpenId.Accounts.AspNetIdentity/`.
 - **`A3` — Account metadata is storage-only.** `ProfileMetadata` / `SystemMetadata` (the owner-updatable vs
   server-controlled JSON bags) round-trip through the store but are never projected into tokens or UserInfo. If
   Auth0-parity intends metadata to surface as claims, add projection — enforcing that `SystemMetadata` may drive

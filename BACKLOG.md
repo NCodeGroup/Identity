@@ -90,3 +90,35 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   Touch points: `src/NCode.Identity.OpenId.Management/Auditing/DefaultManagementAuditRecorder.cs`,
   `src/NCode.Identity.OpenId.Core/Logic/DefaultClaimsPrincipalLogic.cs`,
   `src/NCode.Identity.OpenId.Core/PrincipalResolution/DefaultPrincipalResolver.cs`.
+- **`R2` — No universal `JsonElement` helper home.** `JsonElements` (`EmptyObject` / `IsNullOrUndefined` /
+  `OrEmptyObject`) lives in `NCode.Identity.Abstractions`, so only the Identity/OpenId branch can use it;
+  `NCode.Identity.Jose.Abstractions` keeps its own `JsonElementExtensions`. A single shared home is blocked by the
+  dependency graph: `Jose.Abstractions → Secrets.Abstractions` is a separate branch, and `Identity.Abstractions`
+  carries an ASP.NET Core `FrameworkReference`, so Jose/Secrets must not depend on it (that would invert layering and
+  drag ASP.NET Core into standalone crypto packages). A truly universal helper needs a dependency-free neutral
+  low-level package (e.g. `NCode.Json`), which is its own packaging/versioning decision.
+  Touch points: `src/NCode.Identity.Abstractions/Json/JsonElements.cs`,
+  `src/NCode.Identity.Jose.Abstractions/Extensions/JsonElementExtensions.cs`.
+
+## Local accounts (group `A`)
+
+Follow-ups surfaced finishing local-account login end-to-end ([ADR-0051](docs/adr/0051-local-accounts-behind-a-pluggable-account-source-seam.md)):
+the resource-owner password grant now authenticates a seeded local account over a pluggable `ILocalAccountSource`
+(EF and ASP.NET Core Identity implementations), but the management/projection surfaces are not built out.
+
+- **`A1` — Local-account management API.** `ILocalAccountProvisioner` has no caller — accounts can only be _seeded_
+  directly through the store, not created/updated by an operator. Add `create / update / disable / reset-password /
+set-metadata` endpoints mirroring the existing Management package (clients/tenants/servers). This is what makes
+  provisioning usable end-to-end.
+  Touch points: `src/NCode.Identity.OpenId.Accounts.Abstractions/ILocalAccountProvisioner.cs`,
+  `src/NCode.Identity.OpenId.Management/Endpoints/`, `ILocalAccountStore`.
+- **`A2` — No tests for the ASP.NET Core Identity account source.** `AspNetIdentityLocalAccountSource<TUser>` compiles
+  and is in the solution but has no test project, so the second `ILocalAccountSource` implementation (proof the seam is
+  pluggable) is unverified. Add a test project covering `ValidateCredentialsAsync`, `FindBySubjectAsync`, and mapping.
+  Touch points: `src/NCode.Identity.OpenId.Accounts.AspNetIdentity/`.
+- **`A3` — Account metadata is storage-only.** `ProfileMetadata` / `SystemMetadata` (the owner-updatable vs
+  server-controlled JSON bags) round-trip through the store but are never projected into tokens or UserInfo. If
+  Auth0-parity intends metadata to surface as claims, add projection — enforcing that `SystemMetadata` may drive
+  authorization but must never be end-user-writable.
+  Touch points: `src/NCode.Identity.OpenId.Accounts.Abstractions/DataContracts/PersistedLocalAccount.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`.

@@ -17,7 +17,134 @@ namespace NCode.Identity.OpenId.Playground.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Entities.LocalAccountClaimEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("LocalAccountEntityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocalAccountEntityId");
+
+                    b.ToTable("LocalAccountClaims", (string)null);
+                });
+
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Entities.LocalAccountEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("EmailVerified")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LocalAccountId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedLocalAccountId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedUserName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(1000)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProfileMetadataJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SecurityStamp")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SystemMetadataJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedTenantId", "NormalizedEmail");
+
+                    b.HasIndex("NormalizedTenantId", "NormalizedLocalAccountId")
+                        .IsUnique();
+
+                    b.HasIndex("NormalizedTenantId", "NormalizedUserName")
+                        .IsUnique();
+
+                    b.ToTable("LocalAccounts", (string)null);
+                });
+
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -39,6 +166,12 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("NormalizedClientId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedTenantId")
                         .IsRequired()
                         .HasMaxLength(300)
                         .IsUnicode(false)
@@ -68,10 +201,10 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.HasIndex("TenantId", "NormalizedClientId")
                         .IsUnique();
 
-                    b.ToTable("Clients");
+                    b.ToTable("Clients", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientGrantEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientGrantEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -83,6 +216,12 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
                         .IsUnicode(false)
                         .HasColumnType("TEXT");
 
@@ -105,16 +244,22 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.HasIndex("TenantId", "ClientId", "ResourceServerId")
                         .IsUnique();
 
-                    b.ToTable("ClientGrants");
+                    b.ToTable("ClientGrants", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientSecretEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
 
                     b.Property<long>("ClientId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
 
                     b.Property<long>("SecretId")
                         .HasColumnType("INTEGER");
@@ -131,10 +276,10 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.HasIndex("TenantId", "ClientId", "SecretId")
                         .IsUnique();
 
-                    b.ToTable("ClientSecrets");
+                    b.ToTable("ClientSecrets", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedIdentityEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -189,28 +334,37 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .IsUnicode(false)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(300)
                         .IsUnicode(false)
                         .HasColumnType("TEXT");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("FederatedPrincipalId");
 
-                    b.HasIndex("NormalizedFederatedIdentityId")
+                    b.HasIndex("TenantId", "NormalizedFederatedIdentityId")
                         .IsUnique();
 
-                    b.HasIndex("NormalizedJoinKey");
+                    b.HasIndex("TenantId", "NormalizedJoinKey");
 
-                    b.HasIndex("NormalizedIssuer", "NormalizedSubject")
+                    b.HasIndex("TenantId", "NormalizedIssuer", "NormalizedSubject")
                         .IsUnique();
 
-                    b.ToTable("FederatedIdentities");
+                    b.ToTable("FederatedIdentities", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedPrincipalEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -228,21 +382,30 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .IsUnicode(false)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PrincipalId")
                         .IsRequired()
                         .HasMaxLength(300)
                         .IsUnicode(false)
                         .HasColumnType("TEXT");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedPrincipalId")
+                    b.HasIndex("TenantId", "NormalizedPrincipalId")
                         .IsUnique();
 
-                    b.ToTable("FederatedPrincipals");
+                    b.ToTable("FederatedPrincipals", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -295,6 +458,12 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .IsUnicode(false)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PayloadJson")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -326,10 +495,10 @@ namespace NCode.Identity.OpenId.Playground.Migrations
 
                     b.HasIndex("TenantId", "NormalizedSubjectId");
 
-                    b.ToTable("Grants");
+                    b.ToTable("Grants", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ResourceServerEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -370,6 +539,12 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .IsUnicode(false)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ResourceServerId")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -397,10 +572,10 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.HasIndex("TenantId", "NormalizedResourceServerId")
                         .IsUnique();
 
-                    b.ToTable("ResourceServers");
+                    b.ToTable("ResourceServers", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RoleAssignmentEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -442,6 +617,12 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .IsUnicode(false)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PrincipalId")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -479,10 +660,10 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.HasIndex("TenantId", "NormalizedPrincipalId", "NormalizedRoleName", "ResourceType", "NormalizedResourceId")
                         .IsUnique();
 
-                    b.ToTable("RoleAssignments");
+                    b.ToTable("RoleAssignments", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ScopeEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ScopeEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -500,6 +681,12 @@ namespace NCode.Identity.OpenId.Playground.Migrations
 
                     b.Property<bool>("IsSystem")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("NormalizedValue")
                         .IsRequired()
@@ -526,10 +713,10 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.HasIndex("ResourceServerId", "NormalizedValue")
                         .IsUnique();
 
-                    b.ToTable("Scopes");
+                    b.ToTable("Scopes", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -589,10 +776,10 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.HasIndex("NormalizedSecretId")
                         .IsUnique();
 
-                    b.ToTable("Secrets");
+                    b.ToTable("Secrets", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -637,10 +824,10 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.HasIndex("NormalizedServerId")
                         .IsUnique();
 
-                    b.ToTable("Servers");
+                    b.ToTable("Servers", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerSecretEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -658,10 +845,10 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.HasIndex("ServerId", "SecretId")
                         .IsUnique();
 
-                    b.ToTable("ServerSecrets");
+                    b.ToTable("ServerSecrets", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -728,13 +915,19 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.HasIndex("NormalizedTenantId")
                         .IsUnique();
 
-                    b.ToTable("Tenants");
+                    b.ToTable("Tenants", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantSecretEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
 
                     b.Property<long>("SecretId")
                         .HasColumnType("INTEGER");
@@ -749,12 +942,20 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.HasIndex("TenantId", "SecretId")
                         .IsUnique();
 
-                    b.ToTable("TenantSecrets");
+                    b.ToTable("TenantSecrets", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Entities.LocalAccountClaimEntity", b =>
                 {
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity", "Tenant")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Entities.LocalAccountEntity", null)
+                        .WithMany("Claims")
+                        .HasForeignKey("LocalAccountEntityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity", b =>
+                {
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -763,21 +964,21 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientGrantEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientGrantEntity", b =>
                 {
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity", "Client")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity", "Client")
                         .WithMany()
                         .HasForeignKey("ClientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ResourceServerEntity", "ResourceServer")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity", "ResourceServer")
                         .WithMany()
                         .HasForeignKey("ResourceServerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity", "Tenant")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -790,21 +991,21 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientSecretEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientSecretEntity", b =>
                 {
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity", "Client")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity", "Client")
                         .WithMany("Secrets")
                         .HasForeignKey("ClientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity", "Secret")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity", "Secret")
                         .WithMany()
                         .HasForeignKey("SecretId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity", "Tenant")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -817,25 +1018,44 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedIdentityEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedIdentityEntity", b =>
                 {
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.FederatedPrincipalEntity", "FederatedPrincipal")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity", "FederatedPrincipal")
                         .WithMany()
                         .HasForeignKey("FederatedPrincipalId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("FederatedPrincipal");
+
+                    b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity", b =>
                 {
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity", "Client")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity", b =>
+                {
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity", "Client")
                         .WithMany()
                         .HasForeignKey("ClientId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity", "Tenant")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -846,9 +1066,9 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ResourceServerEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity", b =>
                 {
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity", "Tenant")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -857,9 +1077,9 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.RoleAssignmentEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RoleAssignmentEntity", b =>
                 {
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity", "Tenant")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -868,15 +1088,15 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ScopeEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ScopeEntity", b =>
                 {
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ResourceServerEntity", "ResourceServer")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity", "ResourceServer")
                         .WithMany("Scopes")
                         .HasForeignKey("ResourceServerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity", "Tenant")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -887,15 +1107,15 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerSecretEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerSecretEntity", b =>
                 {
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity", "Secret")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity", "Secret")
                         .WithMany()
                         .HasForeignKey("SecretId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity", "Server")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity", "Server")
                         .WithMany("Secrets")
                         .HasForeignKey("ServerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -906,15 +1126,15 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.Navigation("Server");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantSecretEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantSecretEntity", b =>
                 {
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.SecretEntity", "Secret")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity", "Secret")
                         .WithMany()
                         .HasForeignKey("SecretId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity", "Tenant")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
                         .WithMany("Secrets")
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -925,22 +1145,27 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ClientEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Entities.LocalAccountEntity", b =>
+                {
+                    b.Navigation("Claims");
+                });
+
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity", b =>
                 {
                     b.Navigation("Secrets");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ResourceServerEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity", b =>
                 {
                     b.Navigation("Scopes");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ServerEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity", b =>
                 {
                     b.Navigation("Secrets");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Entities.TenantEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", b =>
                 {
                     b.Navigation("Secrets");
                 });

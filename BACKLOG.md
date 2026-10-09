@@ -76,3 +76,17 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`.
+
+## Consistency / refactors (group `R`)
+
+- **`R1` — Unify subject-id extraction from a `ClaimsPrincipal`.** The canonical, configurable extraction is
+  `OpenIdOptions.GetSubjectId` (default `sub` → `nameidentifier` → `upn`), but `DefaultManagementAuditRecorder.GetActorId`
+  re-implements a hardcoded subset (`sub ?? nameidentifier`), and `DefaultPrincipalResolver` uses a _different_
+  configurable mechanism (the `PrincipalSourceClaim` tenant setting). The audit recorder cannot simply call
+  `GetSubjectId` because that delegate lives in `OpenId.Core` and the Management package may depend only on
+  `*.Abstractions` ([ADR-0016](docs/adr/0016-implementation-packages-depend-only-on-abstractions.md)). The fix is to
+  hoist a single subject-id extraction contract into an abstractions package (or converge on the `PrincipalSourceClaim`
+  setting) so all three paths share one source of truth.
+  Touch points: `src/NCode.Identity.OpenId.Management/Auditing/DefaultManagementAuditRecorder.cs`,
+  `src/NCode.Identity.OpenId.Core/Logic/DefaultClaimsPrincipalLogic.cs`,
+  `src/NCode.Identity.OpenId.Core/PrincipalResolution/DefaultPrincipalResolver.cs`.

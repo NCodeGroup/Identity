@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 /// </summary>
 [PublicAPI]
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-internal sealed class UseIdGeneratorAttribute : Attribute
+public sealed class UseIdGeneratorAttribute : Attribute
 {
     // nothing
 }

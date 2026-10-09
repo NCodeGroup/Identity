@@ -10,6 +10,27 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- Entity Framework persistence was split into a reusable **framework** package
+  (`NCode.Identity.OpenId.Persistence.EntityFramework`) plus domain **slice** packages that plug into the shared,
+  now-`DbSet`-less `OpenIdDbContext` via `IOpenIdModelContributor`. The core OpenID schema moved to
+  **`NCode.Identity.OpenId.Persistence.EntityFramework.Core`** and the local-account schema moved from
+  `NCode.Identity.OpenId.Accounts.EntityFramework` to **`NCode.Identity.OpenId.Persistence.EntityFramework.Accounts`**;
+  each slice's root namespace matches its package id (`…EntityFramework.Core.*` / `…EntityFramework.Accounts.*`). The
+  framework's store base (`BaseStore`, `BaseStoreWithResourceId`), the `AddStore` registration helper, and the
+  `UseIdGenerator` attribute are now public so a slice reuses them instead of re-implementing the boilerplate. Hosts
+  register the framework plus each slice (`AddEntityFrameworkCorePersistence<TDbContext>()`), and a slice may expose
+  typed `DbSet` accessors for its own entities as extension members. See
+  [ADR-0052](docs/adr/0052-entity-framework-persistence-is-a-framework-plus-slices.md).
+- All persisted OpenID data is now **tenant-scoped except the server root**. `FederatedPrincipal`/`FederatedIdentity`
+  (previously global) and the new `LocalAccount` are tenant-owned: their persisted DTOs gained a required `TenantId`,
+  and their server-generated ids and natural keys are now unique **per tenant** rather than globally — the same human
+  authenticating in two tenants is two principals. The tenant-scope global query filter is navigation-free: the
+  `ISupportTenantEntity` contract now carries a denormalized `NormalizedTenantId` discriminator (its former `TenantId`
+  foreign-key member was removed), so the filter is a single indexed-column comparison and the framework stays
+  decoupled from the concrete tenant entity. See
+  [ADR-0035](docs/adr/0035-federated-principals-and-identity-resolution.md) (amended) and
+  [ADR-0018](docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md).
+
 - The `NCode.Identity.OpenId.Playground` host adopted the first-party .NET 10 OpenAPI stack: `Swashbuckle.AspNetCore`
   was replaced by `Microsoft.AspNetCore.OpenApi` (`AddOpenApi()`/`MapOpenApi()`) for document generation and
   `Scalar.AspNetCore` (`MapScalarApiReference()`) for the UI. `Microsoft.OpenApi` was aligned to the 2.x line that the

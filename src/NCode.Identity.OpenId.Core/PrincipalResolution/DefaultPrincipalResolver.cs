@@ -136,6 +136,7 @@ internal class DefaultPrincipalResolver(
             await principalStore.AddAsync(
                 new PersistedFederatedPrincipal
                 {
+                    TenantId = openIdContext.Tenant.TenantId,
                     PrincipalId = principalId,
                     ConcurrencyToken = string.Empty,
                 },
@@ -146,6 +147,7 @@ internal class DefaultPrincipalResolver(
         await identityStore.AddAsync(
             new PersistedFederatedIdentity
             {
+                TenantId = openIdContext.Tenant.TenantId,
                 FederatedIdentityId = CryptoService.GenerateResourceId(),
                 PrincipalId = principalId,
                 Issuer = issuer,

@@ -30,8 +30,14 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PersistedFederatedIdentity : ISupportConcurrencyToken
+public sealed class PersistedFederatedIdentity : ISupportTenantId, ISupportConcurrencyToken
 {
+    /// <summary>
+    /// Gets or sets the identifier of the tenant that owns this identity.
+    /// </summary>
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string TenantId { get; init; }
+
     /// <summary>
     /// Gets or sets the server-generated opaque public identifier of this federated identity.
     /// </summary>

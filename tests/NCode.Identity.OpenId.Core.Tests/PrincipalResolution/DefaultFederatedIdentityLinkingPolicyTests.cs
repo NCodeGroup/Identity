@@ -33,6 +33,7 @@ namespace NCode.Identity.OpenId.Core.PrincipalResolution;
 public sealed class DefaultFederatedIdentityLinkingPolicyTests
 {
     private const string JoinKey = "user@example.com";
+    private const string TenantId = "tenant-1";
     private const string MatchedPrincipalId = "principal-9";
 
     private static OpenIdContext CreateOpenIdContext(
@@ -75,6 +76,7 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
     private static PersistedFederatedIdentity Identity(string principalId) =>
         new()
         {
+            TenantId = TenantId,
             FederatedIdentityId = "identity-1",
             PrincipalId = principalId,
             Issuer = "https://issuer.example",

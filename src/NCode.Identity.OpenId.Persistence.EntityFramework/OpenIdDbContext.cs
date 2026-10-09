@@ -35,90 +35,32 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 [PublicAPI]
 public class OpenIdDbContext(
     DbContextOptions<OpenIdDbContext> options,
-    IAmbientTenantAccessor? ambientTenantAccessor = null
+    IAmbientTenantAccessor ambientTenantAccessor,
+    IEnumerable<IOpenIdModelContributor> modelContributors
 ) : DbContext(options)
 {
-    private IAmbientTenantAccessor? AmbientTenantAccessor { get; } = ambientTenantAccessor;
+    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
+
+    // Stateless singletons (the model is built once and cached, and this context is pooled).
+    private IEnumerable<IOpenIdModelContributor> ModelContributors { get; } = modelContributors;
 
     /// <summary>
     /// Gets the normalized identifier of the ambient tenant for the current request, or <c>null</c> when tenant-bound
     /// data access is unscoped. Referenced by the tenant-scoping global query filters.
     /// </summary>
-    public string? NormalizedAmbientTenantId => AmbientTenantAccessor?.TenantId?.ToLowerInvariant();
-
-    /// <summary>
-    /// Gets the <see cref="SecretEntity"/> entities.
-    /// </summary>
-    public DbSet<SecretEntity> Secrets => Set<SecretEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="ServerEntity"/> entities.
-    /// </summary>
-    public DbSet<ServerEntity> Servers => Set<ServerEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="ServerSecretEntity"/> entities.
-    /// </summary>
-    public DbSet<ServerSecretEntity> ServerSecrets => Set<ServerSecretEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="TenantEntity"/> entities.
-    /// </summary>
-    public DbSet<TenantEntity> Tenants => Set<TenantEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="TenantSecretEntity"/> entities.
-    /// </summary>
-    public DbSet<TenantSecretEntity> TenantSecrets => Set<TenantSecretEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="ClientEntity"/> entities.
-    /// </summary>
-    public DbSet<ClientEntity> Clients => Set<ClientEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="ClientSecretEntity"/> entities.
-    /// </summary>
-    public DbSet<ClientSecretEntity> ClientSecrets => Set<ClientSecretEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="GrantEntity"/> entities.
-    /// </summary>
-    public DbSet<GrantEntity> Grants => Set<GrantEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="ResourceServerEntity"/> entities.
-    /// </summary>
-    public DbSet<ResourceServerEntity> ResourceServers => Set<ResourceServerEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="ScopeEntity"/> entities.
-    /// </summary>
-    public DbSet<ScopeEntity> Scopes => Set<ScopeEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="ClientGrantEntity"/> entities.
-    /// </summary>
-    public DbSet<ClientGrantEntity> ClientGrants => Set<ClientGrantEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="RoleAssignmentEntity"/> entities.
-    /// </summary>
-    public DbSet<RoleAssignmentEntity> RoleAssignments => Set<RoleAssignmentEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="FederatedPrincipalEntity"/> entities.
-    /// </summary>
-    public DbSet<FederatedPrincipalEntity> FederatedPrincipals => Set<FederatedPrincipalEntity>();
-
-    /// <summary>
-    /// Gets the <see cref="FederatedIdentityEntity"/> entities.
-    /// </summary>
-    public DbSet<FederatedIdentityEntity> FederatedIdentities => Set<FederatedIdentityEntity>();
+    public string? NormalizedAmbientTenantId => AmbientTenantAccessor.TenantId?.ToLowerInvariant();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Satellite packages contribute their entities to the shared model so their data participates in this
+        // context's unit of work and transactions; contributing first lets the relationship and tenant-scoping passes
+        // below cover the added entities too.
+        foreach (var contributor in ModelContributors)
+        {
+            contributor.Configure(modelBuilder);
+        }
+
         foreach (
             var relationship in modelBuilder
                 .Model.GetEntityTypes()
@@ -128,20 +70,12 @@ public class OpenIdDbContext(
             relationship.DeleteBehavior = DeleteBehavior.Restrict;
         }
 
-        // A tenant's domain name is optional; enforce uniqueness only over non-null values (a filtered index) so
-        // that multiple tenants may omit it. The in-memory provider ignores the filter and does not enforce indexes.
-        modelBuilder
-            .Entity<TenantEntity>()
-            .HasIndex(entity => entity.NormalizedDomainName)
-            .IsUnique()
-            .HasFilter("NormalizedDomainName IS NOT NULL");
-
         // Tenant-scoping global query filters: every tenant-child entity (ISupportTenantEntity) is scoped by the
         // ambient tenant, so that when a scope is active a cross-tenant row is never materialized; when no scope is
         // active (central-admin surfaces / runtime), NormalizedAmbientTenantId is null and the filter is a no-op.
         // Applying it by interface is fail-closed — a newly-added tenant-child entity is scoped automatically. The
-        // tenant itself (TenantEntity) has no owning-tenant foreign key, so it is not ISupportTenantEntity and stays
-        // unscoped (discoverable by id during resolution); its secrets, however, ARE tenant-scoped like every other
+        // tenant root itself has no owning-tenant foreign key, so it is not ISupportTenantEntity and stays unscoped
+        // (discoverable by id during resolution); its secrets, however, ARE tenant-scoped like every other
         // tenant-owned row (tenant resolution and tenant management read them with no ambient scope).
         var applyTenantScopeFilter =
             typeof(OpenIdDbContext).GetMethod(
@@ -165,9 +99,10 @@ public class OpenIdDbContext(
     }
 
     /// <summary>
-    /// Applies the tenant-scoping global query filter to a single tenant-child entity type, scoping by the associated
-    /// tenant's normalized identifier via the tenant navigation. Invoked per entity type via reflection from
-    /// <see cref="OnModelCreating"/>.
+    /// Applies the tenant-scoping global query filter to a single tenant-child entity type, scoping by the owning
+    /// tenant's normalized identifier denormalized onto the entity (<see cref="ISupportTenantEntity.NormalizedTenantId"/>).
+    /// Comparing a single indexed column keeps the filter a navigation-free predicate and keeps the framework decoupled
+    /// from any concrete tenant entity type. Invoked per entity type via reflection from <see cref="OnModelCreating"/>.
     /// </summary>
     [UsedImplicitly]
     private void ApplyTenantScopeFilter<TEntity>(ModelBuilder modelBuilder)
@@ -177,7 +112,7 @@ public class OpenIdDbContext(
             .Entity<TEntity>()
             .HasQueryFilter(entity =>
                 NormalizedAmbientTenantId == null
-                || entity.Tenant.NormalizedTenantId == NormalizedAmbientTenantId
+                || entity.NormalizedTenantId == NormalizedAmbientTenantId
             );
     }
 

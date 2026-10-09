@@ -214,6 +214,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         await recorder.RecordSubjectAuthenticationFailedAsync(
             mockContext.Object,
             "Failed to authenticate the end-user.",
+            attemptedSubjectId: null,
             CancellationToken.None
         );
 

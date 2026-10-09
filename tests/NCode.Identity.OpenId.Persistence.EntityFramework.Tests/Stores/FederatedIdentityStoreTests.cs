@@ -27,6 +27,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 public sealed class FederatedIdentityStoreTests : IDisposable
 {
+    private const string TenantId = "tenant-1";
     private const string PrincipalId = "principal-1";
     private const string Issuer = "https://issuer.example";
     private const string Subject = "upstream-subject-1";
@@ -39,10 +40,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     public FederatedIdentityStoreTests()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
-        serviceCollection.AddSingleton<IdValueGenerator>();
-        serviceCollection.AddSingleton<UseIdGeneratorConvention>();
-        serviceCollection.AddDbContext<OpenIdDbContext>(options =>
+        serviceCollection.AddTestOpenIdDbContext(options =>
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
@@ -55,6 +53,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
             _dbContext
         );
         _store = new FederatedIdentityStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _dbContext.SeedTenant(idGenerator, TenantId);
     }
 
     public void Dispose()
@@ -72,6 +71,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     ) =>
         new()
         {
+            TenantId = TenantId,
             FederatedIdentityId = federatedIdentityId,
             PrincipalId = principalId,
             Issuer = issuer,
@@ -85,6 +85,7 @@ public sealed class FederatedIdentityStoreTests : IDisposable
         await _principalStore.AddAsync(
             new PersistedFederatedPrincipal
             {
+                TenantId = TenantId,
                 PrincipalId = principalId,
                 ConcurrencyToken = string.Empty,
             },

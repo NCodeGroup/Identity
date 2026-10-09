@@ -24,9 +24,13 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Extensions.DataProtection;
+using NCode.Identity.OpenId.Accounts.Credentials;
+using NCode.Identity.OpenId.Accounts.DataContracts;
+using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
@@ -108,8 +112,14 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
     /// <summary>
     /// Ensures the tenant exists and seeds a confidential client (<c>client_secret_post</c>) whose symmetric
     /// secret matches <paramref name="clientSecret"/>, so the <c>client_credentials</c> grant can be exercised.
+    /// When <paramref name="grantTypes"/> is supplied, the client's effective <c>grant_types_supported</c> setting
+    /// is restricted to those values (required for grants a client must explicitly allow, such as <c>password</c>).
     /// </summary>
-    public async Task SeedConfidentialClientAsync(string clientId, string clientSecret)
+    public async Task SeedConfidentialClientAsync(
+        string clientId,
+        string clientSecret,
+        params string[] grantTypes
+    )
     {
         // A first request forces the static tenant provider to persist the tenant entity,
         // which ClientStore.AddAsync requires as a foreign key.
@@ -143,7 +153,9 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         };
 
         var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
-            new Dictionary<string, object>()
+            grantTypes.Length > 0
+                ? new Dictionary<string, object> { ["grant_types_supported"] = grantTypes }
+                : new Dictionary<string, object>()
         );
 
         var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
@@ -315,6 +327,60 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 
+    /// <summary>
+    /// Ensures the tenant exists and seeds an enabled local account whose stored password hash matches
+    /// <paramref name="password"/>, so the resource-owner <c>password</c> grant can be exercised. Returns the
+    /// generated <c>LocalAccountId</c> (the subject of the account's self-issued federated identity).
+    /// </summary>
+    public async Task<string> SeedLocalAccountAsync(
+        string userName,
+        string password,
+        string? email = null,
+        bool emailVerified = false
+    )
+    {
+        // A first request forces the static tenant provider to persist the tenant entity,
+        // which LocalAccountStore.AddAsync requires as a foreign key.
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        using var scope = Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        var passwordHasher = serviceProvider.GetRequiredService<IPasswordHasher>();
+        var passwordHash = passwordHasher.HashPassword(Encoding.UTF8.GetBytes(password));
+
+        var localAccountId = Guid.NewGuid().ToString("N");
+
+        var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var store = storeManager.GetStore<ILocalAccountStore>();
+
+        await store.AddAsync(
+            new PersistedLocalAccount
+            {
+                TenantId = TenantId,
+                LocalAccountId = localAccountId,
+                UserName = userName,
+                Email = email,
+                EmailVerified = emailVerified,
+                PasswordHash = passwordHash,
+                SecurityStamp = Guid.NewGuid().ToString("N"),
+                IsEnabled = true,
+                Claims = [],
+                ConcurrencyToken = string.Empty,
+            },
+            CancellationToken.None
+        );
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+
+        return localAccountId;
+    }
+
     private static PersistedTenant CreateEmptyTenant(string tenantId) =>
         new()
         {
@@ -343,6 +409,21 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         // Resolve the content root to the Playground project so its appsettings.json is loaded.
         builder.UseSolutionRelativeContentRoot("src/NCode.Identity.OpenId.Playground");
         builder.UseEnvironment(Microsoft.Extensions.Hosting.Environments.Development);
+
+        // Append the resource-owner 'password' grant to the server ceiling (grant_types_supported is an
+        // Intersect setting, so every layer must list it). The Playground host stays conservative and does not
+        // enable this deprecated grant by default; the test host opts in here to exercise the local-account flow.
+        builder.ConfigureAppConfiguration(configurationBuilder =>
+        {
+            configurationBuilder.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["OpenId:Server:Settings:grant_types_supported:4"] = OpenIdConstants
+                        .GrantTypes
+                        .Password,
+                }
+            );
+        });
 
         builder.ConfigureTestServices(serviceCollection =>
         {

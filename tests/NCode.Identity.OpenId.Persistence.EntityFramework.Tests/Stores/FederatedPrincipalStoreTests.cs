@@ -27,6 +27,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 public sealed class FederatedPrincipalStoreTests : IDisposable
 {
+    private const string TenantId = "tenant-1";
+
     private readonly ServiceProvider _provider;
     private readonly OpenIdDbContext _dbContext;
     private readonly FederatedPrincipalStore _store;
@@ -34,10 +36,7 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
     public FederatedPrincipalStoreTests()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));
-        serviceCollection.AddSingleton<IdValueGenerator>();
-        serviceCollection.AddSingleton<UseIdGeneratorConvention>();
-        serviceCollection.AddDbContext<OpenIdDbContext>(options =>
+        serviceCollection.AddTestOpenIdDbContext(options =>
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
 
@@ -45,6 +44,7 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _store = new FederatedPrincipalStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _dbContext.SeedTenant(idGenerator, TenantId);
     }
 
     public void Dispose()
@@ -54,7 +54,12 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
     }
 
     private static PersistedFederatedPrincipal CreatePrincipal(string principalId) =>
-        new() { PrincipalId = principalId, ConcurrencyToken = string.Empty };
+        new()
+        {
+            TenantId = TenantId,
+            PrincipalId = principalId,
+            ConcurrencyToken = string.Empty,
+        };
 
     [Fact]
     public async Task AddAsync_WhenPersisted_RoundTripsByPrincipalId()

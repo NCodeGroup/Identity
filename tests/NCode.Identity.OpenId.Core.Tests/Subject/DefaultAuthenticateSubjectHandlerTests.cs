@@ -20,12 +20,12 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
@@ -37,6 +37,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Subject;
 public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 {
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; set; } = null!;
+    private Mock<OpenIdEnvironment> MockEnvironment { get; set; } = null!;
 
     #region Scaffolding
 
@@ -70,8 +71,9 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
         MockAuditEventRecorder = CreateLooseMock<IAuditEventRecorder>();
 
+        MockEnvironment.Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>())).Returns(subjectId);
+
         return new DefaultAuthenticateSubjectHandler(
-            Options.Create(new OpenIdOptions { GetSubjectId = _ => subjectId }),
             mockFactory.Object,
             mockResolver.Object,
             MockAuditEventRecorder.Object
@@ -85,6 +87,8 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
     ) CreateScaffold()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
+        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
+        MockEnvironment = mockEnvironment;
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
         var mockAuthService = CreateStrictMock<IAuthenticationService>();
@@ -98,6 +102,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
         mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+        mockContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object);
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
         var command = new AuthenticateSubjectCommand(mockContext.Object);

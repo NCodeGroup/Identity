@@ -19,8 +19,6 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Options;
-using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -38,13 +36,11 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// how the subject's credentials are validated.
 /// </summary>
 internal class DefaultAuthenticateSubjectHandler(
-    IOptions<OpenIdOptions> optionsAccessor,
     IStoreManagerFactory storeManagerFactory,
     IPrincipalResolver principalResolver,
     IAuditEventRecorder auditEventRecorder
 ) : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
 {
-    private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
@@ -96,7 +92,7 @@ internal class DefaultAuthenticateSubjectHandler(
         var authenticationProperties = baseTicket.Properties;
         var subject = baseTicket.Principal;
 
-        var subjectId = Options.GetSubjectId(subject);
+        var subjectId = openIdContext.Environment.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(

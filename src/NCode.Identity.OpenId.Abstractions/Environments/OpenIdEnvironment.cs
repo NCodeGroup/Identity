@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Security.Claims;
 using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection;
@@ -61,6 +62,23 @@ public abstract class OpenIdEnvironment
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.
     /// </summary>
     public abstract IPropertyBag PropertyBag { get; }
+
+    /// <summary>
+    /// Extracts the subject id from a <see cref="ClaimsPrincipal"/> using the host-configured extraction logic. This is
+    /// the single, shared accessor every HTTP surface uses to derive a caller's subject id so the behavior stays
+    /// consistent across the protocol and management APIs.
+    /// </summary>
+    /// <param name="subject">The <see cref="ClaimsPrincipal"/> to search for the subject id.</param>
+    /// <returns>The subject id if found; otherwise <c>null</c>.</returns>
+    public abstract string? GetSubjectId(ClaimsPrincipal subject);
+
+    /// <summary>
+    /// Extracts the primary <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/> using the host-configured
+    /// extraction logic.
+    /// </summary>
+    /// <param name="subject">The <see cref="ClaimsPrincipal"/> to extract the <see cref="ClaimsIdentity"/> from.</param>
+    /// <returns>The primary <see cref="ClaimsIdentity"/> from the <see cref="ClaimsPrincipal"/>.</returns>
+    public abstract ClaimsIdentity GetSubjectIdentity(ClaimsPrincipal subject);
 
     /// <summary>
     /// Gets the <see cref="ParameterDescriptor"/> for the specified parameter name.

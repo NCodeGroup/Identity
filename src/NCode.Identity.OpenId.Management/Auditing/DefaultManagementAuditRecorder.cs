@@ -17,12 +17,12 @@
 #endregion
 
 using System.Diagnostics;
-using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
 
@@ -33,10 +33,12 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 /// </summary>
 internal class DefaultManagementAuditRecorder(
     IEventPublisher eventPublisher,
+    IOpenIdEnvironmentProvider environmentProvider,
     TimeProvider timeProvider
 ) : IManagementAuditRecorder
 {
     private IEventPublisher EventPublisher { get; } = eventPublisher;
+    private IOpenIdEnvironmentProvider EnvironmentProvider { get; } = environmentProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
@@ -240,7 +242,7 @@ internal class DefaultManagementAuditRecorder(
             ?? endpoint?.DisplayName;
     }
 
-    private static string? GetActorId(HttpContext httpContext) =>
-        httpContext.User.FindFirstValue("sub")
-        ?? httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    // The subject-id extractor is host-configured on the app-level environment (ADR-0053); no request context needed.
+    private string? GetActorId(HttpContext httpContext) =>
+        EnvironmentProvider.Get().GetSubjectId(httpContext.User);
 }

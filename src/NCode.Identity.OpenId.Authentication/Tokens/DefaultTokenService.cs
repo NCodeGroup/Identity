@@ -18,7 +18,6 @@
 
 using System.Globalization;
 using System.Security.Claims;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
@@ -48,7 +47,6 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// Provides a default implementation of the <see cref="ITokenService"/> abstraction.
 /// </summary>
 internal class DefaultTokenService(
-    IOptions<OpenIdOptions> optionsAccessor,
     ICryptoService cryptoService,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,
@@ -58,7 +56,6 @@ internal class DefaultTokenService(
     IAuditEventRecorder auditEventRecorder
 ) : ITokenService
 {
-    private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
@@ -100,7 +97,7 @@ internal class DefaultTokenService(
     }
 
     // TODO: we always emit the 'auth_time' claim, but should we do this conditionally?
-    private IEnumerable<Claim> EnsureAuthTime(
+    private static IEnumerable<Claim> EnsureAuthTime(
         OpenIdContext openIdContext,
         SubjectAuthentication ticket,
         CreateSecurityTokenRequest tokenRequest,
@@ -125,7 +122,7 @@ internal class DefaultTokenService(
             var issuer = openIdContext.Tenant.Issuer;
             var authTime = authenticationProperties.IssuedUtc ?? tokenRequest.CreatedWhen;
 
-            var identity = Options.GetSubjectIdentity(subject);
+            var identity = openIdContext.Environment.GetSubjectIdentity(subject);
 
             var claim = new Claim(
                 JoseClaimNames.Payload.AuthTime,

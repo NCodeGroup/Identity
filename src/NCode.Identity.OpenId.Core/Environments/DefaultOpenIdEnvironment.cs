@@ -17,10 +17,12 @@
 #endregion
 
 using System.Collections.Immutable;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
@@ -37,13 +39,17 @@ internal class DefaultOpenIdEnvironment(
     IDataProtector ephemeralDataProtector,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
     IOpenIdMessageFactorySelector openIdMessageFactorySelector,
-    IEnumerable<IOpenIdJsonConverterProvider> jsonConverterProviders
+    IEnumerable<IOpenIdJsonConverterProvider> jsonConverterProviders,
+    GetSubjectIdDelegate getSubjectId,
+    GetSubjectIdentityDelegate getSubjectIdentity
 ) : OpenIdEnvironment, IOpenIdErrorFactory
 {
     private IOpenIdMessageFactorySelector OpenIdMessageFactorySelector { get; } =
         openIdMessageFactorySelector;
     private ImmutableArray<IOpenIdJsonConverterProvider> JsonConverterProviders { get; } =
     [.. jsonConverterProviders];
+    private GetSubjectIdDelegate GetSubjectIdDelegate { get; } = getSubjectId;
+    private GetSubjectIdentityDelegate GetSubjectIdentityDelegate { get; } = getSubjectIdentity;
 
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
 
@@ -66,6 +72,13 @@ internal class DefaultOpenIdEnvironment(
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();
+
+    /// <inheritdoc />
+    public override string? GetSubjectId(ClaimsPrincipal subject) => GetSubjectIdDelegate(subject);
+
+    /// <inheritdoc />
+    public override ClaimsIdentity GetSubjectIdentity(ClaimsPrincipal subject) =>
+        GetSubjectIdentityDelegate(subject);
 
     /// <inheritdoc />
     public override ParameterDescriptor GetParameterDescriptor(string parameterName)

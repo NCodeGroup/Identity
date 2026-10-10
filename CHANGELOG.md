@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Initial access token provisioning for protected Dynamic Client Registration.** The management API can now mint the
+  `initial_access_token` that protected registration (the default, `registration_endpoint_allow_anonymous = false`)
+  requires: a tenant-scoped `POST api/tenants/{tenantId}/grants/initial-access-tokens` creates a hash-keyed
+  `initial_access_token` grant (optional `description` and `lifetimeSeconds`) and returns the one-time plaintext token
+  — revealed once, never retrievable again — together with the grant id for later revocation through the grant
+  management endpoint, recording an `InitialAccessTokenCreatedAuditEvent`. This closes the provisioning gap in
+  [ADR-0063](docs/adr/0063-dynamic-client-registration.md): a deployment that wants protected registration no longer
+  has to seed grants out of band or replace the `IInitialAccessTokenValidator` seam. See
+  [ADR-0063](docs/adr/0063-dynamic-client-registration.md).
 - **OAuth 2.0 Dynamic Client Registration (RFC 7591/7592).** Clients can now register themselves and manage their own
   registration. A new `registration_endpoint` (`POST /oauth2/register`), advertised in discovery, accepts a JSON
   client-metadata document and returns the assigned `client_id`, a one-time `client_secret` for a confidential client,
@@ -67,6 +76,11 @@ change to the public API is a **major** version bump.
   [ADR-0056](docs/adr/0056-abstractions-split-into-framework-free-tiered-packages.md).
 
 ### Changed
+
+- **`IPersistedGrantService.AddAsync` now returns the server-generated grant id.** Its return type changes from
+  `ValueTask` to `ValueTask<string>`, handing back the opaque public `GrantId` of the persisted grant so callers (such
+  as the new initial-access-token management endpoint) can reference it for later revocation. Existing callers that
+  ignore the result are unaffected. See [ADR-0063](docs/adr/0063-dynamic-client-registration.md).
 
 - **Local-account management is now an opt-in capability that plugs into the Management slice, not part of it.**
   Mirroring the authentication inversion, the local-account management endpoints, their validator

@@ -65,7 +65,7 @@ internal class DefaultPersistedGrantService(
         };
 
     /// <inheritdoc />
-    public async ValueTask AddAsync<TPayload>(
+    public async ValueTask<string> AddAsync<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         PersistedGrant<TPayload> grant,
@@ -108,6 +108,8 @@ internal class DefaultPersistedGrantService(
 
         await store.AddAsync(envelope, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        return envelope.GrantId;
     }
 
     private static PersistedGrantStatus GetStatus(DateTimeOffset utcNow, PersistedGrant envelope)

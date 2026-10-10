@@ -3,6 +3,7 @@ abstract NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler
 abstract NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.CryptoService.get -> NCode.Identity.Logic.ICryptoService!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Client = "client" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ClientSecret = "client.secret" -> string!
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.InitialAccessToken = "initial_access_token" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ServerSecret = "server.secret" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Tenant = "tenant" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.TenantSecret = "tenant.secret" -> string!
@@ -17,6 +18,8 @@ NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.GrantType.init 
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCount.get -> long
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCount.init -> void
+NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent
+override NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent.ResourceType.get -> string!
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -114,6 +117,26 @@ NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.SubjectId.get ->
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.SubjectId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest
+NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.CreateInitialAccessTokenRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.Description.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.Description.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.LifetimeSeconds.get -> long?
+NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.LifetimeSeconds.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.CreatedInitialAccessTokenResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.CreatedWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.Description.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.Description.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.GrantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.GrantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.InitialAccessToken.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.InitialAccessToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.GrantRevocationResult() -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.Revoked.get -> long

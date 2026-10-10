@@ -78,19 +78,6 @@ one option is merely more work.
   [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md).)
   Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/Handlers/`.
-- **`F6a` — Initial access token provisioning for protected Dynamic Client Registration.** Dynamic Client Registration
-  (RFC 7591/7592) is implemented ([ADR-0063](docs/adr/0063-dynamic-client-registration.md)): the
-  `registration_endpoint` and the per-client management endpoint exist, metadata maps onto the client settings
-  document, the `client_secret` is the one-time secret, and both the `registration_access_token` and the
-  `initial_access_token` are hash-keyed persisted grants. What is **not** yet implemented is a way to _provision_
-  initial access tokens: protected registration (the default, `registration_endpoint_allow_anonymous = false`)
-  validates the bearer via the default `IInitialAccessTokenValidator`, which looks the token up as an
-  `initial_access_token` persisted grant — but no endpoint/seeding creates those grants, so protected registration
-  rejects every request until a host seeds one or replaces the validator seam. Add a management/seeding path to mint
-  initial access tokens (or document the validator-replacement recipe). The conformance Dynamic OP profile does not
-  need this (it enables anonymous registration). Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/Logic/DefaultInitialAccessTokenValidator.cs`,
-  a new management surface for `PersistedGrantTypes.InitialAccessToken`.
 - **`F7` — DPoP / sender-constrained tokens (RFC 9449 + mTLS, `cnf` claim).** Every token-issuance path hardcodes
   `TokenType = Bearer` with a `// TODO: add support for DPoP` marker, the token-request validators never inspect a
   DPoP proof, and the emitted-claims handlers cannot populate the `cnf` confirmation claim because no

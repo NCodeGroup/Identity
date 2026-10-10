@@ -19,7 +19,6 @@
 using System.Security.Claims;
 using System.Text.Json;
 using NCode.Identity.JsonWebTokens;
-using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Principals;
 using NCode.Identity.OpenId.Settings;
@@ -78,7 +77,7 @@ internal class DefaultGetAccessTokenMetadataClaimsHandler(
         {
             SubjectMetadataClaims.AddMetadataClaim(
                 targetClaims,
-                AccountConstants.ProfileMetadataClaimType,
+                SubjectMetadataClaimTypes.ProfileMetadata,
                 metadata.ProfileMetadata
             );
         }
@@ -87,7 +86,7 @@ internal class DefaultGetAccessTokenMetadataClaimsHandler(
         {
             SubjectMetadataClaims.AddMetadataClaim(
                 targetClaims,
-                AccountConstants.SystemMetadataClaimType,
+                SubjectMetadataClaimTypes.SystemMetadata,
                 metadata.SystemMetadata
             );
         }

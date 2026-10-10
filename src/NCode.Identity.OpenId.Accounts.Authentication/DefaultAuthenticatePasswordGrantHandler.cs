@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,44 +18,36 @@
 
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Logging;
 using NCode.Buffers;
-using NCode.Identity.OpenId.Accounts;
+using NCode.Identity.OpenId.Accounts.DataContracts;
+using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Auditing;
-using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
-using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
+namespace NCode.Identity.OpenId.Accounts.Authentication;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="AuthenticatePasswordGrantCommand"/> message that
-/// returns <see cref="SubjectAuthentication"/>. The resource-owner password grant is supported only when the host has
-/// registered an <see cref="ILocalAccountSource"/>; otherwise the grant is reported as unsupported. A registered source
-/// that rejects the credentials yields a failed (not unsupported) result, so the two cases stay distinct.
+/// Provides the resource-owner password grant implementation of the
+/// <see cref="ICommandResponseHandler{AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition}"/> seam, backed
+/// by the configured <see cref="ILocalAccountStore"/>. This handler is registered only when the host opts into the
+/// local-account authentication capability, so its mere presence is what enables the grant; the default
+/// <c>NCode.Identity.OpenId.Authentication</c> handler reports the grant as unsupported when this capability is absent.
+/// A store that rejects the credentials yields a failed (not unsupported) result, so the two cases stay distinct.
 /// </summary>
 internal class DefaultAuthenticatePasswordGrantHandler(
-    ILogger<DefaultAuthenticatePasswordGrantHandler> logger,
     IStoreManagerFactory storeManagerFactory,
     IPrincipalResolver principalResolver,
-    IAuditEventRecorder auditEventRecorder,
-    ILocalAccountSource? localAccountSource = null
+    IAuditEventRecorder auditEventRecorder
 ) : ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>
 {
-    private ILogger<DefaultAuthenticatePasswordGrantHandler> Logger { get; } = logger;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
-    private ILocalAccountSource? LocalAccountSource { get; } = localAccountSource;
-
-    internal virtual AuthenticateSubjectDisposition NotSupported(IOpenIdError error) => new(error);
 
     internal virtual AuthenticateSubjectDisposition Failed() => new();
 
@@ -69,18 +61,6 @@ internal class DefaultAuthenticatePasswordGrantHandler(
     )
     {
         var (openIdContext, _, tokenRequest) = command;
-        var errorFactory = openIdContext.ErrorFactory;
-
-        // No source registered: the server does not offer the grant (distinct from a credential failure below).
-        if (LocalAccountSource is not { } localAccountSource)
-        {
-            Logger.PasswordGrantNotSupported();
-            return NotSupported(
-                errorFactory.UnsupportedGrantType(
-                    "The resource owner password credential grant type is not supported."
-                )
-            );
-        }
 
         var username = tokenRequest.Username;
         var password = tokenRequest.Password;
@@ -89,13 +69,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
             return Failed();
         }
 
-        var account = await ValidateCredentialsAsync(
-            openIdContext,
-            localAccountSource,
-            username,
-            password,
-            cancellationToken
-        );
+        var account = await VerifyCredentialsAsync(username, password, cancellationToken);
         if (account is null)
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
@@ -115,7 +89,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
         var principalId = await ResolvePrincipalIdAsync(
             openIdContext,
             subject,
-            account.Subject,
+            account.LocalAccountId,
             cancellationToken
         );
 
@@ -135,9 +109,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
         return Authenticated(ticket);
     }
 
-    private static async ValueTask<LocalAccount?> ValidateCredentialsAsync(
-        OpenIdContext openIdContext,
-        ILocalAccountSource localAccountSource,
+    private async ValueTask<PersistedLocalAccount?> VerifyCredentialsAsync(
         string userName,
         string password,
         CancellationToken cancellationToken
@@ -148,12 +120,21 @@ internal class DefaultAuthenticatePasswordGrantHandler(
         using var owner = SecureMemoryPool<byte>.Shared.Rent(byteCount);
         var written = SecureEncoding.UTF8.GetBytes(password, owner.Memory.Span);
 
-        return await localAccountSource.ValidateCredentialsAsync(
-            openIdContext,
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ILocalAccountStore>();
+        var account = await store.VerifyCredentialAsync(
             userName,
             owner.Memory[..written],
             cancellationToken
         );
+
+        // Persist a transparent rehash-on-verify, when one occurred, within this unit of work.
+        if (account is not null)
+        {
+            await storeManager.SaveChangesAsync(cancellationToken);
+        }
+
+        return account;
     }
 
     private async ValueTask<string> ResolvePrincipalIdAsync(

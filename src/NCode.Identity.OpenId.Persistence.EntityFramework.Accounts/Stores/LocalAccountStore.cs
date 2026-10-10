@@ -19,6 +19,7 @@
 using System.Linq.Expressions;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
+using NCode.Identity.OpenId.Accounts.Credentials;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Entities;
@@ -28,15 +29,17 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Stores;
 
 /// <summary>
-/// Provides the Entity Framework Core implementation of <see cref="ILocalAccountStore"/> over the shared
-/// <see cref="OpenIdDbContext"/>, reusing the framework store base for id/concurrency generation, normalization, and
-/// resource-id addressing.
+/// Provides the generic Entity Framework Core implementation of <see cref="ILocalAccountStore"/> over the shared
+/// <see cref="OpenIdDbContext"/>, reusing the framework store base for id/concurrency generation and normalization.
+/// Credential handling is owned here: it hashes and verifies passwords through the pluggable <see cref="IPasswordHasher"/>
+/// and keeps the hash a store-internal detail that never leaves on the <see cref="PersistedLocalAccount"/> contract.
 /// </summary>
 internal sealed class LocalAccountStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
+    IPasswordHasher passwordHasher,
     OpenIdDbContext openIdDbContext
-) : BaseStoreWithResourceId<PersistedLocalAccount, LocalAccountEntity>, ILocalAccountStore
+) : BaseStore<PersistedLocalAccount, LocalAccountEntity>, ILocalAccountStore
 {
     /// <inheritdoc />
     protected override IStoreProvider StoreProvider { get; } = storeProvider;
@@ -46,6 +49,8 @@ internal sealed class LocalAccountStore(
 
     /// <inheritdoc />
     protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
+
+    private IPasswordHasher PasswordHasher { get; } = passwordHasher;
 
     private DbSet<LocalAccountEntity> Accounts => DbContext.Set<LocalAccountEntity>();
 
@@ -63,19 +68,6 @@ internal sealed class LocalAccountStore(
         await Accounts
             .Include(entity => entity.Claims)
             .FirstOrDefaultAsync(predicate, cancellationToken);
-
-    /// <inheritdoc />
-    protected override async ValueTask<LocalAccountEntity?> GetEntityOrDefaultAsync(
-        string resourceId,
-        CancellationToken cancellationToken
-    )
-    {
-        var normalizedLocalAccountId = Normalize(resourceId);
-        return await GetEntityOrDefaultAsync(
-            entity => entity.NormalizedLocalAccountId == normalizedLocalAccountId,
-            cancellationToken
-        );
-    }
 
     /// <inheritdoc />
     protected override async ValueTask<IReadOnlyList<LocalAccountEntity>> GetEntityPageAsync(
@@ -98,8 +90,9 @@ internal sealed class LocalAccountStore(
     protected override long GetSortKey(LocalAccountEntity entity) => entity.Id;
 
     /// <inheritdoc />
-    public override async ValueTask AddAsync(
+    public async ValueTask AddAsync(
         PersistedLocalAccount account,
+        ReadOnlyMemory<byte>? password,
         CancellationToken cancellationToken
     )
     {
@@ -117,8 +110,8 @@ internal sealed class LocalAccountStore(
             Email = account.Email,
             NormalizedEmail = Normalize(account.Email),
             EmailVerified = account.EmailVerified,
-            PasswordHash = account.PasswordHash,
-            SecurityStamp = account.SecurityStamp,
+            PasswordHash = password is { } value ? PasswordHasher.HashPassword(value.Span) : null,
+            SecurityStamp = NextSecurityStamp(),
             IsEnabled = account.IsEnabled,
             ConcurrencyToken = account.ConcurrencyToken,
         };
@@ -129,7 +122,7 @@ internal sealed class LocalAccountStore(
                 new LocalAccountClaimEntity
                 {
                     Id = NextId(),
-                    NormalizedTenantId = Normalize(account.TenantId),
+                    NormalizedTenantId = entity.NormalizedTenantId,
                     Type = claim.Type,
                     Value = claim.Value,
                 }
@@ -140,28 +133,79 @@ internal sealed class LocalAccountStore(
     }
 
     /// <inheritdoc />
-    public override async ValueTask UpdateAsync(
+    public async ValueTask UpdateAsync(
         PersistedLocalAccount account,
         CancellationToken cancellationToken
     )
     {
-        var entity = await GetEntityAsync(account.LocalAccountId, cancellationToken);
+        var entity = await GetEntityByIdAsync(account.LocalAccountId, cancellationToken);
 
         entity.UserName = account.UserName;
         entity.NormalizedUserName = Normalize(account.UserName);
         entity.Email = account.Email;
         entity.NormalizedEmail = Normalize(account.Email);
         entity.EmailVerified = account.EmailVerified;
-        entity.PasswordHash = account.PasswordHash;
-        entity.SecurityStamp = account.SecurityStamp;
         entity.IsEnabled = account.IsEnabled;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask SetPasswordAsync(
+        string localAccountId,
+        ReadOnlyMemory<byte> password,
+        CancellationToken cancellationToken
+    )
+    {
+        var entity = await GetEntityByIdAsync(localAccountId, cancellationToken);
+
+        entity.PasswordHash = PasswordHasher.HashPassword(password.Span);
+        // Rotating the security stamp invalidates outstanding sessions and tokens issued before the reset.
+        entity.SecurityStamp = NextSecurityStamp();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedLocalAccount?> VerifyCredentialAsync(
+        string userName,
+        ReadOnlyMemory<byte> password,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedUserName = Normalize(userName);
+        var entity = await GetEntityOrDefaultAsync(
+            candidate => candidate.NormalizedUserName == normalizedUserName,
+            cancellationToken
+        );
+        if (entity is null || !entity.IsEnabled || string.IsNullOrEmpty(entity.PasswordHash))
+        {
+            return null;
+        }
+
+        var result = PasswordHasher.VerifyHashedPassword(entity.PasswordHash, password.Span);
+        if (result == PasswordVerificationResult.Failed)
+        {
+            return null;
+        }
+
+        if (result == PasswordVerificationResult.SuccessRehashNeeded)
+        {
+            // Transparently upgrade the stored hash to the current parameters without changing the credential.
+            entity.PasswordHash = PasswordHasher.HashPassword(password.Span);
+        }
+
+        return MapFromEntity(entity);
     }
 
     /// <inheritdoc />
     public ValueTask<PersistedLocalAccount?> GetByIdOrDefaultAsync(
         string localAccountId,
         CancellationToken cancellationToken
-    ) => GetOrDefaultAsync(localAccountId, cancellationToken);
+    )
+    {
+        var normalizedLocalAccountId = Normalize(localAccountId);
+        return GetOrDefaultAsync(
+            entity => entity.NormalizedLocalAccountId == normalizedLocalAccountId,
+            cancellationToken
+        );
+    }
 
     /// <inheritdoc />
     public async ValueTask<PersistedLocalAccount?> GetByUserNameOrDefaultAsync(
@@ -179,7 +223,7 @@ internal sealed class LocalAccountStore(
     /// <inheritdoc />
     public async ValueTask RemoveAsync(string localAccountId, CancellationToken cancellationToken)
     {
-        var entity = await GetEntityOrDefaultAsync(localAccountId, cancellationToken);
+        var entity = await GetEntityByIdOrDefaultAsync(localAccountId, cancellationToken);
         if (entity is null)
         {
             return;
@@ -187,6 +231,61 @@ internal sealed class LocalAccountStore(
 
         DbContext.Set<LocalAccountClaimEntity>().RemoveRange(entity.Claims);
         Accounts.Remove(entity);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask ReplaceClaimsAsync(
+        string localAccountId,
+        IReadOnlyList<PersistedLocalAccountClaim> claims,
+        CancellationToken cancellationToken
+    )
+    {
+        var entity = await GetEntityByIdAsync(localAccountId, cancellationToken);
+
+        DbContext.Set<LocalAccountClaimEntity>().RemoveRange(entity.Claims);
+        entity.Claims.Clear();
+
+        foreach (var claim in claims)
+        {
+            entity.Claims.Add(
+                new LocalAccountClaimEntity
+                {
+                    Id = NextId(),
+                    NormalizedTenantId = entity.NormalizedTenantId,
+                    Type = claim.Type,
+                    Value = claim.Value,
+                }
+            );
+        }
+
+        // Touch the account row so its concurrency token bumps (the claims collection change alone would not mark it).
+        entity.ConcurrencyToken = NextConcurrencyToken();
+    }
+
+    private static string NextSecurityStamp() => Guid.NewGuid().ToString("N");
+
+    private ValueTask<LocalAccountEntity?> GetEntityByIdOrDefaultAsync(
+        string localAccountId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedLocalAccountId = Normalize(localAccountId);
+        return GetEntityOrDefaultAsync(
+            entity => entity.NormalizedLocalAccountId == normalizedLocalAccountId,
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<LocalAccountEntity> GetEntityByIdAsync(
+        string localAccountId,
+        CancellationToken cancellationToken
+    )
+    {
+        var entity = await GetEntityByIdOrDefaultAsync(localAccountId, cancellationToken);
+        return entity
+            ?? throw new InvalidOperationException(
+                $"A local account with '{localAccountId}' was not found."
+            );
     }
 
     private static PersistedLocalAccount MapFromEntity(LocalAccountEntity entity) =>
@@ -197,7 +296,6 @@ internal sealed class LocalAccountStore(
             UserName = entity.UserName,
             Email = entity.Email,
             EmailVerified = entity.EmailVerified,
-            PasswordHash = entity.PasswordHash,
             SecurityStamp = entity.SecurityStamp,
             IsEnabled = entity.IsEnabled,
             Claims = entity

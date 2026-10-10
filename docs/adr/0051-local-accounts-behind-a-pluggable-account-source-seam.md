@@ -1,8 +1,20 @@
 # 51. Local accounts behind a pluggable account-source seam
 
-- **Status:** Proposed
+- **Status:** Proposed (the source/provisioner/store split and `PasswordHash` field amended by [ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md))
 - **Date:** 2026-10-07
 - **Deciders:** NCode Group
+
+## Amendment (2026-10-10): one store seam and a dependency-inverted password grant
+
+This ADR introduced the `ILocalAccountSource` (read/verify) and `ILocalAccountStore` (persistence) seams (later joined
+by `ILocalAccountProvisioner` in [ADR-0057](0057-local-account-eager-provisioning-and-management-seam.md)) and a raw
+`PasswordHash` on the account contract.
+[ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md) collapses all three seams into a
+single `ILocalAccountStore` whose credential operations are first-class (no `PasswordHash` on `PersistedLocalAccount`),
+moves the resource-owner password grant out of the authentication package into the opt-in
+`NCode.Identity.OpenId.Accounts.Authentication` package (so authentication no longer depends on the account package),
+and relocates the metadata projection claim-type constants to `SubjectMetadataClaimTypes`. The core idea — local
+accounts are a self-issued connection behind a pluggable seam — stands.
 
 ## Context
 

@@ -16,7 +16,6 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Principals;
 using NCode.Identity.OpenId.Settings;
@@ -73,7 +72,7 @@ internal class DefaultGetIdTokenMetadataClaimsHandler(IPrincipalMetadataProvider
         {
             SubjectMetadataClaims.AddMetadataClaim(
                 targetClaims,
-                AccountConstants.ProfileMetadataClaimType,
+                SubjectMetadataClaimTypes.ProfileMetadata,
                 metadata.ProfileMetadata
             );
         }
@@ -82,7 +81,7 @@ internal class DefaultGetIdTokenMetadataClaimsHandler(IPrincipalMetadataProvider
         {
             SubjectMetadataClaims.AddMetadataClaim(
                 targetClaims,
-                AccountConstants.SystemMetadataClaimType,
+                SubjectMetadataClaimTypes.SystemMetadata,
                 metadata.SystemMetadata
             );
         }

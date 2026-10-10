@@ -19,6 +19,7 @@
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.OpenId.Accounts.Credentials;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Persistence.Stores;
 
@@ -49,7 +50,12 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         _accessor = _provider.GetRequiredService<TestAmbientTenantAccessor>();
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _store = new LocalAccountStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _store = new LocalAccountStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            Mock.Of<IPasswordHasher>(),
+            _dbContext
+        );
     }
 
     public void Dispose()
@@ -70,7 +76,6 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
             UserName = userName,
             Email = null,
             EmailVerified = false,
-            PasswordHash = null,
             SecurityStamp = "stamp",
             IsEnabled = true,
             Claims = [],
@@ -80,8 +85,16 @@ public sealed class LocalAccountStoreTenantScopingTests : IDisposable
     // Seeds one account per tenant unscoped, then detaches so later reads hit the query where the filter applies.
     private async Task SeedAsync()
     {
-        await _store.AddAsync(CreateAccount(TenantA, AccountA, UserA), CancellationToken.None);
-        await _store.AddAsync(CreateAccount(TenantB, AccountB, UserB), CancellationToken.None);
+        await _store.AddAsync(
+            CreateAccount(TenantA, AccountA, UserA),
+            password: null,
+            CancellationToken.None
+        );
+        await _store.AddAsync(
+            CreateAccount(TenantB, AccountB, UserB),
+            password: null,
+            CancellationToken.None
+        );
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
     }

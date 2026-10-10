@@ -11,6 +11,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Server\NCode.Identity.Server.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Accounts.Authentication\NCode.Identity.OpenId.Accounts.Authentication.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.EntityFramework.Accounts\NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.EntityFramework.Core\NCode.Identity.OpenId.Persistence.EntityFramework.Core.csproj" />
     </ItemGroup>

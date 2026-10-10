@@ -20,7 +20,6 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Moq;
-using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Handlers;
 using NCode.Identity.OpenId.Authentication.Subject;
@@ -118,10 +117,10 @@ public class DefaultGetUserInfoMetadataClaimsHandlerTests : BaseTests
 
         await Handler.HandleAsync(command, CancellationToken.None);
 
-        Assert.True(claims.TryGetValue(AccountConstants.ProfileMetadataClaimType, out var value));
+        Assert.True(claims.TryGetValue(SubjectMetadataClaimTypes.ProfileMetadata, out var value));
         var element = Assert.IsType<JsonElement>(value);
         Assert.Equal("dark", element.GetProperty("theme").GetString());
-        Assert.False(claims.ContainsKey(AccountConstants.SystemMetadataClaimType));
+        Assert.False(claims.ContainsKey(SubjectMetadataClaimTypes.SystemMetadata));
     }
 
     [Fact]

@@ -17,13 +17,16 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 
 /// <summary>
-/// Provides extension methods to register the ASP.NET Core Identity local-account source.
+/// Provides extension methods to register the ASP.NET Core Identity <see cref="ILocalAccountStore"/> adapter.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
@@ -31,19 +34,29 @@ public static class DefaultRegistration
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
-        /// Registers an <see cref="ILocalAccountSource"/> that adapts the ASP.NET Core Identity
-        /// <c>UserManager&lt;TUser&gt;</c> for the specified user type. The host is responsible for registering ASP.NET
-        /// Core Identity (<c>AddIdentityCore&lt;TUser&gt;</c> or <c>AddIdentity</c>) and its stores.
+        /// Registers an <see cref="ILocalAccountStore"/> that adapts the ASP.NET Core Identity
+        /// <c>UserManager&lt;TUser&gt;</c> for the specified user type, together with the capability marker that enables
+        /// the local-account surfaces. The host is responsible for registering ASP.NET Core Identity
+        /// (<c>AddIdentityCore&lt;TUser&gt;</c> or <c>AddIdentity</c>) and its stores.
         /// </summary>
         /// <typeparam name="TUser">The ASP.NET Core Identity user type.</typeparam>
         /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddAspNetIdentityLocalAccountSource<TUser>()
-            where TUser : class
+        public IServiceCollection AddAspNetIdentityLocalAccountStore<TUser>()
+            where TUser : IdentityUser, new()
         {
-            serviceCollection.TryAddSingleton<
-                ILocalAccountSource,
-                AspNetIdentityLocalAccountSource<TUser>
-            >();
+            serviceCollection.TryAddSingleton<LocalAccountFeature>();
+
+            // The store is backing-store-agnostic, so it registers the DbContext-less factory the store manager falls
+            // back to; the scoped UserManager is resolved per operation from a fresh scope.
+            serviceCollection.AddSingleton<Func<IStoreProvider, ILocalAccountStore>>(
+                serviceProvider =>
+                    storeProvider =>
+                        ActivatorUtilities.CreateInstance<AspNetIdentityLocalAccountStore<TUser>>(
+                            serviceProvider,
+                            storeProvider
+                        )
+            );
+
             return serviceCollection;
         }
     }

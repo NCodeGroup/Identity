@@ -23,6 +23,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId;
+using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Server.OpenApi;
 using Scalar.AspNetCore;
 
@@ -89,11 +90,9 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
 
                         if (
                             environment.IsDevelopment()
-                            && bootstrap
-                                is {
-                                    ClientId: { Length: > 0 } clientId,
-                                    ClientSecret: { Length: > 0 } clientSecret,
-                                }
+                            && bootstrap.ClientId is { Length: > 0 } clientId
+                            && bootstrap.GetPresentableClientSecretOrDefault()
+                                is { Length: > 0 } clientSecret
                         )
                         {
                             flow.WithClientId(clientId).WithClientSecret(clientSecret);

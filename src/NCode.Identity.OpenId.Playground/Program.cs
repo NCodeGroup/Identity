@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
+using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
@@ -47,9 +48,14 @@ var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_Option
 serviceCollection.AddIdentityServer().AddConfiguration(configuration, openIdOptionsSectionName);
 serviceCollection.AddEntityFrameworkCorePersistence<OpenIdDbContext>();
 
-// Opt in to the generic Entity Framework local-account reference (resource-owner password grant source +
-// provisioner). A host that fronts its own user store would register a different ILocalAccountSource instead.
+// Opt in to the generic Entity Framework local-account reference store (the server-owned credential, profile, and
+// status payload behind self-issued connections). A host that fronts its own user store would register a different
+// ILocalAccountStore instead (for example, the ASP.NET Core Identity adapter).
 serviceCollection.AddLocalAccountEntityFramework();
+
+// Enable the resource-owner password grant over the configured local-account store. The account stack provides this
+// capability handler (dependency inversion); the Authentication package itself does not depend on accounts.
+serviceCollection.AddLocalAccountAuthentication();
 
 // DEVELOPMENT ONLY: choose how signing keys are provided (see ADR-0002). The default is ephemeral,
 // in-memory keys (hermetic, ideal for tests). Local running can opt into persistent developer keys —

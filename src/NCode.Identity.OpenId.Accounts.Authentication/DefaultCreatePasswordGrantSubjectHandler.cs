@@ -19,12 +19,10 @@
 using System.Globalization;
 using System.Security.Claims;
 using NCode.Identity.Jose;
-using NCode.Identity.OpenId.Accounts;
-using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
+namespace NCode.Identity.OpenId.Accounts.Authentication;
 
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="CreatePasswordGrantSubjectCommand"/> message that
@@ -58,7 +56,7 @@ internal class DefaultCreatePasswordGrantSubjectHandler(TimeProvider timeProvide
         {
             // The subject is stamped under the tenant's primary subject claim type so principal resolution reads it
             // back through the same tenant-aware GetSubjectId seam (ADR-0053).
-            new(subjectClaimType, account.Subject),
+            new(subjectClaimType, account.LocalAccountId),
             new(issuerClaimType, AccountConstants.SelfIssuer),
             new(JoseClaimNames.Payload.Tid, openIdContext.Tenant.TenantId),
             new(
@@ -67,7 +65,7 @@ internal class DefaultCreatePasswordGrantSubjectHandler(TimeProvider timeProvide
                 ClaimValueTypes.Integer64
             ),
         };
-        claims.AddRange(account.Claims);
+        claims.AddRange(account.Claims.Select(claim => new Claim(claim.Type, claim.Value)));
 
         var identity = new ClaimsIdentity(
             claims,

@@ -20,6 +20,7 @@ using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.OpenId.Accounts.Credentials;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Persistence.Stores;
 
@@ -43,7 +44,12 @@ public sealed class LocalAccountStoreTests : IDisposable
         _provider = serviceCollection.BuildServiceProvider();
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
-        _store = new LocalAccountStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _store = new LocalAccountStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            Mock.Of<IPasswordHasher>(),
+            _dbContext
+        );
     }
 
     public void Dispose()
@@ -58,7 +64,6 @@ public sealed class LocalAccountStoreTests : IDisposable
         string localAccountId,
         string userName,
         string? email = null,
-        string? passwordHash = null,
         bool isEnabled = true,
         params PersistedLocalAccountClaim[] claims
     ) =>
@@ -69,7 +74,6 @@ public sealed class LocalAccountStoreTests : IDisposable
             UserName = userName,
             Email = email,
             EmailVerified = false,
-            PasswordHash = passwordHash,
             SecurityStamp = "stamp",
             IsEnabled = isEnabled,
             Claims = claims,
@@ -78,7 +82,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
     private async Task AddAndDetachAsync(PersistedLocalAccount account)
     {
-        await _store.AddAsync(account, CancellationToken.None);
+        await _store.AddAsync(account, password: null, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
     }

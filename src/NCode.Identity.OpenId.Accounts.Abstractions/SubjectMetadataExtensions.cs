@@ -19,6 +19,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Principals;
 using NCode.Json;
 
 namespace NCode.Identity.OpenId.Accounts;
@@ -26,7 +27,7 @@ namespace NCode.Identity.OpenId.Accounts;
 /// <summary>
 /// Provides extension methods for reading an account's metadata bags back off a subject <see cref="ClaimsPrincipal"/>
 /// in their original structured form. The bags are carried on the principal as single JSON-object claims (see
-/// <see cref="AccountConstants.ProfileMetadataClaimType"/> and <see cref="AccountConstants.SystemMetadataClaimType"/>),
+/// <see cref="SubjectMetadataClaimTypes.ProfileMetadata"/> and <see cref="SubjectMetadataClaimTypes.SystemMetadata"/>),
 /// which is the lossless carrier that survives every grant flow; these helpers let a claims-pipeline handler consume the
 /// structured value rather than hand-parsing the claim.
 /// </summary>
@@ -40,8 +41,8 @@ public static class SubjectMetadataExtensions
         /// structured <see cref="JsonElement"/> form.
         /// </summary>
         /// <param name="claimType">The claim type the bag is carried under, such as
-        /// <see cref="AccountConstants.ProfileMetadataClaimType"/> or
-        /// <see cref="AccountConstants.SystemMetadataClaimType"/>.</param>
+        /// <see cref="SubjectMetadataClaimTypes.ProfileMetadata"/> or
+        /// <see cref="SubjectMetadataClaimTypes.SystemMetadata"/>.</param>
         /// <param name="metadata">When this method returns <see langword="true"/>, the parsed metadata bag; otherwise
         /// the shared empty object.</param>
         /// <returns><see langword="true"/> when the bag is present and well-formed; otherwise

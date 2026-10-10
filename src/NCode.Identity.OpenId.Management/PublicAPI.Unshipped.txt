@@ -1,7 +1,6 @@
 #nullable enable
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Client = "client" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Grant = "grant" -> string!
-const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.LocalAccount = "local_account" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.ResourceServer = "resource_server" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Server = "server" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Tenant = "tenant" -> string!
@@ -29,6 +28,10 @@ NCode.Identity.OpenId.Management.Authorization.ResourceNode.ResourceType.init ->
 NCode.Identity.OpenId.Management.Authorization.ResourceNode.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Authorization.ResourceNode.TenantId.init -> void
 NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes
+NCode.Identity.OpenId.Management.Authorization.TenantScopeResource
+NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.TenantScopeResource() -> void
 NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
@@ -42,6 +45,7 @@ NCode.Identity.OpenId.Management.ServiceCollectionExtensions
 NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddAuthorizationHandler<THandler>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static NCode.Identity.OpenId.Management.Authorization.ResourceNode.For(string! tenantId, string! resourceType, string! resourceId) -> NCode.Identity.OpenId.Management.Authorization.ResourceNode!
+static NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.For(string! tenantId) -> NCode.Identity.OpenId.Management.Authorization.TenantScopeResource!
 static NCode.Identity.OpenId.Management.Operations.Create.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.Delete.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.List.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!

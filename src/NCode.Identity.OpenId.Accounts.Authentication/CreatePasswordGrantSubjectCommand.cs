@@ -18,20 +18,20 @@
 
 using System.Security.Claims;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Accounts;
+using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Mediator;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
+namespace NCode.Identity.OpenId.Accounts.Authentication;
 
 /// <summary>
 /// Represents a mediator command to create the subject (a <see cref="ClaimsPrincipal"/>) for a resource-owner password
-/// grant from a validated <see cref="LocalAccount"/>. The default handler assembles the account's self-issued
+/// grant from a validated <see cref="PersistedLocalAccount"/>. The default handler assembles the account's self-issued
 /// connection claims and its profile claims; applications replace it to customize the subject (for example, to add
 /// authentication-context claims such as <c>amr</c> or <c>auth_time</c>).
 /// </summary>
 [PublicAPI]
 public readonly record struct CreatePasswordGrantSubjectCommand(
     OpenIdContext OpenIdContext,
-    LocalAccount Account
+    PersistedLocalAccount Account
 ) : ICommand<ClaimsPrincipal>;

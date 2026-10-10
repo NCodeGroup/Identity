@@ -22,7 +22,6 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Moq;
 using NCode.Identity.JsonWebTokens;
-using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
@@ -160,12 +159,12 @@ public class DefaultGetAccessTokenMetadataClaimsHandlerTests : BaseTests
 
         var claim = Assert.Single(
             targetClaims,
-            c => c.Type == AccountConstants.SystemMetadataClaimType
+            c => c.Type == SubjectMetadataClaimTypes.SystemMetadata
         );
         Assert.Equal(JsonClaimValueTypes.Json, claim.ValueType);
         Assert.DoesNotContain(
             targetClaims,
-            c => c.Type == AccountConstants.ProfileMetadataClaimType
+            c => c.Type == SubjectMetadataClaimTypes.ProfileMetadata
         );
     }
 
@@ -180,8 +179,8 @@ public class DefaultGetAccessTokenMetadataClaimsHandlerTests : BaseTests
 
         await Handler.HandleAsync(command, CancellationToken.None);
 
-        Assert.Contains(targetClaims, c => c.Type == AccountConstants.ProfileMetadataClaimType);
-        Assert.Contains(targetClaims, c => c.Type == AccountConstants.SystemMetadataClaimType);
+        Assert.Contains(targetClaims, c => c.Type == SubjectMetadataClaimTypes.ProfileMetadata);
+        Assert.Contains(targetClaims, c => c.Type == SubjectMetadataClaimTypes.SystemMetadata);
     }
 
     #endregion

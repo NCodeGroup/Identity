@@ -16,26 +16,33 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Persistence;
+using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Accounts;
+namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
 
 /// <summary>
-/// Describes a request to reset the credential of an existing local account: the target account and the replacement
-/// password (carried as caller-owned bytes so it never lingers as a managed <see cref="string"/>). Resetting the
-/// credential rotates the account's security stamp so that outstanding sessions and tokens are invalidated.
+/// Represents the REST resource for a local account's full set of profile claims.
 /// </summary>
 [PublicAPI]
-public sealed class LocalAccountPasswordResetRequest
+[ExcludeFromCodeCoverage]
+public sealed class LocalAccountClaimsResource : ISupportTenantId, ISupportConcurrencyToken
 {
+    /// <inheritdoc cref="ISupportTenantId.TenantId"/>
+    public required string TenantId { get; init; }
+
     /// <summary>
-    /// Gets the identifier of the local account whose credential is reset (its self-issued subject).
+    /// Gets the opaque identifier of the local account (its self-issued subject).
     /// </summary>
     public required string LocalAccountId { get; init; }
 
     /// <summary>
-    /// Gets the UTF-8 bytes of the account's new password, carried in a caller-owned buffer so the sensitive material
-    /// can be zeroed after use and never lingers as a managed <see cref="string"/>.
+    /// Gets the account's profile claims.
     /// </summary>
-    public required ReadOnlyMemory<byte> Password { get; init; }
+    public required IReadOnlyList<LocalAccountClaim> Claims { get; init; }
+
+    /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
+    public required string ConcurrencyToken { get; init; }
 }

@@ -74,7 +74,6 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
             UserName = userName,
             Email = null,
             EmailVerified = false,
-            PasswordHash = "hash",
             SecurityStamp = "stamp",
             IsEnabled = true,
             Claims = [],

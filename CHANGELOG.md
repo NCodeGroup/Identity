@@ -31,14 +31,16 @@ change to the public API is a **major** version bump.
   same `Operations.Read` authorization as reading the secret. See
   [ADR-0058](docs/adr/0058-asymmetric-public-key-material-read-path.md).
 - **Local-account management API.** A new `local-accounts` resource family under
-  `/api/tenants/{tenantId}/local-accounts` (mirroring the clients family) lets an operator create, list, get, update,
-  delete, disable, enable, reset the credential of, and read/set the server-owned metadata of a local account, plus
-  manage its owners. Account creation now eagerly provisions the owning `FederatedPrincipal` and its one-to-one
-  self-issued `FederatedIdentity` in the same unit of work, so ownership and principal-level metadata (`ProfileMetadata`
-  / `SystemMetadata`) have a stable target from the moment the account exists; the metadata endpoint is the
-  administrator-gated write path that upholds the "`SystemMetadata` is never end-user-writable" invariant. The endpoints
-  require the opt-in local-account persistence package and otherwise respond `501 Not Implemented`. Changes are audited
-  via `LocalAccountChangedAuditEvent` and gated by `*:local_accounts` scopes. See
+  `/api/tenants/{tenantId}/local-accounts` lets a tenant/global administrator create, list, get, update, delete,
+  disable, enable, reset the credential of, manage the profile claims of, and read/set the server-owned metadata of a
+  local account. Account creation eagerly provisions the owning `FederatedPrincipal` and its one-to-one self-issued
+  `FederatedIdentity` in the same unit of work, so principal-level metadata (`ProfileMetadata` / `SystemMetadata`) has a
+  stable target from the moment the account exists; the metadata endpoint is the administrator-gated write path that
+  upholds the "`SystemMetadata` is never end-user-writable" invariant. Local accounts are end-user subjects rather than
+  ownable resources, so every operation authorizes against the owning tenant scope. The endpoints require a registered
+  `ILocalAccountStore` and otherwise respond `501 Not Implemented`. Changes are audited via
+  `LocalAccountChangedAuditEvent` and gated by `*:local_accounts` scopes. See
+  [ADR-0060](docs/adr/0060-local-account-one-store-seam-and-dependency-inverted-authentication.md) and
   [ADR-0057](docs/adr/0057-local-account-eager-provisioning-and-management-seam.md).
 - New dependency-free **`NCode.Json`** package holding the shared `JsonElements` helper (`EmptyObject` /
   `OrEmptyObject` / `IsNullOrUndefined`, namespace `NCode.Json`), promoted out of `NCode.Identity.Abstractions` so the
@@ -53,12 +55,24 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
-- **`ILocalAccountProvisioner` is now the full local-account write seam.** `CreateAsync` takes the caller's
-  `IStoreManager` and stages its writes (account, principal, and self-issued identity) without saving, and the seam
-  gains `UpdateAsync`, `SetEnabledAsync`, and `ResetPasswordAsync` (plus `LocalAccountUpdateRequest` /
-  `LocalAccountPasswordResetRequest`). `ILocalAccountStore` gains `GetPageAsync` and `RemoveAsync`;
+- **Local accounts have one pluggable seam, and the password grant is dependency-inverted out of the authentication
+  package.** `ILocalAccountSource` and `ILocalAccountProvisioner` are removed: `ILocalAccountStore` is the single,
+  backing-store-agnostic seam, with credential handling expressed as first-class operations
+  (`AddAsync(account, password?, ct)`, `SetPasswordAsync`, `VerifyCredentialAsync`) instead of a raw `PasswordHash` on
+  `PersistedLocalAccount` (which is removed; `SecurityStamp` is store-managed). The runtime `LocalAccount` payload and
+  the `LocalAccount*Request` DTOs are removed. The resource-owner password grant moves out of
+  `NCode.Identity.OpenId.Authentication` into a new opt-in **`NCode.Identity.OpenId.Accounts.Authentication`** package
+  (`AddLocalAccountAuthentication()`), so the authentication package no longer depends on the account package; without
+  that capability the base package answers the grant with `unsupported_grant_type`. `CreatePasswordGrantSubjectCommand`
+  moves to the new package, and the metadata projection claim types move from `AccountConstants` to
+  `NCode.Identity.OpenId.Principals.SubjectMetadataClaimTypes`. Local-account management drops its owners sub-resource
+  and the `local_account` resource-node type and authorizes against the tenant scope (`TenantScopeResource` is now a
+  public authorization resource). The **ASP.NET Core Identity** adapter
+  (`NCode.Identity.OpenId.Accounts.AspNetIdentity`) now implements `ILocalAccountStore` over `UserManager<TUser>`
+  (`AddAspNetIdentityLocalAccountStore<TUser>()`), and the Entity Framework `EntityStoreManager` gained a
+  DbContext-less store-factory fallback so a non-EF store resolves without referencing `OpenIdDbContext`.
   `IFederatedPrincipalStore` gains `UpdateAsync` and `RemoveAsync`; `IFederatedIdentityStore` gains `RemoveAsync`. See
-  [ADR-0057](docs/adr/0057-local-account-eager-provisioning-and-management-seam.md).
+  [ADR-0060](docs/adr/0060-local-account-one-store-seam-and-dependency-inverted-authentication.md).
 
 - **`NCode.Identity.Abstractions` is now framework-free.** Its ASP.NET Core HTTP surface
   (`Models/UriDescriptor`, `Exceptions/HttpResultException`, `Results/*`) moved to the new
@@ -112,6 +126,10 @@ change to the public API is a **major** version bump.
   `Startup` class and the `Host.CreateDefaultBuilder`/`UseStartup` bootstrap were replaced by a single top-level
   `Program.cs` using `WebApplication.CreateBuilder(...)`. The integration tests are unaffected — they still boot
   through `WebApplicationFactory<PlaygroundApiMarker>`.
+- The **bootstrap administrator** `ClientSecret` is now supplied **Base64Url-encoded** rather than as plaintext: the
+  seed handler decodes it into a pinned, zeroed buffer (threaded as `ReadOnlyMemory<byte>`) so the plaintext is not left
+  on the GC heap, and the OpenAPI example and Scalar prefill that surface the presentable secret are gated to the
+  development environment. See [ADR-0044](docs/adr/0044-management-api-authentication-and-globaladmin-bootstrap.md).
 - The development-only signing-key opt-ins moved out of the `NCode.Identity.OpenId.Playground` host and into the
   `NCode.Identity.Server` composition root, so any host can consume them rather than each app re-implementing them
   (the Playground is just the EXE host that wires them in). `AddEphemeralDeveloperKeys()`,

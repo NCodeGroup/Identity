@@ -127,20 +127,14 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<ITokenGrantHandler, DefaultPasswordGrantHandler>()
             );
 
+            // The password grant is unsupported until a host registers the local-account authentication capability
+            // (the NCode.Identity.OpenId.Accounts.Authentication package), which replaces this default handler.
             serviceCollection.TryAddSingleton<
                 ICommandResponseHandler<
                     AuthenticatePasswordGrantCommand,
                     AuthenticateSubjectDisposition
                 >,
-                DefaultAuthenticatePasswordGrantHandler
-            >();
-
-            serviceCollection.TryAddSingleton<
-                ICommandResponseHandler<
-                    CreatePasswordGrantSubjectCommand,
-                    System.Security.Claims.ClaimsPrincipal
-                >,
-                DefaultCreatePasswordGrantSubjectHandler
+                DefaultUnsupportedPasswordGrantHandler
             >();
 
             serviceCollection.TryAddEnumerable(

@@ -17,7 +17,6 @@
 #endregion
 
 using System.Text.Json;
-using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
 using NCode.Identity.OpenId.Principals;
 using NCode.Identity.OpenId.Settings;
@@ -68,14 +67,14 @@ internal class DefaultGetUserInfoMetadataClaimsHandler(IPrincipalMetadataProvide
         {
             AddMetadata(
                 claims,
-                AccountConstants.ProfileMetadataClaimType,
+                SubjectMetadataClaimTypes.ProfileMetadata,
                 metadata.ProfileMetadata
             );
         }
 
         if (sendSystem)
         {
-            AddMetadata(claims, AccountConstants.SystemMetadataClaimType, metadata.SystemMetadata);
+            AddMetadata(claims, SubjectMetadataClaimTypes.SystemMetadata, metadata.SystemMetadata);
         }
     }
 

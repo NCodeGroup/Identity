@@ -64,13 +64,19 @@ public abstract class OpenIdEnvironment
     public abstract IPropertyBag PropertyBag { get; }
 
     /// <summary>
-    /// Extracts the subject id from a <see cref="ClaimsPrincipal"/> using the host-configured extraction logic. This is
-    /// the single, shared accessor every HTTP surface uses to derive a caller's subject id so the behavior stays
-    /// consistent across the protocol and management APIs.
+    /// Extracts the subject id from a <see cref="ClaimsPrincipal"/> by returning the value of the first non-empty claim
+    /// whose type matches <paramref name="subjectClaimTypes"/>, in order. This is the host-replaceable extraction
+    /// algorithm; the claim types are supplied per request (per-tenant for the end-user via
+    /// <see cref="NCode.Identity.OpenId.Contexts.OpenIdContext.GetSubjectId"/>, or the server default for app-level
+    /// callers).
     /// </summary>
     /// <param name="subject">The <see cref="ClaimsPrincipal"/> to search for the subject id.</param>
+    /// <param name="subjectClaimTypes">The ordered claim types to try, in priority order.</param>
     /// <returns>The subject id if found; otherwise <c>null</c>.</returns>
-    public abstract string? GetSubjectId(ClaimsPrincipal subject);
+    public abstract string? GetSubjectId(
+        ClaimsPrincipal subject,
+        IReadOnlyCollection<string> subjectClaimTypes
+    );
 
     /// <summary>
     /// Extracts the primary <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/> using the host-configured

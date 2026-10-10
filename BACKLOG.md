@@ -89,16 +89,6 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   Touch points: `src/NCode.Identity.Abstractions/Json/JsonElements.cs`,
   `src/NCode.Identity.Jose.Abstractions/Extensions/JsonElementExtensions.cs`.
 
-- **`R3` — Subject-claim selection is decided twice.** `OpenIdEnvironment.GetSubjectId` (host-configured `sub` →
-  `nameidentifier` → `upn` priority, [ADR-0053](docs/adr/0053-host-configured-hooks-on-the-openid-environment.md)) and
-  `DefaultPrincipalResolver`'s `PrincipalSourceClaim` tenant setting ([ADR-0035](docs/adr/0035-federated-principals-and-identity-resolution.md))
-  independently decide "which claim is the subject." They agree on the default (`sub`) but can diverge when a host sets
-  `PrincipalSourceClaim` ≠ `sub` or relies on the `nameidentifier`/`upn` fallback — the authenticate gate/fallback id
-  and the claim the resolver keys federated identity on would then differ. Reconcile so both read one configured source.
-  Touch points: `src/NCode.Identity.OpenId.Core/PrincipalResolution/DefaultPrincipalResolver.cs`,
-  `src/NCode.Identity.OpenId.Core/Options/OpenIdOptions.cs`,
-  `src/NCode.Identity.OpenId.Abstractions/Environments/OpenIdEnvironment.cs`.
-
 ## Local accounts (group `A`)
 
 Follow-ups surfaced finishing local-account login end-to-end ([ADR-0051](docs/adr/0051-local-accounts-behind-a-pluggable-account-source-seam.md)):

@@ -90,7 +90,7 @@ internal class DefaultAuthenticateHandler
 
         // TODO: use the subject_type setting to support PPID (Pairwise Pseudonymous Identifier), aka unique user ID per client/RP
 
-        var subjectId = openIdContext.Environment.GetSubjectId(subject);
+        var subjectId = openIdContext.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
         {
             return Failed(

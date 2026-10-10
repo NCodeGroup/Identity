@@ -17,7 +17,6 @@
 #endregion
 
 using System.Security.Claims;
-using NCode.Identity.Jose;
 
 namespace NCode.Identity.OpenId.Logic;
 
@@ -37,40 +36,24 @@ internal static class DefaultClaimsPrincipalLogic
     }
 
     /// <summary>
-    /// Returns the default implementation of a delegate that extracts the subject id from a <see cref="ClaimsPrincipal"/>.
-    /// This implementation will search for the <see cref="JoseClaimNames.Payload.Sub"/> claim first,
-    /// then the <see cref="ClaimTypes.NameIdentifier"/> claim (if allowed),
-    /// and finally the <see cref="ClaimTypes.Upn"/> claim (if allowed).
-    /// The <see cref="JoseClaimNames.Payload.Sub"/> claim will always take precedence over the other claims.
+    /// The default <see cref="GetSubjectIdDelegate"/>: returns the value of the first non-empty claim whose type matches
+    /// one of the supplied claim types, honoring the order of the supplied claim types (so an earlier claim type takes
+    /// precedence over a later one).
     /// </summary>
-    /// <remarks>
-    /// For compatibility, <see cref="ClaimTypes.NameIdentifier"/> should be allowed because it's used by <c>Microsoft.AspNetCore.Identity</c>.
-    /// </remarks>
-    /// <param name="allowNameId">Whether to allow the <see cref="ClaimTypes.NameIdentifier"/> claim to be used as the subject id.</param>
-    /// <param name="allowUpn">Whether to allow the <see cref="ClaimTypes.Upn"/> claim to be used as the subject id.</param>
-    public static GetSubjectIdDelegate GetSubjectId(bool allowNameId, bool allowUpn) =>
-        subject =>
+    public static GetSubjectIdDelegate GetSubjectId { get; } =
+        static (subject, subjectClaimTypes) =>
         {
-            string? nameId = null;
-            string? upn = null;
-
-            foreach (var claim in subject.Claims.Where(claim => !string.IsNullOrEmpty(claim.Value)))
+            foreach (var claimType in subjectClaimTypes)
             {
-                switch (claim.Type)
+                foreach (var claim in subject.Claims)
                 {
-                    case JoseClaimNames.Payload.Sub:
+                    if (claim.Type == claimType && !string.IsNullOrEmpty(claim.Value))
+                    {
                         return claim.Value;
-
-                    case ClaimTypes.NameIdentifier when allowNameId:
-                        nameId = claim.Value;
-                        break;
-
-                    case ClaimTypes.Upn when allowUpn:
-                        upn = claim.Value;
-                        break;
+                    }
                 }
             }
 
-            return nameId ?? upn;
+            return null;
         };
 }

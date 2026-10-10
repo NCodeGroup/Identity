@@ -233,6 +233,14 @@ public static class JoseClaimNames
         public const string Name = "name";
 
         /// <summary>
+        /// Contains a constant with the value: <c>nameid</c> — the legacy Microsoft JWT short name for the name
+        /// identifier. The default inbound claim-type map rewrites it to
+        /// <see cref="System.Security.Claims.ClaimTypes.NameIdentifier"/>, but it survives as <c>nameid</c> when a
+        /// handler sets <c>MapInboundClaims</c> to <c>false</c>.
+        /// </summary>
+        public const string NameId = "nameid";
+
+        /// <summary>
         /// Contains a constant with the value: <c>nbf</c>
         /// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.5
         /// </summary>

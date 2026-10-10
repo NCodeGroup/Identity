@@ -42,7 +42,6 @@ public sealed class DefaultPrincipalResolverTests
     private static OpenIdContext CreateOpenIdContext(MockRepository mocks)
     {
         var settings = mocks.Create<IReadOnlySettingCollection>();
-        settings.Setup(x => x.GetValue(OpenIdSettingKeys.PrincipalSourceClaim)).Returns("sub");
         settings.Setup(x => x.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim)).Returns("iss");
 
         var provider = mocks.Create<IReadOnlySettingCollectionProvider>();
@@ -54,6 +53,10 @@ public sealed class DefaultPrincipalResolverTests
 
         var context = mocks.Create<OpenIdContext>();
         context.Setup(x => x.Tenant).Returns(tenant.Object);
+        // The resolver derives the subject through the tenant-aware context seam (ADR-0053).
+        context
+            .Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>()))
+            .Returns((ClaimsPrincipal user) => user.FindFirstValue("sub"));
         return context.Object;
     }
 

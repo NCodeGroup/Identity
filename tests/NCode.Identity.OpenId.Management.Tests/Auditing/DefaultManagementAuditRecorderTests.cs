@@ -46,8 +46,13 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
     {
         var mockEnvironment = MockRepository.Create<OpenIdEnvironment>();
         mockEnvironment
-            .Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>()))
-            .Returns((ClaimsPrincipal principal) => principal.FindFirst("sub")?.Value);
+            .Setup(x =>
+                x.GetSubjectId(It.IsAny<ClaimsPrincipal>(), It.IsAny<IReadOnlyCollection<string>>())
+            )
+            .Returns(
+                (ClaimsPrincipal principal, IReadOnlyCollection<string> _) =>
+                    principal.FindFirst("sub")?.Value
+            );
 
         var mockEnvironmentProvider = MockRepository.Create<IOpenIdEnvironmentProvider>();
         mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object);

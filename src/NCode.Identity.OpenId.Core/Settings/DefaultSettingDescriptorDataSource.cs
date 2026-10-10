@@ -45,12 +45,12 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
     {
         get
         {
-            // principal_source_claim: claim whose value seeds the resolved principal id (default "sub"). (ADR-0035)
+            // subject_claim_types: ordered claim types that identify the end-user subject (default sub, then nameidentifier). (ADR-0053)
             // Override (Replace): a child fully replaces the parent value.
-            yield return new SettingDescriptor<string>
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
-                Name = OpenIdSettingNames.PrincipalSourceClaim,
-                Default = "sub",
+                Name = OpenIdSettingNames.SubjectClaimTypes,
+                Default = OpenIdConstants.DefaultSubjectClaimTypes,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,

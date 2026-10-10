@@ -242,7 +242,10 @@ internal class DefaultManagementAuditRecorder(
             ?? endpoint?.DisplayName;
     }
 
-    // The subject-id extractor is host-configured on the app-level environment (ADR-0053); no request context needed.
+    // The actor is a self-issued/control-plane admin, so its subject is read with the server-default claim types
+    // (ADR-0053) through the app-level environment — not the request tenant's subject_claim_types setting.
     private string? GetActorId(HttpContext httpContext) =>
-        EnvironmentProvider.Get().GetSubjectId(httpContext.User);
+        EnvironmentProvider
+            .Get()
+            .GetSubjectId(httpContext.User, OpenIdConstants.DefaultSubjectClaimTypes);
 }

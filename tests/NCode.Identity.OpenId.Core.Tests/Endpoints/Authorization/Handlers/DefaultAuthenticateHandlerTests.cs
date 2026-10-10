@@ -27,7 +27,6 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.Settings;
@@ -39,11 +38,11 @@ public class DefaultAuthenticateHandlerTests : BaseTests
 {
     #region Scaffolding
 
-    private Mock<OpenIdEnvironment> MockEnvironment { get; set; } = null!;
+    private Mock<OpenIdContext> MockContext { get; set; } = null!;
 
     private DefaultAuthenticateHandler CreateHandler(string? subjectId)
     {
-        MockEnvironment.Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>())).Returns(subjectId);
+        MockContext.Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>())).Returns(subjectId);
         return new DefaultAuthenticateHandler();
     }
 
@@ -54,8 +53,7 @@ public class DefaultAuthenticateHandlerTests : BaseTests
     ) CreateScaffold()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
-        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
-        MockEnvironment = mockEnvironment;
+        MockContext = mockContext;
         var mockClient = CreateStrictMock<OpenIdClient>();
         var mockAuthRequest = CreateStrictMock<IAuthorizationRequest>();
         var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
@@ -72,7 +70,6 @@ public class DefaultAuthenticateHandlerTests : BaseTests
 
         mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
-        mockContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object);
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 

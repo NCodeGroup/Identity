@@ -19,7 +19,6 @@
 using System.Security.Claims;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Logic;
 
 namespace NCode.Identity.OpenId;
@@ -57,17 +56,13 @@ public sealed class OpenIdOptions
         DefaultClaimsPrincipalLogic.GetSubjectIdentity;
 
     /// <summary>
-    /// Gets or sets a delegate that extracts the subject id from a <see cref="ClaimsPrincipal"/>.
-    /// The default implementation will search for the <see cref="JoseClaimNames.Payload.Sub"/> claim first,
-    /// then the <see cref="ClaimTypes.NameIdentifier"/> claim (if allowed),
-    /// and finally the <see cref="ClaimTypes.Upn"/> claim (if allowed).
-    /// The <see cref="JoseClaimNames.Payload.Sub"/> claim will always take precedence over the other claims.
+    /// Gets or sets a delegate that extracts the subject id from a <see cref="ClaimsPrincipal"/> given an ordered list
+    /// of candidate claim types. The default implementation returns the value of the first non-empty matching claim,
+    /// honoring the order of the supplied claim types. The claim types are supplied per request (per-tenant for the
+    /// end-user, or the server default for app-level callers).
     /// </summary>
-    /// <remarks>
-    /// For compatibility, <see cref="ClaimTypes.NameIdentifier"/> should be allowed because it's used by <c>Microsoft.AspNetCore.Identity</c>.
-    /// </remarks>
     public GetSubjectIdDelegate GetSubjectId { get; set; } =
-        DefaultClaimsPrincipalLogic.GetSubjectId(allowNameId: true, allowUpn: false);
+        DefaultClaimsPrincipalLogic.GetSubjectId;
 
     /// <summary>
     /// Gets a list of delegates that can configure the <see cref="JsonSerializerOptions"/> used by OpenID.

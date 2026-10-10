@@ -28,7 +28,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Extensions.DataProtection;
-using NCode.Identity.OpenId.Accounts.Credentials;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Settings;
@@ -349,9 +348,6 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        var passwordHasher = serviceProvider.GetRequiredService<IPasswordHasher>();
-        var passwordHash = passwordHasher.HashPassword(Encoding.UTF8.GetBytes(password));
-
         var localAccountId = Guid.NewGuid().ToString("N");
 
         var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
@@ -360,6 +356,7 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         );
         var store = storeManager.GetStore<ILocalAccountStore>();
 
+        // The store hashes the credential and generates the security stamp internally.
         await store.AddAsync(
             new PersistedLocalAccount
             {
@@ -368,12 +365,11 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
                 UserName = userName,
                 Email = email,
                 EmailVerified = emailVerified,
-                PasswordHash = passwordHash,
-                SecurityStamp = Guid.NewGuid().ToString("N"),
                 IsEnabled = true,
                 Claims = [],
                 ConcurrencyToken = string.Empty,
             },
+            Encoding.UTF8.GetBytes(password),
             CancellationToken.None
         );
         await storeManager.SaveChangesAsync(CancellationToken.None);

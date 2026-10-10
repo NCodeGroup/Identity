@@ -18,6 +18,7 @@
 
 using System.Buffers.Text;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -31,6 +32,11 @@ public class TokenEndpointBootstrapAdminTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";
     private const string BootstrapClientSecret = "bootstrap-secret-value";
+
+    // The server reads the configured secret Base64Url-encoded (the client still presents the plaintext).
+    private static readonly string BootstrapClientSecretConfig = Base64Url.EncodeToString(
+        Encoding.UTF8.GetBytes(BootstrapClientSecret)
+    );
     private const string ManagementAudience = "urn:ncode:management";
     private const string ManagementScope = "read:clients";
 
@@ -47,7 +53,7 @@ public class TokenEndpointBootstrapAdminTests
                         new Dictionary<string, string?>
                         {
                             ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecret,
+                            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
                         }
                     )
             )
@@ -177,7 +183,7 @@ public class TokenEndpointBootstrapAdminTests
                         new Dictionary<string, string?>
                         {
                             ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecret,
+                            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
                         }
                     )
             );

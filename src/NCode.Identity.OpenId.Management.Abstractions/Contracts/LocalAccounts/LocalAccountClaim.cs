@@ -16,20 +16,26 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Accounts;
+namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
 
 /// <summary>
-/// Contains constants for local accounts.
+/// Represents a single profile claim of a local account: an individually-addressable <c>type</c>/<c>value</c>
+/// assertion (such as <c>given_name</c> or <c>email</c>) that contributes to issued tokens and the UserInfo response.
 /// </summary>
 [PublicAPI]
-public static class AccountConstants
+[ExcludeFromCodeCoverage]
+public sealed class LocalAccountClaim
 {
     /// <summary>
-    /// The stable, global issuer value for a self-issued local-account connection. Local accounts are global (one per
-    /// human, like a federated principal), so the issuer is a fixed constant rather than a per-tenant value — the same
-    /// account therefore resolves to the same principal regardless of which tenant it signs in through.
+    /// Gets the claim type.
     /// </summary>
-    public const string SelfIssuer = "urn:ncode:identity:local-account";
+    public required string Type { get; init; }
+
+    /// <summary>
+    /// Gets the claim value.
+    /// </summary>
+    public required string Value { get; init; }
 }

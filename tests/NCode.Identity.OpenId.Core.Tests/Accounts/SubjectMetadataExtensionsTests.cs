@@ -19,6 +19,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using NCode.Identity.OpenId.Accounts;
+using NCode.Identity.OpenId.Principals;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Accounts;
@@ -36,11 +37,11 @@ public class SubjectMetadataExtensionsTests
     public void TryGetMetadata_WhenPresent_ReturnsParsedObject()
     {
         var principal = CreatePrincipal(
-            new Claim(AccountConstants.ProfileMetadataClaimType, """{"theme":"dark"}""")
+            new Claim(SubjectMetadataClaimTypes.ProfileMetadata, """{"theme":"dark"}""")
         );
 
         var found = principal.TryGetMetadata(
-            AccountConstants.ProfileMetadataClaimType,
+            SubjectMetadataClaimTypes.ProfileMetadata,
             out var metadata
         );
 
@@ -55,7 +56,7 @@ public class SubjectMetadataExtensionsTests
         var principal = CreatePrincipal();
 
         var found = principal.TryGetMetadata(
-            AccountConstants.SystemMetadataClaimType,
+            SubjectMetadataClaimTypes.SystemMetadata,
             out var metadata
         );
 
@@ -68,11 +69,11 @@ public class SubjectMetadataExtensionsTests
     public void TryGetMetadata_WhenMalformed_ReturnsFalseAndEmptyObject()
     {
         var principal = CreatePrincipal(
-            new Claim(AccountConstants.SystemMetadataClaimType, "{not-json")
+            new Claim(SubjectMetadataClaimTypes.SystemMetadata, "{not-json")
         );
 
         var found = principal.TryGetMetadata(
-            AccountConstants.SystemMetadataClaimType,
+            SubjectMetadataClaimTypes.SystemMetadata,
             out var metadata
         );
 

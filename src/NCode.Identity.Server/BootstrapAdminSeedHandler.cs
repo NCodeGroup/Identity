@@ -18,10 +18,10 @@
 
 using System.Buffers;
 using System.Buffers.Text;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Buffers;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -82,18 +82,25 @@ internal sealed class BootstrapAdminSeedHandler(
         var tenantId = context.TenantId;
         var store = context.StoreManager.GetStore<IClientStore>();
 
+        // The configured secret is supplied Base64Url-encoded (not plaintext) so a raw process-memory snapshot does
+        // not expose it directly; decode it straight into a pinned, zeroed-on-return buffer threaded as ReadOnlyMemory.
+        var secretMaxLength = Base64Url.GetMaxDecodedLength(clientSecret.Length);
+        using var secretOwner = SecureMemoryPool<byte>.Shared.Rent(secretMaxLength);
+        var secretWritten = Base64Url.DecodeFromChars(clientSecret, secretOwner.Memory.Span);
+        var clientSecretBytes = secretOwner.Memory[..secretWritten];
+
         var existing = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (existing is not null)
         {
             // The configured secret is authoritative. Re-protect it with the current data-protection keys so a stale
             // or undecryptable stored secret (for example after a key-ring change) is healed instead of leaving the
             // bootstrap client permanently unable to authenticate.
-            await RefreshClientSecretAsync(store, clientId, clientSecret, cancellationToken);
+            await RefreshClientSecretAsync(store, clientId, clientSecretBytes, cancellationToken);
             Logger.BootstrapAdminClientSecretRefreshed(clientId, tenantId);
             return;
         }
 
-        var persistedClient = CreateClient(tenantId, clientId, clientSecret);
+        var persistedClient = CreateClient(tenantId, clientId, clientSecretBytes);
 
         await store.AddAsync(persistedClient, cancellationToken);
 
@@ -103,7 +110,7 @@ internal sealed class BootstrapAdminSeedHandler(
     private async ValueTask RefreshClientSecretAsync(
         IClientStore store,
         string clientId,
-        string clientSecret,
+        ReadOnlyMemory<byte> clientSecret,
         CancellationToken cancellationToken
     )
     {
@@ -136,7 +143,11 @@ internal sealed class BootstrapAdminSeedHandler(
             || string.Equals(context.TenantId, configuredTenantId, StringComparison.Ordinal);
     }
 
-    private PersistedClient CreateClient(string tenantId, string clientId, string clientSecret)
+    private PersistedClient CreateClient(
+        string tenantId,
+        string clientId,
+        ReadOnlyMemory<byte> clientSecret
+    )
     {
         var persistedSecret = CreatePersistedSecret(clientSecret);
 
@@ -162,12 +173,12 @@ internal sealed class BootstrapAdminSeedHandler(
         };
     }
 
-    private PersistedSecret CreatePersistedSecret(string clientSecret)
+    private PersistedSecret CreatePersistedSecret(ReadOnlyMemory<byte> clientSecret)
     {
         var protector = DataProtectorFactory.CreateDataProtector();
-        var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
+
         var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(secretBytes, ref writer);
+        protector.ProtectSpan(clientSecret.Span, ref writer);
 
         var now = TimeProvider.GetUtcNow();
         return new PersistedSecret
@@ -180,7 +191,7 @@ internal sealed class BootstrapAdminSeedHandler(
             CreatedWhen = now,
             ExpiresWhen = now.AddYears(100),
             SecretType = SecretTypes.Symmetric,
-            KeySizeBits = secretBytes.Length * 8,
+            KeySizeBits = clientSecret.Length * 8,
             EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
         };
     }

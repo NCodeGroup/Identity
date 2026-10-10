@@ -1,0 +1,11 @@
+#nullable enable
+NCode.Identity.OpenId.Accounts.Authentication.CreatePasswordGrantSubjectCommand
+NCode.Identity.OpenId.Accounts.Authentication.CreatePasswordGrantSubjectCommand.Account.get -> NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount!
+NCode.Identity.OpenId.Accounts.Authentication.CreatePasswordGrantSubjectCommand.Account.init -> void
+NCode.Identity.OpenId.Accounts.Authentication.CreatePasswordGrantSubjectCommand.CreatePasswordGrantSubjectCommand() -> void
+NCode.Identity.OpenId.Accounts.Authentication.CreatePasswordGrantSubjectCommand.CreatePasswordGrantSubjectCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount! Account) -> void
+NCode.Identity.OpenId.Accounts.Authentication.CreatePasswordGrantSubjectCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Accounts.Authentication.CreatePasswordGrantSubjectCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Accounts.Authentication.DefaultRegistration
+NCode.Identity.OpenId.Accounts.Authentication.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.OpenId.Accounts.Authentication.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddLocalAccountAuthentication() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

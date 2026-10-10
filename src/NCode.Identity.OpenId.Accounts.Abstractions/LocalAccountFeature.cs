@@ -16,20 +16,18 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Accounts.Stores;
 
 namespace NCode.Identity.OpenId.Accounts;
 
 /// <summary>
-/// Contains constants for local accounts.
+/// A marker service registered when an <see cref="ILocalAccountStore"/> is configured. Surfaces that depend on local
+/// accounts — the resource-owner password grant and the local-account management endpoints — feature-detect it through
+/// an optional dependency: when it is absent, local accounts are reported as unsupported. The backing store itself is
+/// resolved per unit of work and so cannot be injected directly, hence this lightweight, backing-store-agnostic signal.
 /// </summary>
 [PublicAPI]
-public static class AccountConstants
-{
-    /// <summary>
-    /// The stable, global issuer value for a self-issued local-account connection. Local accounts are global (one per
-    /// human, like a federated principal), so the issuer is a fixed constant rather than a per-tenant value — the same
-    /// account therefore resolves to the same principal regardless of which tenant it signs in through.
-    /// </summary>
-    public const string SelfIssuer = "urn:ncode:identity:local-account";
-}
+[ExcludeFromCodeCoverage]
+public sealed class LocalAccountFeature;

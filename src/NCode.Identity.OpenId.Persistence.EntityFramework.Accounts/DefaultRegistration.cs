@@ -36,9 +36,9 @@ public static class DefaultRegistration
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
-        /// Registers the Entity Framework local-account store, the <see cref="ILocalAccountSource"/> and
-        /// <see cref="ILocalAccountProvisioner"/> over it, the model contributor that adds the account entities to the
-        /// shared <c>OpenIdDbContext</c>, and the default password hasher. Call after registering the Entity Framework
+        /// Registers the generic Entity Framework <see cref="ILocalAccountStore"/>, the capability marker that enables
+        /// the local-account surfaces, the model contributor that adds the account entities to the shared
+        /// <c>OpenIdDbContext</c>, and the default password hasher. Call after registering the Entity Framework
         /// persistence services.
         /// </summary>
         /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
@@ -50,11 +50,7 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IOpenIdModelContributor, LocalAccountModelContributor>()
             );
 
-            serviceCollection.TryAddSingleton<ILocalAccountSource, DefaultLocalAccountSource>();
-            serviceCollection.TryAddSingleton<
-                ILocalAccountProvisioner,
-                DefaultLocalAccountProvisioner
-            >();
+            serviceCollection.TryAddSingleton<LocalAccountFeature>();
 
             serviceCollection.AddSingleton<
                 Func<IStoreProvider, OpenIdDbContext, ILocalAccountStore>

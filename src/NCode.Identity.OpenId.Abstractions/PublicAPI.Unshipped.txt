@@ -552,6 +552,9 @@ NCode.Identity.OpenId.Principals.PrincipalMetadata.ProfileMetadata.get -> System
 NCode.Identity.OpenId.Principals.PrincipalMetadata.ProfileMetadata.init -> void
 NCode.Identity.OpenId.Principals.PrincipalMetadata.SystemMetadata.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Principals.PrincipalMetadata.SystemMetadata.init -> void
+NCode.Identity.OpenId.Principals.SubjectMetadataClaimTypes
+const NCode.Identity.OpenId.Principals.SubjectMetadataClaimTypes.ProfileMetadata = "profile_metadata" -> string!
+const NCode.Identity.OpenId.Principals.SubjectMetadataClaimTypes.SystemMetadata = "system_metadata" -> string!
 NCode.Identity.OpenId.Results.OpenIdRedirectResult
 NCode.Identity.OpenId.Results.OpenIdRedirectResult.AjaxStatusCode.get -> int?
 NCode.Identity.OpenId.Results.OpenIdRedirectResult.AjaxStatusCode.init -> void

@@ -43,7 +43,7 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
     {
         var error = await AuthorizeAsync(
             user,
-            new TenantScopeResource(tenantId),
+            TenantScopeResource.For(tenantId),
             Operations.Create,
             "The caller is not authorized to create local accounts in this tenant.",
             "Authentication is required to create local accounts in this tenant."
@@ -75,7 +75,7 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
     {
         var error = await AuthorizeAsync(
             user,
-            ResourceNode.For(tenantId, ResourceNodeTypes.LocalAccount, localAccountId),
+            TenantScopeResource.For(tenantId),
             Operations.Update,
             "The caller is not authorized to update this local account.",
             "Authentication is required to update this local account."
@@ -116,7 +116,7 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
     {
         return await AuthorizeAsync(
             user,
-            ResourceNode.For(tenantId, ResourceNodeTypes.LocalAccount, localAccountId),
+            TenantScopeResource.For(tenantId),
             Operations.Delete,
             "The caller is not authorized to delete this local account.",
             "Authentication is required to delete this local account."

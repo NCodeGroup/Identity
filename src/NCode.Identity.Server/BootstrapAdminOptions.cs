@@ -40,8 +40,9 @@ public class BootstrapAdminOptions
     public string? ClientId { get; set; }
 
     /// <summary>
-    /// Gets or sets the client secret of the bootstrap administrator client. It is protected before it is persisted and
-    /// is never logged.
+    /// Gets or sets the Base64Url-encoded client secret of the bootstrap administrator client. It is supplied encoded
+    /// (rather than as plaintext) so a raw process-memory snapshot does not expose it directly; the handler decodes it
+    /// into a pinned, zeroed buffer, protects it before it is persisted, and never logs it.
     /// </summary>
     public string? ClientSecret { get; set; }
 

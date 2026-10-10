@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -111,7 +112,7 @@ internal class ClientGrantApiEndpointHandler(
 
         return await ProcessListAsync(
             httpContext,
-            new TenantScopeResource(tenantId),
+            TenantScopeResource.For(tenantId),
             async () =>
             {
                 await using var storeManager = await StoreManagerFactory.CreateAsync(

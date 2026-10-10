@@ -18,21 +18,25 @@
 
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.OpenApi;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using NCode.Identity.OpenId;
+using NCode.Identity.Server.DevelopmentEnvironment;
 
 namespace NCode.Identity.Server.OpenApi;
 
 /// <summary>
-/// An OpenAPI transformer that appends a pre-filled <c>client_credentials</c> example for the configured bootstrap
-/// administrator to the token endpoint, so an operator can obtain the GlobalAdmin token from a renderer such as Scalar
-/// in one click. It also marks the four <c>client_credentials</c> form fields required with default values so the
-/// renderer shows them pre-checked and populated (otherwise every optional field starts unchecked and is omitted from
-/// the request). It is inert unless the bootstrap administrator is configured, and runs after the generic token
-/// examples are added by the composition root.
+/// An OpenAPI transformer that, <strong>in the development environment only</strong>, appends a pre-filled
+/// <c>client_credentials</c> example for the configured bootstrap administrator to the token endpoint, so an operator
+/// can obtain the GlobalAdmin token from a renderer such as Scalar in one click. It also marks the four
+/// <c>client_credentials</c> form fields required with default values so the renderer shows them pre-checked and
+/// populated (otherwise every optional field starts unchecked and is omitted from the request). It is inert outside
+/// development and unless the bootstrap administrator is configured, so the secret never appears in a non-development
+/// document, and runs after the generic token examples are added by the composition root.
 /// </summary>
 internal sealed class BootstrapTokenExampleDocumentTransformer(
+    IHostEnvironment hostEnvironment,
     IOptions<BootstrapAdminOptions> optionsAccessor
 ) : IOpenApiDocumentTransformer
 {
@@ -48,9 +52,15 @@ internal sealed class BootstrapTokenExampleDocumentTransformer(
         CancellationToken cancellationToken
     )
     {
+        // The pre-filled example embeds the (decoded) bootstrap secret, so it is a development-only convenience.
+        if (!hostEnvironment.IsDevelopment())
+        {
+            return Task.CompletedTask;
+        }
+
         var options = optionsAccessor.Value;
         var clientId = options.ClientId;
-        var clientSecret = options.ClientSecret;
+        var clientSecret = options.GetPresentableClientSecretOrDefault();
         if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
         {
             return Task.CompletedTask;

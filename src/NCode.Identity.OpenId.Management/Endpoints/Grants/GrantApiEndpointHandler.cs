@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Grants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -124,7 +125,7 @@ internal class GrantApiEndpointHandler(
 
         return await ProcessListAsync(
             httpContext,
-            new TenantScopeResource(tenantId),
+            TenantScopeResource.For(tenantId),
             async () =>
             {
                 await using var storeManager = await StoreManagerFactory.CreateAsync(
@@ -173,7 +174,7 @@ internal class GrantApiEndpointHandler(
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
-            new TenantScopeResource(tenantId),
+            TenantScopeResource.For(tenantId),
             Operations.Delete
         );
 
@@ -226,7 +227,7 @@ internal class GrantApiEndpointHandler(
         // query filter guarantees a returned grant belongs to that tenant) rather than the grant instance.
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
-            new TenantScopeResource(tenantId),
+            TenantScopeResource.For(tenantId),
             Operations.Read
         );
 
@@ -265,7 +266,7 @@ internal class GrantApiEndpointHandler(
     {
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
-            new TenantScopeResource(tenantId),
+            TenantScopeResource.For(tenantId),
             Operations.Delete
         );
 

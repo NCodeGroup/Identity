@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
@@ -53,4 +54,22 @@ public sealed class CreateLocalAccountRequest
     /// Gets a value indicating whether the account is created in an enabled state. Defaults to <c>true</c>.
     /// </summary>
     public bool IsEnabled { get; init; } = true;
+
+    /// <summary>
+    /// Gets the account's initial profile claims, or <c>null</c> when none are set at creation.
+    /// </summary>
+    public IReadOnlyList<LocalAccountClaim>? Claims { get; init; }
+
+    /// <summary>
+    /// Gets the owner-updatable profile metadata to set on the account's owning principal as a free-form JSON object,
+    /// or <c>null</c> for an empty object (ADR-0055).
+    /// </summary>
+    public JsonElement? ProfileMetadata { get; init; }
+
+    /// <summary>
+    /// Gets the server-controlled system metadata to set on the account's owning principal as a free-form JSON object,
+    /// or <c>null</c> for an empty object. It may carry authorization-relevant data and is never end-user writable; the
+    /// administrator-gated management API is its only write path (ADR-0054, ADR-0055).
+    /// </summary>
+    public JsonElement? SystemMetadata { get; init; }
 }

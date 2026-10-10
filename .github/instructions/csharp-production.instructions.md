@@ -148,7 +148,9 @@ rationale.
   After a large refactor (types moved/renamed, members added/removed), regenerate the entries with
   `dotnet format analyzers <project> --diagnostics RS0016 RS0017` — it applies the analyzer's add/remove code fixes to
   `PublicAPI.Unshipped.txt` in bulk; rebuild to confirm and hand-fix any leftovers rather than editing dozens of lines
-  by hand. Entries are a **set**, so exact sort order is not required for the build, though the file is kept sorted.
+  by hand. Entries are a **set**, so exact sort order is not required for the build, though the file is kept sorted. A
+  C# 14 `extension(Receiver)` member needs **two** entries — the `….extension(Receiver!)` container line **and** the
+  member line — so when hand-editing (every `DefaultRegistration` method is such a member), add both.
 - 👁 **Required inputs are constructor parameters; optional inputs are `init` properties.** Never add an optional value
   as a new constructor parameter — once shipped that is a binary-breaking signature change. Add it as an `init`
   property, model "unspecified" as nullable, and resolve the default **inside the library**.
@@ -210,6 +212,15 @@ rationale.
   block, using `TryAdd*` so a consumer can override a default. Register a stateless capability as a singleton; register
   a long-running loop as an `AddHostedService<T>` over a `BackgroundService`. Wire-up stays out of the type that does
   the work, so the work stays constructor-injectable and testable.
+- 👁 **The package that owns a consumer registers that consumer's ambient dependencies**, so composing the server
+  (`AddIdentityServer()`) is turnkey and a host wires **no** framework plumbing. Register the framework services your
+  endpoints/handlers depend on (routing, `IHttpClientFactory`, `AddAuthentication()`, a default `IIdGenerator<long>`,
+  …) from the owning package via `TryAdd*`, as an **overridable default** rather than a host requirement; a host
+  overrides by registering its own before the composition call (or last-wins after). Only genuinely host-specific,
+  unsafe-to-default inputs stay host-only — the database provider/connection string and the production signing key (per
+  [ADR-0002](../../docs/adr/0002-ephemeral-development-keys.md)). Dead host wiring that only "works" by accidentally
+  pulling in a framework service (for example `AddControllers` dragging in authentication) is a smell: register the
+  real dependency explicitly from the package that needs it.
 - 👁 **A singleton service must be stateless — never memoize per-request state in an instance field.** A singleton is
   shared by every request, so a cached result on the instance (`_result ??= await …`) leaks one request's answer to all
   others — a correctness and security hole (a client-authentication result that sticks after the first call let any
@@ -383,6 +394,14 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   make a field pre-checked and pre-filled, a document transformer marks it `required` and sets its schema `Default`;
   the renderer's credential location must match the endpoint (the token endpoint reads `client_secret_post` from the
   **body**). See [ADR-0046](../../docs/adr/0046-api-reference-openapi-document-and-scalar.md).
+- 👁 **Handle credential and secret bytes in a pinned, zeroed-on-return buffer.** Encode a password or secret into a
+  `SecureMemoryPool<byte>` rental via `SecureEncoding.UTF8` (`NCode.Buffers`) — never a raw `ArrayPool<byte>` +
+  manual `CryptographicOperations.ZeroMemory`, and never a plain `Encoding.UTF8.GetBytes` that leaves the plaintext
+  lingering on the GC heap. Encode/decode **once** at the earliest boundary and thread the sensitive payload as
+  `ReadOnlyMemory<byte>` through the (async) call chain rather than re-encoding a `string` in a leaf method. A secret
+  that enters from configuration (already an unavoidable managed `string`) is supplied **pre-encoded** (Base64Url) and
+  decoded straight into the secure buffer, so a raw process-memory snapshot does not expose the plaintext directly. See
+  [ADR-0011](../../docs/adr/0011-secret-management-api.md).
 
 ## 11. Logging
 

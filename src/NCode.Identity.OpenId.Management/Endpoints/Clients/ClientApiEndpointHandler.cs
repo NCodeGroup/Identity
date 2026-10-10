@@ -287,7 +287,7 @@ internal class ClientApiEndpointHandler(
 
         return await ProcessListAsync(
             httpContext,
-            new TenantScopeResource(tenantId),
+            TenantScopeResource.For(tenantId),
             async () =>
             {
                 await using var storeManager = await StoreManagerFactory.CreateAsync(

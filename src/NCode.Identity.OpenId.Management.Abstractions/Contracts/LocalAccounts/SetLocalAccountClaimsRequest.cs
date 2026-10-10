@@ -16,17 +16,21 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Persistence;
+using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Management.Endpoints;
+namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
 
 /// <summary>
-/// A minimal <see cref="ISupportTenantId"/> resource used to authorize a tenant-scoped collection operation (for
-/// example, listing a tenant-bound family) against the ambient tenant, so that <c>TenantAdminHandler</c> applies
-/// even though there is no single resource instance to evaluate.
+/// Represents the request body to replace a local account's full set of profile claims. The supplied claims replace
+/// the current set in its entirety.
 /// </summary>
-internal sealed class TenantScopeResource(string tenantId) : ISupportTenantId
+[PublicAPI]
+[ExcludeFromCodeCoverage]
+public sealed class SetLocalAccountClaimsRequest
 {
-    /// <inheritdoc cref="ISupportTenantId.TenantId"/>
-    public string TenantId { get; } = tenantId;
+    /// <summary>
+    /// Gets the replacement profile claims.
+    /// </summary>
+    public required IReadOnlyList<LocalAccountClaim> Claims { get; init; }
 }

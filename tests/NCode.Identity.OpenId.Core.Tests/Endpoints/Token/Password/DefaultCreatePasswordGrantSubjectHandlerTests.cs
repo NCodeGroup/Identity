@@ -19,9 +19,10 @@
 using System.Security.Claims;
 using Moq;
 using NCode.Identity.OpenId.Accounts;
-using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
-using NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
+using NCode.Identity.OpenId.Accounts.Authentication;
+using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Principals;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
@@ -37,7 +38,7 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
 
     #region Scaffolding
 
-    private CreatePasswordGrantSubjectCommand CreateCommand(LocalAccount account)
+    private CreatePasswordGrantSubjectCommand CreateCommand(PersistedLocalAccount account)
     {
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
@@ -58,12 +59,17 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
         return new CreatePasswordGrantSubjectCommand(mockContext.Object, account);
     }
 
-    private static LocalAccount CreateAccount() =>
+    private static PersistedLocalAccount CreateAccount() =>
         new()
         {
-            Subject = "account-1",
+            TenantId = string.Empty,
+            LocalAccountId = "account-1",
+            UserName = "user-1",
+            Email = null,
+            EmailVerified = false,
             IsEnabled = true,
-            Claims = [new Claim("role", "admin")],
+            Claims = [new PersistedLocalAccountClaim { Type = "role", Value = "admin" }],
+            ConcurrencyToken = string.Empty,
         };
 
     #endregion
@@ -90,8 +96,8 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
         var principal = await Handler.HandleAsync(command, CancellationToken.None);
 
         // Metadata is a principal-level concept resolved at issuance, never stamped on the ROPC subject (ADR-0055).
-        Assert.Null(principal.FindFirst(AccountConstants.ProfileMetadataClaimType));
-        Assert.Null(principal.FindFirst(AccountConstants.SystemMetadataClaimType));
+        Assert.Null(principal.FindFirst(SubjectMetadataClaimTypes.ProfileMetadata));
+        Assert.Null(principal.FindFirst(SubjectMetadataClaimTypes.SystemMetadata));
     }
 
     #endregion

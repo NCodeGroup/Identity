@@ -77,10 +77,24 @@ internal sealed class EntityStoreManager<TDbContext>(
     private TStore CreateStore<TStore>()
         where TStore : IStore
     {
-        var factory = ServiceProvider.GetRequiredService<
-            Func<IStoreProvider, TDbContext, TStore>
-        >();
-        return factory(this, DbContext);
+        // A store that participates in this unit of work's DbContext registers the DbContext-bound factory. A
+        // backing-store-agnostic store (for example, one over an external user store) registers the DbContext-less
+        // factory instead, so it need not reference the concrete DbContext type.
+        var boundFactory = ServiceProvider.GetService<Func<IStoreProvider, TDbContext, TStore>>();
+        if (boundFactory is not null)
+        {
+            return boundFactory(this, DbContext);
+        }
+
+        var unboundFactory = ServiceProvider.GetService<Func<IStoreProvider, TStore>>();
+        if (unboundFactory is not null)
+        {
+            return unboundFactory(this);
+        }
+
+        throw new InvalidOperationException(
+            $"No store factory is registered for '{typeof(TStore).FullName}'."
+        );
     }
 
     /// <inheritdoc />

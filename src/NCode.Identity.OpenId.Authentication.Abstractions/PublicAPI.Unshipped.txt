@@ -384,13 +384,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswo
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.OpenIdContext.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.TokenRequest.get -> NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest!
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.TokenRequest.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.CreatePasswordGrantSubjectCommand
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.CreatePasswordGrantSubjectCommand.Account.get -> NCode.Identity.OpenId.Accounts.LocalAccount!
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.CreatePasswordGrantSubjectCommand.Account.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.CreatePasswordGrantSubjectCommand.CreatePasswordGrantSubjectCommand() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.CreatePasswordGrantSubjectCommand.CreatePasswordGrantSubjectCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Accounts.LocalAccount! Account) -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.CreatePasswordGrantSubjectCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.CreatePasswordGrantSubjectCommand.OpenIdContext.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.SelectTokenGrantHandlerCommand
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.SelectTokenGrantHandlerCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.SelectTokenGrantHandlerCommand.OpenIdClient.init -> void

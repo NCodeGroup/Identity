@@ -1,8 +1,19 @@
 # 57. Local accounts are provisioned eagerly with their principal, and the provisioner is the account write seam
 
-- **Status:** Accepted
+- **Status:** Accepted (write seam and owner model amended by [ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md))
 - **Date:** 2026-10-09
 - **Deciders:** NCode Group
+
+## Amendment (2026-10-10): one store seam, no owners, orchestration in the management handler
+
+This ADR expanded `ILocalAccountProvisioner` into the account write seam and gave the management family an owners
+sub-resource and a `local_account` resource-node type.
+[ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md) supersedes both: the
+`ILocalAccountSource` / `ILocalAccountProvisioner` seams collapse into the single `ILocalAccountStore` (with first-class
+credential operations), the eager principal + self-issued identity provisioning moves into the management **create
+handler**, and local accounts are no longer ownable — the management family authorizes against the tenant scope because
+the authority to manage an end-user subject is tenant/global administration. The eager-provisioning decision and the
+management surface (minus owners) otherwise stand.
 
 ## Context
 

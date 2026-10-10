@@ -32,4 +32,17 @@ public static class AccountConstants
     /// account therefore resolves to the same principal regardless of which tenant it signs in through.
     /// </summary>
     public const string SelfIssuer = "urn:ncode:identity:local-account";
+
+    /// <summary>
+    /// The claim type under which an account's owner-updatable <c>ProfileMetadata</c> bag is projected — as a single
+    /// JSON object claim — into issued tokens and the UserInfo response.
+    /// </summary>
+    public const string ProfileMetadataClaimType = "profile_metadata";
+
+    /// <summary>
+    /// The claim type under which an account's server-controlled <c>SystemMetadata</c> bag is projected — as a single
+    /// JSON object claim — into issued tokens and the UserInfo response. This bag may carry authorization-relevant data
+    /// and is never end-user-writable.
+    /// </summary>
+    public const string SystemMetadataClaimType = "system_metadata";
 }

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.Credentials;
@@ -108,6 +109,30 @@ public sealed class DefaultLocalAccountSourceTests : IDisposable
         Assert.True(result.IsEnabled);
         var claim = Assert.Single(result.Claims);
         Assert.Equal("role", claim.Type);
+    }
+
+    [Fact]
+    public async Task ValidateCredentialsAsync_MapsMetadataBags()
+    {
+        var (source, store) = CreateSource();
+        var account = Account();
+        account.ProfileMetadata = JsonElement.Parse("""{"theme":"dark"}""");
+        account.SystemMetadata = JsonElement.Parse("""{"plan":"gold"}""");
+        store
+            .Setup(x => x.GetByUserNameOrDefaultAsync(UserName, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(account)
+            .Verifiable();
+
+        var result = await source.ValidateCredentialsAsync(
+            Mock.Of<OpenIdContext>(),
+            UserName,
+            PasswordBytes,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(result);
+        Assert.Equal("dark", result.ProfileMetadata.GetProperty("theme").GetString());
+        Assert.Equal("gold", result.SystemMetadata.GetProperty("plan").GetString());
     }
 
     [Fact]

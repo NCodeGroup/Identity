@@ -1,5 +1,7 @@
 #nullable enable
+const NCode.Identity.OpenId.Accounts.AccountConstants.ProfileMetadataClaimType = "profile_metadata" -> string!
 const NCode.Identity.OpenId.Accounts.AccountConstants.SelfIssuer = "urn:ncode:identity:local-account" -> string!
+const NCode.Identity.OpenId.Accounts.AccountConstants.SystemMetadataClaimType = "system_metadata" -> string!
 const NCode.Identity.OpenId.Accounts.AccountMaxLengths.ClaimType = 300 -> int
 const NCode.Identity.OpenId.Accounts.AccountMaxLengths.ClaimValue = 2000 -> int
 const NCode.Identity.OpenId.Accounts.AccountMaxLengths.Email = 300 -> int
@@ -58,10 +60,14 @@ NCode.Identity.OpenId.Accounts.LocalAccount.Claims.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccount.IsEnabled.get -> bool
 NCode.Identity.OpenId.Accounts.LocalAccount.IsEnabled.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccount.LocalAccount() -> void
+NCode.Identity.OpenId.Accounts.LocalAccount.ProfileMetadata.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Accounts.LocalAccount.ProfileMetadata.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccount.SecurityStamp.get -> string?
 NCode.Identity.OpenId.Accounts.LocalAccount.SecurityStamp.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccount.Subject.get -> string!
 NCode.Identity.OpenId.Accounts.LocalAccount.Subject.init -> void
+NCode.Identity.OpenId.Accounts.LocalAccount.SystemMetadata.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Accounts.LocalAccount.SystemMetadata.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.Email.get -> string?
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.Email.init -> void
@@ -83,3 +89,6 @@ NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.AddAsync(NCode.Identity
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.GetByIdOrDefaultAsync(string! localAccountId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount?>
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.GetByUserNameOrDefaultAsync(string! userName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount?>
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.UpdateAsync(NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount! account, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Accounts.SubjectMetadataExtensions
+NCode.Identity.OpenId.Accounts.SubjectMetadataExtensions.extension(System.Security.Claims.ClaimsPrincipal!)
+NCode.Identity.OpenId.Accounts.SubjectMetadataExtensions.extension(System.Security.Claims.ClaimsPrincipal!).TryGetMetadata(string! claimType, out System.Text.Json.JsonElement metadata) -> bool

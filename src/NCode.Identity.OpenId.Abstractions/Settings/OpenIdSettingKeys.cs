@@ -380,6 +380,42 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.SendIdClaimsInAccessToken);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_profile_metadata_in_access_token' setting.
+    /// </summary>
+    public static SettingKey<bool> SendProfileMetadataInAccessToken =>
+        new(OpenIdSettingNames.SendProfileMetadataInAccessToken);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_profile_metadata_in_id_token' setting.
+    /// </summary>
+    public static SettingKey<bool> SendProfileMetadataInIdToken =>
+        new(OpenIdSettingNames.SendProfileMetadataInIdToken);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_profile_metadata_in_user_info' setting.
+    /// </summary>
+    public static SettingKey<bool> SendProfileMetadataInUserInfo =>
+        new(OpenIdSettingNames.SendProfileMetadataInUserInfo);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_system_metadata_in_access_token' setting.
+    /// </summary>
+    public static SettingKey<bool> SendSystemMetadataInAccessToken =>
+        new(OpenIdSettingNames.SendSystemMetadataInAccessToken);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_system_metadata_in_id_token' setting.
+    /// </summary>
+    public static SettingKey<bool> SendSystemMetadataInIdToken =>
+        new(OpenIdSettingNames.SendSystemMetadataInIdToken);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_system_metadata_in_user_info' setting.
+    /// </summary>
+    public static SettingKey<bool> SendSystemMetadataInUserInfo =>
+        new(OpenIdSettingNames.SendSystemMetadataInUserInfo);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'service_documentation' setting.
     /// </summary>
     public static SettingKey<string> ServiceDocumentation =>

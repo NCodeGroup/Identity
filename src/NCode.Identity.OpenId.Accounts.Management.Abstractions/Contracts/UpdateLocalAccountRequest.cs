@@ -20,7 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
+namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 
 /// <summary>
 /// Represents the mutable profile fields of a local account that a JSON Patch document may modify. The credential,

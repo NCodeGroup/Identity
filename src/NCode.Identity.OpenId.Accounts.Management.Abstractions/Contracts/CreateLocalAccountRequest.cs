@@ -20,7 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
+namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 
 /// <summary>
 /// Represents the request body to create a new local account. The password is supplied as plaintext over the

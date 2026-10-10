@@ -18,9 +18,10 @@
 
 using System.Security.Claims;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Management;
 using NCode.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.LocalAccounts;
+namespace NCode.Identity.OpenId.Accounts.Management;
 
 /// <summary>
 /// Validates the intrinsic core preconditions for local-account management operations. Register a custom

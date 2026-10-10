@@ -24,7 +24,7 @@ using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Persistence.Stores;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.LocalAccounts;
+namespace NCode.Identity.OpenId.Accounts.Management;
 
 public sealed class DefaultLocalAccountValidatorTests : IDisposable
 {

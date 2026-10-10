@@ -146,11 +146,13 @@ rationale.
   change not recorded in the sibling `PublicAPI.{Shipped,Unshipped}.txt` fails the build. A breaking change is a
   **major** version bump. See [ADR-0005](../../docs/adr/0005-public-api-surface-is-tracked-and-evolves-compatibly.md).
   After a large refactor (types moved/renamed, members added/removed), regenerate the entries with
-  `dotnet format analyzers <project> --diagnostics RS0016 RS0017` — it applies the analyzer's add/remove code fixes to
-  `PublicAPI.Unshipped.txt` in bulk; rebuild to confirm and hand-fix any leftovers rather than editing dozens of lines
-  by hand. Entries are a **set**, so exact sort order is not required for the build, though the file is kept sorted. A
-  C# 14 `extension(Receiver)` member needs **two** entries — the `….extension(Receiver!)` container line **and** the
-  member line — so when hand-editing (every `DefaultRegistration` method is such a member), add both.
+  `dotnet format analyzers <project> --diagnostics RS0016 RS0017`; it reliably **adds** the missing entries (`RS0016`)
+  but does **not** reliably remove the stale ones (`RS0017`), so delete by hand the entries for symbols that moved or
+  were removed, then rebuild to confirm — rather than editing dozens of lines by hand. A `record` whose only `required`
+  members are inherited has **no** public parameterless constructor on its surface, so it carries no
+  `….<Type>() -> void` entry. Entries are a **set**, so exact sort order is not required for the build, though the file
+  is kept sorted. A C# 14 `extension(Receiver)` member needs **two** entries — the `….extension(Receiver!)` container
+  line **and** the member line — so when hand-editing (every `DefaultRegistration` method is such a member), add both.
 - 👁 **Required inputs are constructor parameters; optional inputs are `init` properties.** Never add an optional value
   as a new constructor parameter — once shipped that is a binary-breaking signature change. Add it as an `init`
   property, model "unspecified" as nullable, and resolve the default **inside the library**.
@@ -360,6 +362,14 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   otherwise touching, but when you rename or update a member, add or update its doc to match.
 - 👁 **Prefer a substantive `<summary>`** that explains purpose, behavior, and context over a terse one-liner, and use
   `<param>` / `<returns>` / `<remarks>` where they add clarity.
+- 👁 **Documentation describes the timeless present, never the change.** A `///` or `//` comment states what the code
+  _is_ and _does_, not how it came to be: no temporal or change-relative wording (`now`, `new`, `previously`,
+  `no longer`, `used to`, `renamed`/`moved`, `rather than before`), and it **never names a removed or renamed
+  artifact** — referring to a deleted or superseded type/member by its old identifier (`IFooOldThing`) is itself
+  temporal content. Describing an anti-pattern (_what not to do_ and _why_) is fine; just name the rejected shape by its
+  **role**, not by a no-longer-existing identifier. The same discipline applies to ADR prose (Context/Decision/
+  Consequences describe the end-state design and its rationale, not a diff). History lives in Git and the `CHANGELOG`;
+  the text must read correctly to someone who never saw the prior version.
 - 👁 **A `<summary>` tag is multi-line** — the opening tag, content, and closing tag on separate lines, even for a short
   summary; never collapse them onto one line.
 - 👁 **A property summary follows the Microsoft convention** — open with **"Gets or sets"**, **"Gets"**, or **"Sets"**

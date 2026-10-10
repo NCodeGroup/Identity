@@ -41,8 +41,6 @@ NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccountClaim.Type.get
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccountClaim.Type.init -> void
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccountClaim.Value.get -> string!
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccountClaim.Value.init -> void
-NCode.Identity.OpenId.Accounts.LocalAccountFeature
-NCode.Identity.OpenId.Accounts.LocalAccountFeature.LocalAccountFeature() -> void
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.AddAsync(NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount! account, System.ReadOnlyMemory<byte>? password, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.GetByIdOrDefaultAsync(string! localAccountId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount?>

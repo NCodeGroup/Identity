@@ -16,21 +16,11 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
-using JetBrains.Annotations;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
-namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
+[assembly: ComVisible(false)]
+[assembly: Guid("8d5a2e14-7c93-4b6f-9e20-5a1c8f3d0b72")]
 
-/// <summary>
-/// Represents the request body to replace a local account's full set of profile claims. The supplied claims replace
-/// the current set in its entirety.
-/// </summary>
-[PublicAPI]
-[ExcludeFromCodeCoverage]
-public sealed class SetLocalAccountClaimsRequest
-{
-    /// <summary>
-    /// Gets the replacement profile claims.
-    /// </summary>
-    public required IReadOnlyList<LocalAccountClaim> Claims { get; init; }
-}
+[assembly: InternalsVisibleTo("NCode.Identity.OpenId.Accounts.Management.Tests")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

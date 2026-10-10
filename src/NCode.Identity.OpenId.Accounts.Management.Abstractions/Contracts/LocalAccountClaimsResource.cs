@@ -16,27 +16,33 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence;
+using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Authorization;
+namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 
 /// <summary>
-/// A minimal <see cref="ISupportTenantId"/> authorization resource used to authorize a tenant-scoped operation (for
-/// example, creating or listing a tenant-bound family) against the ambient tenant. Unlike <see cref="ResourceNode"/> it
-/// deliberately carries no resource type or identifier, so only the tenant- and global-admin handlers evaluate it and
-/// the ownership handler does not — there is no single resource instance (and no ownership) to consider.
+/// Represents the REST resource for a local account's full set of profile claims.
 /// </summary>
 [PublicAPI]
-public sealed class TenantScopeResource : ISupportTenantId
+[ExcludeFromCodeCoverage]
+public sealed class LocalAccountClaimsResource : ISupportTenantId, ISupportConcurrencyToken
 {
     /// <inheritdoc cref="ISupportTenantId.TenantId"/>
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Creates a <see cref="TenantScopeResource"/> for the specified tenant.
+    /// Gets the opaque identifier of the local account (its self-issued subject).
     /// </summary>
-    /// <param name="tenantId">The identifier of the tenant to authorize against.</param>
-    /// <returns>The tenant-scope resource.</returns>
-    public static TenantScopeResource For(string tenantId) => new() { TenantId = tenantId };
+    public required string LocalAccountId { get; init; }
+
+    /// <summary>
+    /// Gets the account's profile claims.
+    /// </summary>
+    public required IReadOnlyList<LocalAccountClaim> Claims { get; init; }
+
+    /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
+    public required string ConcurrencyToken { get; init; }
 }

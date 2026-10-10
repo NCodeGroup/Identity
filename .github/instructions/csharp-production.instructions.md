@@ -265,6 +265,10 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
 - **Dispose what you own.** A local `IDisposable` / `IAsyncDisposable` gets a `using` / `await using` **declaration**
   (`using var x = …;`, not a nested block) unless ownership is deliberately transferred to a type that will dispose it.
   Never leave a `HttpResponseMessage`, `Stream`, `JsonDocument`, or `IHttpClientFactory`-created client undisposed.
+  **Prefer `JsonElement.Parse(string)` (.NET 9+) when you only need a detached `JsonElement`** — it owns no
+  `JsonDocument` to dispose and is the concise replacement for `JsonDocument.Parse(json).RootElement.Clone()` and for
+  `JsonSerializer.Deserialize<JsonElement>(json)`; keep `JsonDocument` only when you parse UTF-8 bytes (no
+  `JsonElement.Parse` byte overload) or genuinely enumerate within a scoped `using`.
 
 ## 7. Testability & unit-test-friendliness
 

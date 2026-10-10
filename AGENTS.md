@@ -39,7 +39,9 @@ history or volatile agent memory ([ADR-0008](docs/adr/0008-conventions-and-lesso
 Run [`./build/dod.ps1`](build/dod.ps1) — the single Definition of Done (tool-restore, CSharpier check, restore,
 build + pack, test + coverage) that CI and developers both run. It fails fast on the first broken gate and prints
 `Definition of Done: PASSED` as its final line on success — that line (not any generated file) is the pass signal.
-Package versions are centrally managed in
+For a faster local inner loop, `./build/dod.ps1 -Fast` parallelizes project builds and test assemblies and skips the
+non-correctness stages (coverage + packing); it keeps compile warnings-as-errors and analyzers but is **not** the
+CI-parity gate, so run the plain `./build/dod.ps1` before pushing. Package versions are centrally managed in
 [`Directory.Packages.props`](Directory.Packages.props); versioning is stamped in lockstep by Nerdbank.GitVersioning
 from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow and
 [`GOVERNANCE.md`](GOVERNANCE.md) for ownership, versioning, and publishing. For a full conventions sweep, run the

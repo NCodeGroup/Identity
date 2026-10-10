@@ -264,3 +264,12 @@ __pycache__/
 *.pyc
 # Test logger output (dod.ps1 writes JUnit reports next to the test assemblies)
 *.junit.xml
+
+# Frontend presentation platform (src/frontend) — node toolchain build/cache output.
+# node_modules/ is already ignored above. See docs/adr/0064.
+dist/
+.turbo/
+storybook-static/
+.vite/
+coverage/
+*.tsbuildinfo

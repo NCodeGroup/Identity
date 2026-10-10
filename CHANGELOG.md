@@ -10,6 +10,16 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Frontend presentation platform (`src/frontend`).** Introduced a single cohesive TypeScript UI platform shared by
+  every surface (Management, Auth/Consent/Login, Playground, OIDC conformance): React + Material UI, Redux Toolkit +
+  RTK Query, Vite, Vitest + React Testing Library, and Storybook, orchestrated by pnpm workspaces + Turborepo and
+  pinned via Corepack. Shared `@ncode/*` packages (`config` runtime discovery, `api` RTK Query client + global/tenant
+  scope model, `store` Redux assembly, `ui` MUI design system) back thin per-surface app shells; the first is the
+  Management console (`@ncode/app-mgmt`) with global-vs-tenant boundary browsing. Bundles are tier-agnostic — all
+  configuration is discovered at runtime from the serving host, nothing is baked at build time — and the branding seam
+  is in place for future per-tenant theming. The toolchain is isolated under `src/frontend` and does not touch the
+  .NET Definition of Done. See [ADR-0064](docs/adr/0064-frontend-presentation-platform.md).
+
 - **Initial access token provisioning for protected Dynamic Client Registration.** The management API can now mint the
   `initial_access_token` that protected registration (the default, `registration_endpoint_allow_anonymous = false`)
   requires: a tenant-scoped `POST api/tenants/{tenantId}/grants/initial-access-tokens` creates a hash-keyed

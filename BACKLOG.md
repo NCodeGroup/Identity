@@ -155,11 +155,20 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
 ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
 
-- **`U1` — Management auth bootstrap (authorization-code + PKCE).** The Management API authenticates a self-issued
-  bearer access token for the `Management` audience; the console currently assumes a token is already in the `auth`
-  slice. Add the browser auth-code-with-PKCE flow (redirect to the discovered `authorization_endpoint`, token exchange
-  at `token_endpoint`, silent refresh) that populates `signedIn(...)`. UI-free PKCE/token helpers must be unit-tested.
-  Touch points: `src/frontend/packages/api`, `src/frontend/packages/store` (`authSlice`), `apps/mgmt`.
+- **`U1` — Management auth bootstrap (authorization-code + PKCE).** _Done (client + wiring)._ The `@ncode/auth`
+  package implements the browser auth-code-with-PKCE flow (verifier/challenge, authorize redirect, state validation,
+  code/refresh token exchange, JWT subject) and the console's `AuthGate` completes the callback into `signedIn(...)` for
+  a `urn:ncode:management`-audience token. **Still open:** automatic silent token renewal (a `refreshAccessToken`
+  helper exists but no expiry-driven renew timer), and end-to-end sign-in requires a seeded/registered **public SPA
+  client** (redirect URI + PKCE) and the interactive login UI (`T2`). Touch points: `src/frontend/packages/auth`,
+  `packages/store` (`authSlice`), `apps/mgmt` (`AuthGate`, `auth.ts`).
+- **`U7` — Dev UI↔API connectivity.** _CORS done._ A VS Code compound launch starts both servers (`API + UI`), and
+  the Playground now opts into `AddDeveloperCors`/`UseDeveloperCors` (in `NCode.Identity.Server`), so the browser UI at
+  `http://localhost:5173` can read discovery and call the management API cross-origin. **Still open:** the SPA is
+  **unauthenticated** — management calls return `401` until a **public SPA client** (redirect URI + PKCE) is seeded and
+  the interactive login (`T2`) exists; that end-to-end auth work is tracked under `U1`. Touch points:
+  `src/NCode.Identity.OpenId.Playground/Program.cs`, `src/NCode.Identity.Server/DevelopmentEnvironment`,
+  `apps/mgmt/public/config/bootstrap.json` (set `clientId` once the client is seeded).
 - **`U2` — Management write operations (create/update/delete + settings/secrets).** The console reads tenants/clients
   today; add RTK Query mutations with tag invalidation and MUI forms for the full CRUD surface already exposed by the
   REST API (tenants, clients, resource servers/scopes, grants, secrets, settings PATCH, effective-settings), honoring

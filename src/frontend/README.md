@@ -104,6 +104,34 @@ For local development the Management app ships a dev copy at
 [`apps/mgmt/public/config/bootstrap.json`](apps/mgmt/public/config/bootstrap.json) pointing at the
 Playground host.
 
+## Authentication (authorization-code + PKCE)
+
+The Management console authenticates with OAuth 2.0 **authorization-code + PKCE** to obtain a
+`urn:ncode:management`-audience access token (authority is role-based `GlobalAdmin`; any management
+scope binds the audience — see [ADR-0044](../../docs/adr/0044-management-api-authentication-and-globaladmin-bootstrap.md)).
+
+- `@ncode/auth` is a framework-free, fully unit-tested package: PKCE (`generateCodeVerifier`,
+  `deriveCodeChallenge`), the authorize redirect, `state` CSRF validation, `exchangeCodeForToken` /
+  `refreshAccessToken`, and `getSubject` (JWT claims). Randomness, SHA-256, `fetch`, and storage are
+  all injected.
+- The app's `AuthGate` completes the redirect callback into the `auth` slice, or shows the sign-in
+  screen to start the flow. **When no `clientId` is discovered it runs open** (local dev), so the
+  console renders without a login.
+- The SPA's public `clientId` and `scopes` come from the runtime bootstrap document — nothing is baked
+  in. End-to-end sign-in additionally needs a registered public SPA client and the interactive login UI
+  (backlog `T2`).
+
+## Running the full stack (VS Code F5)
+
+Pick **`API + UI (F5)`** in the Run and Debug view (or press F5) — a compound launch that starts the
+Playground API and the Management UI dev server together. The UI side runs
+[`build/dev-ui.ps1`](../../build/dev-ui.ps1), which puts the repo-pinned Node (via NVS) on PATH. Node
+not on your PATH? `nvs add 22` once (optionally `nvs link 22`).
+
+> Dev connectivity: the Playground opts into `AddDeveloperCors` so the browser UI (`http://localhost:5173`) can read
+> discovery and call the management API cross-origin. The UI still renders in **open mode** and management calls return
+> `401` until a public SPA client is seeded and the interactive login (`T2`) exists — tracked under backlog `U1`/`U7`.
+
 ## Gotchas (hard-won)
 
 - **Internal packages are consumed as TypeScript source, not built `.d.ts`.** Each `@ncode/*` package

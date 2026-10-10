@@ -10,6 +10,22 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Management console sign-in (authorization-code + PKCE).** The frontend gained a framework-free `@ncode/auth`
+  package implementing OAuth 2.0 authorization-code with PKCE (S256) — verifier/challenge generation, the authorize
+  redirect, state/CSRF validation, code-for-token exchange, refresh, and JWT subject extraction, all injectable and
+  unit-tested (including the RFC 7636 test vector). The Management console (`@ncode/app-mgmt`) wires an `AuthGate` that
+  completes the redirect callback for a `urn:ncode:management`-audience token and populates the auth slice, or renders a
+  sign-in screen to start the flow; when no client id is discovered it runs open (local dev). The SPA's public client
+  id and login scopes are discovered at runtime via the bootstrap document (tier-agnostic). Backlog `U1`.
+- **One-key full-stack dev launch (`API + UI`).** A VS Code compound launch starts the Playground API and the
+  Management UI dev server together (F5); the UI dev server runs through [`build/dev-ui.ps1`](build/dev-ui.ps1), which
+  puts the repo-pinned Node (NVS) on PATH.
+- **Opt-in developer CORS for the OpenID server (`AddDeveloperCors` / `UseDeveloperCors`).** A reusable
+  development-oriented registration (in `NCode.Identity.Server`, beside `AddDeveloperKeys`) lets a local SPA dev server
+  read discovery and call the management API cross-origin. Allowed origins come from the `Cors:AllowedOrigins`
+  configuration array, defaulting to the local Vite dev/preview origins in Development; it is a no-op otherwise. The
+  Playground opts in with a single call.
+
 - **Frontend presentation platform (`src/frontend`).** Introduced a single cohesive TypeScript UI platform shared by
   every surface (Management, Auth/Consent/Login, Playground, OIDC conformance): React + Material UI, Redux Toolkit +
   RTK Query, Vite, Vitest + React Testing Library, and Storybook, orchestrated by pnpm workspaces + Turborepo and

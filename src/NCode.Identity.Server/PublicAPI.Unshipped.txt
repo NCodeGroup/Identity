@@ -12,6 +12,13 @@ NCode.Identity.Server.BootstrapAdminOptions.TenantId.set -> void
 NCode.Identity.Server.DefaultRegistration
 NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddIdentityServer() -> NCode.Identity.Server.IIdentityServerBuilder!
+NCode.Identity.Server.DeveloperCorsApplicationBuilderExtensions
+NCode.Identity.Server.DeveloperCorsApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
+NCode.Identity.Server.DeveloperCorsApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseDeveloperCors() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+NCode.Identity.Server.DeveloperCorsRegistration
+const NCode.Identity.Server.DeveloperCorsRegistration.PolicyName = "NCode.Identity.Server.DeveloperCors" -> string!
+NCode.Identity.Server.DeveloperCorsRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Server.DeveloperCorsRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperCors(Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Server.DeveloperKeyMode
 NCode.Identity.Server.DeveloperKeyMode.Ephemeral = 0 -> NCode.Identity.Server.DeveloperKeyMode
 NCode.Identity.Server.DeveloperKeyMode.PersistentSigningKey = 1 -> NCode.Identity.Server.DeveloperKeyMode

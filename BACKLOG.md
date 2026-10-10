@@ -85,6 +85,44 @@ one option is merely more work.
   serialises whenever a static client `alias` is used). Prerequisite for the Dynamic OP conformance
   profile — see [`docs/conformance-testing.md`](docs/conformance-testing.md). Touch points: a new
   `Endpoints/Registration/` family and discovery-metadata advertisement.
+- **`F7` — DPoP / sender-constrained tokens (RFC 9449 + mTLS, `cnf` claim).** Every token-issuance path hardcodes
+  `TokenType = Bearer` with a `// TODO: add support for DPoP` marker, the token-request validators never inspect a
+  DPoP proof, and the emitted-claims handlers cannot populate the `cnf` confirmation claim because no
+  proof-of-possession subsystem exists. This is the single most recurring code-local TODO theme. Touch points (all
+  `src/NCode.Identity.OpenId.Authentication/`): `Endpoints/Authorization/Handlers/DefaultCreateAuthorizationTicketHandler.cs`,
+  `Endpoints/Token/AuthorizationCode/DefaultAuthorizationCodeGrantHandler.cs`,
+  `Endpoints/Token/AuthorizationCode/DefaultValidateAuthorizationCodeGrantHandler.cs` (`// TODO: validate DPoP`),
+  `Endpoints/Token/ClientCredentials/DefaultClientCredentialsGrantHandler.cs`,
+  `Endpoints/Token/Password/DefaultPasswordGrantHandler.cs`,
+  `Endpoints/Token/RefreshToken/DefaultRefreshTokenGrantHandler.cs`,
+  `Tokens/Handlers/DefaultGetAccessTokenPayloadClaimsHandler.cs` /
+  `Tokens/Handlers/DefaultGetIdTokenPayloadClaimsHandler.cs` (the `cnf` claim).
+- **`F8` — Pushed Authorization Requests (PAR, RFC 9126).** There is no `pushed_authorization_request_endpoint`; the
+  authorize endpoint only accepts inline request parameters. See
+  `// TODO: add support for OAuth 2.0 Pushed Authorization Requests (PAR)` in
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`.
+  Touch points: a new `Endpoints/PushedAuthorization/` family plus discovery-metadata advertisement.
+- **`F9` — Pairwise subject identifiers (PPID) via the `subject_type` setting.** The subject identifier emitted into
+  tokens is always the raw public subject; the `subject_type` (`public`/`pairwise`) setting is not honored, so there is
+  no per-client/RP pseudonymous `sub`. See `// TODO: use the subject_type setting to support PPID` in
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultAuthenticateHandler.cs`.
+- **`F10` — Extension grant + token-endpoint `401`/`WWW-Authenticate`.** The token endpoint has no extension-grant seam
+  (`// TODO: Extension Grant` in `DefaultTokenEndpointProvider.cs`) and collapses client-authentication failures to
+  `400` instead of emitting `401` with a `WWW-Authenticate` challenge (`// TODO: add support for 401 with
+  WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/DefaultTokenEndpointProvider.cs`.
+- **`F11` — `sid` / `acr` claim emission (blocked on foundational subsystems).** The access- and ID-token claims
+  handlers document that `sid` needs a session-management subsystem and `acr` needs authentication-context-class
+  tracking; neither exists, so the claims are never emitted (`sid` also feeds `F1` logout). `DefaultTokenService`
+  additionally always emits `auth_time` unconditionally (`// TODO: … should we do this conditionally?`). Touch points
+  (all `src/NCode.Identity.OpenId.Authentication/Tokens/`): `Handlers/DefaultGetAccessTokenPayloadClaimsHandler.cs`,
+  `Handlers/DefaultGetIdTokenPayloadClaimsHandler.cs`, `DefaultTokenService.cs`.
+- **`F12` — Token-request validation hardening.** The authorization-code grant validator does not yet validate the
+  requested `resource`, does not validate the actual `scope` values against the grant, and hardcodes the supported PKCE
+  `code_challenge_method` set with no extensibility seam. See the `// TODO: validate resource`,
+  `// TODO: validate actual scope values`, and `// TODO: provide a way to allow custom code challenge methods` markers
+  in
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/AuthorizationCode/DefaultValidateAuthorizationCodeGrantHandler.cs`.
 
 ## Conformance & interop testing (group `T`)
 

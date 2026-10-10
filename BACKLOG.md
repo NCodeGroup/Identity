@@ -78,13 +78,19 @@ one option is merely more work.
   [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md).)
   Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/Handlers/`.
-- **`F6` — Dynamic Client Registration (RFC 7591/7592).** There is no `registration_endpoint`; clients are
-  provisioned only via the management API / seeding. Not required to certify the Basic/Config OP profiles
-  (those allow manual client registration), but it is its own certification profile (Dynamic OP) and it
-  removes manual client seeding _and_ unlocks parallel execution for the conformance harness (which
-  serialises whenever a static client `alias` is used). Prerequisite for the Dynamic OP conformance
-  profile — see [`docs/conformance-testing.md`](docs/conformance-testing.md). Touch points: a new
-  `Endpoints/Registration/` family and discovery-metadata advertisement.
+- **`F6a` — Initial access token provisioning for protected Dynamic Client Registration.** Dynamic Client Registration
+  (RFC 7591/7592) is implemented ([ADR-0063](docs/adr/0063-dynamic-client-registration.md)): the
+  `registration_endpoint` and the per-client management endpoint exist, metadata maps onto the client settings
+  document, the `client_secret` is the one-time secret, and both the `registration_access_token` and the
+  `initial_access_token` are hash-keyed persisted grants. What is **not** yet implemented is a way to _provision_
+  initial access tokens: protected registration (the default, `registration_endpoint_allow_anonymous = false`)
+  validates the bearer via the default `IInitialAccessTokenValidator`, which looks the token up as an
+  `initial_access_token` persisted grant — but no endpoint/seeding creates those grants, so protected registration
+  rejects every request until a host seeds one or replaces the validator seam. Add a management/seeding path to mint
+  initial access tokens (or document the validator-replacement recipe). The conformance Dynamic OP profile does not
+  need this (it enables anonymous registration). Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/Logic/DefaultInitialAccessTokenValidator.cs`,
+  a new management surface for `PersistedGrantTypes.InitialAccessToken`.
 - **`F7` — DPoP / sender-constrained tokens (RFC 9449 + mTLS, `cnf` claim).** Every token-issuance path hardcodes
   `TokenType = Bearer` with a `// TODO: add support for DPoP` marker, the token-request validators never inspect a
   DPoP proof, and the emitted-claims handlers cannot populate the `cnf` confirmation claim because no
@@ -109,7 +115,7 @@ one option is merely more work.
 - **`F10` — Extension grant + token-endpoint `401`/`WWW-Authenticate`.** The token endpoint has no extension-grant seam
   (`// TODO: Extension Grant` in `DefaultTokenEndpointProvider.cs`) and collapses client-authentication failures to
   `400` instead of emitting `401` with a `WWW-Authenticate` challenge (`// TODO: add support for 401 with
-  WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch points:
+WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch points:
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/DefaultTokenEndpointProvider.cs`.
 - **`F11` — `sid` / `acr` claim emission (blocked on foundational subsystems).** The access- and ID-token claims
   handlers document that `sid` needs a session-management subsystem and `acr` needs authentication-context-class
@@ -131,8 +137,31 @@ one option is merely more work.
   needed to catch shared misreadings. The full design and automation plan — harness architecture, the
   `BrowserControl`/`run-test-plan.py` automation model, target profiles, the reachable-host /
   automatable-login / discovery-alignment prerequisites, and the nightly (not `dod.ps1`) CI wiring — lives
-  in its dedicated doc: [`docs/conformance-testing.md`](docs/conformance-testing.md). Depends on `F6`
-  (optional but recommended) and on an automatable login/consent UI with a seeded conformance test user.
+  in its dedicated doc: [`docs/conformance-testing.md`](docs/conformance-testing.md). The Dynamic OP profile
+  prerequisite (Dynamic Client Registration) is implemented ([ADR-0063](docs/adr/0063-dynamic-client-registration.md));
+  the harness enables anonymous registration (`registration_endpoint_allow_anonymous`). Depends on the prerequisite
+  work items `T2`–`T5` below (the seeded, automatable, correctly-advertised OP the harness drives).
+- **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** No interactive
+  login/consent UI exists; the authorize flow challenges a cookie scheme the Playground never registers.
+  Add an opt-in, dev-grade cookie scheme + login/consent pages exposing the stable Selenium locators the
+  suite drives, reusing the local-account credential path. Decision record:
+  [ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md). Detailed plan:
+  [`docs/conformance/login-consent-ui.md`](docs/conformance/login-consent-ui.md). Depends on `T3`, `T4`;
+  independent of `F2`/`F6`.
+- **`T3` — Reachable HTTPS Playground host for the external harness.** The only launchable host is the
+  in-process `TestServer`; the suite needs a real HTTPS origin (Windows/Docker: `host.docker.internal`)
+  whose discovery `issuer` byte-matches that origin (pin via the `tenant_issuer` setting). Detailed plan:
+  [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
+- **`T4` — Deterministic conformance tenant, clients, and test user seeding.** Seeding exists only in test
+  infrastructure; a launched host seeds only the bootstrap-admin client. Add an idempotent, config-driven
+  startup seeder (bootstrap-admin-style) for the conformance tenant, the three Basic-OP clients, and a
+  fixed test user. Detailed plan:
+  [`docs/conformance/conformance-seeding.md`](docs/conformance/conformance-seeding.md). Static client half
+  is retired by `F6` (DCR); tenant/user seeding is not.
+- **`T5` — Discovery-metadata alignment audit.** Discovery is data-driven from discoverable settings;
+  `appsettings.json` over-advertises `grant_types_supported` (`implicit`) and the response-type set
+  includes unverified flows, which fails Config OP. Audit every advertised field down to verified support.
+  Detailed plan: [`docs/conformance/discovery-alignment.md`](docs/conformance/discovery-alignment.md).
 
 ## Secrets management (group `S`)
 

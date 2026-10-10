@@ -1,11 +1,4 @@
 #nullable enable
-abstract NCode.Identity.Settings.Setting.GetValue() -> object!
-abstract NCode.Identity.Settings.SettingDescriptor.Create(object! value) -> NCode.Identity.Settings.Setting!
-abstract NCode.Identity.Settings.SettingDescriptor.CreateDefault() -> NCode.Identity.Settings.Setting!
-abstract NCode.Identity.Settings.SettingDescriptor.Format(NCode.Identity.Settings.Setting! setting) -> object!
-abstract NCode.Identity.Settings.SettingDescriptor.HasDefault.get -> bool
-abstract NCode.Identity.Settings.SettingDescriptor.Merge(NCode.Identity.Settings.Setting! current, NCode.Identity.Settings.Setting! other) -> NCode.Identity.Settings.Setting!
-abstract NCode.Identity.Settings.SettingDescriptor.ValueType.get -> System.Type!
 NCode.Identity.BinaryEncodingType
 NCode.Identity.BinaryEncodingType.Base64 = 2 -> NCode.Identity.BinaryEncodingType
 NCode.Identity.BinaryEncodingType.Base64Url = 1 -> NCode.Identity.BinaryEncodingType
@@ -59,11 +52,6 @@ NCode.Identity.Claims.SerializableClaimsPrincipal
 NCode.Identity.Claims.SerializableClaimsPrincipal.Identities.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Claims.SerializableClaimsIdentity!>!
 NCode.Identity.Claims.SerializableClaimsPrincipal.Identities.init -> void
 NCode.Identity.Claims.SerializableClaimsPrincipal.SerializableClaimsPrincipal() -> void
-NCode.Identity.Exceptions.HttpResultException
-NCode.Identity.Exceptions.HttpResultException.HttpResult.get -> Microsoft.AspNetCore.Http.IResult!
-NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult) -> void
-NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message) -> void
-NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message, System.Exception? innerException) -> void
 NCode.Identity.HashAlgorithmType
 NCode.Identity.HashAlgorithmType.Sha1 = 20 -> NCode.Identity.HashAlgorithmType
 NCode.Identity.HashAlgorithmType.Sha256 = 32 -> NCode.Identity.HashAlgorithmType
@@ -103,102 +91,3 @@ NCode.Identity.Models.TimePeriod.EndTime.init -> void
 NCode.Identity.Models.TimePeriod.StartTime.get -> System.DateTimeOffset
 NCode.Identity.Models.TimePeriod.StartTime.init -> void
 NCode.Identity.Models.TimePeriod.TimePeriod() -> void
-NCode.Identity.Models.UriDescriptor
-NCode.Identity.Models.UriDescriptor.Host.get -> Microsoft.AspNetCore.Http.HostString
-NCode.Identity.Models.UriDescriptor.Host.init -> void
-NCode.Identity.Models.UriDescriptor.Path.get -> Microsoft.AspNetCore.Http.PathString
-NCode.Identity.Models.UriDescriptor.Path.init -> void
-NCode.Identity.Models.UriDescriptor.Query.get -> Microsoft.AspNetCore.Http.QueryString
-NCode.Identity.Models.UriDescriptor.Query.init -> void
-NCode.Identity.Models.UriDescriptor.Scheme.get -> string!
-NCode.Identity.Models.UriDescriptor.Scheme.init -> void
-NCode.Identity.Models.UriDescriptor.UriDescriptor() -> void
-NCode.Identity.Results.HttpResultExtensions
-NCode.Identity.Results.HttpResultExtensions.extension(Microsoft.AspNetCore.Http.IResult!)
-NCode.Identity.Results.HttpResultExtensions.extension(Microsoft.AspNetCore.Http.IResult!).AsException(string? message = null) -> NCode.Identity.Exceptions.HttpResultException!
-NCode.Identity.Results.IResultExecutor<TResult>
-NCode.Identity.Results.IResultExecutor<TResult>.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, TResult result, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.Results.IResultProvider
-NCode.Identity.Results.IResultProvider.AsHttpResult() -> Microsoft.AspNetCore.Http.IResult!
-NCode.Identity.Results.ISupportStatusCode
-NCode.Identity.Results.ISupportStatusCode.StatusCode.get -> int?
-NCode.Identity.Results.ISupportStatusCode.StatusCode.set -> void
-NCode.Identity.Settings.IReadOnlySettingCollection
-NCode.Identity.Settings.IReadOnlySettingCollection.GetValue<TValue>(NCode.Identity.Settings.SettingKey<TValue> key) -> TValue
-NCode.Identity.Settings.IReadOnlySettingCollection.Merge(System.Collections.Generic.IEnumerable<NCode.Identity.Settings.Setting!>! otherCollection) -> NCode.Identity.Settings.ISettingCollection!
-NCode.Identity.Settings.IReadOnlySettingCollection.TryGet(string! settingName, out NCode.Identity.Settings.Setting! setting) -> bool
-NCode.Identity.Settings.IReadOnlySettingCollection.TryGet<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, out NCode.Identity.Settings.Setting<TValue>! setting) -> bool
-NCode.Identity.Settings.IReadOnlySettingCollection.TryGetValue(string! settingName, out object! value) -> bool
-NCode.Identity.Settings.IReadOnlySettingCollection.TryGetValue<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, out TValue value) -> bool
-NCode.Identity.Settings.IReadOnlySettingCollectionProvider
-NCode.Identity.Settings.IReadOnlySettingCollectionProviderFactory
-NCode.Identity.Settings.IReadOnlySettingCollectionProviderFactory.Create(System.Collections.Generic.IEnumerable<NCode.Collections.Providers.ICollectionDataSource<NCode.Identity.Settings.Setting!>!>! dataSources, bool owns = false) -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
-NCode.Identity.Settings.ISettingCollection
-NCode.Identity.Settings.ISettingCollection.Remove<TValue>(NCode.Identity.Settings.SettingKey<TValue> key) -> bool
-NCode.Identity.Settings.ISettingCollection.Set(NCode.Identity.Settings.Setting! setting) -> void
-NCode.Identity.Settings.ISettingCollection.Set<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, TValue value) -> void
-NCode.Identity.Settings.ISettingCollectionFactory
-NCode.Identity.Settings.ISettingCollectionFactory.Create() -> NCode.Identity.Settings.ISettingCollection!
-NCode.Identity.Settings.ISettingCollectionFactory.Create(System.Collections.Generic.IEnumerable<NCode.Identity.Settings.Setting!>! settings) -> NCode.Identity.Settings.ISettingCollection!
-NCode.Identity.Settings.ISettingDescriptorCollection
-NCode.Identity.Settings.ISettingDescriptorCollection.TryGet(string! settingName, out NCode.Identity.Settings.SettingDescriptor! descriptor) -> bool
-NCode.Identity.Settings.ISettingDescriptorCollection.TryGet<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, out NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor) -> bool
-NCode.Identity.Settings.ISettingDescriptorCollectionProvider
-NCode.Identity.Settings.ISettingDescriptorJsonProvider
-NCode.Identity.Settings.ISettingDescriptorJsonProvider.GetDescriptor(string! settingName, System.Text.Json.JsonTokenType jsonTokenType) -> NCode.Identity.Settings.SettingDescriptor!
-NCode.Identity.Settings.ISettingDescriptorJsonProvider.GetDescriptor(string! settingName, System.Text.Json.JsonValueKind jsonValueKind) -> NCode.Identity.Settings.SettingDescriptor!
-NCode.Identity.Settings.ISettingSerializer
-NCode.Identity.Settings.ISettingSerializer.DeserializeSettings(System.Text.Json.JsonElement settingsJson, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
-NCode.Identity.Settings.Setting
-NCode.Identity.Settings.Setting.Descriptor.get -> NCode.Identity.Settings.SettingDescriptor!
-NCode.Identity.Settings.Setting.Setting(NCode.Identity.Settings.SettingDescriptor! descriptor) -> void
-NCode.Identity.Settings.Setting<TValue>
-NCode.Identity.Settings.Setting<TValue>.Descriptor.get -> NCode.Identity.Settings.SettingDescriptor<TValue>!
-NCode.Identity.Settings.Setting<TValue>.Setting(NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor, TValue value) -> void
-NCode.Identity.Settings.Setting<TValue>.Value.get -> TValue
-NCode.Identity.Settings.SettingDescriptor
-NCode.Identity.Settings.SettingDescriptor.IsDiscoverable.get -> bool
-NCode.Identity.Settings.SettingDescriptor.IsDiscoverable.init -> void
-NCode.Identity.Settings.SettingDescriptor.Name.get -> string!
-NCode.Identity.Settings.SettingDescriptor.Name.init -> void
-NCode.Identity.Settings.SettingDescriptor.SettingDescriptor() -> void
-NCode.Identity.Settings.SettingDescriptor<TValue>
-NCode.Identity.Settings.SettingDescriptor<TValue>.Default.get -> TValue
-NCode.Identity.Settings.SettingDescriptor<TValue>.Default.init -> void
-NCode.Identity.Settings.SettingDescriptor<TValue>.DefaultOrNull.get -> TValue?
-NCode.Identity.Settings.SettingDescriptor<TValue>.DefaultOrNull.init -> void
-NCode.Identity.Settings.SettingDescriptor<TValue>.Key.get -> NCode.Identity.Settings.SettingKey<TValue>
-NCode.Identity.Settings.SettingDescriptor<TValue>.OnCreate.get -> System.Func<NCode.Identity.Settings.SettingDescriptor<TValue>!, TValue, NCode.Identity.Settings.Setting<TValue>!>!
-NCode.Identity.Settings.SettingDescriptor<TValue>.OnCreate.init -> void
-NCode.Identity.Settings.SettingDescriptor<TValue>.OnFormat.get -> System.Func<NCode.Identity.Settings.Setting<TValue>!, object!>!
-NCode.Identity.Settings.SettingDescriptor<TValue>.OnFormat.init -> void
-NCode.Identity.Settings.SettingDescriptor<TValue>.OnMerge.get -> System.Func<TValue, TValue, TValue>!
-NCode.Identity.Settings.SettingDescriptor<TValue>.OnMerge.init -> void
-NCode.Identity.Settings.SettingDescriptor<TValue>.SettingDescriptor() -> void
-NCode.Identity.Settings.SettingKey<TValue>
-NCode.Identity.Settings.SettingKey<TValue>.SettingKey() -> void
-NCode.Identity.Settings.SettingKey<TValue>.SettingKey(string! SettingName) -> void
-NCode.Identity.Settings.SettingKey<TValue>.SettingName.get -> string!
-NCode.Identity.Settings.SettingKey<TValue>.SettingName.init -> void
-NCode.Identity.Settings.SettingKey<TValue>.ValueType.get -> System.Type!
-NCode.Identity.Settings.SettingMerge
-override NCode.Identity.Models.UriDescriptor.ToString() -> string!
-override NCode.Identity.Settings.Setting<TValue>.GetValue() -> object!
-override NCode.Identity.Settings.SettingDescriptor<TValue>.Create(object! value) -> NCode.Identity.Settings.Setting!
-override NCode.Identity.Settings.SettingDescriptor<TValue>.CreateDefault() -> NCode.Identity.Settings.Setting!
-override NCode.Identity.Settings.SettingDescriptor<TValue>.Format(NCode.Identity.Settings.Setting! setting) -> object!
-override NCode.Identity.Settings.SettingDescriptor<TValue>.HasDefault.get -> bool
-override NCode.Identity.Settings.SettingDescriptor<TValue>.Merge(NCode.Identity.Settings.Setting! current, NCode.Identity.Settings.Setting! other) -> NCode.Identity.Settings.Setting!
-override NCode.Identity.Settings.SettingDescriptor<TValue>.ValueType.get -> System.Type!
-static NCode.Identity.Settings.SettingDescriptor<TValue>.implicit operator NCode.Identity.Settings.SettingKey<TValue>(NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor) -> NCode.Identity.Settings.SettingKey<TValue>
-static NCode.Identity.Settings.SettingMerge.And(bool current, bool other) -> bool
-static NCode.Identity.Settings.SettingMerge.Intersect<T>(System.Collections.Generic.IEnumerable<T>! current, System.Collections.Generic.IEnumerable<T>! other) -> System.Collections.Generic.List<T>!
-static NCode.Identity.Settings.SettingMerge.Keep<T>(T current, T _) -> T
-static NCode.Identity.Settings.SettingMerge.Max<T>(T current, T other) -> T
-static NCode.Identity.Settings.SettingMerge.Min<T>(T current, T other) -> T
-static NCode.Identity.Settings.SettingMerge.Or(bool current, bool other) -> bool
-static NCode.Identity.Settings.SettingMerge.Replace<T>(T _, T other) -> T
-static NCode.Identity.Settings.SettingMerge.Union<T>(System.Collections.Generic.IEnumerable<T>! current, System.Collections.Generic.IEnumerable<T>! other) -> System.Collections.Generic.List<T>!
-virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Create(TValue value) -> NCode.Identity.Settings.Setting<TValue>!
-virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Format(NCode.Identity.Settings.Setting<TValue>! setting) -> object!
-virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Merge(NCode.Identity.Settings.Setting<TValue>! current, NCode.Identity.Settings.Setting<TValue>! other) -> NCode.Identity.Settings.Setting<TValue>!

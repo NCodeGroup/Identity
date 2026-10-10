@@ -11,6 +11,7 @@
     <Folder Name="/src/" />
     <Folder Name="/tests/" />
     <Project Path="src/NCode.Identity.Abstractions/NCode.Identity.Abstractions.csproj" />
+    <Project Path="src/NCode.Identity.AspNetCore.Abstractions/NCode.Identity.AspNetCore.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.Events.Abstractions/NCode.Identity.Events.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.Events/NCode.Identity.Events.csproj" />
     <Project Path="src/NCode.Identity.Jose.Abstractions/NCode.Identity.Jose.Abstractions.csproj" />
@@ -38,6 +39,7 @@
     <Project Path="src/NCode.Identity.Secrets.Persistence/NCode.Identity.Secrets.Persistence.csproj" />
     <Project Path="src/NCode.Identity.Secrets/NCode.Identity.Secrets.csproj" />
     <Project Path="src/NCode.Identity.Server/NCode.Identity.Server.csproj" />
+    <Project Path="src/NCode.Identity.Settings.Abstractions/NCode.Identity.Settings.Abstractions.csproj" />
     <Project Path="src/NCode.Identity/NCode.Identity.csproj" />
     <Project Path="src/NCode.Json/NCode.Json.csproj" />
     <Project Path="src/NCode.Persistence.Abstractions/NCode.Persistence.Abstractions.csproj" />

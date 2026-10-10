@@ -8,10 +8,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" />
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
     </ItemGroup>
 </Project>

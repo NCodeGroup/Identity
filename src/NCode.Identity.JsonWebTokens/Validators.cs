@@ -25,6 +25,7 @@ using NCode.Identity.JsonWebTokens.Exceptions;
 using NCode.Identity.JsonWebTokens.Options;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
+using NCode.Json;
 
 namespace NCode.Identity.JsonWebTokens;
 

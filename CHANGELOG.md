@@ -14,8 +14,25 @@ change to the public API is a **major** version bump.
   `OrEmptyObject` / `IsNullOrUndefined`, namespace `NCode.Json`), promoted out of `NCode.Identity.Abstractions` so the
   persistence layer (and any package beneath `NCode.Identity.*`) can reuse it without inheriting that package's ASP.NET
   Core framework reference. See [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md).
+- Two new abstractions packages split out of `NCode.Identity.Abstractions`:
+  **`NCode.Identity.AspNetCore.Abstractions`** (the ASP.NET Core HTTP surface — `UriDescriptor`, `HttpResultException`,
+  and the `Results/*` contracts; it now carries the `Microsoft.AspNetCore.App` framework reference) and
+  **`NCode.Identity.Settings.Abstractions`** (the `NCode.Identity.Settings.*` subsystem). Namespaces are unchanged, so
+  the move is transparent to source. See
+  [ADR-0056](docs/adr/0056-abstractions-split-into-framework-free-tiered-packages.md).
 
 ### Changed
+
+- **`NCode.Identity.Abstractions` is now framework-free.** Its ASP.NET Core HTTP surface
+  (`Models/UriDescriptor`, `Exceptions/HttpResultException`, `Results/*`) moved to the new
+  `NCode.Identity.AspNetCore.Abstractions` package and its Settings subsystem moved to
+  `NCode.Identity.Settings.Abstractions`, so the core drops the `Microsoft.AspNetCore.App` framework reference and is
+  referenceable by any lower-tier package (including the JOSE/Secrets crypto branch). The JOSE
+  `JsonElementExtensions.TryGetPropertyValue<T>` helper folded into `NCode.Json.JsonElements`, leaving a single
+  universal `JsonElement` helper home, and detached JSON parsing standardizes on `JsonElement.Parse(string)`.
+  `NCode.Identity.OpenId.Abstractions` now references `NCode.Registration.AspNetCore` directly (it exposes
+  `ReadOnlyEndpointDisposition` on its public surface) rather than inheriting it transitively from the core. Namespaces
+  are unchanged. See [ADR-0056](docs/adr/0056-abstractions-split-into-framework-free-tiered-packages.md).
 
 - **Subject metadata (`ProfileMetadata` / `SystemMetadata`) is now a principal-level concept, resolved fresh at
   issuance.** The two bags moved off `LocalAccount` (and `PersistedLocalAccount` / `LocalAccountCreationRequest`) onto

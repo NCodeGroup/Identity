@@ -29,5 +29,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.AspNetCore.Abstractions\NCode.Identity.AspNetCore.Abstractions.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Settings.Abstractions\NCode.Identity.Settings.Abstractions.csproj" />
     </ItemGroup>
 </Project>

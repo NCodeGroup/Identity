@@ -100,42 +100,6 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`.
 
-## Consistency / refactors (group `R`)
-
-- **`R2` — No universal `JsonElement` helper home.** `JsonElements` (`EmptyObject` / `IsNullOrUndefined` /
-  `OrEmptyObject`) lives in `NCode.Identity.Abstractions`, so only the Identity/OpenId branch can use it;
-  `NCode.Identity.Jose.Abstractions` keeps its own `JsonElementExtensions`. A single shared home is blocked by the
-  dependency graph: `Jose.Abstractions → Secrets.Abstractions` is a separate branch, and `Identity.Abstractions`
-  carries an ASP.NET Core `FrameworkReference`, so Jose/Secrets must not depend on it (that would invert layering and
-  drag ASP.NET Core into standalone crypto packages). A truly universal helper needs a dependency-free neutral
-  low-level package (e.g. `NCode.Json`), which is its own packaging/versioning decision.
-  Touch points: `src/NCode.Identity.Abstractions/Json/JsonElements.cs`,
-  `src/NCode.Identity.Jose.Abstractions/Extensions/JsonElementExtensions.cs`.
-- **`R3` — Standardize on `JsonElement.Parse(string)` for detached parsing.** `JsonElement.Parse` (.NET 9+) returns a
-  self-owned, detached `JsonElement` and is the concise, allocation-equivalent replacement for the
-  `JsonDocument.Parse(json).RootElement.Clone()` dance and for `JsonSerializer.Deserialize<JsonElement>(json)` (which
-  routes through the serializer layer). A3 switched the one new call site; the rest of the codebase still uses the older
-  forms. Sweep the convertible production spots (and the test `.RootElement.Clone()` bootstraps); leave scoped
-  `using var document = JsonDocument.Parse(...)` reads that only enumerate within a local scope as-is. Byte-based
-  parses (`ReadOnlySpan<byte>`) have no `JsonElement.Parse` overload and stay on `JsonDocument`/`Deserialize`.
-  Touch points: `src/NCode.Json/JsonElements.cs`,
-  `src/NCode.Identity.OpenId.Persistence.EntityFramework/Converters/JsonElementConverter.cs`.
-- **`R4` — Factor `NCode.Identity.Abstractions` into lean, correctly-tiered packages.** The deep-dive
-  ([ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) context) found the
-  package mixes three dependency tiers: pure BCL primitives (`Claims`, `Logic/ICryptoService`, encoding/hash enums,
-  `Models/TimePeriod`, `IsActiveResult*`), the self-contained **Settings** subsystem (16 types, `System.Text.Json` +
-  `NCode.Collections.Providers`), and an **ASP.NET Core HTTP surface** (`Models/UriDescriptor`,
-  `Exceptions/HttpResultException`, `Results/{HttpResultExtensions,IResultExecutor,IResultProvider}`) that is the sole
-  reason the package carries the `Microsoft.AspNetCore.App` `FrameworkReference` — which blocks everything beneath it
-  (and Jose/Secrets) from staying framework-free. The shared JSON helper is already extracted to the dependency-free
-  `NCode.Json` package (done, ADR-0055). Remaining, as independently-committable refactors: (a) extract the ASP.NET Core
-  HTTP surface into `NCode.Identity.AspNetCore.Abstractions`, drop the `FrameworkReference` and the apparently-unused
-  `NCode.Registration.AspNetCore` project reference from the core, so the core is lean and referenceable by anything
-  beneath `NCode.Identity.*`; (b) promote the Settings subsystem to `NCode.Identity.Settings.Abstractions`;
-  (c) optionally fold Jose/Secrets onto `NCode.Json` (drop their bespoke `JsonElementExtensions`). Namespaces already
-  diverge from assemblies, so moves need no `using` churn — only `.csproj` + `PublicAPI` mechanics.
-  Touch points: `src/NCode.Identity.Abstractions/{Results,Exceptions/HttpResultException.cs,Models/UriDescriptor.cs,Settings}`.
-
 Follow-ups surfaced finishing local-account login end-to-end ([ADR-0051](docs/adr/0051-local-accounts-behind-a-pluggable-account-source-seam.md)):
 the resource-owner password grant now authenticates a seeded local account over a pluggable `ILocalAccountSource`
 (EF and ASP.NET Core Identity implementations), but the management/projection surfaces are not built out.

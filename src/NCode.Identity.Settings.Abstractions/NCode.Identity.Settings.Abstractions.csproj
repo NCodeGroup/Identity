@@ -4,14 +4,11 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>NCode.Identity</RootNamespace>
+        <RootNamespace>NCode.Identity.Settings</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+        <PackageReference Include="NCode.Collections.Providers.Abstractions" />
     </ItemGroup>
 </Project>

@@ -10,6 +10,16 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Local-account management API.** A new `local-accounts` resource family under
+  `/api/tenants/{tenantId}/local-accounts` (mirroring the clients family) lets an operator create, list, get, update,
+  delete, disable, enable, reset the credential of, and read/set the server-owned metadata of a local account, plus
+  manage its owners. Account creation now eagerly provisions the owning `FederatedPrincipal` and its one-to-one
+  self-issued `FederatedIdentity` in the same unit of work, so ownership and principal-level metadata (`ProfileMetadata`
+  / `SystemMetadata`) have a stable target from the moment the account exists; the metadata endpoint is the
+  administrator-gated write path that upholds the "`SystemMetadata` is never end-user-writable" invariant. The endpoints
+  require the opt-in local-account persistence package and otherwise respond `501 Not Implemented`. Changes are audited
+  via `LocalAccountChangedAuditEvent` and gated by `*:local_accounts` scopes. See
+  [ADR-0057](docs/adr/0057-local-account-eager-provisioning-and-management-seam.md).
 - New dependency-free **`NCode.Json`** package holding the shared `JsonElements` helper (`EmptyObject` /
   `OrEmptyObject` / `IsNullOrUndefined`, namespace `NCode.Json`), promoted out of `NCode.Identity.Abstractions` so the
   persistence layer (and any package beneath `NCode.Identity.*`) can reuse it without inheriting that package's ASP.NET
@@ -22,6 +32,13 @@ change to the public API is a **major** version bump.
   [ADR-0056](docs/adr/0056-abstractions-split-into-framework-free-tiered-packages.md).
 
 ### Changed
+
+- **`ILocalAccountProvisioner` is now the full local-account write seam.** `CreateAsync` takes the caller's
+  `IStoreManager` and stages its writes (account, principal, and self-issued identity) without saving, and the seam
+  gains `UpdateAsync`, `SetEnabledAsync`, and `ResetPasswordAsync` (plus `LocalAccountUpdateRequest` /
+  `LocalAccountPasswordResetRequest`). `ILocalAccountStore` gains `GetPageAsync` and `RemoveAsync`;
+  `IFederatedPrincipalStore` gains `UpdateAsync` and `RemoveAsync`; `IFederatedIdentityStore` gains `RemoveAsync`. See
+  [ADR-0057](docs/adr/0057-local-account-eager-provisioning-and-management-seam.md).
 
 - **`NCode.Identity.Abstractions` is now framework-free.** Its ASP.NET Core HTTP surface
   (`Models/UriDescriptor`, `Exceptions/HttpResultException`, `Results/*`) moved to the new

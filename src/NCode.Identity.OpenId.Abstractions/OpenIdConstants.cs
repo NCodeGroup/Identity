@@ -181,6 +181,11 @@ public static partial class OpenIdConstants
         /// Contains the OpenAPI tag applied to the <c>tenants</c> management endpoints.
         /// </summary>
         public const string Tenants = "Tenants";
+
+        /// <summary>
+        /// Contains the OpenAPI tag applied to the <c>local accounts</c> management endpoints.
+        /// </summary>
+        public const string LocalAccounts = "LocalAccounts";
     }
 
     /// <summary>

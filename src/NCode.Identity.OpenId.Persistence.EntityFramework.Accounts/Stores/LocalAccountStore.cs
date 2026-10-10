@@ -176,6 +176,19 @@ internal sealed class LocalAccountStore(
         );
     }
 
+    /// <inheritdoc />
+    public async ValueTask RemoveAsync(string localAccountId, CancellationToken cancellationToken)
+    {
+        var entity = await GetEntityOrDefaultAsync(localAccountId, cancellationToken);
+        if (entity is null)
+        {
+            return;
+        }
+
+        DbContext.Set<LocalAccountClaimEntity>().RemoveRange(entity.Claims);
+        Accounts.Remove(entity);
+    }
+
     private static PersistedLocalAccount MapFromEntity(LocalAccountEntity entity) =>
         new()
         {

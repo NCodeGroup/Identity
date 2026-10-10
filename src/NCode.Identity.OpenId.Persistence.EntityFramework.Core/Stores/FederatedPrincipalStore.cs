@@ -136,4 +136,43 @@ internal class FederatedPrincipalStore(
         );
         return entity is null ? null : await MapFromEntityAsync(entity, cancellationToken);
     }
+
+    /// <inheritdoc />
+    public async ValueTask UpdateAsync(
+        PersistedFederatedPrincipal principal,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedPrincipalId = Normalize(principal.PrincipalId);
+        var entity =
+            await GetEntityOrDefaultAsync(
+                candidate => candidate.NormalizedPrincipalId == normalizedPrincipalId,
+                cancellationToken
+            )
+            ?? throw new InvalidOperationException(
+                $"A federated principal with '{principal.PrincipalId}' was not found."
+            );
+
+        entity.ProfileMetadataJson = principal.ProfileMetadata.OrEmptyObject();
+        entity.SystemMetadataJson = principal.SystemMetadata.OrEmptyObject();
+
+        // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-0012).
+        DbContext.FederatedPrincipals.Update(entity);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask RemoveAsync(string principalId, CancellationToken cancellationToken)
+    {
+        var normalizedPrincipalId = Normalize(principalId);
+        var entity = await GetEntityOrDefaultAsync(
+            candidate => candidate.NormalizedPrincipalId == normalizedPrincipalId,
+            cancellationToken
+        );
+        if (entity is null)
+        {
+            return;
+        }
+
+        DbContext.FederatedPrincipals.Remove(entity);
+    }
 }

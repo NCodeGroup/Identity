@@ -100,17 +100,3 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`.
 
-Follow-ups surfaced finishing local-account login end-to-end ([ADR-0051](docs/adr/0051-local-accounts-behind-a-pluggable-account-source-seam.md)):
-the resource-owner password grant now authenticates a seeded local account over a pluggable `ILocalAccountSource`
-(EF and ASP.NET Core Identity implementations), but the management/projection surfaces are not built out.
-
-- **`A1` — Local-account management API.** `ILocalAccountProvisioner` has no caller — accounts can only be _seeded_
-  directly through the store, not created/updated by an operator. Add `create / update / disable / reset-password /
-set-metadata` endpoints mirroring the existing Management package (clients/tenants/servers). This is what makes
-  provisioning usable end-to-end. The `set-metadata` surface must enforce the [ADR-0054](docs/adr/0054-local-account-metadata-projection.md)
-  invariant: `ProfileMetadata` is owner-updatable, but `SystemMetadata` is server/admin-only and must never be
-  end-user-writable (it can drive authorization once projected). Note: under
-  [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) the
-  two metadata bags are inlined on `FederatedPrincipal` (not `LocalAccount`), so `set-metadata` targets the principal.
-  Touch points: `src/NCode.Identity.OpenId.Accounts.Abstractions/ILocalAccountProvisioner.cs`,
-  `src/NCode.Identity.OpenId.Management/Endpoints/`, `ILocalAccountStore`.

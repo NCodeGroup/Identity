@@ -52,6 +52,7 @@ internal sealed class SecuritySchemeDocumentTransformer : IOpenApiDocumentTransf
         OpenIdConstants.EndpointTags.ResourceServers,
         OpenIdConstants.EndpointTags.Servers,
         OpenIdConstants.EndpointTags.Tenants,
+        OpenIdConstants.EndpointTags.LocalAccounts,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     /// <inheritdoc />

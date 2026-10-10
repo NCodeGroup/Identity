@@ -88,6 +88,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.UserInfo = "/oauth2/us
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ClientGrants = "ClientGrants" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Clients = "Clients" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Grants = "Grants" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.LocalAccounts = "LocalAccounts" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.OpenId = "oidc" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ResourceServers = "ResourceServers" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Servers = "Servers" -> string!

@@ -223,6 +223,25 @@ internal class FederatedIdentityStore(
         return result;
     }
 
+    /// <inheritdoc />
+    public async ValueTask RemoveAsync(
+        string federatedIdentityId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedFederatedIdentityId = Normalize(federatedIdentityId);
+        var entity = await GetEntityOrDefaultAsync(
+            identity => identity.NormalizedFederatedIdentityId == normalizedFederatedIdentityId,
+            cancellationToken
+        );
+        if (entity is null)
+        {
+            return;
+        }
+
+        DbContext.FederatedIdentities.Remove(entity);
+    }
+
     private FederatedPrincipalEntity? GetLocalPrincipalOrDefault(string? normalizedPrincipalId) =>
         DbContext
             .Set<FederatedPrincipalEntity>()

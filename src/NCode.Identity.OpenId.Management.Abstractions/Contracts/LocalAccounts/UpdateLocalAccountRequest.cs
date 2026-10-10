@@ -1,0 +1,50 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
+using JetBrains.Annotations;
+
+namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
+
+/// <summary>
+/// Represents the mutable profile fields of a local account that a JSON Patch document may modify. The credential,
+/// enabled status, and metadata are managed through their own endpoints.
+/// </summary>
+[PublicAPI]
+[ExcludeFromCodeCoverage]
+public sealed class UpdateLocalAccountRequest
+{
+    /// <summary>
+    /// Gets or sets the account's username (login handle), unique within the tenant.
+    /// </summary>
+    [JsonPropertyName("userName")]
+    public string UserName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the account's email address, or <c>null</c> when none is recorded.
+    /// </summary>
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the account's <see cref="Email"/> is verified.
+    /// </summary>
+    [JsonPropertyName("emailVerified")]
+    public bool EmailVerified { get; set; }
+}

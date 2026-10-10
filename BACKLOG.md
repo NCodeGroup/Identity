@@ -22,6 +22,21 @@ entry when the work lands (and note it in [`CHANGELOG.md`](CHANGELOG.md) if user
 
 ---
 
+## Standing design posture (read first)
+
+This family is **greenfield and pre-release** — everything lands on `dev`, nothing is shipped, and there is **no
+backward-compatibility to preserve** ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
+**Default to the best long-term design.** When a change has a fork between a minimal, compatibility-preserving patch and
+the _cohesive, comprehensive, correct_ model, **choose the comprehensive model by default** — do not weigh "how hard is
+it to refactor now" or "will this break the public surface." Breaking changes are expected and welcome here: public-API
+churn (`PublicAPI.Unshipped.txt`), setting renames/removals, signature changes, moved types, and a clean cutover are all
+preferred over shims, adapters, or "add-only" compromises. Only call out a fork explicitly when the _options are
+genuinely equivalent in quality_ and the choice is a real value judgment (e.g. a security/semantics trade-off), not when
+one option is merely more work.
+
+---
+
 ## Deferred — evaluated, intentionally not-yet (group `D`)
 
 - **`D1` — UserInfo access auditing.** The UserInfo endpoint returns end-user PII but is not audited. A

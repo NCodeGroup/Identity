@@ -19,9 +19,9 @@ dotnet tool restore
 # (CSharpier check + restore + build + pack + tests + coverage):
 ./build/dod.ps1
 
-# Faster local inner loop — parallel builds + test assemblies, skips coverage + packing.
-# Keeps CSharpier, analyzers, and warnings-as-errors; NOT the CI-parity gate, so run the
-# plain ./build/dod.ps1 (above) before pushing.
+# Faster local inner loop and the local pre-push gate — parallel builds + test assemblies,
+# skips coverage + packing. Keeps CSharpier, analyzers, and warnings-as-errors. The full
+# ./build/dod.ps1 (above) is the CI-parity gate that CI runs.
 ./build/dod.ps1 -Fast
 
 # Or drive the tools directly:

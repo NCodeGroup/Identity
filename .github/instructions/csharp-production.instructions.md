@@ -250,8 +250,8 @@ rationale.
 - ✅ The whole gate is [`build/dod.ps1`](../../build/dod.ps1) — the single Definition of Done that CI runs.
 - ⏳ **Local inner loop: `./build/dod.ps1 -Fast`.** It parallelizes project builds and test assemblies and skips the
   non-correctness stages (coverage collection + packing) for a quicker edit-run cycle, while keeping CSharpier,
-  analyzers, and compile warnings-as-errors. It is **not** the CI-parity gate — run the plain `./build/dod.ps1`
-  (no `-Fast`) before pushing.
+  analyzers, and compile warnings-as-errors. It is the **local pre-push gate** (the push protocol's final check); the
+  plain `./build/dod.ps1` is the CI-parity gate that CI runs.
 - 👁 **Run the full `dod.ps1` (no `-Fast`, a clean Release build over the whole solution) before calling a structural
   change done —
   an incremental Debug build of a single project can mask errors a clean build catches.** Notably, a `git mv` of a file

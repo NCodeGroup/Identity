@@ -58,6 +58,7 @@ GET   api/tenants/{tenantId}/clients/{clientId}/effective-settings
 GET    api/tenants/{tenantId}/clients/{clientId}/secrets
 POST   api/tenants/{tenantId}/clients/{clientId}/secrets
 GET    api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}
+GET    api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/public-key
 PUT    api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}
 DELETE api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}
 
@@ -72,6 +73,7 @@ internal class ClientApiEndpointHandler(
     IClientValidator clientValidator,
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
+    ISecretPublicKeyConverter secretPublicKeyConverter,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
@@ -86,6 +88,7 @@ internal class ClientApiEndpointHandler(
     private IClientValidator ClientValidator { get; } = clientValidator;
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
@@ -130,6 +133,9 @@ internal class ClientApiEndpointHandler(
             .MapPost("/{clientId}/secrets", CreateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created);
         clients.MapGet("/{clientId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
+        clients
+            .MapGet("/{clientId}/secrets/{secretId}/public-key", GetPublicKeyAsync)
+            .Produces<PublicKeyResource>();
         clients
             .MapPut("/{clientId}/secrets/{secretId}", UpdateSecretAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -875,6 +881,48 @@ internal class ClientApiEndpointHandler(
             node,
             Operations.Read,
             x => ToSecretResource(x.Value)
+        );
+    }
+
+    /// <summary>
+    /// Gets the public key material of an asymmetric client secret, as a JWK and a PEM.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="clientId">The identifier of the OpenID Client.</param>
+    /// <param name="secretId">The identifier of the secret.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The public key material of the requested secret.</response>
+    [EndpointName("api/clients/secrets/get-public-key")]
+    internal virtual async ValueTask<IResult> GetPublicKeyAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string clientId,
+        [FromRoute] string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IClientStore>();
+
+        // The discrete getter resolves the secret together with its owning TenantId, which scopes authorization.
+        var clientSecret = await store.GetSecretOrDefaultAsync(
+            clientId,
+            secretId,
+            cancellationToken
+        );
+
+        var scoped = clientSecret is null
+            ? null
+            : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
+
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+        return await ProcessGetAsync(
+            httpContext,
+            scoped,
+            node,
+            Operations.Read,
+            x => SecretPublicKeyConverter.Convert(x.Value)
         );
     }
 

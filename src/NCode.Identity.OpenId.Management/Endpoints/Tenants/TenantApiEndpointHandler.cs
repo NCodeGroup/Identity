@@ -58,6 +58,7 @@ GET   api/tenants/{tenantId}/effective-settings
 GET    api/tenants/{tenantId}/secrets
 POST   api/tenants/{tenantId}/secrets
 GET    api/tenants/{tenantId}/secrets/{secretId}
+GET    api/tenants/{tenantId}/secrets/{secretId}/public-key
 PUT    api/tenants/{tenantId}/secrets/{secretId}
 DELETE api/tenants/{tenantId}/secrets/{secretId}
 
@@ -72,6 +73,7 @@ internal class TenantApiEndpointHandler(
     ITenantValidator tenantValidator,
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
+    ISecretPublicKeyConverter secretPublicKeyConverter,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
@@ -86,6 +88,7 @@ internal class TenantApiEndpointHandler(
     private ITenantValidator TenantValidator { get; } = tenantValidator;
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
@@ -130,6 +133,9 @@ internal class TenantApiEndpointHandler(
             .MapPost("/{tenantId}/secrets", CreateSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created);
         tenants.MapGet("/{tenantId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
+        tenants
+            .MapGet("/{tenantId}/secrets/{secretId}/public-key", GetPublicKeyAsync)
+            .Produces<PublicKeyResource>();
         tenants
             .MapPut("/{tenantId}/secrets/{secretId}", UpdateSecretAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -819,6 +825,38 @@ internal class TenantApiEndpointHandler(
             node,
             Operations.Read,
             x => ToSecretResource(x.Value)
+        );
+    }
+
+    /// <summary>
+    /// Gets the public key material of an asymmetric tenant secret, as a JWK and a PEM.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="secretId">The identifier of the secret.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The public key material of the requested secret.</response>
+    [EndpointName("api/tenants/secrets/get-public-key")]
+    internal virtual async ValueTask<IResult> GetPublicKeyAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
+        var scoped = TenantOwnedResource.ForOrDefault(tenantId, secret);
+
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+        return await ProcessGetAsync(
+            httpContext,
+            scoped,
+            node,
+            Operations.Read,
+            x => SecretPublicKeyConverter.Convert(x.Value)
         );
     }
 

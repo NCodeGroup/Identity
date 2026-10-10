@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Asymmetric secret public-key read endpoints.** A new read-only sub-resource,
+  `GET /api/.../{servers|tenants|clients}/{ownerId}/secrets/{secretId}/public-key`, returns an asymmetric secret's
+  **public** key material as a `PublicKeyResource` carrying both a JWK (RFC 7517, the same representation the JWKS
+  endpoint publishes, reusing the registered `IJsonWebKeyConverter` pipeline) and a SubjectPublicKeyInfo PEM
+  (`-----BEGIN PUBLIC KEY-----`) for copy-paste into an admin UI or crypto tooling. Private key material is never
+  exposed; a symmetric secret has no public-key sub-resource and responds `404 Not Found`. The read is gated by the
+  same `Operations.Read` authorization as reading the secret. See
+  [ADR-0058](docs/adr/0058-asymmetric-public-key-material-read-path.md).
 - **Local-account management API.** A new `local-accounts` resource family under
   `/api/tenants/{tenantId}/local-accounts` (mirroring the clients family) lets an operator create, list, get, update,
   delete, disable, enable, reset the credential of, and read/set the server-owned metadata of a local account, plus

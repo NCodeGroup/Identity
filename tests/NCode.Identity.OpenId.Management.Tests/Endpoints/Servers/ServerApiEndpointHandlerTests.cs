@@ -58,6 +58,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<IServerStore> MockServerStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
+    private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<IServerValidator> MockServerValidator { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
@@ -73,6 +74,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockServerStore = MockRepository.Create<IServerStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
+        MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
         MockServerValidator = MockRepository.Create<IServerValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
         MockSecretValidator
@@ -101,6 +103,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             MockServerValidator.Object,
             MockSecretValidator.Object,
             MockSecretGenerator.Object,
+            MockSecretPublicKeyConverter.Object,
             TimeProvider.System,
             MockCryptoService.Object,
             MockServerProvider.Object,
@@ -944,6 +947,124 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region GetPublicKeyAsync Tests
+
+    private static PublicKeyResource CreatePublicKeyResource() =>
+        new()
+        {
+            SecretId = "secret-1",
+            SecretType = SecretTypes.Rsa,
+            Jwk = EmptyObject(),
+            Pem = "-----BEGIN PUBLIC KEY-----\nMII=\n-----END PUBLIC KEY-----",
+        };
+
+    [Fact]
+    public async Task GetPublicKeyAsync_WhenAsymmetricAndAuthorized_ReturnsJson()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockSecretPublicKeyConverter
+            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
+            .Returns(CreatePublicKeyResource())
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetPublicKeyAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<PublicKeyResource>>(result);
+        Assert.Equal("secret-1", json.Value?.SecretId);
+        Assert.StartsWith("-----BEGIN PUBLIC KEY-----", json.Value?.Pem);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_WhenSymmetric_ReturnsNotFound()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockSecretPublicKeyConverter
+            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
+            .Returns((PublicKeyResource?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetPublicKeyAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync((PersistedSecret?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetPublicKeyAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_WhenForbidden_ReturnsForbid()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetPublicKeyAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
     }
 
     #endregion

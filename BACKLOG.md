@@ -78,6 +78,23 @@ one option is merely more work.
   [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md).)
   Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/Handlers/`.
+- **`F6` — Dynamic Client Registration (RFC 7591/7592).** There is no `registration_endpoint`; clients are
+  provisioned only via the management API / seeding. Not required to certify the Basic/Config OP profiles
+  (those allow manual client registration), but it is its own certification profile (Dynamic OP) and it
+  removes manual client seeding _and_ unlocks parallel execution for the conformance harness (which
+  serialises whenever a static client `alias` is used). Prerequisite for the Dynamic OP conformance
+  profile — see [`docs/conformance-testing.md`](docs/conformance-testing.md). Touch points: a new
+  `Endpoints/Registration/` family and discovery-metadata advertisement.
+
+## Conformance & interop testing (group `T`)
+
+- **`T1` — Independent OIDC/OAuth conformance validation (OpenID Foundation Conformance Suite).** Our own
+  integration tests encode our own reading of the specs; an independent, spec-author-maintained oracle is
+  needed to catch shared misreadings. The full design and automation plan — harness architecture, the
+  `BrowserControl`/`run-test-plan.py` automation model, target profiles, the reachable-host /
+  automatable-login / discovery-alignment prerequisites, and the nightly (not `dod.ps1`) CI wiring — lives
+  in its dedicated doc: [`docs/conformance-testing.md`](docs/conformance-testing.md). Depends on `F6`
+  (optional but recommended) and on an automatable login/consent UI with a seeded conformance test user.
 
 ## Secrets management (group `S`)
 

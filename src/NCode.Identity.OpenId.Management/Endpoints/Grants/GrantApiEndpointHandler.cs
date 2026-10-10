@@ -21,7 +21,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants;
+using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
@@ -39,22 +44,27 @@ GET    api/tenants/{tenantId}/grants
 GET    api/tenants/{tenantId}/grants/{grantId}
 DELETE api/tenants/{tenantId}/grants/{grantId}
 
+POST   api/tenants/{tenantId}/grants/initial-access-tokens
+
 */
 
 /// <summary>
-/// Provides the read-only API endpoints for administering persisted OpenID grants: listing, retrieving, and
-/// revoking. Grants are addressed by their opaque <c>GrantId</c>; the internal <c>HashedKey</c> is never exposed.
+/// Provides the API endpoints for administering persisted OpenID grants: listing, retrieving, and
+/// revoking grants, and minting initial access tokens for protected dynamic client registration. Grants are
+/// addressed by their opaque <c>GrantId</c>; the internal <c>HashedKey</c> is never exposed.
 /// </summary>
 internal class GrantApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     IManagementAuditRecorder managementAuditRecorder,
+    IPersistedGrantService persistedGrantService,
     TimeProvider timeProvider,
     ICryptoService cryptoService
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+    private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
@@ -72,6 +82,10 @@ internal class GrantApiEndpointHandler(
         grants
             .MapDelete("", RevokeGrantsAsync)
             .Produces<GrantRevocationResult>()
+            .Produces(StatusCodes.Status400BadRequest);
+        grants
+            .MapPost("/initial-access-tokens", CreateInitialAccessTokenAsync)
+            .Produces<CreatedInitialAccessTokenResource>(StatusCodes.Status201Created)
             .Produces(StatusCodes.Status400BadRequest);
         grants.MapGet("/{grantId}", GetGrantAsync).Produces<GrantResource>();
         grants.MapDelete("/{grantId}", RevokeGrantAsync).Produces(StatusCodes.Status204NoContent);
@@ -205,6 +219,101 @@ internal class GrantApiEndpointHandler(
         );
 
         return TypedResults.Json(new GrantRevocationResult { Revoked = revoked });
+    }
+
+    /// <summary>
+    /// Mints an initial access token (RFC 7591) that authorizes its bearer to register a new client at the protected
+    /// dynamic client registration endpoint. The token is persisted as a hash-keyed <c>initial_access_token</c> grant,
+    /// so its plaintext value is revealed exactly once in the response and never retrievable again.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that will own the token.</param>
+    /// <param name="request">The token-creation request, carrying an optional description and lifetime.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="201">The newly minted initial access token, including its one-time plaintext value.</response>
+    /// <response code="400">The requested lifetime was not greater than zero.</response>
+    [EndpointName("api/grants/initial-access-tokens/create")]
+    internal virtual async ValueTask<IResult> CreateInitialAccessTokenAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromBody] CreateInitialAccessTokenRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        TimeSpan? lifetime = null;
+        if (request.LifetimeSeconds is { } lifetimeSeconds)
+        {
+            if (lifetimeSeconds <= 0)
+            {
+                return TypedResults.Problem(
+                    detail: "'lifetimeSeconds' must be greater than zero.",
+                    statusCode: StatusCodes.Status400BadRequest
+                );
+            }
+
+            lifetime = TimeSpan.FromSeconds(lifetimeSeconds);
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            TenantScopeResource.For(tenantId),
+            Operations.Create
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var createdWhen = TimeProvider.GetUtcNow();
+        var token = CryptoService.GenerateUrlSafeKey();
+
+        var grant = new PersistedGrant<InitialAccessTokenGrant>
+        {
+            Status = PersistedGrantStatus.Active,
+            TenantId = tenantId,
+            ClientId = null,
+            SubjectId = null,
+            Payload = new InitialAccessTokenGrant { Description = request.Description },
+        };
+
+        var grantId = await PersistedGrantService.AddAsync(
+            openIdContext,
+            PersistedGrantService.CreateGrantId(
+                tenantId,
+                OpenIdConstants.PersistedGrantTypes.InitialAccessToken,
+                token
+            ),
+            grant,
+            createdWhen,
+            lifetime,
+            cancellationToken
+        );
+
+        await ManagementAuditRecorder.RecordResourceChangeAsync(
+            httpContext,
+            new InitialAccessTokenCreatedAuditEvent
+            {
+                TenantId = tenantId,
+                ResourceId = grantId,
+                ChangeType = ResourceChangeTypes.Created,
+                Outcome = AuditOutcome.Success,
+            },
+            cancellationToken
+        );
+
+        var response = new CreatedInitialAccessTokenResource
+        {
+            InitialAccessToken = token,
+            GrantId = grantId,
+            TenantId = tenantId,
+            Description = request.Description,
+            CreatedWhen = createdWhen,
+            ExpiresWhen = lifetime is null ? null : createdWhen + lifetime,
+        };
+
+        return TypedResults.Json(response, statusCode: StatusCodes.Status201Created);
     }
 
     /// <summary>

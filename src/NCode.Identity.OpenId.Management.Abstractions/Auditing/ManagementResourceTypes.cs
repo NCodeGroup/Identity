@@ -52,4 +52,9 @@ public static class ManagementResourceTypes
     /// A secret belonging to an OpenID server.
     /// </summary>
     public const string ServerSecret = "server.secret";
+
+    /// <summary>
+    /// An initial access token (RFC 7591) that authorizes protected dynamic client registration.
+    /// </summary>
+    public const string InitialAccessToken = "initial_access_token";
 }

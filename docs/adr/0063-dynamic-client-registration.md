@@ -27,7 +27,7 @@ authorization-code, refresh-token, and device-code flows ride.
 Two design questions are genuinely open and deserve a recorded decision:
 
 1. **Who may register?** RFC 7591 permits both open (anonymous) registration and protected registration gated by an
-   *initial access token*. Open registration is an abuse/DoS vector; the Dynamic OP conformance profile, by contrast,
+   _initial access token_. Open registration is an abuse/DoS vector; the Dynamic OP conformance profile, by contrast,
    wants anonymous registration so its harness can provision clients unattended.
 2. **How is a per-client `registration_access_token` stored and authenticated** for the RFC 7592 management calls, which
    are **not** standard client authentication — the bearer is a token bound to one specific client, long-lived, and
@@ -66,8 +66,8 @@ Concretely:
   token value whose payload binds it to its `client_id`, written with **no expiration**; an RFC 7592 call authenticates
   by looking the bearer up as that grant and confirming its payload `client_id` matches the `{client_id}` in the route.
   Because the grant store keys on a **salted hash of the token**, the plaintext token is never stored — the same
-  posture the authorization-code and device-code grants already have. The RFC 7591 *initial access token* is modeled
-  the same way (`initial_access_token` grant); its provisioning is deferred (see Consequences).
+  posture the authorization-code and device-code grants already have. The RFC 7591 _initial access token_ is modeled
+  the same way (`initial_access_token` grant); it is minted through the management API (see Consequences).
 - **Authorization is configurable, protected by default.** A new discoverable-as-non-standard setting
   `registration_endpoint_allow_anonymous` (default `false`, merged with the boolean **meet** `And` so a parent that
   disallows anonymous registration cannot be loosened downward) governs the endpoint. When `false`, the caller must
@@ -88,7 +88,7 @@ Concretely:
 
 - **Put registration on the management API instead of a protocol endpoint.** Rejected. The management API is an
   operator surface guarded by its own authorization model ([ADR-0044](0044-management-api-authentication-and-globaladmin-bootstrap.md));
-  RFC 7591/7592 are *protocol* endpoints a client calls for itself, advertised in discovery, with their own
+  RFC 7591/7592 are _protocol_ endpoints a client calls for itself, advertised in discovery, with their own
   initial-access-token / registration-access-token authentication. They belong with the OAuth endpoints, and placing
   them there is what makes the Dynamic OP discovery advertisement and conformance profile work.
 - **A dedicated store (or table/column) for registration access tokens.** Rejected. A per-client bearer token bound to
@@ -116,10 +116,14 @@ Concretely:
   parallel — the prerequisite the conformance plan records against this gap
   ([`docs/conformance-testing.md`](../conformance-testing.md)).
 - `IInitialAccessTokenValidator` is the deployment seam for protected registration; a host plugs in its own policy
-  without touching the endpoint. The **provisioning** of initial access tokens is not yet implemented — until a host
-  seeds `initial_access_token` grants (or replaces the validator), protected registration (the default) rejects every
-  request, so a deployment that wants registration either enables anonymous registration or provides the tokens. This
-  is a deliberate secure-by-default posture, and the follow-up is recorded in [`BACKLOG.md`](../../BACKLOG.md).
+  without touching the endpoint. Initial access tokens are **provisioned through the management API**: a tenant-scoped
+  `POST api/tenants/{tenantId}/grants/initial-access-tokens` mints a hash-keyed `initial_access_token` grant,
+  returning the one-time plaintext token (revealed once, ADR-0050 posture) together with the grant id for later
+  revocation through the grant management endpoint, and records an `InitialAccessTokenCreatedAuditEvent`. A deployment
+  that wants protected registration either mints tokens this way or replaces the validator seam (for example, to accept
+  an access token carrying a required scope); it may also enable anonymous registration. Minting reuses the shared
+  `IPersistedGrantService.AddAsync`, which now returns the server-generated grant id so the management surface can hand
+  it back for revocation.
 - Informational metadata lives as inert keys inside the client settings document; the runtime ignores them and the
   management endpoint reads them back. If that ever collides with a future setting name, the registered-metadata keys
   are namespaced by their RFC 7591 names and can be relocated under a dedicated sub-object without a contract change.

@@ -48,8 +48,9 @@ public interface IPersistedGrantService
     /// <param name="lifetime">The optional lifetime of the persisted grant. If <c>null</c>, the grant does not expire.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask AddAsync<TPayload>(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the opaque,
+    /// server-generated public identifier of the persisted grant.</returns>
+    ValueTask<string> AddAsync<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         PersistedGrant<TPayload> grant,

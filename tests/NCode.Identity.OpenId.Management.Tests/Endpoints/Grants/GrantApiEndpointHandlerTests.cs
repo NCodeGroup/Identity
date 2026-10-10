@@ -22,6 +22,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants;
+using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts;
@@ -46,6 +49,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
+    private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private GrantApiEndpointHandler Handler { get; }
 
     public GrantApiEndpointHandlerTests()
@@ -57,11 +61,13 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
+        MockPersistedGrantService = MockRepository.Create<IPersistedGrantService>();
 
         Handler = new GrantApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockManagementAuditRecorder.Object,
+            MockPersistedGrantService.Object,
             TimeProvider.System,
             MockCryptoService.Object
         );
@@ -496,6 +502,211 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             httpContext,
             TenantId,
             GrantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    #endregion
+
+    #region CreateInitialAccessTokenAsync Tests
+
+    [Fact]
+    public async Task CreateInitialAccessTokenAsync_WhenAuthorized_MintsTokenAndReturnsCreated()
+    {
+        const string token = "minted-token";
+        const string mintedGrantId = "iat-grant-1";
+
+        SetupAuthorization(AuthorizationResult.Success());
+
+        MockCryptoService
+            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Returns(token)
+            .Verifiable();
+
+        var grantId = new PersistedGrantId
+        {
+            TenantId = TenantId,
+            GrantType = OpenIdConstants.PersistedGrantTypes.InitialAccessToken,
+            GrantKey = token,
+        };
+        MockPersistedGrantService
+            .Setup(x =>
+                x.CreateGrantId(
+                    TenantId,
+                    OpenIdConstants.PersistedGrantTypes.InitialAccessToken,
+                    token
+                )
+            )
+            .Returns(grantId)
+            .Verifiable();
+
+        PersistedGrant<InitialAccessTokenGrant> capturedGrant = default;
+        MockPersistedGrantService
+            .Setup(x =>
+                x.AddAsync(
+                    It.IsAny<OpenIdContext>(),
+                    grantId,
+                    It.IsAny<PersistedGrant<InitialAccessTokenGrant>>(),
+                    It.IsAny<DateTimeOffset>(),
+                    null,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (
+                    OpenIdContext _,
+                    PersistedGrantId _,
+                    PersistedGrant<InitialAccessTokenGrant> grant,
+                    DateTimeOffset _,
+                    TimeSpan? _,
+                    CancellationToken _
+                ) => capturedGrant = grant
+            )
+            .ReturnsAsync(mintedGrantId)
+            .Verifiable();
+
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceChangeAsync(
+                    It.IsAny<HttpContext>(),
+                    It.Is<InitialAccessTokenCreatedAuditEvent>(e =>
+                        e.TenantId == TenantId && e.ResourceId == mintedGrantId
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateInitialAccessTokenAsync(
+            httpContext,
+            TenantId,
+            new CreateInitialAccessTokenRequest { Description = "ci pipeline" },
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CreatedInitialAccessTokenResource>>(result);
+        Assert.Equal(StatusCodes.Status201Created, json.StatusCode);
+        Assert.Equal(token, json.Value?.InitialAccessToken);
+        Assert.Equal(mintedGrantId, json.Value?.GrantId);
+        Assert.Equal(TenantId, json.Value?.TenantId);
+        Assert.Equal("ci pipeline", json.Value?.Description);
+        Assert.Null(json.Value?.ExpiresWhen);
+
+        Assert.Equal(PersistedGrantStatus.Active, capturedGrant.Status);
+        Assert.Equal(TenantId, capturedGrant.TenantId);
+        Assert.Null(capturedGrant.ClientId);
+        Assert.Null(capturedGrant.SubjectId);
+        Assert.Equal("ci pipeline", capturedGrant.Payload.Description);
+    }
+
+    [Fact]
+    public async Task CreateInitialAccessTokenAsync_WhenLifetimeSpecified_SetsExpiry()
+    {
+        const string token = "minted-token";
+        const string mintedGrantId = "iat-grant-2";
+        const long lifetimeSeconds = 3600;
+
+        SetupAuthorization(AuthorizationResult.Success());
+
+        MockCryptoService
+            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Returns(token)
+            .Verifiable();
+
+        var grantId = new PersistedGrantId
+        {
+            TenantId = TenantId,
+            GrantType = OpenIdConstants.PersistedGrantTypes.InitialAccessToken,
+            GrantKey = token,
+        };
+        MockPersistedGrantService
+            .Setup(x =>
+                x.CreateGrantId(
+                    TenantId,
+                    OpenIdConstants.PersistedGrantTypes.InitialAccessToken,
+                    token
+                )
+            )
+            .Returns(grantId)
+            .Verifiable();
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.AddAsync(
+                    It.IsAny<OpenIdContext>(),
+                    grantId,
+                    It.IsAny<PersistedGrant<InitialAccessTokenGrant>>(),
+                    It.IsAny<DateTimeOffset>(),
+                    TimeSpan.FromSeconds(lifetimeSeconds),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(mintedGrantId)
+            .Verifiable();
+
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceChangeAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<InitialAccessTokenCreatedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateInitialAccessTokenAsync(
+            httpContext,
+            TenantId,
+            new CreateInitialAccessTokenRequest { LifetimeSeconds = lifetimeSeconds },
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CreatedInitialAccessTokenResource>>(result);
+        Assert.NotNull(json.Value?.ExpiresWhen);
+        Assert.Equal(json.Value!.CreatedWhen.AddSeconds(lifetimeSeconds), json.Value.ExpiresWhen);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task CreateInitialAccessTokenAsync_WhenLifetimeNotPositive_ReturnsBadRequest(
+        long lifetimeSeconds
+    )
+    {
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // No authorization or mint scaffold: a strict-mock failure would mean the guard ran too late.
+        var result = await Handler.CreateInitialAccessTokenAsync(
+            httpContext,
+            TenantId,
+            new CreateInitialAccessTokenRequest { LifetimeSeconds = lifetimeSeconds },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateInitialAccessTokenAsync_WhenForbidden_ReturnsForbidWithoutMinting()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // No mint scaffold: a strict-mock failure would mean authorization ran too late.
+        var result = await Handler.CreateInitialAccessTokenAsync(
+            httpContext,
+            TenantId,
+            new CreateInitialAccessTokenRequest(),
             CancellationToken.None
         );
 

@@ -246,7 +246,12 @@ rationale.
   sync-over-async. Add house rules to that file as they emerge.
 - ⏳ **Warnings-as-errors**, and **NuGet vulnerability advisories (`NU190x`) as errors in CI**.
 - ✅ The whole gate is [`build/dod.ps1`](../../build/dod.ps1) — the single Definition of Done that CI runs.
-- 👁 **Run the full `dod.ps1` (a clean Release build over the whole solution) before calling a structural change done —
+- ⏳ **Local inner loop: `./build/dod.ps1 -Fast`.** It parallelizes project builds and test assemblies and skips the
+  non-correctness stages (coverage collection + packing) for a quicker edit-run cycle, while keeping CSharpier,
+  analyzers, and compile warnings-as-errors. It is **not** the CI-parity gate — run the plain `./build/dod.ps1`
+  (no `-Fast`) before pushing.
+- 👁 **Run the full `dod.ps1` (no `-Fast`, a clean Release build over the whole solution) before calling a structural
+  change done —
   an incremental Debug build of a single project can mask errors a clean build catches.** Notably, a `git mv` of a file
   that is open in the editor can be silently undone by the editor re-saving its stale buffer to the old path, leaving a
   duplicate type definition that only a clean/Release build (i.e. the DoD) surfaces.

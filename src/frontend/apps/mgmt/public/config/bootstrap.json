@@ -1,0 +1,11 @@
+{
+  "apiBaseUrl": "https://localhost:5001",
+  "issuer": "https://localhost:5001",
+  "features": {
+    "dcr": true
+  },
+  "branding": {
+    "displayName": "NCode.Identity (dev)",
+    "mode": "light"
+  }
+}

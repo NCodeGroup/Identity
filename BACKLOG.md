@@ -150,6 +150,33 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   includes unverified flows, which fails Config OP. Audit every advertised field down to verified support.
   Detailed plan: [`docs/conformance/discovery-alignment.md`](docs/conformance/discovery-alignment.md).
 
+## Frontend presentation platform (group `U`)
+
+The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
+([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
+
+- **`U1` — Management auth bootstrap (authorization-code + PKCE).** The Management API authenticates a self-issued
+  bearer access token for the `Management` audience; the console currently assumes a token is already in the `auth`
+  slice. Add the browser auth-code-with-PKCE flow (redirect to the discovered `authorization_endpoint`, token exchange
+  at `token_endpoint`, silent refresh) that populates `signedIn(...)`. UI-free PKCE/token helpers must be unit-tested.
+  Touch points: `src/frontend/packages/api`, `src/frontend/packages/store` (`authSlice`), `apps/mgmt`.
+- **`U2` — Management write operations (create/update/delete + settings/secrets).** The console reads tenants/clients
+  today; add RTK Query mutations with tag invalidation and MUI forms for the full CRUD surface already exposed by the
+  REST API (tenants, clients, resource servers/scopes, grants, secrets, settings PATCH, effective-settings), honoring
+  the one-time secret reveal and optimistic-concurrency (`concurrencyToken`). Keep forms stateless + Storybook-driven.
+- **`U3` — Remaining surfaces (Auth/Consent/Login, Playground, conformance) on the shared platform.** Build the `T2`
+  login/consent surface ([ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md)) and the eventual `F2`
+  consent screen as apps on this platform rather than bespoke UIs, honoring the stable-locator contract
+  (`id=username`/`password`/`login`/`consent-allow`/`consent-deny`). The server-driven cookie challenge flow stays
+  unchanged; the SPA is only the form surface.
+- **`U4` — Runtime bootstrap endpoint on the OP host.** The tier-agnostic bundle fetches `/config/bootstrap.json` from
+  the serving host; only a dev copy exists (`apps/mgmt/public/config/bootstrap.json`). Add a host endpoint that emits
+  the bootstrap document (API base, issuer, feature flags, branding) per deployment so one bundle serves every tier.
+- **`U5` — Frontend CI job.** The frontend toolchain is intentionally outside `dod.ps1`. Add a separate CI job
+  (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
+- **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
+  end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
+
 ## Secrets management (group `S`)
 
 Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md)

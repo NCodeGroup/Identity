@@ -39,8 +39,9 @@ When the user authorizes a push (says "push"), run these gates **before** pushin
    consumer-visible change into [`CHANGELOG.md`](../CHANGELOG.md), and pending work into [`BACKLOG.md`](../BACKLOG.md).
 2. **Drain volatile memory.** No durable knowledge may remain only in agent memory (`/memories/…`) or chat history:
    migrate anything durable into the repository and clear the memory so nothing survives solely as a volatile note.
-3. **Pass the CI-parity gate.** Run the full `./build/dod.ps1` — **not** `-Fast` (which is the local-development
-   invocation) — and confirm its final line is `Definition of Done: PASSED`.
+3. **Pass the local pre-push gate.** Run `./build/dod.ps1 -Fast` — the local-development pre-push gate — and confirm
+   its final line is `Definition of Done: PASSED`. The full `./build/dod.ps1` (which adds coverage + packing and
+   treats NuGet advisories as errors) is the CI-parity gate that runs in CI, **not** before a local push.
 
 This upholds [ADR-0008](../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md): conventions, reasoning, and
 recurring gotchas live in the repository.

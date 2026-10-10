@@ -15,10 +15,10 @@
     Build only; skip the test + coverage stage.
 
 .PARAMETER Fast
-    Local inner-loop accelerator (NOT a CI-parity gate): parallelizes project builds and test assemblies, and skips
-    the non-correctness stages (coverage collection and NuGet packing). Compile warnings-as-errors and analyzers stay
-    on, but NuGet vulnerability advisories (NU1901-1904) are warnings instead of errors. Always run the plain
-    ./build/dod.ps1 (no -Fast) before pushing.
+    Local inner-loop accelerator and the local pre-push gate (NOT a CI-parity gate): parallelizes project builds and
+    test assemblies, and skips the non-correctness stages (coverage collection and NuGet packing). Compile
+    warnings-as-errors and analyzers stay on, but NuGet vulnerability advisories (NU1901-1904) are warnings instead of
+    errors. The plain ./build/dod.ps1 (no -Fast) is the CI-parity gate that CI runs.
 
 .EXAMPLE
     ./build/dod.ps1

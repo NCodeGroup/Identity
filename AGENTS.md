@@ -41,8 +41,9 @@ build + pack, test + coverage) that CI and developers both run. It fails fast on
 `Definition of Done: PASSED` as its final line on success — that line (not any generated file) is the pass signal.
 For local development — including any protocol or validation step that runs the Definition of Done — use
 `./build/dod.ps1 -Fast`: it parallelizes project builds and test assemblies and skips the non-correctness stages
-(coverage + packing) while keeping compile warnings-as-errors and analyzers. `-Fast` is **not** the CI-parity gate; the
-plain `./build/dod.ps1` is reserved for the pre-push gate (the push protocol's final check). Package versions are centrally managed in
+(coverage + packing) while keeping compile warnings-as-errors and analyzers. `./build/dod.ps1 -Fast` is the **local
+pre-push gate** (the push protocol's final check); the plain `./build/dod.ps1` is the CI-parity gate that CI runs (also
+available locally for a thorough clean Release check). Package versions are centrally managed in
 [`Directory.Packages.props`](Directory.Packages.props); versioning is stamped in lockstep by Nerdbank.GitVersioning
 from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow and
 [`GOVERNANCE.md`](GOVERNANCE.md) for ownership, versioning, and publishing. For a full conventions sweep, run the

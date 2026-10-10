@@ -61,6 +61,13 @@ one option is merely more work.
   (`token.refresh.replay`), but there is no configurable response that revokes the whole token family
   on reuse. See `// TODO: refresh_token_reuse_policy` in
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/RefreshToken/DefaultRefreshTokenGrantHandler.cs`.
+- **`F5` — First-class claim-shaping pipeline (Auth0-Actions-equivalent).** Custom claim shaping is already possible
+  today by registering an `ICommandHandler` on the subject-claims / UserInfo commands (the mediator pipeline is the
+  extension seam, per [ADR-0054](docs/adr/0054-local-account-metadata-projection.md)), but there is no first-class
+  surface: a strongly-typed shaping context (event/api), fresh-metadata reload at issuance, per-key namespaced
+  flattening helpers, or ordering/management. Layer these on the existing pipeline additively.
+  Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/Handlers/`.
 
 ## Secrets management (group `S`)
 
@@ -113,12 +120,8 @@ the resource-owner password grant now authenticates a seeded local account over 
 - **`A1` — Local-account management API.** `ILocalAccountProvisioner` has no caller — accounts can only be _seeded_
   directly through the store, not created/updated by an operator. Add `create / update / disable / reset-password /
 set-metadata` endpoints mirroring the existing Management package (clients/tenants/servers). This is what makes
-  provisioning usable end-to-end.
+  provisioning usable end-to-end. The `set-metadata` surface must enforce the [ADR-0054](docs/adr/0054-local-account-metadata-projection.md)
+  invariant: `ProfileMetadata` is owner-updatable, but `SystemMetadata` is server/admin-only and must never be
+  end-user-writable (it can drive authorization once projected).
   Touch points: `src/NCode.Identity.OpenId.Accounts.Abstractions/ILocalAccountProvisioner.cs`,
   `src/NCode.Identity.OpenId.Management/Endpoints/`, `ILocalAccountStore`.
-- **`A3` — Account metadata is storage-only.** `ProfileMetadata` / `SystemMetadata` (the owner-updatable vs
-  server-controlled JSON bags) round-trip through the store but are never projected into tokens or UserInfo. If
-  Auth0-parity intends metadata to surface as claims, add projection — enforcing that `SystemMetadata` may drive
-  authorization but must never be end-user-writable.
-  Touch points: `src/NCode.Identity.OpenId.Accounts.Abstractions/DataContracts/PersistedLocalAccount.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`.

@@ -18,7 +18,9 @@
 
 using System.Globalization;
 using System.Security.Claims;
+using System.Text.Json;
 using NCode.Identity.Jose;
+using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Settings;
@@ -68,11 +70,32 @@ internal class DefaultCreatePasswordGrantSubjectHandler(TimeProvider timeProvide
         };
         claims.AddRange(account.Claims);
 
+        // Carry the free-form metadata bags on the subject as single JSON-object claims so the downstream token and
+        // UserInfo projection handlers can emit them where configured. The profile/system split is preserved as two
+        // distinct claim types so system (authorization-relevant) data is never conflated with owner-updatable data.
+        AddMetadataClaim(
+            claims,
+            AccountConstants.ProfileMetadataClaimType,
+            account.ProfileMetadata
+        );
+        AddMetadataClaim(claims, AccountConstants.SystemMetadataClaimType, account.SystemMetadata);
+
         var identity = new ClaimsIdentity(
             claims,
             authenticationType: OpenIdConstants.GrantTypes.Password
         );
 
         return ValueTask.FromResult(new ClaimsPrincipal(identity));
+    }
+
+    private static void AddMetadataClaim(List<Claim> claims, string claimType, JsonElement bag)
+    {
+        // Skip an absent or empty bag so the subject never carries an empty-object claim.
+        if (bag.ValueKind != JsonValueKind.Object || !bag.EnumerateObject().MoveNext())
+        {
+            return;
+        }
+
+        claims.Add(new Claim(claimType, bag.GetRawText(), JsonClaimValueTypes.Json));
     }
 }

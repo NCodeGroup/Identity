@@ -654,6 +654,78 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // send_profile_metadata_in_access_token: project the account's owner-updatable profile metadata bag into
+            // the access token as a single JSON object claim (default false). Override (Replace): a child fully
+            // replaces the parent value.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.SendProfileMetadataInAccessToken,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // send_profile_metadata_in_id_token: project the account's owner-updatable profile metadata bag into the id
+            // token as a single JSON object claim (default false). Override (Replace): a child fully replaces the
+            // parent value.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.SendProfileMetadataInIdToken,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // send_profile_metadata_in_user_info: project the account's owner-updatable profile metadata bag into the
+            // UserInfo response as a single JSON object claim (default false). Override (Replace): a child fully
+            // replaces the parent value.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.SendProfileMetadataInUserInfo,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // send_system_metadata_in_access_token: project the account's server-controlled system metadata bag into
+            // the access token as a single JSON object claim (default false). This is the authorization-appropriate
+            // destination for system metadata. Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.SendSystemMetadataInAccessToken,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // send_system_metadata_in_id_token: project the account's server-controlled system metadata bag into the id
+            // token as a single JSON object claim (default false). Override (Replace): a child fully replaces the
+            // parent value.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.SendSystemMetadataInIdToken,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // send_system_metadata_in_user_info: project the account's server-controlled system metadata bag into the
+            // UserInfo response as a single JSON object claim (default false). Override (Replace): a child fully
+            // replaces the parent value.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.SendSystemMetadataInUserInfo,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // service_documentation: URL of human-readable developer documentation for the server.
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>

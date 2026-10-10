@@ -276,6 +276,12 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ResponseModesSupported =
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ResponseTypesSupported = "response_types_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ScopesSupported = "scopes_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendIdClaimsInAccessToken = "send_id_claims_in_access_token" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendProfileMetadataInAccessToken = "send_profile_metadata_in_access_token" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendProfileMetadataInIdToken = "send_profile_metadata_in_id_token" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendProfileMetadataInUserInfo = "send_profile_metadata_in_user_info" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendSystemMetadataInAccessToken = "send_system_metadata_in_access_token" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendSystemMetadataInIdToken = "send_system_metadata_in_id_token" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendSystemMetadataInUserInfo = "send_system_metadata_in_user_info" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ServiceDocumentation = "service_documentation" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectMaxAge = "subject_max_age" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectType = "subject_type" -> string!
@@ -669,6 +675,12 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireRequestUriRegistr
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ResponseModesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ResponseTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendIdClaimsInAccessToken.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendProfileMetadataInAccessToken.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendProfileMetadataInIdToken.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendProfileMetadataInUserInfo.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInAccessToken.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInIdToken.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInUserInfo.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ServiceDocumentation.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectMaxAge.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectType.get -> NCode.Identity.Settings.SettingKey<string!>

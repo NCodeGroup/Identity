@@ -84,6 +84,20 @@ internal static class DefaultRegistration
                 >()
             );
 
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<GetIdTokenSubjectClaimsCommand>,
+                    DefaultGetIdTokenMetadataClaimsHandler
+                >()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<GetAccessTokenSubjectClaimsCommand>,
+                    DefaultGetAccessTokenMetadataClaimsHandler
+                >()
+            );
+
             return builder;
         }
     }

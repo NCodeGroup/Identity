@@ -52,6 +52,13 @@ internal static class DefaultRegistration
                     DefaultGetRequestedUserInfoClaimsHandler
                 >()
             );
+
+            builder.ServiceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<GetUserInfoClaimsCommand>,
+                    DefaultGetUserInfoMetadataClaimsHandler
+                >()
+            );
         }
     }
 }

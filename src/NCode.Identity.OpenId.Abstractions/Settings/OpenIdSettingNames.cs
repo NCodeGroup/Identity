@@ -341,6 +341,36 @@ public static class OpenIdSettingNames
     public const string SendIdClaimsInAccessToken = "send_id_claims_in_access_token";
 
     /// <summary>
+    /// Contains the name of <c>send_profile_metadata_in_access_token</c> setting.
+    /// </summary>
+    public const string SendProfileMetadataInAccessToken = "send_profile_metadata_in_access_token";
+
+    /// <summary>
+    /// Contains the name of <c>send_profile_metadata_in_id_token</c> setting.
+    /// </summary>
+    public const string SendProfileMetadataInIdToken = "send_profile_metadata_in_id_token";
+
+    /// <summary>
+    /// Contains the name of <c>send_profile_metadata_in_user_info</c> setting.
+    /// </summary>
+    public const string SendProfileMetadataInUserInfo = "send_profile_metadata_in_user_info";
+
+    /// <summary>
+    /// Contains the name of <c>send_system_metadata_in_access_token</c> setting.
+    /// </summary>
+    public const string SendSystemMetadataInAccessToken = "send_system_metadata_in_access_token";
+
+    /// <summary>
+    /// Contains the name of <c>send_system_metadata_in_id_token</c> setting.
+    /// </summary>
+    public const string SendSystemMetadataInIdToken = "send_system_metadata_in_id_token";
+
+    /// <summary>
+    /// Contains the name of <c>send_system_metadata_in_user_info</c> setting.
+    /// </summary>
+    public const string SendSystemMetadataInUserInfo = "send_system_metadata_in_user_info";
+
+    /// <summary>
     /// Contains the name of <c>service_documentation</c> setting.
     /// </summary>
     public const string ServiceDocumentation = "service_documentation";

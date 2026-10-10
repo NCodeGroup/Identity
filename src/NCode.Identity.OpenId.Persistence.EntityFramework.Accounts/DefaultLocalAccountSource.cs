@@ -94,5 +94,7 @@ internal sealed class DefaultLocalAccountSource(
             IsEnabled = account.IsEnabled,
             SecurityStamp = account.SecurityStamp,
             Claims = account.Claims.Select(claim => new Claim(claim.Type, claim.Value)).ToList(),
+            ProfileMetadata = account.ProfileMetadata,
+            SystemMetadata = account.SystemMetadata,
         };
 }

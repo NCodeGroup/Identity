@@ -110,8 +110,15 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   low-level package (e.g. `NCode.Json`), which is its own packaging/versioning decision.
   Touch points: `src/NCode.Identity.Abstractions/Json/JsonElements.cs`,
   `src/NCode.Identity.Jose.Abstractions/Extensions/JsonElementExtensions.cs`.
-
-## Local accounts (group `A`)
+- **`R3` — Standardize on `JsonElement.Parse(string)` for detached parsing.** `JsonElement.Parse` (.NET 9+) returns a
+  self-owned, detached `JsonElement` and is the concise, allocation-equivalent replacement for the
+  `JsonDocument.Parse(json).RootElement.Clone()` dance and for `JsonSerializer.Deserialize<JsonElement>(json)` (which
+  routes through the serializer layer). A3 switched the one new call site; the rest of the codebase still uses the older
+  forms. Sweep the convertible production spots (and the test `.RootElement.Clone()` bootstraps); leave scoped
+  `using var document = JsonDocument.Parse(...)` reads that only enumerate within a local scope as-is. Byte-based
+  parses (`ReadOnlySpan<byte>`) have no `JsonElement.Parse` overload and stay on `JsonDocument`/`Deserialize`.
+  Touch points: `src/NCode.Identity.Abstractions/Json/JsonElements.cs`,
+  `src/NCode.Identity.OpenId.Persistence.EntityFramework/Converters/JsonElementConverter.cs`.
 
 Follow-ups surfaced finishing local-account login end-to-end ([ADR-0051](docs/adr/0051-local-accounts-behind-a-pluggable-account-source-seam.md)):
 the resource-owner password grant now authenticates a seeded local account over a pluggable `ILocalAccountSource`

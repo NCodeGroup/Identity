@@ -1,5 +1,18 @@
 # NCode.Identity — Copilot instructions
 
+## Design posture (greenfield, pre-release)
+
+This family is **greenfield and pre-release** — nothing is shipped and there is **no backward-compatibility to
+preserve** ([ADR-0025](../docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)). **Default to the best long-term,
+cohesive design.** When a change forks between a minimal, compatibility-preserving patch and the comprehensive, correct
+model, choose the comprehensive model **without** weighing refactor difficulty or public-surface breakage — PublicAPI
+churn, setting renames/removals, signature changes, moved types, and clean cutovers are expected and preferred over
+shims. Surface a fork for the user to decide **only** when the options are genuinely equal in quality (a real
+value/security/semantics trade-off), not when one is merely more work. Full statement: the standing posture in
+[`BACKLOG.md`](../BACKLOG.md).
+
+## Orientation
+
 Repo orientation and the build / contributing workflow are in [`AGENTS.md`](../AGENTS.md). All coding conventions are
 the single source of truth in the scoped instruction files, auto-applied by path:
 

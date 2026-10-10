@@ -226,6 +226,16 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.SecretT
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.SecretType.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.Use.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.Use.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.PublicKeyResource
+NCode.Identity.OpenId.Management.Contracts.Secrets.PublicKeyResource.Jwk.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.Secrets.PublicKeyResource.Jwk.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.PublicKeyResource.Pem.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.PublicKeyResource.Pem.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.PublicKeyResource.PublicKeyResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.PublicKeyResource.SecretId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.PublicKeyResource.SecretId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.PublicKeyResource.SecretType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.PublicKeyResource.SecretType.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.Algorithm.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.Algorithm.init -> void

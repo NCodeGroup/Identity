@@ -58,6 +58,7 @@ GET   api/servers/{serverId}/effective-settings
 GET    api/servers/{serverId}/secrets
 POST   api/servers/{serverId}/secrets
 GET    api/servers/{serverId}/secrets/{secretId}
+GET    api/servers/{serverId}/secrets/{secretId}/public-key
 PUT    api/servers/{serverId}/secrets/{secretId}
 DELETE api/servers/{serverId}/secrets/{secretId}
 
@@ -72,6 +73,7 @@ internal class ServerApiEndpointHandler(
     IServerValidator serverValidator,
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
+    ISecretPublicKeyConverter secretPublicKeyConverter,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     IOpenIdServerProvider serverProvider,
@@ -83,6 +85,7 @@ internal class ServerApiEndpointHandler(
     private IServerValidator ServerValidator { get; } = serverValidator;
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
@@ -121,6 +124,9 @@ internal class ServerApiEndpointHandler(
             .MapPost("/{serverId}/secrets", CreateSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created);
         servers.MapGet("/{serverId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
+        servers
+            .MapGet("/{serverId}/secrets/{secretId}/public-key", GetPublicKeyAsync)
+            .Produces<PublicKeyResource>();
         servers
             .MapPut("/{serverId}/secrets/{secretId}", UpdateSecretAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -640,6 +646,36 @@ internal class ServerApiEndpointHandler(
         var secret = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
 
         return await ProcessGetAsync(httpContext, secret, Operations.Read, ToSecretResource);
+    }
+
+    /// <summary>
+    /// Gets the public key material of an asymmetric server secret, as a JWK and a PEM.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="secretId">The identifier of the secret.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The public key material of the requested secret.</response>
+    [EndpointName("api/servers/secrets/get-public-key")]
+    internal virtual async ValueTask<IResult> GetPublicKeyAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        [FromRoute] string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IServerStore>();
+
+        var secret = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
+
+        return await ProcessGetAsync(
+            httpContext,
+            secret,
+            authorizationResource: null,
+            Operations.Read,
+            SecretPublicKeyConverter.Convert
+        );
     }
 
     /// <summary>

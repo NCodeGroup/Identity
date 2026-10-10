@@ -87,10 +87,6 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   room. Import needs its own validation + threat-model ADR before implementation.
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/Logic/GenerateSecretRequest.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`.
-- **`S4` — Asymmetric public-material exposure.** No read path returns public key material (JWK/PEM) for a
-  client's registered public key or for server/tenant signing keys. ADR-0011/ADR-0050 reserve this as a
-  deliberate additive option (public material only; private keys stay unreachable).
-  Touch points: `src/NCode.Identity.OpenId.Management.Abstractions/Contracts/Secrets/`.
 - **`S5` — Client-secret storage: hash-at-rest vs reversible protection (needs its own ADR).** A client secret
   is reveal-once and never returned again, so the server only needs to _verify_ a presented value — a
   one-way hash (OWASP-preferred) is safer than today's reversible data-protected `EncodedValue`. But

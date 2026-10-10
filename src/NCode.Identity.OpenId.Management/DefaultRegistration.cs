@@ -82,6 +82,13 @@ public static class DefaultRegistration
             // Shared by the server/tenant/client secret-create endpoints (ADR-0015).
             serviceCollection.TryAddSingleton<ISecretValidator, DefaultSecretValidator>();
 
+            // Shared by the server/tenant/client public-key read endpoints (ADR-0058). Reuses the registered
+            // IJsonWebKeyConverter pipeline (from the JWKS endpoint) for the JWK representation.
+            serviceCollection.TryAddSingleton<
+                ISecretPublicKeyConverter,
+                DefaultSecretPublicKeyConverter
+            >();
+
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<SeedTenantCommand>,

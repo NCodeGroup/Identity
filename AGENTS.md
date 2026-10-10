@@ -48,4 +48,8 @@ from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTI
 This family is **greenfield and pre-release**: all work lands on `dev` until it is feature-complete, breaking changes
 are acceptable there (prefer a clean cutover over compatibility shims, and expect `PublicAPI.Unshipped.txt` churn), and
 the design follows an **Auth0-parity-plus** philosophy — familiar Auth0 shapes with more flexible, data-driven controls.
-See [ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md).
+See [ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md). Because of this posture, **default to the
+best long-term, cohesive design**: when a change forks between a minimal compatibility-preserving patch and the
+comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
+breakage, and surface a fork for the user only when the options are genuinely equal in quality. Full statement: the
+standing posture in [`BACKLOG.md`](BACKLOG.md).

@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
 using NCode.Identity.Server.OpenApi;
 using NCode.Mediator;
 using NCode.PropertyBag;

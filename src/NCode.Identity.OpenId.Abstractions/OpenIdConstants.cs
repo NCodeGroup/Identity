@@ -64,6 +64,18 @@ public static partial class OpenIdConstants
         public const string Discovery = "discovery_endpoint";
 
         /// <summary>
+        /// Contains the name for the <c>device authorization</c> endpoint.
+        /// This value is also used as the <c>device_authorization_endpoint</c> key in the discovery metadata.
+        /// </summary>
+        public const string DeviceAuthorization = "device_authorization_endpoint";
+
+        /// <summary>
+        /// Contains the name for the user-facing <c>device verification</c> endpoint where the end user enters their
+        /// <c>user_code</c> to approve or deny a device authorization request.
+        /// </summary>
+        public const string DeviceVerification = "device_verification_endpoint";
+
+        /// <summary>
         /// Contains the name for the <c>JSON Web Key Set (JWKS)</c> endpoint.
         /// This value is also used as the <c>jwks_uri</c> key in the discovery metadata.
         /// </summary>
@@ -115,6 +127,16 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the <c>discovery</c> endpoint.
         /// </summary>
         public const string Discovery = "/.well-known/openid-configuration";
+
+        /// <summary>
+        /// Contains the relative path for the <c>device authorization</c> endpoint.
+        /// </summary>
+        public const string DeviceAuthorization = $"{Prefix}/device_authorization";
+
+        /// <summary>
+        /// Contains the relative path for the user-facing <c>device verification</c> endpoint.
+        /// </summary>
+        public const string DeviceVerification = $"{Prefix}/device";
 
         /// <summary>
         /// Contains the relative path for the <c>JSON Web Key Set (JWKS)</c> endpoint.
@@ -239,6 +261,18 @@ public static partial class OpenIdConstants
         /// Identifies a persisted grant for a <c>refresh token</c>.
         /// </summary>
         public const string RefreshToken = "refresh_token";
+
+        /// <summary>
+        /// Identifies a persisted grant for a pending <c>device authorization</c> request (RFC 8628), keyed by the
+        /// <c>device_code</c> that the device polls with.
+        /// </summary>
+        public const string DeviceCode = "device_code";
+
+        /// <summary>
+        /// Identifies a persisted grant that maps a human-typable <c>user_code</c> to its pending device authorization
+        /// request, so the verification endpoint can resolve the request from the <c>user_code</c> alone.
+        /// </summary>
+        public const string DeviceUserCode = "device_user_code";
 
         /// <summary>
         /// Identifies a persisted grant that carries the UserInfo claims requested via the OpenID Connect

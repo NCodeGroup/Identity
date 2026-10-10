@@ -60,6 +60,27 @@ public static partial class OpenIdConstants
         /// </summary>
         public const string AccessDenied = "access_denied";
 
+        // OAuth 2.0 Device Authorization Grant Token Error Responses
+        // https://datatracker.ietf.org/doc/html/rfc8628#section-3.5
+
+        /// <summary>
+        /// Contains the error code for <c>authorization_pending</c>, returned while the end user has not yet completed
+        /// the device authorization (<see href="https://datatracker.ietf.org/doc/html/rfc8628#section-3.5">RFC 8628</see>).
+        /// </summary>
+        public const string AuthorizationPending = "authorization_pending";
+
+        /// <summary>
+        /// Contains the error code for <c>slow_down</c>, returned when the device polls faster than the permitted
+        /// interval and must increase its polling interval (<see href="https://datatracker.ietf.org/doc/html/rfc8628#section-3.5">RFC 8628</see>).
+        /// </summary>
+        public const string SlowDown = "slow_down";
+
+        /// <summary>
+        /// Contains the error code for <c>expired_token</c>, returned when the <c>device_code</c> has expired
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc8628#section-3.5">RFC 8628</see>).
+        /// </summary>
+        public const string ExpiredToken = "expired_token";
+
         /// <summary>
         /// Contains the error code for <c>invalid_token</c>, used when a bearer access token is missing, malformed,
         /// expired, revoked, or otherwise invalid (<see href="https://datatracker.ietf.org/doc/html/rfc6750#section-3.1">RFC 6750</see>).

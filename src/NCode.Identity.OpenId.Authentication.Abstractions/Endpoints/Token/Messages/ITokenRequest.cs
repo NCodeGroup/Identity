@@ -43,6 +43,12 @@ public interface ITokenRequest : IOpenIdRequest
     string? CodeVerifier { get; set; }
 
     /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the <c>device_code</c> that the device received from the
+    /// device authorization endpoint and polls the token endpoint with (RFC 8628).
+    /// </summary>
+    string? DeviceCode { get; set; }
+
+    /// <summary>
     /// Gets or sets a <see cref="string"/> value containing the type of grant that the client is requesting.
     /// </summary>
     string? GrantType { get; set; }

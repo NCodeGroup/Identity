@@ -178,6 +178,24 @@ public static class OpenIdSettingNames
     public const string ContinueAuthorizationLifetime = "continue_authorization_lifetime";
 
     /// <summary>
+    /// Contains the name of <c>device_code_lifetime</c> setting (the validity window of a pending device authorization
+    /// request, RFC 8628).
+    /// </summary>
+    public const string DeviceCodeLifetime = "device_code_lifetime";
+
+    /// <summary>
+    /// Contains the name of <c>device_code_polling_interval</c> setting (the minimum interval the device must wait
+    /// between polls of the token endpoint, RFC 8628).
+    /// </summary>
+    public const string DeviceCodePollingInterval = "device_code_polling_interval";
+
+    /// <summary>
+    /// Contains the name of <c>user_code_length</c> setting (the number of characters in a generated device
+    /// <c>user_code</c>, RFC 8628).
+    /// </summary>
+    public const string UserCodeLength = "user_code_length";
+
+    /// <summary>
     /// Contains the name of <c>display_values_supported</c> setting.
     /// </summary>
     public const string DisplayValuesSupported = "display_values_supported";

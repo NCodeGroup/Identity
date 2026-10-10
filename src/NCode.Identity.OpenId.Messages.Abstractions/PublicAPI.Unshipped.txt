@@ -155,6 +155,7 @@ static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.MaxAge -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Nonce -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Password -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.DeviceCode -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.PromptType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RedirectUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RefreshToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!

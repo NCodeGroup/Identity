@@ -71,6 +71,8 @@ const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Touch = "touch" -> stri
 const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Wap = "wap" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Authorization = "authorization_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Continue = "continue_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.DeviceAuthorization = "device_authorization_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.DeviceVerification = "device_verification_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Discovery = "discovery_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Introspection = "introspection_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Jwks = "jwks_uri" -> string!
@@ -79,6 +81,8 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Token = "token_endpoin
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.UserInfo = "userinfo_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Authorization = "/oauth2/authorize" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Continue = "/oauth2/continue" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.DeviceAuthorization = "/oauth2/device_authorization" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.DeviceVerification = "/oauth2/device" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Discovery = "/.well-known/openid-configuration" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Introspection = "/oauth2/introspect" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Jwks = "/oauth2/jwks" -> string!
@@ -94,6 +98,9 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ResourceServers = "Reso
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Servers = "Servers" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Tenants = "Tenants" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccessDenied = "access_denied" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AuthorizationPending = "authorization_pending" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.ExpiredToken = "expired_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.SlowDown = "slow_down" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccountSelectionRequired = "account_selection_required" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.ConsentRequired = "consent_required" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InteractionRequired = "interaction_required" -> string!
@@ -151,6 +158,7 @@ const NCode.Identity.OpenId.OpenIdConstants.Parameters.GrantType = "grant_type" 
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.IdentityProvider = "identity_provider" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.IdToken = "id_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.IdTokenHint = "id_token_hint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Interval = "interval" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuedAt = "iat" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuerLong = "issuer" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuerShort = "iss" -> string!
@@ -183,9 +191,13 @@ const NCode.Identity.OpenId.OpenIdConstants.Parameters.UserInfo = "userinfo" -> 
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.Username = "username" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.Value = "value" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.Values = "values" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.VerificationUri = "verification_uri" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.VerificationUriComplete = "verification_uri_complete" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ParameterSeparatorChar = ' ' -> char
 const NCode.Identity.OpenId.OpenIdConstants.ParameterSeparatorString = " " -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.AuthorizationCode = "authorization_code" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.DeviceCode = "device_code" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.DeviceUserCode = "device_user_code" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.Continue = "continue" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.RefreshToken = "refresh_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.UserInfoClaims = "userinfo_claims" -> string!
@@ -246,6 +258,8 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsSupportedIsStrict 
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimTypesSupported = "claim_types_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClockSkew = "clock_skew" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ContinueAuthorizationLifetime = "continue_authorization_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DeviceCodeLifetime = "device_code_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DeviceCodePollingInterval = "device_code_polling_interval" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DisplayValuesSupported = "display_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.GrantTypesSupported = "grant_types_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenEncryptionAlgValuesSupported = "id_token_encryption_alg_values_supported" -> string!
@@ -286,6 +300,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendSystemMetadataInUser
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ServiceDocumentation = "service_documentation" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectMaxAge = "subject_max_age" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectType = "subject_type" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.UserCodeLength = "user_code_length" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectTypesSupported = "subject_types_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantIssuer = "tenant_issuer" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenEndpointAuthMethodsSupported = "token_endpoint_auth_methods_supported" -> string!
@@ -656,8 +671,11 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsSupportedIsStrict.
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClockSkew.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ContinueAuthorizationLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeviceCodeLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeviceCodePollingInterval.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DisplayValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.GrantTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserCodeLength.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionRequired.get -> NCode.Identity.Settings.SettingKey<bool>

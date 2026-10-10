@@ -55,8 +55,17 @@ one option is merely more work.
   grant/deny decision, but there is no persisted consent record or scope pre-approval. See
   `// TODO: check consent` in
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultAuthorizeHandler.cs`.
-- **`F3` — `device_code` (RFC 8628) and CIBA grants.** Not implemented (TODOs in
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/`).
+- **`F3` — CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication).** The OAuth 2.0 Device
+  Authorization Grant (`device_code`, RFC 8628) **is implemented** — device authorization and verification endpoints,
+  the `device_code` token grant handler, and the pending-request persistence model (see
+  [ADR-0059](docs/adr/0059-device-authorization-grant.md)). CIBA is **not** implemented: there is no
+  `backchannel_authentication_endpoint`, no `auth_req_id` grant, and no poll/ping/push token-delivery modes. CIBA
+  reuses the same pending-authorization-as-persisted-grant pattern the device flow established, but adds two design
+  questions that need their own ADR before implementation: resolving `login_hint` / `login_hint_token` /
+  `id_token_hint` to a subject, and the decoupled **authentication-device notification** seam (deployment-specific, so
+  it must be an injectable abstraction rather than a built-in transport). Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/` (the `// TODO: Ciba Grant` marker in
+  `DefaultTokenEndpointProvider.cs`), plus a new `Endpoints/BackchannelAuthentication/` family.
 - **`F4` — `refresh_token_reuse_policy` (none / revoke_all).** Refresh-token replay is _detected and audited_
   (`token.refresh.replay`), but there is no configurable response that revokes the whole token family
   on reuse. See `// TODO: refresh_token_reuse_policy` in
@@ -95,4 +104,3 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`.
-

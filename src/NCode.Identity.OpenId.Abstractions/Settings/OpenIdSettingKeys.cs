@@ -195,6 +195,23 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.ContinueAuthorizationLifetime);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'device_code_lifetime' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> DeviceCodeLifetime =>
+        new(OpenIdSettingNames.DeviceCodeLifetime);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'device_code_polling_interval' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> DeviceCodePollingInterval =>
+        new(OpenIdSettingNames.DeviceCodePollingInterval);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'user_code_length' setting.
+    /// </summary>
+    public static SettingKey<int> UserCodeLength => new(OpenIdSettingNames.UserCodeLength);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'display_values_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> DisplayValuesSupported =>

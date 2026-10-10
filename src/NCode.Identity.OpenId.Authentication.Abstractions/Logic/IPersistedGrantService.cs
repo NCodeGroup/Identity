@@ -115,4 +115,22 @@ public interface IPersistedGrantService
         DateTimeOffset expiresWhen,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Replaces the payload of a grant if it is still active. This supports grants whose payload carries a mutable
+    /// state (for example, a pending device authorization request that transitions from pending to approved or denied).
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
+    /// <param name="payload">The new payload to persist for the grant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> if an
+    /// active grant was found and updated; otherwise, <c>false</c>.</returns>
+    ValueTask<bool> UpdatePayloadAsync<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        TPayload payload,
+        CancellationToken cancellationToken
+    );
 }

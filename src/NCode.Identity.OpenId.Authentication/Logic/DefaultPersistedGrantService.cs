@@ -276,4 +276,43 @@ internal class DefaultPersistedGrantService(
 
         await storeManager.SaveChangesAsync(cancellationToken);
     }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> UpdatePayloadAsync<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        TPayload payload,
+        CancellationToken cancellationToken
+    )
+    {
+        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+        var openIdEnvironment = openIdContext.Environment;
+
+        var grantType = grantId.GrantType;
+        var hashedKey = GetHashedKey(grantId);
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IGrantStore>();
+
+        var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
+        if (envelope is null)
+            return false;
+
+        if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
+            return false;
+
+        if (GetStatus(utcNow, envelope) != PersistedGrantStatus.Active)
+            return false;
+
+        envelope.PayloadJson = JsonSerializer.SerializeToElement(
+            payload,
+            openIdEnvironment.JsonSerializerOptions
+        );
+
+        await store.UpdateAsync(envelope, cancellationToken);
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
 }

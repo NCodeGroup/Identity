@@ -317,6 +317,7 @@ internal class GrantStore(
         grantEntity.ExpiresWhen = persistedGrant.ExpiresWhen;
         grantEntity.RevokedWhen = persistedGrant.RevokedWhen;
         grantEntity.ConsumedWhen = persistedGrant.ConsumedWhen;
+        grantEntity.PayloadJson = persistedGrant.PayloadJson;
 
         DbContext.Grants.Update(grantEntity);
     }

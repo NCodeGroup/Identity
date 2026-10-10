@@ -8,7 +8,25 @@ change to the public API is a **major** version bump.
 
 ## [Unreleased]
 
+### Added
+
+- New dependency-free **`NCode.Json`** package holding the shared `JsonElements` helper (`EmptyObject` /
+  `OrEmptyObject` / `IsNullOrUndefined`, namespace `NCode.Json`), promoted out of `NCode.Identity.Abstractions` so the
+  persistence layer (and any package beneath `NCode.Identity.*`) can reuse it without inheriting that package's ASP.NET
+  Core framework reference. See [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md).
+
 ### Changed
+
+- **Subject metadata (`ProfileMetadata` / `SystemMetadata`) is now a principal-level concept, resolved fresh at
+  issuance.** The two bags moved off `LocalAccount` (and `PersistedLocalAccount` / `LocalAccountCreationRequest`) onto
+  `FederatedPrincipal` / `PersistedFederatedPrincipal`, and are resolved at token/UserInfo issuance through a new
+  pluggable `IPrincipalMetadataProvider` (default over `IFederatedPrincipalStore`) keyed by the resolved `PrincipalId`.
+  They are therefore projected identically for every grant flow (ROPC, interactive, refresh) and every connection kind
+  (local **or** external IdP), where before only ROPC-authenticated local accounts received them. The provider reads
+  fresh per issuance (cluster-consistent); there is no built-in cache — host-side caching is a replaceable-provider
+  concern that must be distributed. The ROPC subject builder no longer stamps metadata onto the subject. See
+  [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) (amends
+  [ADR-0054](docs/adr/0054-local-account-metadata-projection.md)).
 
 - Entity Framework persistence was split into a reusable **framework** package
   (`NCode.Identity.OpenId.Persistence.EntityFramework`) plus domain **slice** packages that plug into the shared,

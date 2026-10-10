@@ -98,6 +98,10 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.Conc
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PersistedFederatedPrincipal() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PrincipalId.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PrincipalId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.ProfileMetadata.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.ProfileMetadata.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.SystemMetadata.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.SystemMetadata.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.TenantId.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.TenantId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant

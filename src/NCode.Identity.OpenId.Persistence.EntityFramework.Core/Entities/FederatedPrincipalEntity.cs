@@ -18,6 +18,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
@@ -70,6 +71,18 @@ public sealed class FederatedPrincipalEntity : ISupportTenantEntity, ISupportCon
     public required string NormalizedTenantId { get; init; }
 
     //
+
+    /// <summary>
+    /// Gets or sets the principal's owner-updatable profile metadata as a free-form JSON object, defaulting to an
+    /// empty object <c>{}</c>; converted to a string column by the shared JsonElement value converter (ADR-0055).
+    /// </summary>
+    public required JsonElement ProfileMetadataJson { get; set; }
+
+    /// <summary>
+    /// Gets or sets the principal's server-controlled system metadata as a free-form JSON object, defaulting to an
+    /// empty object <c>{}</c>; never end-user writable, as it may carry authorization-relevant data (ADR-0055).
+    /// </summary>
+    public required JsonElement SystemMetadataJson { get; set; }
 
     /// <inheritdoc />
     [Unicode(false)]

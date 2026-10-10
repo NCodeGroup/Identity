@@ -16,70 +16,80 @@
 
 #endregion
 
-using NCode.Identity.Claims;
+using System.Security.Claims;
+using System.Text.Json;
+using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
+using NCode.Identity.OpenId.Principals;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 
 /// <summary>
-/// Provides a default <see cref="GetAccessTokenSubjectClaimsCommand"/> handler that projects an account's metadata bags
-/// into the access token, gated by the <c>send_profile_metadata_in_access_token</c> and
-/// <c>send_system_metadata_in_access_token</c> settings. The access token is the authorization-appropriate destination
-/// for server-controlled system metadata. This is only the built-in default projection; applications register their own
-/// pipeline handlers to shape metadata into bespoke claims.
+/// Provides a default <see cref="GetAccessTokenSubjectClaimsCommand"/> handler that projects the principal's metadata
+/// bags into the access token, gated by the <c>send_profile_metadata_in_access_token</c> and
+/// <c>send_system_metadata_in_access_token</c> settings. The bags are resolved fresh from the
+/// <see cref="IPrincipalMetadataProvider"/> by principal id at issuance, so they flow identically for every grant flow
+/// and connection kind. The access token is the authorization-appropriate destination for server-controlled system
+/// metadata. This is only the built-in default projection; applications register their own pipeline handlers to shape
+/// metadata into bespoke claims.
 /// </summary>
-internal class DefaultGetAccessTokenMetadataClaimsHandler(IClaimsService claimsService)
-    : ICommandHandler<GetAccessTokenSubjectClaimsCommand>,
-        ISupportMediatorPriority
+internal class DefaultGetAccessTokenMetadataClaimsHandler(
+    IPrincipalMetadataProvider metadataProvider
+) : ICommandHandler<GetAccessTokenSubjectClaimsCommand>, ISupportMediatorPriority
 {
-    private IClaimsService ClaimsService { get; } = claimsService;
+    private IPrincipalMetadataProvider MetadataProvider { get; } = metadataProvider;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.Low;
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(
+    public async ValueTask HandleAsync(
         GetAccessTokenSubjectClaimsCommand command,
         CancellationToken cancellationToken
     )
     {
-        var (_, openIdClient, tokenContext, targetClaims) = command;
+        var (openIdContext, openIdClient, tokenContext, targetClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
 
         if (!tokenRequest.SubjectAuthentication.HasValue)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
-        var (_, _, sourceClaims, _) = tokenRequest.SubjectAuthentication.Value;
         var settings = openIdClient.Settings;
-
-        var claimTypes = new List<string>(capacity: 2);
-
-        if (settings.GetValue(OpenIdSettingKeys.SendProfileMetadataInAccessToken))
+        var sendProfile = settings.GetValue(OpenIdSettingKeys.SendProfileMetadataInAccessToken);
+        var sendSystem = settings.GetValue(OpenIdSettingKeys.SendSystemMetadataInAccessToken);
+        if (!sendProfile && !sendSystem)
         {
-            claimTypes.Add(AccountConstants.ProfileMetadataClaimType);
+            return;
         }
 
-        if (settings.GetValue(OpenIdSettingKeys.SendSystemMetadataInAccessToken))
-        {
-            claimTypes.Add(AccountConstants.SystemMetadataClaimType);
-        }
+        var (_, _, _, principalId) = tokenRequest.SubjectAuthentication.Value;
+        var metadata = await MetadataProvider.GetMetadataAsync(
+            openIdContext,
+            principalId,
+            cancellationToken
+        );
 
-        if (claimTypes.Count > 0)
+        if (sendProfile)
         {
-            // CopyClaims preserves the JSON value type, so each bag re-serializes as a nested object in the token.
-            ClaimsService.CopyClaims(
-                sourceClaims,
+            SubjectMetadataClaims.AddMetadataClaim(
                 targetClaims,
-                preventDuplicates: true,
-                claimTypes
+                AccountConstants.ProfileMetadataClaimType,
+                metadata.ProfileMetadata
             );
         }
 
-        return ValueTask.CompletedTask;
+        if (sendSystem)
+        {
+            SubjectMetadataClaims.AddMetadataClaim(
+                targetClaims,
+                AccountConstants.SystemMetadataClaimType,
+                metadata.SystemMetadata
+            );
+        }
     }
 }

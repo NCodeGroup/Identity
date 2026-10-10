@@ -108,7 +108,6 @@ public sealed class DefaultLocalAccountProvisionerTests : IDisposable
                 Password = PasswordBytes,
                 Email = "alice@example.com",
                 EmailVerified = true,
-                SystemMetadata = JsonDocument.Parse("""{"plan":"gold"}""").RootElement.Clone(),
             },
             CancellationToken.None
         );
@@ -123,11 +122,6 @@ public sealed class DefaultLocalAccountProvisionerTests : IDisposable
         Assert.True(captured.EmailVerified);
         Assert.True(captured.IsEnabled);
         Assert.NotNull(captured.SecurityStamp);
-
-        // Metadata flows through unchanged: the profile bag defaulted to empty, the system bag was supplied.
-        Assert.Equal(JsonValueKind.Object, captured.ProfileMetadata.ValueKind);
-        Assert.Empty(captured.ProfileMetadata.EnumerateObject());
-        Assert.Equal("gold", captured.SystemMetadata.GetProperty("plan").GetString());
 
         // The stored hash must verify against the original credential bytes.
         Assert.Equal(

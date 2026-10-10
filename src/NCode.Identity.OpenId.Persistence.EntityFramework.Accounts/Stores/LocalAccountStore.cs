@@ -19,7 +19,6 @@
 using System.Linq.Expressions;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
-using NCode.Identity.Json;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Entities;
@@ -121,8 +120,6 @@ internal sealed class LocalAccountStore(
             PasswordHash = account.PasswordHash,
             SecurityStamp = account.SecurityStamp,
             IsEnabled = account.IsEnabled,
-            ProfileMetadataJson = account.ProfileMetadata.OrEmptyObject(),
-            SystemMetadataJson = account.SystemMetadata.OrEmptyObject(),
             ConcurrencyToken = account.ConcurrencyToken,
         };
 
@@ -158,8 +155,6 @@ internal sealed class LocalAccountStore(
         entity.PasswordHash = account.PasswordHash;
         entity.SecurityStamp = account.SecurityStamp;
         entity.IsEnabled = account.IsEnabled;
-        entity.ProfileMetadataJson = account.ProfileMetadata.OrEmptyObject();
-        entity.SystemMetadataJson = account.SystemMetadata.OrEmptyObject();
     }
 
     /// <inheritdoc />
@@ -192,8 +187,6 @@ internal sealed class LocalAccountStore(
             PasswordHash = entity.PasswordHash,
             SecurityStamp = entity.SecurityStamp,
             IsEnabled = entity.IsEnabled,
-            ProfileMetadata = entity.ProfileMetadataJson,
-            SystemMetadata = entity.SystemMetadataJson,
             Claims = entity
                 .Claims.Select(claim => new PersistedLocalAccountClaim
                 {

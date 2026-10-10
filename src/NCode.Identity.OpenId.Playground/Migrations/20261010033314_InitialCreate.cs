@@ -28,9 +28,7 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     PasswordHash = table.Column<string>(type: "TEXT", unicode: false, maxLength: 1000, nullable: true),
                     SecurityStamp = table.Column<string>(type: "TEXT", unicode: false, maxLength: 100, nullable: false),
                     IsEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    ProfileMetadataJson = table.Column<string>(type: "TEXT", nullable: false),
-                    SystemMetadataJson = table.Column<string>(type: "TEXT", nullable: false)
+                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -177,6 +175,8 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     NormalizedPrincipalId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
                     TenantId = table.Column<long>(type: "INTEGER", nullable: false),
                     NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
+                    ProfileMetadataJson = table.Column<string>(type: "TEXT", nullable: false),
+                    SystemMetadataJson = table.Column<string>(type: "TEXT", nullable: false),
                     ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false)
                 },
                 constraints: table =>

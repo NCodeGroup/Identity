@@ -16,9 +16,7 @@
 
 #endregion
 
-using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.Json;
 
 namespace NCode.Identity.OpenId.Accounts;
 
@@ -54,17 +52,4 @@ public sealed class LocalAccountCreationRequest
     /// Gets a value indicating whether the account is enabled. Defaults to <c>true</c>.
     /// </summary>
     public bool IsEnabled { get; init; } = true;
-
-    /// <summary>
-    /// Gets the owner-updatable profile metadata as a free-form JSON object, defaulting to an empty object <c>{}</c>.
-    /// Any key/value shape is permitted; this bag is intended to be read, and updated, by the account owner.
-    /// </summary>
-    public JsonElement ProfileMetadata { get; init; } = JsonElements.EmptyObject;
-
-    /// <summary>
-    /// Gets the server-controlled system metadata as a free-form JSON object, defaulting to an empty object <c>{}</c>.
-    /// This bag is managed only by the server or an administrator and must never be writable by the end user, as it
-    /// may carry authorization-relevant data.
-    /// </summary>
-    public JsonElement SystemMetadata { get; init; } = JsonElements.EmptyObject;
 }

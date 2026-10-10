@@ -19,7 +19,7 @@
 using System.Text.Json;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Json;
+namespace NCode.Json;
 
 /// <summary>
 /// Provides shared, reusable <see cref="JsonElement"/> values and factories. These avoid the common pitfalls of

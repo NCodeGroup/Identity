@@ -75,10 +75,6 @@ NCode.Identity.IdentityLibrary.DisplayName.get -> string!
 NCode.Identity.IdentityLibrary.IdentityLibrary() -> void
 NCode.Identity.ISupportClone<T>
 NCode.Identity.ISupportClone<T>.Clone() -> T
-NCode.Identity.Json.JsonElements
-NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement)
-NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement).IsNullOrUndefined() -> bool
-NCode.Identity.Json.JsonElements.extension(System.Text.Json.JsonElement).OrEmptyObject() -> System.Text.Json.JsonElement
 NCode.Identity.Logic.CryptoServiceExtensions
 NCode.Identity.Logic.CryptoServiceExtensions.extension(NCode.Identity.Logic.ICryptoService!)
 NCode.Identity.Logic.CryptoServiceExtensions.extension(NCode.Identity.Logic.ICryptoService!).GenerateResourceId() -> string!
@@ -194,7 +190,6 @@ override NCode.Identity.Settings.SettingDescriptor<TValue>.Format(NCode.Identity
 override NCode.Identity.Settings.SettingDescriptor<TValue>.HasDefault.get -> bool
 override NCode.Identity.Settings.SettingDescriptor<TValue>.Merge(NCode.Identity.Settings.Setting! current, NCode.Identity.Settings.Setting! other) -> NCode.Identity.Settings.Setting!
 override NCode.Identity.Settings.SettingDescriptor<TValue>.ValueType.get -> System.Type!
-static NCode.Identity.Json.JsonElements.EmptyObject.get -> System.Text.Json.JsonElement
 static NCode.Identity.Settings.SettingDescriptor<TValue>.implicit operator NCode.Identity.Settings.SettingKey<TValue>(NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor) -> NCode.Identity.Settings.SettingKey<TValue>
 static NCode.Identity.Settings.SettingMerge.And(bool current, bool other) -> bool
 static NCode.Identity.Settings.SettingMerge.Intersect<T>(System.Collections.Generic.IEnumerable<T>! current, System.Collections.Generic.IEnumerable<T>! other) -> System.Collections.Generic.List<T>!

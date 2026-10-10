@@ -11,7 +11,7 @@ using NCode.Identity.OpenId.Persistence.EntityFramework;
 namespace NCode.Identity.OpenId.Playground.Migrations
 {
     [DbContext(typeof(OpenIdDbContext))]
-    [Migration("20261009200053_InitialCreate")]
+    [Migration("20261010033314_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -108,18 +108,10 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .IsUnicode(false)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ProfileMetadataJson")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("SecurityStamp")
                         .IsRequired()
                         .HasMaxLength(100)
                         .IsUnicode(false)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SystemMetadataJson")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TenantId")
@@ -395,6 +387,14 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .IsRequired()
                         .HasMaxLength(300)
                         .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProfileMetadataJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SystemMetadataJson")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<long>("TenantId")

@@ -1,0 +1,6 @@
+#nullable enable
+NCode.Json.JsonElements
+NCode.Json.JsonElements.extension(System.Text.Json.JsonElement)
+NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).IsNullOrUndefined() -> bool
+NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).OrEmptyObject() -> System.Text.Json.JsonElement
+static NCode.Json.JsonElements.EmptyObject.get -> System.Text.Json.JsonElement

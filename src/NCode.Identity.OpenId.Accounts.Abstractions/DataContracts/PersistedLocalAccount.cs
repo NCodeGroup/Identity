@@ -18,9 +18,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.Json;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.Persistence;
 
@@ -84,20 +82,6 @@ public sealed class PersistedLocalAccount : ISupportTenantId, ISupportConcurrenc
     /// Gets or sets a value indicating whether the account is enabled.
     /// </summary>
     public required bool IsEnabled { get; set; }
-
-    /// <summary>
-    /// Gets or sets the owner-updatable profile metadata as a free-form JSON object, defaulting to an empty object
-    /// <c>{}</c>. Any key/value shape is permitted; this bag is intended to be read, and updated, by the account
-    /// owner.
-    /// </summary>
-    public JsonElement ProfileMetadata { get; set; } = JsonElements.EmptyObject;
-
-    /// <summary>
-    /// Gets or sets the server-controlled system metadata as a free-form JSON object, defaulting to an empty object
-    /// <c>{}</c>. This bag is managed only by the server or an administrator and must never be writable by the end
-    /// user, as it may carry authorization-relevant data.
-    /// </summary>
-    public JsonElement SystemMetadata { get; set; } = JsonElements.EmptyObject;
 
     /// <summary>
     /// Gets or sets the account's profile claims.

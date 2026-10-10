@@ -18,9 +18,10 @@
 
 using System.Globalization;
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Moq;
-using NCode.Identity.Claims;
+using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Subject;
@@ -28,6 +29,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Principals;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using Xunit;
@@ -36,23 +38,29 @@ namespace NCode.Identity.OpenId.Core.Tests.Tokens.Handlers;
 
 public class DefaultGetIdTokenMetadataClaimsHandlerTests : BaseTests
 {
-    private Mock<IClaimsService> MockClaimsService { get; }
+    private Mock<IPrincipalMetadataProvider> MockMetadataProvider { get; }
     private DefaultGetIdTokenMetadataClaimsHandler Handler { get; }
 
     public DefaultGetIdTokenMetadataClaimsHandlerTests()
     {
-        MockClaimsService = CreateStrictMock<IClaimsService>();
-        Handler = new DefaultGetIdTokenMetadataClaimsHandler(MockClaimsService.Object);
+        MockMetadataProvider = CreateStrictMock<IPrincipalMetadataProvider>();
+        Handler = new DefaultGetIdTokenMetadataClaimsHandler(MockMetadataProvider.Object);
     }
 
     #region Scaffolding
+
+    private const string PrincipalId = "subject-id";
 
     private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.Parse(
         "2025-01-01T00:00:00Z",
         CultureInfo.InvariantCulture
     );
 
-    private GetIdTokenSubjectClaimsCommand CreateCommand(
+    private (
+        GetIdTokenSubjectClaimsCommand Command,
+        List<Claim> TargetClaims,
+        OpenIdContext Context
+    ) CreateCommand(
         SubjectAuthentication? subjectAuthentication,
         IReadOnlySettingCollection? settings
     )
@@ -80,16 +88,19 @@ public class DefaultGetIdTokenMetadataClaimsHandlerTests : BaseTests
             mockClient.Setup(x => x.Settings).Returns(settings);
         }
 
-        return new GetIdTokenSubjectClaimsCommand(
-            CreateStrictMock<OpenIdContext>().Object,
+        var context = CreateStrictMock<OpenIdContext>().Object;
+        var targetClaims = new List<Claim>();
+        var command = new GetIdTokenSubjectClaimsCommand(
+            context,
             mockClient.Object,
             tokenContext,
-            new List<Claim>()
+            targetClaims
         );
+        return (command, targetClaims, context);
     }
 
     private static SubjectAuthentication CreateSubjectAuthentication() =>
-        new("scheme", new AuthenticationProperties(), new ClaimsPrincipal(), "subject-id");
+        new("scheme", new AuthenticationProperties(), new ClaimsPrincipal(), PrincipalId);
 
     private IReadOnlySettingCollection CreateSettings(bool profile, bool system)
     {
@@ -100,6 +111,14 @@ public class DefaultGetIdTokenMetadataClaimsHandlerTests : BaseTests
         return mock.Object;
     }
 
+    private void SetupMetadata(OpenIdContext context, JsonElement profile, JsonElement system) =>
+        MockMetadataProvider
+            .Setup(x => x.GetMetadataAsync(context, PrincipalId, It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<PrincipalMetadata>(new PrincipalMetadata(profile, system)))
+            .Verifiable();
+
+    private static JsonElement Obj(string json) => JsonElement.Parse(json);
+
     #endregion
 
     #region HandleAsync Tests
@@ -107,45 +126,82 @@ public class DefaultGetIdTokenMetadataClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenNoSubjectAuthentication_DoesNothing()
     {
-        var command = CreateCommand(subjectAuthentication: null, settings: null);
+        var (command, targetClaims, _) = CreateCommand(subjectAuthentication: null, settings: null);
 
         await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.Empty(targetClaims);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenBothDisabled_DoesNotCopyClaims()
+    public async Task HandleAsync_WhenBothDisabled_DoesNotResolveMetadata()
     {
-        var command = CreateCommand(
+        var (command, targetClaims, _) = CreateCommand(
             CreateSubjectAuthentication(),
             CreateSettings(profile: false, system: false)
         );
 
         await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.Empty(targetClaims);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenProfileEnabled_CopiesOnlyProfileMetadata()
+    public async Task HandleAsync_WhenProfileEnabled_EmitsOnlyProfileMetadata()
     {
-        var command = CreateCommand(
+        var (command, targetClaims, context) = CreateCommand(
             CreateSubjectAuthentication(),
             CreateSettings(profile: true, system: false)
         );
-
-        MockClaimsService
-            .Setup(x =>
-                x.CopyClaims(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<ICollection<Claim>>(),
-                    true,
-                    It.Is<IEnumerable<string>>(types =>
-                        types.Contains(AccountConstants.ProfileMetadataClaimType)
-                        && !types.Contains(AccountConstants.SystemMetadataClaimType)
-                    )
-                )
-            )
-            .Verifiable();
+        SetupMetadata(context, Obj("""{"theme":"dark"}"""), Obj("""{"plan":"gold"}"""));
 
         await Handler.HandleAsync(command, CancellationToken.None);
+
+        var claim = Assert.Single(
+            targetClaims,
+            c => c.Type == AccountConstants.ProfileMetadataClaimType
+        );
+        Assert.Equal(JsonClaimValueTypes.Json, claim.ValueType);
+        Assert.DoesNotContain(
+            targetClaims,
+            c => c.Type == AccountConstants.SystemMetadataClaimType
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSystemEnabled_EmitsOnlySystemMetadata()
+    {
+        var (command, targetClaims, context) = CreateCommand(
+            CreateSubjectAuthentication(),
+            CreateSettings(profile: false, system: true)
+        );
+        SetupMetadata(context, Obj("""{"theme":"dark"}"""), Obj("""{"plan":"gold"}"""));
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        var claim = Assert.Single(
+            targetClaims,
+            c => c.Type == AccountConstants.SystemMetadataClaimType
+        );
+        Assert.Equal(JsonClaimValueTypes.Json, claim.ValueType);
+        Assert.DoesNotContain(
+            targetClaims,
+            c => c.Type == AccountConstants.ProfileMetadataClaimType
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenBagEmpty_SkipsClaim()
+    {
+        var (command, targetClaims, context) = CreateCommand(
+            CreateSubjectAuthentication(),
+            CreateSettings(profile: true, system: true)
+        );
+        SetupMetadata(context, Obj("{}"), Obj("{}"));
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.Empty(targetClaims);
     }
 
     #endregion

@@ -1,8 +1,20 @@
 # 54. Local-account metadata projects into tokens through the subject-claims pipeline
 
-- **Status:** Proposed
+- **Status:** Proposed (metadata home and stamping seam amended by [ADR-0055](0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md))
 - **Date:** 2026-10-09
 - **Deciders:** NCode Group
+
+## Amendment (2026-10-09): metadata is a principal-level concept, resolved at issuance
+
+This ADR anchors `ProfileMetadata` / `SystemMetadata` on `LocalAccount` and stamps them in the ROPC subject builder
+(`DefaultCreatePasswordGrantSubjectHandler`). [ADR-0055](0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md)
+supersedes that placement: because `LocalAccount` exists only for local connections and the ROPC builder is the only
+stamping site, external-IdP connections and the interactive/refresh flows never receive the bags. ADR-0055 inlines the
+bags onto the `FederatedPrincipal` actor and resolves them fresh at issuance through a pluggable
+`IPrincipalMetadataProvider` keyed by the resolved `PrincipalId`, so every flow and connection kind projects uniformly.
+**The projection half of this ADR — whole-bag nesting, the reserved claim-type constants, the six per-destination opt-in
+settings, and the subject-claims pipeline — is unchanged;** only where the metadata lives and when it is resolved
+change (nothing is stamped on the subject at authentication).
 
 ## Context
 

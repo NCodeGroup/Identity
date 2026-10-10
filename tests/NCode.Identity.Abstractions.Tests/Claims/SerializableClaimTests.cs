@@ -76,8 +76,7 @@ public class SerializableClaimsIdentityTests
     [Fact]
     public void Properties_WhenSet_RoundTrip()
     {
-        using var document = JsonDocument.Parse("{}");
-        var bootstrap = document.RootElement.Clone();
+        var bootstrap = JsonElement.Parse("{}");
         var claims = new List<SerializableClaim>();
 
         var identity = new SerializableClaimsIdentity
@@ -104,8 +103,7 @@ public class SerializableClaimsIdentityTests
     [Fact]
     public void Actor_WhenSet_RoundTrips()
     {
-        using var document = JsonDocument.Parse("{}");
-        var bootstrap = document.RootElement.Clone();
+        var bootstrap = JsonElement.Parse("{}");
 
         var actor = new SerializableClaimsIdentity
         {

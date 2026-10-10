@@ -22,9 +22,9 @@ using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
+using NCode.Json;
 
 namespace NCode.Identity.Jose;
 

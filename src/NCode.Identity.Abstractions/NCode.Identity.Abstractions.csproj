@@ -8,18 +8,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <!-- https://learn.microsoft.com/en-us/aspnet/core/fundamentals/target-aspnetcore -->
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" />
-        <PackageReference Include="NCode.Collections.Providers.Abstractions" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
         <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
-        <ProjectReference Include="..\NCode.Registration.AspNetCore\NCode.Registration.AspNetCore.csproj" />
     </ItemGroup>
 </Project>

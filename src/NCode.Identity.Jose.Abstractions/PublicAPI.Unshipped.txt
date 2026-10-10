@@ -244,7 +244,6 @@ NCode.Identity.Jose.Extensions.DateTimeOffsetExtensions
 NCode.Identity.Jose.Extensions.DateTimeOffsetExtensions.extension(System.DateTimeOffset)
 NCode.Identity.Jose.Extensions.DateTimeOffsetExtensions.extension(System.DateTimeOffset).WithPrecisionInSeconds() -> System.DateTimeOffset
 NCode.Identity.Jose.Extensions.DictionaryExtensions
-NCode.Identity.Jose.Extensions.JsonElementExtensions
 NCode.Identity.Jose.Extensions.TimeProviderExtensions
 NCode.Identity.Jose.Extensions.TimeProviderExtensions.extension(System.TimeProvider!)
 NCode.Identity.Jose.Extensions.TimeProviderExtensions.extension(System.TimeProvider!).GetTimestampWithPrecisionInSeconds() -> long
@@ -312,5 +311,3 @@ override NCode.Identity.Jose.JoseEncryptionOptions.Credentials.get -> NCode.Iden
 override NCode.Identity.Jose.JoseSigningOptions.Credentials.get -> NCode.Identity.Jose.Credentials.JoseCredentials!
 NCode.Identity.Jose.Extensions.DictionaryExtensions.extension(System.Collections.Generic.IDictionary<string!, object!>!)
 NCode.Identity.Jose.Extensions.DictionaryExtensions.extension(System.Collections.Generic.IDictionary<string!, object!>!).TryGetValue<T>(string! key, out T value) -> bool
-NCode.Identity.Jose.Extensions.JsonElementExtensions.extension(System.Text.Json.JsonElement)
-NCode.Identity.Jose.Extensions.JsonElementExtensions.extension(System.Text.Json.JsonElement).TryGetPropertyValue<T>(string! propertyName, out T value) -> bool

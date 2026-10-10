@@ -18,7 +18,7 @@
 #endregion
 
 using System.Text.Json;
-using NCode.Identity.Jose.Extensions;
+using NCode.Json;
 
 namespace NCode.Identity.Jose.Tests.Json;
 

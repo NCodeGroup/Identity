@@ -1,0 +1,27 @@
+#nullable enable
+NCode.Identity.Exceptions.HttpResultException
+NCode.Identity.Exceptions.HttpResultException.HttpResult.get -> Microsoft.AspNetCore.Http.IResult!
+NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult) -> void
+NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message) -> void
+NCode.Identity.Exceptions.HttpResultException.HttpResultException(Microsoft.AspNetCore.Http.IResult! httpResult, string? message, System.Exception? innerException) -> void
+NCode.Identity.Models.UriDescriptor
+NCode.Identity.Models.UriDescriptor.Host.get -> Microsoft.AspNetCore.Http.HostString
+NCode.Identity.Models.UriDescriptor.Host.init -> void
+NCode.Identity.Models.UriDescriptor.Path.get -> Microsoft.AspNetCore.Http.PathString
+NCode.Identity.Models.UriDescriptor.Path.init -> void
+NCode.Identity.Models.UriDescriptor.Query.get -> Microsoft.AspNetCore.Http.QueryString
+NCode.Identity.Models.UriDescriptor.Query.init -> void
+NCode.Identity.Models.UriDescriptor.Scheme.get -> string!
+NCode.Identity.Models.UriDescriptor.Scheme.init -> void
+NCode.Identity.Models.UriDescriptor.UriDescriptor() -> void
+NCode.Identity.Results.HttpResultExtensions
+NCode.Identity.Results.HttpResultExtensions.extension(Microsoft.AspNetCore.Http.IResult!)
+NCode.Identity.Results.HttpResultExtensions.extension(Microsoft.AspNetCore.Http.IResult!).AsException(string? message = null) -> NCode.Identity.Exceptions.HttpResultException!
+NCode.Identity.Results.IResultExecutor<TResult>
+NCode.Identity.Results.IResultExecutor<TResult>.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, TResult result, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Results.IResultProvider
+NCode.Identity.Results.IResultProvider.AsHttpResult() -> Microsoft.AspNetCore.Http.IResult!
+NCode.Identity.Results.ISupportStatusCode
+NCode.Identity.Results.ISupportStatusCode.StatusCode.get -> int?
+NCode.Identity.Results.ISupportStatusCode.StatusCode.set -> void
+override NCode.Identity.Models.UriDescriptor.ToString() -> string!

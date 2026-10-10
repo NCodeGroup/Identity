@@ -14,8 +14,11 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.AspNetCore.Abstractions\NCode.Identity.AspNetCore.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.Abstractions\NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Settings.Abstractions\NCode.Identity.Settings.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Registration.AspNetCore\NCode.Registration.AspNetCore.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -33,7 +33,7 @@ internal class JsonElementConverter : ValueConverter<JsonElement, string>
     public JsonElementConverter()
         : base(
             value => value.GetRawText(),
-            value => JsonSerializer.Deserialize<JsonElement>(value, JsonSerializerOptions.Default),
+            value => JsonElement.Parse(value),
             new ConverterMappingHints(unicode: true)
         )
     {

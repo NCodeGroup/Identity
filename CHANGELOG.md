@@ -10,6 +10,19 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **OAuth 2.0 Dynamic Client Registration (RFC 7591/7592).** Clients can now register themselves and manage their own
+  registration. A new `registration_endpoint` (`POST /oauth2/register`), advertised in discovery, accepts a JSON
+  client-metadata document and returns the assigned `client_id`, a one-time `client_secret` for a confidential client,
+  and a `registration_access_token` plus `registration_client_uri`; the per-client management endpoint
+  (`GET`/`PUT`/`DELETE /oauth2/register/{client_id}`, RFC 7592) lets the client read, replace, or delete its
+  registration using that token. Metadata maps onto the existing client settings document and the `client_secret` is
+  the existing one-time secret, so client authentication works unchanged; both the `registration_access_token` and the
+  RFC 7591 `initial_access_token` are modeled as hash-keyed persisted grants — no new schema. Registration is
+  configurable and protected by default: a new `registration_endpoint_allow_anonymous` setting (default `false`, merged
+  with the boolean meet so it cannot be loosened downward) governs whether an initial access token is required, and the
+  deployment-specific `IInitialAccessTokenValidator` seam decides what counts as a valid initial access token. New
+  error codes `invalid_client_metadata` and `invalid_redirect_uri` are added. See
+  [ADR-0063](docs/adr/0063-dynamic-client-registration.md).
 - **OAuth 2.0 Device Authorization Grant (RFC 8628).** Input-constrained clients (smart TVs, CLIs, IoT devices) can now
   obtain tokens by having the end user authorize on a second device. A new `device_authorization_endpoint`
   (`POST /oauth2/device_authorization`) issues a `device_code`, a human-typable `user_code`, a `verification_uri`, and

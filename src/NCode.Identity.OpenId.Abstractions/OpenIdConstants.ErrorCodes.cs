@@ -153,5 +153,21 @@ public static partial class OpenIdConstants
         /// Contains the error code for <c>registration_not_supported</c>.
         /// </summary>
         public const string RegistrationNotSupported = "registration_not_supported";
+
+        // OAuth 2.0 Dynamic Client Registration Error Responses
+        // https://datatracker.ietf.org/doc/html/rfc7591#section-3.2.2
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_redirect_uri</c>, returned when one or more redirection URIs in a
+        /// dynamic client registration request are invalid (<see href="https://datatracker.ietf.org/doc/html/rfc7591#section-3.2.2">RFC 7591</see>).
+        /// </summary>
+        public const string InvalidRedirectUri = "invalid_redirect_uri";
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_client_metadata</c>, returned when a dynamic client registration
+        /// request contains invalid, inconsistent, or unsupported client metadata
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc7591#section-3.2.2">RFC 7591</see>).
+        /// </summary>
+        public const string InvalidClientMetadata = "invalid_client_metadata";
     }
 }

@@ -1,0 +1,255 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Text.Json;
+using Microsoft.AspNetCore.Routing;
+using Moq;
+using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
+using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
+using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages;
+using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Persistence.Stores;
+using Xunit;
+
+namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Registration;
+
+public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
+{
+    #region Scaffold
+
+    private DefaultClientRegistrationEndpointHandler CreateHandler() =>
+        new(
+            TimeProvider.System,
+            CreateStrictMock<LinkGenerator>().Object,
+            CreateStrictMock<ICryptoService>().Object,
+            CreateStrictMock<ISecretGenerator>().Object,
+            CreateStrictMock<IStoreManagerFactory>().Object,
+            CreateStrictMock<IPersistedGrantService>().Object,
+            CreateStrictMock<IInitialAccessTokenValidator>().Object
+        );
+
+    private (IOpenIdErrorFactory factory, Func<string?> capturedCode) CreateErrorFactory()
+    {
+        string? capturedCode = null;
+        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+        var mockError = CreateLooseMock<IOpenIdError>();
+        mockErrorFactory
+            .Setup(x => x.Create(It.IsAny<string>()))
+            .Callback<string>(code => capturedCode = code)
+            .Returns(mockError.Object);
+        return (mockErrorFactory.Object, () => capturedCode);
+    }
+
+    #endregion
+
+    #region ValidateMetadata
+
+    [Fact]
+    public void ValidateMetadata_UnsupportedAuthMethod_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest { TokenEndpointAuthMethod = "private_key_jwt" };
+
+        var error = handler.ValidateMetadata(factory, request, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateMetadata_AuthorizationCodeWithoutRedirectUris_ReturnsInvalidRedirectUri()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest();
+
+        var error = handler.ValidateMetadata(factory, request, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRedirectUri, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateMetadata_InvalidRedirectUri_ReturnsInvalidRedirectUri()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest { RedirectUris = ["not-an-absolute-uri"] };
+
+        var error = handler.ValidateMetadata(factory, request, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRedirectUri, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateMetadata_RedirectUriWithFragment_ReturnsInvalidRedirectUri()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback#fragment"],
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRedirectUri, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateMetadata_ValidMinimal_AppliesDefaults()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest { RedirectUris = ["https://example.com/callback"] };
+
+        var error = handler.ValidateMetadata(factory, request, out var resolved);
+
+        Assert.Null(error);
+        Assert.Equal(
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            resolved.TokenEndpointAuthMethod
+        );
+        Assert.Equal([OpenIdConstants.GrantTypes.AuthorizationCode], resolved.GrantTypes);
+        Assert.Equal([OpenIdConstants.ResponseTypes.Code], resolved.ResponseTypes);
+    }
+
+    [Fact]
+    public void ValidateMetadata_ClientCredentials_NoRedirectRequired()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out var resolved);
+
+        Assert.Null(error);
+        Assert.Empty(resolved.RedirectUris);
+    }
+
+    #endregion
+
+    #region BuildSettingsObject
+
+    [Fact]
+    public void BuildSettingsObject_MapsFunctionalAndInformationalFields()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            Scope = "openid profile email",
+            ClientName = "My Client",
+            Contacts = ["admin@example.com"],
+        };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            RedirectUris = ["https://example.com/callback"],
+        };
+
+        var settings = handler.BuildSettingsObject(request, resolved);
+
+        Assert.Equal(
+            "client_secret_basic",
+            settings[RegistrationMetadataKeys.TokenEndpointAuthMethod]!.GetValue<string>()
+        );
+        Assert.Equal(
+            "My Client",
+            settings[RegistrationMetadataKeys.ClientName]!.GetValue<string>()
+        );
+        Assert.NotNull(settings[OpenIdSettingNames.ScopesSupported]);
+        Assert.NotNull(settings[OpenIdSettingNames.RedirectUris]);
+        Assert.NotNull(settings[RegistrationMetadataKeys.Contacts]);
+    }
+
+    #endregion
+
+    #region ToResponse
+
+    [Fact]
+    public void ToResponse_ReconstructsMetadataFromSettings()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            Scope = "openid profile",
+            ClientName = "My Client",
+            LogoUri = "https://example.com/logo.png",
+        };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            RedirectUris = ["https://example.com/callback"],
+        };
+        var settings = handler.BuildSettingsObject(request, resolved);
+
+        var client = new PersistedClient
+        {
+            TenantId = "tenant-1",
+            ClientId = "client-1",
+            ConcurrencyToken = string.Empty,
+            IsDisabled = false,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = "tenant-1",
+                ClientId = "client-1",
+                ConcurrencyToken = string.Empty,
+                Value = JsonSerializer.SerializeToElement(settings),
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = "tenant-1",
+                ClientId = "client-1",
+                ConcurrencyToken = string.Empty,
+                Value = [],
+            },
+        };
+
+        var response = handler.ToResponse(client);
+
+        Assert.Equal("client-1", response.ClientId);
+        Assert.Equal("client_secret_basic", response.TokenEndpointAuthMethod);
+        Assert.Equal("My Client", response.ClientName);
+        Assert.Equal("https://example.com/logo.png", response.LogoUri);
+        Assert.Equal("openid profile", response.Scope);
+        Assert.Equal(["https://example.com/callback"], response.RedirectUris);
+        Assert.Equal([OpenIdConstants.GrantTypes.AuthorizationCode], response.GrantTypes);
+        Assert.Equal([OpenIdConstants.ResponseTypes.Code], response.ResponseTypes);
+    }
+
+    #endregion
+}

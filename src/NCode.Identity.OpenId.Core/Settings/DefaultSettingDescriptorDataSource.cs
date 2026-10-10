@@ -506,6 +506,18 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // registration_endpoint_allow_anonymous: whether the dynamic client registration endpoint accepts
+            // anonymous (no initial access token) requests (default false). (ADR-0063)
+            // Floor (And): once a parent disallows anonymous registration, a child cannot re-enable it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.RegistrationEndpointAllowAnonymous,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = And,
+            };
+
             // refresh_token_expiration_policy: how a refresh token's expiration is computed — absolute or sliding (default absolute).
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>

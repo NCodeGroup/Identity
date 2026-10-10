@@ -79,6 +79,8 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Jwks = "jwks_uri" -> s
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Revocation = "revocation_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Token = "token_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.UserInfo = "userinfo_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Registration = "registration_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.RegistrationManagement = "registration_management_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Authorization = "/oauth2/authorize" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Continue = "/oauth2/continue" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.DeviceAuthorization = "/oauth2/device_authorization" -> string!
@@ -89,6 +91,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Jwks = "/oauth2/jwks" 
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Revocation = "/oauth2/revoke" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Token = "/oauth2/token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.UserInfo = "/oauth2/userinfo" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Registration = "/oauth2/register" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ClientGrants = "ClientGrants" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Clients = "Clients" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Grants = "Grants" -> string!
@@ -113,6 +116,8 @@ const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidScope = "invalid_s
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidToken = "invalid_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.LoginRequired = "login_required" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RegistrationNotSupported = "registration_not_supported" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRedirectUri = "invalid_redirect_uri" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidClientMetadata = "invalid_client_metadata" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RequestNotSupported = "request_not_supported" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RequestUriNotSupported = "request_uri_not_supported" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.ServerError = "server_error" -> string!
@@ -201,6 +206,8 @@ const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.DeviceUserCode =
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.Continue = "continue" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.RefreshToken = "refresh_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.UserInfoClaims = "userinfo_claims" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.RegistrationAccessToken = "registration_access_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.InitialAccessToken = "initial_access_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.Consent = "consent" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.CreateAccount = "create" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.Login = "login" -> string!
@@ -272,6 +279,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.OpenIdProviderPolicyUri 
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.OpenIdProviderTermsOfServiceUri = "op_tos_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PromptValuesSupported = "prompt_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RedirectUris = "redirect_uris" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RegistrationEndpointAllowAnonymous = "registration_endpoint_allow_anonymous" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenExpirationPolicy = "refresh_token_expiration_policy" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenLifetime = "refresh_token_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenRotationEnabled = "refresh_token_rotation_enabled" -> string!
@@ -689,6 +697,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.OpenIdProviderPolicyUri.
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.OpenIdProviderTermsOfServiceUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PromptValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RedirectUris.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RegistrationEndpointAllowAnonymous.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenExpirationPolicy.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenRotationEnabled.get -> NCode.Identity.Settings.SettingKey<bool>

@@ -112,6 +112,10 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincip
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.NormalizedTenantId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.PrincipalId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.PrincipalId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.ProfileMetadataJson.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.ProfileMetadataJson.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.SystemMetadataJson.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.SystemMetadataJson.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.Tenant.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.TenantId.get -> long

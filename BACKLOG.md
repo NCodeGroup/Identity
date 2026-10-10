@@ -64,8 +64,9 @@ one option is merely more work.
 - **`F5` — First-class claim-shaping pipeline (Auth0-Actions-equivalent).** Custom claim shaping is already possible
   today by registering an `ICommandHandler` on the subject-claims / UserInfo commands (the mediator pipeline is the
   extension seam, per [ADR-0054](docs/adr/0054-local-account-metadata-projection.md)), but there is no first-class
-  surface: a strongly-typed shaping context (event/api), fresh-metadata reload at issuance, per-key namespaced
-  flattening helpers, or ordering/management. Layer these on the existing pipeline additively.
+  surface: a strongly-typed shaping context (event/api), per-key namespaced flattening helpers, or ordering/management.
+  Layer these on the existing pipeline additively. (Subject metadata already resolves fresh per issuance by default, per
+  [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md).)
   Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/Handlers/`.
 
@@ -117,8 +118,23 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   forms. Sweep the convertible production spots (and the test `.RootElement.Clone()` bootstraps); leave scoped
   `using var document = JsonDocument.Parse(...)` reads that only enumerate within a local scope as-is. Byte-based
   parses (`ReadOnlySpan<byte>`) have no `JsonElement.Parse` overload and stay on `JsonDocument`/`Deserialize`.
-  Touch points: `src/NCode.Identity.Abstractions/Json/JsonElements.cs`,
+  Touch points: `src/NCode.Json/JsonElements.cs`,
   `src/NCode.Identity.OpenId.Persistence.EntityFramework/Converters/JsonElementConverter.cs`.
+- **`R4` — Factor `NCode.Identity.Abstractions` into lean, correctly-tiered packages.** The deep-dive
+  ([ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) context) found the
+  package mixes three dependency tiers: pure BCL primitives (`Claims`, `Logic/ICryptoService`, encoding/hash enums,
+  `Models/TimePeriod`, `IsActiveResult*`), the self-contained **Settings** subsystem (16 types, `System.Text.Json` +
+  `NCode.Collections.Providers`), and an **ASP.NET Core HTTP surface** (`Models/UriDescriptor`,
+  `Exceptions/HttpResultException`, `Results/{HttpResultExtensions,IResultExecutor,IResultProvider}`) that is the sole
+  reason the package carries the `Microsoft.AspNetCore.App` `FrameworkReference` — which blocks everything beneath it
+  (and Jose/Secrets) from staying framework-free. The shared JSON helper is already extracted to the dependency-free
+  `NCode.Json` package (done, ADR-0055). Remaining, as independently-committable refactors: (a) extract the ASP.NET Core
+  HTTP surface into `NCode.Identity.AspNetCore.Abstractions`, drop the `FrameworkReference` and the apparently-unused
+  `NCode.Registration.AspNetCore` project reference from the core, so the core is lean and referenceable by anything
+  beneath `NCode.Identity.*`; (b) promote the Settings subsystem to `NCode.Identity.Settings.Abstractions`;
+  (c) optionally fold Jose/Secrets onto `NCode.Json` (drop their bespoke `JsonElementExtensions`). Namespaces already
+  diverge from assemblies, so moves need no `using` churn — only `.csproj` + `PublicAPI` mechanics.
+  Touch points: `src/NCode.Identity.Abstractions/{Results,Exceptions/HttpResultException.cs,Models/UriDescriptor.cs,Settings}`.
 
 Follow-ups surfaced finishing local-account login end-to-end ([ADR-0051](docs/adr/0051-local-accounts-behind-a-pluggable-account-source-seam.md)):
 the resource-owner password grant now authenticates a seeded local account over a pluggable `ILocalAccountSource`
@@ -129,6 +145,8 @@ the resource-owner password grant now authenticates a seeded local account over 
 set-metadata` endpoints mirroring the existing Management package (clients/tenants/servers). This is what makes
   provisioning usable end-to-end. The `set-metadata` surface must enforce the [ADR-0054](docs/adr/0054-local-account-metadata-projection.md)
   invariant: `ProfileMetadata` is owner-updatable, but `SystemMetadata` is server/admin-only and must never be
-  end-user-writable (it can drive authorization once projected).
+  end-user-writable (it can drive authorization once projected). Note: under
+  [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) the
+  two metadata bags are inlined on `FederatedPrincipal` (not `LocalAccount`), so `set-metadata` targets the principal.
   Touch points: `src/NCode.Identity.OpenId.Accounts.Abstractions/ILocalAccountProvisioner.cs`,
   `src/NCode.Identity.OpenId.Management/Endpoints/`, `ILocalAccountStore`.

@@ -60,8 +60,6 @@ public sealed class LocalAccountStoreTests : IDisposable
         string? email = null,
         string? passwordHash = null,
         bool isEnabled = true,
-        JsonElement? profileMetadata = null,
-        JsonElement? systemMetadata = null,
         params PersistedLocalAccountClaim[] claims
     ) =>
         new()
@@ -74,13 +72,9 @@ public sealed class LocalAccountStoreTests : IDisposable
             PasswordHash = passwordHash,
             SecurityStamp = "stamp",
             IsEnabled = isEnabled,
-            ProfileMetadata = profileMetadata ?? EmptyObject,
-            SystemMetadata = systemMetadata ?? EmptyObject,
             Claims = claims,
             ConcurrencyToken = string.Empty,
         };
-
-    private static readonly JsonElement EmptyObject = JsonDocument.Parse("{}").RootElement.Clone();
 
     private async Task AddAndDetachAsync(PersistedLocalAccount account)
     {
@@ -136,42 +130,6 @@ public sealed class LocalAccountStoreTests : IDisposable
         var claim = Assert.Single(loaded.Claims);
         Assert.Equal("role", claim.Type);
         Assert.Equal("admin", claim.Value);
-    }
-
-    [Fact]
-    public async Task AddAsync_WhenMetadataPresent_RoundTripsMetadata()
-    {
-        var profileMetadata = JsonDocument.Parse("""{"theme":"dark"}""").RootElement.Clone();
-        var systemMetadata = JsonDocument.Parse("""{"plan":"gold"}""").RootElement.Clone();
-
-        await AddAndDetachAsync(
-            CreateAccount(
-                "account-1",
-                "alice",
-                profileMetadata: profileMetadata,
-                systemMetadata: systemMetadata
-            )
-        );
-
-        var loaded = await _store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
-
-        Assert.NotNull(loaded);
-        Assert.Equal("dark", loaded.ProfileMetadata.GetProperty("theme").GetString());
-        Assert.Equal("gold", loaded.SystemMetadata.GetProperty("plan").GetString());
-    }
-
-    [Fact]
-    public async Task AddAsync_WhenMetadataAbsent_StoresEmptyObjects()
-    {
-        await AddAndDetachAsync(CreateAccount("account-1", "alice"));
-
-        var loaded = await _store.GetByIdOrDefaultAsync("account-1", CancellationToken.None);
-
-        Assert.NotNull(loaded);
-        Assert.Equal(JsonValueKind.Object, loaded.ProfileMetadata.ValueKind);
-        Assert.Empty(loaded.ProfileMetadata.EnumerateObject());
-        Assert.Equal(JsonValueKind.Object, loaded.SystemMetadata.ValueKind);
-        Assert.Empty(loaded.SystemMetadata.EnumerateObject());
     }
 
     #endregion

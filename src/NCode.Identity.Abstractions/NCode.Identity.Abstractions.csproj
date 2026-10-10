@@ -18,6 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
         <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
         <ProjectReference Include="..\NCode.Registration.AspNetCore\NCode.Registration.AspNetCore.csproj" />
     </ItemGroup>

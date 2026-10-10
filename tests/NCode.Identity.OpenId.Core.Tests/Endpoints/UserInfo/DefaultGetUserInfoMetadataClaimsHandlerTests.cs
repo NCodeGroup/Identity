@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Handlers;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Principals;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
@@ -34,15 +35,24 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.UserInfo;
 
 public class DefaultGetUserInfoMetadataClaimsHandlerTests : BaseTests
 {
-    private DefaultGetUserInfoMetadataClaimsHandler Handler { get; } = new();
+    private Mock<IPrincipalMetadataProvider> MockMetadataProvider { get; }
+    private DefaultGetUserInfoMetadataClaimsHandler Handler { get; }
+
+    public DefaultGetUserInfoMetadataClaimsHandlerTests()
+    {
+        MockMetadataProvider = CreateStrictMock<IPrincipalMetadataProvider>();
+        Handler = new DefaultGetUserInfoMetadataClaimsHandler(MockMetadataProvider.Object);
+    }
 
     #region Scaffolding
 
-    private (GetUserInfoClaimsCommand command, Dictionary<string, object> claims) CreateCommand(
-        ClaimsPrincipal subject,
-        bool profile,
-        bool system
-    )
+    private const string PrincipalId = "subject-123";
+
+    private (
+        GetUserInfoClaimsCommand Command,
+        Dictionary<string, object> Claims,
+        OpenIdContext Context
+    ) CreateCommand(bool profile, bool system)
     {
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
@@ -64,8 +74,8 @@ public class DefaultGetUserInfoMetadataClaimsHandlerTests : BaseTests
         var subjectAuthentication = new SubjectAuthentication(
             "scheme",
             new AuthenticationProperties(),
-            subject,
-            "subject-123"
+            new ClaimsPrincipal(),
+            PrincipalId
         );
 
         var claims = new Dictionary<string, object>();
@@ -75,15 +85,16 @@ public class DefaultGetUserInfoMetadataClaimsHandlerTests : BaseTests
             claims
         );
 
-        return (command, claims);
+        return (command, claims, mockContext.Object);
     }
 
-    private static ClaimsPrincipal CreateSubject(params Claim[] claims)
-    {
-        var identity = new ClaimsIdentity("scheme");
-        identity.AddClaims(claims);
-        return new ClaimsPrincipal(identity);
-    }
+    private void SetupMetadata(OpenIdContext context, JsonElement profile, JsonElement system) =>
+        MockMetadataProvider
+            .Setup(x => x.GetMetadataAsync(context, PrincipalId, It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<PrincipalMetadata>(new PrincipalMetadata(profile, system)))
+            .Verifiable();
+
+    private static JsonElement Obj(string json) => JsonElement.Parse(json);
 
     #endregion
 
@@ -92,11 +103,7 @@ public class DefaultGetUserInfoMetadataClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenBothDisabled_AddsNothing()
     {
-        var subject = CreateSubject(
-            new Claim(AccountConstants.ProfileMetadataClaimType, """{"theme":"dark"}"""),
-            new Claim(AccountConstants.SystemMetadataClaimType, """{"plan":"gold"}""")
-        );
-        var (command, claims) = CreateCommand(subject, profile: false, system: false);
+        var (command, claims, _) = CreateCommand(profile: false, system: false);
 
         await Handler.HandleAsync(command, CancellationToken.None);
 
@@ -106,10 +113,8 @@ public class DefaultGetUserInfoMetadataClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenProfileEnabled_AddsProfileMetadataObject()
     {
-        var subject = CreateSubject(
-            new Claim(AccountConstants.ProfileMetadataClaimType, """{"theme":"dark"}""")
-        );
-        var (command, claims) = CreateCommand(subject, profile: true, system: false);
+        var (command, claims, context) = CreateCommand(profile: true, system: false);
+        SetupMetadata(context, Obj("""{"theme":"dark"}"""), Obj("""{"plan":"gold"}"""));
 
         await Handler.HandleAsync(command, CancellationToken.None);
 
@@ -120,10 +125,10 @@ public class DefaultGetUserInfoMetadataClaimsHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenEnabledButSubjectHasNoMetadata_AddsNothing()
+    public async Task HandleAsync_WhenMetadataEmpty_AddsNothing()
     {
-        var subject = CreateSubject();
-        var (command, claims) = CreateCommand(subject, profile: true, system: true);
+        var (command, claims, context) = CreateCommand(profile: true, system: true);
+        SetupMetadata(context, Obj("{}"), Obj("{}"));
 
         await Handler.HandleAsync(command, CancellationToken.None);
 

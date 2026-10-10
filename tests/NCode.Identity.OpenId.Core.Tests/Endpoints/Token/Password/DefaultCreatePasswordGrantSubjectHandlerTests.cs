@@ -17,10 +17,7 @@
 #endregion
 
 using System.Security.Claims;
-using System.Text.Json;
 using Moq;
-using NCode.Identity.Json;
-using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
@@ -61,14 +58,12 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
         return new CreatePasswordGrantSubjectCommand(mockContext.Object, account);
     }
 
-    private static LocalAccount CreateAccount(JsonElement? profile, JsonElement? system) =>
+    private static LocalAccount CreateAccount() =>
         new()
         {
             Subject = "account-1",
             IsEnabled = true,
             Claims = [new Claim("role", "admin")],
-            ProfileMetadata = profile ?? JsonElements.EmptyObject,
-            SystemMetadata = system ?? JsonElements.EmptyObject,
         };
 
     #endregion
@@ -76,37 +71,27 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_WhenMetadataPresent_StampsBothBagsAsJsonClaims()
+    public async Task HandleAsync_StampsSubjectIssuerAndAccountClaims()
     {
-        var account = CreateAccount(
-            JsonElement.Parse("""{"theme":"dark"}"""),
-            JsonElement.Parse("""{"plan":"gold"}""")
-        );
-        var command = CreateCommand(account);
+        var command = CreateCommand(CreateAccount());
 
         var principal = await Handler.HandleAsync(command, CancellationToken.None);
 
-        var profileClaim = principal.FindFirst(AccountConstants.ProfileMetadataClaimType);
-        Assert.NotNull(profileClaim);
-        Assert.Equal(JsonClaimValueTypes.Json, profileClaim.ValueType);
-        Assert.Equal("""{"theme":"dark"}""", profileClaim.Value);
-
-        var systemClaim = principal.FindFirst(AccountConstants.SystemMetadataClaimType);
-        Assert.NotNull(systemClaim);
-        Assert.Equal(JsonClaimValueTypes.Json, systemClaim.ValueType);
+        Assert.Equal("account-1", principal.FindFirstValue("sub"));
+        Assert.Equal(AccountConstants.SelfIssuer, principal.FindFirstValue("iss"));
+        Assert.Equal("admin", principal.FindFirstValue("role"));
     }
 
     [Fact]
-    public async Task HandleAsync_WhenMetadataEmpty_DoesNotStampMetadataClaims()
+    public async Task HandleAsync_DoesNotStampMetadataClaims()
     {
-        var command = CreateCommand(CreateAccount(profile: null, system: null));
+        var command = CreateCommand(CreateAccount());
 
         var principal = await Handler.HandleAsync(command, CancellationToken.None);
 
+        // Metadata is a principal-level concept resolved at issuance, never stamped on the ROPC subject (ADR-0055).
         Assert.Null(principal.FindFirst(AccountConstants.ProfileMetadataClaimType));
         Assert.Null(principal.FindFirst(AccountConstants.SystemMetadataClaimType));
-        // the ordinary account claims still flow
-        Assert.Equal("admin", principal.FindFirstValue("role"));
     }
 
     #endregion

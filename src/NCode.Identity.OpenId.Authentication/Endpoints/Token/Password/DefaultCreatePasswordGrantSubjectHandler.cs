@@ -18,9 +18,7 @@
 
 using System.Globalization;
 using System.Security.Claims;
-using System.Text.Json;
 using NCode.Identity.Jose;
-using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Settings;
@@ -32,7 +30,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
 /// Provides a default implementation of a handler for the <see cref="CreatePasswordGrantSubjectCommand"/> message that
 /// builds the subject from a validated local account: the self-issued connection's subject and issuer claims plus the
 /// account's profile claims. The local account is a self-issued connection, so principal resolution and linking treat
-/// it uniformly with any federated identity (ADR-0035/ADR-0051).
+/// it uniformly with any federated identity (ADR-0035/ADR-0051). The principal's metadata bags are not carried here;
+/// they are a principal-level concept resolved fresh at issuance by the subject-claims projection handlers (ADR-0055).
 /// </summary>
 internal class DefaultCreatePasswordGrantSubjectHandler(TimeProvider timeProvider)
     : ICommandResponseHandler<CreatePasswordGrantSubjectCommand, ClaimsPrincipal>
@@ -70,32 +69,11 @@ internal class DefaultCreatePasswordGrantSubjectHandler(TimeProvider timeProvide
         };
         claims.AddRange(account.Claims);
 
-        // Carry the free-form metadata bags on the subject as single JSON-object claims so the downstream token and
-        // UserInfo projection handlers can emit them where configured. The profile/system split is preserved as two
-        // distinct claim types so system (authorization-relevant) data is never conflated with owner-updatable data.
-        AddMetadataClaim(
-            claims,
-            AccountConstants.ProfileMetadataClaimType,
-            account.ProfileMetadata
-        );
-        AddMetadataClaim(claims, AccountConstants.SystemMetadataClaimType, account.SystemMetadata);
-
         var identity = new ClaimsIdentity(
             claims,
             authenticationType: OpenIdConstants.GrantTypes.Password
         );
 
         return ValueTask.FromResult(new ClaimsPrincipal(identity));
-    }
-
-    private static void AddMetadataClaim(List<Claim> claims, string claimType, JsonElement bag)
-    {
-        // Skip an absent or empty bag so the subject never carries an empty-object claim.
-        if (bag.ValueKind != JsonValueKind.Object || !bag.EnumerateObject().MoveNext())
-        {
-            return;
-        }
-
-        claims.Add(new Claim(claimType, bag.GetRawText(), JsonClaimValueTypes.Json));
     }
 }

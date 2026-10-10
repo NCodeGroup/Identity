@@ -61,8 +61,6 @@ internal sealed class DefaultLocalAccountProvisioner(
             PasswordHash = PasswordHasher.HashPassword(request.Password.Span),
             SecurityStamp = CryptoService.GenerateResourceId(),
             IsEnabled = request.IsEnabled,
-            ProfileMetadata = request.ProfileMetadata,
-            SystemMetadata = request.SystemMetadata,
             Claims = [],
             ConcurrencyToken = string.Empty,
         };

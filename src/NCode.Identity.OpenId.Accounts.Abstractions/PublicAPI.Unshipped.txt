@@ -33,12 +33,8 @@ NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.LocalAccountI
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.PasswordHash.get -> string?
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.PasswordHash.set -> void
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.PersistedLocalAccount() -> void
-NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.ProfileMetadata.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.ProfileMetadata.set -> void
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.SecurityStamp.get -> string!
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.SecurityStamp.set -> void
-NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.SystemMetadata.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.SystemMetadata.set -> void
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.TenantId.get -> string!
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.TenantId.init -> void
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount.UserName.get -> string!
@@ -60,14 +56,10 @@ NCode.Identity.OpenId.Accounts.LocalAccount.Claims.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccount.IsEnabled.get -> bool
 NCode.Identity.OpenId.Accounts.LocalAccount.IsEnabled.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccount.LocalAccount() -> void
-NCode.Identity.OpenId.Accounts.LocalAccount.ProfileMetadata.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Accounts.LocalAccount.ProfileMetadata.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccount.SecurityStamp.get -> string?
 NCode.Identity.OpenId.Accounts.LocalAccount.SecurityStamp.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccount.Subject.get -> string!
 NCode.Identity.OpenId.Accounts.LocalAccount.Subject.init -> void
-NCode.Identity.OpenId.Accounts.LocalAccount.SystemMetadata.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Accounts.LocalAccount.SystemMetadata.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.Email.get -> string?
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.Email.init -> void
@@ -78,10 +70,6 @@ NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.IsEnabled.init -> voi
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.LocalAccountCreationRequest() -> void
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.Password.get -> System.ReadOnlyMemory<byte>
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.Password.init -> void
-NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.ProfileMetadata.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.ProfileMetadata.init -> void
-NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.SystemMetadata.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.SystemMetadata.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.UserName.get -> string!
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.UserName.init -> void
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore

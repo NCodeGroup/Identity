@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Principals;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.PrincipalResolution;
@@ -46,6 +47,12 @@ internal static class DefaultRegistration
             >();
 
             serviceCollection.TryAddSingleton<IPrincipalResolver, DefaultPrincipalResolver>();
+
+            // Subject-metadata projection resolves a principal's inlined metadata bags fresh at issuance (ADR-0055).
+            serviceCollection.TryAddSingleton<
+                IPrincipalMetadataProvider,
+                DefaultPrincipalMetadataProvider
+            >();
 
             return builder;
         }

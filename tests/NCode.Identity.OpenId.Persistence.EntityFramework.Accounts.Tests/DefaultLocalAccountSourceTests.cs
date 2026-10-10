@@ -112,30 +112,6 @@ public sealed class DefaultLocalAccountSourceTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateCredentialsAsync_MapsMetadataBags()
-    {
-        var (source, store) = CreateSource();
-        var account = Account();
-        account.ProfileMetadata = JsonElement.Parse("""{"theme":"dark"}""");
-        account.SystemMetadata = JsonElement.Parse("""{"plan":"gold"}""");
-        store
-            .Setup(x => x.GetByUserNameOrDefaultAsync(UserName, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(account)
-            .Verifiable();
-
-        var result = await source.ValidateCredentialsAsync(
-            Mock.Of<OpenIdContext>(),
-            UserName,
-            PasswordBytes,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(result);
-        Assert.Equal("dark", result.ProfileMetadata.GetProperty("theme").GetString());
-        Assert.Equal("gold", result.SystemMetadata.GetProperty("plan").GetString());
-    }
-
-    [Fact]
     public async Task ValidateCredentialsAsync_WhenAccountMissing_ReturnsNull()
     {
         var (source, store) = CreateSource();

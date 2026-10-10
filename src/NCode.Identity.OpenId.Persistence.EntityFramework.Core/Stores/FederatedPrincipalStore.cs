@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
@@ -56,6 +57,8 @@ internal class FederatedPrincipalStore(
             {
                 TenantId = entity.Tenant.TenantId,
                 PrincipalId = entity.PrincipalId,
+                ProfileMetadata = entity.ProfileMetadataJson,
+                SystemMetadata = entity.SystemMetadataJson,
                 ConcurrencyToken = entity.ConcurrencyToken,
             }
         );
@@ -111,6 +114,8 @@ internal class FederatedPrincipalStore(
             NormalizedTenantId = tenantEntity.NormalizedTenantId,
             PrincipalId = principal.PrincipalId,
             NormalizedPrincipalId = Normalize(principal.PrincipalId),
+            ProfileMetadataJson = principal.ProfileMetadata.OrEmptyObject(),
+            SystemMetadataJson = principal.SystemMetadata.OrEmptyObject(),
             ConcurrencyToken = principal.ConcurrencyToken,
             Tenant = tenantEntity,
         };

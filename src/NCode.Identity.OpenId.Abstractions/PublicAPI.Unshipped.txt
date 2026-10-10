@@ -527,6 +527,15 @@ NCode.Identity.OpenId.PrincipalResolution.IFederatedIdentityLinkingPolicy.Resolv
 NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver
 NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver.ResolvePrincipalIdAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
 NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver.ResolvePrincipalIdOrDefaultAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
+NCode.Identity.OpenId.Principals.IPrincipalMetadataProvider
+NCode.Identity.OpenId.Principals.IPrincipalMetadataProvider.GetMetadataAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Principals.PrincipalMetadata>
+NCode.Identity.OpenId.Principals.PrincipalMetadata
+NCode.Identity.OpenId.Principals.PrincipalMetadata.PrincipalMetadata() -> void
+NCode.Identity.OpenId.Principals.PrincipalMetadata.PrincipalMetadata(System.Text.Json.JsonElement ProfileMetadata, System.Text.Json.JsonElement SystemMetadata) -> void
+NCode.Identity.OpenId.Principals.PrincipalMetadata.ProfileMetadata.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Principals.PrincipalMetadata.ProfileMetadata.init -> void
+NCode.Identity.OpenId.Principals.PrincipalMetadata.SystemMetadata.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Principals.PrincipalMetadata.SystemMetadata.init -> void
 NCode.Identity.OpenId.Results.OpenIdRedirectResult
 NCode.Identity.OpenId.Results.OpenIdRedirectResult.AjaxStatusCode.get -> int?
 NCode.Identity.OpenId.Results.OpenIdRedirectResult.AjaxStatusCode.init -> void
@@ -623,6 +632,7 @@ static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Phone.get -> System.C
 static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Profile.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 static NCode.Identity.OpenId.OpenIdConstants.DefaultSubjectClaimTypes.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 static NCode.Identity.OpenId.OpenIdConstants.ProtocolClaims.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+static NCode.Identity.OpenId.Principals.PrincipalMetadata.Empty.get -> NCode.Identity.OpenId.Principals.PrincipalMetadata
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenEncryptionRequired.get -> NCode.Identity.Settings.SettingKey<bool>

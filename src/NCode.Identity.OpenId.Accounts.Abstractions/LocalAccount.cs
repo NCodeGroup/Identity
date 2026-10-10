@@ -17,9 +17,7 @@
 #endregion
 
 using System.Security.Claims;
-using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.Json;
 
 namespace NCode.Identity.OpenId.Accounts;
 
@@ -56,19 +54,4 @@ public sealed class LocalAccount
     /// enrichers.
     /// </summary>
     public IReadOnlyCollection<Claim> Claims { get; init; } = [];
-
-    /// <summary>
-    /// Gets the account's owner-updatable profile metadata as a free-form JSON object, defaulting to an empty object
-    /// <c>{}</c>. When projection is enabled, this bag is surfaced to issued tokens and the UserInfo response as a
-    /// single JSON object claim; as owner-updatable data it must never drive authorization.
-    /// </summary>
-    public JsonElement ProfileMetadata { get; init; } = JsonElements.EmptyObject;
-
-    /// <summary>
-    /// Gets the account's server-controlled system metadata as a free-form JSON object, defaulting to an empty object
-    /// <c>{}</c>. When projection is enabled, this bag is surfaced to issued tokens and the UserInfo response as a
-    /// single JSON object claim; because it is managed only by the server or an administrator and never end-user
-    /// writable, it may safely carry authorization-relevant data.
-    /// </summary>
-    public JsonElement SystemMetadata { get; init; } = JsonElements.EmptyObject;
 }

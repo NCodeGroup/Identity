@@ -17,7 +17,6 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
@@ -84,14 +83,6 @@ internal sealed class LocalAccountEntity : ISupportTenantEntity, ISupportConcurr
     [MaxLength(MaxLengths.ConcurrencyToken)]
     [ConcurrencyCheck]
     public required string ConcurrencyToken { get; set; }
-
-    // Free-form JSON object (always present, defaulting to '{}'); converted to a string column by the shared
-    // JsonElement value converter. Owner-updatable profile data, surfaced to the account owner.
-    public required JsonElement ProfileMetadataJson { get; set; }
-
-    // Free-form JSON object (always present, defaulting to '{}'); server/administrator-controlled and never
-    // writable by the end user, as it may carry authorization-relevant data.
-    public required JsonElement SystemMetadataJson { get; set; }
 
     public ICollection<LocalAccountClaimEntity> Claims { get; init; } =
         new List<LocalAccountClaimEntity>();

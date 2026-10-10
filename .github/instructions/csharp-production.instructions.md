@@ -196,6 +196,18 @@ rationale.
 
 ## 4. Extension methods & DI registration
 
+- 👁 **A host `Program.cs` is composition-only — reusable or developer-only startup code never lives there.** This is
+  the single most-repeated review miss, so treat it as a hard rule. The `Playground` and every reference host must read
+  as a flat list of turnkey calls (`serviceCollection.AddX(...)`, `app.UseX()`, `app.MapX()`) — **no** reusable logic,
+  policy builders, config-section parsing, `new`-ing of options, loops, consts, or dev/test helpers inline. **Tripwire:**
+  the moment host startup needs more than a single wiring call — an `if`, a `foreach`, a CORS/auth policy builder, a
+  `new`, reading a configuration section — stop and move that logic into the **owning package** as an `Add*`/`Use*`/`Map*`
+  extension, then call the one-liner from the host. Developer/dev-only helpers for the OpenID server live beside their
+  siblings in [`NCode.Identity.Server/DevelopmentEnvironment/`](../../src/NCode.Identity.Server/DevelopmentEnvironment)
+  (`AddDeveloperKeys`/`GetDeveloperKeyMode`, `AddDeveloperCors`/`UseDeveloperCors`) and are exposed through the server's
+  turnkey surface so a host opts in with one call. Default to "it goes in the package"; only the genuinely host-specific,
+  unsafe-to-default inputs called out below (database provider/connection string, production signing key) stay in
+  `Program.cs`.
 - ✅ Use the **C# 14 `extension` member syntax** (`extension(ReceiverType r) { … }` blocks), not classic
   `this`-parameter static methods — matching the `DefaultRegistration.cs` composition pattern
   (`extension(IServiceBuilder<IdentityLibrary> builder) { … }`).

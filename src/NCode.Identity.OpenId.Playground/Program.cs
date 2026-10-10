@@ -29,6 +29,11 @@ using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 using NCode.Identity.Server;
 using NCode.Registration.AspNetCore;
 
+// COMPOSITION-ONLY HOST: this file is a flat list of turnkey Add*/Use*/Map* calls. Reusable or
+// developer-only startup logic does NOT belong here — put it in the owning package as an extension
+// (dev helpers live in NCode.Identity.Server/DevelopmentEnvironment, e.g. AddDeveloperCors). If a step
+// needs an `if`, a `foreach`, a policy builder, or config parsing, move it to a package extension.
+// See csharp-production.instructions.md §4.
 var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
@@ -42,6 +47,10 @@ serviceCollection.AddHttpLogging(options =>
 {
     options.LoggingFields = HttpLoggingFields.All;
 });
+
+// DEVELOPMENT CONVENIENCE: let the local SPA dev server (Vite) call discovery and the management API
+// cross-origin. Origins come from 'Cors:AllowedOrigins'; Development defaults to the Vite ports.
+serviceCollection.AddDeveloperCors(configuration, hostEnvironment);
 
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
 
@@ -116,6 +125,10 @@ app.UseHttpLogging();
 app.UseHttpsRedirection();
 
 app.UseRouting();
+
+// Must run after UseRouting and before the authN/authZ + endpoint middleware. A no-op unless
+// AddDeveloperCors resolved origins (Development default, or explicit 'Cors:AllowedOrigins').
+app.UseDeveloperCors();
 
 app.UseAntiforgery();
 app.UseAuthentication();

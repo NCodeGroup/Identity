@@ -10,13 +10,14 @@ const runtime: RuntimeConfig = {
   issuer: 'https://op.test',
   authorizationEndpoint: 'https://op.test/authorize',
   tokenEndpoint: 'https://op.test/token',
+  scopes: ['openid', 'read:clients'],
   features: {},
 };
 
 function renderApp() {
   const store = createAppStore({
     config: { runtime },
-    auth: { accessToken: 'token', subject: 'admin' },
+    auth: { accessToken: 'token', subject: 'admin', expiresAt: null, refreshToken: null },
   });
   return render(
     <Provider store={store}>

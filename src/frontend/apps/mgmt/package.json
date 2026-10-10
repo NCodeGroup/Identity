@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@ncode/api": "workspace:*",
+    "@ncode/auth": "workspace:*",
     "@ncode/config": "workspace:*",
     "@ncode/store": "workspace:*",
     "@ncode/ui": "workspace:*",

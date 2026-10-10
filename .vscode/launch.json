@@ -1,19 +1,48 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-          "name": "C#: NCode.Identity.OpenId.Playground Debug",
-          "type": "dotnet",
-          "request": "launch",
-          "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj",
-          "justMyCode": true,
-          "logging": {
-            "moduleLoad": false
-          }
-        }
-
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C#: NCode.Identity.OpenId.Playground Debug",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj",
+      "launchSettingsProfile": "NCode.Identity.OpenId.Playground",
+      "justMyCode": true,
+      "logging": {
+        "moduleLoad": false
+      }
+    },
+    {
+      // Starts the Management UI (Vite) dev server via build/dev-ui.ps1, which puts the
+      // NVS-managed Node 22 on PATH. js-debug auto-attaches to the spawned Vite node process,
+      // and serverReadyAction opens the browser once Vite prints its local URL.
+      "name": "UI: Management dev server",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pwsh -NoProfile -File \"${workspaceFolder}/build/dev-ui.ps1\"",
+      "cwd": "${workspaceFolder}",
+      "serverReadyAction": {
+        "pattern": "Local:\\s+(https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "API + UI (F5)",
+      "configurations": [
+        "C#: NCode.Identity.OpenId.Playground Debug",
+        "UI: Management dev server"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "group": "0-fullstack",
+        "order": 1
+      }
+    }
+  ]
 }

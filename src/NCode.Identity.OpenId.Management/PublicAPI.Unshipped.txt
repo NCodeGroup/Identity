@@ -1,6 +1,7 @@
 #nullable enable
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Client = "client" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Grant = "grant" -> string!
+const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.LocalAccount = "local_account" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.ResourceServer = "resource_server" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Server = "server" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Tenant = "tenant" -> string!

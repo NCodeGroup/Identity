@@ -52,4 +52,9 @@ public static class ResourceNodeTypes
     /// A grant (user authorization) node.
     /// </summary>
     public const string Grant = "grant";
+
+    /// <summary>
+    /// A local account node.
+    /// </summary>
+    public const string LocalAccount = "local_account";
 }

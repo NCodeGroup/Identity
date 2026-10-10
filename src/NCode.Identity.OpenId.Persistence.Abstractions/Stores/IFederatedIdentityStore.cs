@@ -89,4 +89,12 @@ public interface IFederatedIdentityStore : IStore
         string joinKey,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Removes a federated identity from the store by its opaque identifier.
+    /// </summary>
+    /// <param name="federatedIdentityId">The opaque identifier of the federated identity to remove.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask RemoveAsync(string federatedIdentityId, CancellationToken cancellationToken);
 }

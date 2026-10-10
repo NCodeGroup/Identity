@@ -86,6 +86,7 @@ internal sealed class ManagementResourceServerSeedHandler(ICryptoService cryptoS
             .. CrudScopes(ManagementScopes.Families.ClientSecrets, "client secrets"),
             .. CrudScopes(ManagementScopes.Families.ResourceServers, "resource servers"),
             .. CrudScopes(ManagementScopes.Families.ClientGrants, "client grants"),
+            .. CrudScopes(ManagementScopes.Families.LocalAccounts, "local accounts"),
             Scope(
                 ManagementScopes.For(ManagementScopes.Verbs.Read, ManagementScopes.Families.Grants),
                 "Read grants (user authorizations)."

@@ -219,4 +219,33 @@ public interface IManagementAuditRecorder
         JsonElement? resourceValues,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Records that an administrator created, updated, disabled, enabled, reset the credential of, changed the metadata
+    /// of, or deleted a local account.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the tenant the account belongs to.</param>
+    /// <param name="localAccountId">The identifier of the affected local account.</param>
+    /// <param name="changeType">
+    /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
+    /// </param>
+    /// <param name="resourceValues">
+    /// A non-sensitive snapshot of the account's values, or <c>null</c> when none is captured. Never contains the
+    /// credential, security stamp, or metadata values.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordLocalAccountChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string localAccountId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    );
 }

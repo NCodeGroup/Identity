@@ -46,7 +46,10 @@ NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccountClaim.Type.ini
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccountClaim.Value.get -> string!
 NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccountClaim.Value.init -> void
 NCode.Identity.OpenId.Accounts.ILocalAccountProvisioner
-NCode.Identity.OpenId.Accounts.ILocalAccountProvisioner.CreateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
+NCode.Identity.OpenId.Accounts.ILocalAccountProvisioner.CreateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Persistence.Stores.IStoreManager! storeManager, NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
+NCode.Identity.OpenId.Accounts.ILocalAccountProvisioner.ResetPasswordAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Persistence.Stores.IStoreManager! storeManager, NCode.Identity.OpenId.Accounts.LocalAccountPasswordResetRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Accounts.ILocalAccountProvisioner.SetEnabledAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Persistence.Stores.IStoreManager! storeManager, string! localAccountId, bool isEnabled, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Accounts.ILocalAccountProvisioner.UpdateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Persistence.Stores.IStoreManager! storeManager, NCode.Identity.OpenId.Accounts.LocalAccountUpdateRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Accounts.ILocalAccountSource
 NCode.Identity.OpenId.Accounts.ILocalAccountSource.FindBySubjectAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! subject, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Accounts.LocalAccount?>
 NCode.Identity.OpenId.Accounts.ILocalAccountSource.ValidateCredentialsAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! userName, System.ReadOnlyMemory<byte> password, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Accounts.LocalAccount?>
@@ -72,10 +75,28 @@ NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.Password.get -> Syste
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.Password.init -> void
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.UserName.get -> string!
 NCode.Identity.OpenId.Accounts.LocalAccountCreationRequest.UserName.init -> void
+NCode.Identity.OpenId.Accounts.LocalAccountPasswordResetRequest
+NCode.Identity.OpenId.Accounts.LocalAccountPasswordResetRequest.LocalAccountId.get -> string!
+NCode.Identity.OpenId.Accounts.LocalAccountPasswordResetRequest.LocalAccountId.init -> void
+NCode.Identity.OpenId.Accounts.LocalAccountPasswordResetRequest.LocalAccountPasswordResetRequest() -> void
+NCode.Identity.OpenId.Accounts.LocalAccountPasswordResetRequest.Password.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.OpenId.Accounts.LocalAccountPasswordResetRequest.Password.init -> void
+NCode.Identity.OpenId.Accounts.LocalAccountUpdateRequest
+NCode.Identity.OpenId.Accounts.LocalAccountUpdateRequest.Email.get -> string?
+NCode.Identity.OpenId.Accounts.LocalAccountUpdateRequest.Email.init -> void
+NCode.Identity.OpenId.Accounts.LocalAccountUpdateRequest.EmailVerified.get -> bool
+NCode.Identity.OpenId.Accounts.LocalAccountUpdateRequest.EmailVerified.init -> void
+NCode.Identity.OpenId.Accounts.LocalAccountUpdateRequest.LocalAccountId.get -> string!
+NCode.Identity.OpenId.Accounts.LocalAccountUpdateRequest.LocalAccountId.init -> void
+NCode.Identity.OpenId.Accounts.LocalAccountUpdateRequest.LocalAccountUpdateRequest() -> void
+NCode.Identity.OpenId.Accounts.LocalAccountUpdateRequest.UserName.get -> string!
+NCode.Identity.OpenId.Accounts.LocalAccountUpdateRequest.UserName.init -> void
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.AddAsync(NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount! account, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.GetByIdOrDefaultAsync(string! localAccountId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount?>
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.GetByUserNameOrDefaultAsync(string! userName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount?>
+NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.GetPageAsync(string? cursor, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount!>!>
+NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.RemoveAsync(string! localAccountId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.UpdateAsync(NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount! account, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Accounts.SubjectMetadataExtensions
 NCode.Identity.OpenId.Accounts.SubjectMetadataExtensions.extension(System.Security.Claims.ClaimsPrincipal!)

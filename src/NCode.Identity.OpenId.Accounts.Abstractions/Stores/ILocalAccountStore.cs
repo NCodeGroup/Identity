@@ -69,4 +69,27 @@ public interface ILocalAccountStore : IStore
         string userName,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Gets a single page of local accounts ordered by their identifier, using keyset (cursor) pagination.
+    /// </summary>
+    /// <param name="cursor">The opaque cursor returned by a previous call that fetches the next page, or <c>null</c>
+    /// to fetch the first page.</param>
+    /// <param name="limit">The maximum number of items to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page and the
+    /// cursor for the next page.</returns>
+    ValueTask<PagedResult<PersistedLocalAccount>> GetPageAsync(
+        string? cursor,
+        int limit,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Removes a local account from the store.
+    /// </summary>
+    /// <param name="localAccountId">The opaque identifier of the local account to remove.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask RemoveAsync(string localAccountId, CancellationToken cancellationToken);
 }

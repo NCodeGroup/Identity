@@ -52,4 +52,9 @@ public static class ManagementResourceTypes
     /// A secret belonging to an OpenID server.
     /// </summary>
     public const string ServerSecret = "server.secret";
+
+    /// <summary>
+    /// A local account.
+    /// </summary>
+    public const string LocalAccount = "local_account";
 }

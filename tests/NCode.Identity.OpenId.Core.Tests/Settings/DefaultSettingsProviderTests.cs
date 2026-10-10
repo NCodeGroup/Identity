@@ -52,7 +52,8 @@ public class DefaultSettingsProviderTests : BaseTests
             OpenIdSettingKeys.GrantTypesSupported,
             OpenIdConstants.GrantTypes.AuthorizationCode,
             OpenIdConstants.GrantTypes.Implicit,
-            OpenIdConstants.GrantTypes.RefreshToken
+            OpenIdConstants.GrantTypes.RefreshToken,
+            OpenIdConstants.GrantTypes.DeviceCode
         );
         SetupBaseline(
             mockSettings,

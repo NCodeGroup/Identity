@@ -42,9 +42,9 @@ public class DefaultCommonParameterDataSourceTests : BaseTests
     }
 
     [Fact]
-    public void Collection_Accessed_Returns38Parameters()
+    public void Collection_Accessed_Returns39Parameters()
     {
         var results = DataSource.Collection;
-        Assert.Equal(38, results.Count());
+        Assert.Equal(39, results.Count());
     }
 }

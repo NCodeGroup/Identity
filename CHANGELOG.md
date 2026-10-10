@@ -10,6 +10,18 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **OAuth 2.0 Device Authorization Grant (RFC 8628).** Input-constrained clients (smart TVs, CLIs, IoT devices) can now
+  obtain tokens by having the end user authorize on a second device. A new `device_authorization_endpoint`
+  (`POST /oauth2/device_authorization`) issues a `device_code`, a human-typable `user_code`, a `verification_uri`, and
+  a polling `interval`; a user-facing verification endpoint (`/oauth2/device`) authenticates the end user through the
+  existing subject-authentication seam and records the approve/deny decision; and the
+  `urn:ietf:params:oauth:grant-type:device_code` token grant polls the request, returning `authorization_pending`,
+  `slow_down`, `expired_token`, or `access_denied` until it is approved and redeemed for tokens exactly once. The
+  pending request is persisted as a `PersistedGrant` payload keyed by `device_code` with a companion `user_code`
+  pointer grant — no new schema — enabled by a new general-purpose `IPersistedGrantService.UpdatePayloadAsync`. New
+  settings `device_code_lifetime`, `device_code_polling_interval`, and `user_code_length` tune the flow, and
+  `user_code` generation is a replaceable `IUserCodeGenerator` seam. The endpoint and grant type are advertised in
+  discovery automatically. See [ADR-0059](docs/adr/0059-device-authorization-grant.md).
 - **Asymmetric secret public-key read endpoints.** A new read-only sub-resource,
   `GET /api/.../{servers|tenants|clients}/{ownerId}/secrets/{secretId}/public-key`, returns an asymmetric secret's
   **public** key material as a `PublicKeyResource` carrying both a JWK (RFC 7517, the same representation the JWKS

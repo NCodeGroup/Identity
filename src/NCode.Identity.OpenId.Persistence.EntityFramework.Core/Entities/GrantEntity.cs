@@ -141,7 +141,7 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     /// <summary>
     /// Gets or sets the serialized JSON for the payload.
     /// </summary>
-    public required JsonElement PayloadJson { get; init; }
+    public required JsonElement PayloadJson { get; set; }
 
     //
 

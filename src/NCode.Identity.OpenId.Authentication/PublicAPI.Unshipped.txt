@@ -194,6 +194,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Clien
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.ClientId.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.CodeVerifier.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.CodeVerifier.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.DeviceCode.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.DeviceCode.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.GrantType.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.GrantType.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Password.get -> string?

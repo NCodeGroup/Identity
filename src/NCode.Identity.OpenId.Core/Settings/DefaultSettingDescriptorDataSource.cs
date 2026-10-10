@@ -351,6 +351,39 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Min,
             };
 
+            // device_code_lifetime: validity window for a pending device authorization request (default 10 minutes; RFC 8628).
+            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.DeviceCodeLifetime,
+                Default = TimeSpan.FromMinutes(10),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // device_code_polling_interval: minimum interval the device must wait between token-endpoint polls (default 5 seconds; RFC 8628).
+            // Floor (Max): a child may only lengthen it (poll more slowly); it cannot poll faster than a parent allows.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.DeviceCodePollingInterval,
+                Default = TimeSpan.FromSeconds(5),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Max,
+            };
+
+            // user_code_length: number of characters in a generated device user_code (default 8; RFC 8628).
+            // Floor (Max): a child may only lengthen it (stronger); it cannot shorten below a parent's value.
+            yield return new SettingDescriptor<int>
+            {
+                Name = OpenIdSettingNames.UserCodeLength,
+                Default = 8,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Max,
+            };
+
             // display_values_supported: OIDC "display" parameter values the server supports.
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>

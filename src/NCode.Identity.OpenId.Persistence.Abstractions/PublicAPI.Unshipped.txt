@@ -122,7 +122,7 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.GrantType.init ->
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.HashedKey.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.HashedKey.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.PayloadJson.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.PayloadJson.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.PayloadJson.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.PersistedGrant() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.RevokedWhen.get -> System.DateTimeOffset?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.RevokedWhen.set -> void

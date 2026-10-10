@@ -64,6 +64,13 @@ public sealed class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
     }
 
     /// <inheritdoc />
+    public string? DeviceCode
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.DeviceCode);
+        set => SetKnownParameter(OpenIdCommonParameters.DeviceCode, value);
+    }
+
+    /// <inheritdoc />
     public string? GrantType
     {
         get => GetKnownParameter(OpenIdCommonParameters.GrantType);

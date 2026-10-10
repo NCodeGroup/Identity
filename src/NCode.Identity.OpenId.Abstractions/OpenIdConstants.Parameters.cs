@@ -127,6 +127,21 @@ public static partial class OpenIdConstants
         public const string DeviceCode = "device_code";
 
         /// <summary>
+        /// Contains the name of <c>interval</c> parameter (the minimum device polling interval, in seconds).
+        /// </summary>
+        public const string Interval = "interval";
+
+        /// <summary>
+        /// Contains the name of <c>verification_uri</c> parameter (the end-user verification URI on the authorization server).
+        /// </summary>
+        public const string VerificationUri = "verification_uri";
+
+        /// <summary>
+        /// Contains the name of <c>verification_uri_complete</c> parameter (the verification URI that includes the <c>user_code</c>).
+        /// </summary>
+        public const string VerificationUriComplete = "verification_uri_complete";
+
+        /// <summary>
         /// Contains the name of <c>display</c> parameter.
         /// </summary>
         public const string Display = "display";

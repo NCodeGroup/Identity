@@ -38,6 +38,7 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
                 OpenIdConstants.GrantTypes.AuthorizationCode,
                 OpenIdConstants.GrantTypes.Implicit,
                 OpenIdConstants.GrantTypes.RefreshToken,
+                OpenIdConstants.GrantTypes.DeviceCode,
             ]
         );
 

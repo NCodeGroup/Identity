@@ -25,9 +25,8 @@ Three things the model assumes are not yet realized, and no ADR covers them:
   authorization imperatively (`IAuthorizationService.AuthorizeAsync`, and validators that take `HttpContext.User`), and
   `AuthorizationFailed` already maps an anonymous caller to `401` and an authenticated-but-unauthorized caller to `403`.
   But the realm handlers (`GlobalAdminHandler.IsInRole`, `TenantAdminHandler.IsInRole` + `tid`) and the
-  `OwnershipHandler` (`IPrincipalResolver` → `PrincipalId` → assignments) evaluate an anonymous principal, so in a
-  Release build every call is denied; only a `#if DEBUG` bypass inside `GlobalAdminHandler` makes the surface usable
-  today. The missing piece is authentication, not a second enforcement mechanism.
+  `OwnershipHandler` (`IPrincipalResolver` → `PrincipalId` → assignments) evaluate an anonymous principal, so every
+  call is denied. The missing piece is authentication, not a second enforcement mechanism.
 - **The signing keys are per-tenant and resolved late.** A token is signed with the resolved tenant's keys under the
   tenant's issuer, and the tenant is materialized by the OpenID request-environment endpoint filter
   ([ADR-0036](0036-unified-openid-request-environment.md)) that runs _inside_ endpoint execution — after ASP.NET Core's
@@ -84,7 +83,7 @@ Authorization is not re-plumbed. Every management endpoint already gates itself 
 authorization (the realm and ownership handlers via `IAuthorizationService.AuthorizeAsync`, and the create validators),
 which runs after the environment filter has materialized the context — exactly where `HttpContext.GetOpenIdContext()`
 and the resolved tenant are available. Authentication populating the principal is what makes that enforcement
-meaningful; the `#if DEBUG` bypass remains the only development affordance and is never a Release path.
+meaningful; `GlobalAdminHandler` succeeds only for a principal carrying the `GlobalAdmin` role claim.
 `.RequireAuthorization()` middleware is deliberately **not** used: it runs before the environment filter resolves the
 tenant, so it would both lack the principal and precede the context it depends on.
 
@@ -167,8 +166,8 @@ registration on `IdentityServerBuilder`), and the host configures the renderer.
 
 ## Consequences
 
-- The management API is consumable end-to-end in a Release build: an operator with the bootstrap credential obtains a
-  management token and configures the server, and the realm/ownership handlers finally run behind real authentication.
+- The management API is consumable end-to-end: an operator with the bootstrap credential obtains a
+  management token and configures the server, and the realm/ownership handlers run behind real authentication.
 - The published packages gain a management authentication environment step (reusing the introspection validation path),
   an OpenAPI security scheme, and a bootstrap seeder; the existing imperative authorization is unchanged, and the
   Playground selects configuration and renders the Scalar auth affordance. New configuration options (bootstrap client
@@ -192,8 +191,8 @@ registration on `IdentityServerBuilder`), and the host configures the renderer.
   from the workload tenant the bootstrap client lives in, so no single requestable scope could represent it. Even if
   token-scope enforcement arrives for scoped delegation ([ADR-0026](0026-scope-enforcement-via-resource-servers-and-client-grants.md)),
   GlobalAdmin keeps its role-based bypass.
-- The `#if DEBUG` bypass in `GlobalAdminHandler` is now the development-only affordance behind enforced authorization,
-  and is removed when the data-driven assignment model lands.
+- `GlobalAdminHandler` authorizes solely on the `GlobalAdmin` role claim; the
+  surface is reachable only through authentication and the bootstrap administrator.
 - Claim-minted `GlobalAdmin` conferral is a cold-start bridge; when persisted assignments and service principals arrive
   it is superseded, and the bootstrap client becomes a provisioning convenience rather than an authorization path.
 - An operator who loses the bootstrap credential before provisioning another administrator must re-seed from

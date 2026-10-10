@@ -7,9 +7,10 @@
 # previous response's 'continuationToken' back as '?cursor=' to fetch the next page. A null
 # 'continuationToken' means there are no more pages.
 #
-# Authorization: in a Development build the global-admin check is bypassed (see GlobalAdminHandler
-# '#if DEBUG'), so these run without a token. A Release deployment requires a GlobalAdmin token
+# Authorization: every build enforces authentication. These require a GlobalAdmin token
 # (servers, tenants) or a GlobalAdmin/TenantAdmin token for the request's tenant (clients).
+# Obtain one by exchanging the configuration-seeded bootstrap administrator credential at the
+# token endpoint (see ADR-0044).
 #
 # First-run bootstrap: the OpenID server and the static-single tenant are provisioned LAZILY by the
 # OpenID runtime on first resolution, not at startup and not by these management endpoints (the list

@@ -283,6 +283,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RedirectUris);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'registration_endpoint_allow_anonymous' setting.
+    /// </summary>
+    public static SettingKey<bool> RegistrationEndpointAllowAnonymous =>
+        new(OpenIdSettingNames.RegistrationEndpointAllowAnonymous);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_expiration_policy' setting.
     /// </summary>
     public static SettingKey<string> RefreshTokenExpirationPolicy =>

@@ -361,6 +361,93 @@ NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.Expone
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.Modulus.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.Modulus.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.RsaJsonWebKey() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.Description.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.Description.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.InitialAccessTokenGrant() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationAccessTokenGrant
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationAccessTokenGrant.ClientId.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationAccessTokenGrant.ClientId.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationAccessTokenGrant.RegistrationAccessTokenGrant() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic.IInitialAccessTokenValidator
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic.IInitialAccessTokenValidator.ValidateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! initialAccessToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.ClientName.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.ClientName.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.ClientUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.ClientUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.Contacts.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.Contacts.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.ExtensionData.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.GrantTypes.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.GrantTypes.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.Jwks.get -> System.Text.Json.JsonElement?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.Jwks.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.JwksUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.JwksUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.LogoUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.LogoUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.PolicyUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.PolicyUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.RedirectUris.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.RedirectUris.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.RegisterClientRequest() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.ResponseTypes.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.ResponseTypes.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.Scope.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.Scope.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SoftwareId.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SoftwareId.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SoftwareVersion.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SoftwareVersion.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TokenEndpointAuthMethod.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TokenEndpointAuthMethod.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TosUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TosUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientId.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientId.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientIdIssuedAt.get -> long?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientIdIssuedAt.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientName.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientName.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientSecret.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientSecret.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientSecretExpiresAt.get -> long?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientSecretExpiresAt.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ClientUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.Contacts.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.Contacts.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.GrantTypes.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.GrantTypes.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.Jwks.get -> System.Text.Json.JsonElement?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.Jwks.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.JwksUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.JwksUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.LogoUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.LogoUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.PolicyUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.PolicyUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RedirectUris.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RedirectUris.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RegistrationAccessToken.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RegistrationAccessToken.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RegistrationClientUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RegistrationClientUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ResponseTypes.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ResponseTypes.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.Scope.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.Scope.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SoftwareId.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SoftwareId.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SoftwareVersion.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SoftwareVersion.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TokenEndpointAuthMethod.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TokenEndpointAuthMethod.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TosUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TosUri.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand
 NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
 NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands.RevokeTokenCommand.OpenIdClient.init -> void

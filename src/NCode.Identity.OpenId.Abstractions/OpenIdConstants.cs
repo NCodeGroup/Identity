@@ -100,6 +100,18 @@ public static partial class OpenIdConstants
         /// Contains the name for the <c>userinfo</c> endpoint.
         /// </summary>
         public const string UserInfo = "userinfo_endpoint";
+
+        /// <summary>
+        /// Contains the name for the <c>dynamic client registration</c> endpoint (RFC 7591).
+        /// This value is also used as the <c>registration_endpoint</c> key in the discovery metadata.
+        /// </summary>
+        public const string Registration = "registration_endpoint";
+
+        /// <summary>
+        /// Contains the name for the per-client <c>registration management</c> endpoint (RFC 7592) that a client uses
+        /// to read, update, or delete its own registration via its <c>registration_access_token</c>.
+        /// </summary>
+        public const string RegistrationManagement = "registration_management_endpoint";
     }
 
     /// <summary>
@@ -162,6 +174,11 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the <c>userinfo</c> endpoint.
         /// </summary>
         public const string UserInfo = $"{Prefix}/userinfo";
+
+        /// <summary>
+        /// Contains the relative path for the <c>dynamic client registration</c> endpoint (RFC 7591).
+        /// </summary>
+        public const string Registration = $"{Prefix}/register";
     }
 
     /// <summary>
@@ -280,6 +297,18 @@ public static partial class OpenIdConstants
         /// them.
         /// </summary>
         public const string UserInfoClaims = "userinfo_claims";
+
+        /// <summary>
+        /// Identifies a persisted grant for a <c>registration access token</c> (RFC 7592), keyed by the token value,
+        /// whose payload binds the token to the client it manages.
+        /// </summary>
+        public const string RegistrationAccessToken = "registration_access_token";
+
+        /// <summary>
+        /// Identifies a persisted grant for an <c>initial access token</c> (RFC 7591), keyed by the token value, that
+        /// authorizes a caller to register a new client at the dynamic client registration endpoint.
+        /// </summary>
+        public const string InitialAccessToken = "initial_access_token";
     }
 
     /// <summary>

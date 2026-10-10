@@ -259,6 +259,12 @@ public static class OpenIdSettingNames
     public const string RedirectUris = "redirect_uris";
 
     /// <summary>
+    /// Contains the name of <c>registration_endpoint_allow_anonymous</c> setting.
+    /// </summary>
+    public const string RegistrationEndpointAllowAnonymous =
+        "registration_endpoint_allow_anonymous";
+
+    /// <summary>
     /// Contains the name of <c>refresh_token_expiration_policy</c> setting.
     /// </summary>
     public const string RefreshTokenExpirationPolicy = "refresh_token_expiration_policy";

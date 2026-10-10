@@ -22,9 +22,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using NCode.Identity.OpenId;
-using NCode.Identity.Server.DevelopmentEnvironment;
 
-namespace NCode.Identity.Server.OpenApi;
+namespace NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
 
 /// <summary>
 /// An OpenAPI transformer that, <strong>in the development environment only</strong>, appends a pre-filled

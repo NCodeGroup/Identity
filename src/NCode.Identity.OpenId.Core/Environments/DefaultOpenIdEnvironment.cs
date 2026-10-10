@@ -74,7 +74,10 @@ internal class DefaultOpenIdEnvironment(
     public override IPropertyBag PropertyBag { get; } = PropertyBagFactory.Create();
 
     /// <inheritdoc />
-    public override string? GetSubjectId(ClaimsPrincipal subject) => GetSubjectIdDelegate(subject);
+    public override string? GetSubjectId(
+        ClaimsPrincipal subject,
+        IReadOnlyCollection<string> subjectClaimTypes
+    ) => GetSubjectIdDelegate(subject, subjectClaimTypes);
 
     /// <inheritdoc />
     public override ClaimsIdentity GetSubjectIdentity(ClaimsPrincipal subject) =>

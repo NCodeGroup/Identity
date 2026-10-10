@@ -46,7 +46,7 @@ internal class DefaultCreatePasswordGrantSubjectHandler(TimeProvider timeProvide
         var (openIdContext, account) = command;
 
         var settings = openIdContext.Tenant.SettingsProvider.Collection;
-        var sourceClaimType = settings.GetValue(OpenIdSettingKeys.PrincipalSourceClaim);
+        var subjectClaimType = settings.GetValue(OpenIdSettingKeys.SubjectClaimTypes).First();
         var issuerClaimType = settings.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim);
 
         // The ROPC subject is built fresh with no interactive challenge to stash the tenant and authentication time in
@@ -55,7 +55,9 @@ internal class DefaultCreatePasswordGrantSubjectHandler(TimeProvider timeProvide
         var authTime = TimeProvider.GetUtcNow().ToUnixTimeSeconds();
         var claims = new List<Claim>(account.Claims.Count + 4)
         {
-            new(sourceClaimType, account.Subject),
+            // The subject is stamped under the tenant's primary subject claim type so principal resolution reads it
+            // back through the same tenant-aware GetSubjectId seam (ADR-0053).
+            new(subjectClaimType, account.Subject),
             new(issuerClaimType, AccountConstants.SelfIssuer),
             new(JoseClaimNames.Payload.Tid, openIdContext.Tenant.TenantId),
             new(

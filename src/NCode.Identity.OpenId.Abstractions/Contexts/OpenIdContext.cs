@@ -17,11 +17,13 @@
 
 #endregion
 
+using System.Security.Claims;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Mediator;
 using NCode.PropertyBag;
@@ -31,6 +33,11 @@ namespace NCode.Identity.OpenId.Contexts;
 /// <summary>
 /// Encapsulates all OpenID-specific information about an individual OpenID request.
 /// </summary>
+/// <remarks>
+/// Member convention: an <c>abstract</c> member is request state a concrete context supplies; a <c>virtual</c> member
+/// (such as <see cref="ErrorFactory"/> or <see cref="GetSubjectId"/>) is behavior derived from that state with a correct
+/// default, overridable when a host needs to. This split is by modeling intent, not SemVer compatibility.
+/// </remarks>
 [PublicAPI]
 public abstract class OpenIdContext : IAsyncDisposable
 {
@@ -73,6 +80,26 @@ public abstract class OpenIdContext : IAsyncDisposable
     /// Gets the name of the endpoint associated with the current request.
     /// </summary>
     public abstract string EndpointName { get; }
+
+    /// <summary>
+    /// Extracts the subject id for an end-user from a <see cref="ClaimsPrincipal"/> using the resolved tenant's
+    /// <c>subject_claim_types</c> setting (falling back to <see cref="OpenIdConstants.DefaultSubjectClaimTypes"/>)
+    /// applied through the environment's host-replaceable extraction algorithm. This is the single seam every end-user
+    /// surface uses so the subject is derived consistently.
+    /// </summary>
+    /// <param name="subject">The <see cref="ClaimsPrincipal"/> to search for the subject id.</param>
+    /// <returns>The subject id if found; otherwise <c>null</c>.</returns>
+    public virtual string? GetSubjectId(ClaimsPrincipal subject)
+    {
+        var subjectClaimTypes = Tenant.SettingsProvider.Collection.TryGetValue(
+            OpenIdSettingKeys.SubjectClaimTypes,
+            out var configured
+        )
+            ? configured
+            : OpenIdConstants.DefaultSubjectClaimTypes;
+
+        return Environment.GetSubjectId(subject, subjectClaimTypes);
+    }
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()

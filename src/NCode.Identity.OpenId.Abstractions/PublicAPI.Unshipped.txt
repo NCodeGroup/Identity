@@ -13,7 +13,7 @@ abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.DataProtector.get 
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.EphemeralDataProtector.get -> Microsoft.AspNetCore.DataProtection.IDataProtector!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.ErrorFactory.get -> NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.GetParameterDescriptor(string! parameterName) -> NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor
-abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.GetSubjectId(System.Security.Claims.ClaimsPrincipal! subject) -> string?
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.GetSubjectId(System.Security.Claims.ClaimsPrincipal! subject, System.Collections.Generic.IReadOnlyCollection<string!>! subjectClaimTypes) -> string?
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.GetSubjectIdentity(System.Security.Claims.ClaimsPrincipal! subject) -> System.Security.Claims.ClaimsIdentity!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.JsonSerializerOptions.get -> System.Text.Json.JsonSerializerOptions!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.KnownParameters.get -> NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollection!
@@ -615,6 +615,7 @@ static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Address.get -> System
 static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Email.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Phone.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 static NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope.Profile.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+static NCode.Identity.OpenId.OpenIdConstants.DefaultSubjectClaimTypes.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 static NCode.Identity.OpenId.OpenIdConstants.ProtocolClaims.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
@@ -681,14 +682,15 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoEncryptionEncVal
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoEncryptionZipValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 virtual NCode.Identity.OpenId.Contexts.OpenIdContext.ErrorFactory.get -> NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!
-const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PrincipalSourceClaim = "principal_source_claim" -> string!
+virtual NCode.Identity.OpenId.Contexts.OpenIdContext.GetSubjectId(System.Security.Claims.ClaimsPrincipal! subject) -> string?
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PrincipalIssuerClaim = "principal_issuer_claim" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectClaimTypes = "subject_claim_types" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityJoinClaim = "federated_identity_join_claim" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityVerifiedClaim = "federated_identity_verified_claim" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityRequireVerified = "federated_identity_require_verified" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityExplicitOnly = "federated_identity_explicit_only" -> string!
-static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PrincipalSourceClaim.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PrincipalIssuerClaim.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectClaimTypes.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityJoinClaim.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityVerifiedClaim.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityRequireVerified.get -> NCode.Identity.Settings.SettingKey<bool>

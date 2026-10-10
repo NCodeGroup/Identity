@@ -28,10 +28,10 @@ namespace NCode.Identity.OpenId.Settings;
 public static class OpenIdSettingNames
 {
     /// <summary>
-    /// Contains the name of the <c>principal_source_claim</c> setting (the claim carrying the subject used to resolve
-    /// the principal).
+    /// Contains the name of the <c>subject_claim_types</c> setting (the ordered list of claim types that identify the
+    /// subject, tried in order; default <c>sub</c> then <c>nameidentifier</c>).
     /// </summary>
-    public const string PrincipalSourceClaim = "principal_source_claim";
+    public const string SubjectClaimTypes = "subject_claim_types";
 
     /// <summary>
     /// Contains the name of the <c>principal_issuer_claim</c> setting (the claim carrying the upstream issuer used to

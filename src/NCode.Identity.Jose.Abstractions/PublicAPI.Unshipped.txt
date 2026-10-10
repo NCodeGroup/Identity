@@ -123,6 +123,7 @@ const NCode.Identity.Jose.JoseClaimNames.Payload.Jti = "jti" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Locale = "locale" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.MiddleName = "middle_name" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Name = "name" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.NameId = "nameid" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Nbf = "nbf" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Nickname = "nickname" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Nonce = "nonce" -> string!

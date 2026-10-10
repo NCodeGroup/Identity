@@ -29,8 +29,8 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// <summary>
 /// Provides the default implementation of <see cref="IPrincipalResolver"/>, which resolves an authenticated caller to
 /// a federated principal: the subject claim is interpreted first as a server-owned <c>PrincipalId</c> and, when that
-/// does not match, as an upstream <c>(issuer, subject)</c> external connection identity. The source and issuer claim
-/// names are per-tenant settings on the shared request environment.
+/// does not match, as an upstream <c>(issuer, subject)</c> external connection identity. The subject is derived through
+/// the environment's host-configured <c>GetSubjectId</c> ([ADR-0053]); the issuer claim name is a per-tenant setting.
 /// </summary>
 internal class DefaultPrincipalResolver(
     ICryptoService cryptoService,
@@ -48,11 +48,7 @@ internal class DefaultPrincipalResolver(
         CancellationToken cancellationToken
     )
     {
-        var settings = openIdContext.Tenant.SettingsProvider.Collection;
-
-        var subject = user.FindFirstValue(
-            settings.GetValue(OpenIdSettingKeys.PrincipalSourceClaim)
-        );
+        var subject = openIdContext.GetSubjectId(user);
         if (string.IsNullOrEmpty(subject))
         {
             return null;
@@ -67,6 +63,7 @@ internal class DefaultPrincipalResolver(
         }
 
         // Otherwise the subject is an upstream value paired with its issuer.
+        var settings = openIdContext.Tenant.SettingsProvider.Collection;
         var issuer = user.FindFirstValue(settings.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim));
         if (string.IsNullOrEmpty(issuer))
         {
@@ -101,10 +98,8 @@ internal class DefaultPrincipalResolver(
             return existing;
         }
 
+        var subject = openIdContext.GetSubjectId(user);
         var settings = openIdContext.Tenant.SettingsProvider.Collection;
-        var subject = user.FindFirstValue(
-            settings.GetValue(OpenIdSettingKeys.PrincipalSourceClaim)
-        );
         var issuer = user.FindFirstValue(settings.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim));
 
         // Without a resolvable upstream (issuer, subject) pair we cannot form a durable connection identity for

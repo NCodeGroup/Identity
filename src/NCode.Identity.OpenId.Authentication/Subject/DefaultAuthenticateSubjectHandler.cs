@@ -92,7 +92,7 @@ internal class DefaultAuthenticateSubjectHandler(
         var authenticationProperties = baseTicket.Properties;
         var subject = baseTicket.Principal;
 
-        var subjectId = openIdContext.Environment.GetSubjectId(subject);
+        var subjectId = openIdContext.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(

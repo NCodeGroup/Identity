@@ -29,10 +29,10 @@ namespace NCode.Identity.OpenId.Settings;
 public static class OpenIdSettingKeys
 {
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'principal_source_claim' setting.
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'subject_claim_types' setting.
     /// </summary>
-    public static SettingKey<string> PrincipalSourceClaim =>
-        new(OpenIdSettingNames.PrincipalSourceClaim);
+    public static SettingKey<IReadOnlyCollection<string>> SubjectClaimTypes =>
+        new(OpenIdSettingNames.SubjectClaimTypes);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'principal_issuer_claim' setting.

@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using NCode.Identity.OpenId.Accounts.Authentication;
+using NCode.Identity.OpenId.Accounts.Management;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
@@ -56,6 +57,10 @@ serviceCollection.AddLocalAccountEntityFramework();
 // Enable the resource-owner password grant over the configured local-account store. The account stack provides this
 // capability handler (dependency inversion); the Authentication package itself does not depend on accounts.
 serviceCollection.AddLocalAccountAuthentication();
+
+// Enable the local-account management endpoints (nested under the tenant-plane group). The account stack provides this
+// capability (dependency inversion); the Management slice itself does not depend on accounts.
+serviceCollection.AddLocalAccountManagement();
 
 // DEVELOPMENT ONLY: choose how signing keys are provided (see ADR-0002). The default is ephemeral,
 // in-memory keys (hermetic, ideal for tests). Local running can opt into persistent developer keys —

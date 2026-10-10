@@ -233,30 +233,24 @@ internal class DefaultManagementAuditRecorder(
     }
 
     /// <inheritdoc />
-    public ValueTask RecordLocalAccountChangedAsync(
+    public ValueTask RecordResourceChangeAsync(
         HttpContext httpContext,
-        string tenantId,
-        string localAccountId,
-        string changeType,
-        JsonElement? resourceValues,
+        ResourceChangeAuditEvent auditEvent,
         CancellationToken cancellationToken
     )
     {
-        var auditEvent = new LocalAccountChangedAuditEvent
+        // Stamp the common envelope (the caller owns the resource-specific fields and outcome); `with` preserves the
+        // runtime event type so dispatch keys off the concrete event.
+        var stamped = auditEvent with
         {
             EventId = Guid.NewGuid(),
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
             Source = GetSource(httpContext),
-            TenantId = tenantId,
-            Outcome = AuditOutcome.Success,
-            ResourceId = localAccountId,
-            ChangeType = changeType,
-            ResourceValues = resourceValues,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        return EventPublisher.PublishAsync(stamped, cancellationToken);
     }
 
     private static string? GetCorrelationId(HttpContext httpContext) =>

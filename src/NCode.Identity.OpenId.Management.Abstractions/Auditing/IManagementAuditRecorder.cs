@@ -221,18 +221,15 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
-    /// Records that an administrator created, updated, disabled, enabled, reset the credential of, changed the metadata
-    /// of, or deleted a local account.
+    /// Records an arbitrary resource-change audit event, deriving the common audit envelope — the event id, timestamp,
+    /// correlation id, acting administrator, and source — from the current request and publishing through the event
+    /// seam. This is the extension seam a capability package (for example, local accounts) uses to record its own
+    /// resource-change events without the base management slice knowing their shape.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="tenantId">The identifier of the tenant the account belongs to.</param>
-    /// <param name="localAccountId">The identifier of the affected local account.</param>
-    /// <param name="changeType">
-    /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
-    /// </param>
-    /// <param name="resourceValues">
-    /// A non-sensitive snapshot of the account's values, or <c>null</c> when none is captured. Never contains the
-    /// credential, security stamp, or metadata values.
+    /// <param name="auditEvent">
+    /// The resource-change event to stamp and publish. The caller supplies the resource-specific fields (tenant,
+    /// resource id, change type, non-sensitive snapshot, and outcome); the envelope fields are stamped by the recorder.
     /// </param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
@@ -240,12 +237,9 @@ public interface IManagementAuditRecorder
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
-    ValueTask RecordLocalAccountChangedAsync(
+    ValueTask RecordResourceChangeAsync(
         HttpContext httpContext,
-        string tenantId,
-        string localAccountId,
-        string changeType,
-        JsonElement? resourceValues,
+        ResourceChangeAuditEvent auditEvent,
         CancellationToken cancellationToken
     );
 }

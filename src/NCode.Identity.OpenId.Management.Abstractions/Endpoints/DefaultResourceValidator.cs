@@ -17,6 +17,7 @@
 #endregion
 
 using System.Security.Claims;
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 
@@ -24,9 +25,11 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
 /// Provides shared functionality for the default management validators, including resource-based authorization
-/// mapped to a <see cref="ManagementError"/>.
+/// mapped to a <see cref="ManagementError"/>. Public so capability packages that plug into the management slice (for
+/// example, local accounts) can derive their own validators.
 /// </summary>
-internal abstract class DefaultResourceValidator(IAuthorizationService authorizationService)
+[PublicAPI]
+public abstract class DefaultResourceValidator(IAuthorizationService authorizationService)
 {
     private IAuthorizationService AuthorizationService { get; } = authorizationService;
 

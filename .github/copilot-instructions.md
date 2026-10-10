@@ -29,3 +29,16 @@ during a task into the instruction files or an ADR as part of the same change. S
 Documented pending work (deferred decisions, feature gaps, follow-ups) is cataloged in
 [`BACKLOG.md`](../BACKLOG.md) — the single source of truth for known pending work. Record pending items
 there, not in chat history or volatile memory.
+
+## Push protocol
+
+When the user authorizes a push (says "push"), run these gates **before** pushing:
+
+1. **Persist lessons.** Promote every lesson learned in the session into durable repository content — a convention
+   into the scoped instruction files, a non-obvious decision into an ADR under [`docs/adr/`](../docs/adr/), a
+   consumer-visible change into [`CHANGELOG.md`](../CHANGELOG.md), and pending work into [`BACKLOG.md`](../BACKLOG.md).
+2. **Drain volatile memory.** No durable knowledge may remain only in agent memory (`/memories/…`) or chat history:
+   migrate anything durable into the repository and clear the memory so nothing survives solely as a volatile note.
+
+This upholds [ADR-0008](../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md): conventions, reasoning, and
+recurring gotchas live in the repository.

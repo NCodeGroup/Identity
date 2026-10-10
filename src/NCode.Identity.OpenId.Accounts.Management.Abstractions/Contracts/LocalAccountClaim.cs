@@ -18,31 +18,24 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Persistence;
-using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
+namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 
 /// <summary>
-/// Represents the REST resource for a local account's full set of profile claims.
+/// Represents a single profile claim of a local account: an individually-addressable <c>type</c>/<c>value</c>
+/// assertion (such as <c>given_name</c> or <c>email</c>) that contributes to issued tokens and the UserInfo response.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class LocalAccountClaimsResource : ISupportTenantId, ISupportConcurrencyToken
+public sealed class LocalAccountClaim
 {
-    /// <inheritdoc cref="ISupportTenantId.TenantId"/>
-    public required string TenantId { get; init; }
+    /// <summary>
+    /// Gets the claim type.
+    /// </summary>
+    public required string Type { get; init; }
 
     /// <summary>
-    /// Gets the opaque identifier of the local account (its self-issued subject).
+    /// Gets the claim value.
     /// </summary>
-    public required string LocalAccountId { get; init; }
-
-    /// <summary>
-    /// Gets the account's profile claims.
-    /// </summary>
-    public required IReadOnlyList<LocalAccountClaim> Claims { get; init; }
-
-    /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
-    public required string ConcurrencyToken { get; init; }
+    public required string Value { get; init; }
 }

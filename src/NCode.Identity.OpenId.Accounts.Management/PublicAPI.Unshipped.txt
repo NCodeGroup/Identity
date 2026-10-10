@@ -1,0 +1,4 @@
+#nullable enable
+NCode.Identity.OpenId.Accounts.Management.DefaultRegistration
+NCode.Identity.OpenId.Accounts.Management.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.OpenId.Accounts.Management.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddLocalAccountManagement() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

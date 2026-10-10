@@ -21,7 +21,7 @@ using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
+namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 
 /// <summary>
 /// Represents the REST resource for a local account: the server-owned credential, profile, and status payload behind a

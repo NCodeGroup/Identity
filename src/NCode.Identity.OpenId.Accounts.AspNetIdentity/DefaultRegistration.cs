@@ -44,8 +44,6 @@ public static class DefaultRegistration
         public IServiceCollection AddAspNetIdentityLocalAccountStore<TUser>()
             where TUser : IdentityUser, new()
         {
-            serviceCollection.TryAddSingleton<LocalAccountFeature>();
-
             // The store is backing-store-agnostic, so it registers the DbContext-less factory the store manager falls
             // back to; the scoped UserManager is resolved per operation from a fresh scope.
             serviceCollection.AddSingleton<Func<IStoreProvider, ILocalAccountStore>>(

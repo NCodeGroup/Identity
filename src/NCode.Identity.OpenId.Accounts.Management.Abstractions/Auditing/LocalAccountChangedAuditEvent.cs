@@ -16,21 +16,19 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
+using NCode.Identity.Events.Audit;
 
-namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
+namespace NCode.Identity.OpenId.Accounts.Management.Auditing;
 
 /// <summary>
-/// Represents the request body to reset a local account's credential. Resetting the credential rotates the account's
-/// security stamp, invalidating its outstanding sessions and tokens.
+/// An audit event raised when an administrator creates, updates, disables, enables, resets the credential of, changes
+/// the metadata of, or deletes a local account. The specific transition is carried by
+/// <see cref="ResourceChangeAuditEvent.ChangeType"/>.
 /// </summary>
 [PublicAPI]
-[ExcludeFromCodeCoverage]
-public sealed class ResetLocalAccountPasswordRequest
+public sealed record LocalAccountChangedAuditEvent : ResourceChangeAuditEvent
 {
-    /// <summary>
-    /// Gets the account's new password, hashed server-side.
-    /// </summary>
-    public required string Password { get; init; }
+    /// <inheritdoc />
+    public override string ResourceType => AccountManagementResourceTypes.LocalAccount;
 }

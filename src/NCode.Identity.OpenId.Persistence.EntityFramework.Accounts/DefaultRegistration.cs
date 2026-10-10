@@ -50,8 +50,6 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IOpenIdModelContributor, LocalAccountModelContributor>()
             );
 
-            serviceCollection.TryAddSingleton<LocalAccountFeature>();
-
             serviceCollection.AddSingleton<
                 Func<IStoreProvider, OpenIdDbContext, ILocalAccountStore>
             >(serviceProvider =>

@@ -1,9 +1,14 @@
 #nullable enable
+abstract NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.AuthorizationService.get -> Microsoft.AspNetCore.Authorization.IAuthorizationService!
+abstract NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.CryptoService.get -> NCode.Identity.Logic.ICryptoService!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Client = "client" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ClientSecret = "client.secret" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ServerSecret = "server.secret" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Tenant = "tenant" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.TenantSecret = "tenant.secret" -> string!
+const NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.DefaultPageSize = 50 -> int
+const NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.MaxPageSize = 100 -> int
+const NCode.Identity.OpenId.Management.Endpoints.ManagementEndpointGroups.Tenant = "api/tenant" -> string!
 NCode.Identity.OpenId.Management.Auditing.ClientChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.ClientSecretChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent
@@ -17,6 +22,7 @@ NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientC
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordGrantRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? clientId, string? grantType, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordGrantsRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? clientId, long revokedCount, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceChangeAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Events.Audit.ResourceChangeAuditEvent! auditEvent, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordServerSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! serverId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -26,6 +32,10 @@ NCode.Identity.OpenId.Management.Auditing.ServerSecretChangedAuditEvent.ServerId
 NCode.Identity.OpenId.Management.Auditing.ServerSecretChangedAuditEvent.ServerId.init -> void
 NCode.Identity.OpenId.Management.Auditing.TenantChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.TenantSecretChangedAuditEvent
+NCode.Identity.OpenId.Management.Authorization.TenantScopeResource
+NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.TenantScopeResource() -> void
 NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest
 NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.AddOwnerRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.PrincipalId.get -> string!
@@ -350,6 +360,12 @@ NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator
 NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Clients.IClientValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client, NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.DefaultResourceValidator
+NCode.Identity.OpenId.Management.Endpoints.DefaultResourceValidator.AuthorizeAsync(System.Security.Claims.ClaimsPrincipal! user, object! resource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! operation, string! forbiddenDetail, string! unauthenticatedDetail) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.DefaultResourceValidator.DefaultResourceValidator(Microsoft.AspNetCore.Authorization.IAuthorizationService! authorizationService) -> void
+NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler
+NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ManagementApiEndpointHandler() -> void
+NCode.Identity.OpenId.Management.Endpoints.ManagementEndpointGroups
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant! grant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientGrant! grant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
@@ -373,6 +389,7 @@ NCode.Identity.OpenId.Management.ManagementError.Detail.init -> void
 NCode.Identity.OpenId.Management.ManagementError.ManagementError() -> void
 NCode.Identity.OpenId.Management.ManagementError.StatusCode.get -> int
 NCode.Identity.OpenId.Management.ManagementError.StatusCode.init -> void
+NCode.Identity.OpenId.Management.Operations
 override NCode.Identity.OpenId.Management.Auditing.ClientChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ClientSecretChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.Action.get -> string!
@@ -380,97 +397,17 @@ override NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.A
 override NCode.Identity.OpenId.Management.Auditing.ServerSecretChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.TenantChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.TenantSecretChangedAuditEvent.ResourceType.get -> string!
-override NCode.Identity.OpenId.Management.Auditing.LocalAccountChangedAuditEvent.ResourceType.get -> string!
-NCode.Identity.OpenId.Management.Auditing.LocalAccountChangedAuditEvent
-const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.LocalAccount = "local_account" -> string!
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordLocalAccountChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! localAccountId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Endpoints.LocalAccounts.ILocalAccountValidator
-NCode.Identity.OpenId.Management.Endpoints.LocalAccounts.ILocalAccountValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! tenantId, string! userName, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.LocalAccounts.ILocalAccountValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, string! tenantId, string! localAccountId, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.LocalAccounts.ILocalAccountValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, string! tenantId, string! localAccountId, string! userName, string! concurrencyToken, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.CreateLocalAccountRequest() -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.Email.get -> string?
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.Email.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.EmailVerified.get -> bool
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.EmailVerified.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.IsEnabled.get -> bool
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.IsEnabled.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.Password.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.Password.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.UserName.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.UserName.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.Claims.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaim!>?
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.Claims.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.ProfileMetadata.get -> System.Text.Json.JsonElement?
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.ProfileMetadata.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.SystemMetadata.get -> System.Text.Json.JsonElement?
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.CreateLocalAccountRequest.SystemMetadata.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaim
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaim.LocalAccountClaim() -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaim.Type.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaim.Type.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaim.Value.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaim.Value.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaimsResource
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaimsResource.Claims.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaim!>!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaimsResource.Claims.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaimsResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaimsResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaimsResource.LocalAccountClaimsResource() -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaimsResource.LocalAccountId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaimsResource.LocalAccountId.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaimsResource.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaimsResource.TenantId.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.SetLocalAccountClaimsRequest
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.SetLocalAccountClaimsRequest.Claims.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountClaim!>!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.SetLocalAccountClaimsRequest.Claims.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.SetLocalAccountClaimsRequest.SetLocalAccountClaimsRequest() -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.LocalAccountId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.LocalAccountId.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.LocalAccountMetadataResource() -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.PrincipalId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.PrincipalId.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.ProfileMetadata.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.ProfileMetadata.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.SystemMetadata.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.SystemMetadata.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountMetadataResource.TenantId.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.Email.get -> string?
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.Email.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.EmailVerified.get -> bool
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.EmailVerified.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.IsEnabled.get -> bool
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.IsEnabled.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.LocalAccountId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.LocalAccountId.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.LocalAccountResource() -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.TenantId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.TenantId.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.UserName.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.LocalAccountResource.UserName.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.ResetLocalAccountPasswordRequest
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.ResetLocalAccountPasswordRequest.Password.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.ResetLocalAccountPasswordRequest.Password.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.ResetLocalAccountPasswordRequest.ResetLocalAccountPasswordRequest() -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.SetLocalAccountMetadataRequest
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.SetLocalAccountMetadataRequest.ProfileMetadata.get -> System.Text.Json.JsonElement?
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.SetLocalAccountMetadataRequest.ProfileMetadata.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.SetLocalAccountMetadataRequest.SetLocalAccountMetadataRequest() -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.SetLocalAccountMetadataRequest.SystemMetadata.get -> System.Text.Json.JsonElement?
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.SetLocalAccountMetadataRequest.SystemMetadata.init -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.UpdateLocalAccountRequest
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.UpdateLocalAccountRequest.Email.get -> string?
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.UpdateLocalAccountRequest.Email.set -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.UpdateLocalAccountRequest.EmailVerified.get -> bool
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.UpdateLocalAccountRequest.EmailVerified.set -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.UpdateLocalAccountRequest.UpdateLocalAccountRequest() -> void
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.UpdateLocalAccountRequest.UserName.get -> string!
-NCode.Identity.OpenId.Management.Contracts.LocalAccounts.UpdateLocalAccountRequest.UserName.set -> void
+static NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.For(string! tenantId) -> NCode.Identity.OpenId.Management.Authorization.TenantScopeResource!
+static NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ToResourceValues<T>(T resource) -> System.Text.Json.JsonElement
+static NCode.Identity.OpenId.Management.Operations.Create.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
+static NCode.Identity.OpenId.Management.Operations.Delete.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
+static NCode.Identity.OpenId.Management.Operations.List.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
+static NCode.Identity.OpenId.Management.Operations.Read.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
+static NCode.Identity.OpenId.Management.Operations.Update.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.AuthorizationFailed(Microsoft.AspNetCore.Http.HttpContext! httpContext) -> Microsoft.AspNetCore.Http.IResult!
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.NormalizeLimit(int? limit) -> int
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<TValue, TResponse>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, object? authorizationResource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<TValue, TResponse>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessListAsync<TItem, TResource>(Microsoft.AspNetCore.Http.HttpContext! httpContext, object? authorizationResource, System.Func<System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<TItem>!>>! fetchPageAsync, System.Func<TItem, TResource>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ToErrorResult(NCode.Identity.OpenId.Management.ManagementError! error) -> Microsoft.AspNetCore.Http.IResult!

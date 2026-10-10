@@ -19,7 +19,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Buffers;
@@ -27,17 +26,19 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.DataContracts;
+using NCode.Identity.OpenId.Accounts.Management.Contracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
-using NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
+using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.LocalAccounts;
+namespace NCode.Identity.OpenId.Accounts.Management;
 
 /*
 
@@ -61,18 +62,17 @@ PATCH  api/tenants/{tenantId}/local-accounts/{localAccountId}/metadata
 
 /// <summary>
 /// Provides the management endpoints for local accounts. Local accounts are end-user subjects, not ownable resources,
-/// so every operation authorizes against the owning tenant scope (there is no per-account owner model). The endpoints
-/// are only functional when the host has registered an <see cref="ILocalAccountStore"/> (signalled by the
-/// <see cref="LocalAccountFeature"/> marker); otherwise they report local accounts as unsupported.
+/// so every operation authorizes against the owning tenant scope (there is no per-account owner model). The host must
+/// register an <see cref="ILocalAccountStore"/> implementation (the Entity Framework reference or the ASP.NET Core
+/// Identity adapter) that these endpoints operate over.
 /// </summary>
 internal class LocalAccountApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     ICryptoService cryptoService,
     ILocalAccountValidator localAccountValidator,
-    IManagementAuditRecorder managementAuditRecorder,
-    LocalAccountFeature? localAccountFeature = null
-) : BaseApiEndpointHandler, IEndpointProvider
+    IManagementAuditRecorder managementAuditRecorder
+) : ManagementApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
@@ -84,7 +84,6 @@ internal class LocalAccountApiEndpointHandler(
 
     private ILocalAccountValidator LocalAccountValidator { get; } = localAccountValidator;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
-    private LocalAccountFeature? LocalAccountFeature { get; } = localAccountFeature;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -151,11 +150,6 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (LocalAccountFeature is null)
-        {
-            return NotConfigured();
-        }
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
 
         var error = await LocalAccountValidator.ValidateCreateAsync(
@@ -265,11 +259,6 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (LocalAccountFeature is null)
-        {
-            return NotConfigured();
-        }
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ILocalAccountStore>();
 
@@ -288,11 +277,6 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (LocalAccountFeature is null)
-        {
-            return NotConfigured();
-        }
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var account = await storeManager
             .GetStore<ILocalAccountStore>()
@@ -315,11 +299,6 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (LocalAccountFeature is null)
-        {
-            return NotConfigured();
-        }
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ILocalAccountStore>();
 
@@ -371,11 +350,6 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (LocalAccountFeature is null)
-        {
-            return NotConfigured();
-        }
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
 
         var accountStore = storeManager.GetStore<ILocalAccountStore>();
@@ -461,11 +435,6 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (LocalAccountFeature is null)
-        {
-            return NotConfigured();
-        }
-
         if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update))
         {
             return AuthorizationFailed(httpContext);
@@ -505,11 +474,6 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (LocalAccountFeature is null)
-        {
-            return NotConfigured();
-        }
-
         if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update))
         {
             return AuthorizationFailed(httpContext);
@@ -550,11 +514,6 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (LocalAccountFeature is null)
-        {
-            return NotConfigured();
-        }
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var account = await storeManager
             .GetStore<ILocalAccountStore>()
@@ -577,11 +536,6 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (LocalAccountFeature is null)
-        {
-            return NotConfigured();
-        }
-
         if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update))
         {
             return AuthorizationFailed(httpContext);
@@ -625,11 +579,6 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (LocalAccountFeature is null)
-        {
-            return NotConfigured();
-        }
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var principal = await ResolvePrincipalAsync(
             storeManager,
@@ -654,11 +603,6 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (LocalAccountFeature is null)
-        {
-            return NotConfigured();
-        }
-
         if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update))
         {
             return AuthorizationFailed(httpContext);
@@ -773,12 +717,6 @@ internal class LocalAccountApiEndpointHandler(
         );
         return result.Succeeded;
     }
-
-    private static ProblemHttpResult NotConfigured() =>
-        TypedResults.Problem(
-            detail: "Local accounts are not supported because no local-account store is configured.",
-            statusCode: StatusCodes.Status501NotImplemented
-        );
 
     // Encodes the password into a pinned, zeroed-on-return buffer so the plaintext never lingers on the GC heap.
     private static async ValueTask WithPasswordBytesAsync(

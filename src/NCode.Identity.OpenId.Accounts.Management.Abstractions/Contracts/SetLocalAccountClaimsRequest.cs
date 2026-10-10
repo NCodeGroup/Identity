@@ -18,16 +18,19 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Accounts.Stores;
 
-namespace NCode.Identity.OpenId.Accounts;
+namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 
 /// <summary>
-/// A marker service registered when an <see cref="ILocalAccountStore"/> is configured. Surfaces that depend on local
-/// accounts — the resource-owner password grant and the local-account management endpoints — feature-detect it through
-/// an optional dependency: when it is absent, local accounts are reported as unsupported. The backing store itself is
-/// resolved per unit of work and so cannot be injected directly, hence this lightweight, backing-store-agnostic signal.
+/// Represents the request body to replace a local account's full set of profile claims. The supplied claims replace
+/// the current set in its entirety.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class LocalAccountFeature;
+public sealed class SetLocalAccountClaimsRequest
+{
+    /// <summary>
+    /// Gets the replacement profile claims.
+    /// </summary>
+    public required IReadOnlyList<LocalAccountClaim> Claims { get; init; }
+}

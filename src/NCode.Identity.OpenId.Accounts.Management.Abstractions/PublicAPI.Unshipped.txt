@@ -1,0 +1,95 @@
+#nullable enable
+NCode.Identity.OpenId.Accounts.Management.Auditing.AccountManagementResourceTypes
+NCode.Identity.OpenId.Accounts.Management.Auditing.LocalAccountChangedAuditEvent
+NCode.Identity.OpenId.Accounts.Management.ILocalAccountValidator
+NCode.Identity.OpenId.Accounts.Management.ILocalAccountValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! tenantId, string! userName, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Accounts.Management.ILocalAccountValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, string! tenantId, string! localAccountId, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Accounts.Management.ILocalAccountValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, string! tenantId, string! localAccountId, string! userName, string! concurrencyToken, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.CreateLocalAccountRequest() -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.Claims.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaim!>?
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.Claims.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.Email.get -> string?
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.Email.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.EmailVerified.get -> bool
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.EmailVerified.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.IsEnabled.get -> bool
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.IsEnabled.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.Password.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.Password.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.ProfileMetadata.get -> System.Text.Json.JsonElement?
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.ProfileMetadata.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.SystemMetadata.get -> System.Text.Json.JsonElement?
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.SystemMetadata.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.UserName.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.CreateLocalAccountRequest.UserName.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaim
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaim.LocalAccountClaim() -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaim.Type.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaim.Type.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaim.Value.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaim.Value.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaimsResource
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaimsResource.Claims.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaim!>!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaimsResource.Claims.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaimsResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaimsResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaimsResource.LocalAccountClaimsResource() -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaimsResource.LocalAccountId.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaimsResource.LocalAccountId.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaimsResource.TenantId.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaimsResource.TenantId.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.LocalAccountId.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.LocalAccountId.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.LocalAccountMetadataResource() -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.PrincipalId.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.PrincipalId.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.ProfileMetadata.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.ProfileMetadata.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.SystemMetadata.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.SystemMetadata.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.TenantId.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountMetadataResource.TenantId.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.Email.get -> string?
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.Email.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.EmailVerified.get -> bool
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.EmailVerified.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.IsEnabled.get -> bool
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.IsEnabled.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.LocalAccountId.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.LocalAccountId.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.LocalAccountResource() -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.TenantId.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.TenantId.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.UserName.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.UserName.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.ResetLocalAccountPasswordRequest
+NCode.Identity.OpenId.Accounts.Management.Contracts.ResetLocalAccountPasswordRequest.Password.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.ResetLocalAccountPasswordRequest.Password.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.ResetLocalAccountPasswordRequest.ResetLocalAccountPasswordRequest() -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.SetLocalAccountClaimsRequest
+NCode.Identity.OpenId.Accounts.Management.Contracts.SetLocalAccountClaimsRequest.Claims.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountClaim!>!
+NCode.Identity.OpenId.Accounts.Management.Contracts.SetLocalAccountClaimsRequest.Claims.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.SetLocalAccountClaimsRequest.SetLocalAccountClaimsRequest() -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.SetLocalAccountMetadataRequest
+NCode.Identity.OpenId.Accounts.Management.Contracts.SetLocalAccountMetadataRequest.ProfileMetadata.get -> System.Text.Json.JsonElement?
+NCode.Identity.OpenId.Accounts.Management.Contracts.SetLocalAccountMetadataRequest.ProfileMetadata.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.SetLocalAccountMetadataRequest.SetLocalAccountMetadataRequest() -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.SetLocalAccountMetadataRequest.SystemMetadata.get -> System.Text.Json.JsonElement?
+NCode.Identity.OpenId.Accounts.Management.Contracts.SetLocalAccountMetadataRequest.SystemMetadata.init -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.UpdateLocalAccountRequest
+NCode.Identity.OpenId.Accounts.Management.Contracts.UpdateLocalAccountRequest.Email.get -> string?
+NCode.Identity.OpenId.Accounts.Management.Contracts.UpdateLocalAccountRequest.Email.set -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.UpdateLocalAccountRequest.EmailVerified.get -> bool
+NCode.Identity.OpenId.Accounts.Management.Contracts.UpdateLocalAccountRequest.EmailVerified.set -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.UpdateLocalAccountRequest.UpdateLocalAccountRequest() -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.UpdateLocalAccountRequest.UserName.get -> string!
+NCode.Identity.OpenId.Accounts.Management.Contracts.UpdateLocalAccountRequest.UserName.set -> void
+const NCode.Identity.OpenId.Accounts.Management.Auditing.AccountManagementResourceTypes.LocalAccount = "local_account" -> string!
+override NCode.Identity.OpenId.Accounts.Management.Auditing.LocalAccountChangedAuditEvent.ResourceType.get -> string!

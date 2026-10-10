@@ -21,7 +21,7 @@ using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
+namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 
 /// <summary>
 /// Represents the REST resource for a local account's server-owned metadata bags, which live on the account's owning

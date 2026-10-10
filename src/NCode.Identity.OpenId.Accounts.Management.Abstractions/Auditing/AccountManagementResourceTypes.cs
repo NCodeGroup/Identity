@@ -16,26 +16,18 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Management.Contracts.LocalAccounts;
+namespace NCode.Identity.OpenId.Accounts.Management.Auditing;
 
 /// <summary>
-/// Represents a single profile claim of a local account: an individually-addressable <c>type</c>/<c>value</c>
-/// assertion (such as <c>given_name</c> or <c>email</c>) that contributes to issued tokens and the UserInfo response.
+/// Declares the well-known <c>ResourceType</c> values emitted by the local-account management audit events.
 /// </summary>
 [PublicAPI]
-[ExcludeFromCodeCoverage]
-public sealed class LocalAccountClaim
+public static class AccountManagementResourceTypes
 {
     /// <summary>
-    /// Gets the claim type.
+    /// A local account.
     /// </summary>
-    public required string Type { get; init; }
-
-    /// <summary>
-    /// Gets the claim value.
-    /// </summary>
-    public required string Value { get; init; }
+    public const string LocalAccount = "local_account";
 }

@@ -20,10 +20,12 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Authorization;
+using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.LocalAccounts;
+namespace NCode.Identity.OpenId.Accounts.Management;
 
 /// <summary>
 /// Provides the default implementation of <see cref="ILocalAccountValidator"/>.

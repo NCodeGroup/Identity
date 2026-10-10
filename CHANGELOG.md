@@ -55,6 +55,25 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Local-account management is now an opt-in capability that plugs into the Management slice, not part of it.**
+  Mirroring the authentication inversion, the local-account management endpoints, their validator
+  (`ILocalAccountValidator` / `DefaultLocalAccountValidator`), the wire contracts, and the `LocalAccountChangedAuditEvent`
+  move into two new account-owned packages — **`NCode.Identity.OpenId.Accounts.Management`** (`AddLocalAccountManagement()`)
+  and **`NCode.Identity.OpenId.Accounts.Management.Abstractions`** — so `NCode.Identity.OpenId.Management` no longer
+  references `NCode.Identity.OpenId.Accounts.Abstractions`. The shared endpoint base the capability reuses is promoted
+  into `NCode.Identity.OpenId.Management.Abstractions`: a public `ManagementApiEndpointHandler` (the generic
+  authorization / `GET` / collection helpers; the implementation keeps an internal `BaseApiEndpointHandler` deriving from
+  it for its secret/settings helpers), plus the now-public `DefaultResourceValidator`, `Operations`, `TenantScopeResource`,
+  and a new `ManagementEndpointGroups.Tenant` group-name constant a capability uses to attach a keyed `IEndpointProvider`
+  to the tenant group. The management audit recorder drops its bespoke `RecordLocalAccountChangedAsync` for a generic
+  `RecordResourceChangeAsync(HttpContext, ResourceChangeAuditEvent, ct)` seam, and `ManagementResourceTypes.LocalAccount`
+  moves to `AccountManagementResourceTypes.LocalAccount` in the new package. The management wire contracts move from
+  `NCode.Identity.OpenId.Management.Contracts.LocalAccounts` to `NCode.Identity.OpenId.Accounts.Management.Contracts`
+  (JSON shape unchanged). The `LocalAccountFeature` marker and the per-request `501 Not Implemented` feature-detection
+  are **removed**: a capability is enabled by registering its package, so the library no longer checks whether the
+  library itself is wired up. See
+  [ADR-0061](docs/adr/0061-local-account-management-is-an-opt-in-capability.md).
+
 - **Local accounts have one pluggable seam, and the password grant is dependency-inverted out of the authentication
   package.** `ILocalAccountSource` and `ILocalAccountProvisioner` are removed: `ILocalAccountStore` is the single,
   backing-store-agnostic seam, with credential handling expressed as first-class operations

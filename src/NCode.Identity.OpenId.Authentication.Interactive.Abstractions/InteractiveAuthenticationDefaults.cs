@@ -19,7 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Identity;
 
-namespace NCode.Identity.Server.InteractiveAuthentication;
+namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// Contains the stable paths and scheme name of the opt-in interactive login/consent surface, shared by the

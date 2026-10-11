@@ -112,14 +112,18 @@ change to the public API is a **major** version bump.
   of backlog `U2`.
 - **Interactive login/consent surface (`apps/auth`, OP-hosted).** The OpenID Provider gained its first interactive
   surface: a React + Material UI login/consent app (`@ncode/app-auth`) on the shared frontend platform, served by the
-  host as same-origin static assets under `/account/*`, backed by an opt-in `NCode.Identity.Server` module
+  host as same-origin static assets under `/account/*`, backed by an opt-in leaf capability package
+  `NCode.Identity.OpenId.Authentication.Interactive` (+ `.Abstractions`)
   (`AddInteractiveAuthentication` / `UseInteractiveAuthentication` / `MapInteractiveAuthentication`). It registers a
-  cookie scheme (`Identity.Application`) that the authorize endpoint's challenge redirects into, verifies credentials
-  through the same local-account path the resource-owner password grant uses, issues the cookie session, and honors a
-  server-validated local return URL. The forms expose stable automation ids (`username`, `password`, `login`,
-  `consent-allow`, `consent-deny`). This resolves the rendering and first-class-vs-dev choices left open by
-  [ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md); see
-  [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md). Backlog `T2`, `U3`.
+  cookie scheme (`Identity.Application`) that the authorize endpoint's challenge redirects into, defers credential
+  verification to a pluggable `IInteractiveCredentialVerifier` seam (the local-account implementation,
+  `AddLocalAccountInteractiveAuthentication()`, reuses the same path the resource-owner password grant uses), issues the
+  cookie session, and honors a server-validated local return URL. The forms expose stable automation ids (`username`,
+  `password`, `login`, `consent-allow`, `consent-deny`). This resolves the rendering and first-class-vs-dev choices left
+  open by [ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md); the surface is hosted per
+  [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md) and extracted into its own leaf package
+  with the pluggable verifier seam per
+  [ADR-0070](docs/adr/0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md). Backlog `T2`, `U3`.
 - **Silent access-token renewal for the Management console.** `@ncode/auth` gained a framework-agnostic renewal loop
   (`createTokenRenewer`) that refreshes the access token ahead of expiry, re-arms itself from each new token, and falls
   back to interactive sign-in when renewal is no longer possible; the console's `AuthGate` drives it while signed in.
@@ -262,6 +266,29 @@ change to the public API is a **major** version bump.
   entry above), so the login bundle is produced automatically.
 
 ### Changed
+
+- **Opt-in framework capabilities now register through compile-time marker builders
+  ([ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md)).** The registration library's
+  `IServiceBuilder<TMarker>` becomes the one way bolt-on capabilities attach, so a capability is **un-addable** to a
+  host that lacks its prerequisite library (a compile error, not a runtime surprise). `AddLocalAccountAuthentication()`,
+  `AddLocalAccountInteractiveAuthentication()`, and `AddInteractiveAuthentication(...)` now extend
+  `IServiceBuilder<OpenIdAuthenticationLibrary>`, and `AddLocalAccountManagement()` extends
+  `IServiceBuilder<OpenIdManagementLibrary>` (each returns the same builder for chaining) instead of a naked
+  `IServiceCollection`. The `OpenIdManagementLibrary` marker moves from `NCode.Identity.OpenId.Management` into
+  `NCode.Identity.OpenId.Management.Abstractions` so a capability can name it without an implementation reference. Hosts
+  now chain these off the builders the composition root exposes — for example
+  `AddIdentityServer().OpenIdAuthenticationLibraryBuilder.AddLocalAccountAuthentication().AddInteractiveAuthentication(...)` —
+  rather than a flat `serviceCollection.AddX()` list. Dependency-inverted implementations (local-account / EF stores)
+  and generic utility helpers intentionally stay bare-collection extensions.
+- **The interactive login/consent backend moved out of the composition root into its own leaf package with a pluggable
+  verifier ([ADR-0070](docs/adr/0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md)).** The
+  cookie scheme, `/account/*` endpoints, antiforgery wiring, and static-file server move from
+  `NCode.Identity.Server/InteractiveAuthentication/` into **`NCode.Identity.OpenId.Authentication.Interactive`**
+  (+ **`.Abstractions`**), so `NCode.Identity.Server` only references the capability like any other. The surface is now
+  backend-agnostic: it depends on an `IInteractiveCredentialVerifier` seam (in the `.Abstractions` package), whose
+  local-account implementation lives in `NCode.Identity.OpenId.Accounts.Authentication` and is registered by
+  `AddLocalAccountInteractiveAuthentication()`. The old `NCode.Identity.Server.InteractiveAuthentication.*` public
+  surface is removed and reintroduced under `NCode.Identity.OpenId.Authentication.Interactive.*`. Resolves backlog `U10`.
 
 - **`IPersistedGrantService.AddAsync` now returns the server-generated grant id.** Its return type changes from
   `ValueTask` to `ValueTask<string>`, handing back the opaque public `GrantId` of the persisted grant so callers (such

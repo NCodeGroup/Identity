@@ -7,5 +7,6 @@ NCode.Identity.OpenId.Accounts.Authentication.CreatePasswordGrantSubjectCommand.
 NCode.Identity.OpenId.Accounts.Authentication.CreatePasswordGrantSubjectCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Accounts.Authentication.CreatePasswordGrantSubjectCommand.OpenIdContext.init -> void
 NCode.Identity.OpenId.Accounts.Authentication.DefaultRegistration
-NCode.Identity.OpenId.Accounts.Authentication.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.OpenId.Accounts.Authentication.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddLocalAccountAuthentication() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.OpenId.Accounts.Authentication.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!)
+NCode.Identity.OpenId.Accounts.Authentication.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!).AddLocalAccountAuthentication() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!
+NCode.Identity.OpenId.Accounts.Authentication.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!).AddLocalAccountInteractiveAuthentication() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!

@@ -19,7 +19,9 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Endpoints;
+using NCode.Registration;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Accounts.Management;
@@ -32,18 +34,21 @@ namespace NCode.Identity.OpenId.Accounts.Management;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    extension(IServiceCollection serviceCollection)
+    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> for <see cref="OpenIdManagementLibrary"/>.</param>
+    extension(IServiceBuilder<OpenIdManagementLibrary> builder)
     {
         /// <summary>
         /// Registers the local-account management endpoints (nested under the tenant-plane group
         /// <c>/api/tenants/{tenantId}</c>) and the default <see cref="ILocalAccountValidator"/>. The endpoints are only
         /// functional when the host has also registered an <c>ILocalAccountStore</c> (for example, the generic Entity
         /// Framework reference or the ASP.NET Core Identity adapter); without one they report local accounts as
-        /// unsupported. Call alongside <c>AddOpenIdManagementLibrary()</c>.
+        /// unsupported.
         /// </summary>
-        /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddLocalAccountManagement()
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<OpenIdManagementLibrary> AddLocalAccountManagement()
         {
+            var serviceCollection = builder.ServiceCollection;
+
             // Attach the endpoint to the existing tenant-plane group by registering it keyed under the group's name
             // (ADR-0042); the management route tree resolves keyed providers per group when it maps routes.
             serviceCollection.TryAddEnumerable(
@@ -57,7 +62,7 @@ public static class DefaultRegistration
                 DefaultLocalAccountValidator
             >();
 
-            return serviceCollection;
+            return builder;
         }
     }
 }

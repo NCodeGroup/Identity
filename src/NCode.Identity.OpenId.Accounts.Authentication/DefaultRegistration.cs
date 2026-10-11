@@ -20,9 +20,12 @@ using System.Security.Claims;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Authentication;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
+using NCode.Identity.OpenId.Authentication.Interactive;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Mediator;
+using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Accounts.Authentication;
 
@@ -33,7 +36,8 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    extension(IServiceCollection serviceCollection)
+    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> for <see cref="OpenIdAuthenticationLibrary"/>.</param>
+    extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
         /// <summary>
         /// Registers the resource-owner password grant capability over the configured <c>ILocalAccountStore</c>. This
@@ -41,9 +45,11 @@ public static class DefaultRegistration
         /// unsupported, so calling it is what enables the grant. The host must separately register a local-account
         /// store (for example, the generic Entity Framework reference or the ASP.NET Core Identity adapter).
         /// </summary>
-        /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddLocalAccountAuthentication()
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddLocalAccountAuthentication()
         {
+            var serviceCollection = builder.ServiceCollection;
+
             // Replace (not TryAdd) so this capability wins over the base "unsupported password grant" default handler.
             serviceCollection.Replace(
                 ServiceDescriptor.Singleton<
@@ -60,7 +66,26 @@ public static class DefaultRegistration
                 DefaultCreatePasswordGrantSubjectHandler
             >();
 
-            return serviceCollection;
+            return builder;
+        }
+
+        /// <summary>
+        /// Registers the local-account implementation of the <see cref="IInteractiveCredentialVerifier"/> seam, so the
+        /// opt-in interactive login/consent surface (<c>AddInteractiveAuthentication</c>) verifies credentials against
+        /// the configured <c>ILocalAccountStore</c> — the same credential path the resource-owner password grant uses.
+        /// The host must separately register a local-account store and the interactive surface. A host fronting a
+        /// different backend (LDAP, an external identity provider, passwordless) registers its own
+        /// <see cref="IInteractiveCredentialVerifier"/> instead.
+        /// </summary>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddLocalAccountInteractiveAuthentication()
+        {
+            builder.ServiceCollection.TryAddSingleton<
+                IInteractiveCredentialVerifier,
+                LocalAccountInteractiveCredentialVerifier
+            >();
+
+            return builder;
         }
     }
 }

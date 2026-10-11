@@ -23,11 +23,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.Management;
+using NCode.Identity.OpenId.Authentication.Interactive;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 using NCode.Identity.Server;
-using NCode.Identity.Server.InteractiveAuthentication;
 using NCode.Registration.AspNetCore;
 
 // COMPOSITION-ONLY HOST: this file is a flat list of turnkey Add*/Use*/Map* calls. Reusable or
@@ -56,26 +56,32 @@ serviceCollection.AddDeveloperCors(configuration, hostEnvironment);
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
 
 // TODO
-serviceCollection.AddIdentityServer().AddConfiguration(configuration, openIdOptionsSectionName);
+var identityServer = serviceCollection.AddIdentityServer();
+identityServer.AddConfiguration(configuration, openIdOptionsSectionName);
+
 serviceCollection.AddEntityFrameworkCorePersistence<OpenIdDbContext>();
 
 // Opt in to the generic Entity Framework local-account reference store (the server-owned credential, profile, and
 // status payload behind self-issued connections). A host that fronts its own user store would register a different
-// ILocalAccountStore instead (for example, the ASP.NET Core Identity adapter).
+// ILocalAccountStore instead (for example, the ASP.NET Core Identity adapter). The store is a dependency-inverted
+// implementation, so it registers on the bare service collection (ADR-0069).
 serviceCollection.AddLocalAccountEntityFramework();
 
-// Enable the resource-owner password grant over the configured local-account store. The account stack provides this
-// capability handler (dependency inversion); the Authentication package itself does not depend on accounts.
-serviceCollection.AddLocalAccountAuthentication();
+// Enable the OpenId Authentication capabilities on the authentication-library builder (ADR-0069 compile-time marker
+// prerequisite): the resource-owner password grant, the interactive login/consent surface (a cookie scheme plus the
+// /account/* endpoints that serve the apps/auth bundle), and the local-account implementation of the surface's
+// credential verifier. All reuse the configured local-account store (dependency inversion — the Authentication library
+// itself does not depend on accounts) so the authorize flow completes end-to-end.
+identityServer
+    .OpenIdAuthenticationLibraryBuilder.AddLocalAccountAuthentication()
+    .AddInteractiveAuthentication(configuration, hostEnvironment)
+    .AddLocalAccountInteractiveAuthentication();
 
-// Enable the local-account management endpoints (nested under the tenant-plane group). The account stack provides this
-// capability (dependency inversion); the Management slice itself does not depend on accounts.
-serviceCollection.AddLocalAccountManagement();
+// Enable the local-account management endpoints on the management-library builder (nested under the tenant-plane
+// group). The account stack provides this capability; the Management slice itself does not depend on accounts.
+identityServer.OpenIdManagementLibraryBuilder.AddLocalAccountManagement();
 
-// DEVELOPMENT CONVENIENCE: opt into the interactive login/consent surface (a cookie scheme plus the /account/*
-// endpoints that serve the apps/auth bundle and verify local-account credentials) so the authorize flow completes
-// end-to-end, and seed a public SPA client + administrator user so the management console can sign in.
-serviceCollection.AddInteractiveAuthentication(configuration, hostEnvironment);
+// DEVELOPMENT CONVENIENCE: seed a public SPA client + administrator user so the management console can sign in.
 serviceCollection.AddDeveloperInteractiveSeed(configuration);
 
 // DEVELOPMENT ONLY: choose how signing keys are provided (see ADR-0002). The default is ephemeral,

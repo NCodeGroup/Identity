@@ -1,11 +1,6 @@
 #nullable enable
 const NCode.Identity.Server.BootstrapAdminOptions.DefaultSectionName = "BootstrapAdmin" -> string!
 const NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.DefaultSectionName = "DeveloperInteractiveSeed" -> string!
-const NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationDefaults.AntiforgeryTokenCookieName = "XSRF-TOKEN" -> string!
-const NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationDefaults.BasePath = "/account" -> string!
-const NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationDefaults.ConsentPath = "/account/consent" -> string!
-const NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationDefaults.LoginPath = "/account/login" -> string!
-const NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationDefaults.LogoutPath = "/account/logout" -> string!
 NCode.Identity.Server.BootstrapAdminOptions
 NCode.Identity.Server.BootstrapAdminOptions.BootstrapAdminOptions() -> void
 NCode.Identity.Server.BootstrapAdminOptions.ClientId.get -> string?
@@ -83,20 +78,3 @@ NCode.Identity.Server.IIdentityServerBuilder.OpenIdCoreLibraryBuilder.get -> NCo
 NCode.Identity.Server.IIdentityServerBuilder.OpenIdManagementLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.SecretPersistenceLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.SecretsLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationApplicationBuilderExtensions
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseInteractiveAuthentication() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationDefaults
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationEndpointRouteBuilderExtensions
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapInteractiveAuthentication() -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationOptions
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationOptions.AutoApproveConsent.get -> bool
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationOptions.AutoApproveConsent.set -> void
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationOptions.BundleRootPath.get -> string?
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationOptions.BundleRootPath.set -> void
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationOptions.InteractiveAuthenticationOptions() -> void
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationRegistration
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddInteractiveAuthentication(Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment, System.Action<NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationOptions!>? configureOptions = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-static readonly NCode.Identity.Server.InteractiveAuthentication.InteractiveAuthenticationDefaults.CookieSchemeName -> string!

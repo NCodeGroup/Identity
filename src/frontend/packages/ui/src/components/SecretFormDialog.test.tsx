@@ -14,10 +14,33 @@ describe('SecretFormDialog', () => {
     expect(onSubmit).toHaveBeenCalledWith({
       secretType: 'symmetric',
       keySizeBits: 256,
+      curve: '',
       use: '',
       algorithm: '',
       expiresWhen: '2027-01-01T00:00',
     });
+  });
+
+  it('offers the discovered ECC curves and applies the curve size on select', () => {
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 256 }}
+        eccCurves={[
+          { curveName: 'P-256', curveSizeBits: 256 },
+          { curveName: 'P-384', curveSizeBits: 384 },
+        ]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-curve'), { target: { value: 'P-384' } });
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ secretType: 'ecc', curve: 'P-384', keySizeBits: 384 }),
+    );
   });
 
   it('blocks submit when the expiry is empty', () => {

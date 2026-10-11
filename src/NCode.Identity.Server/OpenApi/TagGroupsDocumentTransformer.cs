@@ -45,6 +45,7 @@ internal sealed class TagGroupsDocumentTransformer : IOpenApiDocumentTransformer
         OpenIdConstants.EndpointTags.Servers,
         OpenIdConstants.EndpointTags.Tenants,
         OpenIdConstants.EndpointTags.LocalAccounts,
+        OpenIdConstants.EndpointTags.Capabilities,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     /// <inheritdoc />

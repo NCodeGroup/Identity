@@ -39,12 +39,7 @@ internal static class DefaultRegistration
 
             var serviceCollection = builder.ServiceCollection;
 
-            // The registry is the single, discoverable source of truth for which EC curves are published.
-            // Applications can register additional EccCurveSpecification services to extend the supported set.
-            serviceCollection.TryAddSingleton<
-                IEccCurveSpecificationRegistry,
-                DefaultEccCurveSpecificationRegistry
-            >();
+            // The supported EC curves live in the shared IEccCurveCatalog registered by AddSecretsLibrary (ADR-0068).
 
             // Register the built-in converters. Applications can register additional IJsonWebKeyConverter
             // implementations to publish other secret key types without modifying the endpoint handler.

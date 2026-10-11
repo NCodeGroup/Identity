@@ -22,6 +22,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Logic;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
@@ -33,15 +34,16 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
     public DefaultSecretValidatorTests()
     {
-        // Resolve the real algorithm collection so the test asserts against the exact set of algorithms
-        // the server supports — the same source of truth the validator reads at runtime.
+        // Resolve the real algorithm collection and key-type catalog so the test asserts against the exact set
+        // of algorithms and key types the server supports — the same source of truth the validator reads.
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSecretsLibrary();
         serviceCollection.AddJoseLibrary();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
         Validator = new DefaultSecretValidator(
-            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>()
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
         );
     }
 
@@ -56,16 +58,48 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string secretType,
         int keySizeBits,
         string? use = null,
-        string? algorithm = null
+        string? algorithm = null,
+        string? curve = null
     ) =>
         new()
         {
             SecretType = secretType,
             KeySizeBits = keySizeBits,
+            Curve = curve,
             Use = use,
             Algorithm = algorithm,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
+
+    #region Curve Tests
+
+    [Fact]
+    public void ValidateCreate_WhenEccWithKnownCurve_ReturnsNull()
+    {
+        Assert.Null(Validator.ValidateCreate(CreateRequest("ecc", 0, curve: "P-384")));
+    }
+
+    [Fact]
+    public void ValidateCreate_WhenEccWithUnknownCurve_Returns400()
+    {
+        var error = Validator.ValidateCreate(CreateRequest("ecc", 256, curve: "not-a-curve"));
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("symmetric", 256)]
+    [InlineData("rsa", 2048)]
+    public void ValidateCreate_WhenCurveOnNonEcc_Returns400(string secretType, int keySizeBits)
+    {
+        var error = Validator.ValidateCreate(
+            CreateRequest(secretType, keySizeBits, curve: "P-256")
+        );
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    #endregion
 
     #region SecretType Tests
 

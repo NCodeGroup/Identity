@@ -13,10 +13,18 @@ import TextField from '@mui/material/TextField';
 /** The supported secret material types; the server generates the key material from this choice. */
 export type SecretType = 'symmetric' | 'rsa' | 'ecc';
 
+/** An elliptic curve offered for ECC secrets, discovered from the server capabilities. */
+export type EccCurveOption = {
+  readonly curveName: string;
+  readonly curveSizeBits: number;
+};
+
 /** The secret create form's own field shape. `expiresWhen` is a `datetime-local` string (local time). */
 export type SecretFormValues = {
   readonly secretType: SecretType;
   readonly keySizeBits: number;
+  /** The ECC curve name (empty selects a curve by key size); only meaningful for the `ecc` type. */
+  readonly curve: string;
   readonly use: string;
   readonly algorithm: string;
   readonly expiresWhen: string;
@@ -27,6 +35,8 @@ export type SecretFormDialogProps = {
   readonly initialValues: SecretFormValues;
   readonly isSubmitting?: boolean;
   readonly error?: string | undefined;
+  /** The ECC curves to offer when the ECC type is selected, discovered from server capabilities. */
+  readonly eccCurves?: readonly EccCurveOption[];
   readonly onSubmit: (values: SecretFormValues) => void;
   readonly onCancel: () => void;
 };
@@ -35,6 +45,7 @@ export type SecretFormDialogProps = {
 export const emptySecretFormValues: SecretFormValues = {
   secretType: 'symmetric',
   keySizeBits: 256,
+  curve: '',
   use: '',
   algorithm: '',
   expiresWhen: '',
@@ -58,6 +69,7 @@ export function SecretFormDialog({
   initialValues,
   isSubmitting = false,
   error,
+  eccCurves,
   onSubmit,
   onCancel,
 }: SecretFormDialogProps) {
@@ -80,6 +92,7 @@ export function SecretFormDialog({
     onSubmit({
       secretType: values.secretType,
       keySizeBits: values.keySizeBits,
+      curve: values.secretType === 'ecc' ? values.curve : '',
       use: values.use.trim(),
       algorithm: values.algorithm.trim(),
       expiresWhen: values.expiresWhen,
@@ -127,6 +140,31 @@ export function SecretFormDialog({
             fullWidth
             slotProps={{ htmlInput: { 'data-testid': 'secret-key-size', min: 1 } }}
           />
+          {values.secretType === 'ecc' && eccCurves && eccCurves.length > 0 && (
+            <TextField
+              select
+              label="Curve"
+              value={values.curve}
+              onChange={(event) => {
+                const curve = event.target.value;
+                const match = eccCurves.find((c) => c.curveName === curve);
+                setValues((v) => ({
+                  ...v,
+                  curve,
+                  keySizeBits: match ? match.curveSizeBits : v.keySizeBits,
+                }));
+              }}
+              fullWidth
+              slotProps={{ htmlInput: { 'data-testid': 'secret-curve' } }}
+            >
+              <MenuItem value="">By key size</MenuItem>
+              {eccCurves.map((curve) => (
+                <MenuItem key={curve.curveName} value={curve.curveName}>
+                  {curve.curveName}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
           <TextField
             label="Use (optional)"
             value={values.use}

@@ -16,14 +16,11 @@
 
 #endregion
 
-using System.Collections.Frozen;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Logic;
-using NCode.Identity.Secrets.Persistence;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
@@ -33,39 +30,32 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// deterministic <c>400</c> before any key material is generated.
 /// </summary>
 /// <remarks>
-/// Algorithm compatibility is resolved against the live <see cref="IAlgorithmCollectionProvider"/> rather
-/// than a hardcoded table, so the validator cannot drift from the set of algorithms the server actually
+/// The key-type taxonomy and intrinsic per-type key-size rules come from the <see cref="ISecretKeyTypeCatalog"/>
+/// (the single source of truth, ADR-0067), so the validator cannot drift from the types the generator can actually
+/// produce. Algorithm compatibility is resolved against the live <see cref="IAlgorithmCollectionProvider"/> rather
+/// than a hardcoded table, so the validator also cannot drift from the set of algorithms the server actually
 /// supports (including any custom algorithms an integrator registers): the same <see cref="KeyedAlgorithm"/>
 /// metadata the crypto runtime uses to validate a key is what gates its creation here.
 /// </remarks>
 internal sealed class DefaultSecretValidator(
-    IAlgorithmCollectionProvider algorithmCollectionProvider
+    IAlgorithmCollectionProvider algorithmCollectionProvider,
+    ISecretKeyTypeCatalog secretKeyTypeCatalog
 ) : ISecretValidator
 {
-    // The generatable secret families and the CLR key type each maps to. This is the intrinsic secret
-    // taxonomy (three families), not the algorithm set, so it does not drift as algorithms are added.
-    private static readonly FrozenDictionary<string, Type> SecretKeyClrTypes = new Dictionary<
-        string,
-        Type
-    >(StringComparer.Ordinal)
-    {
-        [SecretTypes.Symmetric] = typeof(SymmetricSecretKey),
-        [SecretTypes.Rsa] = typeof(RsaSecretKey),
-        [SecretTypes.Ecc] = typeof(EccSecretKey),
-    }.ToFrozenDictionary(StringComparer.Ordinal);
-
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
+
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     /// <inheritdoc />
     public ManagementError? ValidateCreate(CreateSecretRequest request)
     {
         var secretType = request.SecretType;
-        if (!SecretKeyClrTypes.TryGetValue(secretType, out var secretKeyClrType))
+        if (!SecretKeyTypeCatalog.TryGet(secretType, out var descriptor))
         {
             return Error(
-                $"The secret type '{secretType}' is not supported; expected "
-                    + $"'{SecretTypes.Symmetric}', '{SecretTypes.Rsa}', or '{SecretTypes.Ecc}'."
+                $"The secret type '{secretType}' is not supported or cannot be created through the "
+                    + "management API."
             );
         }
 
@@ -78,15 +68,33 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
+        // The descriptor validates the intrinsic generation parameters (key size and, for ECC, the curve).
+        var generationError = descriptor.ValidateGeneration(
+            new SecretKeyGenerationParameters
+            {
+                KeySizeBits = request.KeySizeBits,
+                Curve = request.Curve,
+            }
+        );
+        if (generationError is not null)
+        {
+            return Error(generationError);
+        }
+
         // When an algorithm is specified, its registered metadata is authoritative for the use, the
         // required key type, and the legal key sizes.
         if (request.Algorithm is { } algorithm)
         {
-            return ValidateAgainstAlgorithm(request, secretType, secretKeyClrType, use, algorithm);
+            return ValidateAgainstAlgorithm(
+                request,
+                secretType,
+                descriptor.KeyClrType,
+                use,
+                algorithm
+            );
         }
 
-        // Without an algorithm, fall back to the generator's intrinsic per-family key-size capabilities.
-        return ValidateKeySize(secretType, request.KeySizeBits);
+        return null;
     }
 
     private ManagementError? ValidateAgainstAlgorithm(
@@ -142,25 +150,6 @@ internal sealed class DefaultSecretValidator(
 
         return null;
     }
-
-    // Mirrors the hard limits of DefaultSecretGenerator for the case where no algorithm pins the size.
-    private static ManagementError? ValidateKeySize(string secretType, int keySizeBits) =>
-        secretType switch
-        {
-            SecretTypes.Symmetric when keySizeBits < 128 || keySizeBits % 8 != 0 => Error(
-                $"The symmetric key size '{keySizeBits}' bits is invalid; expected a multiple of 8 "
-                    + "that is at least 128 bits."
-            ),
-            SecretTypes.Rsa
-                when keySizeBits < 2048 || keySizeBits > 16384 || keySizeBits % 8 != 0 => Error(
-                $"The RSA key size '{keySizeBits}' bits is invalid; expected a multiple of 8 "
-                    + "between 2048 and 16384 bits."
-            ),
-            SecretTypes.Ecc when keySizeBits is not (256 or 384 or 521) => Error(
-                $"The ECC key size '{keySizeBits}' bits is invalid; expected 256, 384, or 521."
-            ),
-            _ => null,
-        };
 
     private static ManagementError Error(string detail) =>
         new() { StatusCode = StatusCodes.Status400BadRequest, Detail = detail };

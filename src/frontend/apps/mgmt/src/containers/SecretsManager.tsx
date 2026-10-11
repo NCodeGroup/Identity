@@ -20,7 +20,7 @@ import type {
   PublicKeyResource,
   SecretResource,
 } from '@ncode/api';
-import { apiErrorMessage, type ApiError } from '@ncode/store';
+import { apiErrorMessage, useGetCapabilitiesQuery, type ApiError } from '@ncode/store';
 
 export type SecretsManagerProps = {
   /** The owner noun used in headings and empty/warning copy (e.g. "client", "tenant", "server"). */
@@ -80,6 +80,13 @@ export function SecretsManager({
   const [publicKey, setPublicKey] = useState<PublicKeyMaterial>();
   const [exportError, setExportError] = useState<string>();
 
+  // Which secret types expose an exportable public key is discovered from the server, not hard-coded.
+  const { data: capabilities } = useGetCapabilitiesQuery();
+  const exportableSecretTypes = (capabilities?.secretTypes ?? [])
+    .filter((capability) => capability.supportsPublicKeyExport)
+    .map((capability) => capability.secretType);
+  const eccCurves = capabilities?.eccCurves ?? [];
+
   const openDelete = (secretId: string) => {
     const secret = secrets.find((s) => s.secretId === secretId);
     if (!secret) {
@@ -110,6 +117,7 @@ export function SecretsManager({
       const created = await onCreate({
         secretType: values.secretType,
         keySizeBits: values.keySizeBits,
+        curve: values.secretType === 'ecc' && values.curve.length > 0 ? values.curve : null,
         use: values.use.length > 0 ? values.use : null,
         algorithm: values.algorithm.length > 0 ? values.algorithm : null,
         expiresWhen: new Date(values.expiresWhen).toISOString(),
@@ -157,7 +165,12 @@ export function SecretsManager({
         isEmpty={secrets.length === 0}
         emptyMessage={`This ${ownerLabel} has no secrets yet.`}
       >
-        <SecretTable secrets={[...secrets]} onDelete={openDelete} onExportPublicKey={openExport} />
+        <SecretTable
+          secrets={[...secrets]}
+          onDelete={openDelete}
+          onExportPublicKey={openExport}
+          exportableSecretTypes={exportableSecretTypes}
+        />
       </DataStateBoundary>
 
       <SecretFormDialog
@@ -165,6 +178,7 @@ export function SecretsManager({
         initialValues={defaultSecretFormValues()}
         isSubmitting={isCreating}
         error={formError}
+        eccCurves={eccCurves}
         onSubmit={handleCreate}
         onCancel={() => setDialog(closed)}
       />

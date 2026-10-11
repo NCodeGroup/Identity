@@ -32,6 +32,13 @@ NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdManagementLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
+NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand
+NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand.Capabilities.get -> System.Collections.Generic.Dictionary<string!, object!>!
+NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand.Capabilities.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand.DiscoverManagementCapabilitiesCommand() -> void
+NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand.DiscoverManagementCapabilitiesCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, System.Collections.Generic.Dictionary<string!, object!>! Capabilities) -> void
+NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand.OpenIdContext.init -> void
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary.ConfigureMethod.get -> string!
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary.DisplayName.get -> string!

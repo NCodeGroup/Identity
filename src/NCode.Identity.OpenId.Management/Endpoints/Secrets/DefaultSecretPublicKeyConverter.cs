@@ -17,29 +17,34 @@
 #endregion
 
 using System.Collections.Immutable;
-using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
 /// <summary>
-/// Provides the default implementation of <see cref="ISecretPublicKeyConverter"/>. It deserializes the persisted
-/// secret and, for an asymmetric key, projects its public half into a <c>JWK</c> (reusing the registered
+/// Provides the default implementation of <see cref="ISecretPublicKeyConverter"/>. Whether a secret exposes a
+/// public key is decided by the deserialized key's runtime type against the <see cref="ISecretKeyTypeCatalog"/>
+/// (the single source of truth, ADR-0067) — so a certificate secret, which resolves to an RSA or ECC key, is
+/// handled uniformly. For an exportable key it projects the public half into a <c>JWK</c> (reusing the registered
 /// <see cref="IJsonWebKeyConverter"/> pipeline, the same source of truth the JWKS endpoint uses) and a
-/// <c>SubjectPublicKeyInfo</c> <c>PEM</c>. Symmetric secrets have no public key and yield <c>null</c>.
+/// <c>SubjectPublicKeyInfo</c> <c>PEM</c>. Secrets without a public key yield <c>null</c>.
 /// </summary>
 internal class DefaultSecretPublicKeyConverter(
     ISecretSerializer secretSerializer,
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
     IEnumerable<IJsonWebKeyConverter> jsonWebKeyConverters
 ) : ISecretPublicKeyConverter
 {
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     private ImmutableArray<IJsonWebKeyConverter> JsonWebKeyConverters { get; } =
     [.. jsonWebKeyConverters];
@@ -48,20 +53,25 @@ internal class DefaultSecretPublicKeyConverter(
     public PublicKeyResource? Convert(PersistedSecret secret)
     {
         var secretKey = SecretSerializer.DeserializeSecret(secret);
-        if (secretKey is not AsymmetricSecretKey asymmetricSecretKey)
+
+        // Export capability is keyed off the runtime key type (a certificate resolves to an RSA or ECC key).
+        if (
+            secretKey is not AsymmetricSecretKey asymmetricSecretKey
+            || !SecretKeyTypeCatalog.TryGet(secretKey.KeyType, out var descriptor)
+            || !descriptor.SupportsPublicKeyExport
+        )
         {
-            // A symmetric secret has no public key material to expose.
             return null;
         }
 
         var jsonWebKey =
             ConvertToJsonWebKey(secretKey)
             ?? throw new InvalidOperationException(
-                $"No JSON Web Key converter is registered for the '{secret.SecretType}' secret type."
+                $"No JSON Web Key converter is registered for the '{secretKey.KeyType}' key type."
             );
 
         var jwk = JsonSerializer.SerializeToElement(jsonWebKey, JsonSerializerOptions.Web);
-        var pem = ExportSubjectPublicKeyInfoPem(asymmetricSecretKey);
+        var pem = asymmetricSecretKey.ExportSubjectPublicKeyInfoPem();
 
         return new PublicKeyResource
         {
@@ -84,26 +94,5 @@ internal class DefaultSecretPublicKeyConverter(
         }
 
         return null;
-    }
-
-    private static string ExportSubjectPublicKeyInfoPem(AsymmetricSecretKey asymmetricSecretKey)
-    {
-        switch (asymmetricSecretKey)
-        {
-            case RsaSecretKey rsaSecretKey:
-            {
-                using var rsa = rsaSecretKey.ExportRSA();
-                return rsa.ExportSubjectPublicKeyInfoPem();
-            }
-            case EccSecretKey eccSecretKey:
-            {
-                using var ecdsa = eccSecretKey.ExportECDsa();
-                return ecdsa.ExportSubjectPublicKeyInfoPem();
-            }
-            default:
-                throw new InvalidOperationException(
-                    $"Cannot export public key material for the '{asymmetricSecretKey.KeyType}' secret key type."
-                );
-        }
     }
 }

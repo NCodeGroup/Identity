@@ -43,9 +43,16 @@ public sealed class GenerateSecretRequest
 
     /// <summary>
     /// Gets the size, in bits, of the key material to generate. For symmetric secrets this is the size of the
-    /// random key; for <c>RSA</c> the modulus size; for <c>ECC</c> the curve size (256, 384, or 521).
+    /// random key; for <c>RSA</c> the modulus size; for <c>ECC</c> the curve size (advisory when
+    /// <see cref="Curve"/> is specified).
     /// </summary>
     public required int KeySizeBits { get; init; }
+
+    /// <summary>
+    /// Gets the requested elliptic-curve identifier (the <c>JWK</c> <c>crv</c> name, for example <c>P-256</c>), or
+    /// <c>null</c> to select a curve by <see cref="KeySizeBits"/>. Only applies to <c>ECC</c> secrets.
+    /// </summary>
+    public string? Curve { get; init; }
 
     /// <summary>
     /// Gets the intended use for the generated secret, or <c>null</c> for any compatible use.

@@ -93,6 +93,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Token = "/oauth2/token
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.UserInfo = "/oauth2/userinfo" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Registration = "/oauth2/register" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ClientGrants = "ClientGrants" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Capabilities = "Capabilities" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Clients = "Clients" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Grants = "Grants" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.LocalAccounts = "LocalAccounts" -> string!

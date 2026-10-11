@@ -229,6 +229,12 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **Internal `$`-prefixed parameters no longer leak onto the authorization response (`U8`).** The authorization
+  response executor serialized every ticket parameter directly, so an internal, `$`-prefixed parameter
+  (`$created_when`) surfaced in the redirect callback query string / form-post body sent back to the client. The
+  executor now honors the same `ShouldSerialize(…, SerializationFormat.OpenId)` contract the JSON serializer uses — the
+  identical mechanism that already marks `$created_when`/`$authorization_source_type` as JSON-only — so internal
+  parameters are omitted from every on-the-wire authorization response (query, fragment, and form-post).
 - **Management console client mirror referenced a nonexistent `displayName`.** The frontend `ClientResource` type (and
   the client list UI) read a `displayName` field that the server's `ClientResource` never emits — a client has no
   display name; it is identified by its server-generated id. The TypeScript mirror was corrected to the real shape

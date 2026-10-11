@@ -112,12 +112,20 @@ internal class DefaultAuthorizationResultExecutor : IResultExecutor<Authorizatio
                 )
             : [];
 
-        var messageOnlyParameters = message.Parameters.Select(parameter =>
-            KeyValuePair.Create(
-                parameter.Descriptor.ParameterName,
-                parameter.GetStringValues(environment)
+        var messageOnlyParameters = message
+            .Parameters.Where(parameter =>
+                parameter.Descriptor.ShouldSerialize(
+                    environment,
+                    parameter,
+                    SerializationFormat.OpenId
+                )
             )
-        );
+            .Select(parameter =>
+                KeyValuePair.Create(
+                    parameter.Descriptor.ParameterName,
+                    parameter.GetStringValues(environment)
+                )
+            );
 
         var allParameters = queryOnlyParameters.Concat(messageOnlyParameters);
         var serializedParameters = SerializeUriParameters(allParameters);
@@ -236,12 +244,20 @@ internal class DefaultAuthorizationResultExecutor : IResultExecutor<Authorizatio
     private static string GetFormPostHtml(Uri redirectUri, IOpenIdMessageResponse message)
     {
         var environment = message.OpenIdEnvironment;
-        var parameters = message.Parameters.Select(parameter =>
-            KeyValuePair.Create(
-                parameter.Descriptor.ParameterName,
-                parameter.GetStringValues(environment)
+        var parameters = message
+            .Parameters.Where(parameter =>
+                parameter.Descriptor.ShouldSerialize(
+                    environment,
+                    parameter,
+                    SerializationFormat.OpenId
+                )
             )
-        );
+            .Select(parameter =>
+                KeyValuePair.Create(
+                    parameter.Descriptor.ParameterName,
+                    parameter.GetStringValues(environment)
+                )
+            );
 
         // In the Form, encode spaces as '+'
         // But Uri.EscapeDataString uses '%20', so replace them

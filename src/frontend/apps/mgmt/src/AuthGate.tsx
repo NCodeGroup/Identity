@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   beginAuthorization,
   completeAuthorization,
+  createTokenRenewer,
   getSubject,
   isAuthorizationCallback,
 } from '@ncode/auth';
-import { signedIn, useAppDispatch, useAppSelector } from '@ncode/store';
+import { signedIn, signedOut, useAppDispatch, useAppSelector, useAppStore } from '@ncode/store';
 import { SignInScreen } from '@ncode/ui';
 import { authConfigFromRuntime, createAuthDeps } from './auth.js';
 
@@ -17,6 +18,7 @@ import { authConfigFromRuntime, createAuthDeps } from './auth.js';
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const dispatch = useAppDispatch();
+  const store = useAppStore();
   const runtime = useAppSelector((state) => state.config.runtime);
   const accessToken = useAppSelector((state) => state.auth.accessToken);
   const deps = useMemo(createAuthDeps, []);
@@ -69,6 +71,40 @@ export function AuthGate({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [authConfig, accessToken, deps, dispatch]);
+
+  // Silent renewal: once signed in, keep the access token fresh by exchanging the refresh token
+  // ahead of expiry, falling back to interactive sign-in when renewal is no longer possible.
+  useEffect(() => {
+    if (!authConfig || !accessToken) {
+      return;
+    }
+    const renewer = createTokenRenewer({
+      tokenEndpoint: authConfig.tokenEndpoint,
+      clientId: authConfig.clientId,
+      fetchFn: deps.fetchFn,
+      getRefreshToken: () => store.getState().auth.refreshToken,
+      onRenewed: (tokens) => {
+        const subject =
+          (tokens.idToken && getSubject(tokens.idToken)) ||
+          getSubject(tokens.accessToken) ||
+          store.getState().auth.subject ||
+          'unknown';
+        dispatch(
+          signedIn({
+            accessToken: tokens.accessToken,
+            subject,
+            ...(tokens.expiresInSeconds
+              ? { expiresAt: Date.now() + tokens.expiresInSeconds * 1000 }
+              : {}),
+            ...(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
+          }),
+        );
+      },
+      onError: () => dispatch(signedOut()),
+    });
+    renewer.schedule(store.getState().auth.expiresAt);
+    return () => renewer.stop();
+  }, [authConfig, accessToken, deps, dispatch, store]);
 
   if (accessToken || !authConfig) {
     return <>{children}</>;

@@ -20,6 +20,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -79,7 +80,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
     private string EncodeToken(
         string issuer = "https://issuer.example",
-        string audience = "https://audience.example",
+        string[]? audience = null,
         DateTimeOffset? notBefore = null,
         DateTimeOffset? expires = null,
         IEnumerable<Claim>? subjectClaims = null
@@ -90,7 +91,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         {
             SigningCredentials = _signingCredentials,
             Issuer = issuer,
-            Audience = audience,
+            Audience = new StringValues(audience ?? ["https://audience.example"]),
             IssuedAt = now,
             NotBefore = notBefore ?? now.AddMinutes(-1),
             Expires = expires ?? now.AddHours(1),
@@ -158,6 +159,23 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         Assert.Equal("admin", identity.FindFirst("role")?.Value);
     }
 
+    [Fact]
+    public async Task ValidateJwtAsync_WhenMultiAudienceContainsExpected_Succeeds()
+    {
+        // A multi-audience token must validate against a resource that identifies itself with one of the audiences,
+        // even though the token also carries other audiences (RFC 7519 §4.1.3).
+        var token = EncodeToken(audience: ["urn:resource:api", "urn:resource:openid"]);
+
+        var parameters = new ValidateJwtParameters()
+            .UseValidationKeys([_signingKey])
+            .ValidateAudience("urn:resource:api");
+
+        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+
+        Assert.True(result.IsValid);
+        Assert.Null(result.Exception);
+    }
+
     #endregion
 
     #region ValidateJwtAsync Failure Tests
@@ -170,6 +188,22 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         var parameters = new ValidateJwtParameters()
             .UseValidationKeys([_signingKey])
             .ValidateIssuer("https://issuer.example");
+
+        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+
+        Assert.False(result.IsValid);
+        Assert.IsType<TokenValidationException>(result.Exception);
+    }
+
+    [Fact]
+    public async Task ValidateJwtAsync_WhenMultiAudienceMissingExpected_Fails()
+    {
+        // A multi-audience token must be rejected when none of its audiences identify the validating resource.
+        var token = EncodeToken(audience: ["urn:resource:other", "urn:resource:openid"]);
+
+        var parameters = new ValidateJwtParameters()
+            .UseValidationKeys([_signingKey])
+            .ValidateAudience("urn:resource:api");
 
         var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
 

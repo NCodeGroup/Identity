@@ -45,4 +45,8 @@ internal static class EventIds
     public const int ClientAuthenticationSecretMismatch = Base + 14;
     public const int TokenRequestClientAuthenticationRequired = Base + 15;
     public const int OpenIdErrorAuditFailed = Base + 16;
+    public const int UnexpectedOpenIdError = Base + 17;
+    public const int OpenIdErrorException = Base + 18;
+    public const int AccessTokenValidationError = Base + 19;
+    public const int AccessTokenInvalid = Base + 20;
 }

@@ -43,6 +43,8 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<IOpenIdClientFactory, DefaultOpenIdClientFactory>();
 
+            serviceCollection.TryAddSingleton<IOpenIdClientResolver, DefaultOpenIdClientResolver>();
+
             serviceCollection.TryAddSingleton<
                 IClientAuthenticationService,
                 DefaultClientAuthenticationService

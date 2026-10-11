@@ -90,7 +90,10 @@ internal class DefaultSettingCollection : ISettingCollection
             return descriptor.DefaultOrNull;
         }
 
-        throw new KeyNotFoundException();
+        throw new KeyNotFoundException(
+            $"The setting '{key.SettingName}' has no configured value and no registered default; "
+                + "a setting read at runtime must have a registered descriptor default."
+        );
     }
 
     /// <inheritdoc />

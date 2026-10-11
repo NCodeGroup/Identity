@@ -20,6 +20,7 @@ using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
@@ -121,6 +122,8 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
         if (!httpContext.Items.TryAdd(ErrorPublishedKey, true))
             return;
 
+        LogErrorException(httpContext, error);
+
         // Auditing must never influence the response; a failure to record is logged and swallowed.
         try
         {
@@ -133,6 +136,33 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
                 .RequestServices.GetRequiredService<ILoggerFactory>()
                 .CreateLogger<OpenIdExceptionEndpointFilter>()
                 .OpenIdErrorAuditFailed(exception);
+        }
+    }
+
+    // Logs the exception that triggered an OpenID error so a swallowed fault is observable: an unexpected
+    // server_error at Error, any other (protocol-level) error that carries an exception at Debug.
+    private static void LogErrorException(HttpContext httpContext, IOpenIdError error)
+    {
+        if (error.Exception is not { } exception)
+            return;
+
+        var logger = httpContext
+            .RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger<OpenIdExceptionEndpointFilter>();
+
+        if (
+            string.Equals(
+                error.Code,
+                OpenIdConstants.ErrorCodes.ServerError,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            logger.UnexpectedOpenIdError(error.Code, exception);
+        }
+        else
+        {
+            logger.OpenIdErrorException(error.Code, exception);
         }
     }
 

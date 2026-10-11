@@ -16,6 +16,7 @@
 
 #endregion
 
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
@@ -42,7 +43,10 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
     public DefaultAuthenticateAccessTokenHandlerTests()
     {
         MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
-        Handler = new DefaultAuthenticateAccessTokenHandler(MockJsonWebTokenService.Object);
+        Handler = new DefaultAuthenticateAccessTokenHandler(
+            NullLogger<DefaultAuthenticateAccessTokenHandler>.Instance,
+            MockJsonWebTokenService.Object
+        );
     }
 
     #region Scaffolding

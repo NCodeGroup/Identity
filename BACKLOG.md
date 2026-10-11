@@ -183,16 +183,21 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   management API (the scope-grant / `GlobalAdmin`-projection check tracked under `U1`). Touch points:
   `src/NCode.Identity.OpenId.Playground/Program.cs`,
   `src/NCode.Identity.Server/DevelopmentEnvironment`, `apps/mgmt/public/config/bootstrap.json`.
-- **`U2` — Management write operations (create/update/delete + settings/secrets).** _Tenants + clients done._ The
-  console creates/edits/deletes tenants (global scope) and clients (tenant scope): RTK Query mutations with scoped tag
-  invalidation, stateless MUI tables with row actions, `TenantFormDialog`/`ClientFormDialog`, and a reusable
-  `ConfirmDialog` (all Storybook-driven). Edits honor optimistic concurrency (`concurrencyToken` → `If-Match` over a
-  `replace`-only JSON Patch document, built by the UI-free `@ncode/api` `replacePatch` helper); server errors surface
-  through the RFC 7807-aware `@ncode/store` `apiErrorMessage` helper. Clients are addressed on the tenant-nested path so
-  a tenant administrator can never reach another tenant. **Remaining:** extend the same pattern to resource
-  servers/scopes, grants, secrets (honoring the one-time secret reveal), and the settings PATCH / effective-settings
+- **`U2` — Management write operations (create/update/delete + settings/secrets).** _Tenants + clients + resource
+  servers/scopes done._ The console creates/edits/deletes tenants (global scope), clients (tenant scope), and resource
+  servers with their nested scopes (tenant scope): RTK Query mutations with scoped tag invalidation, stateless MUI
+  tables with row actions, `TenantFormDialog`/`ClientFormDialog`/`ResourceServerFormDialog`/`ScopeFormDialog`, and a
+  reusable `ConfirmDialog` (all Storybook-driven). Edits honor optimistic concurrency (`concurrencyToken` → `If-Match`
+  over a `replace`-only JSON Patch document, built by the UI-free `@ncode/api` `replacePatch` helper); server errors
+  surface through the RFC 7807-aware `@ncode/store` `apiErrorMessage` helper. Clients and resource servers are addressed
+  on the tenant-nested path so a tenant administrator can never reach another tenant. Resource servers embed their
+  scopes inline, so the `ResourceServersPage` drill-in reads scopes from the same list query (a scope mutation
+  invalidates the parent `ResourceServer` tag and refreshes both views); scope updates are a whole-resource `PUT` (the
+  value is immutable) and system-owned resource servers/scopes expose no delete control. The tenant workspace now
+  switches between **Clients** and **Resource servers** via tabs in the `apps/mgmt` shell. **Remaining:** extend the
+  same pattern to grants, secrets (honoring the one-time secret reveal), and the settings PATCH / effective-settings
   surfaces. Touch points: `src/frontend/packages/api`, `packages/store` (`managementApi`), `packages/ui`,
-  `apps/mgmt/src/containers`.
+  `apps/mgmt/src` (`App`, `containers`).
 - **`U3` — Remaining surfaces (Auth/Consent/Login, Playground, conformance) on the shared platform.** Build the `T2`
   login/consent surface ([ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md)) and the eventual `F2`
   consent screen as apps on this platform rather than bespoke UIs, honoring the stable-locator contract

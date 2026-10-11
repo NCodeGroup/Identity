@@ -89,4 +89,60 @@ describe('App (global ↔ tenant boundary)', () => {
     );
     expect(requestedUrls).toContain('https://api.test/api/tenants/acme/clients');
   });
+
+  it('switches between the clients and resource-servers surfaces within a tenant', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url =
+        input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
+      if (url.includes('/api/tenants/acme/resource-servers')) {
+        return jsonResponse({
+          items: [
+            {
+              tenantId: 'acme',
+              resourceServerId: 'rs-orders',
+              identifier: 'https://orders.example.com',
+              concurrencyToken: 'c',
+              name: 'Orders API',
+              isSystem: false,
+              isDisabled: false,
+              scopes: [],
+            },
+          ],
+        });
+      }
+      if (url.includes('/api/tenants/acme/clients')) {
+        return jsonResponse({
+          items: [{ clientId: 'web', tenantId: 'acme', isDisabled: false, concurrencyToken: 'c' }],
+        });
+      }
+      if (url.endsWith('/api/tenants')) {
+        return jsonResponse({
+          items: [
+            {
+              tenantId: 'acme',
+              displayName: 'Acme',
+              domainName: null,
+              isDisabled: false,
+              concurrencyToken: 'c',
+            },
+          ],
+        });
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderApp();
+
+    fireEvent.click(await screen.findByTestId('tenant-row-acme'));
+    expect(await screen.findByText('web')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('tenant-tab-resource-servers'));
+    expect(await screen.findByText('Orders API')).toBeInTheDocument();
+
+    const requestedUrls = fetchMock.mock.calls.map(([input]) =>
+      input instanceof Request ? input.url : String(input),
+    );
+    expect(requestedUrls).toContain('https://api.test/api/tenants/acme/resource-servers');
+  });
 });

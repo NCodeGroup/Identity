@@ -10,6 +10,17 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Management console resource-server + scope write operations (`apps/mgmt`).** Within a tenant scope the console now
+  creates/edits/deletes resource servers (APIs) and manages their nested scopes (permissions): scoped RTK Query
+  mutations (`createResourceServer`/`updateResourceServer`/`deleteResourceServer` and `createScope`/`updateScope`/
+  `deleteScope`) with `ResourceServer`-tag invalidation, stateless MUI `ResourceServerTable`/`ScopeTable` with row
+  actions and `ResourceServerFormDialog`/`ScopeFormDialog`, reusing the shared `ConfirmDialog`. Resource servers embed
+  their scopes inline, so selecting one drills into a scopes view fed by the same list query (a scope mutation
+  refreshes both); resource-server edits honor optimistic concurrency (`concurrencyToken` → `If-Match` over a
+  `replace`-only JSON Patch) while a scope update is a whole-resource `PUT` (the value is immutable), and system-owned
+  resource servers/scopes expose no delete control. The tenant workspace switches between **Clients** and **Resource
+  servers** via tabs. All addressed on the tenant-nested path so a tenant administrator can never reach another tenant.
+  Third slice of backlog `U2`.
 - **Management console client write operations (`apps/mgmt`).** Within a tenant scope the console now creates/edits/
   deletes clients: scoped RTK Query mutations (`createClient`/`updateClient`/`deleteClient`) with `Client`-tag
   invalidation, a stateless MUI `ClientTable` (id + status + row actions) and `ClientFormDialog`, reusing the shared

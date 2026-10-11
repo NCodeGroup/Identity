@@ -1,6 +1,7 @@
 {
   "apiBaseUrl": "https://localhost:5001",
   "issuer": "https://localhost:5001",
+  "clientId": "mgmt-spa",
   "features": {
     "dcr": true
   },

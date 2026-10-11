@@ -17,8 +17,10 @@
 #endregion
 
 using System.Security.Claims;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
@@ -30,9 +32,12 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// validates a self-issued JWT access token against the resolved tenant's signing keys, issuer, lifetime, and the
 /// required audience, returning the authenticated principal on success.
 /// </summary>
-internal class DefaultAuthenticateAccessTokenHandler(IJsonWebTokenService jsonWebTokenService)
-    : ICommandResponseHandler<AuthenticateAccessTokenCommand, AuthenticateAccessTokenDisposition>
+internal class DefaultAuthenticateAccessTokenHandler(
+    ILogger<DefaultAuthenticateAccessTokenHandler> logger,
+    IJsonWebTokenService jsonWebTokenService
+) : ICommandResponseHandler<AuthenticateAccessTokenCommand, AuthenticateAccessTokenDisposition>
 {
+    private ILogger<DefaultAuthenticateAccessTokenHandler> Logger { get; } = logger;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
 
     /// <inheritdoc />
@@ -74,8 +79,9 @@ internal class DefaultAuthenticateAccessTokenHandler(IJsonWebTokenService jsonWe
                 cancellationToken
             );
         }
-        catch
+        catch (Exception exception)
         {
+            Logger.AccessTokenValidationError(exception);
             return new AuthenticateAccessTokenDisposition(
                 openIdContext.ErrorFactory.InvalidToken()
             );
@@ -83,6 +89,7 @@ internal class DefaultAuthenticateAccessTokenHandler(IJsonWebTokenService jsonWe
 
         if (!validateResult.IsValid)
         {
+            Logger.AccessTokenInvalid(validateResult.Exception);
             return new AuthenticateAccessTokenDisposition(
                 openIdContext.ErrorFactory.InvalidToken()
             );

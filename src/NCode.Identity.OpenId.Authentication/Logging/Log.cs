@@ -152,4 +152,43 @@ internal static partial class Log
         Message = "Failed to publish the OpenID error audit event."
     )]
     internal static partial void OpenIdErrorAuditFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.UnexpectedOpenIdError,
+        Level = LogLevel.Error,
+        Message = "An unexpected exception was rendered as an OpenID '{ErrorCode}' error response."
+    )]
+    internal static partial void UnexpectedOpenIdError(
+        this ILogger logger,
+        string errorCode,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.OpenIdErrorException,
+        Level = LogLevel.Debug,
+        Message = "An OpenID '{ErrorCode}' error response carries a triggering exception."
+    )]
+    internal static partial void OpenIdErrorException(
+        this ILogger logger,
+        string errorCode,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.AccessTokenValidationError,
+        Level = LogLevel.Debug,
+        Message = "An access token presented to a protected endpoint threw during validation and was rejected as invalid_token."
+    )]
+    internal static partial void AccessTokenValidationError(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.AccessTokenInvalid,
+        Level = LogLevel.Debug,
+        Message = "An access token presented to a protected endpoint failed validation (issuer, audience, lifetime, or signature) and was rejected as invalid_token."
+    )]
+    internal static partial void AccessTokenInvalid(this ILogger logger, Exception exception);
 }

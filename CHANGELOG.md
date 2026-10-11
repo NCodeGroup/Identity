@@ -10,6 +10,25 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Interactive login/consent surface (`apps/auth`, OP-hosted).** The OpenID Provider gained its first interactive
+  surface: a React + Material UI login/consent app (`@ncode/app-auth`) on the shared frontend platform, served by the
+  host as same-origin static assets under `/account/*`, backed by an opt-in `NCode.Identity.Server` module
+  (`AddInteractiveAuthentication` / `UseInteractiveAuthentication` / `MapInteractiveAuthentication`). It registers a
+  cookie scheme (`Identity.Application`) that the authorize endpoint's challenge redirects into, verifies credentials
+  through the same local-account path the resource-owner password grant uses, issues the cookie session, and honors a
+  server-validated local return URL. The forms expose stable automation ids (`username`, `password`, `login`,
+  `consent-allow`, `consent-deny`). This resolves the rendering and first-class-vs-dev choices left open by
+  [ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md); see
+  [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md). Backlog `T2`, `U3`.
+- **Silent access-token renewal for the Management console.** `@ncode/auth` gained a framework-agnostic renewal loop
+  (`createTokenRenewer`) that refreshes the access token ahead of expiry, re-arms itself from each new token, and falls
+  back to interactive sign-in when renewal is no longer possible; the console's `AuthGate` drives it while signed in.
+  Backlog `U1`.
+- **Development seeding for end-to-end sign-in (`AddDeveloperInteractiveSeed`).** A development-only, idempotent seeder
+  provisions a public (PKCE-only) single-page-application client (`mgmt-spa`, with redirect URIs) and a deterministic
+  administrator user into each workload tenant, so the authorization-code + PKCE flow and the management console sign in
+  end to end. Inert unless configured; the administrator password has no default. Backlog `U7`, `U1`.
+
 - **Management console sign-in (authorization-code + PKCE).** The frontend gained a framework-free `@ncode/auth`
   package implementing OAuth 2.0 authorization-code with PKCE (S256) — verifier/challenge generation, the authorize
   redirect, state/CSRF validation, code-for-token exchange, refresh, and JWT subject extraction, all injectable and
@@ -100,6 +119,24 @@ change to the public API is a **major** version bump.
   **`NCode.Identity.Settings.Abstractions`** (the `NCode.Identity.Settings.*` subsystem). Namespaces are unchanged, so
   the move is transparent to source. See
   [ADR-0056](docs/adr/0056-abstractions-split-into-framework-free-tiered-packages.md).
+
+### Fixed
+
+- **Multi-audience access tokens are no longer wrongly rejected.** JWT claim validation for a multi-valued claim (the
+  `aud` audience validator) required _every_ token value to appear in the expected set, so a token minted with more than
+  one audience (for example `["urn:ncode:management", "urn:ncode:openid"]`) failed validation at any resource that
+  expected only one of them. Validation now follows RFC 7519 §4.1.3 audience semantics: the claim is valid when it
+  contains **at least one** of the expected values, and extra audiences are permitted. This was the blocker that kept a
+  signed-in Management console from calling the management API (it was rejected as `invalid_token`). Single-valued
+  issuer validation is unchanged.
+- **Access-token validation failures at protected endpoints are now observable.** The self-issued access-token
+  authenticator silently swallowed both validation exceptions and invalid results, so a rejected token surfaced only as
+  an opaque `401`. It now emits a debug log (with the triggering exception) explaining why the token was rejected
+  (issuer, audience, lifetime, or signature), while still returning `invalid_token`.
+- **Interactive authorization-code exchange no longer drops the authenticated subject.** The authorization-code grant
+  was persisted as the authorization request alone, but the token endpoint resumes it as an authorization _grant_
+  (request **plus** authenticated subject); the shape mismatch deserialized the request to `null` (a server error on
+  exchange) and discarded the subject. The grant is now persisted in the shape the token endpoint consumes.
 
 ### Changed
 

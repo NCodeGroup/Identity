@@ -1,0 +1,76 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using JetBrains.Annotations;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Authentication.Tokens.Commands;
+using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Server.DevelopmentEnvironment;
+using NCode.Mediator;
+
+namespace NCode.Identity.Server;
+
+/// <summary>
+/// Provides an explicit, <strong>development-only</strong> opt-in that seeds a public (PKCE-only)
+/// single-page-application client and a deterministic administrator user into each workload tenant, so a local host
+/// can exercise the interactive authorization-code + PKCE flow and the management console end to end. It is
+/// intentionally NOT part of the default registrations and must not be used in production.
+/// </summary>
+[PublicAPI]
+public static class DeveloperInteractiveSeedRegistration
+{
+    extension(IServiceCollection serviceCollection)
+    {
+        /// <summary>
+        /// Registers the development-only seeder for a public single-page-application client and an administrator user.
+        /// Its inputs are read from the <c>DeveloperInteractiveSeed</c> configuration section; each half is inert
+        /// unless its inputs are configured (the administrator user requires an explicitly configured password). Must
+        /// not be used in production.
+        /// </summary>
+        /// <param name="configuration">The <see cref="IConfiguration"/> read for the seeder's settings.</param>
+        /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        public IServiceCollection AddDeveloperInteractiveSeed(IConfiguration configuration)
+        {
+            var options = new DeveloperInteractiveSeedOptions();
+            configuration
+                .GetSection(DeveloperInteractiveSeedOptions.DefaultSectionName)
+                .Bind(options);
+
+            serviceCollection.AddSingleton(options);
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<SeedTenantCommand>,
+                    DeveloperInteractiveSeedHandler
+                >()
+            );
+
+            // Project the interactively-authenticated subject's role claim into the access token so the seeded
+            // administrator can exercise the role-gated management API during local development.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<GetAccessTokenSubjectClaimsCommand>,
+                    DeveloperInteractiveSubjectClaimsHandler
+                >()
+            );
+
+            return serviceCollection;
+        }
+    }
+}

@@ -105,13 +105,15 @@ public static class ValidateJwtParametersExtensions
                                 $"The claim '{claimName}' does not allow multiple values."
                             );
 
+                        // A multi-valued claim (such as a multi-audience 'aud') is valid when it contains at least
+                        // one of the valid values; extra values are permitted (RFC 7519 §4.1.3 audience semantics).
                         if (
-                            property
+                            !property
                                 .EnumerateArray()
-                                .Any(jsonElement => !validValueSet.Contains(jsonElement.ToString()))
+                                .Any(jsonElement => validValueSet.Contains(jsonElement.ToString()))
                         )
                             throw new TokenValidationException(
-                                $"The claim '{claimName}' is invalid because at least one value did not contain any of the valid values."
+                                $"The claim '{claimName}' is invalid because it does not contain any of the valid values."
                             );
                     }
                     else

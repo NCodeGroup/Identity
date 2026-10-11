@@ -10,6 +10,21 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Management console grants, secrets, and settings write operations (`apps/mgmt`).** Completes backlog `U2` by
+  extending the shared platform to the remaining management surfaces. **Grants:** a new tenant **Grants** tab lists
+  persisted grants with subject/client filters and revokes them one-by-one or in a filtered bulk operation
+  (`listGrants`/`revokeGrant`/`revokeGrants` with `Grant`-tag invalidation; the server requires a bulk revoke to carry
+  at least one filter). Grants are read-only administratively, so only active grants expose a revoke control. **Client
+  secrets:** selecting a client drills into a detail view whose **Secrets** tab creates/lists/deletes secrets
+  (`listClientSecrets`/`createClientSecret`/`deleteClientSecret`), honoring the one-time reveal — the generated key
+  material is shown exactly once in a `RevealSecretDialog` with a copy affordance and never re-fetched
+  ([ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md); asymmetric secrets have no material to
+  reveal). **Client settings:** the detail view's **Settings** tab edits the opaque persisted settings JSON alongside a
+  read-only effective-settings view (`getClientSettings`/`getClientEffectiveSettings`/`updateClientSettings`); because
+  settings are an open object, saves send a top-level add/remove/replace JSON Patch diff (a new UI-free `@ncode/api`
+  `diffPatch` helper) with the owner `concurrencyToken` as `If-Match`. New stateless MUI `GrantTable`/`SecretTable`/
+  `SecretFormDialog`/`RevealSecretDialog`/`SettingsEditor` (all Storybook-driven and unit-tested). All client-owned
+  surfaces are addressed on the tenant-nested path so a tenant administrator can never reach another tenant.
 - **Management console resource-server + scope write operations (`apps/mgmt`).** Within a tenant scope the console now
   creates/edits/deletes resource servers (APIs) and manages their nested scopes (permissions): scoped RTK Query
   mutations (`createResourceServer`/`updateResourceServer`/`deleteResourceServer` and `createScope`/`updateScope`/

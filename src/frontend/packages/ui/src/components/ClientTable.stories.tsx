@@ -26,6 +26,7 @@ export const WithActions: Story = {
       { clientId: 'web-spa', isDisabled: false },
       { clientId: 'service-worker', isDisabled: true },
     ],
+    onSelect: () => undefined,
     onEdit: () => undefined,
     onDelete: () => undefined,
   },

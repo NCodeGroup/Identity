@@ -4,6 +4,7 @@ export { ScopeBadge, type ScopeBadgeProps, type ScopeKind } from './components/S
 export { DataStateBoundary, type DataStateBoundaryProps } from './components/DataStateBoundary.js';
 export { TenantTable, type TenantRow, type TenantTableProps } from './components/TenantTable.js';
 export { ClientTable, type ClientRow, type ClientTableProps } from './components/ClientTable.js';
+export { GrantTable, type GrantRow, type GrantTableProps } from './components/GrantTable.js';
 export {
   ResourceServerTable,
   type ResourceServerRow,
@@ -36,3 +37,16 @@ export {
 } from './components/ScopeFormDialog.js';
 export { ConfirmDialog, type ConfirmDialogProps } from './components/ConfirmDialog.js';
 export { SignInScreen, type SignInScreenProps } from './components/SignInScreen.js';
+export { SecretTable, type SecretRow, type SecretTableProps } from './components/SecretTable.js';
+export {
+  SecretFormDialog,
+  emptySecretFormValues,
+  type SecretFormDialogProps,
+  type SecretFormValues,
+  type SecretType,
+} from './components/SecretFormDialog.js';
+export {
+  RevealSecretDialog,
+  type RevealSecretDialogProps,
+} from './components/RevealSecretDialog.js';
+export { SettingsEditor, type SettingsEditorProps } from './components/SettingsEditor.js';

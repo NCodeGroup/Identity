@@ -29,4 +29,13 @@ export {
   useCreateScopeMutation,
   useUpdateScopeMutation,
   useDeleteScopeMutation,
+  useListGrantsQuery,
+  useRevokeGrantMutation,
+  useRevokeGrantsMutation,
+  useListClientSecretsQuery,
+  useCreateClientSecretMutation,
+  useDeleteClientSecretMutation,
+  useGetClientSettingsQuery,
+  useGetClientEffectiveSettingsQuery,
+  useUpdateClientSettingsMutation,
 } from './managementApi.js';

@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import { GLOBAL_SCOPE, isGlobalScope, tenantScope, type ManagementScope } from '@ncode/api';
+import { GLOBAL_SCOPE, tenantScope, type ManagementScope } from '@ncode/api';
 import { AppLayout } from './components/AppLayout.js';
 import { TenantsPage } from './containers/TenantsPage.js';
 import { ClientsPage } from './containers/ClientsPage.js';
 import { ResourceServersPage } from './containers/ResourceServersPage.js';
+import { GrantsPage } from './containers/GrantsPage.js';
 
-type TenantSurface = 'clients' | 'resource-servers';
+type TenantSurface = 'clients' | 'resource-servers' | 'grants';
 
 /**
  * Stateful shell. Owns the active {@link ManagementScope} (the global vs tenant security boundary)
@@ -30,7 +31,7 @@ export function App() {
       {...(scope.kind === 'tenant' ? { scopeLabel: scope.tenantId } : {})}
       {...(scope.kind === 'tenant' ? { onExitTenant: () => setScope(GLOBAL_SCOPE) } : {})}
     >
-      {isGlobalScope(scope) ? (
+      {scope.kind === 'global' ? (
         <TenantsPage onOpenTenant={openTenant} />
       ) : (
         <>
@@ -45,11 +46,14 @@ export function App() {
               label="Resource servers"
               data-testid="tenant-tab-resource-servers"
             />
+            <Tab value="grants" label="Grants" data-testid="tenant-tab-grants" />
           </Tabs>
           {tenantSurface === 'clients' ? (
             <ClientsPage scope={scope} />
-          ) : (
+          ) : tenantSurface === 'resource-servers' ? (
             <ResourceServersPage scope={scope} />
+          ) : (
+            <GrantsPage tenantId={scope.tenantId} />
           )}
         </>
       )}

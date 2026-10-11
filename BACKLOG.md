@@ -162,47 +162,17 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
 ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
 
-- **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._
-  `@ncode/auth` gained `createTokenRenewer` (an expiry-driven renewal loop that re-arms from each new token and falls
-  back to interactive sign-in on failure), driven by the console's `AuthGate` while signed in. The interactive login
-  surface (`T2`, [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md)) and the seeded public
-  SPA client + administrator user (`AddDeveloperInteractiveSeed`) let the auth-code-with-PKCE flow complete end to end
-  against the Playground. **Verified live:** authorize → interactive login → code → token issues a
-  `urn:ncode:management` access token whose `GlobalAdmin` role (projected by `DeveloperInteractiveSubjectClaimsHandler`,
-  ADR-0055) authorizes management reads/writes (`GET /api/servers`, `/api/tenants`, `/api/tenants/{id}/clients` all
-  return `200`). Three latent bugs surfaced and were fixed to get there: the auth-code grant was persisted in the wrong
-  shape (subject dropped), access-token validation failures were silently swallowed, and multi-audience `aud` validation
-  wrongly required every audience to be expected (see CHANGELOG `Fixed`). Touch points: `src/frontend/packages/auth`,
-  `packages/store` (`authSlice`), `apps/mgmt` (`AuthGate`, `auth.ts`),
-  `src/NCode.Identity.Server/DevelopmentEnvironment` (`DeveloperInteractiveSeedHandler`).
-- **`U7` — Dev UI↔API connectivity.** _Done._ A VS Code compound launch starts
-  both servers (`API + UI`), the Playground opts into `AddDeveloperCors`/`UseDeveloperCors`, and it now also opts into
-  the interactive login surface (`AddInteractiveAuthentication` / `MapInteractiveAuthentication`) and seeds a public SPA
-  client (`mgmt-spa`) + administrator user. `apps/mgmt/public/config/bootstrap.json` sets `clientId: mgmt-spa`, so the
-  console enforces sign-in. **Verified live:** a cookieless Bearer token minted by the end-to-end flow authorizes the
-  management API (the scope-grant / `GlobalAdmin`-projection check tracked under `U1`). Touch points:
-  `src/NCode.Identity.OpenId.Playground/Program.cs`,
-  `src/NCode.Identity.Server/DevelopmentEnvironment`, `apps/mgmt/public/config/bootstrap.json`.
-- **`U2` — Management write operations (create/update/delete + settings/secrets).** _Done._ The console
-  creates/edits/deletes tenants (global scope), clients (tenant scope), and resource servers with their nested
-  scopes (tenant scope): RTK Query mutations with scoped tag invalidation, stateless MUI
-  tables with row actions, `TenantFormDialog`/`ClientFormDialog`/`ResourceServerFormDialog`/`ScopeFormDialog`, and a
-  reusable `ConfirmDialog` (all Storybook-driven). Edits honor optimistic concurrency (`concurrencyToken` → `If-Match`
-  over a `replace`-only JSON Patch document, built by the UI-free `@ncode/api` `replacePatch` helper); server errors
-  surface through the RFC 7807-aware `@ncode/store` `apiErrorMessage` helper. Clients and resource servers are addressed
-  on the tenant-nested path so a tenant administrator can never reach another tenant. Resource servers embed their
-  scopes inline, so the `ResourceServersPage` drill-in reads scopes from the same list query (a scope mutation
-  invalidates the parent `ResourceServer` tag and refreshes both views); scope updates are a whole-resource `PUT` (the
-  value is immutable) and system-owned resource servers/scopes expose no delete control. The tenant workspace now
-  switches between **Clients**, **Resource servers**, and **Grants** via tabs in the `apps/mgmt` shell. The remaining
-  surfaces also landed: a tenant **Grants** tab (list with subject/client filters, single + filtered bulk revoke) and a
-  client drill-in detail view with **Secrets** and **Settings** tabs. Client secrets honor the one-time reveal
-  (`RevealSecretDialog`, ADR-0050); client settings edit the opaque JSON object with a read-only effective-settings view
-  and save as a top-level add/remove/replace JSON Patch diff (the UI-free `@ncode/api` `diffPatch` helper) with the
-  owner `concurrencyToken` as `If-Match`. Touch points: `src/frontend/packages/api`, `packages/store` (`managementApi`),
-  `packages/ui`, `apps/mgmt/src` (`App`, `containers`). **Follow-ups:** extend the secrets/settings pattern to the other
-  owners (resource servers, tenants, servers), add a client-secret rotate convenience (backlog `S1`), and surface the
-  initial-access-token mint (RFC 7591) in the Grants tab.
+- **`U2` — Management console secrets/settings for the remaining owners + initial-access-token mint.** The console
+  already does full create/update/delete for tenants, clients (with a drill-in **Secrets**/**Settings** detail view),
+  resource servers + their scopes, and tenant grants (list + single/filtered-bulk revoke) on the shared frontend
+  platform — all with scoped RTK Query tag invalidation, optimistic concurrency (`concurrencyToken` → `If-Match`), and
+  the tenant-nested path so a tenant administrator can never reach another tenant. **Remaining:** extend the client
+  **Secrets**/**Settings** pattern (one-time reveal per
+  [ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md); read-only effective-settings view + top-level
+  add/remove/replace JSON Patch diff via the `@ncode/api` `diffPatch` helper) to the other settings/secret owners
+  (resource servers, tenants, servers), and surface the initial-access-token mint (RFC 7591) in the **Grants** tab. A
+  client-secret rotate convenience is tracked separately under `S1`. Touch points: `src/frontend/packages/api`,
+  `packages/store` (`managementApi`), `packages/ui`, `apps/mgmt/src` (`containers`).
 - **`U3` — Remaining surfaces (Auth/Consent/Login, Playground, conformance) on the shared platform.** Build the `T2`
   login/consent surface ([ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md)) and the eventual `F2`
   consent screen as apps on this platform rather than bespoke UIs, honoring the stable-locator contract

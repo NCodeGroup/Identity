@@ -208,56 +208,56 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   found **one real inconsistency** and **one latent gap**; most other concerns raised were already resolved by existing
   ADRs (recorded here so the review does not have to be re-derived).
 
-  **Actionable #1 — extract the capability to a leaf package (recommended).** The interactive-auth code currently lives
-  under [`src/NCode.Identity.Server/InteractiveAuthentication/`](src/NCode.Identity.Server/InteractiveAuthentication),
-  but `NCode.Identity.Server` is the **composition root** (`AddIdentityServer()`, `DefaultRegistration`, the builder) of
-  the capability packages — not a home for a capability itself. The folder *is* a capability: a cookie scheme, four
-  endpoints, credential verification, antiforgery wiring, and a static-file server. Every other capability (Accounts,
-  Management, Authentication) is a leaf package; this one got inlined. ADR-0065 even calls it "a reusable opt-in module …
-  surfaced from `NCode.Identity.Server`" — the module intent exists, the package boundary was just never drawn.
-  **Proposal:** move it to a leaf package (candidate name `NCode.Identity.OpenId.Authentication.Interactive`, with the
-  `Defaults`/`Options` + stable-locator contract in a thin `.Abstractions` pair); `NCode.Identity.Server` then only
-  *references* it like any other capability. Entails `PublicAPI.Unshipped.txt` churn + a new ADR (both expected under the
-  pre-release posture, [ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)). **Open fork:** confirm
-  the package name (`NCode.Identity.OpenId.Authentication.Interactive` vs. a `Server`-family name) before moving.
-  Files to move: all of
-  [`src/NCode.Identity.Server/InteractiveAuthentication/`](src/NCode.Identity.Server/InteractiveAuthentication)
-  (`InteractiveAuthenticationRegistration.cs`, `…ApplicationBuilderExtensions.cs`, `…EndpointRouteBuilderExtensions.cs`,
-  `…EndpointHandler.cs`, `…Options.cs`, `…Defaults.cs`); wiring to repoint in
-  [`src/NCode.Identity.OpenId.Playground/Program.cs`](src/NCode.Identity.OpenId.Playground/Program.cs) (lines ~30, 78,
-  135, 156) and `launchSettings.json` (`InteractiveAuthentication__BundleRootPath`).
+    **Actionable #1 — extract the capability to a leaf package (recommended).** The interactive-auth code currently lives
+    under [`src/NCode.Identity.Server/InteractiveAuthentication/`](src/NCode.Identity.Server/InteractiveAuthentication),
+    but `NCode.Identity.Server` is the **composition root** (`AddIdentityServer()`, `DefaultRegistration`, the builder) of
+    the capability packages — not a home for a capability itself. The folder _is_ a capability: a cookie scheme, four
+    endpoints, credential verification, antiforgery wiring, and a static-file server. Every other capability (Accounts,
+    Management, Authentication) is a leaf package; this one got inlined. ADR-0065 even calls it "a reusable opt-in module …
+    surfaced from `NCode.Identity.Server`" — the module intent exists, the package boundary was just never drawn.
+    **Proposal:** move it to a leaf package (candidate name `NCode.Identity.OpenId.Authentication.Interactive`, with the
+    `Defaults`/`Options` + stable-locator contract in a thin `.Abstractions` pair); `NCode.Identity.Server` then only
+    _references_ it like any other capability. Entails `PublicAPI.Unshipped.txt` churn + a new ADR (both expected under the
+    pre-release posture, [ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)). **Open fork:** confirm
+    the package name (`NCode.Identity.OpenId.Authentication.Interactive` vs. a `Server`-family name) before moving.
+    Files to move: all of
+    [`src/NCode.Identity.Server/InteractiveAuthentication/`](src/NCode.Identity.Server/InteractiveAuthentication)
+    (`InteractiveAuthenticationRegistration.cs`, `…ApplicationBuilderExtensions.cs`, `…EndpointRouteBuilderExtensions.cs`,
+    `…EndpointHandler.cs`, `…Options.cs`, `…Defaults.cs`); wiring to repoint in
+    [`src/NCode.Identity.OpenId.Playground/Program.cs`](src/NCode.Identity.OpenId.Playground/Program.cs) (lines ~30, 78,
+    135, 156) and `launchSettings.json` (`InteractiveAuthentication__BundleRootPath`).
 
-  **Actionable #2 — invert the credential verifier behind an interface (latent gap).** The real UI extensibility seam is
-  *already three seams*: (a) the **bundle** is swappable via `InteractiveAuthenticationOptions.BundleRootPath`; (b) the
-  **render surface** is swappable by pointing the cookie `LoginPath`/scheme elsewhere and serving anything at
-  `/account/*`; but (c) the **credential verifier** is **not** pluggable —
-  [`InteractiveAuthenticationEndpointHandler`](src/NCode.Identity.Server/InteractiveAuthentication/InteractiveAuthenticationEndpointHandler.cs)
-  hard-wires `ILocalAccountStore.VerifyCredentialAsync` and the `ClaimsPrincipal` construction. LDAP / external-IdP /
-  passwordless backends have no interface to replace. **Open fork:** invert (c) behind an interface now, or leave it
-  local-account-only and just document the (a)/(b) seams until a real second backend exists. (Decide with #1, since the
-  extraction is the natural moment to introduce the abstraction.)
+    **Actionable #2 — invert the credential verifier behind an interface (latent gap).** The real UI extensibility seam is
+    _already three seams_: (a) the **bundle** is swappable via `InteractiveAuthenticationOptions.BundleRootPath`; (b) the
+    **render surface** is swappable by pointing the cookie `LoginPath`/scheme elsewhere and serving anything at
+    `/account/*`; but (c) the **credential verifier** is **not** pluggable —
+    [`InteractiveAuthenticationEndpointHandler`](src/NCode.Identity.Server/InteractiveAuthentication/InteractiveAuthenticationEndpointHandler.cs)
+    hard-wires `ILocalAccountStore.VerifyCredentialAsync` and the `ClaimsPrincipal` construction. LDAP / external-IdP /
+    passwordless backends have no interface to replace. **Open fork:** invert (c) behind an interface now, or leave it
+    local-account-only and just document the (a)/(b) seams until a real second backend exists. (Decide with #1, since the
+    extraction is the natural moment to introduce the abstraction.)
 
-  **Already-resolved concerns (do not re-litigate; captured for the next session):**
-  - *Same-origin is the hard constraint for `apps/auth`.* The cookie `LoginPath` redirect, the antiforgery POST, and the
-    `ReturnUrl` round-trip all require same-origin with the OP issuing the cookie (ADR-0065). "Same-origin" ≠ "served by
-    Kestrel" — a CDN/reverse-proxy may front `/account/*` at the *same origin*, but the OP-hosted static root is the
-    correct default.
-  - *Serve assets by purpose.* `apps/auth` must be OP same-origin (cookie flow); `apps/mgmt` is a pure API client with
-    **no** same-origin requirement — it is the tier-agnostic "build once, discover at runtime" bundle
-    ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md) #5) and is the textbook CDN/static-host workload, not a
-    .NET-runtime concern. So production serving is **both, by purpose**: CDN-first for the console; OP-hosted (or
-    same-origin CDN path) for auth.
-  - *Dev orchestrator already exists.* The VS Code `API + UI (F5)` compound launch runs the Playground plus
-    [`build/dev-ui.ps1`](build/dev-ui.ps1) → `pnpm dev` → `turbo run dev` across every app; each app's `dev` script
-    self-describes its serving model and new surfaces join automatically. Accepted cost: `apps/auth` gets build-watch
-    (`vite build --watch`), **not** HMR, *because* the OP serves it same-origin (ADR-0065). If the auth inner loop
-    becomes painful, a **separate** decision is whether to adopt **.NET Aspire** as the orchestrator (model "API + node
-    dev servers" as one app graph) instead of the current PowerShell + compound-launch combo — a real fork, not a free
-    win; it would be its own ADR/backlog item.
-  - *Bundling is already decided.* ADR-0064 **rejected** the single unified SPA and chose **per-surface bundles sharing
-    `@ncode/*` packages** (auth vs. mgmt sit on different security boundaries / blast radius). Dev vs. prod use the
-    **same** bundle — "one bundle, every tier," nothing baked at build time; `@ncode/config` discovers API base / issuer
-    / flags / branding at boot.
+    **Already-resolved concerns (do not re-litigate; captured for the next session):**
+    - _Same-origin is the hard constraint for `apps/auth`._ The cookie `LoginPath` redirect, the antiforgery POST, and the
+      `ReturnUrl` round-trip all require same-origin with the OP issuing the cookie (ADR-0065). "Same-origin" ≠ "served by
+      Kestrel" — a CDN/reverse-proxy may front `/account/*` at the _same origin_, but the OP-hosted static root is the
+      correct default.
+    - _Serve assets by purpose._ `apps/auth` must be OP same-origin (cookie flow); `apps/mgmt` is a pure API client with
+      **no** same-origin requirement — it is the tier-agnostic "build once, discover at runtime" bundle
+      ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md) #5) and is the textbook CDN/static-host workload, not a
+      .NET-runtime concern. So production serving is **both, by purpose**: CDN-first for the console; OP-hosted (or
+      same-origin CDN path) for auth.
+    - _Dev orchestrator already exists._ The VS Code `API + UI (F5)` compound launch runs the Playground plus
+      [`build/dev-ui.ps1`](build/dev-ui.ps1) → `pnpm dev` → `turbo run dev` across every app; each app's `dev` script
+      self-describes its serving model and new surfaces join automatically. Accepted cost: `apps/auth` gets build-watch
+      (`vite build --watch`), **not** HMR, _because_ the OP serves it same-origin (ADR-0065). If the auth inner loop
+      becomes painful, a **separate** decision is whether to adopt **.NET Aspire** as the orchestrator (model "API + node
+      dev servers" as one app graph) instead of the current PowerShell + compound-launch combo — a real fork, not a free
+      win; it would be its own ADR/backlog item.
+    - _Bundling is already decided._ ADR-0064 **rejected** the single unified SPA and chose **per-surface bundles sharing
+      `@ncode/*` packages** (auth vs. mgmt sit on different security boundaries / blast radius). Dev vs. prod use the
+      **same** bundle — "one bundle, every tier," nothing baked at build time; `@ncode/config` discovers API base / issuer
+      / flags / branding at boot.
 
 ## Secrets management (group `S`)
 

@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -27,9 +29,15 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
+using NCode.Identity.OpenId.Management.Contracts.Secrets;
+using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
+using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
@@ -51,16 +59,34 @@ GET    api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeV
 PUT    api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}
 DELETE api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}
 
+GET   api/tenants/{tenantId}/resource-servers/{resourceServerId}/settings
+PATCH api/tenants/{tenantId}/resource-servers/{resourceServerId}/settings
+GET   api/tenants/{tenantId}/resource-servers/{resourceServerId}/effective-settings
+
+GET    api/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets
+POST   api/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets
+GET    api/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets/{secretId}
+GET    api/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets/{secretId}/public-key
+PUT    api/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets/{secretId}
+DELETE api/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets/{secretId}
+
 */
 
 /// <summary>
-/// Provides the API endpoints for managing resource servers (APIs, in Auth0 terms) and their scopes.
+/// Provides the API endpoints for managing resource servers (APIs, in Auth0 terms), including their scopes, settings,
+/// and secrets.
 /// </summary>
 internal class ResourceServerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     IResourceServerValidator resourceServerValidator,
+    ISecretValidator secretValidator,
+    ISecretGenerator secretGenerator,
+    ISecretPublicKeyConverter secretPublicKeyConverter,
+    TimeProvider timeProvider,
     ICryptoService cryptoService,
+    ISettingSerializer settingSerializer,
+    IOpenIdServerProvider serverProvider,
     IResourceOwnershipService resourceOwnershipService,
     ILogger<ResourceServerApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
@@ -68,6 +94,12 @@ internal class ResourceServerApiEndpointHandler(
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IResourceServerValidator ResourceServerValidator { get; } = resourceServerValidator;
+    private ISecretValidator SecretValidator { get; } = secretValidator;
+    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
+    private TimeProvider TimeProvider { get; } = timeProvider;
+    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -118,6 +150,35 @@ internal class ResourceServerApiEndpointHandler(
             .Produces(StatusCodes.Status204NoContent);
 
         resourceServers
+            .MapGet("/{resourceServerId}/settings", GetSettingsAsync)
+            .Produces<ResourceServerSettingsResource>();
+        resourceServers
+            .MapPatch("/{resourceServerId}/settings", UpdateSettingsAsync)
+            .Produces(StatusCodes.Status204NoContent);
+        resourceServers
+            .MapGet("/{resourceServerId}/effective-settings", GetEffectiveSettingsAsync)
+            .Produces<ResourceServerEffectiveSettingsResource>();
+
+        resourceServers
+            .MapGet("/{resourceServerId}/secrets", GetSecretsAsync)
+            .Produces<ResourceServerSecretsResource>();
+        resourceServers
+            .MapPost("/{resourceServerId}/secrets", CreateSecretAsync)
+            .Produces<CreatedSecretResource>(StatusCodes.Status201Created);
+        resourceServers
+            .MapGet("/{resourceServerId}/secrets/{secretId}", GetSecretAsync)
+            .Produces<SecretResource>();
+        resourceServers
+            .MapGet("/{resourceServerId}/secrets/{secretId}/public-key", GetPublicKeyAsync)
+            .Produces<PublicKeyResource>();
+        resourceServers
+            .MapPut("/{resourceServerId}/secrets/{secretId}", UpdateSecretAsync)
+            .Produces(StatusCodes.Status204NoContent);
+        resourceServers
+            .MapDelete("/{resourceServerId}/secrets/{secretId}", DeleteSecretAsync)
+            .Produces(StatusCodes.Status204NoContent);
+
+        resourceServers
             .MapGet("/{resourceServerId}/owners", ListOwnersAsync)
             .Produces<CollectionResource<OwnerResource>>();
         resourceServers
@@ -148,7 +209,6 @@ internal class ResourceServerApiEndpointHandler(
             Name = resourceServer.Name,
             IsSystem = resourceServer.IsSystem,
             IsDisabled = resourceServer.IsDisabled,
-            Settings = resourceServer.Settings,
             Scopes = resourceServer.Scopes.Select(ToScopeResource).ToList(),
         };
 
@@ -237,8 +297,19 @@ internal class ResourceServerApiEndpointHandler(
             Name = request.Name,
             IsSystem = false,
             IsDisabled = request.IsDisabled,
-            Settings = request.Settings,
+            Settings = new PersistedResourceServerSettings
+            {
+                TenantId = tenantId,
+                ResourceServerId = resourceServerId,
+                Value = request.Settings,
+            },
             Scopes = [],
+            Secrets = new PersistedResourceServerSecrets
+            {
+                TenantId = tenantId,
+                ResourceServerId = resourceServerId,
+                Value = [],
+            },
         };
 
         // Core preconditions (authorization + identifier uniqueness) are asserted by the validator (ADR-0014).
@@ -308,7 +379,6 @@ internal class ResourceServerApiEndpointHandler(
         {
             Name = resourceServer.Name,
             IsDisabled = resourceServer.IsDisabled,
-            Settings = resourceServer.Settings,
         };
 
         try
@@ -326,7 +396,6 @@ internal class ResourceServerApiEndpointHandler(
 
         resourceServer.Name = model.Name;
         resourceServer.IsDisabled = model.IsDisabled;
-        resourceServer.Settings = model.Settings;
 
         await store.UpdateAsync(resourceServer, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
@@ -672,4 +741,502 @@ internal class ResourceServerApiEndpointHandler(
             .GetStore<IResourceServerStore>()
             .GetOrDefaultAsync(resourceServerId, cancellationToken)
             is not null;
+
+    // Settings and secrets
+
+    internal virtual ResourceServerSettingsResource ToResourceServerSettingsResource(
+        PersistedResourceServerSettings settings
+    ) =>
+        new()
+        {
+            TenantId = settings.TenantId,
+            ResourceServerId = settings.ResourceServerId,
+            ConcurrencyToken = settings.ConcurrencyToken,
+            Settings = settings.Value,
+        };
+
+    internal virtual ResourceServerSecretsResource ToResourceServerSecretsResource(
+        PersistedResourceServerSecrets secrets
+    ) =>
+        new()
+        {
+            TenantId = secrets.TenantId,
+            ResourceServerId = secrets.ResourceServerId,
+            ConcurrencyToken = secrets.ConcurrencyToken,
+            Secrets = ToSecretsResource(secrets.Value),
+        };
+
+    internal virtual ResourceServerEffectiveSettingsResource ToResourceServerEffectiveSettingsResource(
+        PersistedResourceServer resourceServer,
+        IReadOnlySettingCollection settings
+    ) =>
+        new()
+        {
+            TenantId = resourceServer.TenantId,
+            ResourceServerId = resourceServer.ResourceServerId,
+            Settings = ToEffectiveSettingsElement(settings),
+        };
+
+    /// <summary>
+    /// Merges a resource server's persisted settings onto the addressed tenant's effective settings, producing the same
+    /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves at runtime (server baseline
+    /// merged with the tenant's and then the resource server's persisted overrides).
+    /// </summary>
+    internal virtual async ValueTask<IReadOnlySettingCollection?> MergeResourceServerSettingsAsync(
+        OpenIdContext openIdContext,
+        string tenantId,
+        PersistedResourceServer resourceServer,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantSettings = await storeManager
+            .GetStore<ITenantStore>()
+            .GetSettingsOrDefaultAsync(tenantId, cancellationToken);
+        if (tenantSettings is null)
+        {
+            return null;
+        }
+
+        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
+        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
+
+        var tenantEffective = server.SettingsProvider.Collection.Merge(
+            SettingSerializer.DeserializeSettings(tenantSettings.Value, jsonOptions)
+        );
+        return tenantEffective.Merge(
+            SettingSerializer.DeserializeSettings(resourceServer.Settings.Value, jsonOptions)
+        );
+    }
+
+    /// <summary>
+    /// Gets a resource server's persisted settings.
+    /// </summary>
+    /// <response code="200">The resource server's settings.</response>
+    [EndpointName("api/resource-servers/settings/get")]
+    internal virtual async ValueTask<IResult> GetSettingsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IResourceServerStore>();
+
+        var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
+
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
+        return await ProcessGetAsync(
+            httpContext,
+            resourceServer?.Settings,
+            node,
+            Operations.Read,
+            ToResourceServerSettingsResource
+        );
+    }
+
+    /// <summary>
+    /// Updates a resource server's persisted settings via a JSON Patch document.
+    /// </summary>
+    /// <response code="204">The settings were updated.</response>
+    /// <response code="412">The supplied <c>If-Match</c> concurrency token did not match.</response>
+    [EndpointName("api/resource-servers/settings/update")]
+    internal virtual async ValueTask<IResult> UpdateSettingsAsync(
+        HttpContext httpContext,
+        [FromRoute] string resourceServerId,
+        [FromBody] JsonPatchDocument<JsonObject> request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IResourceServerStore>();
+
+        var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
+        var settings = resourceServer?.Settings;
+        if (settings is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            settings,
+            Operations.Update
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (
+            !string.IsNullOrEmpty(ifMatch)
+            && !string.Equals(ifMatch, settings.ConcurrencyToken, StringComparison.Ordinal)
+        )
+        {
+            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+        }
+
+        var jsonObject = ToJsonObject(settings.Value);
+
+        try
+        {
+            request.ApplyTo(jsonObject);
+        }
+        catch (JsonPatchException exception)
+        {
+            Logger.JsonPatchFailed(exception);
+            return TypedResults.Problem(
+                detail: "The JSON Patch document could not be applied.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        settings.Value = SerializeToElement(jsonObject);
+        await store.UpdateSettingsAsync(settings, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        httpContext.Response.Headers.ETag = settings.ConcurrencyToken;
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Gets a resource server's effective (merged) settings.
+    /// </summary>
+    /// <response code="200">The resource server's effective settings.</response>
+    [EndpointName("api/resource-servers/effective-settings/get")]
+    internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IResourceServerStore>();
+
+        var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
+        if (resourceServer is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var effectiveSettings = await MergeResourceServerSettingsAsync(
+            openIdContext,
+            tenantId,
+            resourceServer,
+            storeManager,
+            cancellationToken
+        );
+        if (effectiveSettings is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
+        return await ProcessGetAsync(
+            httpContext,
+            effectiveSettings,
+            node,
+            Operations.Read,
+            settings => ToResourceServerEffectiveSettingsResource(resourceServer, settings)
+        );
+    }
+
+    /// <summary>
+    /// Gets the collection of secrets owned by a resource server.
+    /// </summary>
+    /// <response code="200">The resource server's secrets.</response>
+    [EndpointName("api/resource-servers/secrets/get")]
+    internal virtual async ValueTask<IResult> GetSecretsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IResourceServerStore>();
+
+        var secrets = await store.GetSecretsOrDefaultAsync(resourceServerId, cancellationToken);
+
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
+        return await ProcessGetAsync(
+            httpContext,
+            secrets,
+            node,
+            Operations.Read,
+            ToResourceServerSecretsResource
+        );
+    }
+
+    /// <summary>
+    /// Creates a secret for a resource server. The generated key material is returned exactly once (ADR-0050).
+    /// </summary>
+    /// <response code="201">The created secret, including its one-time key material.</response>
+    [EndpointName("api/resource-servers/secrets/create")]
+    internal virtual async ValueTask<IResult> CreateSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string resourceServerId,
+        [FromBody] CreateSecretRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IResourceServerStore>();
+
+        var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
+        if (resourceServer is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            resourceServer,
+            Operations.Create
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var validationError = SecretValidator.ValidateCreate(request);
+        if (validationError is not null)
+        {
+            return ToErrorResult(validationError);
+        }
+
+        var secretId = CryptoService.GenerateResourceId();
+
+        GeneratedSecret generatedSecret;
+        try
+        {
+            generatedSecret = SecretGenerator.GenerateSecret(
+                new GenerateSecretRequest
+                {
+                    SecretId = secretId,
+                    SecretType = request.SecretType,
+                    KeySizeBits = request.KeySizeBits,
+                    Use = request.Use,
+                    Algorithm = request.Algorithm,
+                    CreatedWhen = TimeProvider.GetUtcNow(),
+                    ExpiresWhen = request.ExpiresWhen,
+                }
+            );
+        }
+        catch (Exception exception)
+            when (exception is ArgumentException or InvalidOperationException)
+        {
+            Logger.SecretGenerationFailed(exception);
+            return TypedResults.Problem(
+                detail: "The secret could not be generated from the supplied parameters.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        try
+        {
+            await store.AddSecretAsync(resourceServerId, generatedSecret.Secret, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Logger.ResourceConflict(exception);
+            return TypedResults.Problem(
+                detail: "A secret with the specified identifier already exists.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
+        return TypedResults.Created(
+            $"/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets/{secretId}",
+            ToCreatedSecretResource(generatedSecret.Secret, generatedSecret.SecretMaterial)
+        );
+    }
+
+    /// <summary>
+    /// Gets a single secret owned by a resource server.
+    /// </summary>
+    /// <response code="200">The requested secret.</response>
+    [EndpointName("api/resource-servers/secrets/get-one")]
+    internal virtual async ValueTask<IResult> GetSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string resourceServerId,
+        [FromRoute] string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IResourceServerStore>();
+
+        var resourceServerSecret = await store.GetSecretOrDefaultAsync(
+            resourceServerId,
+            secretId,
+            cancellationToken
+        );
+
+        var scoped = resourceServerSecret is null
+            ? null
+            : TenantOwnedResource.For(resourceServerSecret.TenantId, resourceServerSecret.Value);
+
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
+        return await ProcessGetAsync(
+            httpContext,
+            scoped,
+            node,
+            Operations.Read,
+            x => ToSecretResource(x.Value)
+        );
+    }
+
+    /// <summary>
+    /// Gets the public key for a resource server's secret, or <c>null</c> for a symmetric secret.
+    /// </summary>
+    /// <response code="200">The requested public key.</response>
+    [EndpointName("api/resource-servers/secrets/get-public-key")]
+    internal virtual async ValueTask<IResult> GetPublicKeyAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string resourceServerId,
+        [FromRoute] string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IResourceServerStore>();
+
+        var resourceServerSecret = await store.GetSecretOrDefaultAsync(
+            resourceServerId,
+            secretId,
+            cancellationToken
+        );
+
+        var scoped = resourceServerSecret is null
+            ? null
+            : TenantOwnedResource.For(resourceServerSecret.TenantId, resourceServerSecret.Value);
+
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
+        return await ProcessGetAsync(
+            httpContext,
+            scoped,
+            node,
+            Operations.Read,
+            x => SecretPublicKeyConverter.Convert(x.Value)
+        );
+    }
+
+    /// <summary>
+    /// Updates the metadata of a resource server's secret. Key material is immutable.
+    /// </summary>
+    /// <response code="204">The secret was updated.</response>
+    /// <response code="412">The supplied <c>If-Match</c> concurrency token did not match.</response>
+    [EndpointName("api/resource-servers/secrets/update")]
+    internal virtual async ValueTask<IResult> UpdateSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string resourceServerId,
+        [FromRoute] string secretId,
+        [FromBody] UpdateSecretRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IResourceServerStore>();
+
+        var resourceServerSecret = await store.GetSecretOrDefaultAsync(
+            resourceServerId,
+            secretId,
+            cancellationToken
+        );
+        if (resourceServerSecret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var secret = resourceServerSecret.Value;
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            TenantOwnedResource.For(resourceServerSecret.TenantId, secret),
+            Operations.Update
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (
+            !string.IsNullOrEmpty(ifMatch)
+            && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
+        )
+        {
+            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+        }
+
+        var updated = new PersistedSecret
+        {
+            SecretId = secret.SecretId,
+            ConcurrencyToken = secret.ConcurrencyToken,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            CreatedWhen = secret.CreatedWhen,
+            ExpiresWhen = request.ExpiresWhen,
+            SecretType = secret.SecretType,
+            KeySizeBits = secret.KeySizeBits,
+            EncodedValue = secret.EncodedValue,
+        };
+
+        await store.UpdateSecretAsync(resourceServerId, updated, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Deletes a resource server's secret.
+    /// </summary>
+    /// <response code="204">The secret was deleted.</response>
+    [EndpointName("api/resource-servers/secrets/delete")]
+    internal virtual async ValueTask<IResult> DeleteSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string resourceServerId,
+        [FromRoute] string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IResourceServerStore>();
+
+        var resourceServerSecret = await store.GetSecretOrDefaultAsync(
+            resourceServerId,
+            secretId,
+            cancellationToken
+        );
+        if (resourceServerSecret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            TenantOwnedResource.For(resourceServerSecret.TenantId, resourceServerSecret.Value),
+            Operations.Delete
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        await store.RemoveSecretAsync(resourceServerId, secretId, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
+    }
 }

@@ -56,17 +56,30 @@ internal sealed class OpenIdIdentityResourceServerSeedHandler(ICryptoService cry
             return;
         }
 
+        var resourceServerId = CryptoService.GenerateResourceId();
+
         var resourceServer = new PersistedResourceServer
         {
             TenantId = context.TenantId,
-            ResourceServerId = CryptoService.GenerateResourceId(),
+            ResourceServerId = resourceServerId,
             Identifier = OpenIdConstants.SystemResourceServerIdentifiers.OpenId,
             ConcurrencyToken = string.Empty,
             Name = "OpenID Connect",
             IsSystem = true,
             IsDisabled = false,
-            Settings = JsonSerializer.SerializeToElement(null, typeof(object)),
+            Settings = new PersistedResourceServerSettings
+            {
+                TenantId = context.TenantId,
+                ResourceServerId = resourceServerId,
+                Value = JsonSerializer.SerializeToElement(null, typeof(object)),
+            },
             Scopes = BuildScopes(),
+            Secrets = new PersistedResourceServerSecrets
+            {
+                TenantId = context.TenantId,
+                ResourceServerId = resourceServerId,
+                Value = [],
+            },
         };
 
         await store.AddAsync(resourceServer, cancellationToken);

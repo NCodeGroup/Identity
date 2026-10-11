@@ -557,6 +557,18 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .IsUnicode(false)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("SecretsConcurrencyToken")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SettingsConcurrencyToken")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("SettingsJson")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -573,6 +585,38 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .IsUnique();
 
                     b.ToTable("ResourceServers", (string)null);
+                });
+
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerSecretEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ResourceServerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("SecretId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("TenantId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResourceServerId");
+
+                    b.HasIndex("SecretId");
+
+                    b.HasIndex("TenantId", "ResourceServerId", "SecretId")
+                        .IsUnique();
+
+                    b.ToTable("ResourceServerSecrets", (string)null);
                 });
 
             modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RoleAssignmentEntity", b =>
@@ -1077,6 +1121,33 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerSecretEntity", b =>
+                {
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity", "ResourceServer")
+                        .WithMany("Secrets")
+                        .HasForeignKey("ResourceServerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity", "Secret")
+                        .WithMany()
+                        .HasForeignKey("SecretId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ResourceServer");
+
+                    b.Navigation("Secret");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RoleAssignmentEntity", b =>
                 {
                     b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
@@ -1158,6 +1229,8 @@ namespace NCode.Identity.OpenId.Playground.Migrations
             modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity", b =>
                 {
                     b.Navigation("Scopes");
+
+                    b.Navigation("Secrets");
                 });
 
             modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity", b =>

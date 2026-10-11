@@ -496,6 +496,95 @@ export const managementApi = createApi({
         { type: 'Settings', id: `server-effective:${serverId}` },
       ],
     }),
+    listResourceServerSecrets: build.query<
+      SecretsResource,
+      { scope: ManagementScope; resourceServerId: string }
+    >({
+      query: ({ scope, resourceServerId }) =>
+        `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(resourceServerId)}/secrets`,
+      providesTags: (result, _error, { resourceServerId }) => [
+        { type: 'Secret' as const, id: `resource-server:${resourceServerId}` },
+        ...(result?.secrets ?? []).map((s) => ({ type: 'Secret' as const, id: s.secretId })),
+      ],
+    }),
+    createResourceServerSecret: build.mutation<
+      CreatedSecretResource,
+      { scope: ManagementScope; resourceServerId: string; body: CreateSecretRequest }
+    >({
+      query: ({ scope, resourceServerId, body }) => ({
+        url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
+          resourceServerId,
+        )}/secrets`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { resourceServerId }) => [
+        { type: 'Secret', id: `resource-server:${resourceServerId}` },
+      ],
+    }),
+    deleteResourceServerSecret: build.mutation<
+      void,
+      { scope: ManagementScope; resourceServerId: string; secretId: string }
+    >({
+      query: ({ scope, resourceServerId, secretId }) => ({
+        url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
+          resourceServerId,
+        )}/secrets/${encodeURIComponent(secretId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { resourceServerId, secretId }) => [
+        { type: 'Secret', id: `resource-server:${resourceServerId}` },
+        { type: 'Secret', id: secretId },
+      ],
+    }),
+    getResourceServerSettings: build.query<
+      SettingsResource,
+      { scope: ManagementScope; resourceServerId: string }
+    >({
+      query: ({ scope, resourceServerId }) =>
+        `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
+          resourceServerId,
+        )}/settings`,
+      providesTags: (_result, _error, { resourceServerId }) => [
+        { type: 'Settings', id: `resource-server:${resourceServerId}` },
+      ],
+    }),
+    getResourceServerEffectiveSettings: build.query<
+      EffectiveSettingsResource,
+      { scope: ManagementScope; resourceServerId: string }
+    >({
+      query: ({ scope, resourceServerId }) =>
+        `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
+          resourceServerId,
+        )}/effective-settings`,
+      providesTags: (_result, _error, { resourceServerId }) => [
+        { type: 'Settings', id: `resource-server-effective:${resourceServerId}` },
+      ],
+    }),
+    // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
+    updateResourceServerSettings: build.mutation<
+      void,
+      {
+        scope: ManagementScope;
+        resourceServerId: string;
+        concurrencyToken: string;
+        original: Readonly<Record<string, unknown>>;
+        desired: Readonly<Record<string, unknown>>;
+      }
+    >({
+      query: ({ scope, resourceServerId, concurrencyToken, original, desired }) => ({
+        url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
+          resourceServerId,
+        )}/settings`,
+        method: 'PATCH',
+        body: diffPatch(original, desired),
+        headers: { 'If-Match': concurrencyToken },
+      }),
+      invalidatesTags: (_result, _error, { resourceServerId }) => [
+        { type: 'Settings', id: `resource-server:${resourceServerId}` },
+        { type: 'Settings', id: `resource-server-effective:${resourceServerId}` },
+      ],
+    }),
   }),
 });
 
@@ -539,4 +628,10 @@ export const {
   useGetServerSettingsQuery,
   useGetServerEffectiveSettingsQuery,
   useUpdateServerSettingsMutation,
+  useListResourceServerSecretsQuery,
+  useCreateResourceServerSecretMutation,
+  useDeleteResourceServerSecretMutation,
+  useGetResourceServerSettingsQuery,
+  useGetResourceServerEffectiveSettingsQuery,
+  useUpdateResourceServerSettingsMutation,
 } = managementApi;

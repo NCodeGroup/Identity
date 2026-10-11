@@ -48,6 +48,9 @@ internal static class CoreDbContextExtensions
 
         public DbSet<ResourceServerEntity> ResourceServers => context.Set<ResourceServerEntity>();
 
+        public DbSet<ResourceServerSecretEntity> ResourceServerSecrets =>
+            context.Set<ResourceServerSecretEntity>();
+
         public DbSet<ScopeEntity> Scopes => context.Set<ScopeEntity>();
 
         public DbSet<ClientGrantEntity> ClientGrants => context.Set<ClientGrantEntity>();

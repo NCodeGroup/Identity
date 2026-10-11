@@ -91,7 +91,12 @@ public sealed class DefaultClientGrantValidatorTests : IDisposable
             Name = "Example API",
             IsSystem = false,
             IsDisabled = false,
-            Settings = EmptyObject(),
+            Settings = new PersistedResourceServerSettings
+            {
+                TenantId = TenantId,
+                ResourceServerId = ResourceServerId,
+                Value = EmptyObject(),
+            },
             Scopes = scopeValues
                 .Select(value => new PersistedScope
                 {
@@ -100,6 +105,12 @@ public sealed class DefaultClientGrantValidatorTests : IDisposable
                     IsSystem = false,
                 })
                 .ToList(),
+            Secrets = new PersistedResourceServerSecrets
+            {
+                TenantId = TenantId,
+                ResourceServerId = ResourceServerId,
+                Value = [],
+            },
         };
 
     private void SetupAuthorization(AuthorizationResult result)

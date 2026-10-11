@@ -183,12 +183,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
-- **`U8` — Strip internal `$`-prefixed ticket parameters from the authorization response.** The interactive flow
-  surfaced that an internal ticket parameter (`$created_when`, `OpenIdConstants.Parameters.CreatedWhen`) leaks into the
-  authorization response callback query string sent back to the client. `$`-prefixed parameters are internal and should
-  never appear on the wire; the authorization-response/ticket rendering should omit them. Low priority (cosmetic — the
-  client ignores unknown params), but it is protocol hygiene. Touch point:
-  `src/NCode.Identity.OpenId.Core/Endpoints/Authorization/Results/AuthorizationResultExecutor.cs`.
 - **`U9` — Server create/edit management (UI + backend).** The Servers surface is read-only today: `ServersPage`
   lists servers and drills into `ServerDetailPage` for a server's **settings and secrets** (which already exist),
   but there is **no way to add a new server or edit a server's top-level record** (e.g. display name). Unlike

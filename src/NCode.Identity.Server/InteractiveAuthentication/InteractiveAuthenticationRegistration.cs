@@ -50,8 +50,17 @@ public static class InteractiveAuthenticationRegistration
         /// <c>InteractiveAuthentication:BundleRootPath</c> configuration value (resolved relative to the content root
         /// when not rooted) and may be overridden through <paramref name="configureOptions"/>. Apply it to the
         /// pipeline with <c>UseInteractiveAuthentication</c> and map it with <c>MapInteractiveAuthentication</c>. The
-        /// cookie scheme is registered as a named scheme and does not change the host's default authentication scheme.
+        /// cookie scheme is registered as a named scheme and does not itself set the host's default authentication
+        /// scheme.
         /// </summary>
+        /// <remarks>
+        /// The host MUST order <c>UseAntiforgery</c> AFTER <c>UseAuthentication</c>/<c>UseAuthorization</c>. The login
+        /// and consent forms submit claims-bound antiforgery tokens, and when this cookie is the only registered
+        /// authentication scheme ASP.NET Core promotes it to the default — so once a session cookie exists the login
+        /// page authenticates the user and mints the token bound to that user. Validating the POST before
+        /// authentication runs would compare an authenticated token against an anonymous user and throw
+        /// "The provided antiforgery token was meant for a different claims-based user than the current user".
+        /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the surface's settings.</param>
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> whose content root anchors a relative
         /// bundle path.</param>

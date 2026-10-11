@@ -78,7 +78,7 @@ Run from `src/frontend/`:
 
 ```sh
 pnpm install              # install the workspace
-pnpm dev                  # run app dev servers (Turborepo)
+pnpm dev                  # run the WHOLE frontend stack (Turborepo): dev servers + build-watch
 pnpm --filter @ncode/app-mgmt dev    # run just the Management console
 pnpm test                 # run all unit tests
 pnpm lint                 # lint all packages
@@ -86,6 +86,19 @@ pnpm typecheck            # type-check all packages
 pnpm --filter @ncode/ui storybook    # component workbench
 pnpm build                # build all packages/apps
 ```
+
+### The `dev` script encodes each app's serving model
+
+`pnpm dev` is `turbo run dev`, which runs **every** app's own `dev` script — so a new app joins the
+full-stack launch automatically just by defining one. What that script does depends on how the app is
+served:
+
+- **Backend-served SPAs** — served by the .NET host from a static `dist` (e.g. `apps/auth`, which the
+  Playground serves through the interactive-login endpoint) — use **`vite build --watch`**. This keeps
+  `dist` continuously rebuilt so a browser refresh shows edits. (There is no HMR dev server because the
+  .NET host, not Vite, serves these bundles.)
+- **Standalone SPAs** — served directly by Vite on their own port (e.g. `apps/mgmt`) — use **`vite`**,
+  a full HMR dev server.
 
 ## Runtime configuration
 
@@ -124,9 +137,17 @@ scope binds the audience — see [ADR-0044](../../docs/adr/0044-management-api-a
 ## Running the full stack (VS Code F5)
 
 Pick **`API + UI (F5)`** in the Run and Debug view (or press F5) — a compound launch that starts the
-Playground API and the Management UI dev server together. The UI side runs
-[`build/dev-ui.ps1`](../../build/dev-ui.ps1), which puts the repo-pinned Node (via NVS) on PATH. Node
-not on your PATH? `nvs add 22` once (optionally `nvs link 22`).
+Playground API and the **entire frontend stack** together. The UI side runs
+[`build/dev-ui.ps1`](../../build/dev-ui.ps1), which puts the repo-pinned Node (via NVS) on PATH and runs
+`pnpm dev` (`turbo run dev`) across every app. Node not on your PATH? `nvs add 22` once (optionally
+`nvs link 22`).
+
+Because the launch is driven by Turborepo, **any future app is included automatically** — each app just
+declares its `dev` script per its serving model (build-watch for backend-served bundles like `apps/auth`,
+a dev server for standalone apps like `apps/mgmt`; see "The `dev` script encodes each app's serving
+model" above). So the interactive login surface (`apps/auth`) is build-watched into its `dist` and the
+Playground serves it; on first launch give its initial build a moment to finish, then refresh
+`/account/login` if you beat it there.
 
 > Dev connectivity: the Playground opts into `AddDeveloperCors` so the browser UI (`http://localhost:5173`) can read
 > discovery and call the management API cross-origin. The UI still renders in **open mode** and management calls return
@@ -136,7 +157,7 @@ not on your PATH? `nvs add 22` once (optionally `nvs link 22`).
 
 - **Internal packages are consumed as TypeScript source, not built `.d.ts`.** Each `@ncode/*` package
   exposes `src/index.ts` via its `main`/`types`; Vite and Vitest bundle the source directly. There is
-  **no `tsc --build`/`composite`/project-references** — those emit `.d.ts` that get resolved *alongside*
+  **no `tsc --build`/`composite`/project-references** — those emit `.d.ts` that get resolved _alongside_
   the source, producing "two different types ... unrelated" errors. Package `build` is type-check only
   (`tsc --noEmit`); only the app emits a bundle.
 - **RTK Query store assembly.** `@reduxjs/toolkit/query/react` (used by `createApi`) bundles its own
@@ -151,4 +172,25 @@ not on your PATH? `nvs add 22` once (optionally `nvs link 22`).
   read `input instanceof Request ? input.url : String(input)` and return a real `Response`
   (`new Response(JSON.stringify(body), { status, headers })`) — a plain object lacks `.clone()`, which
   `fetchBaseQuery` calls.
-
+- **jsdom + undici cross-realm `AbortSignal`.** Under `environment: 'jsdom'`, `fetch`/`Request`/`Response`
+  stay Node's (undici) globals while jsdom overrides `AbortController`/`AbortSignal`. `fetchBaseQuery`
+  builds `new Request(url, { signal })` from the global (jsdom) `AbortController`, and undici's `Request`
+  rejects the foreign-realm signal — _"RequestInit: Expected signal to be an instance of AbortSignal"_ —
+  which surfaces as a spurious query failure (e.g. _"Failed to load tenants"_) **before** any mocked
+  `fetch` runs. Node's original `AbortController` is unreachable once jsdom shadows the global, and
+  `undici` is not a resolvable dependency, so [`apps/mgmt/vitest.setup.ts`](apps/mgmt/vitest.setup.ts)
+  wraps `Request` to drop the incompatible jsdom signal during construction. It is a test-only shim
+  (the browser is a single consistent realm); any app whose tests exercise RTK Query needs the same
+  setup shim.
+- **Single-use side effects must be guarded by a run-once ref, not an effect-cancellation flag.**
+  React StrictMode (on in dev via [`apps/mgmt/src/main.tsx`](apps/mgmt/src/main.tsx)) intentionally
+  double-invokes every effect (setup → cleanup → setup) on the same component instance. An effect that
+  consumes a **one-shot** resource — e.g. [`AuthGate`](apps/mgmt/src/AuthGate.tsx) completing the
+  authorization-code callback, which spends a single-use `code` and removes the one-shot PKCE
+  transaction from `sessionStorage` — must run **exactly once**. A `let cancelled = false` + cleanup
+  flag does **not** achieve this: the second invocation re-enters the effect body and re-reads the
+  already-consumed resource, dead-ending (here, on _"No in-flight authorization transaction was
+  found."_). Guard with a `useRef(false)` set the moment the work starts; refs persist across the
+  StrictMode remount, so the second invocation short-circuits. Set the ref only when the work actually
+  begins (not on an early bail-out such as pre-discovery `authConfig === null`) so the single attempt
+  is not wasted.

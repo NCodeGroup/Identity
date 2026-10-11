@@ -1,6 +1,14 @@
 #!/usr/bin/env pwsh
-# Starts the Management UI (Vite) dev server using the repo-pinned Node via NVS.
+# Starts the ENTIRE frontend stack (Vite, via Turborepo) using the repo-pinned Node via NVS.
 # Invoked by the ".vscode" compound launch profile ("API + UI"); also runnable standalone.
+#
+# This runs `pnpm dev` (= `turbo run dev`), which starts every app's own `dev` script and so
+# picks up any future app automatically with no change here. Each app encodes its serving model
+# in that script:
+#   - backend-served SPAs (served by the .NET host from static `dist`, e.g. apps/auth) use
+#     `vite build --watch`, which keeps `dist` fresh so a browser refresh shows edits;
+#   - standalone SPAs (e.g. apps/mgmt) use `vite`, an HMR dev server on its own port.
+# See src/frontend/README.md ("Running the full stack") and docs/adr/0064.
 
 $ErrorActionPreference = 'Stop'
 
@@ -31,4 +39,6 @@ if (-not (Test-Path 'node_modules')) {
     }
 }
 
-pnpm --filter @ncode/app-mgmt dev
+# `turbo run dev` across the workspace: starts every app's `dev` script (build-watch for
+# backend-served bundles, dev server for standalone apps). Future apps are included automatically.
+pnpm dev

@@ -1,0 +1,24 @@
+{
+  "name": "@ncode/config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tier-agnostic runtime configuration discovery for NCode.Identity frontends.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.2"
+  }
+}

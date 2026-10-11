@@ -50,7 +50,6 @@ describe('App (global ↔ tenant boundary)', () => {
             {
               clientId: 'web',
               tenantId: 'acme',
-              displayName: 'Web App',
               isDisabled: false,
               concurrencyToken: 'c',
             },
@@ -84,7 +83,7 @@ describe('App (global ↔ tenant boundary)', () => {
     fireEvent.click(screen.getByTestId('tenant-row-acme'));
 
     await waitFor(() => expect(screen.getByTestId('scope-badge')).toHaveTextContent('acme'));
-    expect(await screen.findByText('Web App')).toBeInTheDocument();
+    expect(await screen.findByText('web')).toBeInTheDocument();
     const requestedUrls = fetchMock.mock.calls.map(([input]) =>
       input instanceof Request ? input.url : String(input),
     );

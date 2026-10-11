@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Mediator;
+using NCode.Registration;
 
 namespace NCode.Identity.Server;
 
@@ -36,7 +37,7 @@ namespace NCode.Identity.Server;
 [PublicAPI]
 public static class DeveloperInteractiveSeedRegistration
 {
-    extension(IServiceCollection serviceCollection)
+    extension(IServiceBuilder<IdentityServer> builder)
     {
         /// <summary>
         /// Registers the development-only seeder for a public single-page-application client and an administrator user.
@@ -45,9 +46,13 @@ public static class DeveloperInteractiveSeedRegistration
         /// not be used in production.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the seeder's settings.</param>
-        /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddDeveloperInteractiveSeed(IConfiguration configuration)
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<IdentityServer> AddDeveloperInteractiveSeed(
+            IConfiguration configuration
+        )
         {
+            var serviceCollection = builder.ServiceCollection;
+
             var options = new DeveloperInteractiveSeedOptions();
             configuration
                 .GetSection(DeveloperInteractiveSeedOptions.DefaultSectionName)
@@ -70,7 +75,7 @@ public static class DeveloperInteractiveSeedRegistration
                 >()
             );
 
-            return serviceCollection;
+            return builder;
         }
     }
 }

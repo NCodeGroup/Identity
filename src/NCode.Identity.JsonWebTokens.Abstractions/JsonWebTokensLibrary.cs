@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -19,17 +19,17 @@
 using JetBrains.Annotations;
 using NCode.Registration;
 
-namespace NCode.Identity.OpenId;
+namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>
 [PublicAPI]
-public readonly struct OpenIdCoreLibrary : IRegistrationMarker<OpenIdCoreLibrary>
+public readonly struct JsonWebTokensLibrary : IRegistrationMarker<JsonWebTokensLibrary>
 {
     /// <inheritdoc />
-    public string DisplayName => "NCode.Identity.OpenId.Core";
+    public string DisplayName => "NCode.Identity.JsonWebTokens";
 
     /// <inheritdoc />
-    public string ConfigureMethod => "AddOpenIdCoreLibrary";
+    public string ConfigureMethod => "AddJsonWebTokensLibrary";
 }

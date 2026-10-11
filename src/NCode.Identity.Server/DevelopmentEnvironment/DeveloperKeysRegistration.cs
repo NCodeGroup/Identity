@@ -24,6 +24,7 @@ using Microsoft.Extensions.Hosting;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Mediator;
+using NCode.Registration;
 
 namespace NCode.Identity.Server;
 
@@ -41,7 +42,7 @@ public static class DeveloperKeysRegistration
 {
     private const string DeveloperApplicationName = "NCode.Identity.Server";
 
-    extension(IServiceCollection serviceCollection)
+    extension(IServiceBuilder<IdentityServer> builder)
     {
         /// <summary>
         /// Applies the development-only signing-key setup selected by <paramref name="mode"/>:
@@ -53,8 +54,8 @@ public static class DeveloperKeysRegistration
         /// <param name="mode">The <see cref="DeveloperKeyMode"/> that selects which setup to apply.</param>
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> whose content root anchors the key-ring
         /// directory when <paramref name="mode"/> is <see cref="DeveloperKeyMode.PersistentSigningKey"/>.</param>
-        /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddDeveloperKeys(
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<IdentityServer> AddDeveloperKeys(
             DeveloperKeyMode mode,
             IHostEnvironment hostEnvironment
         )
@@ -64,10 +65,10 @@ public static class DeveloperKeysRegistration
                 var keyRingDirectory = new DirectoryInfo(
                     Path.Combine(hostEnvironment.ContentRootPath, "App_Data", "dp-keys")
                 );
-                return serviceCollection.AddDeveloperSigningKey(keyRingDirectory);
+                return builder.AddDeveloperSigningKey(keyRingDirectory);
             }
 
-            return serviceCollection.AddEphemeralDeveloperKeys();
+            return builder.AddEphemeralDeveloperKeys();
         }
 
         /// <summary>
@@ -75,15 +76,17 @@ public static class DeveloperKeysRegistration
         /// <c>RSA</c> signing key, so that token signing and the JWKS endpoint work out-of-the-box for local
         /// development and testing. Must not be used in production.
         /// </summary>
-        /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddEphemeralDeveloperKeys()
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<IdentityServer> AddEphemeralDeveloperKeys()
         {
+            var serviceCollection = builder.ServiceCollection;
+
             // Replace the single tenant factory with one that generates an ephemeral in-memory RSA signing key.
             serviceCollection.Replace(
                 ServiceDescriptor.Singleton<IOpenIdTenantFactory, EphemeralOpenIdTenantFactory>()
             );
 
-            return serviceCollection;
+            return builder;
         }
 
         /// <summary>
@@ -94,9 +97,13 @@ public static class DeveloperKeysRegistration
         /// </summary>
         /// <param name="keyRingDirectory">The directory where the data-protection key ring is persisted. It should
         /// be excluded from source control.</param>
-        /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddDeveloperSigningKey(DirectoryInfo keyRingDirectory)
+        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<IdentityServer> AddDeveloperSigningKey(
+            DirectoryInfo keyRingDirectory
+        )
         {
+            var serviceCollection = builder.ServiceCollection;
+
             keyRingDirectory.Create();
 
             // Persist the key ring so persisted secrets can be unprotected across restarts. On Windows the ring is
@@ -120,7 +127,7 @@ public static class DeveloperKeysRegistration
                 >()
             );
 
-            return serviceCollection;
+            return builder;
         }
     }
 }

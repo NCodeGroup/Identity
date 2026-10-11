@@ -21,8 +21,8 @@ const NCode.Identity.Server.DeveloperCorsRegistration.PolicyName = "NCode.Identi
 NCode.Identity.Server.DeveloperCorsRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.DeveloperCorsRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperCors(Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Server.DeveloperInteractiveSeedRegistration
-NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperInteractiveSeed(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
+NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperInteractiveSeed(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DeveloperKeyMode
 NCode.Identity.Server.DeveloperKeyMode.Ephemeral = 0 -> NCode.Identity.Server.DeveloperKeyMode
 NCode.Identity.Server.DeveloperKeyMode.PersistentSigningKey = 1 -> NCode.Identity.Server.DeveloperKeyMode
@@ -30,10 +30,10 @@ NCode.Identity.Server.DeveloperKeyModeConfiguration
 NCode.Identity.Server.DeveloperKeyModeConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!)
 NCode.Identity.Server.DeveloperKeyModeConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!).GetDeveloperKeyMode() -> NCode.Identity.Server.DeveloperKeyMode
 NCode.Identity.Server.DeveloperKeysRegistration
-NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperKeys(NCode.Identity.Server.DeveloperKeyMode mode, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperSigningKey(System.IO.DirectoryInfo! keyRingDirectory) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-NCode.Identity.Server.DeveloperKeysRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEphemeralDeveloperKeys() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
+NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperKeys(NCode.Identity.Server.DeveloperKeyMode mode, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperSigningKey(System.IO.DirectoryInfo! keyRingDirectory) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddEphemeralDeveloperKeys() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.AdminEmail.get -> string?
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.AdminEmail.set -> void

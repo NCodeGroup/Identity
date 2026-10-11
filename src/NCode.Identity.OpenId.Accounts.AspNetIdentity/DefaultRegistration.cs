@@ -35,9 +35,10 @@ public static class DefaultRegistration
     {
         /// <summary>
         /// Registers an <see cref="ILocalAccountStore"/> that adapts the ASP.NET Core Identity
-        /// <c>UserManager&lt;TUser&gt;</c> for the specified user type, together with the capability marker that enables
-        /// the local-account surfaces. The host is responsible for registering ASP.NET Core Identity
-        /// (<c>AddIdentityCore&lt;TUser&gt;</c> or <c>AddIdentity</c>) and its stores.
+        /// <c>UserManager&lt;TUser&gt;</c> for the specified user type. Registering a store is what enables the
+        /// local-account surfaces (there is no separate capability marker; a consumer reports local accounts as
+        /// unsupported until a store is present, per ADR-0061). The host is responsible for registering ASP.NET Core
+        /// Identity (<c>AddIdentityCore&lt;TUser&gt;</c> or <c>AddIdentity</c>) and its stores.
         /// </summary>
         /// <typeparam name="TUser">The ASP.NET Core Identity user type.</typeparam>
         /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>

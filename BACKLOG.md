@@ -162,17 +162,20 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
 ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
 
-- **`U2` — Management console secrets/settings for the remaining owners + initial-access-token mint.** The console
-  already does full create/update/delete for tenants, clients (with a drill-in **Secrets**/**Settings** detail view),
-  resource servers + their scopes, and tenant grants (list + single/filtered-bulk revoke) on the shared frontend
-  platform — all with scoped RTK Query tag invalidation, optimistic concurrency (`concurrencyToken` → `If-Match`), and
-  the tenant-nested path so a tenant administrator can never reach another tenant. **Remaining:** extend the client
-  **Secrets**/**Settings** pattern (one-time reveal per
+- **`U2` — Management console secrets/settings for the remaining owners + initial-access-token mint.** _Mostly
+  implemented._ The console now extends the client **Secrets**/**Settings** pattern (one-time reveal per
   [ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md); read-only effective-settings view + top-level
-  add/remove/replace JSON Patch diff via the `@ncode/api` `diffPatch` helper) to the other settings/secret owners
-  (resource servers, tenants, servers), and surface the initial-access-token mint (RFC 7591) in the **Grants** tab. A
-  client-secret rotate convenience is tracked separately under `S1`. Touch points: `src/frontend/packages/api`,
-  `packages/store` (`managementApi`), `packages/ui`, `apps/mgmt/src` (`containers`).
+  add/remove/replace JSON Patch diff via the `@ncode/api` `diffPatch` helper) to **tenants** (a tenant-scope **Tenant**
+  tab) and the **server** (a global-scope **Servers** tab that drills into the server), and surfaces the
+  initial-access-token mint (RFC 7591) in the **Grants** tab with a one-time token reveal. The shared
+  `SecretsManager`/`SettingsManager` containers back every owner. A client-secret rotate convenience is tracked
+  separately under `S1`. **Remaining:** resource-server (API) settings/secrets — the backend
+  (`ResourceServerApiEndpointHandler`) exposes only scopes + owners (no `GET`/`PATCH .../settings`,
+  `.../effective-settings`, or `.../secrets` routes), even though `CreateResourceServerRequest` accepts an initial
+  `settings` object. That needs the backend settings/secret-owner endpoints added first (its own work item — and a
+  decision on whether an API is ever a _secret_ owner, since Auth0 APIs are not), then the same frontend pattern
+  applied. Touch points: `src/frontend/packages/api`, `packages/store` (`managementApi`), `packages/ui`,
+  `apps/mgmt/src` (`containers`); backend: `src/NCode.Identity.OpenId.Management/Endpoints/ResourceServers`.
 - **`U3` — Remaining surfaces (Auth/Consent/Login, Playground, conformance) on the shared platform.** Build the `T2`
   login/consent surface ([ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md)) and the eventual `F2`
   consent screen as apps on this platform rather than bespoke UIs, honoring the stable-locator contract

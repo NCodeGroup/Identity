@@ -113,4 +113,38 @@ describe('GrantsPage (tenant-scoped revocation wiring)', () => {
       expect(del?.url).toContain('clientId=web');
     });
   });
+
+  it('mints an initial access token and reveals its one-time value', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.includes('/api/tenants/acme/grants/initial-access-tokens') && method === 'POST') {
+        return jsonResponse(
+          {
+            initialAccessToken: 'iat-one-time',
+            grantId: 'g-iat',
+            tenantId: 'acme',
+            description: 'Partner X',
+            createdWhen: '2026-01-01T00:00:00Z',
+            expiresWhen: null,
+          },
+          201,
+        );
+      }
+      if (url.includes('/api/tenants/acme/grants')) {
+        return jsonResponse({ items: [] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    await screen.findByTestId('mint-initial-access-token');
+
+    fireEvent.click(screen.getByTestId('mint-initial-access-token'));
+    fireEvent.change(screen.getByTestId('iat-description'), { target: { value: 'Partner X' } });
+    fireEvent.click(screen.getByTestId('iat-form-submit'));
+
+    expect(await screen.findByTestId('reveal-iat-token')).toHaveTextContent('iat-one-time');
+    expect(
+      calls.find((c) => c.method === 'POST' && c.url.includes('/grants/initial-access-tokens')),
+    ).toBeDefined();
+  });
 });

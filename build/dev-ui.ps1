@@ -15,7 +15,20 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
     throw "Node.js 22 was not found. Install it with NVS: 'nvs add 22' (optionally 'nvs link 22' to add it to PATH)."
 }
 
+# Let corepack provision the repo-pinned pnpm non-interactively (an F5 launch has no TTY to
+# answer corepack's "Do you want to continue?" download prompt).
+$env:COREPACK_ENABLE_DOWNLOAD_PROMPT = '0'
 corepack enable 2>$null | Out-Null
 
 Set-Location (Join-Path $PSScriptRoot '..' | Join-Path -ChildPath 'src' | Join-Path -ChildPath 'frontend')
+
+# Ensure workspace dependencies (including Vite) are installed; a fresh clone has no node_modules,
+# so running 'dev' directly fails with "'vite' is not recognized".
+if (-not (Test-Path 'node_modules')) {
+    pnpm install --frozen-lockfile
+    if ($LASTEXITCODE -ne 0) {
+        throw "pnpm install failed with exit code $LASTEXITCODE."
+    }
+}
+
 pnpm --filter @ncode/app-mgmt dev

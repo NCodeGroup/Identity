@@ -16,28 +16,33 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using JetBrains.Annotations;
-using NCode.Identity.Secrets.Keys;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
+namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
-/// Describes a single elliptic curve that is supported for publication as a <c>JSON Web Key (JWK)</c>,
-/// pairing the curve's size (used to match an <see cref="EccSecretKey"/>) with its <c>JOSE</c> curve name
-/// (the JWK <c>crv</c> member value).
+/// Describes a supported elliptic curve: its <c>JWK</c> <c>crv</c> name, its size in bits, and the underlying
+/// <see cref="System.Security.Cryptography.ECCurve"/> used to generate and name keys. This is the single source of
+/// truth for elliptic curves, shared by key generation and <c>JWK</c> publication (ADR-0068).
 /// </summary>
-/// <seealso href="https://datatracker.ietf.org/doc/html/rfc7518#section-6.2.1.1">RFC 7518 Section 6.2.1.1 - Curve names</seealso>
 [PublicAPI]
-public sealed record EccCurveSpecification
+[ExcludeFromCodeCoverage]
+public sealed class EccCurveSpecification
 {
     /// <summary>
-    /// Gets the <c>JOSE</c> curve name published as the JWK <c>crv</c> member (for example, <c>P-256</c>).
+    /// Gets the curve's <c>JWK</c> <c>crv</c> name (for example <c>P-256</c>, <c>P-384</c>, or <c>secp256k1</c>).
     /// </summary>
     public required string CurveName { get; init; }
 
     /// <summary>
-    /// Gets the size of the curve, in bits (for example, <c>256</c>). This is matched against
-    /// <see cref="Secrets.Keys.SecretKey.KeySizeBits"/> to select the specification for a given key.
+    /// Gets the size of the curve, in bits (for example <c>256</c>).
     /// </summary>
     public required int CurveSizeBits { get; init; }
+
+    /// <summary>
+    /// Gets the underlying <see cref="System.Security.Cryptography.ECCurve"/>.
+    /// </summary>
+    public required ECCurve Curve { get; init; }
 }

@@ -324,14 +324,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointDiscoverableMetada
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointDiscoverableMetadata.IsDiscoverable.get -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointExceptionHandlerMetadata
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointExceptionHandlerMetadata.GetExceptionHandlerAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler!>
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.EccCurveSpecification
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.EccCurveSpecification.CurveName.get -> string!
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.EccCurveSpecification.CurveName.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.EccCurveSpecification.CurveSizeBits.get -> int
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.EccCurveSpecification.CurveSizeBits.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.IEccCurveSpecificationRegistry
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.IEccCurveSpecificationRegistry.Specifications.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.EccCurveSpecification!>!
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.IEccCurveSpecificationRegistry.TryGetByCurveSizeBits(int curveSizeBits, out NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.EccCurveSpecification? specification) -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.IJsonWebKeyConverter
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.IJsonWebKeyConverter.TryConvert(NCode.Identity.Secrets.Keys.SecretKey! secretKey, out NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey? jsonWebKey) -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.JsonWebKeyConverter<TSecretKey>

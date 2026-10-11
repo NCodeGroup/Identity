@@ -40,6 +40,12 @@ public sealed class CreateSecretRequest
     public required int KeySizeBits { get; init; }
 
     /// <summary>
+    /// Gets the requested elliptic-curve identifier (the <c>JWK</c> <c>crv</c> name, for example <c>P-256</c>), or
+    /// <c>null</c> to select a curve by <see cref="KeySizeBits"/>. Only applies to <c>ecc</c> secrets.
+    /// </summary>
+    public string? Curve { get; init; }
+
+    /// <summary>
     /// Gets the intended use for the secret, or <c>null</c> for any compatible use.
     /// </summary>
     public string? Use { get; init; }

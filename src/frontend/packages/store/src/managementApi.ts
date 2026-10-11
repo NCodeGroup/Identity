@@ -16,6 +16,7 @@ import {
   type EffectiveSettingsResource,
   type GrantResource,
   type GrantRevocationResult,
+  type ManagementCapabilitiesResource,
   type ManagementScope,
   type PublicKeyResource,
   type ResourceServerResource,
@@ -42,6 +43,9 @@ export const managementApi = createApi({
   baseQuery: dynamicBaseQuery,
   tagTypes: ['Tenant', 'Server', 'Client', 'ResourceServer', 'Grant', 'Secret', 'Settings'],
   endpoints: (build) => ({
+    getCapabilities: build.query<ManagementCapabilitiesResource, void>({
+      query: () => 'api/capabilities',
+    }),
     listTenants: build.query<CollectionResource<TenantResource>, void>({
       query: () => 'api/tenants',
       providesTags: (result) => [
@@ -626,6 +630,7 @@ export const managementApi = createApi({
 });
 
 export const {
+  useGetCapabilitiesQuery,
   useListTenantsQuery,
   useGetTenantQuery,
   useListServersQuery,

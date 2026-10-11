@@ -190,6 +190,7 @@ export type SecretsResource = {
 export type CreateSecretRequest = {
   readonly secretType: string;
   readonly keySizeBits: number;
+  readonly curve?: string | null;
   readonly use: string | null;
   readonly algorithm: string | null;
   readonly expiresWhen: string;
@@ -215,6 +216,32 @@ export type PublicKeyResource = {
   readonly secretType: string;
   readonly jwk: Readonly<Record<string, unknown>>;
   readonly pem: string;
+};
+
+/**
+ * Mirror of `SecretTypeCapabilityResource` — one secret type the server understands and the capabilities it
+ * exposes. Drives capability-based UI (for example which types expose an exportable public key) from server
+ * discovery rather than hard-coded assumptions.
+ */
+export type SecretTypeCapability = {
+  readonly secretType: string;
+  readonly isAsymmetric: boolean;
+  readonly supportsPublicKeyExport: boolean;
+};
+
+/** Mirror of `EccCurveCapabilityResource` — an elliptic curve the server supports for generating ECC secrets. */
+export type EccCurveCapability = {
+  readonly curveName: string;
+  readonly curveSizeBits: number;
+};
+
+/**
+ * Mirror of `ManagementCapabilitiesResource` — the server-wide management capabilities discovery document
+ * returned by `GET /api/capabilities`. Intentionally extensible with additional capability sections over time.
+ */
+export type ManagementCapabilitiesResource = {
+  readonly secretTypes: readonly SecretTypeCapability[];
+  readonly eccCurves?: readonly EccCurveCapability[];
 };
 
 /**

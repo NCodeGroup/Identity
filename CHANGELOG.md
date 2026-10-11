@@ -10,6 +10,27 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Public-key export, a secret-type capability catalog, and composable capabilities discovery
+  ([ADR-0067](docs/adr/0067-secret-type-capability-catalog-and-capabilities-discovery.md)).** The management console
+  can now export an asymmetric secret's **public key** (JWK + PEM, copy/download) from the secrets table; the action
+  is gated by server discovery, not a hard-coded list. Server-side, a single `ISecretKeyTypeCatalog` (core
+  `NCode.Identity.Secrets`) becomes the one source of truth for the secret key-type taxonomy, key-size validation,
+  key generation, and public-key-export capability — the generator, validator, and public-key converter all consult
+  it and their per-type `switch` statements are deleted. PEM export moves into the domain
+  (`AsymmetricSecretKey.ExportAsymmetricAlgorithm()` + base `ExportSubjectPublicKeyInfoPem()`). A new
+  `GET /api/capabilities` publishes a `[JsonExtensionData]` discovery document composed — like the OpenID discovery
+  document — from registered `ICommandHandler<DiscoverManagementCapabilitiesCommand>` providers, so new capabilities
+  are exposed by registering a provider rather than editing the endpoint.
+- **Unified, extensible elliptic-curve catalog with per-request curve selection
+  ([ADR-0068](docs/adr/0068-unified-extensible-elliptic-curve-catalog.md)).** A single core `IEccCurveCatalog`
+  replaces the generator's hard-coded `bits → curve` switch **and** the authentication-layer
+  `IEccCurveSpecificationRegistry`; curves are selected by identity (name/OID), not by size, so same-size curves
+  (for example `secp256k1` vs `P-256`) are disambiguated for both generation and JWK `crv` naming. `CreateSecretRequest`
+  gains an optional `curve`, generation flows through a growable `SecretKeyGenerationParameters`, the JWKS converter
+  names `crv` from the key's actual curve, the capabilities document exposes an `eccCurves` section, and the console
+  create-secret form offers a server-driven curve picker. Applications add a curve by registering one
+  `EccCurveSpecification`.
+
 - **Management console resource-server secrets/settings (`apps/mgmt`) — completes backlog `U2`.** Selecting a resource
   server (API) in a tenant scope now drills into a `ResourceServerDetailPage` with **Scopes**/**Secrets**/**Settings**
   tabs, reusing the shared owner-agnostic `SecretsManager`/`SettingsManager` containers so the resource server behaves

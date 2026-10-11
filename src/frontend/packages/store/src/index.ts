@@ -12,6 +12,7 @@ export { dynamicBaseQuery, type ApiRootState } from './baseQuery.js';
 export { apiErrorMessage, type ApiError } from './apiError.js';
 export {
   managementApi,
+  useGetCapabilitiesQuery,
   useGetTenantQuery,
   useListClientsQuery,
   useListResourceServersQuery,

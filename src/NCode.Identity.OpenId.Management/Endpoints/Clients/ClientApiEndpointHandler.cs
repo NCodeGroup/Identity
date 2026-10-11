@@ -788,6 +788,7 @@ internal class ClientApiEndpointHandler(
                     SecretId = secretId,
                     SecretType = request.SecretType,
                     KeySizeBits = request.KeySizeBits,
+                    Curve = request.Curve,
                     Use = request.Use,
                     Algorithm = request.Algorithm,
                     CreatedWhen = TimeProvider.GetUtcNow(),

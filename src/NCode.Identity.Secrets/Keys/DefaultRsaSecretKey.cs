@@ -59,4 +59,7 @@ internal class DefaultRsaSecretKey(
     /// <inheritdoc />
     public override RSA ExportRSA() =>
         DataProtector.ExportAsymmetricAlgorithm(ProtectedPkcs8PrivateKey.Span, RSA.Create);
+
+    /// <inheritdoc />
+    public override AsymmetricAlgorithm ExportAsymmetricAlgorithm() => ExportRSA();
 }

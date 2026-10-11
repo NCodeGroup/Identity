@@ -86,4 +86,7 @@ internal class DefaultEccSecretKey(
             ProtectedPkcs8PrivateKey.Span,
             ECDiffieHellman.Create
         );
+
+    /// <inheritdoc />
+    public override AsymmetricAlgorithm ExportAsymmetricAlgorithm() => ExportECDsa();
 }

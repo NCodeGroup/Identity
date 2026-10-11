@@ -331,3 +331,149 @@ describe('managementApi resource-server + scope mutations (tenant scope)', () =>
     expect(captured[0]?.method).toBe('DELETE');
   });
 });
+
+describe('managementApi grant queries + mutations (tenant scope)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('listGrants GETs the tenant grants with subject/client query params', async () => {
+    const captured = mockFetch(
+      new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.listGrants.initiate({
+        tenantId: 'acme',
+        subjectId: 'user-1',
+        clientId: 'web',
+      }),
+    );
+
+    expect(captured[0]?.url).toBe(
+      'https://api.test/api/tenants/acme/grants?subjectId=user-1&clientId=web',
+    );
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('revokeGrant DELETEs a single grant by id', async () => {
+    const captured = mockFetch(new Response(null, { status: 204 }));
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.revokeGrant.initiate({ tenantId: 'acme', grantId: 'g-1' }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/grants/g-1');
+    expect(captured[0]?.method).toBe('DELETE');
+  });
+
+  it('revokeGrants DELETEs with the filter query params for a bulk revoke', async () => {
+    const captured = mockFetch(
+      new Response(JSON.stringify({ revoked: 3 }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.revokeGrants.initiate({ tenantId: 'acme', clientId: 'web' }),
+    );
+
+    expect('data' in result && result.data?.revoked).toBe(3);
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/grants?clientId=web');
+    expect(captured[0]?.method).toBe('DELETE');
+  });
+});
+
+describe('managementApi client secret + settings endpoints (tenant scope)', () => {
+  const scope = { kind: 'tenant', tenantId: 'acme' } as const;
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('createClientSecret POSTs the request body under the client path', async () => {
+    const captured = mockFetch(
+      new Response(
+        JSON.stringify({
+          secretId: 's-1',
+          concurrencyToken: 'c1',
+          use: null,
+          algorithm: null,
+          createdWhen: '2026-01-01T00:00:00Z',
+          expiresWhen: '2027-01-01T00:00:00Z',
+          secretType: 'symmetric',
+          keySizeBits: 256,
+          secretMaterial: 'abc',
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.createClientSecret.initiate({
+        scope,
+        clientId: 'web',
+        body: {
+          secretType: 'symmetric',
+          keySizeBits: 256,
+          use: null,
+          algorithm: null,
+          expiresWhen: '2027-01-01T00:00:00Z',
+        },
+      }),
+    );
+
+    expect('data' in result && result.data?.secretMaterial).toBe('abc');
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/clients/web/secrets');
+    expect(captured[0]?.method).toBe('POST');
+  });
+
+  it('deleteClientSecret DELETEs the secret by id under the client path', async () => {
+    const captured = mockFetch(new Response(null, { status: 204 }));
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.deleteClientSecret.initiate({
+        scope,
+        clientId: 'web',
+        secretId: 's-1',
+      }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/clients/web/secrets/s-1');
+    expect(captured[0]?.method).toBe('DELETE');
+  });
+
+  it('updateClientSettings PATCHes a JSON Patch diff with If-Match', async () => {
+    const captured = mockFetch(new Response(null, { status: 204 }));
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.updateClientSettings.initiate({
+        scope,
+        clientId: 'web',
+        concurrencyToken: 'etag-9',
+        original: { keep: 1, drop: 2 },
+        desired: { keep: 1, added: 3 },
+      }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/clients/web/settings');
+    expect(captured[0]?.method).toBe('PATCH');
+    expect(captured[0]?.ifMatch).toBe('etag-9');
+    expect(JSON.parse(captured[0]?.body ?? '[]')).toEqual([
+      { op: 'remove', path: '/drop' },
+      { op: 'add', path: '/added', value: 3 },
+    ]);
+  });
+});

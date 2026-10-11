@@ -14,7 +14,7 @@ export type AppLayoutProps = {
   readonly scopeLabel?: string;
   readonly onExitTenant?: () => void;
   readonly children: ReactNode;
-}
+};
 
 /**
  * Stateless console chrome. The security boundary (global vs tenant) is rendered prominently in the

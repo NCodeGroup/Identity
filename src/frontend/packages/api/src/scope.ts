@@ -9,8 +9,7 @@
  */
 
 export type ManagementScope =
-  | { readonly kind: 'global' }
-  | { readonly kind: 'tenant'; readonly tenantId: string };
+  { readonly kind: 'global' } | { readonly kind: 'tenant'; readonly tenantId: string };
 
 export const GLOBAL_SCOPE: ManagementScope = { kind: 'global' };
 

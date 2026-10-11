@@ -183,9 +183,9 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   management API (the scope-grant / `GlobalAdmin`-projection check tracked under `U1`). Touch points:
   `src/NCode.Identity.OpenId.Playground/Program.cs`,
   `src/NCode.Identity.Server/DevelopmentEnvironment`, `apps/mgmt/public/config/bootstrap.json`.
-- **`U2` — Management write operations (create/update/delete + settings/secrets).** _Tenants + clients + resource
-  servers/scopes done._ The console creates/edits/deletes tenants (global scope), clients (tenant scope), and resource
-  servers with their nested scopes (tenant scope): RTK Query mutations with scoped tag invalidation, stateless MUI
+- **`U2` — Management write operations (create/update/delete + settings/secrets).** _Done._ The console
+  creates/edits/deletes tenants (global scope), clients (tenant scope), and resource servers with their nested
+  scopes (tenant scope): RTK Query mutations with scoped tag invalidation, stateless MUI
   tables with row actions, `TenantFormDialog`/`ClientFormDialog`/`ResourceServerFormDialog`/`ScopeFormDialog`, and a
   reusable `ConfirmDialog` (all Storybook-driven). Edits honor optimistic concurrency (`concurrencyToken` → `If-Match`
   over a `replace`-only JSON Patch document, built by the UI-free `@ncode/api` `replacePatch` helper); server errors
@@ -194,10 +194,15 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   scopes inline, so the `ResourceServersPage` drill-in reads scopes from the same list query (a scope mutation
   invalidates the parent `ResourceServer` tag and refreshes both views); scope updates are a whole-resource `PUT` (the
   value is immutable) and system-owned resource servers/scopes expose no delete control. The tenant workspace now
-  switches between **Clients** and **Resource servers** via tabs in the `apps/mgmt` shell. **Remaining:** extend the
-  same pattern to grants, secrets (honoring the one-time secret reveal), and the settings PATCH / effective-settings
-  surfaces. Touch points: `src/frontend/packages/api`, `packages/store` (`managementApi`), `packages/ui`,
-  `apps/mgmt/src` (`App`, `containers`).
+  switches between **Clients**, **Resource servers**, and **Grants** via tabs in the `apps/mgmt` shell. The remaining
+  surfaces also landed: a tenant **Grants** tab (list with subject/client filters, single + filtered bulk revoke) and a
+  client drill-in detail view with **Secrets** and **Settings** tabs. Client secrets honor the one-time reveal
+  (`RevealSecretDialog`, ADR-0050); client settings edit the opaque JSON object with a read-only effective-settings view
+  and save as a top-level add/remove/replace JSON Patch diff (the UI-free `@ncode/api` `diffPatch` helper) with the
+  owner `concurrencyToken` as `If-Match`. Touch points: `src/frontend/packages/api`, `packages/store` (`managementApi`),
+  `packages/ui`, `apps/mgmt/src` (`App`, `containers`). **Follow-ups:** extend the secrets/settings pattern to the other
+  owners (resource servers, tenants, servers), add a client-secret rotate convenience (backlog `S1`), and surface the
+  initial-access-token mint (RFC 7591) in the Grants tab.
 - **`U3` — Remaining surfaces (Auth/Consent/Login, Playground, conformance) on the shared platform.** Build the `T2`
   login/consent surface ([ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md)) and the eventual `F2`
   consent screen as apps on this platform rather than bespoke UIs, honoring the stable-locator contract

@@ -1,17 +1,25 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import {
+  diffPatch,
   replacePatch,
   scopeApiPrefix,
   type ClientResource,
   type CollectionResource,
+  type CreatedSecretResource,
   type CreateClientRequest,
   type CreateResourceServerRequest,
   type CreateScopeRequest,
+  type CreateSecretRequest,
   type CreateTenantRequest,
+  type EffectiveSettingsResource,
+  type GrantResource,
+  type GrantRevocationResult,
   type ManagementScope,
   type ResourceServerResource,
   type ScopeResource,
+  type SecretsResource,
   type ServerResource,
+  type SettingsResource,
   type TenantResource,
   type UpdateClientFields,
   type UpdateResourceServerFields,
@@ -29,7 +37,7 @@ import { dynamicBaseQuery } from './baseQuery.js';
 export const managementApi = createApi({
   reducerPath: 'managementApi',
   baseQuery: dynamicBaseQuery,
-  tagTypes: ['Tenant', 'Server', 'Client', 'ResourceServer'],
+  tagTypes: ['Tenant', 'Server', 'Client', 'ResourceServer', 'Grant', 'Secret', 'Settings'],
   endpoints: (build) => ({
     listTenants: build.query<CollectionResource<TenantResource>, void>({
       query: () => 'api/tenants',
@@ -232,6 +240,122 @@ export const managementApi = createApi({
         { type: 'ResourceServer', id: resourceServerId },
       ],
     }),
+    listGrants: build.query<
+      CollectionResource<GrantResource>,
+      { tenantId: string; subjectId?: string; clientId?: string }
+    >({
+      query: ({ tenantId, subjectId, clientId }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/grants`,
+        params: {
+          ...(subjectId ? { subjectId } : {}),
+          ...(clientId ? { clientId } : {}),
+        },
+      }),
+      providesTags: (result) => [
+        { type: 'Grant' as const, id: 'LIST' },
+        ...(result?.items ?? []).map((g) => ({ type: 'Grant' as const, id: g.grantId })),
+      ],
+    }),
+    revokeGrant: build.mutation<void, { tenantId: string; grantId: string }>({
+      query: ({ tenantId, grantId }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/grants/${encodeURIComponent(grantId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { grantId }) => [
+        { type: 'Grant', id: 'LIST' },
+        { type: 'Grant', id: grantId },
+      ],
+    }),
+    // Bulk revoke requires at least one filter server-side; the caller must supply a subject and/or client.
+    revokeGrants: build.mutation<
+      GrantRevocationResult,
+      { tenantId: string; subjectId?: string; clientId?: string }
+    >({
+      query: ({ tenantId, subjectId, clientId }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/grants`,
+        method: 'DELETE',
+        params: {
+          ...(subjectId ? { subjectId } : {}),
+          ...(clientId ? { clientId } : {}),
+        },
+      }),
+      invalidatesTags: [{ type: 'Grant', id: 'LIST' }],
+    }),
+    listClientSecrets: build.query<SecretsResource, { scope: ManagementScope; clientId: string }>({
+      query: ({ scope, clientId }) =>
+        `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/secrets`,
+      providesTags: (result, _error, { clientId }) => [
+        { type: 'Secret' as const, id: `client:${clientId}` },
+        ...(result?.secrets ?? []).map((s) => ({ type: 'Secret' as const, id: s.secretId })),
+      ],
+    }),
+    createClientSecret: build.mutation<
+      CreatedSecretResource,
+      { scope: ManagementScope; clientId: string; body: CreateSecretRequest }
+    >({
+      query: ({ scope, clientId, body }) => ({
+        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/secrets`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { clientId }) => [
+        { type: 'Secret', id: `client:${clientId}` },
+      ],
+    }),
+    deleteClientSecret: build.mutation<
+      void,
+      { scope: ManagementScope; clientId: string; secretId: string }
+    >({
+      query: ({ scope, clientId, secretId }) => ({
+        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(
+          clientId,
+        )}/secrets/${encodeURIComponent(secretId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { clientId, secretId }) => [
+        { type: 'Secret', id: `client:${clientId}` },
+        { type: 'Secret', id: secretId },
+      ],
+    }),
+    getClientSettings: build.query<SettingsResource, { scope: ManagementScope; clientId: string }>({
+      query: ({ scope, clientId }) =>
+        `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/settings`,
+      providesTags: (_result, _error, { clientId }) => [
+        { type: 'Settings', id: `client:${clientId}` },
+      ],
+    }),
+    getClientEffectiveSettings: build.query<
+      EffectiveSettingsResource,
+      { scope: ManagementScope; clientId: string }
+    >({
+      query: ({ scope, clientId }) =>
+        `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/effective-settings`,
+      providesTags: (_result, _error, { clientId }) => [
+        { type: 'Settings', id: `client-effective:${clientId}` },
+      ],
+    }),
+    // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
+    updateClientSettings: build.mutation<
+      void,
+      {
+        scope: ManagementScope;
+        clientId: string;
+        concurrencyToken: string;
+        original: Readonly<Record<string, unknown>>;
+        desired: Readonly<Record<string, unknown>>;
+      }
+    >({
+      query: ({ scope, clientId, concurrencyToken, original, desired }) => ({
+        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/settings`,
+        method: 'PATCH',
+        body: diffPatch(original, desired),
+        headers: { 'If-Match': concurrencyToken },
+      }),
+      invalidatesTags: (_result, _error, { clientId }) => [
+        { type: 'Settings', id: `client:${clientId}` },
+        { type: 'Settings', id: `client-effective:${clientId}` },
+      ],
+    }),
   }),
 });
 
@@ -253,4 +377,13 @@ export const {
   useCreateScopeMutation,
   useUpdateScopeMutation,
   useDeleteScopeMutation,
+  useListGrantsQuery,
+  useRevokeGrantMutation,
+  useRevokeGrantsMutation,
+  useListClientSecretsQuery,
+  useCreateClientSecretMutation,
+  useDeleteClientSecretMutation,
+  useGetClientSettingsQuery,
+  useGetClientEffectiveSettingsQuery,
+  useUpdateClientSettingsMutation,
 } = managementApi;

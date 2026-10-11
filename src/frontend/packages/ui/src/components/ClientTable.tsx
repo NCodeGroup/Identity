@@ -18,6 +18,7 @@ export type ClientRow = {
 
 export type ClientTableProps = {
   readonly clients: readonly ClientRow[];
+  readonly onSelect?: (clientId: string) => void;
   readonly onEdit?: (clientId: string) => void;
   readonly onDelete?: (clientId: string) => void;
 };
@@ -25,9 +26,11 @@ export type ClientTableProps = {
 /**
  * Stateless client table. A client has no display name, so it is identified by its id. Receives rows
  * and callbacks as props; holds no state and does no fetching, so it renders directly in Storybook
- * and under RTL. The edit/delete controls appear only when their callbacks are supplied.
+ * and under RTL. Selecting a row drills into that client's secrets and settings. The edit/delete
+ * controls appear only when their callbacks are supplied (and stop propagation so they never trigger
+ * selection).
  */
-export function ClientTable({ clients, onEdit, onDelete }: ClientTableProps) {
+export function ClientTable({ clients, onSelect, onEdit, onDelete }: ClientTableProps) {
   const showActions = Boolean(onEdit || onDelete);
   return (
     <Table size="small" aria-label="Clients">
@@ -40,7 +43,14 @@ export function ClientTable({ clients, onEdit, onDelete }: ClientTableProps) {
       </TableHead>
       <TableBody>
         {clients.map((client) => (
-          <TableRow key={client.clientId} data-testid={`client-row-${client.clientId}`}>
+          <TableRow
+            key={client.clientId}
+            hover={Boolean(onSelect)}
+            {...(onSelect
+              ? { onClick: () => onSelect(client.clientId), sx: { cursor: 'pointer' } }
+              : {})}
+            data-testid={`client-row-${client.clientId}`}
+          >
             <TableCell>{client.clientId}</TableCell>
             <TableCell>
               <Chip
@@ -58,7 +68,10 @@ export function ClientTable({ clients, onEdit, onDelete }: ClientTableProps) {
                         size="small"
                         aria-label={`Edit ${client.clientId}`}
                         data-testid={`client-edit-${client.clientId}`}
-                        onClick={() => onEdit(client.clientId)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onEdit(client.clientId);
+                        }}
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
@@ -70,7 +83,10 @@ export function ClientTable({ clients, onEdit, onDelete }: ClientTableProps) {
                         size="small"
                         aria-label={`Delete ${client.clientId}`}
                         data-testid={`client-delete-${client.clientId}`}
-                        onClick={() => onDelete(client.clientId)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onDelete(client.clientId);
+                        }}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>

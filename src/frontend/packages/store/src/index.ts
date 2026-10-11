@@ -14,6 +14,7 @@ export {
   managementApi,
   useGetTenantQuery,
   useListClientsQuery,
+  useListResourceServersQuery,
   useListServersQuery,
   useListTenantsQuery,
   useCreateTenantMutation,
@@ -22,4 +23,10 @@ export {
   useCreateClientMutation,
   useUpdateClientMutation,
   useDeleteClientMutation,
+  useCreateResourceServerMutation,
+  useUpdateResourceServerMutation,
+  useDeleteResourceServerMutation,
+  useCreateScopeMutation,
+  useUpdateScopeMutation,
+  useDeleteScopeMutation,
 } from './managementApi.js';

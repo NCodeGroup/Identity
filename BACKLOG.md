@@ -223,7 +223,10 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   github/copilot-cli#4438), so it was **removed**. **Trade-off accepted:** the skill is now both explicitly invocable
   **and** model-auto-invocable (it no longer enforces explicit-only invocation); its `description` is the only guard on
   when the model reaches for it. The prompt's `agent: "agent"` frontmatter has no skill equivalent and was dropped.
-  **Decision deferred:** whether to delete the prompt (Agent-Host-only) or keep both (dual VS-Code-chat + Agent-Host
-  support). Keep both until the skill is runtime-validated in a fresh Copilot CLI session, then decide. If kept, edits
-  must be mirrored across both files to avoid drift. Re-add `disable-model-invocation: true` once github/copilot-cli#4438
-  is fixed and explicit-only semantics are wanted again.
+  **Runtime-validated (2026-10-10):** the skill was confirmed discoverable and loadable in a live Agent Host / Copilot
+  CLI session (it surfaced in the session's available-skills list), and its five relative links and LF line endings were
+  verified; the body is identical to the prompt apart from the intended `+1 ../` link-depth adjustment. **Decision still
+  deferred:** whether to delete the prompt (Agent-Host-only) or keep both (dual VS-Code-chat + Agent-Host support). Keep
+  both for now — the prompt still serves VS Code chat via its `agent:` frontmatter, and `disable-model-invocation: true`
+  is intended to return once github/copilot-cli#4438 is fixed (restoring explicit-only semantics). If kept, edits must be
+  mirrored across both files to avoid drift.

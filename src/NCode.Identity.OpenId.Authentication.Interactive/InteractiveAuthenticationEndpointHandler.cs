@@ -16,41 +16,30 @@
 
 #endregion
 
-using System.Globalization;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using NCode.Buffers;
-using NCode.Identity.Jose;
-using NCode.Identity.OpenId.Accounts;
-using NCode.Identity.OpenId.Accounts.DataContracts;
-using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Settings;
-using NCode.Persistence.Stores;
 
-namespace NCode.Identity.Server.InteractiveAuthentication;
+namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// Handles the interactive login/consent surface's endpoints: it serves the single-page bundle for the login and
-/// consent pages, verifies credentials against the local-account store (the same path the resource-owner password
-/// grant uses), issues the cookie session on success, and clears it on logout. The login and consent forms submit as
-/// native form POSTs carrying the antiforgery token, so the server-driven cookie challenge/redirect flow is preserved.
+/// consent pages, verifies credentials through the registered <see cref="IInteractiveCredentialVerifier"/>, issues the
+/// cookie session on success, and clears it on logout. The login and consent forms submit as native form POSTs
+/// carrying the antiforgery token, so the server-driven cookie challenge/redirect flow is preserved.
 /// </summary>
 internal sealed class InteractiveAuthenticationEndpointHandler(
-    InteractiveAuthenticationOptions options,
-    IStoreManagerFactory storeManagerFactory,
+    IInteractiveCredentialVerifier credentialVerifier,
     IAntiforgery antiforgery,
-    TimeProvider timeProvider
+    InteractiveAuthenticationOptions options
 )
 {
-    private InteractiveAuthenticationOptions Options { get; } = options;
-    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IInteractiveCredentialVerifier CredentialVerifier { get; } = credentialVerifier;
     private IAntiforgery Antiforgery { get; } = antiforgery;
-    private TimeProvider TimeProvider { get; } = timeProvider;
+    private InteractiveAuthenticationOptions Options { get; } = options;
 
     /// <summary>
     /// Serves the login page (the single-page bundle), establishing the antiforgery token the form echoes back.
@@ -65,7 +54,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         await ServeBundleAsync(httpContext);
 
     /// <summary>
-    /// Verifies the posted credentials against the local-account store and, on success, signs in the cookie session
+    /// Verifies the posted credentials through the registered verifier and, on success, signs in the cookie session
     /// and redirects to the validated local return URL; on failure it redirects back to the login page with an error.
     /// </summary>
     public async ValueTask<IResult> PostLoginAsync(
@@ -82,14 +71,18 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             return TypedResults.Redirect(BuildLoginRedirect(safeReturnUrl, "invalid_request"));
         }
 
-        var account = await VerifyCredentialsAsync(username, password, httpContext.RequestAborted);
-        if (account is null || !account.IsEnabled)
+        var openIdContext = httpContext.GetOpenIdContext();
+        var principal = await CredentialVerifier.VerifyCredentialAsync(
+            openIdContext,
+            username,
+            password,
+            httpContext.RequestAborted
+        );
+        if (principal is null)
         {
             return TypedResults.Redirect(BuildLoginRedirect(safeReturnUrl, "invalid_credentials"));
         }
 
-        var openIdContext = httpContext.GetOpenIdContext();
-        var principal = BuildCookiePrincipal(openIdContext, account);
         await httpContext.SignInAsync(
             InteractiveAuthenticationDefaults.CookieSchemeName,
             principal
@@ -167,64 +160,6 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 Secure = httpContext.Request.IsHttps,
             }
         );
-    }
-
-    private async ValueTask<PersistedLocalAccount?> VerifyCredentialsAsync(
-        string username,
-        string password,
-        CancellationToken cancellationToken
-    )
-    {
-        // Encode the password into a pinned, zeroed-on-return buffer so the credential never lingers on the GC heap.
-        var byteCount = SecureEncoding.UTF8.GetByteCount(password);
-        using var owner = SecureMemoryPool<byte>.Shared.Rent(byteCount);
-        var written = SecureEncoding.UTF8.GetBytes(password, owner.Memory.Span);
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ILocalAccountStore>();
-        var account = await store.VerifyCredentialAsync(
-            username,
-            owner.Memory[..written],
-            cancellationToken
-        );
-
-        // Persist a transparent rehash-on-verify, when one occurred, within this unit of work.
-        if (account is not null)
-        {
-            await storeManager.SaveChangesAsync(cancellationToken);
-        }
-
-        return account;
-    }
-
-    private ClaimsPrincipal BuildCookiePrincipal(
-        OpenIdContext openIdContext,
-        PersistedLocalAccount account
-    )
-    {
-        var settings = openIdContext.Tenant.SettingsProvider.Collection;
-        var subjectClaimType = settings.GetValue(OpenIdSettingKeys.SubjectClaimTypes).First();
-        var issuerClaimType = settings.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim);
-
-        var authTime = TimeProvider.GetUtcNow().ToUnixTimeSeconds();
-        var claims = new List<Claim>(account.Claims.Count + 4)
-        {
-            new(subjectClaimType, account.LocalAccountId),
-            new(issuerClaimType, AccountConstants.SelfIssuer),
-            new(JoseClaimNames.Payload.Tid, openIdContext.Tenant.TenantId),
-            new(
-                JoseClaimNames.Payload.AuthTime,
-                authTime.ToString(CultureInfo.InvariantCulture),
-                ClaimValueTypes.Integer64
-            ),
-        };
-        claims.AddRange(account.Claims.Select(claim => new Claim(claim.Type, claim.Value)));
-
-        var identity = new ClaimsIdentity(
-            claims,
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
-        return new ClaimsPrincipal(identity);
     }
 
     private static ContentHttpResult BundleMissingResult() =>

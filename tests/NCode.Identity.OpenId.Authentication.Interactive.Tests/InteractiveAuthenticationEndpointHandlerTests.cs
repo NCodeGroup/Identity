@@ -16,10 +16,10 @@
 
 #endregion
 
-using NCode.Identity.Server.InteractiveAuthentication;
+using NCode.Identity.OpenId.Authentication.Interactive;
 using Xunit;
 
-namespace NCode.Identity.Server.Tests;
+namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;
 
 public class InteractiveAuthenticationEndpointHandlerTests
 {

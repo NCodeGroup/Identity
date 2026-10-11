@@ -22,25 +22,28 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using NCode.Registration;
 
-namespace NCode.Identity.Server.InteractiveAuthentication;
+namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// Provides the opt-in registration for the interactive login/consent surface: a cookie authentication scheme that
 /// satisfies the OpenID server's existing challenge/authenticate seam, plus the single-page-friendly antiforgery
-/// configuration the login and consent pages rely on. The surface reuses the local-account credential path, so the
-/// host must also opt into local accounts (for example, <c>AddLocalAccountEntityFramework()</c> /
-/// <c>AddLocalAccountAuthentication()</c>). It is intentionally not part of the default registrations.
+/// configuration the login and consent pages rely on. The surface is backend-agnostic: it defers credential
+/// verification to a registered <see cref="IInteractiveCredentialVerifier"/>, so the host must also register a verifier
+/// implementation (for example, the local-account capability's <c>AddLocalAccountInteractiveAuthentication()</c>). It
+/// is intentionally not part of the default registrations.
 /// </summary>
 [PublicAPI]
-public static class InteractiveAuthenticationRegistration
+public static class DefaultRegistration
 {
     private const string ConfigurationSectionName = "InteractiveAuthentication";
     private const string BundleRootPathConfigurationKey = "BundleRootPath";
     private const string AntiforgeryHeaderName = "X-XSRF-TOKEN";
     private const string CookieName = "NCode.Identity.Interactive";
 
-    extension(IServiceCollection serviceCollection)
+    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> for <see cref="OpenIdAuthenticationLibrary"/>.</param>
+    extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
         /// <summary>
         /// Registers the interactive login/consent surface: a cookie scheme named
@@ -51,7 +54,8 @@ public static class InteractiveAuthenticationRegistration
         /// when not rooted) and may be overridden through <paramref name="configureOptions"/>. Apply it to the
         /// pipeline with <c>UseInteractiveAuthentication</c> and map it with <c>MapInteractiveAuthentication</c>. The
         /// cookie scheme is registered as a named scheme and does not itself set the host's default authentication
-        /// scheme.
+        /// scheme. Credential verification is deferred to a registered <see cref="IInteractiveCredentialVerifier"/>,
+        /// which the host must supply separately.
         /// </summary>
         /// <remarks>
         /// The host MUST order <c>UseAntiforgery</c> AFTER <c>UseAuthentication</c>/<c>UseAuthorization</c>. The login
@@ -65,13 +69,15 @@ public static class InteractiveAuthenticationRegistration
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> whose content root anchors a relative
         /// bundle path.</param>
         /// <param name="configureOptions">An optional callback to further configure the surface.</param>
-        /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddInteractiveAuthentication(
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddInteractiveAuthentication(
             IConfiguration configuration,
             IHostEnvironment hostEnvironment,
             Action<InteractiveAuthenticationOptions>? configureOptions = null
         )
         {
+            var serviceCollection = builder.ServiceCollection;
+
             var section = configuration.GetSection(ConfigurationSectionName);
 
             var options = new InteractiveAuthenticationOptions();
@@ -108,7 +114,7 @@ public static class InteractiveAuthenticationRegistration
                     }
                 );
 
-            return serviceCollection;
+            return builder;
         }
     }
 }

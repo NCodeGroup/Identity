@@ -11,8 +11,8 @@ NCode.Identity.JsonWebTokens.DecodedJwt.Header.get -> System.Text.Json.JsonEleme
 NCode.Identity.JsonWebTokens.DecodedJwt.Payload.get -> System.Text.Json.JsonElement
 NCode.Identity.JsonWebTokens.DecodedJwt.SecretKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
 NCode.Identity.JsonWebTokens.DefaultRegistration
-NCode.Identity.JsonWebTokens.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.JsonWebTokens.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddJsonWebTokensLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.JsonWebTokens.JsonWebTokensLibrary>!
+NCode.Identity.JsonWebTokens.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!)
+NCode.Identity.JsonWebTokens.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!).AddJsonWebTokensLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.JsonWebTokens.JsonWebTokensLibrary>!
 NCode.Identity.JsonWebTokens.EncodeJwtParameters
 NCode.Identity.JsonWebTokens.EncodeJwtParameters.AddKeyIdHeader.get -> bool
 NCode.Identity.JsonWebTokens.EncodeJwtParameters.AddKeyIdHeader.init -> void
@@ -57,10 +57,6 @@ NCode.Identity.JsonWebTokens.IJsonWebTokenService
 NCode.Identity.JsonWebTokens.IJsonWebTokenService.EncodeJwt(NCode.Identity.JsonWebTokens.EncodeJwtParameters! parameters) -> string!
 NCode.Identity.JsonWebTokens.IJsonWebTokenService.ValidateJwtAsync(string! token, NCode.Identity.JsonWebTokens.ValidateJwtParameters! parameters, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.JsonWebTokens.ValidateJwtResult!>
 NCode.Identity.JsonWebTokens.JsonClaimValueTypes
-NCode.Identity.JsonWebTokens.JsonWebTokensLibrary
-NCode.Identity.JsonWebTokens.JsonWebTokensLibrary.ConfigureMethod.get -> string!
-NCode.Identity.JsonWebTokens.JsonWebTokensLibrary.DisplayName.get -> string!
-NCode.Identity.JsonWebTokens.JsonWebTokensLibrary.JsonWebTokensLibrary() -> void
 NCode.Identity.JsonWebTokens.Options.JsonWebTokenServiceOptions
 NCode.Identity.JsonWebTokens.Options.JsonWebTokenServiceOptions.DefaultTokenLifetime.get -> System.TimeSpan
 NCode.Identity.JsonWebTokens.Options.JsonWebTokenServiceOptions.EnsureTokenLifetime.get -> bool

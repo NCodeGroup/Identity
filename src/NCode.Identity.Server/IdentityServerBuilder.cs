@@ -83,8 +83,8 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
         SecretsLibraryBuilder = serviceCollection.AddSecretsLibrary();
         SecretPersistenceLibraryBuilder = SecretsLibraryBuilder.AddPersistenceLibrary();
 
-        JoseLibraryBuilder = serviceCollection.AddJoseLibrary();
-        JsonWebTokensLibraryBuilder = serviceCollection.AddJsonWebTokensLibrary();
+        JoseLibraryBuilder = SecretsLibraryBuilder.AddJoseLibrary();
+        JsonWebTokensLibraryBuilder = JoseLibraryBuilder.AddJsonWebTokensLibrary();
 
         IdentityLibraryBuilder = serviceCollection.AddIdentityLibrary();
         OpenIdCoreLibraryBuilder = IdentityLibraryBuilder.AddOpenIdCoreLibrary();

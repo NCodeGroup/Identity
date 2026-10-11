@@ -36,10 +36,10 @@ public static class DefaultRegistration
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
-        /// Registers the generic Entity Framework <see cref="ILocalAccountStore"/>, the capability marker that enables
-        /// the local-account surfaces, the model contributor that adds the account entities to the shared
-        /// <c>OpenIdDbContext</c>, and the default password hasher. Call after registering the Entity Framework
-        /// persistence services.
+        /// Registers the generic Entity Framework <see cref="ILocalAccountStore"/> (registering a store is what enables
+        /// the local-account surfaces; there is no separate capability marker, per ADR-0061), the model contributor
+        /// that adds the account entities to the shared <c>OpenIdDbContext</c>, and the default password hasher. Call
+        /// after registering the Entity Framework persistence services.
         /// </summary>
         /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
         public IServiceCollection AddLocalAccountEntityFramework()

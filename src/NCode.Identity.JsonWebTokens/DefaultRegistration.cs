@@ -18,7 +18,6 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Jose;
 using NCode.Registration;
@@ -26,25 +25,24 @@ using NCode.Registration;
 namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceCollection"/> to register the required services needed for using
+/// Provides extension methods for <see cref="IServiceBuilder{T}"/> to register the required services needed for using
 /// Json Web Token (JWT) validation.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    extension(IServiceCollection serviceCollection)
+    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services for <see cref="JoseLibrary"/>.</param>
+    extension(IServiceBuilder<JoseLibrary> builder)
     {
         /// <summary>
-        /// Registers the required Json Web Token (JWT) services to the specified <see cref="IServiceCollection"/> instance.
-        /// Make sure to also register the required services from the <c>NCode.Identity.Jose</c> package.
+        /// Registers the required Json Web Token (JWT) services, layered on the <see cref="JoseLibrary"/>.
         /// </summary>
-        /// <returns>The <see cref="IServiceBuilder"/> so that additional calls can be chained.</returns>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>
         public IServiceBuilder<JsonWebTokensLibrary> AddJsonWebTokensLibrary()
         {
-            serviceCollection.VerifyIsRegistered<JoseLibrary>();
+            var serviceCollection = builder.ServiceCollection;
 
-            var newBuilder = serviceCollection.NewBuilder<JsonWebTokensLibrary>();
+            var newBuilder = builder.NewBuilder<JsonWebTokensLibrary>();
 
             serviceCollection.TryAddSingleton<IJsonWebTokenService, DefaultJsonWebTokenService>();
 

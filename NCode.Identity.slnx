@@ -16,6 +16,7 @@
     <Project Path="src/NCode.Identity.Events/NCode.Identity.Events.csproj" />
     <Project Path="src/NCode.Identity.Jose.Abstractions/NCode.Identity.Jose.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.Jose/NCode.Identity.Jose.csproj" />
+    <Project Path="src/NCode.Identity.JsonWebTokens.Abstractions/NCode.Identity.JsonWebTokens.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.JsonWebTokens/NCode.Identity.JsonWebTokens.csproj" />
     <Project Path="src/NCode.Identity.OpenId.Abstractions/NCode.Identity.OpenId.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.OpenId.Accounts.Abstractions/NCode.Identity.OpenId.Accounts.Abstractions.csproj" />

@@ -7,10 +7,6 @@ NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Registration.IServiceB
 NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdCoreLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!
 NCode.Identity.OpenId.Logic.GetSubjectIdDelegate
 NCode.Identity.OpenId.Logic.GetSubjectIdentityDelegate
-NCode.Identity.OpenId.OpenIdCoreLibrary
-NCode.Identity.OpenId.OpenIdCoreLibrary.ConfigureMethod.get -> string!
-NCode.Identity.OpenId.OpenIdCoreLibrary.DisplayName.get -> string!
-NCode.Identity.OpenId.OpenIdCoreLibrary.OpenIdCoreLibrary() -> void
 NCode.Identity.OpenId.OpenIdOptions
 NCode.Identity.OpenId.OpenIdOptions.GetSubjectId.get -> NCode.Identity.OpenId.Logic.GetSubjectIdDelegate!
 NCode.Identity.OpenId.OpenIdOptions.GetSubjectId.set -> void

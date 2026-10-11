@@ -230,12 +230,28 @@ rationale.
   extends the marker of the library it augments (`AddLocalAccountManagement()` on `IServiceBuilder<OpenIdManagementLibrary>`,
   `AddInteractiveAuthentication()` on `IServiceBuilder<OpenIdAuthenticationLibrary>`) — **never** a naked
   `IServiceCollection`, so it is compile-time-impossible to add a capability without its framework. A library marker a
-  cross-package bolt-on must name lives in that library's `.Abstractions`. A **larger package organized into subfolders**
+  cross-package bolt-on must name lives in that library's `.Abstractions`. **A second litmus governs which `.Abstractions`
+  packages own a marker: only a registerable library _layer_ does.** Pure contract/DTO abstractions, **dependency-inverted
+  seams** (the local-account store per [ADR-0060](../../docs/adr/0060-local-account-one-store-seam-and-dependency-inverted-authentication.md),
+  the persistence seams — pluggable, so no single registration mints a marker and the gap surfaces at resolution per
+  [ADR-0061](../../docs/adr/0061-local-account-management-is-an-opt-in-capability.md)), cross-library helpers, and
+  foundational cross-cutting infrastructure own **none** — and that is correct, not an omission. A bolt-on over a seam
+  gates on the **framework library** it extends and treats the seam implementation as a resolved dependency, not a
+  marker. A **larger package organized into subfolders**
   registers each folder from its own `DefaultRegistration.cs` and may introduce **additional registration markers — most
   often `internal`, though not required to be — to scope a nested folder**, created with `builder.NewBuilder<TChildMarker>()`
-  (e.g. `Endpoints` → `OpenIdAuthenticationEndpoints`). Only a chain **root** with no prerequisite, a
-  **dependency-inverted implementation** (a store / persistence provider registered behind a seam), or a **generic utility
-  helper** takes a naked `IServiceCollection`. Register a stateless capability as a singleton; register
+  (e.g. `Endpoints` → `OpenIdAuthenticationEndpoints`). **The litmus for a naked `IServiceCollection` receiver is
+  "would this registration do the right thing registered alone?":** a registration that **replaces, hooks, or consumes
+  another marker-bearing library's services** is a bolt-on and **must** gate on that library's `IServiceBuilder<TMarker>`
+  (e.g. the dev-host `AddDeveloperKeys` / `AddDeveloperInteractiveSeed`, which replace the server's tenant factory and
+  hook its command handlers, extend `IServiceBuilder<IdentityServer>` — never the bare collection). Only a chain **root**
+  with no prerequisite, a **dependency-inverted implementation** (a store / persistence provider registered behind a
+  seam), a **generic utility helper**, or **foundational cross-cutting infrastructure that mints no library marker**
+  (`AddEventServices`, `AddPropertyBag`) takes a naked `IServiceCollection`. A **cross-library helper** invoked from more
+  than one library's builder (so it cannot name a single marker) takes the **non-generic `IServiceBuilder`** receiver —
+  stronger than a naked collection (the caller must hold _some_ library builder) but library-agnostic (e.g.
+  `AddMessageFactory<TMessage>`, `AddEndpointProvider<T>`, `AddEndpointGroup<T>`); never pin such a helper to one marker
+  or drop it to a naked collection. Register a stateless capability as a singleton; register
   a long-running loop as an `AddHostedService<T>` over a `BackgroundService`. Wire-up stays out of the type that does
   the work, so the work stays constructor-injectable and testable.
 - 👁 **The package that owns a consumer registers that consumer's ambient dependencies**, so composing the server

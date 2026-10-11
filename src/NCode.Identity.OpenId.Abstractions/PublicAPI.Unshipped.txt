@@ -541,6 +541,10 @@ NCode.Identity.OpenId.OpenIdConstants.SubjectTypes
 NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers
 NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes
 NCode.Identity.OpenId.OpenIdConstants.TokenTypes
+NCode.Identity.OpenId.OpenIdCoreLibrary
+NCode.Identity.OpenId.OpenIdCoreLibrary.ConfigureMethod.get -> string!
+NCode.Identity.OpenId.OpenIdCoreLibrary.DisplayName.get -> string!
+NCode.Identity.OpenId.OpenIdCoreLibrary.OpenIdCoreLibrary() -> void
 NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision
 NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.FederatedIdentityLinkDecision() -> void
 NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.JoinKey.get -> string?

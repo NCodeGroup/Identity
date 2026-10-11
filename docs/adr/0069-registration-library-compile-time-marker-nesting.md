@@ -52,10 +52,29 @@ not a runtime surprise.
 Each library owns a `readonly struct` marker. The marker lives in the library's **`.Abstractions`**
 package so any consumer — including a bolt-on that may reference only abstractions
 ([ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md)) — can name
-`IServiceBuilder<ThatLibrary>` as a receiver without taking a forbidden implementation reference. A
-marker still residing in an implementation package (`OpenIdCoreLibrary`, `OpenIdManagementLibrary`,
-`JsonWebTokensLibrary`) is to move into its abstractions package; `OpenIdManagementLibrary` already
-carries a `// TODO: move into abstractions`.
+`IServiceBuilder<ThatLibrary>` as a receiver without taking a forbidden implementation reference. Every library
+marker now lives in its abstractions package (`OpenIdManagementLibrary` in
+`NCode.Identity.OpenId.Management.Abstractions`, `OpenIdCoreLibrary` in `NCode.Identity.OpenId.Abstractions`,
+`JsonWebTokensLibrary` in `NCode.Identity.JsonWebTokens.Abstractions`).
+
+**Which abstractions packages own a marker — the litmus is "is this a registerable library _layer_?"** A library layer
+(an always-on `AddXLibrary()` whose presence a dependent must be able to require) owns a marker in its `.Abstractions`.
+A package that is **not** a layer owns **none**, and that is correct, not an omission:
+
+- **Pure contract / DTO abstractions** (`…OpenId.Accounts.Management.Abstractions` wire contracts, `…Settings.Abstractions`,
+  `…AspNetCore.Abstractions` result helpers) register nothing and have no runtime presence to prove.
+- **Dependency-inverted seams** — the local-account store (`…OpenId.Accounts.Abstractions`,
+  [ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md)) and the persistence seams
+  (`…Persistence.Abstractions`) — are **pluggable** (a host may bind any implementation, including a custom one), so
+  there is no single registration that always runs to mint a marker, and the capability reports _unsupported_ /
+  surfaces the gap when the seam is resolved ([ADR-0061](0061-local-account-management-is-an-opt-in-capability.md))
+  rather than through a marker. Minting one would force every custom implementation to also register it.
+- **Cross-library helpers** (`…OpenId.Messages.Abstractions`'s `AddMessageFactory`) and **foundational cross-cutting
+  infrastructure** (the event bus) mint no library marker (see the naked-collection section below).
+
+So a bolt-on that augments a seam gates on the **framework library** it extends (e.g. `AddLocalAccountManagement` on
+`IServiceBuilder<OpenIdManagementLibrary>`), and treats the _seam implementation_ (the store) as a resolved dependency,
+not a marker-gated prerequisite.
 
 ### Two gating mechanisms, compile-time preferred
 
@@ -92,6 +111,12 @@ carries a `// TODO: move into abstractions`.
 
 ### What stays on a naked `IServiceCollection` — by design, not oversight
 
+**The litmus test is "would this registration do the right thing if it were the only thing registered?"** If a
+registration **replaces, hooks, or consumes another library's services** — so that calling it _without_ that library
+leaves a broken or meaningless configuration — it is a **bolt-on** and must gate on that library's
+`IServiceBuilder<TMarker>`, never a naked collection. Only registrations that genuinely stand alone take a bare
+collection, and they fall into exactly these kinds:
+
 The marker receiver expresses a **framework prerequisite**. Three kinds of registration have none and
 therefore correctly take a naked `IServiceCollection`:
 
@@ -109,6 +134,40 @@ therefore correctly take a naked `IServiceCollection`:
 - **Generic utility helpers.** A within-library convenience that registers one service
   (`AddAuthorizationHandler<T>`, `AddDefaultPasswordHasher`, `AddEventHandler<T>`, `AddEndpointGroupRouting`)
   is a helper, not a capability entry point, and stays a bare-collection extension.
+
+### Cross-library helpers receive the non-generic `IServiceBuilder`
+
+A few registration helpers are invoked from **more than one** library's builder, so they cannot name a single
+`IServiceBuilder<TMarker>` receiver, yet they still must run **inside a library-builder scope** (they need the builder,
+not merely the collection). These take the **non-generic `IServiceBuilder`** receiver — strictly stronger than a naked
+`IServiceCollection` (the caller must hold _some_ library builder) but library-agnostic. The real-world cases are
+`AddMessageFactory<TMessage>` (`NCode.Identity.OpenId.Messages.Abstractions`, called from both the Core-library builder
+and endpoint-group builders) and `AddEndpointProvider<T>` / `AddEndpointGroup<T>`
+(`NCode.Registration.AspNetCore`, called from every library that maps endpoints). This is the correct shape for a
+cross-cutting helper; do **not** pin it to one marker (that would break the other callers) and do **not** drop to a
+naked collection (that would lose the in-a-builder guarantee).
+
+### Cross-cutting infrastructure registered inline
+
+Foundational **cross-cutting infrastructure** that every layer consumes and that is **not itself a marker-bearing
+library** — property bags, data protection, and the event bus (`AddPropertyBag`, `AddDataProtection`,
+`AddEventServices` and its same-package opt-ins `AddEventHandler<T>` / `AddBackgroundEventDelivery`) — is registered
+**inline on the bare collection** before the marker-gated library chain. Its standalone root (`AddEventServices`) works
+alone, and its opt-ins layer on **that same package's own root**, whose dependency the compiler already sees in-package
+— so there is no _cross-package_ prerequisite for a marker to prove. This is the one deliberate exception to the litmus,
+reserved for foundational infrastructure that mints no library marker; it is **not** a licence for a bolt-on to skip a
+marker that _does_ exist.
+
+### Dev-host convenience registrations gate on the server marker
+
+The development-only helpers in `NCode.Identity.Server` that **replace** a composed server service or **hook** a server
+command handler — `AddDeveloperKeys` / `AddEphemeralDeveloperKeys` / `AddDeveloperSigningKey` (which `Replace` the
+`IOpenIdTenantFactory` and add a `SeedTenantCommand` handler) and `AddDeveloperInteractiveSeed` (which adds
+`SeedTenantCommand` + `GetAccessTokenSubjectClaimsCommand` handlers) — **fail the litmus**: they are meaningless unless
+`AddIdentityServer()` composed the server first. They therefore extend `IServiceBuilder<IdentityServer>` and are chained
+off the composition root (`AddIdentityServer().AddDeveloperKeys(…)`), not called on the bare collection. The genuinely
+standalone dev helper `AddDeveloperCors` (a plain ASP.NET Core CORS policy that augments no NCode library — it is even
+registered _before_ `AddIdentityServer()`) stays a bare-collection extension.
 
 ### Composition root
 
@@ -147,11 +206,12 @@ calling capability methods on the bare `IServiceCollection`.
   bolt-ons), which also documents the dependency order at the call site.
 - One registration vocabulary (`IServiceBuilder`) spans packages and folders; the registration class
   is always `DefaultRegistration`.
-- **Remaining polish (tracked as backlog `R1`):** the foundational standalone libraries `AddJoseLibrary`
-  / `AddJsonWebTokensLibrary` still express their single prerequisite through a runtime
-  `VerifyIsRegistered<SecretsLibrary>` / `VerifyIsRegistered<JoseLibrary>` rather than a compile-time
-  receiver; upgrading them (and relocating the `OpenIdCoreLibrary` / `JsonWebTokensLibrary` markers into
-  abstractions) is a consistency follow-up, not a correctness gap.
+- The foundational standalone libraries now gate at **compile time** like the rest of the chain:
+  `AddJoseLibrary` extends `IServiceBuilder<SecretsLibrary>` and `AddJsonWebTokensLibrary` extends
+  `IServiceBuilder<JoseLibrary>`, and every library marker lives in that library's `.Abstractions` package
+  (`JsonWebTokensLibrary` → `NCode.Identity.JsonWebTokens.Abstractions`, `OpenIdCoreLibrary` →
+  `NCode.Identity.OpenId.Abstractions`). No library layer relies on a runtime `VerifyIsRegistered<…>` for its single
+  prerequisite anymore.
 
 ## References
 

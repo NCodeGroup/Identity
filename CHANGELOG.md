@@ -286,6 +286,23 @@ change to the public API is a **major** version bump.
   `AddIdentityServer().OpenIdAuthenticationLibraryBuilder.AddLocalAccountAuthentication().AddInteractiveAuthentication(...)` —
   rather than a flat `serviceCollection.AddX()` list. Dependency-inverted implementations (local-account / EF stores)
   and generic utility helpers intentionally stay bare-collection extensions.
+- **Foundational JOSE/JWT libraries now gate at compile time, completing the marker-nesting model
+  ([ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md)).** `AddJoseLibrary()` now extends
+  `IServiceBuilder<SecretsLibrary>` and `AddJsonWebTokensLibrary()` extends `IServiceBuilder<JoseLibrary>` (each
+  returns its own library builder) instead of taking a naked `IServiceCollection` and asserting the prerequisite at
+  runtime via `VerifyIsRegistered<…>` — so these libraries, like the rest of the chain, are compile-time un-addable
+  without their prerequisite. A new **`NCode.Identity.JsonWebTokens.Abstractions`** package now holds the
+  `JsonWebTokensLibrary` marker, and the `OpenIdCoreLibrary` marker moves from `NCode.Identity.OpenId.Core` into
+  `NCode.Identity.OpenId.Abstractions`, so every library marker lives in its abstractions package. Hosts chain
+  `AddSecretsLibrary().AddJoseLibrary().AddJsonWebTokensLibrary()` (the composition root already does this). The
+  `NCode.Identity.OpenId.Persistence.EntityFramework.Core` registration class was renamed `CoreRegistration` →
+  `DefaultRegistration` for naming consistency. Cross-library registration helpers invoked from multiple library
+  builders (`AddMessageFactory<TMessage>`, `AddEndpointProvider<T>`, `AddEndpointGroup<T>`) retain the non-generic
+  `IServiceBuilder` receiver by design. The development-only `AddDeveloperKeys`, `AddEphemeralDeveloperKeys`,
+  `AddDeveloperSigningKey`, and `AddDeveloperInteractiveSeed` helpers now extend `IServiceBuilder<IdentityServer>`
+  (chained off `AddIdentityServer()`) instead of a naked `IServiceCollection`, because they replace the server's tenant
+  factory and hook its command handlers and are meaningless without the composed server; `AddDeveloperCors` (a
+  standalone CORS policy) stays a bare-collection extension.
 - **The interactive login/consent backend moved out of the composition root into its own leaf package with a pluggable
   verifier ([ADR-0070](docs/adr/0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md)).** The
   cookie scheme, `/account/*` endpoints, antiforgery wiring, and static-file server move from

@@ -44,9 +44,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddSingleton<TimeProvider>(new TestTimeProvider(_utcNow));
-        serviceCollection.AddSecretsLibrary();
-        serviceCollection.AddJoseLibrary();
-        serviceCollection.AddJsonWebTokensLibrary();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddJsonWebTokensLibrary();
         _serviceProvider = serviceCollection.BuildServiceProvider();
 
         _service = _serviceProvider.GetRequiredService<IJsonWebTokenService>();

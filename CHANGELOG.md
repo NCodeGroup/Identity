@@ -37,8 +37,11 @@ change to the public API is a **major** version bump.
   sign-in screen to start the flow; when no client id is discovered it runs open (local dev). The SPA's public client
   id and login scopes are discovered at runtime via the bootstrap document (tier-agnostic). Backlog `U1`.
 - **One-key full-stack dev launch (`API + UI`).** A VS Code compound launch starts the Playground API and the
-  Management UI dev server together (F5); the UI dev server runs through [`build/dev-ui.ps1`](build/dev-ui.ps1), which
-  puts the repo-pinned Node (NVS) on PATH.
+  **entire** frontend stack together (F5). The UI side runs [`build/dev-ui.ps1`](build/dev-ui.ps1), which puts the
+  repo-pinned Node (NVS) on PATH and drives `pnpm dev` (`turbo run dev`) across every Vite app, so a new surface joins
+  the launch automatically just by declaring its `dev` script. Each app encodes its serving model: backend-served
+  bundles (served by the host from static `dist`, e.g. the `apps/auth` login surface) build-watch into their `dist`,
+  while standalone apps (e.g. `apps/mgmt`) run an HMR dev server.
 - **Opt-in developer CORS for the OpenID server (`AddDeveloperCors` / `UseDeveloperCors`).** A reusable
   development-oriented registration (in `NCode.Identity.Server`, beside `AddDeveloperKeys`) lets a local SPA dev server
   read discovery and call the management API cross-origin. Allowed origins come from the `Cors:AllowedOrigins`
@@ -137,6 +140,22 @@ change to the public API is a **major** version bump.
   was persisted as the authorization request alone, but the token endpoint resumes it as an authorization _grant_
   (request **plus** authenticated subject); the shape mismatch deserialized the request to `null` (a server error on
   exchange) and discarded the subject. The grant is now persisted in the shape the token endpoint consumes.
+- **Repeated interactive logins no longer fail antiforgery validation.** The Playground ordered `UseAntiforgery` before
+  `UseAuthentication`/`UseAuthorization`. Because the interactive surface registers a single cookie scheme — which
+  ASP.NET Core promotes to the default authenticate scheme — the login page authenticates the user once a session
+  cookie exists and mints a claims-bound antiforgery token, but the middleware validated the POST before authentication
+  ran, i.e. against an anonymous user. Every login after the first failed with _"The provided antiforgery token was
+  meant for a different claims-based user than the current user"_. The middleware is now ordered after authentication;
+  an integration test (`InteractiveLoginAntiforgeryTests`) locks the sequence in.
+- **Management console sign-in no longer dead-ends on the OAuth callback under React StrictMode.** `AuthGate` completed
+  the authorization-code callback in an effect guarded by a cancellation flag, but StrictMode double-invokes effects in
+  development: the first run consumed the single-use code and one-shot PKCE transaction, so the second run found no
+  transaction and showed _"No in-flight authorization transaction was found."_ Completion is now guarded by a run-once
+  ref so it executes exactly once.
+- **Interactive login bundle is now produced by the full-stack dev launch.** The `apps/auth` login surface is served by
+  the host from a prebuilt `dist`, which nothing in the F5 path built, so `/account/login` returned a 503 _"interactive
+  login bundle is not available"_. The dev launch now build-watches every frontend app (see the full-stack dev launch
+  entry above), so the login bundle is produced automatically.
 
 ### Changed
 

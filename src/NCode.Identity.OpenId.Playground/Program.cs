@@ -140,9 +140,17 @@ app.UseRouting();
 // AddDeveloperCors resolved origins (Development default, or explicit 'Cors:AllowedOrigins').
 app.UseDeveloperCors();
 
-app.UseAntiforgery();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// UseAntiforgery MUST run after UseAuthentication/UseAuthorization so the antiforgery middleware
+// validates the token against the SAME HttpContext.User that was authenticated for the request. The
+// interactive login tokens are claims-bound: the login page (GET) mints the token after authentication
+// (so against the signed-in user when an Identity.Application cookie already exists), and placing this
+// before UseAuthentication would validate the POST against an anonymous user — failing with
+// "The provided antiforgery token was meant for a different claims-based user than the current user"
+// on every login after the first.
+app.UseAntiforgery();
 
 app.MapEndpointGroups();
 app.MapInteractiveAuthentication();

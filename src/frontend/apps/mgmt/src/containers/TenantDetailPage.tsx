@@ -8,6 +8,7 @@ import {
   useDeleteTenantSecretMutation,
   useGetTenantEffectiveSettingsQuery,
   useGetTenantSettingsQuery,
+  useLazyGetTenantSecretPublicKeyQuery,
   useListTenantSecretsQuery,
   useUpdateTenantSettingsMutation,
 } from '@ncode/store';
@@ -60,6 +61,7 @@ function TenantSecretsTab({ tenantId }: TenantDetailPageProps) {
   const { data, isLoading, error } = useListTenantSecretsQuery({ tenantId });
   const [createSecret, { isLoading: isCreating }] = useCreateTenantSecretMutation();
   const [deleteSecret, { isLoading: isDeleting }] = useDeleteTenantSecretMutation();
+  const [getPublicKey] = useLazyGetTenantSecretPublicKeyQuery();
 
   return (
     <SecretsManager
@@ -71,6 +73,7 @@ function TenantSecretsTab({ tenantId }: TenantDetailPageProps) {
       isDeleting={isDeleting}
       onCreate={(body) => createSecret({ tenantId, body }).unwrap()}
       onDelete={(secretId) => deleteSecret({ tenantId, secretId }).unwrap()}
+      onExportPublicKey={(secretId) => getPublicKey({ tenantId, secretId }).unwrap()}
     />
   );
 }

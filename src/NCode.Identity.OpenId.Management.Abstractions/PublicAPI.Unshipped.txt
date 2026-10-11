@@ -19,6 +19,24 @@ NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCount.get -> long
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCount.init -> void
 NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent
+NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource
+NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveSizeBits.get -> int
+NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveSizeBits.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.EccCurveCapabilityResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.ManagementCapabilitiesResource
+NCode.Identity.OpenId.Management.Contracts.Capabilities.ManagementCapabilitiesResource.Capabilities.get -> System.Collections.Generic.Dictionary<string!, object!>!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.ManagementCapabilitiesResource.Capabilities.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.ManagementCapabilitiesResource.ManagementCapabilitiesResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource
+NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.IsAsymmetric.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.IsAsymmetric.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SecretType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SecretType.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SecretTypeCapabilityResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SupportsPublicKeyExport.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SupportsPublicKeyExport.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.ResourceServerEffectiveSettingsResource() -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.ResourceServerId.get -> string!
@@ -47,6 +65,8 @@ NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSetting
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.Settings.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Curve.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Curve.init -> void
 override NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent.ResourceType.get -> string!
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

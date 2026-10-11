@@ -77,6 +77,9 @@ describe('ClientDetailPage', () => {
 
   it('creates a secret and reveals its one-time material', async () => {
     installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
       if (url.endsWith('/clients/web/secrets') && method === 'POST') {
         return jsonResponse(createdSecret, 201);
       }
@@ -96,8 +99,55 @@ describe('ClientDetailPage', () => {
     expect(screen.getByTestId('reveal-secret-id')).toHaveTextContent('s-new');
   });
 
+  it('exports an asymmetric secret public key as JWK and PEM', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({
+          secretTypes: [{ secretType: 'rsa', isAsymmetric: true, supportsPublicKeyExport: true }],
+        });
+      }
+      if (url.endsWith('/clients/web/secrets/s-rsa/public-key')) {
+        return jsonResponse({
+          secretId: 's-rsa',
+          secretType: 'rsa',
+          jwk: { kty: 'RSA', n: 'bW9k', e: 'AQAB' },
+          pem: '-----BEGIN PUBLIC KEY-----\nMIIB\n-----END PUBLIC KEY-----',
+        });
+      }
+      if (url.endsWith('/clients/web/secrets')) {
+        return jsonResponse({
+          concurrencyToken: 'c1',
+          secrets: [
+            {
+              secretId: 's-rsa',
+              concurrencyToken: 'sc1',
+              use: null,
+              algorithm: null,
+              createdWhen: '2026-01-01T00:00:00Z',
+              expiresWhen: '2099-01-01T00:00:00Z',
+              secretType: 'rsa',
+              keySizeBits: 2048,
+            },
+          ],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('secret-export-s-rsa'));
+
+    expect(await screen.findByTestId('export-public-key-pem-value')).toHaveTextContent(
+      'BEGIN PUBLIC KEY',
+    );
+    expect(screen.getByTestId('export-public-key-jwk-value')).toHaveTextContent('"kty": "RSA"');
+  });
+
   it('saves edited settings as a JSON Patch diff on the settings tab', async () => {
     const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
       if (url.endsWith('/clients/web/secrets')) {
         return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
       }

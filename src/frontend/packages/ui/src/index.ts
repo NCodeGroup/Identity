@@ -38,12 +38,7 @@ export {
 } from './components/ScopeFormDialog.js';
 export { ConfirmDialog, type ConfirmDialogProps } from './components/ConfirmDialog.js';
 export { SignInScreen, type SignInScreenProps } from './components/SignInScreen.js';
-export {
-  SecretTable,
-  isAsymmetricSecretType,
-  type SecretRow,
-  type SecretTableProps,
-} from './components/SecretTable.js';
+export { SecretTable, type SecretRow, type SecretTableProps } from './components/SecretTable.js';
 export {
   SecretFormDialog,
   emptySecretFormValues,

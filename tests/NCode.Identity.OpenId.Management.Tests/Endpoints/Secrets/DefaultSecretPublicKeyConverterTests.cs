@@ -16,10 +16,11 @@
 
 #endregion
 
-using System.Security.Cryptography;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -28,18 +29,34 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
 public sealed class DefaultSecretPublicKeyConverterTests : IDisposable
 {
+    private const string SamplePem =
+        "-----BEGIN PUBLIC KEY-----\nMIIBSAMPLE\n-----END PUBLIC KEY-----";
+
     private MockRepository MockRepository { get; }
     private Mock<ISecretSerializer> MockSecretSerializer { get; }
+    private Mock<ISecretKeyTypeCatalog> MockCatalog { get; }
 
     public DefaultSecretPublicKeyConverterTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockSecretSerializer = MockRepository.Create<ISecretSerializer>();
+        MockCatalog = MockRepository.Create<ISecretKeyTypeCatalog>();
     }
 
     public void Dispose()
     {
         MockRepository.Verify();
+    }
+
+    private void SetupCatalog(string keyType, bool supportsPublicKeyExport)
+    {
+        var mockDescriptor = MockRepository.Create<ISecretKeyTypeDescriptor>();
+        mockDescriptor
+            .Setup(x => x.SupportsPublicKeyExport)
+            .Returns(supportsPublicKeyExport)
+            .Verifiable();
+        ISecretKeyTypeDescriptor? descriptor = mockDescriptor.Object;
+        MockCatalog.Setup(x => x.TryGet(keyType, out descriptor)).Returns(true).Verifiable();
     }
 
     private static PersistedSecret CreateSecret(string secretType) =>
@@ -66,7 +83,11 @@ public sealed class DefaultSecretPublicKeyConverterTests : IDisposable
             .Returns(mockKey.Object)
             .Verifiable();
 
-        var converter = new DefaultSecretPublicKeyConverter(MockSecretSerializer.Object, []);
+        var converter = new DefaultSecretPublicKeyConverter(
+            MockSecretSerializer.Object,
+            MockCatalog.Object,
+            []
+        );
 
         var result = converter.Convert(secret);
 
@@ -79,7 +100,9 @@ public sealed class DefaultSecretPublicKeyConverterTests : IDisposable
         var secret = CreateSecret(SecretTypes.Rsa);
 
         var mockKey = MockRepository.Create<RsaSecretKey>();
-        mockKey.Setup(x => x.ExportRSA()).Returns(RSA.Create(2048)).Verifiable();
+        mockKey.Setup(x => x.KeyType).Returns(SecretKeyTypes.Rsa).Verifiable();
+        mockKey.Setup(x => x.ExportSubjectPublicKeyInfoPem()).Returns(SamplePem).Verifiable();
+        SetupCatalog(SecretKeyTypes.Rsa, supportsPublicKeyExport: true);
 
         JsonWebKey? jsonWebKey = new RsaJsonWebKey
         {
@@ -100,6 +123,7 @@ public sealed class DefaultSecretPublicKeyConverterTests : IDisposable
 
         var converter = new DefaultSecretPublicKeyConverter(
             MockSecretSerializer.Object,
+            MockCatalog.Object,
             [mockJwkConverter.Object]
         );
 
@@ -108,7 +132,7 @@ public sealed class DefaultSecretPublicKeyConverterTests : IDisposable
         Assert.NotNull(result);
         Assert.Equal("secret-1", result.SecretId);
         Assert.Equal(SecretTypes.Rsa, result.SecretType);
-        Assert.StartsWith("-----BEGIN PUBLIC KEY-----", result.Pem);
+        Assert.Equal(SamplePem, result.Pem);
         Assert.Equal("RSA", result.Jwk.GetProperty("kty").GetString());
     }
 
@@ -117,12 +141,18 @@ public sealed class DefaultSecretPublicKeyConverterTests : IDisposable
     {
         var secret = CreateSecret(SecretTypes.Rsa);
         var mockKey = MockRepository.Create<RsaSecretKey>();
+        mockKey.Setup(x => x.KeyType).Returns(SecretKeyTypes.Rsa).Verifiable();
+        SetupCatalog(SecretKeyTypes.Rsa, supportsPublicKeyExport: true);
         MockSecretSerializer
             .Setup(x => x.DeserializeSecret(secret))
             .Returns(mockKey.Object)
             .Verifiable();
 
-        var converter = new DefaultSecretPublicKeyConverter(MockSecretSerializer.Object, []);
+        var converter = new DefaultSecretPublicKeyConverter(
+            MockSecretSerializer.Object,
+            MockCatalog.Object,
+            []
+        );
 
         Assert.Throws<InvalidOperationException>(() => converter.Convert(secret));
     }

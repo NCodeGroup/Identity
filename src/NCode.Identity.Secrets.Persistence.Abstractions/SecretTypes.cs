@@ -19,12 +19,15 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence;
 
 /// <summary>
-/// Contains constants for the possible values of the <see cref="PersistedSecret.SecretType"/> property.
+/// Contains constants for the possible values of the <see cref="PersistedSecret.SecretType"/> property. The
+/// generatable values are shared with the runtime key-type taxonomy (<see cref="SecretKeyTypes"/>); this type adds
+/// the <see cref="Certificate"/> discriminator, which exists only at the persistence layer.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
@@ -39,15 +42,15 @@ public static class SecretTypes
     /// <summary>
     /// Indicates that a <see cref="PersistedSecret"/> represents a <c>symmetric</c> secret key.
     /// </summary>
-    public const string Symmetric = "symmetric";
+    public const string Symmetric = SecretKeyTypes.Symmetric;
 
     /// <summary>
     /// Indicates that a <see cref="PersistedSecret"/> represents an <c>RSA</c> secret key without a certificate.
     /// </summary>
-    public const string Rsa = "rsa";
+    public const string Rsa = SecretKeyTypes.Rsa;
 
     /// <summary>
     /// Indicates that a <see cref="PersistedSecret"/> represents an <c>Elliptic-Curve</c> secret key without a certificate.
     /// </summary>
-    public const string Ecc = "ecc";
+    public const string Ecc = SecretKeyTypes.Ecc;
 }

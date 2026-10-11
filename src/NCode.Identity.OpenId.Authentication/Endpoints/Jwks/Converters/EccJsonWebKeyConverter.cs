@@ -19,6 +19,7 @@
 using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 
@@ -26,30 +27,27 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 /// Converts an <see cref="EccSecretKey"/> into an <see cref="EccJsonWebKey"/> (<c>kty=EC</c>),
 /// publishing only the public members (<c>crv</c>, <c>x</c>, and <c>y</c>).
 /// </summary>
-internal class EccJsonWebKeyConverter(IEccCurveSpecificationRegistry curveSpecificationRegistry)
+internal class EccJsonWebKeyConverter(IEccCurveCatalog eccCurveCatalog)
     : JsonWebKeyConverter<EccSecretKey>
 {
-    private IEccCurveSpecificationRegistry CurveSpecificationRegistry { get; } =
-        curveSpecificationRegistry;
+    private IEccCurveCatalog EccCurveCatalog { get; } = eccCurveCatalog;
 
     /// <inheritdoc />
     protected override JsonWebKey? Convert(EccSecretKey secretKey)
     {
-        // The set of supported curves (and their JWK 'crv' names) lives in the curve specification registry,
-        // which is the single, discoverable source of truth. A key whose curve is not registered is omitted
-        // rather than published with a guessed/invalid 'crv'.
+        using var ecdsa = secretKey.ExportECDsa();
+        var parameters = ecdsa.ExportParameters(includePrivateParameters: false);
+
+        // The supported curves (and their JWK 'crv' names) live in the shared curve catalog (ADR-0068). Resolve by
+        // the key's actual curve so two same-size curves are named correctly, falling back to the curve size. A
+        // key whose curve is not in the catalog is omitted rather than published with a guessed/invalid 'crv'.
         if (
-            !CurveSpecificationRegistry.TryGetByCurveSizeBits(
-                secretKey.KeySizeBits,
-                out var curveSpecification
-            )
+            !EccCurveCatalog.TryGetByCurve(parameters.Curve, out var curveSpecification)
+            && !EccCurveCatalog.TryGetByCurveSizeBits(secretKey.KeySizeBits, out curveSpecification)
         )
         {
             return null;
         }
-
-        using var ecdsa = secretKey.ExportECDsa();
-        var parameters = ecdsa.ExportParameters(includePrivateParameters: false);
 
         var metadata = secretKey.Metadata;
         var x =

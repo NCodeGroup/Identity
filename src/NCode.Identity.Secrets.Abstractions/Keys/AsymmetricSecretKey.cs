@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using JetBrains.Annotations;
 
@@ -42,4 +43,19 @@ public abstract class AsymmetricSecretKey : SecretKey
     /// Doing so will create certificates with ephemeral keys and not persist keys to disk.
     /// </remarks>
     public abstract X509Certificate2? ExportCertificate();
+
+    /// <summary>
+    /// Factory method to create an <see cref="AsymmetricAlgorithm"/> instance from the current key material.
+    /// </summary>
+    public abstract AsymmetricAlgorithm ExportAsymmetricAlgorithm();
+
+    /// <summary>
+    /// Exports the <b>public</b> half of this asymmetric key as a <c>SubjectPublicKeyInfo</c> <c>PEM</c>
+    /// (<c>-----BEGIN PUBLIC KEY-----</c>). No private key material is included.
+    /// </summary>
+    public virtual string ExportSubjectPublicKeyInfoPem()
+    {
+        using var algorithm = ExportAsymmetricAlgorithm();
+        return algorithm.ExportSubjectPublicKeyInfoPem();
+    }
 }

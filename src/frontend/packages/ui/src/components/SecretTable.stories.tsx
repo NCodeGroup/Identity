@@ -48,7 +48,16 @@ export const WithActions: Story = {
         keySizeBits: 256,
         expiresWhen: '2099-01-01T12:00:00Z',
       },
+      {
+        ...base,
+        secretId: 's-rsa',
+        secretType: 'rsa',
+        keySizeBits: 2048,
+        expiresWhen: '2099-01-01T12:00:00Z',
+      },
     ],
     onDelete: () => undefined,
+    onExportPublicKey: () => undefined,
+    exportableSecretTypes: ['rsa', 'ecc'],
   },
 };

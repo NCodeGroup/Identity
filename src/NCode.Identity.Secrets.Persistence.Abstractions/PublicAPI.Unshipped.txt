@@ -41,6 +41,8 @@ NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Algorithm.get -> 
 NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Algorithm.init -> void
 NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.CreatedWhen.init -> void
+NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Curve.get -> string?
+NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Curve.init -> void
 NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.ExpiresWhen.init -> void
 NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.GenerateSecretRequest() -> void

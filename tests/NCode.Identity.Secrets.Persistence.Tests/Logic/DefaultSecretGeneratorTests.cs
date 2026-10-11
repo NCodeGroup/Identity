@@ -41,7 +41,13 @@ public class DefaultSecretGeneratorTests
             new TestDataProtectorFactory<SecretKey>(factoryProtector)
         );
 
-        _generator = new DefaultSecretGenerator(protectorFactory);
+        var catalog = new DefaultSecretKeyTypeCatalog([
+            new SymmetricSecretKeyTypeDescriptor(),
+            new RsaSecretKeyTypeDescriptor(),
+            new EccSecretKeyTypeDescriptor(new DefaultEccCurveCatalog([])),
+        ]);
+
+        _generator = new DefaultSecretGenerator(protectorFactory, catalog);
         _serializer = new DefaultSecretSerializer(secretKeyFactory, protectorFactory);
     }
 
@@ -170,6 +176,41 @@ public class DefaultSecretGeneratorTests
         var request = CreateRequest(SecretTypes.Certificate, 2048);
 
         Assert.Throws<InvalidOperationException>(() => _generator.GenerateSecret(request));
+    }
+
+    #endregion
+
+    #region Public Key Export Tests
+
+    [Fact]
+    public void GenerateSecret_WhenRsa_ExportsSubjectPublicKeyInfoPem()
+    {
+        var generated = _generator.GenerateSecret(CreateRequest(SecretTypes.Rsa, 2048));
+
+        var secretKey = _serializer.DeserializeSecret(generated.Secret);
+
+        var asymmetric = Assert.IsAssignableFrom<AsymmetricSecretKey>(secretKey);
+        Assert.StartsWith("-----BEGIN PUBLIC KEY-----", asymmetric.ExportSubjectPublicKeyInfoPem());
+    }
+
+    [Fact]
+    public void GenerateSecret_WhenEccWithCurveName_UsesThatCurveSize()
+    {
+        var request = new GenerateSecretRequest
+        {
+            SecretId = "gen-ecc",
+            SecretType = SecretTypes.Ecc,
+            KeySizeBits = 0,
+            Curve = "P-384",
+            Use = "sig",
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+        var persisted = _generator.GenerateSecret(request).Secret;
+
+        Assert.Equal(384, persisted.KeySizeBits);
     }
 
     #endregion

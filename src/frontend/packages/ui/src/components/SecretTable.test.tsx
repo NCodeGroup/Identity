@@ -44,4 +44,27 @@ describe('SecretTable', () => {
     fireEvent.click(screen.getByTestId('secret-delete-s-active'));
     expect(onDelete).toHaveBeenCalledWith('s-active');
   });
+
+  it('shows the export action only for exportable secret types', () => {
+    const onExportPublicKey = vi.fn();
+    render(
+      <SecretTable
+        secrets={secrets}
+        onExportPublicKey={onExportPublicKey}
+        exportableSecretTypes={['rsa', 'ecc']}
+      />,
+    );
+
+    // 's-active' is symmetric (not exportable); 's-expired' is rsa (exportable).
+    expect(screen.queryByTestId('secret-export-s-active')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('secret-export-s-expired'));
+    expect(onExportPublicKey).toHaveBeenCalledWith('s-expired');
+  });
+
+  it('hides the export action when no exportable types are known', () => {
+    render(
+      <SecretTable secrets={secrets} onExportPublicKey={vi.fn()} exportableSecretTypes={[]} />,
+    );
+    expect(screen.queryByTestId('secret-export-s-expired')).not.toBeInTheDocument();
+  });
 });

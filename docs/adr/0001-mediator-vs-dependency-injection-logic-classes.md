@@ -22,11 +22,11 @@ extend, forcing an invasive refactor.
 An audit of the existing code shows the real system is **not a binary** choice but **three distinct
 shapes**, distinguished by their DI registration and their calling convention:
 
-| Shape | Registration | How it is called | Representative usages |
-|-------|--------------|------------------|-----------------------|
-| **1. Service (capability)** | `TryAddSingleton<IFoo, DefaultFoo>` | Caller invokes it and consumes the return value | `ITokenService`/`DefaultTokenService`, `IClaimsService`, `ICryptoService`, `IClientAuthenticationService`, `IJsonWebTokenService`, `ISecretKeyCollectionProvider` |
-| **2. Strategy collection (plugins)** | `TryAddEnumerable<IFoo, …>` | Caller iterates or selects among the implementations itself | `ITokenGrantHandler` (selected by `DefaultSelectTokenGrantHandlerHandler`), `IEndpointProvider`, `IJsonWebKeyConverter`, `EccCurveSpecification` |
-| **3. Mediator (pipeline seam)** | `ICommandHandler<T>` / `ICommandResponseHandler<T, R>` | Caller `SendAsync`es a message and does **not** know who handles it | `Get…ClaimsCommand` (void + mutate, fan-out, priority), `Validate…Command` (fan-out), `SelectTokenGrantHandlerCommand → ITokenGrantHandler` (single, returns a value), `DiscoverMetadataCommand`, `LoadRequestValuesCommand → IRequestValues` |
+| Shape                                | Registration                                           | How it is called                                                    | Representative usages                                                                                                                                                                                                                         |
+| ------------------------------------ | ------------------------------------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Service (capability)**          | `TryAddSingleton<IFoo, DefaultFoo>`                    | Caller invokes it and consumes the return value                     | `ITokenService`/`DefaultTokenService`, `IClaimsService`, `ICryptoService`, `IClientAuthenticationService`, `IJsonWebTokenService`, `ISecretKeyCollectionProvider`                                                                             |
+| **2. Strategy collection (plugins)** | `TryAddEnumerable<IFoo, …>`                            | Caller iterates or selects among the implementations itself         | `ITokenGrantHandler` (selected by `DefaultSelectTokenGrantHandlerHandler`), `IEndpointProvider`, `IJsonWebKeyConverter`, `ISecretKeyTypeDescriptor`, `EccCurveSpecification`                                                                  |
+| **3. Mediator (pipeline seam)**      | `ICommandHandler<T>` / `ICommandResponseHandler<T, R>` | Caller `SendAsync`es a message and does **not** know who handles it | `Get…ClaimsCommand` (void + mutate, fan-out, priority), `Validate…Command` (fan-out), `SelectTokenGrantHandlerCommand → ITokenGrantHandler` (single, returns a value), `DiscoverMetadataCommand`, `LoadRequestValuesCommand → IRequestValues` |
 
 Two observations from the code make the boundary precise:
 
@@ -73,11 +73,11 @@ for in discoverability and traceability.
    and you do **not** need ordering / pre-post / exception semantics → **Strategy collection**
    (`TryAddEnumerable` of a domain interface). This is the lightweight middle ground.
 3. **It is a pipeline seam** where any of the following is true → **Mediator command/handler**:
-   - the sender must not know the handlers;
-   - consumers should be able to add, reorder, or override participants;
-   - it needs priority ordering, pre/post processors, or unified exception handling;
-   - it is a "many contributors mutate shared state" collection point (claims, discovery metadata,
-     validation).
+    - the sender must not know the handlers;
+    - consumers should be able to add, reorder, or override participants;
+    - it needs priority ordering, pre/post processors, or unified exception handling;
+    - it is a "many contributors mutate shared state" collection point (claims, discovery metadata,
+      validation).
 
 ### Layering rule (already followed by the code)
 
@@ -135,6 +135,7 @@ Verified against the source at the time of writing:
   — `ICommandResponsePostProcessor` cross-cutting behavior.
 - `NCode.Identity.OpenId.Core/Exceptions/DefaultOpenIdExceptionHandler.cs` — exception handling routed
   through the mediator.
-- `NCode.Identity.OpenId.Authentication/Endpoints/Jwks/Converters/IJsonWebKeyConverter.cs` and
-  `EccCurveSpecification` / `IEccCurveSpecificationRegistry` — strategy-collection extension points
-  (shape 2) chosen deliberately over the mediator.
+- `NCode.Identity.OpenId.Authentication/Endpoints/Jwks/Converters/IJsonWebKeyConverter.cs`, and the core
+  `ISecretKeyTypeDescriptor` ([ADR-0067](0067-secret-type-capability-catalog-and-capabilities-discovery.md)) and
+  `EccCurveSpecification` / `IEccCurveCatalog` ([ADR-0068](0068-unified-extensible-elliptic-curve-catalog.md)) —
+  strategy-collection extension points (shape 2) chosen deliberately over the mediator.

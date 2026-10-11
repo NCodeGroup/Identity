@@ -17,7 +17,6 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Management.Contracts.ResourceServers;
@@ -38,9 +37,4 @@ public sealed class UpdateResourceServerRequest
     /// Gets or sets a value indicating whether the resource server is disabled.
     /// </summary>
     public required bool IsDisabled { get; set; }
-
-    /// <summary>
-    /// Gets or sets the JSON settings for the resource server.
-    /// </summary>
-    public required JsonElement Settings { get; set; }
 }

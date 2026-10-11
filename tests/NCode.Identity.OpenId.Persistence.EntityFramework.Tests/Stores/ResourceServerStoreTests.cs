@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -78,8 +79,19 @@ public sealed class ResourceServerStoreTests : IDisposable
             Name = "Example API",
             IsSystem = isSystem,
             IsDisabled = false,
-            Settings = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            Settings = new PersistedResourceServerSettings
+            {
+                TenantId = TenantId,
+                ResourceServerId = ResourceServerId,
+                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
             Scopes = scopes,
+            Secrets = new PersistedResourceServerSecrets
+            {
+                TenantId = TenantId,
+                ResourceServerId = ResourceServerId,
+                Value = [],
+            },
         };
 
     private async Task SeedTenantAsync()
@@ -244,6 +256,222 @@ public sealed class ResourceServerStoreTests : IDisposable
 
         var reloaded = await _store.GetOrDefaultAsync(ResourceServerId, CancellationToken.None);
         Assert.Null(reloaded);
+    }
+
+    #endregion
+
+    #region Settings Sub-Resource Tests
+
+    [Fact]
+    public async Task UpdateSettingsAsync_UpdatesValueAndBumpsToken()
+    {
+        await SeedTenantAsync();
+        await _store.AddAsync(CreateResourceServer(), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var loaded = await _store.GetOrDefaultAsync(ResourceServerId, CancellationToken.None);
+        Assert.NotNull(loaded);
+        var settings = loaded.Settings;
+        var originalToken = settings.ConcurrencyToken;
+        settings.Value = JsonSerializer.SerializeToElement(
+            new Dictionary<string, object> { ["token_lifetime"] = 3600 }
+        );
+
+        await _store.UpdateSettingsAsync(settings, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.NotEqual(originalToken, settings.ConcurrencyToken);
+        var reloaded = await _store.GetOrDefaultAsync(ResourceServerId, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.True(reloaded.Settings.Value.TryGetProperty("token_lifetime", out var lifetime));
+        Assert.Equal(3600, lifetime.GetInt32());
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenConcurrencyMismatch_Throws()
+    {
+        await SeedTenantAsync();
+        await _store.AddAsync(CreateResourceServer(), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var loaded = await _store.GetOrDefaultAsync(ResourceServerId, CancellationToken.None);
+        Assert.NotNull(loaded);
+        var settings = loaded.Settings;
+        settings.ConcurrencyToken = "stale";
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(async () =>
+            await _store.UpdateSettingsAsync(settings, CancellationToken.None)
+        );
+    }
+
+    #endregion
+
+    #region Secret Sub-Resource Tests
+
+    private static PersistedSecret CreateSecret(string secretId) =>
+        new()
+        {
+            SecretId = secretId,
+            ConcurrencyToken = string.Empty,
+            Use = "sig",
+            Algorithm = "RS256",
+            CreatedWhen = DateTimeOffset.UtcNow,
+            ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            EncodedValue = "encoded",
+        };
+
+    [Fact]
+    public async Task AddSecretAsync_ThenGetSecrets_RoundtripsAndBumpsToken()
+    {
+        await SeedTenantAsync();
+        await _store.AddAsync(CreateResourceServer(), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var before = await _store.GetSecretsOrDefaultAsync(
+            ResourceServerId,
+            CancellationToken.None
+        );
+        Assert.NotNull(before);
+        var originalToken = before.ConcurrencyToken;
+
+        await _store.AddSecretAsync(ResourceServerId, CreateSecret("s-1"), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var secrets = await _store.GetSecretsOrDefaultAsync(
+            ResourceServerId,
+            CancellationToken.None
+        );
+        Assert.NotNull(secrets);
+        Assert.Single(secrets.Value);
+        Assert.Equal("s-1", secrets.Value.First().SecretId);
+        Assert.NotEqual(originalToken, secrets.ConcurrencyToken);
+    }
+
+    [Fact]
+    public async Task GetSecretOrDefaultAsync_ReturnsScopedSecret()
+    {
+        await SeedTenantAsync();
+        await _store.AddAsync(CreateResourceServer(), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        await _store.AddSecretAsync(ResourceServerId, CreateSecret("s-1"), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var secret = await _store.GetSecretOrDefaultAsync(
+            ResourceServerId,
+            "s-1",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(secret);
+        Assert.Equal(TenantId, secret.TenantId);
+        Assert.Equal(ResourceServerId, secret.ResourceServerId);
+        Assert.Equal("s-1", secret.Value.SecretId);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_UpdatesMetadataOnly()
+    {
+        await SeedTenantAsync();
+        await _store.AddAsync(CreateResourceServer(), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        await _store.AddSecretAsync(ResourceServerId, CreateSecret("s-1"), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var secret = await _store.GetSecretOrDefaultAsync(
+            ResourceServerId,
+            "s-1",
+            CancellationToken.None
+        );
+        Assert.NotNull(secret);
+        var existing = secret.Value;
+        var updated = new PersistedSecret
+        {
+            SecretId = existing.SecretId,
+            ConcurrencyToken = existing.ConcurrencyToken,
+            Use = "enc",
+            Algorithm = existing.Algorithm,
+            CreatedWhen = existing.CreatedWhen,
+            ExpiresWhen = DateTimeOffset.UtcNow.AddYears(2),
+            SecretType = existing.SecretType,
+            KeySizeBits = existing.KeySizeBits,
+            EncodedValue = existing.EncodedValue,
+        };
+
+        await _store.UpdateSecretAsync(ResourceServerId, updated, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetSecretOrDefaultAsync(
+            ResourceServerId,
+            "s-1",
+            CancellationToken.None
+        );
+        Assert.NotNull(reloaded);
+        Assert.Equal("enc", reloaded.Value.Use);
+    }
+
+    [Fact]
+    public async Task RemoveSecretAsync_RemovesSecret()
+    {
+        await SeedTenantAsync();
+        await _store.AddAsync(CreateResourceServer(), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        await _store.AddSecretAsync(ResourceServerId, CreateSecret("s-1"), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveSecretAsync(
+            ResourceServerId,
+            "s-1",
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.True(removed);
+        var secrets = await _store.GetSecretsOrDefaultAsync(
+            ResourceServerId,
+            CancellationToken.None
+        );
+        Assert.NotNull(secrets);
+        Assert.Empty(secrets.Value);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_AlsoRemovesSecrets()
+    {
+        await SeedTenantAsync();
+        await _store.AddAsync(CreateResourceServer(), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        await _store.AddSecretAsync(ResourceServerId, CreateSecret("s-1"), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        await _store.RemoveAsync(ResourceServerId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Null(await _store.GetOrDefaultAsync(ResourceServerId, CancellationToken.None));
+        Assert.Null(
+            await _store.GetSecretsOrDefaultAsync(ResourceServerId, CancellationToken.None)
+        );
     }
 
     #endregion

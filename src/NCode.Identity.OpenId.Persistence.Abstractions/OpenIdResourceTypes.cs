@@ -47,4 +47,9 @@ public static class OpenIdResourceTypes
     /// Contains the value used to identify the resource type for a client.
     /// </summary>
     public const string Client = "client";
+
+    /// <summary>
+    /// Contains the value used to identify the resource type for a resource server (an API, in Auth0 terms).
+    /// </summary>
+    public const string ResourceServer = "resource_server";
 }

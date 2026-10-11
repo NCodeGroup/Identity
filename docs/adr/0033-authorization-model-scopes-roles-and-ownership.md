@@ -41,7 +41,7 @@ simply an `Owner`-role assignment at a specific instance.**
 server (root)
 └── tenant
     ├── client            (leaves: client, client_secrets)
-    ├── resource_server   (leaves: resource_server, scopes)
+    ├── resource_server   (leaves: resource_server, scopes, resource_server_secrets)
     └── grant
 ```
 

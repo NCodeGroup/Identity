@@ -100,6 +100,20 @@ public sealed class ResourceServerEntity : ISupportTenantEntity, ISupportConcurr
     public required string ScopesConcurrencyToken { get; set; }
 
     /// <summary>
+    /// Gets or sets the concurrency token for the resource server's settings.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ConcurrencyToken)]
+    public required string SettingsConcurrencyToken { get; set; }
+
+    /// <summary>
+    /// Gets or sets the concurrency token for the resource server's secrets.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ConcurrencyToken)]
+    public required string SecretsConcurrencyToken { get; set; }
+
+    /// <summary>
     /// Gets or sets the human-readable name for this resource server.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.DisplayName)]
@@ -130,4 +144,9 @@ public sealed class ResourceServerEntity : ISupportTenantEntity, ISupportConcurr
     /// Gets the collection of scopes owned by this resource server.
     /// </summary>
     public required IEnumerable<ScopeEntity> Scopes { get; init; }
+
+    /// <summary>
+    /// Gets the collection of secrets owned by this resource server.
+    /// </summary>
+    public required IEnumerable<ResourceServerSecretEntity> Secrets { get; init; }
 }

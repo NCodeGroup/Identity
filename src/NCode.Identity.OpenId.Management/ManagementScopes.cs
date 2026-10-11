@@ -50,6 +50,7 @@ internal static class ManagementScopes
         internal const string Clients = "clients";
         internal const string ClientSecrets = "client_secrets";
         internal const string ResourceServers = "resource_servers";
+        internal const string ResourceServerSecrets = "resource_server_secrets";
         internal const string ClientGrants = "client_grants";
         internal const string Grants = "grants";
         internal const string LocalAccounts = "local_accounts";

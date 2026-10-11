@@ -25,7 +25,9 @@ import {
 export type ResourceServerScopesPageProps = {
   readonly scope: ManagementScope;
   readonly resourceServer: ResourceServerResource;
-  readonly onBack: () => void;
+  readonly onBack?: () => void;
+  /** When true, the parent detail page supplies the back button + header, so this renders only the scopes panel. */
+  readonly embedded?: boolean;
 };
 
 type DialogState =
@@ -47,6 +49,7 @@ export function ResourceServerScopesPage({
   scope,
   resourceServer,
   onBack,
+  embedded = false,
 }: ResourceServerScopesPageProps) {
   const resourceServerId = resourceServer.resourceServerId;
   const scopes = resourceServer.scopes;
@@ -125,24 +128,30 @@ export function ResourceServerScopesPage({
 
   return (
     <>
-      <Button
-        size="small"
-        startIcon={<ArrowBackIcon />}
-        onClick={onBack}
-        data-testid="scopes-back"
-        sx={{ mb: 1 }}
-      >
-        Resource servers
-      </Button>
+      {!embedded && (
+        <Button
+          size="small"
+          startIcon={<ArrowBackIcon />}
+          onClick={onBack}
+          data-testid="scopes-back"
+          sx={{ mb: 1 }}
+        >
+          Resource servers
+        </Button>
+      )}
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-        <Stack>
-          <Typography variant="h5" component="h2">
-            Scopes
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {resourceServer.name} · {resourceServer.identifier}
-          </Typography>
-        </Stack>
+        {embedded ? (
+          <Box />
+        ) : (
+          <Stack>
+            <Typography variant="h5" component="h2">
+              Scopes
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {resourceServer.name} · {resourceServer.identifier}
+            </Typography>
+          </Stack>
+        )}
         <Button
           variant="contained"
           startIcon={<AddIcon />}

@@ -51,4 +51,10 @@ export {
   useGetServerSettingsQuery,
   useGetServerEffectiveSettingsQuery,
   useUpdateServerSettingsMutation,
+  useListResourceServerSecretsQuery,
+  useCreateResourceServerSecretMutation,
+  useDeleteResourceServerSecretMutation,
+  useGetResourceServerSettingsQuery,
+  useGetResourceServerEffectiveSettingsQuery,
+  useUpdateResourceServerSettingsMutation,
 } from './managementApi.js';

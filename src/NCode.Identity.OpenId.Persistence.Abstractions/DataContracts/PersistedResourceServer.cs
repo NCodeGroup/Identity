@@ -18,41 +18,30 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the data for a persisted resource server (an API, in Auth0 terms). A resource server owns its scopes and
-/// is identified by its audience <see cref="Identifier"/>.
+/// Contains the data for a persisted resource server (an API, in Auth0 terms). A resource server owns its scopes,
+/// settings, and secrets, and is identified by its audience <see cref="Identifier"/>.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PersistedResourceServer : ISupportTenantId, ISupportConcurrencyToken
+public sealed class PersistedResourceServer : BasePersistedResourceServerResource
 {
-    /// <summary>
-    /// Gets or sets the identifier of the tenant that owns this resource server.
-    /// </summary>
-    [MaxLength(MaxLengths.ResourceId)]
-    public required string TenantId { get; init; }
+    /// <inheritdoc/>
+    [MaxLength(MaxLengths.ResourceType)]
+    public override string ResourceType => ResourceTypePrefix;
 
-    /// <summary>
-    /// Gets or sets the opaque, server-generated public identifier for this resource server.
-    /// </summary>
-    [MaxLength(MaxLengths.ResourceId)]
-    public required string ResourceServerId { get; init; }
+    //
 
     /// <summary>
     /// Gets or sets the operator-supplied audience identifier for this resource server.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.ResourceServerIdentifier)]
     public required string Identifier { get; init; }
-
-    /// <inheritdoc />
-    [MaxLength(MaxLengths.ConcurrencyToken)]
-    public required string ConcurrencyToken { get; set; }
 
     /// <summary>
     /// Gets or sets the human-readable name for this resource server.
@@ -74,10 +63,15 @@ public sealed class PersistedResourceServer : ISupportTenantId, ISupportConcurre
     /// <summary>
     /// Gets or sets the JSON settings for this resource server.
     /// </summary>
-    public required JsonElement Settings { get; set; }
+    public required PersistedResourceServerSettings Settings { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of scopes owned by this resource server.
     /// </summary>
     public required IReadOnlyCollection<PersistedScope> Scopes { get; set; }
+
+    /// <summary>
+    /// Gets or sets the collection of secrets owned by this resource server.
+    /// </summary>
+    public required PersistedResourceServerSecrets Secrets { get; set; }
 }

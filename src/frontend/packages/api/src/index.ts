@@ -2,10 +2,16 @@ export type {
   ClientResource,
   CollectionResource,
   CreateClientRequest,
+  CreateResourceServerRequest,
+  CreateScopeRequest,
   CreateTenantRequest,
+  ResourceServerResource,
+  ScopeResource,
   ServerResource,
   TenantResource,
   UpdateClientFields,
+  UpdateResourceServerFields,
+  UpdateScopeRequest,
   UpdateTenantFields,
 } from './contracts.js';
 export { replacePatch, type JsonPatchDocument, type JsonPatchOperation } from './jsonPatch.js';

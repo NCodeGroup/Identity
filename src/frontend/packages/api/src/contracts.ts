@@ -71,3 +71,66 @@ export type CreateClientRequest = {
 export type UpdateClientFields = {
   readonly isDisabled: boolean;
 };
+
+/** Mirror of `ScopeResource` — a scope (a permission, in Auth0 terms) owned by a resource server. */
+export type ScopeResource = {
+  readonly value: string;
+  readonly description: string | null;
+  readonly isSystem: boolean;
+};
+
+/**
+ * Mirror of `ResourceServerResource` (an API, in Auth0 terms; tenant scope). The server embeds the
+ * owned {@link ScopeResource} list inline, so browsing resource servers already yields their scopes.
+ * `isSystem` marks a reserved, system-owned resource server that cannot be deleted. The opaque
+ * JSON `settings` object is managed through its own surface and is not modeled here.
+ */
+export type ResourceServerResource = {
+  readonly tenantId: string;
+  readonly resourceServerId: string;
+  readonly identifier: string;
+  readonly concurrencyToken: string;
+  readonly name: string;
+  readonly isSystem: boolean;
+  readonly isDisabled: boolean;
+  readonly scopes: readonly ScopeResource[];
+};
+
+/**
+ * Mirror of `CreateResourceServerRequest`. The resource-server id is server-generated (not supplied);
+ * `identifier` is the operator-chosen audience and is immutable after creation. `settings` is the
+ * initial JSON settings object (empty by default; settings have their own surface).
+ */
+export type CreateResourceServerRequest = {
+  readonly identifier: string;
+  readonly name: string;
+  readonly isDisabled: boolean;
+  readonly settings: Readonly<Record<string, unknown>>;
+};
+
+/**
+ * The mutable resource-server metadata a JSON Patch may modify (subset of `UpdateResourceServerRequest`;
+ * `identifier` is immutable and `settings` is managed separately). The store turns this into a
+ * `replace`-only JSON Patch document; keys match the server's wire property names.
+ */
+export type UpdateResourceServerFields = {
+  readonly name: string;
+  readonly isDisabled: boolean;
+};
+
+/**
+ * Mirror of `CreateScopeRequest`. The scope `value` is the operator-chosen permission string and is
+ * immutable after creation (it is the resource identifier on the wire).
+ */
+export type CreateScopeRequest = {
+  readonly value: string;
+  readonly description: string | null;
+};
+
+/**
+ * Mirror of `UpdateScopeRequest`. The server binds scope updates as a whole-resource `PUT` (not a
+ * JSON Patch), and the scope value is immutable, so only the description is sent.
+ */
+export type UpdateScopeRequest = {
+  readonly description: string | null;
+};

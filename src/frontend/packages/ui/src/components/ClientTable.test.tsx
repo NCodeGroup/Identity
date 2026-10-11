@@ -28,4 +28,16 @@ describe('ClientTable', () => {
     expect(onEdit).toHaveBeenCalledWith('web-spa');
     expect(onDelete).toHaveBeenCalledWith('worker');
   });
+
+  it('selects a client on row click but not when an action is clicked', () => {
+    const onSelect = vi.fn();
+    const onDelete = vi.fn();
+    render(<ClientTable clients={clients} onSelect={onSelect} onDelete={onDelete} />);
+    fireEvent.click(screen.getByTestId('client-row-web-spa'));
+    expect(onSelect).toHaveBeenCalledWith('web-spa');
+    onSelect.mockClear();
+    fireEvent.click(screen.getByTestId('client-delete-worker'));
+    expect(onDelete).toHaveBeenCalledWith('worker');
+    expect(onSelect).not.toHaveBeenCalled();
+  });
 });

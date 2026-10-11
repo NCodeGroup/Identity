@@ -29,3 +29,50 @@ export function replacePatch(fields: Readonly<Record<string, unknown>>): JsonPat
     value,
   }));
 }
+
+/**
+ * A full JSON Patch operation for the opaque settings object, which — unlike the fixed-shape metadata
+ * endpoints — may add or remove keys, so `add` and `remove` are needed alongside `replace` (RFC 6902).
+ */
+export type SettingsPatchOperation =
+  | { readonly op: 'add'; readonly path: string; readonly value: unknown }
+  | { readonly op: 'replace'; readonly path: string; readonly value: unknown }
+  | { readonly op: 'remove'; readonly path: string };
+
+/** A JSON Patch document over the settings object (an ordered list of {@link SettingsPatchOperation}). */
+export type SettingsPatchDocument = readonly SettingsPatchOperation[];
+
+/** Escapes a JSON object key into a JSON Pointer reference token (RFC 6901): `~` → `~0`, `/` → `~1`. */
+function encodePointerToken(key: string): string {
+  return key.replace(/~/g, '~0').replace(/\//g, '~1');
+}
+
+/**
+ * Builds a top-level JSON Patch diff between the original and desired settings objects: `remove` for
+ * dropped keys, `add` for new keys, and `replace` for keys whose value changed (deep-equal by JSON
+ * serialization). Only the top level is diffed — a changed nested value replaces the whole key — which
+ * matches how the settings object is edited as a whole. UI-free so the wire shape is unit-tested.
+ */
+export function diffPatch(
+  original: Readonly<Record<string, unknown>>,
+  desired: Readonly<Record<string, unknown>>,
+): SettingsPatchDocument {
+  const operations: SettingsPatchOperation[] = [];
+
+  for (const key of Object.keys(original)) {
+    if (!(key in desired)) {
+      operations.push({ op: 'remove', path: `/${encodePointerToken(key)}` });
+    }
+  }
+
+  for (const [key, value] of Object.entries(desired)) {
+    const path = `/${encodePointerToken(key)}`;
+    if (!(key in original)) {
+      operations.push({ op: 'add', path, value });
+    } else if (JSON.stringify(original[key]) !== JSON.stringify(value)) {
+      operations.push({ op: 'replace', path, value });
+    }
+  }
+
+  return operations;
+}

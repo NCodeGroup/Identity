@@ -4,17 +4,32 @@ export type {
   CreateClientRequest,
   CreateResourceServerRequest,
   CreateScopeRequest,
+  CreateSecretRequest,
+  CreatedSecretResource,
   CreateTenantRequest,
+  EffectiveSettingsResource,
+  GrantResource,
+  GrantRevocationResult,
   ResourceServerResource,
   ScopeResource,
+  SecretResource,
+  SecretsResource,
   ServerResource,
+  SettingsResource,
   TenantResource,
   UpdateClientFields,
   UpdateResourceServerFields,
   UpdateScopeRequest,
   UpdateTenantFields,
 } from './contracts.js';
-export { replacePatch, type JsonPatchDocument, type JsonPatchOperation } from './jsonPatch.js';
+export {
+  diffPatch,
+  replacePatch,
+  type JsonPatchDocument,
+  type JsonPatchOperation,
+  type SettingsPatchDocument,
+  type SettingsPatchOperation,
+} from './jsonPatch.js';
 export {
   GLOBAL_SCOPE,
   isGlobalScope,

@@ -20,6 +20,7 @@ import {
   useUpdateClientMutation,
   type ApiError,
 } from '@ncode/store';
+import { ClientDetailPage } from './ClientDetailPage.js';
 
 export type ClientsPageProps = {
   readonly scope: ManagementScope;
@@ -51,6 +52,14 @@ export function ClientsPage({ scope }: ClientsPageProps) {
   const [dialog, setDialog] = useState<DialogState>(closed);
   const [formError, setFormError] = useState<string>();
   const [deleteError, setDeleteError] = useState<string>();
+
+  const [selectedId, setSelectedId] = useState<string>();
+  const selected = clients.find((c) => c.clientId === selectedId);
+  if (selected) {
+    return (
+      <ClientDetailPage scope={scope} client={selected} onBack={() => setSelectedId(undefined)} />
+    );
+  }
 
   const openCreate = () => {
     setFormError(undefined);
@@ -133,7 +142,12 @@ export function ClientsPage({ scope }: ClientsPageProps) {
         isEmpty={clients.length === 0}
         emptyMessage="No clients in this scope yet."
       >
-        <ClientTable clients={clients} onEdit={openEdit} onDelete={openDelete} />
+        <ClientTable
+          clients={clients}
+          onSelect={setSelectedId}
+          onEdit={openEdit}
+          onDelete={openDelete}
+        />
       </DataStateBoundary>
 
       <ClientFormDialog

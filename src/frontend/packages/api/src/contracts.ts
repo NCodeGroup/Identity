@@ -134,3 +134,89 @@ export type CreateScopeRequest = {
 export type UpdateScopeRequest = {
   readonly description: string | null;
 };
+
+/**
+ * Mirror of `GrantResource` (tenant scope) — a metadata-only projection of a persisted grant. Sensitive
+ * grant material (hashed keys, payload contents) is never exposed. Grants are read-only administratively:
+ * the only mutation is revocation (a delete). `revokedWhen`/`consumedWhen`/`expiresWhen` are `null` until
+ * the grant reaches that state. Timestamps are ISO-8601 strings on the wire.
+ */
+export type GrantResource = {
+  readonly grantId: string;
+  readonly grantType: string;
+  readonly tenantId: string;
+  readonly clientId: string | null;
+  readonly subjectId: string | null;
+  readonly createdWhen: string;
+  readonly expiresWhen: string | null;
+  readonly revokedWhen: string | null;
+  readonly consumedWhen: string | null;
+};
+
+/** Mirror of `GrantRevocationResult` — the count returned by a bulk (filtered) grant revocation. */
+export type GrantRevocationResult = {
+  readonly revoked: number;
+};
+
+/**
+ * Mirror of `SecretResource` — metadata-only projection of a persisted secret. The key material is never
+ * returned by a read path; only {@link CreatedSecretResource} carries it, once, at creation (ADR-0050).
+ * Timestamps are ISO-8601 strings on the wire.
+ */
+export type SecretResource = {
+  readonly secretId: string;
+  readonly concurrencyToken: string;
+  readonly use: string | null;
+  readonly algorithm: string | null;
+  readonly createdWhen: string;
+  readonly expiresWhen: string;
+  readonly secretType: string;
+  readonly keySizeBits: number;
+};
+
+/**
+ * Mirror of a `*SecretsResource` wrapper (e.g. `ClientSecretsResource`). The owner embeds its secret list
+ * inline along with the owner-level concurrency token.
+ */
+export type SecretsResource = {
+  readonly concurrencyToken: string;
+  readonly secrets: readonly SecretResource[];
+};
+
+/**
+ * Mirror of `CreateSecretRequest`. The key material is generated server-side; the caller never supplies it.
+ * `secretType` is one of `symmetric`, `rsa`, or `ecc`; `expiresWhen` is an ISO-8601 string.
+ */
+export type CreateSecretRequest = {
+  readonly secretType: string;
+  readonly keySizeBits: number;
+  readonly use: string | null;
+  readonly algorithm: string | null;
+  readonly expiresWhen: string;
+};
+
+/**
+ * Mirror of `CreatedSecretResource` — the create response. It carries the same metadata as
+ * {@link SecretResource} plus `secretMaterial`: the one-time, base64url-encoded key material revealed only
+ * here and never again (`null` for asymmetric secrets, which have no externally-held material). See ADR-0050.
+ */
+export type CreatedSecretResource = SecretResource & {
+  readonly secretMaterial: string | null;
+};
+
+/**
+ * Mirror of a `*SettingsResource` wrapper (e.g. `ClientSettingsResource`). `settings` is the opaque persisted
+ * JSON settings object (a map of setting name to value); the owner-level `concurrencyToken` guards edits.
+ */
+export type SettingsResource = {
+  readonly concurrencyToken: string;
+  readonly settings: Readonly<Record<string, unknown>>;
+};
+
+/**
+ * Mirror of a `*EffectiveSettingsResource` wrapper. `settings` is the read-only merged (server baseline +
+ * persisted overrides + descriptor defaults) flat JSON object the authorization server resolves at runtime.
+ */
+export type EffectiveSettingsResource = {
+  readonly settings: Readonly<Record<string, unknown>>;
+};

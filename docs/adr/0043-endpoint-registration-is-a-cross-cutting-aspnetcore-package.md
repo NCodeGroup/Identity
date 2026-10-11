@@ -8,8 +8,9 @@
 
 The family already has a cross-cutting hierarchical registration primitive: `NCode.Registration`'s
 `IServiceBuilder<TMarker>`. It is a thin wrapper over `IServiceCollection` plus a compile-time marker type;
-`NewBuilder<T>()` creates a sibling builder over the same collection and registers the marker so the composition root can
-verify cross-package dependencies (`VerifyIsRegistered<T>`). Its "hierarchy" is a registration-time organizational
+`NewBuilder<T>()` creates a sibling builder over the same collection and registers the marker (a presence singleton
+plus the builder's compile-time type) so cross-package dependencies are expressed as `IServiceBuilder<…>` receivers
+and required `IServiceBuilder<…>` parameters. Its "hierarchy" is a registration-time organizational
 device with no runtime materialization — at runtime there is one flat `IServiceCollection`.
 
 Separately, the declarative route-group mechanism of [ADR-0042](0042-management-api-route-driven-tenant-scope.md) —

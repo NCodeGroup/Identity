@@ -22,6 +22,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Persistence;
+using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 
@@ -41,12 +43,13 @@ public static class DefaultRegistration
         /// stores. Make sure to also register the Entity Framework <see cref="DbContext"/> itself.
         /// </summary>
         /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> to use.</typeparam>
-        /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> proving the store-manager framework is registered, which the
+        /// local-account store slices require.</returns>
         [PublicAPI]
-        public IServiceCollection AddEntityFrameworkCorePersistence<TDbContext>()
+        public IServiceBuilder<StoreManagerLibrary> AddEntityFrameworkCorePersistence<TDbContext>()
             where TDbContext : DbContext
         {
-            serviceCollection.AddEntityFrameworkPersistenceServices<TDbContext>();
+            var newBuilder = serviceCollection.AddEntityFrameworkPersistenceServices<TDbContext>();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IOpenIdModelContributor, CoreModelContributor>()
@@ -70,7 +73,7 @@ public static class DefaultRegistration
                 FederatedIdentityStore
             >();
 
-            return serviceCollection;
+            return newBuilder;
         }
     }
 }

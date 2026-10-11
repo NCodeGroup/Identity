@@ -37,15 +37,21 @@ namespace NCode.Identity.OpenId.Authentication;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <param name="builder">The <see cref="IServiceBuilder"/> to configure services for <see cref="IdentityLibrary"/>.</param>
+    /// <param name="builder">The <see cref="IdentityLibrary"/> builder this library extends.</param>
     extension(IServiceBuilder<IdentityLibrary> builder)
     {
         /// <summary>
         /// Configures services and handlers for OpenId Authentication.
         /// </summary>
+        /// <param name="joseBuilder">The <see cref="JoseLibrary"/> builder — the compile-time proof that the JOSE
+        /// prerequisite the token handlers depend on is registered.</param>
         [PublicAPI]
-        public IServiceBuilder<OpenIdAuthenticationLibrary> AddOpenIdAuthenticationLibrary()
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddOpenIdAuthenticationLibrary(
+            IServiceBuilder<JoseLibrary> joseBuilder
+        )
         {
+            ArgumentNullException.ThrowIfNull(joseBuilder);
+
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.AddMediator();
@@ -55,8 +61,6 @@ public static class DefaultRegistration
 
             // Wires up the OpenAPI pipeline so the XML-comment source generator documents this plane's endpoints.
             serviceCollection.AddOpenApi();
-
-            serviceCollection.VerifyIsRegistered<JoseLibrary>();
 
             var newBuilder = builder.NewBuilder<OpenIdAuthenticationLibrary>();
 

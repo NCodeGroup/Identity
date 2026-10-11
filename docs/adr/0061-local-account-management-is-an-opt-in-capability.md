@@ -78,10 +78,14 @@ know the shape of any one capability's events.
 A capability is available when its package is registered; the handler performs no runtime check for whether the
 capability is configured. A per-request guard that returns `501 Not Implemented` when a store is absent — a library
 testing whether the library itself is wired up — is rejected: the endpoints exist only when `AddLocalAccountManagement()`
-is called, which already answers that question. A host that enables the management (or authentication) capability also
-registers a local-account store (`AddLocalAccountEntityFramework()`, `AddAspNetIdentityLocalAccountStore<TUser>()`, or a
-custom `ILocalAccountStore`); a missing store is a configuration error that surfaces when the store is resolved, not a
-per-request contract.
+is called, which already answers that question. The store prerequisite, however, is enforced at **compile time**, not
+deferred to resolution: a local-account store registration (`AddLocalAccountEntityFramework()`,
+`AddAspNetIdentityLocalAccountStore<TUser>()`, or a custom store) **returns** an `IServiceBuilder<LocalAccountLibrary>`,
+and `AddLocalAccountManagement(IServiceBuilder<LocalAccountLibrary>)` (like the authentication capabilities) takes it as a
+**required parameter** (its receiver stays `IServiceBuilder<OpenIdManagementLibrary>`) — so a capability cannot even be
+written without a store. This is a **compile-time** requirement
+(distinct from the rejected **per-request** `501` feature-detection) and requires the
+store to be registered before the capability — the natural order a host already follows.
 
 ## Options considered
 
@@ -112,5 +116,8 @@ per-request contract.
   method; the local-account audit event and its resource-type constant belong to the accounts-management abstractions.
 - The local-account wire contracts live in `NCode.Identity.OpenId.Accounts.Management.Contracts` and the validator seam
   in `NCode.Identity.OpenId.Accounts.Management`.
-- Enabling the capability requires a registered `ILocalAccountStore`; the handler performs no runtime capability
-  self-check.
+- Enabling the capability requires a registered `ILocalAccountStore`, enforced at compile time: a store registration
+  returns an `IServiceBuilder<LocalAccountLibrary>` and `AddLocalAccountManagement(IServiceBuilder<LocalAccountLibrary>)`
+  takes it as a required parameter, so a missing store is a compile error rather than a startup or resolution-time
+  failure. The
+  handler still performs no runtime per-request capability self-check.

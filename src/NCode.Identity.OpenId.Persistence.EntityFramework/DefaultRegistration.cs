@@ -22,7 +22,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
+using NCode.Persistence;
 using NCode.Persistence.Stores;
+using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 
@@ -45,11 +47,13 @@ public static class DefaultRegistration
         /// stores you need.
         /// </summary>
         /// <typeparam name="TDbContext">The type of the <see cref="DbContext"/> to use.</typeparam>
-        /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> proving the store-manager framework is registered.</returns>
         [PublicAPI]
-        public IServiceCollection AddEntityFrameworkPersistenceServices<TDbContext>()
+        public IServiceBuilder<StoreManagerLibrary> AddEntityFrameworkPersistenceServices<TDbContext>()
             where TDbContext : DbContext
         {
+            var newBuilder = serviceCollection.NewBuilder<StoreManagerLibrary>();
+
             serviceCollection.TryAddSingleton<IdValueGenerator>();
             serviceCollection.TryAddSingleton<UseIdGeneratorConvention>();
 
@@ -59,7 +63,7 @@ public static class DefaultRegistration
             >();
             serviceCollection.TryAddScoped<IStoreManager, EntityStoreManager<TDbContext>>();
 
-            return serviceCollection;
+            return newBuilder;
         }
 
         /// <summary>

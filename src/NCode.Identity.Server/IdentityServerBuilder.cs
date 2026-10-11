@@ -88,8 +88,9 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
 
         IdentityLibraryBuilder = serviceCollection.AddIdentityLibrary();
         OpenIdCoreLibraryBuilder = IdentityLibraryBuilder.AddOpenIdCoreLibrary();
-        OpenIdAuthenticationLibraryBuilder =
-            IdentityLibraryBuilder.AddOpenIdAuthenticationLibrary();
+        OpenIdAuthenticationLibraryBuilder = IdentityLibraryBuilder.AddOpenIdAuthenticationLibrary(
+            JoseLibraryBuilder
+        );
         OpenIdManagementLibraryBuilder = IdentityLibraryBuilder.AddOpenIdManagementLibrary();
 
         // The bootstrap administrator client's management tokens are stamped with the GlobalAdmin role at issuance

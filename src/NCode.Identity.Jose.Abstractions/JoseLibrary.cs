@@ -25,11 +25,4 @@ namespace NCode.Identity.Jose;
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>
 [PublicAPI]
-public readonly struct JoseLibrary : IRegistrationMarker<JoseLibrary>
-{
-    /// <inheritdoc />
-    public string DisplayName => "NCode.Identity.Jose";
-
-    /// <inheritdoc />
-    public string ConfigureMethod => "AddJoseLibrary";
-}
+public readonly struct JoseLibrary : IRegistrationMarker<JoseLibrary>;

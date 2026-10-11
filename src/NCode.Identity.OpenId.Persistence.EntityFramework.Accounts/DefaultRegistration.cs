@@ -23,7 +23,9 @@ using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.Credentials;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Stores;
+using NCode.Persistence;
 using NCode.Persistence.Stores;
+using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 
@@ -33,17 +35,23 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    extension(IServiceCollection serviceCollection)
+    /// <param name="builder">The builder proving the store-manager framework
+    /// (<c>AddEntityFrameworkCorePersistence</c>) is registered.</param>
+    extension(IServiceBuilder<StoreManagerLibrary> builder)
     {
         /// <summary>
-        /// Registers the generic Entity Framework <see cref="ILocalAccountStore"/> (registering a store is what enables
-        /// the local-account surfaces; there is no separate capability marker, per ADR-0061), the model contributor
-        /// that adds the account entities to the shared <c>OpenIdDbContext</c>, and the default password hasher. Call
-        /// after registering the Entity Framework persistence services.
+        /// Registers the generic Entity Framework <see cref="ILocalAccountStore"/> together with the
+        /// <see cref="LocalAccountLibrary"/> marker that the opt-in local-account capabilities require as a compile-time
+        /// argument, the model contributor that adds the account entities to the shared <c>OpenIdDbContext</c>, and the
+        /// default password hasher. The receiver proves the Entity Framework persistence framework is registered.
         /// </summary>
-        /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddLocalAccountEntityFramework()
+        /// <returns>The <see cref="IServiceBuilder{T}"/> proving a local-account store is registered.</returns>
+        public IServiceBuilder<LocalAccountLibrary> AddLocalAccountEntityFramework()
         {
+            var serviceCollection = builder.ServiceCollection;
+
+            var newBuilder = serviceCollection.NewBuilder<LocalAccountLibrary>();
+
             serviceCollection.AddDefaultPasswordHasher();
 
             serviceCollection.TryAddEnumerable(
@@ -61,7 +69,7 @@ public static class DefaultRegistration
                     )
             );
 
-            return serviceCollection;
+            return newBuilder;
         }
     }
 }

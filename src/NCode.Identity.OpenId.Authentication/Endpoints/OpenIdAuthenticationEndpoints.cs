@@ -26,11 +26,4 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// </summary>
 [PublicAPI]
 public readonly struct OpenIdAuthenticationEndpoints
-    : IRegistrationMarker<OpenIdAuthenticationEndpoints>
-{
-    /// <inheritdoc />
-    public string DisplayName => "NCode.Identity.OpenId.Authentication.Endpoints";
-
-    /// <inheritdoc />
-    public string ConfigureMethod => "AddEndpoints";
-}
+    : IRegistrationMarker<OpenIdAuthenticationEndpoints>;

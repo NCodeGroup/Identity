@@ -67,8 +67,6 @@ NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer.DeserializeSecret(NCo
 NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer.DeserializeSecrets(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! persistedSecrets) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
 NCode.Identity.Secrets.Persistence.SecretMaxLengths
 NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary
-NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary.ConfigureMethod.get -> string!
-NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary.DisplayName.get -> string!
 NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary.SecretPersistenceLibrary() -> void
 NCode.Identity.Secrets.Persistence.SecretResourceTypes
 NCode.Identity.Secrets.Persistence.SecretTypes

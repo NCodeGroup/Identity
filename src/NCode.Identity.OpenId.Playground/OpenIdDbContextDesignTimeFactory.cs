@@ -44,7 +44,7 @@ internal sealed class OpenIdDbContextDesignTimeFactory
             .AddSingleton<IIdGenerator<long>>(new IdGenerator(0))
             .AddEntityFrameworkCorePersistence<OpenIdDbContext>()
             .AddLocalAccountEntityFramework()
-            .BuildServiceProvider();
+            .ServiceCollection.BuildServiceProvider();
 
         var options = new DbContextOptionsBuilder<OpenIdDbContext>()
             .UseSqlite(

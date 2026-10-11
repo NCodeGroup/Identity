@@ -276,16 +276,22 @@ change to the public API is a **major** version bump.
 - **Opt-in framework capabilities now register through compile-time marker builders
   ([ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md)).** The registration library's
   `IServiceBuilder<TMarker>` becomes the one way bolt-on capabilities attach, so a capability is **un-addable** to a
-  host that lacks its prerequisite library (a compile error, not a runtime surprise). `AddLocalAccountAuthentication()`,
-  `AddLocalAccountInteractiveAuthentication()`, and `AddInteractiveAuthentication(...)` now extend
-  `IServiceBuilder<OpenIdAuthenticationLibrary>`, and `AddLocalAccountManagement()` extends
-  `IServiceBuilder<OpenIdManagementLibrary>` (each returns the same builder for chaining) instead of a naked
-  `IServiceCollection`. The `OpenIdManagementLibrary` marker moves from `NCode.Identity.OpenId.Management` into
-  `NCode.Identity.OpenId.Management.Abstractions` so a capability can name it without an implementation reference. Hosts
+  host that lacks its prerequisite library (a compile error, not a runtime surprise). `AddInteractiveAuthentication(...)`
+  now extends `IServiceBuilder<OpenIdAuthenticationLibrary>`, and the local-account capabilities extend their OpenId
+  library builder and take the store as a **required parameter**
+  (`AddLocalAccountAuthentication(IServiceBuilder<LocalAccountLibrary>)` /
+  `AddLocalAccountInteractiveAuthentication(IServiceBuilder<LocalAccountLibrary>)` on
+  `IServiceBuilder<OpenIdAuthenticationLibrary>`; `AddLocalAccountManagement(IServiceBuilder<LocalAccountLibrary>)` on
+  `IServiceBuilder<OpenIdManagementLibrary>`), each returning its receiver builder for chaining, instead of a naked
+  `IServiceCollection`. The `OpenIdManagementLibrary` marker moves from `NCode.Identity.OpenId.Management`
+  into `NCode.Identity.OpenId.Management.Abstractions` so a capability can name it without an implementation reference. Hosts
   now chain these off the builders the composition root exposes — for example
-  `AddIdentityServer().OpenIdAuthenticationLibraryBuilder.AddLocalAccountAuthentication().AddInteractiveAuthentication(...)` —
-  rather than a flat `serviceCollection.AddX()` list. Dependency-inverted implementations (local-account / EF stores)
-  and generic utility helpers intentionally stay bare-collection extensions.
+  `AddIdentityServer().OpenIdAuthenticationLibraryBuilder.AddLocalAccountAuthentication(localAccountStore)` —
+  rather than a flat `serviceCollection.AddX()` list. The persistence framework gains a `StoreManagerLibrary` marker
+  (`NCode.Persistence.Abstractions`): `AddEntityFrameworkCorePersistence<TDbContext>()` mints it, and the local-account
+  store slices now receive `IServiceBuilder<StoreManagerLibrary>` (not a naked collection) and return
+  `IServiceBuilder<LocalAccountLibrary>`. Chain roots and generic utility helpers intentionally stay bare-collection
+  extensions.
 - **Foundational JOSE/JWT libraries now gate at compile time, completing the marker-nesting model
   ([ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md)).** `AddJoseLibrary()` now extends
   `IServiceBuilder<SecretsLibrary>` and `AddJsonWebTokensLibrary()` extends `IServiceBuilder<JoseLibrary>` (each
@@ -303,6 +309,33 @@ change to the public API is a **major** version bump.
   (chained off `AddIdentityServer()`) instead of a naked `IServiceCollection`, because they replace the server's tenant
   factory and hook its command handlers and are meaningless without the composed server; `AddDeveloperCors` (a
   standalone CORS policy) stays a bare-collection extension.
+- **Every registration prerequisite is compile-time via the receiver plus required `IServiceBuilder<…>` parameters;
+  `VerifyIsRegistered` and the `DisplayName`/`ConfigureMethod` marker members were removed
+  ([ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md),
+  [ADR-0060](docs/adr/0060-local-account-one-store-seam-and-dependency-inverted-authentication.md),
+  [ADR-0061](docs/adr/0061-local-account-management-is-an-opt-in-capability.md)).** A registration with one prerequisite
+  receives `IServiceBuilder<TMarker>`; one with a **second** prerequisite takes it as a **required `IServiceBuilder<…>`
+  parameter** — the builder that prerequisite's own registration returned — so the method is uncallable without it (a
+  missing prerequisite is a compile error), and the receiver builder is returned so the chain continues on the primary
+  library. A new `LocalAccountLibrary` marker (`NCode.Identity.OpenId.Accounts.Abstractions`) is minted and returned by
+  every local-account store registration (`AddLocalAccountEntityFramework()`,
+  `AddAspNetIdentityLocalAccountStore<TUser>()`, or a custom store), and `AddLocalAccountAuthentication()` /
+  `AddLocalAccountInteractiveAuthentication()` (on `IServiceBuilder<OpenIdAuthenticationLibrary>`) and
+  `AddLocalAccountManagement()` (on `IServiceBuilder<OpenIdManagementLibrary>`) take `IServiceBuilder<LocalAccountLibrary>`
+  as a required parameter — a local-account capability cannot even be written without a store. Likewise
+  `AddOpenIdAuthenticationLibrary()` (on `IServiceBuilder<IdentityLibrary>`) takes `IServiceBuilder<JoseLibrary>`. (A
+  composite `IServiceBuilder<T1, T2>` receiver + `.And()` combinator was prototyped and dropped: a required parameter
+  proves the same thing with less machinery and a cleaner call site, and a marker _value_ can't serve as the proof
+  because an empty struct is forgeable.) The `NCode.Registration.ServiceCollectionExtensions.VerifyIsRegistered<TMarker>()`
+  method is **removed** (the `IsRegistered<TMarker>()` query remains), and markers are now **empty `readonly struct`s**:
+  the `DisplayName` and `ConfigureMethod` members and the `IMarker<TMarker>` base were removed, leaving
+  `IRegistrationMarker<TMarker>` whose type identity is the whole signal.
+- **The event bus is now a marker-bearing library
+  ([ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md)).** `AddEventServices()` mints a new
+  `EventsLibrary` marker (`NCode.Identity.Events.Abstractions`) and returns `IServiceBuilder<EventsLibrary>`; its opt-ins
+  `AddEventHandler<TEvent, THandler>()` and `AddBackgroundEventDelivery()` (moved to a new `EventLibraryRegistration`
+  class, since one static class may hold only one `extension` receiver shape) now receive that builder, so an event
+  opt-in is compile-time un-addable without the event services.
 - **The interactive login/consent backend moved out of the composition root into its own leaf package with a pluggable
   verifier ([ADR-0070](docs/adr/0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md)).** The
   cookie scheme, `/account/*` endpoints, antiforgery wiring, and static-file server move from

@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using NCode.Identity.Events.Audit;
+using NCode.Registration;
 
 namespace NCode.Identity.Events;
 
@@ -35,16 +36,16 @@ public static class DefaultRegistration
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
-        /// Registers the default <see cref="IEventPublisher"/> and the built-in logging subscriber into
-        /// the provided <see cref="IServiceCollection"/> instance.
+        /// Registers the default <see cref="IEventPublisher"/> and the built-in subscribers, minting the
+        /// <see cref="EventsLibrary"/> marker that the event opt-ins require.
         /// </summary>
-        /// <returns>
-        /// The same <see cref="IServiceCollection"/> instance so that calls can be chained.
-        /// </returns>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> for the event library so that calls can be chained.</returns>
         [PublicAPI]
-        public IServiceCollection AddEventServices()
+        public IServiceBuilder<EventsLibrary> AddEventServices()
         {
             ArgumentNullException.ThrowIfNull(serviceCollection);
+
+            var newBuilder = serviceCollection.NewBuilder<EventsLibrary>();
 
             // Register the concrete publisher so the background dispatcher can reach its internal
             // background-dispatch path, and expose it through the IEventPublisher contract.
@@ -72,51 +73,7 @@ public static class DefaultRegistration
                 >()
             );
 
-            return serviceCollection;
-        }
-
-        /// <summary>
-        /// Registers an <see cref="IEventHandler{TEvent}"/> subscriber for <typeparamref name="TEvent"/>.
-        /// </summary>
-        /// <typeparam name="TEvent">The type of event the handler observes.</typeparam>
-        /// <typeparam name="THandler">The concrete handler implementation to register.</typeparam>
-        /// <returns>
-        /// The same <see cref="IServiceCollection"/> instance so that calls can be chained.
-        /// </returns>
-        [PublicAPI]
-        public IServiceCollection AddEventHandler<TEvent, THandler>()
-            where TEvent : IEvent
-            where THandler : class, IEventHandler<TEvent>
-        {
-            ArgumentNullException.ThrowIfNull(serviceCollection);
-
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Scoped<IEventHandler<TEvent>, THandler>()
-            );
-
-            return serviceCollection;
-        }
-
-        /// <summary>
-        /// Enables background delivery so handlers that implement <see cref="ISupportBackgroundDelivery"/>
-        /// are invoked on a background worker instead of inline on the publishing path.
-        /// </summary>
-        /// <returns>
-        /// The same <see cref="IServiceCollection"/> instance so that calls can be chained.
-        /// </returns>
-        [PublicAPI]
-        public IServiceCollection AddBackgroundEventDelivery()
-        {
-            ArgumentNullException.ThrowIfNull(serviceCollection);
-
-            serviceCollection.TryAddSingleton<DefaultBackgroundEventQueue>();
-            serviceCollection.TryAddSingleton<IBackgroundEventQueue>(serviceProvider =>
-                serviceProvider.GetRequiredService<DefaultBackgroundEventQueue>()
-            );
-
-            serviceCollection.AddHostedService<BackgroundEventDispatcher>();
-
-            return serviceCollection;
+            return newBuilder;
         }
     }
 }

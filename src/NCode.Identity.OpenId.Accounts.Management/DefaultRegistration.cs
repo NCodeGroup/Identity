@@ -34,19 +34,22 @@ namespace NCode.Identity.OpenId.Accounts.Management;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> for <see cref="OpenIdManagementLibrary"/>.</param>
+    /// <param name="builder">The <see cref="OpenIdManagementLibrary"/> builder this capability extends.</param>
     extension(IServiceBuilder<OpenIdManagementLibrary> builder)
     {
         /// <summary>
         /// Registers the local-account management endpoints (nested under the tenant-plane group
-        /// <c>/api/tenants/{tenantId}</c>) and the default <see cref="ILocalAccountValidator"/>. The endpoints are only
-        /// functional when the host has also registered an <c>ILocalAccountStore</c> (for example, the generic Entity
-        /// Framework reference or the ASP.NET Core Identity adapter); without one they report local accounts as
-        /// unsupported.
+        /// <c>/api/tenants/{tenantId}</c>) and the default <see cref="ILocalAccountValidator"/>.
         /// </summary>
-        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<OpenIdManagementLibrary> AddLocalAccountManagement()
+        /// <param name="localAccountStore">The local-account store builder — the compile-time proof that a
+        /// <c>ILocalAccountStore</c> is registered, so this capability cannot be added without one.</param>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> for method chaining.</returns>
+        public IServiceBuilder<OpenIdManagementLibrary> AddLocalAccountManagement(
+            IServiceBuilder<LocalAccountLibrary> localAccountStore
+        )
         {
+            ArgumentNullException.ThrowIfNull(localAccountStore);
+
             var serviceCollection = builder.ServiceCollection;
 
             // Attach the endpoint to the existing tenant-plane group by registering it keyed under the group's name

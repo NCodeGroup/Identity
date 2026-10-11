@@ -211,3 +211,15 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`.
+
+## Tooling & agent customization (group `X`)
+
+- **`X1` — `audit-conventions` duplicated as prompt + skill.** The convention-audit workflow now exists **twice**:
+  the original VS Code prompt [`.github/prompts/audit-conventions.prompt.md`](.github/prompts/audit-conventions.prompt.md)
+  and a migrated Agent Host skill [`.github/skills/audit-conventions/SKILL.md`](.github/skills/audit-conventions/SKILL.md)
+  (prompt files are not loaded by Agent Host / Copilot CLI, which reads `SKILL.md`). The skill carries
+  `disable-model-invocation: true` to preserve the prompt's explicit-invocation-only semantics; the prompt's
+  `agent: "agent"` frontmatter has no skill equivalent and was dropped. **Decision deferred:** whether to delete the
+  prompt (Agent-Host-only) or keep both (dual VS-Code-chat + Agent-Host support). Keep both until the skill is
+  runtime-validated in a fresh Copilot CLI session, then decide. If kept, edits must be mirrored across both files to
+  avoid drift.

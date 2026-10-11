@@ -189,6 +189,20 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   never appear on the wire; the authorization-response/ticket rendering should omit them. Low priority (cosmetic — the
   client ignores unknown params), but it is protocol hygiene. Touch point:
   `src/NCode.Identity.OpenId.Core/Endpoints/Authorization/Results/AuthorizationResultExecutor.cs`.
+- **`U9` — Server create/edit management (UI + backend).** The Servers surface is read-only today: `ServersPage`
+  lists servers and drills into `ServerDetailPage` for a server's **settings and secrets** (which already exist),
+  but there is **no way to add a new server or edit a server's top-level record** (e.g. display name). Unlike
+  tenants and resource-servers — which have full create/update/delete contracts, API endpoints, and frontend
+  dialogs — servers have only `listServers` plus server-secrets/settings endpoints; there is no
+  `createServer`/`updateServer`/`deleteServer`. The current design treats the server inventory as provisioned
+  out of band (documented in `ServersPage.tsx`/`ServerTable.tsx`), so closing this gap is a cross-stack feature:
+  new management contracts, API endpoints (with `IManagementAuditRecorder` audit parity), persistence, and
+  `PublicAPI` changes on the backend, plus store mutations, a `ServerFormDialog`, and row-level actions on the
+  frontend. Decide first whether a server is intended to be a user-creatable, multi-instance entity or a
+  provisioned singleton; that product/security question gates the scope. Touch points:
+  `src/NCode.Identity.OpenId.Management.Abstractions`, `src/NCode.Identity.OpenId.Management/Endpoints`,
+  `src/frontend/packages/store/src/managementApi.ts`, `src/frontend/apps/mgmt/src/containers/ServersPage.tsx`,
+  `src/frontend/packages/ui/src/components/ServerTable.tsx`.
 
 ## Secrets management (group `S`)
 

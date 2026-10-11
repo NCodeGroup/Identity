@@ -17,6 +17,7 @@ import {
   type GrantResource,
   type GrantRevocationResult,
   type ManagementScope,
+  type PublicKeyResource,
   type ResourceServerResource,
   type ScopeResource,
   type SecretsResource,
@@ -331,6 +332,15 @@ export const managementApi = createApi({
         { type: 'Secret', id: secretId },
       ],
     }),
+    getClientSecretPublicKey: build.query<
+      PublicKeyResource,
+      { scope: ManagementScope; clientId: string; secretId: string }
+    >({
+      query: ({ scope, clientId, secretId }) =>
+        `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(
+          clientId,
+        )}/secrets/${encodeURIComponent(secretId)}/public-key`,
+    }),
     getClientSettings: build.query<SettingsResource, { scope: ManagementScope; clientId: string }>({
       query: ({ scope, clientId }) =>
         `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/settings`,
@@ -400,6 +410,15 @@ export const managementApi = createApi({
         { type: 'Secret', id: secretId },
       ],
     }),
+    getTenantSecretPublicKey: build.query<
+      PublicKeyResource,
+      { tenantId: string; secretId: string }
+    >({
+      query: ({ tenantId, secretId }) =>
+        `api/tenants/${encodeURIComponent(tenantId)}/secrets/${encodeURIComponent(
+          secretId,
+        )}/public-key`,
+    }),
     getTenantSettings: build.query<SettingsResource, { tenantId: string }>({
       query: ({ tenantId }) => `api/tenants/${encodeURIComponent(tenantId)}/settings`,
       providesTags: (_result, _error, { tenantId }) => [
@@ -462,6 +481,15 @@ export const managementApi = createApi({
         { type: 'Secret', id: `server:${serverId}` },
         { type: 'Secret', id: secretId },
       ],
+    }),
+    getServerSecretPublicKey: build.query<
+      PublicKeyResource,
+      { serverId: string; secretId: string }
+    >({
+      query: ({ serverId, secretId }) =>
+        `api/servers/${encodeURIComponent(serverId)}/secrets/${encodeURIComponent(
+          secretId,
+        )}/public-key`,
     }),
     getServerSettings: build.query<SettingsResource, { serverId: string }>({
       query: ({ serverId }) => `api/servers/${encodeURIComponent(serverId)}/settings`,
@@ -536,6 +564,15 @@ export const managementApi = createApi({
         { type: 'Secret', id: `resource-server:${resourceServerId}` },
         { type: 'Secret', id: secretId },
       ],
+    }),
+    getResourceServerSecretPublicKey: build.query<
+      PublicKeyResource,
+      { scope: ManagementScope; resourceServerId: string; secretId: string }
+    >({
+      query: ({ scope, resourceServerId, secretId }) =>
+        `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
+          resourceServerId,
+        )}/secrets/${encodeURIComponent(secretId)}/public-key`,
     }),
     getResourceServerSettings: build.query<
       SettingsResource,
@@ -613,24 +650,28 @@ export const {
   useListClientSecretsQuery,
   useCreateClientSecretMutation,
   useDeleteClientSecretMutation,
+  useLazyGetClientSecretPublicKeyQuery,
   useGetClientSettingsQuery,
   useGetClientEffectiveSettingsQuery,
   useUpdateClientSettingsMutation,
   useListTenantSecretsQuery,
   useCreateTenantSecretMutation,
   useDeleteTenantSecretMutation,
+  useLazyGetTenantSecretPublicKeyQuery,
   useGetTenantSettingsQuery,
   useGetTenantEffectiveSettingsQuery,
   useUpdateTenantSettingsMutation,
   useListServerSecretsQuery,
   useCreateServerSecretMutation,
   useDeleteServerSecretMutation,
+  useLazyGetServerSecretPublicKeyQuery,
   useGetServerSettingsQuery,
   useGetServerEffectiveSettingsQuery,
   useUpdateServerSettingsMutation,
   useListResourceServerSecretsQuery,
   useCreateResourceServerSecretMutation,
   useDeleteResourceServerSecretMutation,
+  useLazyGetResourceServerSecretPublicKeyQuery,
   useGetResourceServerSettingsQuery,
   useGetResourceServerEffectiveSettingsQuery,
   useUpdateResourceServerSettingsMutation,

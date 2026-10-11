@@ -11,6 +11,7 @@ import {
   useDeleteClientSecretMutation,
   useGetClientEffectiveSettingsQuery,
   useGetClientSettingsQuery,
+  useLazyGetClientSecretPublicKeyQuery,
   useListClientSecretsQuery,
   useUpdateClientSettingsMutation,
 } from '@ncode/store';
@@ -80,6 +81,7 @@ function ClientSecretsTab({ scope, clientId }: ClientTabProps) {
   const { data, isLoading, error } = useListClientSecretsQuery({ scope, clientId });
   const [createSecret, { isLoading: isCreating }] = useCreateClientSecretMutation();
   const [deleteSecret, { isLoading: isDeleting }] = useDeleteClientSecretMutation();
+  const [getPublicKey] = useLazyGetClientSecretPublicKeyQuery();
 
   return (
     <SecretsManager
@@ -91,6 +93,7 @@ function ClientSecretsTab({ scope, clientId }: ClientTabProps) {
       isDeleting={isDeleting}
       onCreate={(body) => createSecret({ scope, clientId, body }).unwrap()}
       onDelete={(secretId) => deleteSecret({ scope, clientId, secretId }).unwrap()}
+      onExportPublicKey={(secretId) => getPublicKey({ scope, clientId, secretId }).unwrap()}
     />
   );
 }

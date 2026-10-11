@@ -6,13 +6,20 @@ import Typography from '@mui/material/Typography';
 import {
   ConfirmDialog,
   DataStateBoundary,
+  ExportPublicKeyDialog,
   RevealSecretDialog,
   SecretFormDialog,
   SecretTable,
   emptySecretFormValues,
+  type PublicKeyMaterial,
   type SecretFormValues,
 } from '@ncode/ui';
-import type { CreateSecretRequest, CreatedSecretResource, SecretResource } from '@ncode/api';
+import type {
+  CreateSecretRequest,
+  CreatedSecretResource,
+  PublicKeyResource,
+  SecretResource,
+} from '@ncode/api';
 import { apiErrorMessage, type ApiError } from '@ncode/store';
 
 export type SecretsManagerProps = {
@@ -27,12 +34,15 @@ export type SecretsManagerProps = {
   readonly onCreate: (body: CreateSecretRequest) => Promise<CreatedSecretResource>;
   /** Deletes a secret; must reject with an {@link ApiError}-shaped error on failure. */
   readonly onDelete: (secretId: string) => Promise<void>;
+  /** Reads an asymmetric secret's public key; must reject with an {@link ApiError}-shaped error on failure. */
+  readonly onExportPublicKey: (secretId: string) => Promise<PublicKeyResource>;
 };
 
 type SecretDialogState =
   | { readonly kind: 'none' }
   | { readonly kind: 'create' }
   | { readonly kind: 'reveal'; readonly created: CreatedSecretResource }
+  | { readonly kind: 'export'; readonly secret: SecretResource }
   | { readonly kind: 'delete'; readonly secret: SecretResource };
 
 const closed: SecretDialogState = { kind: 'none' };
@@ -62,10 +72,13 @@ export function SecretsManager({
   isDeleting,
   onCreate,
   onDelete,
+  onExportPublicKey,
 }: SecretsManagerProps) {
   const [dialog, setDialog] = useState<SecretDialogState>(closed);
   const [formError, setFormError] = useState<string>();
   const [deleteError, setDeleteError] = useState<string>();
+  const [publicKey, setPublicKey] = useState<PublicKeyMaterial>();
+  const [exportError, setExportError] = useState<string>();
 
   const openDelete = (secretId: string) => {
     const secret = secrets.find((s) => s.secretId === secretId);
@@ -74,6 +87,21 @@ export function SecretsManager({
     }
     setDeleteError(undefined);
     setDialog({ kind: 'delete', secret });
+  };
+
+  const openExport = async (secretId: string) => {
+    const secret = secrets.find((s) => s.secretId === secretId);
+    if (!secret) {
+      return;
+    }
+    setExportError(undefined);
+    setPublicKey(undefined);
+    setDialog({ kind: 'export', secret });
+    try {
+      setPublicKey(await onExportPublicKey(secretId));
+    } catch (exportFailure) {
+      setExportError(apiErrorMessage(exportFailure as ApiError));
+    }
   };
 
   const handleCreate = async (values: SecretFormValues) => {
@@ -129,7 +157,7 @@ export function SecretsManager({
         isEmpty={secrets.length === 0}
         emptyMessage={`This ${ownerLabel} has no secrets yet.`}
       >
-        <SecretTable secrets={[...secrets]} onDelete={openDelete} />
+        <SecretTable secrets={[...secrets]} onDelete={openDelete} onExportPublicKey={openExport} />
       </DataStateBoundary>
 
       <SecretFormDialog
@@ -145,6 +173,15 @@ export function SecretsManager({
         open={dialog.kind === 'reveal'}
         secretId={dialog.kind === 'reveal' ? dialog.created.secretId : ''}
         secretMaterial={dialog.kind === 'reveal' ? dialog.created.secretMaterial : null}
+        onClose={() => setDialog(closed)}
+      />
+
+      <ExportPublicKeyDialog
+        open={dialog.kind === 'export'}
+        secretId={dialog.kind === 'export' ? dialog.secret.secretId : ''}
+        publicKey={publicKey}
+        isLoading={dialog.kind === 'export' && !publicKey && !exportError}
+        error={exportError}
         onClose={() => setDialog(closed)}
       />
 

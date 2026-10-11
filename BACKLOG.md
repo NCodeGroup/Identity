@@ -217,9 +217,13 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
 - **`X1` — `audit-conventions` duplicated as prompt + skill.** The convention-audit workflow now exists **twice**:
   the original VS Code prompt [`.github/prompts/audit-conventions.prompt.md`](.github/prompts/audit-conventions.prompt.md)
   and a migrated Agent Host skill [`.github/skills/audit-conventions/SKILL.md`](.github/skills/audit-conventions/SKILL.md)
-  (prompt files are not loaded by Agent Host / Copilot CLI, which reads `SKILL.md`). The skill carries
-  `disable-model-invocation: true` to preserve the prompt's explicit-invocation-only semantics; the prompt's
-  `agent: "agent"` frontmatter has no skill equivalent and was dropped. **Decision deferred:** whether to delete the
-  prompt (Agent-Host-only) or keep both (dual VS-Code-chat + Agent-Host support). Keep both until the skill is
-  runtime-validated in a fresh Copilot CLI session, then decide. If kept, edits must be mirrored across both files to
-  avoid drift.
+  (prompt files are not loaded by Agent Host / Copilot CLI, which reads `SKILL.md`). The skill originally carried
+  `disable-model-invocation: true` to preserve the prompt's explicit-invocation-only semantics, but that flag makes the
+  skill **unreachable** in Copilot CLI (it returns "Skill not found" even on explicit invocation — upstream bug
+  github/copilot-cli#4438), so it was **removed**. **Trade-off accepted:** the skill is now both explicitly invocable
+  **and** model-auto-invocable (it no longer enforces explicit-only invocation); its `description` is the only guard on
+  when the model reaches for it. The prompt's `agent: "agent"` frontmatter has no skill equivalent and was dropped.
+  **Decision deferred:** whether to delete the prompt (Agent-Host-only) or keep both (dual VS-Code-chat + Agent-Host
+  support). Keep both until the skill is runtime-validated in a fresh Copilot CLI session, then decide. If kept, edits
+  must be mirrored across both files to avoid drift. Re-add `disable-model-invocation: true` once github/copilot-cli#4438
+  is fixed and explicit-only semantics are wanted again.

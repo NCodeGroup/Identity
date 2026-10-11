@@ -20,3 +20,14 @@ export const Populated: Story = {
 };
 
 export const Empty: Story = { args: { tenants: [] } };
+
+export const WithActions: Story = {
+  args: {
+    tenants: [
+      { tenantId: 'root', displayName: 'Root', domainName: 'id.example', isDisabled: false },
+      { tenantId: 'old', displayName: 'Legacy', domainName: null, isDisabled: true },
+    ],
+    onEdit: () => undefined,
+    onDelete: () => undefined,
+  },
+};

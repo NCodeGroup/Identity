@@ -160,6 +160,10 @@ PublishScripts/
 **/packages/*
 # except build/, which is used as an MSBuild target.
 !**/packages/build/
+# ...and except the frontend workspace packages (src/frontend/packages/**), which are real
+# TypeScript source — not NuGet restore output. Their node_modules/dist/.turbo/coverage output
+# is re-ignored by the toolchain rules later in this file. See docs/adr/0064.
+!src/frontend/packages/**
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/packages/repositories.config
 # NuGet v3's project.json files produces more ignoreable files

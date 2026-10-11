@@ -1,0 +1,136 @@
+#region Copyright Preamble
+
+// Copyright @ 2025 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
+using Moq;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Messages.Parameters;
+using NCode.Identity.OpenId.Messages.Parsers;
+using Xunit;
+
+namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Results;
+
+public class DefaultAuthorizationResultExecutorTests : BaseTests
+{
+    private const string NormalName = "code";
+    private const string NormalValue = "auth-code";
+    private const string InternalName = OpenIdConstants.Parameters.CreatedWhen;
+    private const string InternalValue = "2025-01-01T00:00:00Z";
+
+    private static readonly Uri RedirectUri = new("https://client.example/callback");
+
+    private DefaultAuthorizationResultExecutor Executor { get; } = new();
+
+    #region Scaffolding
+
+    private IParameter CreateSerializedParameter()
+    {
+        var mockParser = CreateStrictMock<ParameterParser<string>>();
+        var knownParameter = new KnownParameter<string>(NormalName, mockParser.Object)
+        {
+            AllowMissingStringValues = true,
+        };
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        mockParser
+            .Setup(x =>
+                x.GetStringValues(
+                    It.IsAny<OpenIdEnvironment>(),
+                    It.IsAny<ParameterDescriptor>(),
+                    NormalValue
+                )
+            )
+            .Returns(new StringValues(NormalValue))
+            .Verifiable();
+
+        return new Parameter<string>(descriptor, mockParser.Object, NormalValue);
+    }
+
+    private IParameter CreateInternalParameter()
+    {
+        // A strict parser with no GetStringValues setup: if the executor ever tries to
+        // serialize this internal ($-prefixed) parameter, the strict mock throws.
+        var mockParser = CreateStrictMock<ParameterParser<string>>();
+        var knownParameter = new KnownParameter<string>(InternalName, mockParser.Object)
+        {
+            AllowMissingStringValues = true,
+            ShouldSerialize = OpenIdCommonParameters.ShouldSerializeAsJsonOnly,
+        };
+        var descriptor = new ParameterDescriptor(knownParameter);
+
+        return new Parameter<string>(descriptor, mockParser.Object, InternalValue);
+    }
+
+    private AuthorizationResult CreateResult(string responseMode)
+    {
+        var parameters = new ParameterCollection(
+            [CreateSerializedParameter(), CreateInternalParameter()],
+            cloneParameters: false
+        );
+
+        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
+        var mockTicket = CreateLooseMock<IAuthorizationTicket>();
+        mockTicket.SetupGet(x => x.State).Returns("state-value");
+        mockTicket.SetupGet(x => x.OpenIdEnvironment).Returns(mockEnvironment.Object);
+        mockTicket.SetupGet(x => x.Parameters).Returns(parameters);
+
+        return new AuthorizationResult(RedirectUri, responseMode, mockTicket.Object);
+    }
+
+    #endregion
+
+    #region ExecuteAsync Tests
+
+    [Fact]
+    public async Task ExecuteAsync_WhenResponseModeQuery_OmitsInternalParameters()
+    {
+        var result = CreateResult(OpenIdConstants.ResponseModes.Query);
+        var httpContext = new DefaultHttpContext();
+
+        await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        var location = httpContext.Response.Headers.Location.ToString();
+
+        Assert.Contains($"{NormalName}={NormalValue}", location, StringComparison.Ordinal);
+        Assert.DoesNotContain("created_when", location, StringComparison.Ordinal);
+        Assert.DoesNotContain(InternalValue, location, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenResponseModeFormPost_OmitsInternalParameters()
+    {
+        var result = CreateResult(OpenIdConstants.ResponseModes.FormPost);
+        var httpContext = new DefaultHttpContext();
+        var body = new MemoryStream();
+        httpContext.Response.Body = body;
+
+        await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        body.Position = 0;
+        var html = await new StreamReader(body).ReadToEndAsync();
+
+        Assert.Contains(NormalName, html, StringComparison.Ordinal);
+        Assert.Contains(NormalValue, html, StringComparison.Ordinal);
+        Assert.DoesNotContain("created_when", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(InternalValue, html, StringComparison.Ordinal);
+    }
+
+    #endregion
+}

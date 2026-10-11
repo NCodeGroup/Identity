@@ -657,6 +657,18 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
+            // require_request_object: whether an authorization request must be passed as a signed request object
+            // (via the request or request_uri parameter) rather than plain query parameters (default false).
+            // Floor (Or): once a parent requires it, a child cannot un-require it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.RequireRequestObject,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Or,
+            };
+
             // require_request_uri_registration: whether request_uri values must be pre-registered by the client.
             // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>

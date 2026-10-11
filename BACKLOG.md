@@ -18,7 +18,11 @@ and recurring work live in the repository. Code-local reminders may also use `//
 file is the catalog that makes those discoverable in one place.
 
 Entry convention: a short title, one-line context, and (where useful) the touch points. Remove an
-entry when the work lands (and note it in [`CHANGELOG.md`](CHANGELOG.md) if user-facing).
+entry when the work lands (and note it in [`CHANGELOG.md`](CHANGELOG.md) if user-facing). Because this
+file tracks **pending** work only, never mark an entry "Done" and leave it here — when work is fully
+done, delete the entry; when it is **partially** done, rewrite the entry so its title and context
+describe only the **remaining** work (the completed portion is stated as already-existing context, not
+as a "done" status).
 
 ---
 
@@ -128,13 +132,16 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   prerequisite (Dynamic Client Registration) is implemented ([ADR-0063](docs/adr/0063-dynamic-client-registration.md));
   the harness enables anonymous registration (`registration_endpoint_allow_anonymous`). Depends on the prerequisite
   work items `T2`–`T5` below (the seeded, automatable, correctly-advertised OP the harness drives).
-- **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** No interactive
-  login/consent UI exists; the authorize flow challenges a cookie scheme the Playground never registers.
-  Add an opt-in, dev-grade cookie scheme + login/consent pages exposing the stable Selenium locators the
-  suite drives, reusing the local-account credential path. Decision record:
+- **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface
+  implemented._ The OpenID Provider has an opt-in interactive login/consent surface
+  ([ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md)): a cookie scheme the authorize
+  challenge redirects into, plus a React + MUI `apps/auth` bundle (OP-hosted under `/account/*`) and credential
+  endpoints reusing the local-account path, exposing the stable locators (`username`, `password`, `login`,
+  `consent-allow`, `consent-deny`). Decision record:
   [ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md). Detailed plan:
-  [`docs/conformance/login-consent-ui.md`](docs/conformance/login-consent-ui.md). Depends on `T3`, `T4`;
-  independent of `F2`/`F6`.
+  [`docs/conformance/login-consent-ui.md`](docs/conformance/login-consent-ui.md). **Remaining for conformance:** a
+  seeded conformance identity (`T4`) and the reachable HTTPS host to drive it headlessly end-to-end (`T3`); independent
+  of `F2`/`F6`.
 - **`T3` — Reachable HTTPS Playground host for the external harness.** The only launchable host is the
   in-process `TestServer`; the suite needs a real HTTPS origin (Windows/Docker: `host.docker.internal`)
   whose discovery `issuer` byte-matches that origin (pin via the `tenant_issuer` setting). Detailed plan:
@@ -155,20 +162,27 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
 ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
 
-- **`U1` — Management auth bootstrap (authorization-code + PKCE).** _Done (client + wiring)._ The `@ncode/auth`
-  package implements the browser auth-code-with-PKCE flow (verifier/challenge, authorize redirect, state validation,
-  code/refresh token exchange, JWT subject) and the console's `AuthGate` completes the callback into `signedIn(...)` for
-  a `urn:ncode:management`-audience token. **Still open:** automatic silent token renewal (a `refreshAccessToken`
-  helper exists but no expiry-driven renew timer), and end-to-end sign-in requires a seeded/registered **public SPA
-  client** (redirect URI + PKCE) and the interactive login UI (`T2`). Touch points: `src/frontend/packages/auth`,
-  `packages/store` (`authSlice`), `apps/mgmt` (`AuthGate`, `auth.ts`).
-- **`U7` — Dev UI↔API connectivity.** _CORS done._ A VS Code compound launch starts both servers (`API + UI`), and
-  the Playground now opts into `AddDeveloperCors`/`UseDeveloperCors` (in `NCode.Identity.Server`), so the browser UI at
-  `http://localhost:5173` can read discovery and call the management API cross-origin. **Still open:** the SPA is
-  **unauthenticated** — management calls return `401` until a **public SPA client** (redirect URI + PKCE) is seeded and
-  the interactive login (`T2`) exists; that end-to-end auth work is tracked under `U1`. Touch points:
-  `src/NCode.Identity.OpenId.Playground/Program.cs`, `src/NCode.Identity.Server/DevelopmentEnvironment`,
-  `apps/mgmt/public/config/bootstrap.json` (set `clientId` once the client is seeded).
+- **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._
+  `@ncode/auth` gained `createTokenRenewer` (an expiry-driven renewal loop that re-arms from each new token and falls
+  back to interactive sign-in on failure), driven by the console's `AuthGate` while signed in. The interactive login
+  surface (`T2`, [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md)) and the seeded public
+  SPA client + administrator user (`AddDeveloperInteractiveSeed`) let the auth-code-with-PKCE flow complete end to end
+  against the Playground. **Verified live:** authorize → interactive login → code → token issues a
+  `urn:ncode:management` access token whose `GlobalAdmin` role (projected by `DeveloperInteractiveSubjectClaimsHandler`,
+  ADR-0055) authorizes management reads/writes (`GET /api/servers`, `/api/tenants`, `/api/tenants/{id}/clients` all
+  return `200`). Three latent bugs surfaced and were fixed to get there: the auth-code grant was persisted in the wrong
+  shape (subject dropped), access-token validation failures were silently swallowed, and multi-audience `aud` validation
+  wrongly required every audience to be expected (see CHANGELOG `Fixed`). Touch points: `src/frontend/packages/auth`,
+  `packages/store` (`authSlice`), `apps/mgmt` (`AuthGate`, `auth.ts`),
+  `src/NCode.Identity.Server/DevelopmentEnvironment` (`DeveloperInteractiveSeedHandler`).
+- **`U7` — Dev UI↔API connectivity.** _Done._ A VS Code compound launch starts
+  both servers (`API + UI`), the Playground opts into `AddDeveloperCors`/`UseDeveloperCors`, and it now also opts into
+  the interactive login surface (`AddInteractiveAuthentication` / `MapInteractiveAuthentication`) and seeds a public SPA
+  client (`mgmt-spa`) + administrator user. `apps/mgmt/public/config/bootstrap.json` sets `clientId: mgmt-spa`, so the
+  console enforces sign-in. **Verified live:** a cookieless Bearer token minted by the end-to-end flow authorizes the
+  management API (the scope-grant / `GlobalAdmin`-projection check tracked under `U1`). Touch points:
+  `src/NCode.Identity.OpenId.Playground/Program.cs`,
+  `src/NCode.Identity.Server/DevelopmentEnvironment`, `apps/mgmt/public/config/bootstrap.json`.
 - **`U2` — Management write operations (create/update/delete + settings/secrets).** The console reads tenants/clients
   today; add RTK Query mutations with tag invalidation and MUI forms for the full CRUD surface already exposed by the
   REST API (tenants, clients, resource servers/scopes, grants, secrets, settings PATCH, effective-settings), honoring
@@ -185,6 +199,12 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
+- **`U8` — Strip internal `$`-prefixed ticket parameters from the authorization response.** The interactive flow
+  surfaced that an internal ticket parameter (`$created_when`, `OpenIdConstants.Parameters.CreatedWhen`) leaks into the
+  authorization response callback query string sent back to the client. `$`-prefixed parameters are internal and should
+  never appear on the wire; the authorization-response/ticket rendering should omit them. Low priority (cosmetic — the
+  client ignores unknown params), but it is protocol hygiene. Touch point:
+  `src/NCode.Identity.OpenId.Core/Endpoints/Authorization/Results/AuthorizationResultExecutor.cs`.
 
 ## Secrets management (group `S`)
 

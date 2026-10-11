@@ -33,12 +33,11 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 /// Provides a default implementation of the <see cref="IContinueProvider"/> abstraction for handling authorization continuations.
 /// </summary>
 internal class DefaultAuthorizationContinueProvider(
-    IClientAuthenticationService clientAuthenticationService,
+    IOpenIdClientResolver clientResolver,
     IAuthorizationEndpointLogic authorizationEndpointLogic
 ) : IContinueProvider
 {
-    private IClientAuthenticationService ClientAuthenticationService { get; } =
-        clientAuthenticationService;
+    private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
     private IAuthorizationEndpointLogic AuthorizationEndpointLogic { get; } =
         authorizationEndpointLogic;
 
@@ -55,24 +54,26 @@ internal class DefaultAuthorizationContinueProvider(
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdContext.ErrorFactory;
 
-        var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
-            openIdContext,
-            cancellationToken
-        );
-
-        if (!authResult.HasClient)
-        {
-            var error = authResult.Error ?? errorFactory.InvalidClient();
-            error.StatusCode = StatusCodes.Status400BadRequest;
-            return ReadOnlyEndpointDisposition.Handled(error.AsHttpResult());
-        }
-
-        var openIdClient = authResult.Client;
         var authorizationRequest = continuePayloadJson.Deserialize<IAuthorizationRequest>(
             openIdEnvironment.JsonSerializerOptions
         );
         if (authorizationRequest == null)
             throw new InvalidOperationException("JSON deserialization returned null.");
+
+        // The consumed-once continuation grant is itself the authorization proof (the original request already
+        // identified and validated the client), and the credential-less resumption request carries nothing to
+        // authenticate. Resolve the client the continuation captured rather than re-authenticating it.
+        var openIdClient = await ClientResolver.ResolveClientOrDefaultAsync(
+            openIdContext,
+            authorizationRequest.ClientId,
+            cancellationToken
+        );
+        if (openIdClient is null)
+        {
+            var error = errorFactory.InvalidClient();
+            error.StatusCode = StatusCodes.Status400BadRequest;
+            return ReadOnlyEndpointDisposition.Handled(error.AsHttpResult());
+        }
 
         authorizationRequest.IsContinuation = true;
 

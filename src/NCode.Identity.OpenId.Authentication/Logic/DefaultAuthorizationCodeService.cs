@@ -22,6 +22,7 @@ using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
@@ -67,12 +68,18 @@ internal class DefaultAuthorizationCodeService(
             authorizationCode
         );
 
-        var persistedGrant = new PersistedGrant<IAuthorizationRequest>
+        // The token endpoint resumes this grant as an AuthorizationGrant, so persist both the request and the
+        // authenticated subject (not the request alone) to match that shape and carry the subject forward.
+        var authorizationGrant = new AuthorizationGrant(
+            authorizationRequest,
+            subjectAuthentication
+        );
+        var persistedGrant = new PersistedGrant<AuthorizationGrant>
         {
             TenantId = tenantId,
             ClientId = clientId,
             SubjectId = subjectId,
-            Payload = authorizationRequest,
+            Payload = authorizationGrant,
         };
 
         var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();

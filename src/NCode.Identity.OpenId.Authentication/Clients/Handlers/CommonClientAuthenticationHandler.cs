@@ -26,13 +26,7 @@ using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Secrets.Persistence.Logic;
-using NCode.Identity.Settings;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 
@@ -40,33 +34,21 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// Provides a common base for <see cref="IClientAuthenticationHandler"/> implementations.
 /// </summary>
 internal abstract class CommonClientAuthenticationHandler(
-    IStoreManagerFactory storeManagerFactory,
+    IOpenIdClientResolver clientResolver,
     IOpenIdClientFactory clientFactory,
-    ISettingSerializer settingSerializer,
-    ISecretSerializer secretSerializer,
     IAuditEventRecorder auditEventRecorder,
     ILogger logger
 ) : IClientAuthenticationHandler
 {
     /// <summary>
-    /// Gets the <see cref="IStoreManagerFactory"/> instance.
+    /// Gets the <see cref="IOpenIdClientResolver"/> instance.
     /// </summary>
-    protected IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    protected IOpenIdClientResolver ClientResolver { get; } = clientResolver;
 
     /// <summary>
     /// Gets the <see cref="IOpenIdClientFactory"/> instance.
     /// </summary>
     protected IOpenIdClientFactory ClientFactory { get; } = clientFactory;
-
-    /// <summary>
-    /// Gets the <see cref="ISettingSerializer"/> instance.
-    /// </summary>
-    protected ISettingSerializer SettingSerializer { get; } = settingSerializer;
-
-    /// <summary>
-    /// Gets the <see cref="ISecretSerializer"/> instance.
-    /// </summary>
-    protected ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     /// <summary>
     /// Gets the <see cref="IAuditEventRecorder"/> instance.
@@ -106,33 +88,12 @@ internal abstract class CommonClientAuthenticationHandler(
     {
         var tenantId = openIdContext.Tenant.TenantId;
 
-        var persistedClient = await TryGetPersistedClientAsync(clientId, cancellationToken);
-        if (
-            persistedClient is null
-            || persistedClient.IsDisabled
-            || !string.Equals(tenantId, persistedClient.TenantId, StringComparison.Ordinal)
-        )
-        {
-            Logger.ClientAuthenticationClientNotFound(clientId, tenantId);
-            await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
-                openIdContext,
-                clientId,
-                "client_not_found",
-                cancellationToken
-            );
-            return new ClientAuthenticationResult(
-                openIdContext
-                    .ErrorFactory.InvalidClient()
-                    .WithStatusCode(StatusCodes.Status400BadRequest)
-            );
-        }
-
-        OpenIdClient publicClient;
+        OpenIdClient? publicClient;
         try
         {
-            publicClient = await CreatePublicClientAsync(
+            publicClient = await ClientResolver.ResolveClientOrDefaultAsync(
                 openIdContext,
-                persistedClient,
+                clientId,
                 cancellationToken
             );
         }
@@ -150,6 +111,22 @@ internal abstract class CommonClientAuthenticationHandler(
                 openIdContext,
                 clientId,
                 "credential_deserialization_failed",
+                cancellationToken
+            );
+            return new ClientAuthenticationResult(
+                openIdContext
+                    .ErrorFactory.InvalidClient()
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+            );
+        }
+
+        if (publicClient is null)
+        {
+            Logger.ClientAuthenticationClientNotFound(clientId, tenantId);
+            await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+                openIdContext,
+                clientId,
+                "client_not_found",
                 cancellationToken
             );
             return new ClientAuthenticationResult(
@@ -230,60 +207,6 @@ internal abstract class CommonClientAuthenticationHandler(
                 .ErrorFactory.InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
         );
-    }
-
-    /// <summary>
-    /// Attempts to get the persisted client with the specified identifier.
-    /// </summary>
-    /// <param name="clientId">The identifier of the client to retrieve.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="PersistedClient"/> instance matching the specified <paramref name="clientId"/> if it exists.</returns>
-    protected async ValueTask<PersistedClient?> TryGetPersistedClientAsync(
-        string clientId,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        var persistedClient = await store.GetOrDefaultAsync(clientId, cancellationToken);
-        return persistedClient;
-    }
-
-    /// <summary>
-    /// Creates a public client using the specified <paramref name="openIdContext"/> and <paramref name="persistedClient"/>.
-    /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
-    /// <param name="persistedClient">The <see cref="PersistedClient"/> instance to create the client from.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="OpenIdClient"/> instance.</returns>
-    protected async ValueTask<OpenIdClient> CreatePublicClientAsync(
-        OpenIdContext openIdContext,
-        PersistedClient persistedClient,
-        CancellationToken cancellationToken
-    )
-    {
-        var openIdEnvironment = openIdContext.Environment;
-        var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var clientSettings = SettingSerializer.DeserializeSettings(
-            persistedClient.Settings.Value,
-            jsonOptions
-        );
-        var parentSettings = openIdContext.Tenant.SettingsProvider.Collection;
-        var effectiveSettings = parentSettings.Merge(clientSettings);
-
-        var secrets = SecretSerializer.DeserializeSecrets(persistedClient.Secrets.Value);
-
-        var publicClient = await ClientFactory.CreatePublicClientAsync(
-            openIdContext,
-            persistedClient.ClientId,
-            effectiveSettings,
-            secrets,
-            cancellationToken
-        );
-
-        return publicClient;
     }
 
     /// <summary>

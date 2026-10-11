@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 using NCode.Identity.Server;
+using NCode.Identity.Server.InteractiveAuthentication;
 using NCode.Registration.AspNetCore;
 
 // COMPOSITION-ONLY HOST: this file is a flat list of turnkey Add*/Use*/Map* calls. Reusable or
@@ -70,6 +71,12 @@ serviceCollection.AddLocalAccountAuthentication();
 // Enable the local-account management endpoints (nested under the tenant-plane group). The account stack provides this
 // capability (dependency inversion); the Management slice itself does not depend on accounts.
 serviceCollection.AddLocalAccountManagement();
+
+// DEVELOPMENT CONVENIENCE: opt into the interactive login/consent surface (a cookie scheme plus the /account/*
+// endpoints that serve the apps/auth bundle and verify local-account credentials) so the authorize flow completes
+// end-to-end, and seed a public SPA client + administrator user so the management console can sign in.
+serviceCollection.AddInteractiveAuthentication(configuration, hostEnvironment);
+serviceCollection.AddDeveloperInteractiveSeed(configuration);
 
 // DEVELOPMENT ONLY: choose how signing keys are provided (see ADR-0002). The default is ephemeral,
 // in-memory keys (hermetic, ideal for tests). Local running can opt into persistent developer keys —
@@ -124,6 +131,9 @@ app.MapIdentityServerApiReference();
 app.UseHttpLogging();
 app.UseHttpsRedirection();
 
+// Serve the interactive login/consent bundle's static assets under /account/* (a no-op unless a bundle is configured).
+app.UseInteractiveAuthentication();
+
 app.UseRouting();
 
 // Must run after UseRouting and before the authN/authZ + endpoint middleware. A no-op unless
@@ -135,6 +145,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapEndpointGroups();
+app.MapInteractiveAuthentication();
 app.MapHealthChecks("/health").WithName("health_endpoint");
 
 await app.RunAsync();

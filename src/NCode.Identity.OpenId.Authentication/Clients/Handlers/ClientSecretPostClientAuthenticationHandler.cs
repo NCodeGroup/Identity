@@ -20,9 +20,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.Secrets.Persistence.Logic;
-using NCode.Identity.Settings;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 
@@ -30,21 +27,12 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses <c>client_id</c> and <c>client_secret</c> from the HTTP Request Body.
 /// </summary>
 internal class ClientSecretPostClientAuthenticationHandler(
-    IStoreManagerFactory storeManagerFactory,
+    IOpenIdClientResolver clientResolver,
     IOpenIdClientFactory clientFactory,
-    ISettingSerializer settingSerializer,
-    ISecretSerializer secretSerializer,
     IAuditEventRecorder auditEventRecorder,
     ILogger<ClientSecretPostClientAuthenticationHandler> logger
 )
-    : CommonClientAuthenticationHandler(
-        storeManagerFactory,
-        clientFactory,
-        settingSerializer,
-        secretSerializer,
-        auditEventRecorder,
-        logger
-    ),
+    : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger),
         IClientAuthenticationHandler
 {
     /// <inheritdoc />

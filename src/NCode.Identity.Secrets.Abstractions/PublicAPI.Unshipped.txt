@@ -105,8 +105,6 @@ NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector
 NCode.Identity.Secrets.SecretKeyTypes
 NCode.Identity.Secrets.SecretKeyUses
 NCode.Identity.Secrets.SecretsLibrary
-NCode.Identity.Secrets.SecretsLibrary.ConfigureMethod.get -> string!
-NCode.Identity.Secrets.SecretsLibrary.DisplayName.get -> string!
 NCode.Identity.Secrets.SecretsLibrary.SecretsLibrary() -> void
 override NCode.Identity.Secrets.Keys.EccSecretKey.KeyType.get -> string!
 override NCode.Identity.Secrets.Keys.RsaSecretKey.KeyType.get -> string!

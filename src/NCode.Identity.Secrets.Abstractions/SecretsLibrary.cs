@@ -25,11 +25,4 @@ namespace NCode.Identity.Secrets;
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>
 [PublicAPI]
-public readonly struct SecretsLibrary : IRegistrationMarker<SecretsLibrary>
-{
-    /// <inheritdoc />
-    public string DisplayName => "NCode.Identity.Secrets";
-
-    /// <inheritdoc />
-    public string ConfigureMethod => "AddSecretsLibrary";
-}
+public readonly struct SecretsLibrary : IRegistrationMarker<SecretsLibrary>;

@@ -13,7 +13,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.UseIdGeneratorAt
 NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.UseIdGeneratorAttribute.UseIdGeneratorAttribute() -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.DefaultRegistration
 NCode.Identity.OpenId.Persistence.EntityFramework.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.OpenId.Persistence.EntityFramework.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEntityFrameworkPersistenceServices<TDbContext>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.OpenId.Persistence.EntityFramework.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEntityFrameworkPersistenceServices<TDbContext>() -> NCode.Registration.IServiceBuilder<NCode.Persistence.StoreManagerLibrary>!
 NCode.Identity.OpenId.Persistence.EntityFramework.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddStore<TDbContext, TService, TImplementation>() -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity.NormalizedTenantId.get -> string!

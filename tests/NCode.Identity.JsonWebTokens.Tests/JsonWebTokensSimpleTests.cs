@@ -92,19 +92,6 @@ public class JsonWebTokensSimpleTests
 
     #endregion
 
-    #region JsonWebTokensLibrary Tests
-
-    [Fact]
-    public void JsonWebTokensLibrary_ExposesMarkerMetadata()
-    {
-        var library = new JsonWebTokensLibrary();
-
-        Assert.Equal("NCode.Identity.JsonWebTokens", library.DisplayName);
-        Assert.Equal("AddJsonWebTokensLibrary", library.ConfigureMethod);
-    }
-
-    #endregion
-
     #region EncodeJwtParameters Tests
 
     [Fact]

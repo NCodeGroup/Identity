@@ -457,8 +457,6 @@ NCode.Identity.OpenId.Management.ManagementError.ManagementError() -> void
 NCode.Identity.OpenId.Management.ManagementError.StatusCode.get -> int
 NCode.Identity.OpenId.Management.ManagementError.StatusCode.init -> void
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary
-NCode.Identity.OpenId.Management.OpenIdManagementLibrary.ConfigureMethod.get -> string!
-NCode.Identity.OpenId.Management.OpenIdManagementLibrary.DisplayName.get -> string!
 NCode.Identity.OpenId.Management.OpenIdManagementLibrary.OpenIdManagementLibrary() -> void
 NCode.Identity.OpenId.Management.Operations
 override NCode.Identity.OpenId.Management.Auditing.ClientChangedAuditEvent.ResourceType.get -> string!

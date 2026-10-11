@@ -21,7 +21,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Persistence;
 using NCode.Persistence.Stores;
+using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 
@@ -31,20 +33,26 @@ namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    extension(IServiceCollection serviceCollection)
+    /// <param name="builder">The builder proving the store-manager framework (the Entity Framework persistence) is
+    /// registered — the adapter registers a factory the store manager resolves.</param>
+    extension(IServiceBuilder<StoreManagerLibrary> builder)
     {
         /// <summary>
         /// Registers an <see cref="ILocalAccountStore"/> that adapts the ASP.NET Core Identity
-        /// <c>UserManager&lt;TUser&gt;</c> for the specified user type. Registering a store is what enables the
-        /// local-account surfaces (there is no separate capability marker; a consumer reports local accounts as
-        /// unsupported until a store is present, per ADR-0061). The host is responsible for registering ASP.NET Core
-        /// Identity (<c>AddIdentityCore&lt;TUser&gt;</c> or <c>AddIdentity</c>) and its stores.
+        /// <c>UserManager&lt;TUser&gt;</c> for the specified user type, together with the <see cref="LocalAccountLibrary"/>
+        /// marker that the opt-in local-account capabilities require as a compile-time argument. The host is responsible
+        /// for registering ASP.NET Core Identity (<c>AddIdentityCore&lt;TUser&gt;</c> or <c>AddIdentity</c>) and its
+        /// stores.
         /// </summary>
         /// <typeparam name="TUser">The ASP.NET Core Identity user type.</typeparam>
-        /// <returns>The <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddAspNetIdentityLocalAccountStore<TUser>()
+        /// <returns>The <see cref="IServiceBuilder{T}"/> proving a local-account store is registered.</returns>
+        public IServiceBuilder<LocalAccountLibrary> AddAspNetIdentityLocalAccountStore<TUser>()
             where TUser : IdentityUser, new()
         {
+            var serviceCollection = builder.ServiceCollection;
+
+            var newBuilder = serviceCollection.NewBuilder<LocalAccountLibrary>();
+
             // The store is backing-store-agnostic, so it registers the DbContext-less factory the store manager falls
             // back to; the scoped UserManager is resolved per operation from a fresh scope.
             serviceCollection.AddSingleton<Func<IStoreProvider, ILocalAccountStore>>(
@@ -56,7 +64,7 @@ public static class DefaultRegistration
                         )
             );
 
-            return serviceCollection;
+            return newBuilder;
         }
     }
 }

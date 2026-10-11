@@ -48,7 +48,7 @@ public interface IServiceBuilder
 /// <typeparam name="TMarker">The type that discriminates the service builder.</typeparam>
 [PublicAPI]
 public interface IServiceBuilder<TMarker> : IServiceBuilder
-    where TMarker : IMarker<TMarker>
+    where TMarker : IRegistrationMarker<TMarker>, new()
 {
     // nothing
 }

@@ -1,4 +1,6 @@
 #nullable enable
+NCode.Persistence.StoreManagerLibrary
+NCode.Persistence.StoreManagerLibrary.StoreManagerLibrary() -> void
 NCode.Persistence.Stores.IStore
 NCode.Persistence.Stores.IStore<T>
 NCode.Persistence.Stores.IStore<T>.AddAsync(T item, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

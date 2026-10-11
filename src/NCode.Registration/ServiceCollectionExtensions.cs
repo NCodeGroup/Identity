@@ -49,32 +49,6 @@ public static class ServiceCollectionExtensions
         }
 
         /// <summary>
-        /// Verifies that services for <typeparamref name="TMarker"/> are registered in the <see cref="IServiceCollection"/>.
-        /// </summary>
-        /// <param name="message">The message to include in the exception when required services are not registered.
-        /// If <c>null</c> or empty, a default message is used.</param>
-        /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
-        /// <returns>The <see cref="IServiceCollection"/> instance for chaining additional calls.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when the required services for <typeparamref name="TMarker"/> are not registered in the <see cref="IServiceCollection"/>.</exception>
-        /// <remarks>
-        /// This entire project uses a design where implementation libraries do not depend on (aka have a direct reference to)
-        /// other implementation libraries. Implementation libraries only depend on abstraction libraries. Therefore, this method
-        /// is used to verify that the composition root has registered all the required services throughout the entire stack.
-        /// </remarks>
-        [PublicAPI]
-        public IServiceCollection VerifyIsRegistered<TMarker>(string? message = null)
-            where TMarker : IRegistrationMarker<TMarker>, new()
-        {
-            if (!serviceCollection.IsRegistered<TMarker>())
-            {
-                var effectiveMessage = GetMarkerNotFoundMessage<TMarker>(message);
-                throw new InvalidOperationException(effectiveMessage);
-            }
-
-            return serviceCollection;
-        }
-
-        /// <summary>
         /// Registers a new registration marker with the specified type discriminator in the <see cref="IServiceCollection"/>.
         /// </summary>
         /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
@@ -92,7 +66,7 @@ public static class ServiceCollectionExtensions
             if (serviceCollection.IsRegistered<TMarker>())
             {
                 throw new InvalidOperationException(
-                    $"Services for '{marker.DisplayName}' have already been registered."
+                    $"Services for '{typeof(TMarker).FullName}' have already been registered."
                 );
             }
 
@@ -111,24 +85,5 @@ public static class ServiceCollectionExtensions
         {
             return new ServiceBuilder<TNewMarker>(serviceCollection);
         }
-    }
-
-    /// <summary>
-    /// Gets the effective error message for when a registration marker is not found.
-    /// </summary>
-    /// <param name="message">The custom message provided by the caller, or <c>null</c> to use the default message.</param>
-    /// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
-    /// <returns>The effective error message to use in the exception.</returns>
-    private static string GetMarkerNotFoundMessage<TMarker>(string? message)
-        where TMarker : IRegistrationMarker<TMarker>, new()
-    {
-        if (string.IsNullOrEmpty(message))
-        {
-            var marker = new TMarker();
-            message =
-                $"The services for '{marker.DisplayName}' have not been registered. Please call the '{marker.ConfigureMethod}' method.";
-        }
-
-        return message;
     }
 }

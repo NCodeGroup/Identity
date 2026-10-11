@@ -132,3 +132,12 @@ store-factory fallback, so the adapter need not reference the concrete `DbContex
 - The ASP.NET Core Identity adapter now implements `ILocalAccountStore` (registered via
   `AddAspNetIdentityLocalAccountStore<TUser>()`); the `EntityStoreManager` gains a DbContext-less store-factory fallback
   so non-EF stores resolve without referencing `OpenIdDbContext`.
+- Every store registration mints the `LocalAccountLibrary` presence marker (`NCode.Identity.OpenId.Accounts.Abstractions`)
+  so the opt-in account capabilities (resource-owner password grant, interactive credential verifier, management)
+  **require that marker as a required `IServiceBuilder<LocalAccountLibrary>` parameter** (their receiver stays the OpenId
+  library they extend) — a capability cannot even be written
+  without a store, so the mistake is a compile error rather than a startup or resolution-time failure. The store stays
+  dependency-inverted with no _library_ prerequisite, but it builds on the persistence framework seam, so it receives
+  `IServiceBuilder<StoreManagerLibrary>` and returns the `LocalAccountLibrary` builder as proof that a store exists; a
+  custom `ILocalAccountStore` must mint/return it too (see
+  [ADR-0069](0069-registration-library-compile-time-marker-nesting.md)).

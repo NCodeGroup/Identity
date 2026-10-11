@@ -289,8 +289,6 @@ NCode.Identity.Jose.JoseEncryptionOptions
 NCode.Identity.Jose.JoseEncryptionOptions.EncryptionCredentials.get -> NCode.Identity.Jose.Credentials.JoseEncryptionCredentials!
 NCode.Identity.Jose.JoseEncryptionOptions.JoseEncryptionOptions(NCode.Identity.Jose.Credentials.JoseEncryptionCredentials! encryptionCredentials) -> void
 NCode.Identity.Jose.JoseLibrary
-NCode.Identity.Jose.JoseLibrary.ConfigureMethod.get -> string!
-NCode.Identity.Jose.JoseLibrary.DisplayName.get -> string!
 NCode.Identity.Jose.JoseLibrary.JoseLibrary() -> void
 NCode.Identity.Jose.JoseProtectionTypes
 NCode.Identity.Jose.JoseSigningOptions

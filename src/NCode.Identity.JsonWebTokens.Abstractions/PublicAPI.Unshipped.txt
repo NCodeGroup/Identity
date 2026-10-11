@@ -1,5 +1,3 @@
 #nullable enable
 NCode.Identity.JsonWebTokens.JsonWebTokensLibrary
-NCode.Identity.JsonWebTokens.JsonWebTokensLibrary.ConfigureMethod.get -> string!
-NCode.Identity.JsonWebTokens.JsonWebTokensLibrary.DisplayName.get -> string!
 NCode.Identity.JsonWebTokens.JsonWebTokensLibrary.JsonWebTokensLibrary() -> void

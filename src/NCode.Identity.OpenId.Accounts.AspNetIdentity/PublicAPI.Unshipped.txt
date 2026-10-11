@@ -1,4 +1,4 @@
 #nullable enable
 NCode.Identity.OpenId.Accounts.AspNetIdentity.DefaultRegistration
-NCode.Identity.OpenId.Accounts.AspNetIdentity.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.OpenId.Accounts.AspNetIdentity.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddAspNetIdentityLocalAccountStore<TUser>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.OpenId.Accounts.AspNetIdentity.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Persistence.StoreManagerLibrary>!)
+NCode.Identity.OpenId.Accounts.AspNetIdentity.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Persistence.StoreManagerLibrary>!).AddAspNetIdentityLocalAccountStore<TUser>() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Accounts.LocalAccountLibrary>!

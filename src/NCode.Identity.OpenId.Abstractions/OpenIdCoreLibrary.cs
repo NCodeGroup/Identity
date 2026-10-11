@@ -25,11 +25,4 @@ namespace NCode.Identity.OpenId;
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>
 [PublicAPI]
-public readonly struct OpenIdCoreLibrary : IRegistrationMarker<OpenIdCoreLibrary>
-{
-    /// <inheritdoc />
-    public string DisplayName => "NCode.Identity.OpenId.Core";
-
-    /// <inheritdoc />
-    public string ConfigureMethod => "AddOpenIdCoreLibrary";
-}
+public readonly struct OpenIdCoreLibrary : IRegistrationMarker<OpenIdCoreLibrary>;

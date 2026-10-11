@@ -19,6 +19,34 @@ NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCount.get -> long
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCount.init -> void
 NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.ResourceServerEffectiveSettingsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.ResourceServerId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.ResourceServerId.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSecretsResource
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSecretsResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSecretsResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSecretsResource.ResourceServerId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSecretsResource.ResourceServerId.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSecretsResource.ResourceServerSecretsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSecretsResource.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource!>!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSecretsResource.Secrets.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSecretsResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSecretsResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.ResourceServerId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.ResourceServerId.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.ResourceServerSettingsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.TenantId.init -> void
 override NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent.ResourceType.get -> string!
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -199,8 +227,6 @@ NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResourc
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.ResourceServerResource() -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Scopes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource!>!
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Scopes.init -> void
-NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.Settings.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ScopeResource
@@ -220,8 +246,6 @@ NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerR
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.IsDisabled.set -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.Name.get -> string!
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.Name.set -> void
-NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.Settings.set -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateResourceServerRequest.UpdateResourceServerRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateScopeRequest
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.UpdateScopeRequest.Description.get -> string?

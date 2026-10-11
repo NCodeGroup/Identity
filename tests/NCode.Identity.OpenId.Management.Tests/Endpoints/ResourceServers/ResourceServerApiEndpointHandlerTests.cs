@@ -18,19 +18,28 @@
 
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
+using NCode.Identity.OpenId.Management.Contracts.Secrets;
+using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
+using SystemTextJsonPatch;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
@@ -46,6 +55,11 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private Mock<IResourceServerStore> MockStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<IResourceServerValidator> MockValidator { get; }
+    private Mock<ISecretValidator> MockSecretValidator { get; }
+    private Mock<ISecretGenerator> MockSecretGenerator { get; }
+    private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
+    private Mock<ISettingSerializer> MockSettingSerializer { get; }
+    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private ResourceServerApiEndpointHandler Handler { get; }
@@ -58,6 +72,11 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockStore = MockRepository.Create<IResourceServerStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockValidator = MockRepository.Create<IResourceServerValidator>();
+        MockSecretValidator = MockRepository.Create<ISecretValidator>();
+        MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
+        MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
+        MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
+        MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -78,7 +97,13 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockValidator.Object,
+            MockSecretValidator.Object,
+            MockSecretGenerator.Object,
+            MockSecretPublicKeyConverter.Object,
+            TimeProvider.System,
             MockCryptoService.Object,
+            MockSettingSerializer.Object,
+            MockServerProvider.Object,
             MockResourceOwnershipService.Object,
             NullLogger<ResourceServerApiEndpointHandler>.Instance
         );
@@ -144,8 +169,19 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             Name = "Example API",
             IsSystem = isSystem,
             IsDisabled = false,
-            Settings = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            Settings = new PersistedResourceServerSettings
+            {
+                TenantId = TenantId,
+                ResourceServerId = ResourceServerId,
+                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
             Scopes = scopes,
+            Secrets = new PersistedResourceServerSecrets
+            {
+                TenantId = TenantId,
+                ResourceServerId = ResourceServerId,
+                Value = [],
+            },
         };
 
     [Fact]
@@ -297,5 +333,200 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var created = Assert.IsType<Created<ScopeResource>>(result);
         Assert.Equal("read:x", created.Value?.Value);
+    }
+
+    private static PersistedSecret CreatePersistedSecret() =>
+        new()
+        {
+            SecretId = "secret-1",
+            ConcurrencyToken = "secret-ct",
+            Use = "sig",
+            Algorithm = "RS256",
+            CreatedWhen = DateTimeOffset.UtcNow,
+            ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            EncodedValue = "encoded",
+        };
+
+    [Fact]
+    public async Task GetSettingsAsync_WhenAuthorized_ReturnsSettings()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+
+        var result = await Handler.GetSettingsAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<ResourceServerSettingsResource>>(result);
+        Assert.Equal(ResourceServerId, json.Value?.ResourceServerId);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.UpdateSettingsAsync(
+                    It.IsAny<PersistedResourceServerSettings>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(),
+            ResourceServerId,
+            new JsonPatchDocument<JsonObject>(),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task GetSecretsAsync_WhenAuthorized_ReturnsSecrets()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PersistedResourceServerSecrets
+                {
+                    TenantId = TenantId,
+                    ResourceServerId = ResourceServerId,
+                    ConcurrencyToken = "sec-ct",
+                    Value = [CreatePersistedSecret()],
+                }
+            )
+            .Verifiable();
+
+        var result = await Handler.GetSecretsAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<ResourceServerSecretsResource>>(result);
+        Assert.Single(json.Value?.Secrets ?? []);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenAuthorized_ReturnsCreatedWithMaterial()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        MockSecretValidator
+            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Returns((ManagementError?)null)
+            .Verifiable();
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Returns("secret-1")
+            .Verifiable();
+
+        var generated = CreatePersistedSecret();
+        MockSecretGenerator
+            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = "revealed" })
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.AddSecretAsync(ResourceServerId, generated, It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.CreateSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new CreateSecretRequest
+            {
+                SecretType = "rsa",
+                KeySizeBits = 2048,
+                Use = null,
+                Algorithm = null,
+                ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<CreatedSecretResource>>(result);
+        Assert.Equal("secret-1", created.Value?.SecretId);
+        Assert.Equal("revealed", created.Value?.SecretMaterial);
+    }
+
+    [Fact]
+    public async Task DeleteSecretAsync_WhenAuthorized_ReturnsNoContent()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(
+                    ResourceServerId,
+                    "secret-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PersistedResourceServerSecret
+                {
+                    TenantId = TenantId,
+                    ResourceServerId = ResourceServerId,
+                    Value = CreatePersistedSecret(),
+                }
+            )
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.RemoveSecretAsync(ResourceServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.DeleteSecretAsync(
+            CreateHttpContext(),
+            ResourceServerId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
     }
 }

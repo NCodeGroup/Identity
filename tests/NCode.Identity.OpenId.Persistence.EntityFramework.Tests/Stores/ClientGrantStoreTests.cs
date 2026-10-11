@@ -143,8 +143,19 @@ public sealed class ClientGrantStoreTests : IDisposable
                 Name = "Example API",
                 IsSystem = false,
                 IsDisabled = false,
-                Settings = EmptyObject(),
+                Settings = new PersistedResourceServerSettings
+                {
+                    TenantId = TenantId,
+                    ResourceServerId = ResourceServerId,
+                    Value = EmptyObject(),
+                },
                 Scopes = [],
+                Secrets = new PersistedResourceServerSecrets
+                {
+                    TenantId = TenantId,
+                    ResourceServerId = ResourceServerId,
+                    Value = [],
+                },
             },
             CancellationToken.None
         );

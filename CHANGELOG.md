@@ -10,6 +10,20 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Resource servers are first-class settings and secret owners (backend).** Completes the backend half of backlog
+  `U2`: a resource server (an API, in Auth0 terms) now owns a wrapped settings object (its own concurrency token) and a
+  secret collection, structurally identical to clients/tenants/servers. New management endpoints —
+  `GET`/`PATCH api/tenants/{tenantId}/resource-servers/{id}/settings`, `GET .../effective-settings` (server → tenant →
+  resource-server merge), and the full `.../secrets` CRUD honoring the one-time reveal
+  ([ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md)) with optimistic concurrency
+  (`concurrencyToken` → `If-Match`). The persistence model gains `PersistedResourceServerSettings`/`…Secrets` (and a
+  `BasePersistedResourceServerResource` base, `ISupportResourceServerId`, the `resource_server` resource type),
+  `IResourceServerStore` gains `UpdateSettingsAsync` + secret CRUD, and EF Core adds
+  `SettingsConcurrencyToken`/`SecretsConcurrencyToken` columns and a tenant-scoped `ResourceServerSecrets` join table
+  (migration `AddResourceServerSecrets`); deleting a resource server cascades its scopes and secrets. A
+  `resource_server_secrets` scope family is seeded. Rationale and the "an API _is_ a secret owner (per-audience HS256 /
+  JWE material)" decision: [ADR-0066](docs/adr/0066-resource-server-settings-and-secret-owner.md). Runtime consumption
+  of resource-server secrets and resource-server audit events are deferred (see [`BACKLOG.md`](BACKLOG.md)).
 - **Management console secrets/settings for tenants + the server, and initial-access-token mint (`apps/mgmt`).**
   Extends the client **Secrets**/**Settings** pattern to the remaining backend-supported settings/secret owners and
   surfaces protected dynamic-client-registration bootstrap. The client secrets/settings tab logic was factored into

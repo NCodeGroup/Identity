@@ -224,7 +224,12 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
                 Name = resourceServerId,
                 IsSystem = false,
                 IsDisabled = false,
-                Settings = emptySettingsJson,
+                Settings = new PersistedResourceServerSettings
+                {
+                    TenantId = TenantId,
+                    ResourceServerId = resourceServerId,
+                    Value = emptySettingsJson,
+                },
                 Scopes = scopes
                     .Select(value => new PersistedScope
                     {
@@ -233,6 +238,12 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
                         IsSystem = false,
                     })
                     .ToList(),
+                Secrets = new PersistedResourceServerSecrets
+                {
+                    TenantId = TenantId,
+                    ResourceServerId = resourceServerId,
+                    Value = [],
+                },
             },
             CancellationToken.None
         );

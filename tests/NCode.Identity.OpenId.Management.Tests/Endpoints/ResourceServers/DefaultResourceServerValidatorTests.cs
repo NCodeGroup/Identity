@@ -77,8 +77,19 @@ public sealed class DefaultResourceServerValidatorTests : IDisposable
             Name = "Example API",
             IsSystem = isSystem,
             IsDisabled = false,
-            Settings = EmptyObject(),
+            Settings = new PersistedResourceServerSettings
+            {
+                TenantId = TenantId,
+                ResourceServerId = ResourceServerId,
+                Value = EmptyObject(),
+            },
             Scopes = [],
+            Secrets = new PersistedResourceServerSecrets
+            {
+                TenantId = TenantId,
+                ResourceServerId = ResourceServerId,
+                Value = [],
+            },
         };
 
     private void SetupAuthorization(AuthorizationResult result)

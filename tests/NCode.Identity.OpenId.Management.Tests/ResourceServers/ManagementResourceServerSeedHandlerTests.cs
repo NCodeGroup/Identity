@@ -137,8 +137,19 @@ public sealed class ManagementResourceServerSeedHandlerTests
                     Name = "Management",
                     IsSystem = true,
                     IsDisabled = false,
-                    Settings = default,
+                    Settings = new PersistedResourceServerSettings
+                    {
+                        TenantId = TenantId,
+                        ResourceServerId = "existing",
+                        Value = default,
+                    },
                     Scopes = [],
+                    Secrets = new PersistedResourceServerSecrets
+                    {
+                        TenantId = TenantId,
+                        ResourceServerId = "existing",
+                        Value = [],
+                    },
                 }
             )
             .Verifiable();

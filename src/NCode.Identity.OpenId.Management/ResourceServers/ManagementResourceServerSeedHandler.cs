@@ -59,17 +59,30 @@ internal sealed class ManagementResourceServerSeedHandler(ICryptoService cryptoS
             return;
         }
 
+        var resourceServerId = CryptoService.GenerateResourceId();
+
         var resourceServer = new PersistedResourceServer
         {
             TenantId = context.TenantId,
-            ResourceServerId = CryptoService.GenerateResourceId(),
+            ResourceServerId = resourceServerId,
             Identifier = OpenIdConstants.SystemResourceServerIdentifiers.Management,
             ConcurrencyToken = string.Empty,
             Name = "Management",
             IsSystem = true,
             IsDisabled = false,
-            Settings = JsonSerializer.SerializeToElement(null, typeof(object)),
+            Settings = new PersistedResourceServerSettings
+            {
+                TenantId = context.TenantId,
+                ResourceServerId = resourceServerId,
+                Value = JsonSerializer.SerializeToElement(null, typeof(object)),
+            },
             Scopes = BuildScopes(context.Plane),
+            Secrets = new PersistedResourceServerSecrets
+            {
+                TenantId = context.TenantId,
+                ResourceServerId = resourceServerId,
+                Value = [],
+            },
         };
 
         await store.AddAsync(resourceServer, cancellationToken);
@@ -85,6 +98,10 @@ internal sealed class ManagementResourceServerSeedHandler(ICryptoService cryptoS
             .. CrudScopes(ManagementScopes.Families.Clients, "clients"),
             .. CrudScopes(ManagementScopes.Families.ClientSecrets, "client secrets"),
             .. CrudScopes(ManagementScopes.Families.ResourceServers, "resource servers"),
+            .. CrudScopes(
+                ManagementScopes.Families.ResourceServerSecrets,
+                "resource server secrets"
+            ),
             .. CrudScopes(ManagementScopes.Families.ClientGrants, "client grants"),
             .. CrudScopes(ManagementScopes.Families.LocalAccounts, "local accounts"),
             Scope(

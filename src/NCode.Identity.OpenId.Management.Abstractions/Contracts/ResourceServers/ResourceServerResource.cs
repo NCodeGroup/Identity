@@ -17,10 +17,8 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence;
-using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Management.Contracts.ResourceServers;
@@ -63,11 +61,6 @@ public sealed class ResourceServerResource : ISupportTenantId, ISupportConcurren
     /// Gets a value indicating whether this resource server is disabled.
     /// </summary>
     public required bool IsDisabled { get; init; }
-
-    /// <summary>
-    /// Gets the JSON settings for this resource server.
-    /// </summary>
-    public required JsonElement Settings { get; init; }
 
     /// <summary>
     /// Gets the scopes owned by this resource server.

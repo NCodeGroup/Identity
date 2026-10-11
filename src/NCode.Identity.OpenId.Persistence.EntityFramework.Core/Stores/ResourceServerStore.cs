@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
@@ -53,6 +54,34 @@ internal class ResourceServerStore(
             IsSystem = scope.IsSystem,
         };
 
+    /// <summary>
+    /// Maps a <see cref="ResourceServerEntity"/> to a <see cref="PersistedResourceServerSettings"/> instance.
+    /// </summary>
+    protected internal virtual PersistedResourceServerSettings MapSettings(
+        ResourceServerEntity entity
+    ) =>
+        new()
+        {
+            TenantId = entity.Tenant.TenantId,
+            ResourceServerId = entity.ResourceServerId,
+            ConcurrencyToken = entity.SettingsConcurrencyToken,
+            Value = entity.SettingsJson,
+        };
+
+    /// <summary>
+    /// Maps a <see cref="ResourceServerEntity"/> to a <see cref="PersistedResourceServerSecrets"/> instance.
+    /// </summary>
+    protected internal virtual PersistedResourceServerSecrets MapSecrets(
+        ResourceServerEntity entity
+    ) =>
+        new()
+        {
+            TenantId = entity.Tenant.TenantId,
+            ResourceServerId = entity.ResourceServerId,
+            ConcurrencyToken = entity.SecretsConcurrencyToken,
+            Value = MapToPersistedSecrets(entity.Secrets),
+        };
+
     /// <inheritdoc />
     protected override ValueTask<PersistedResourceServer> MapFromEntityAsync(
         ResourceServerEntity entity,
@@ -69,8 +98,9 @@ internal class ResourceServerStore(
                 Name = entity.Name,
                 IsSystem = entity.IsSystem,
                 IsDisabled = entity.IsDisabled,
-                Settings = entity.SettingsJson,
+                Settings = MapSettings(entity),
                 Scopes = entity.Scopes.Select(MapScope).ToList(),
+                Secrets = MapSecrets(entity),
             }
         );
     }
@@ -85,6 +115,8 @@ internal class ResourceServerStore(
             ?? await DbContext
                 .ResourceServers.Include(entity => entity.Tenant)
                 .Include(entity => entity.Scopes)
+                .Include(entity => entity.Secrets)
+                    .ThenInclude(resourceServerSecret => resourceServerSecret.Secret)
                 .FirstOrDefaultAsync(predicate, cancellationToken);
     }
 
@@ -126,6 +158,8 @@ internal class ResourceServerStore(
         var query = DbContext
             .ResourceServers.Include(entity => entity.Tenant)
             .Include(entity => entity.Scopes)
+            .Include(entity => entity.Secrets)
+                .ThenInclude(resourceServerSecret => resourceServerSecret.Secret)
             .AsQueryable();
 
         if (afterId is { } id)
@@ -150,10 +184,15 @@ internal class ResourceServerStore(
             cancellationToken
         );
 
-        // The interceptor leaves a pre-seeded insert token intact (ADR-0012).
+        // The interceptor leaves a pre-seeded insert token intact (ADR-0012); sub-resource version columns are manual.
         persistedResourceServer.ConcurrencyToken = NextConcurrencyToken();
+        persistedResourceServer.Settings.ConcurrencyToken = NextConcurrencyToken();
+        persistedResourceServer.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
         var scopes = new List<ScopeEntity>(persistedResourceServer.Scopes.Count);
+        var secrets = new List<ResourceServerSecretEntity>(
+            persistedResourceServer.Secrets.Value.Count
+        );
 
         var resourceServerEntity = new ResourceServerEntity
         {
@@ -166,12 +205,15 @@ internal class ResourceServerStore(
             NormalizedIdentifier = Normalize(persistedResourceServer.Identifier),
             ConcurrencyToken = persistedResourceServer.ConcurrencyToken,
             ScopesConcurrencyToken = NextConcurrencyToken(),
+            SettingsConcurrencyToken = persistedResourceServer.Settings.ConcurrencyToken,
+            SecretsConcurrencyToken = persistedResourceServer.Secrets.ConcurrencyToken,
             Name = persistedResourceServer.Name,
             IsSystem = persistedResourceServer.IsSystem,
             IsDisabled = persistedResourceServer.IsDisabled,
-            SettingsJson = persistedResourceServer.Settings,
+            SettingsJson = persistedResourceServer.Settings.Value,
             Tenant = tenantEntity,
             Scopes = scopes,
+            Secrets = secrets,
         };
 
         foreach (var persistedScope in persistedResourceServer.Scopes)
@@ -191,6 +233,32 @@ internal class ResourceServerStore(
                     Tenant = tenantEntity,
                     ResourceServer = resourceServerEntity,
                 }
+            );
+        }
+
+        foreach (var persistedSecret in persistedResourceServer.Secrets.Value)
+        {
+            var secretEntity = MapToSecretEntity(persistedSecret);
+
+            await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
+
+            var resourceServerSecretEntity = new ResourceServerSecretEntity
+            {
+                Id = NextId(),
+                Tenant = tenantEntity,
+                TenantId = tenantEntity.Id,
+                NormalizedTenantId = tenantEntity.NormalizedTenantId,
+                ResourceServer = resourceServerEntity,
+                ResourceServerId = resourceServerEntity.Id,
+                Secret = secretEntity,
+                SecretId = secretEntity.Id,
+            };
+
+            secrets.Add(resourceServerSecretEntity);
+
+            await DbContext.ResourceServerSecrets.AddAsync(
+                resourceServerSecretEntity,
+                cancellationToken
             );
         }
 
@@ -224,7 +292,7 @@ internal class ResourceServerStore(
         // The row-level ConcurrencyToken is regenerated by the interceptor on save (ADR-0012).
         resourceServerEntity.Name = persistedResourceServer.Name;
         resourceServerEntity.IsDisabled = persistedResourceServer.IsDisabled;
-        resourceServerEntity.SettingsJson = persistedResourceServer.Settings;
+        resourceServerEntity.SettingsJson = persistedResourceServer.Settings.Value;
     }
 
     /// <inheritdoc />
@@ -271,6 +339,10 @@ internal class ResourceServerStore(
         }
 
         DbContext.Scopes.RemoveRange(resourceServerEntity.Scopes);
+        DbContext.ResourceServerSecrets.RemoveRange(resourceServerEntity.Secrets);
+        DbContext.Secrets.RemoveRange(
+            resourceServerEntity.Secrets.Select(resourceServerSecret => resourceServerSecret.Secret)
+        );
         DbContext.ResourceServers.Remove(resourceServerEntity);
     }
 
@@ -366,6 +438,211 @@ internal class ResourceServerStore(
         DbContext.Scopes.Remove(scopeEntity);
 
         resourceServerEntity.ScopesConcurrencyToken = NextConcurrencyToken();
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask UpdateSettingsAsync(
+        PersistedResourceServerSettings persistedResourceServerSettings,
+        CancellationToken cancellationToken
+    )
+    {
+        var resourceServerId = persistedResourceServerSettings.ResourceServerId;
+        var resourceServerEntity = await GetEntityAsync(resourceServerId, cancellationToken);
+
+        if (
+            !string.Equals(
+                persistedResourceServerSettings.ConcurrencyToken,
+                resourceServerEntity.SettingsConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            throw new DbUpdateConcurrencyException(
+                $"The settings for the resource server with ResourceServerId='{resourceServerId}' have been modified by another process. Please reload and try again."
+            );
+        }
+
+        var nextConcurrencyToken = NextConcurrencyToken();
+
+        resourceServerEntity.SettingsConcurrencyToken = nextConcurrencyToken;
+        resourceServerEntity.SettingsJson = persistedResourceServerSettings.Value;
+
+        DbContext.ResourceServers.Update(resourceServerEntity);
+
+        persistedResourceServerSettings.ConcurrencyToken = nextConcurrencyToken;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedResourceServerSecrets?> GetSecretsOrDefaultAsync(
+        string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        var resourceServerEntity = await GetEntityOrDefaultAsync(
+            resourceServerId,
+            cancellationToken
+        );
+        if (resourceServerEntity is null)
+        {
+            return null;
+        }
+
+        return MapSecrets(resourceServerEntity);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedResourceServerSecret?> GetSecretOrDefaultAsync(
+        string resourceServerId,
+        string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedResourceServerId = Normalize(resourceServerId);
+        var normalizedSecretId = Normalize(secretId);
+
+        var row = await DbContext
+            .ResourceServerSecrets.Where(resourceServerSecret =>
+                resourceServerSecret.ResourceServer.NormalizedResourceServerId
+                    == normalizedResourceServerId
+                && resourceServerSecret.Secret.NormalizedSecretId == normalizedSecretId
+            )
+            .Select(resourceServerSecret => new
+            {
+                resourceServerSecret.Tenant.TenantId,
+                resourceServerSecret.ResourceServer.ResourceServerId,
+                resourceServerSecret.Secret,
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (row is null)
+        {
+            return null;
+        }
+
+        return new PersistedResourceServerSecret
+        {
+            TenantId = row.TenantId,
+            ResourceServerId = row.ResourceServerId,
+            Value = MapToPersistedSecret(row.Secret),
+        };
+    }
+
+    /// <inheritdoc />
+    public async ValueTask AddSecretAsync(
+        string resourceServerId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    )
+    {
+        var resourceServerEntity = await GetEntityAsync(resourceServerId, cancellationToken);
+
+        var normalizedSecretId = Normalize(persistedSecret.SecretId);
+        var alreadyExists = resourceServerEntity.Secrets.Any(resourceServerSecret =>
+            resourceServerSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (alreadyExists)
+        {
+            throw new InvalidOperationException(
+                $"A secret with SecretId='{persistedSecret.SecretId}' already exists for the resource server with ResourceServerId='{resourceServerId}'."
+            );
+        }
+
+        // A created secret cannot have a concurrency conflict, so assign its token up front and return it on the DTO;
+        // the interceptor leaves a pre-seeded insert token intact (ADR-0012).
+        persistedSecret.ConcurrencyToken = NextConcurrencyToken();
+        var secretEntity = MapToSecretEntity(persistedSecret);
+        await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
+
+        var resourceServerSecretEntity = new ResourceServerSecretEntity
+        {
+            Id = NextId(),
+            Tenant = resourceServerEntity.Tenant,
+            TenantId = resourceServerEntity.TenantId,
+            NormalizedTenantId = resourceServerEntity.NormalizedTenantId,
+            ResourceServer = resourceServerEntity,
+            ResourceServerId = resourceServerEntity.Id,
+            Secret = secretEntity,
+            SecretId = secretEntity.Id,
+        };
+        await DbContext.ResourceServerSecrets.AddAsync(
+            resourceServerSecretEntity,
+            cancellationToken
+        );
+
+        // The resource server is tracked; mutating the token marks it Modified via change detection.
+        resourceServerEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask UpdateSecretAsync(
+        string resourceServerId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    )
+    {
+        var resourceServerEntity = await GetEntityAsync(resourceServerId, cancellationToken);
+
+        var normalizedSecretId = Normalize(persistedSecret.SecretId);
+        var resourceServerSecretEntity = resourceServerEntity.Secrets.SingleOrDefault(
+            resourceServerSecret =>
+                resourceServerSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (resourceServerSecretEntity is null)
+        {
+            throw new InvalidOperationException(
+                $"A secret with SecretId='{persistedSecret.SecretId}' was not found for the resource server with ResourceServerId='{resourceServerId}'."
+            );
+        }
+
+        var secretEntity = resourceServerSecretEntity.Secret;
+        if (
+            !string.Equals(
+                persistedSecret.ConcurrencyToken,
+                secretEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            throw new DbUpdateConcurrencyException(
+                $"The secret with SecretId='{persistedSecret.SecretId}' has been modified by another process. Please reload and try again."
+            );
+        }
+
+        // Only metadata is mutable; key material is immutable once generated (see ADR-0011). The secret's row-level
+        // ConcurrencyToken is regenerated by the interceptor on save (ADR-0012).
+        secretEntity.Use = persistedSecret.Use;
+        secretEntity.Algorithm = persistedSecret.Algorithm;
+        secretEntity.ExpiresWhen = persistedSecret.ExpiresWhen.ToUniversalTime();
+
+        resourceServerEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RemoveSecretAsync(
+        string resourceServerId,
+        string secretId,
+        CancellationToken cancellationToken
+    )
+    {
+        var resourceServerEntity = await GetEntityAsync(resourceServerId, cancellationToken);
+
+        var normalizedSecretId = Normalize(secretId);
+        var resourceServerSecretEntity = resourceServerEntity.Secrets.SingleOrDefault(
+            resourceServerSecret =>
+                resourceServerSecret.Secret.NormalizedSecretId == normalizedSecretId
+        );
+        if (resourceServerSecretEntity is null)
+        {
+            return false;
+        }
+
+        DbContext.ResourceServerSecrets.Remove(resourceServerSecretEntity);
+        DbContext.Secrets.Remove(resourceServerSecretEntity.Secret);
+
+        // The resource server is tracked; mutating the token marks it Modified via change detection.
+        resourceServerEntity.SecretsConcurrencyToken = NextConcurrencyToken();
 
         return true;
     }

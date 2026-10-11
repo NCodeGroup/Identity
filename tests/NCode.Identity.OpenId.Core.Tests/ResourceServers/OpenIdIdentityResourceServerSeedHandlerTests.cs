@@ -117,8 +117,19 @@ public sealed class OpenIdIdentityResourceServerSeedHandlerTests
                     Name = "OpenID Connect",
                     IsSystem = true,
                     IsDisabled = false,
-                    Settings = default,
+                    Settings = new PersistedResourceServerSettings
+                    {
+                        TenantId = TenantId,
+                        ResourceServerId = "existing",
+                        Value = default,
+                    },
                     Scopes = [],
+                    Secrets = new PersistedResourceServerSecrets
+                    {
+                        TenantId = TenantId,
+                        ResourceServerId = "existing",
+                        Value = [],
+                    },
                 }
             )
             .Verifiable();

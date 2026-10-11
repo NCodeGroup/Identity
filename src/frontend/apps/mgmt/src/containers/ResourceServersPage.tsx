@@ -20,7 +20,7 @@ import {
   useUpdateResourceServerMutation,
   type ApiError,
 } from '@ncode/store';
-import { ResourceServerScopesPage } from './ResourceServerScopesPage.js';
+import { ResourceServerDetailPage } from './ResourceServerDetailPage.js';
 
 export type ResourceServersPageProps = {
   readonly scope: ManagementScope;
@@ -57,7 +57,7 @@ export function ResourceServersPage({ scope }: ResourceServersPageProps) {
   const selected = resourceServers.find((r) => r.resourceServerId === selectedId);
   if (selected) {
     return (
-      <ResourceServerScopesPage
+      <ResourceServerDetailPage
         scope={scope}
         resourceServer={selected}
         onBack={() => setSelectedId(undefined)}

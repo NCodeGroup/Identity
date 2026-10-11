@@ -162,20 +162,28 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
 ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
 
-- **`U2` — Management console secrets/settings for the remaining owners + initial-access-token mint.** _Mostly
-  implemented._ The console now extends the client **Secrets**/**Settings** pattern (one-time reveal per
-  [ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md); read-only effective-settings view + top-level
-  add/remove/replace JSON Patch diff via the `@ncode/api` `diffPatch` helper) to **tenants** (a tenant-scope **Tenant**
-  tab) and the **server** (a global-scope **Servers** tab that drills into the server), and surfaces the
-  initial-access-token mint (RFC 7591) in the **Grants** tab with a one-time token reveal. The shared
-  `SecretsManager`/`SettingsManager` containers back every owner. A client-secret rotate convenience is tracked
-  separately under `S1`. **Remaining:** resource-server (API) settings/secrets — the backend
-  (`ResourceServerApiEndpointHandler`) exposes only scopes + owners (no `GET`/`PATCH .../settings`,
-  `.../effective-settings`, or `.../secrets` routes), even though `CreateResourceServerRequest` accepts an initial
-  `settings` object. That needs the backend settings/secret-owner endpoints added first (its own work item — and a
-  decision on whether an API is ever a _secret_ owner, since Auth0 APIs are not), then the same frontend pattern
-  applied. Touch points: `src/frontend/packages/api`, `packages/store` (`managementApi`), `packages/ui`,
-  `apps/mgmt/src` (`containers`); backend: `src/NCode.Identity.OpenId.Management/Endpoints/ResourceServers`.
+- **`U2` — Management console secrets/settings for the remaining owners + initial-access-token mint.** _Backend
+  complete; frontend remaining for resource servers._ The console extends the client **Secrets**/**Settings** pattern
+  (one-time reveal per [ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md); read-only
+  effective-settings view + top-level add/remove/replace JSON Patch diff via the `@ncode/api` `diffPatch` helper) to
+  **tenants** (a tenant-scope **Tenant** tab) and the **server** (a global-scope **Servers** tab), and surfaces the
+  initial-access-token mint (RFC 7591) in the **Grants** tab. The shared `SecretsManager`/`SettingsManager` containers
+  back every owner. **Resource-server (API) settings/secrets are now supported by the backend**
+  ([ADR-0066](docs/adr/0066-resource-server-settings-and-secret-owner.md)): `ResourceServerApiEndpointHandler` exposes
+  `GET`/`PATCH .../settings`, `GET .../effective-settings`, and the full `.../secrets` CRUD. **Remaining:** wire the
+  resource-server **Settings**/**Secrets** surface in the console (drill-in from the resource-servers list, same
+  pattern as clients) — add the `@ncode/api` contracts + `managementApi` endpoints + a `ResourceServerDetailPage`. A
+  client-secret rotate convenience is tracked separately under `S1`. Touch points: `src/frontend/packages/api`,
+  `packages/store` (`managementApi`), `packages/ui`, `apps/mgmt/src` (`containers`).
+- **`U7` — Runtime consumption + auditing of resource-server secrets/settings.** [ADR-0066](docs/adr/0066-resource-server-settings-and-secret-owner.md)
+  delivers resource-server settings/secrets **management** only. Two follow-ups remain: (1) **runtime consumption** —
+  resource servers have no runtime domain object and are not resolved at token-issuance time, so the stored per-audience
+  secrets (HS256 signing, JWE decryption) are not yet used to actually sign/encrypt access tokens; and (2) **auditing** —
+  `ResourceServerApiEndpointHandler` emits no `IManagementAuditRecorder` events for **any** operation (create, update,
+  delete, scopes, settings, secrets), unlike the client/tenant/server handlers. Retrofit audit uniformly across all
+  resource-server operations rather than only the new leaves. Touch points:
+  `src/NCode.Identity.OpenId.Management/Endpoints/ResourceServers/ResourceServerApiEndpointHandler.cs`,
+  `src/NCode.Identity.OpenId.Management.Abstractions/Auditing`, and the token-issuance pipeline for consumption.
 - **`U3` — Remaining surfaces (Auth/Consent/Login, Playground, conformance) on the shared platform.** Build the `T2`
   login/consent surface ([ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md)) and the eventual `F2`
   consent screen as apps on this platform rather than bespoke UIs, honoring the stable-locator contract

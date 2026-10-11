@@ -156,7 +156,7 @@ describe('ResourceServersPage (tenant-scoped CRUD + scope drill-in)', () => {
     expect(post?.url).toBe('https://api.test/api/tenants/acme/resource-servers/rs-orders/scopes');
     expect(JSON.parse(post?.body ?? '{}')).toEqual({ value: 'write:orders', description: null });
 
-    fireEvent.click(screen.getByTestId('scopes-back'));
+    fireEvent.click(screen.getByTestId('resource-server-detail-back'));
     expect(await screen.findByText('Orders API')).toBeInTheDocument();
   });
 

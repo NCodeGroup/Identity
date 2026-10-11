@@ -18,6 +18,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.Stores;
@@ -127,6 +128,85 @@ public interface IResourceServerStore : IStore<PersistedResourceServer>
     ValueTask<bool> RemoveScopeAsync(
         string resourceServerId,
         string scopeValue,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Updates the JSON settings of an existing resource server, enforcing optimistic concurrency against the
+    /// settings concurrency token and bumping it on success.
+    /// </summary>
+    /// <param name="persistedResourceServerSettings">The <see cref="PersistedResourceServerSettings"/> to update.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask UpdateSettingsAsync(
+        PersistedResourceServerSettings persistedResourceServerSettings,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Attempts to get the collection of secrets owned by a resource server.
+    /// </summary>
+    /// <param name="resourceServerId">The opaque identifier of the resource server.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedResourceServerSecrets"/> if the resource server was found; otherwise <c>null</c>.</returns>
+    ValueTask<PersistedResourceServerSecrets?> GetSecretsOrDefaultAsync(
+        string resourceServerId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Attempts to get a single secret owned by a resource server.
+    /// </summary>
+    /// <param name="resourceServerId">The opaque identifier of the resource server.</param>
+    /// <param name="secretId">The opaque identifier of the secret.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedResourceServerSecret"/> if found; otherwise <c>null</c>.</returns>
+    ValueTask<PersistedResourceServerSecret?> GetSecretOrDefaultAsync(
+        string resourceServerId,
+        string secretId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Adds a secret to a resource server and bumps the resource server's secrets concurrency token.
+    /// </summary>
+    /// <param name="resourceServerId">The opaque identifier of the resource server.</param>
+    /// <param name="persistedSecret">The <see cref="PersistedSecret"/> to add.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask AddSecretAsync(
+        string resourceServerId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Updates the metadata of an existing secret on a resource server and bumps the resource server's secrets
+    /// concurrency token. Key material is immutable once generated.
+    /// </summary>
+    /// <param name="resourceServerId">The opaque identifier of the resource server.</param>
+    /// <param name="persistedSecret">The <see cref="PersistedSecret"/> whose metadata is updated.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask UpdateSecretAsync(
+        string resourceServerId,
+        PersistedSecret persistedSecret,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Removes a secret from a resource server and bumps the resource server's secrets concurrency token.
+    /// </summary>
+    /// <param name="resourceServerId">The opaque identifier of the resource server.</param>
+    /// <param name="secretId">The opaque identifier of the secret to remove.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when a
+    /// secret was removed; otherwise <c>false</c>.</returns>
+    ValueTask<bool> RemoveSecretAsync(
+        string resourceServerId,
+        string secretId,
         CancellationToken cancellationToken
     );
 }

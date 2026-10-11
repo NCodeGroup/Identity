@@ -85,8 +85,19 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
             Name = resourceServerId,
             IsSystem = isSystem,
             IsDisabled = isDisabled,
-            Settings = EmptyObject(),
+            Settings = new PersistedResourceServerSettings
+            {
+                TenantId = TenantId,
+                ResourceServerId = resourceServerId,
+                Value = EmptyObject(),
+            },
             Scopes = scopes.Select(Scope).ToList(),
+            Secrets = new PersistedResourceServerSecrets
+            {
+                TenantId = TenantId,
+                ResourceServerId = resourceServerId,
+                Value = [],
+            },
         };
 
     private static PersistedClientGrant Grant(string resourceServerId, params string[] scopes) =>

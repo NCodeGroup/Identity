@@ -203,61 +203,31 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `src/NCode.Identity.OpenId.Management.Abstractions`, `src/NCode.Identity.OpenId.Management/Endpoints`,
   `src/frontend/packages/store/src/managementApi.ts`, `src/frontend/apps/mgmt/src/containers/ServersPage.tsx`,
   `src/frontend/packages/ui/src/components/ServerTable.tsx`.
-- **`U10` — Re-home the interactive-auth capability out of the composition root, and expose its seams.** A design
-  review of how the interactive login/consent UI is served ([ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md))
-  found **one real inconsistency** and **one latent gap**; most other concerns raised were already resolved by existing
-  ADRs (recorded here so the review does not have to be re-derived).
-
-    **Actionable #1 — extract the capability to a leaf package (recommended).** The interactive-auth code currently lives
-    under [`src/NCode.Identity.Server/InteractiveAuthentication/`](src/NCode.Identity.Server/InteractiveAuthentication),
-    but `NCode.Identity.Server` is the **composition root** (`AddIdentityServer()`, `DefaultRegistration`, the builder) of
-    the capability packages — not a home for a capability itself. The folder _is_ a capability: a cookie scheme, four
-    endpoints, credential verification, antiforgery wiring, and a static-file server. Every other capability (Accounts,
-    Management, Authentication) is a leaf package; this one got inlined. ADR-0065 even calls it "a reusable opt-in module …
-    surfaced from `NCode.Identity.Server`" — the module intent exists, the package boundary was just never drawn.
-    **Proposal:** move it to a leaf package (candidate name `NCode.Identity.OpenId.Authentication.Interactive`, with the
-    `Defaults`/`Options` + stable-locator contract in a thin `.Abstractions` pair); `NCode.Identity.Server` then only
-    _references_ it like any other capability. Entails `PublicAPI.Unshipped.txt` churn + a new ADR (both expected under the
-    pre-release posture, [ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)). **Open fork:** confirm
-    the package name (`NCode.Identity.OpenId.Authentication.Interactive` vs. a `Server`-family name) before moving.
-    Files to move: all of
-    [`src/NCode.Identity.Server/InteractiveAuthentication/`](src/NCode.Identity.Server/InteractiveAuthentication)
-    (`InteractiveAuthenticationRegistration.cs`, `…ApplicationBuilderExtensions.cs`, `…EndpointRouteBuilderExtensions.cs`,
-    `…EndpointHandler.cs`, `…Options.cs`, `…Defaults.cs`); wiring to repoint in
-    [`src/NCode.Identity.OpenId.Playground/Program.cs`](src/NCode.Identity.OpenId.Playground/Program.cs) (lines ~30, 78,
-    135, 156) and `launchSettings.json` (`InteractiveAuthentication__BundleRootPath`).
-
-    **Actionable #2 — invert the credential verifier behind an interface (latent gap).** The real UI extensibility seam is
-    _already three seams_: (a) the **bundle** is swappable via `InteractiveAuthenticationOptions.BundleRootPath`; (b) the
-    **render surface** is swappable by pointing the cookie `LoginPath`/scheme elsewhere and serving anything at
-    `/account/*`; but (c) the **credential verifier** is **not** pluggable —
-    [`InteractiveAuthenticationEndpointHandler`](src/NCode.Identity.Server/InteractiveAuthentication/InteractiveAuthenticationEndpointHandler.cs)
-    hard-wires `ILocalAccountStore.VerifyCredentialAsync` and the `ClaimsPrincipal` construction. LDAP / external-IdP /
-    passwordless backends have no interface to replace. **Open fork:** invert (c) behind an interface now, or leave it
-    local-account-only and just document the (a)/(b) seams until a real second backend exists. (Decide with #1, since the
-    extraction is the natural moment to introduce the abstraction.)
-
-    **Already-resolved concerns (do not re-litigate; captured for the next session):**
-    - _Same-origin is the hard constraint for `apps/auth`._ The cookie `LoginPath` redirect, the antiforgery POST, and the
-      `ReturnUrl` round-trip all require same-origin with the OP issuing the cookie (ADR-0065). "Same-origin" ≠ "served by
-      Kestrel" — a CDN/reverse-proxy may front `/account/*` at the _same origin_, but the OP-hosted static root is the
-      correct default.
-    - _Serve assets by purpose._ `apps/auth` must be OP same-origin (cookie flow); `apps/mgmt` is a pure API client with
-      **no** same-origin requirement — it is the tier-agnostic "build once, discover at runtime" bundle
-      ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md) #5) and is the textbook CDN/static-host workload, not a
-      .NET-runtime concern. So production serving is **both, by purpose**: CDN-first for the console; OP-hosted (or
-      same-origin CDN path) for auth.
-    - _Dev orchestrator already exists._ The VS Code `API + UI (F5)` compound launch runs the Playground plus
-      [`build/dev-ui.ps1`](build/dev-ui.ps1) → `pnpm dev` → `turbo run dev` across every app; each app's `dev` script
-      self-describes its serving model and new surfaces join automatically. Accepted cost: `apps/auth` gets build-watch
-      (`vite build --watch`), **not** HMR, _because_ the OP serves it same-origin (ADR-0065). If the auth inner loop
-      becomes painful, a **separate** decision is whether to adopt **.NET Aspire** as the orchestrator (model "API + node
-      dev servers" as one app graph) instead of the current PowerShell + compound-launch combo — a real fork, not a free
-      win; it would be its own ADR/backlog item.
-    - _Bundling is already decided._ ADR-0064 **rejected** the single unified SPA and chose **per-surface bundles sharing
-      `@ncode/*` packages** (auth vs. mgmt sit on different security boundaries / blast radius). Dev vs. prod use the
-      **same** bundle — "one bundle, every tier," nothing baked at build time; `@ncode/config` discovers API base / issuer
-      / flags / branding at boot.
+- **`U11` — Adopt .NET Aspire as the local dev orchestrator (needs its own ADR).** **Decided (2026-10-11):** adopt
+  Aspire to realize the Playground's intended purpose — a single one-stop entry to build/run/debug the entire stack
+  locally. Aspire is **not** added _inside_ the Playground (the Playground is the reference OP host — one process); it
+  is a new **sibling AppHost project** (`NCode.Identity.OpenId.Playground.AppHost`) that orchestrates the Playground +
+  the frontend apps (+ optional backing services) as one resource graph. This closes the orchestration fork left open
+  by the (now-complete) interactive-auth extraction and
+  [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md) and supersedes the
+  dev-orchestration half of that ADR (the `build/dev-ui.ps1` + VS Code `API + UI (F5)` compound launch, which has **no
+  dependency ordering** — the root symptom being `apps/auth`/`apps/mgmt` booting before the API is listening and failing
+  in the browser). **Why Aspire:** `WaitFor(api)` + ASP.NET Core health-check integration gates each UI resource on the
+  API being **healthy** (not merely "process started"), deterministically eliminating the race; `WithReference(api)`
+  provides service discovery that feeds `@ncode/config`'s runtime-discovery model
+  ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)); the dashboard gives one place for ordered startup,
+  logs, and traces. **Topology:**
+  `builder.AddProject<Projects.NCode_Identity_OpenId_Playground>("api")`, then
+  `builder.AddViteApp("auth", …).WithReference(api).WaitFor(api)` and the same for `"mgmt"`; backing SQL Server/Redis
+  modeled as containers is **opt-in** (keep SQLite/in-memory to avoid a hard container-runtime prerequisite). **Scope:**
+  new `*.AppHost` project (`IsPackable=false`, excluded from `dod.ps1` packing) + Aspire SDK/hosting packages pinned in
+  [`Directory.Packages.props`](Directory.Packages.props); node apps modeled as Aspire resources
+  (`AddViteApp`/`AddNpmApp`); repoint the F5/dev experience onto the AppHost and retire/relegate
+  [`build/dev-ui.ps1`](build/dev-ui.ps1). **Sequencing:** its own ADR'd change — a toolchain-wide
+  orchestration change on a different axis than the completed interactive-auth package extraction; keep the two
+  separate. Touch points: new
+  `src/NCode.Identity.OpenId.Playground.AppHost/`, [`Directory.Packages.props`](Directory.Packages.props),
+  [`build/dev-ui.ps1`](build/dev-ui.ps1), `.vscode/launch.json` (the `API + UI (F5)` compound), `NCode.Identity.slnx`.
 
 ## Secrets management (group `S`)
 
@@ -312,3 +282,33 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   both for now — the prompt still serves VS Code chat via its `agent:` frontmatter, and `disable-model-invocation: true`
   is intended to return once github/copilot-cli#4438 is fixed (restoring explicit-only semantics). If kept, edits must be
   mirrored across both files to avoid drift.
+
+## DI registration & composition (group `R`)
+
+- **`R1` — Upgrade foundational libraries to compile-time marker receivers (consistency polish).**
+  [ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md) makes compile-time marker gating the
+  preferred form, and the opt-in **framework capabilities** (local-account authentication/management, interactive)
+  already extend their prerequisite marker builders. The remaining inconsistency is in the **foundational standalone
+  libraries**: `AddJoseLibrary` (`src/NCode.Identity.Jose/DefaultRegistration.cs`) and `AddJsonWebTokensLibrary`
+  (`src/NCode.Identity.JsonWebTokens/DefaultRegistration.cs`) still express their single prerequisite at **runtime**
+  (`VerifyIsRegistered<SecretsLibrary>` / `VerifyIsRegistered<JoseLibrary>`) instead of as a compile-time receiver
+  (`IServiceBuilder<SecretsLibrary>` / `IServiceBuilder<JoseLibrary>`). Upgrading them requires relocating the
+  `JsonWebTokensLibrary` marker into a (new) `NCode.Identity.JsonWebTokens.Abstractions` package and the
+  `OpenIdCoreLibrary` marker into `NCode.Identity.OpenId.Abstractions`, then repointing the composition root
+  (`src/NCode.Identity.Server/IdentityServerBuilder.cs`: `SecretsLibraryBuilder.AddJoseLibrary()`,
+  `JoseLibraryBuilder.AddJsonWebTokensLibrary()`) and the ~3 test call sites. This is a **consistency** improvement, not
+  a correctness gap (the runtime check already throws on a missing prerequisite). Breaking `PublicAPI` churn, acceptable
+  pre-release ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+- **`R2` — Codebase-wide conformance sweep for the registration-marker pattern.** Audit **every** registration entry
+  point in `src/` against [ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md) and the §4
+  rule in [`csharp-production.instructions.md`](.github/instructions/csharp-production.instructions.md): (1) every
+  `DefaultRegistration`/registration class is named `DefaultRegistration` and uses C# `extension(...)` members; (2) each
+  **library layer** and **opt-in bolt-on capability** extends the `IServiceBuilder<TMarker>` of its prerequisite (never
+  a naked `IServiceCollection`), and a marker a cross-package bolt-on names lives in that library's `.Abstractions`;
+  (3) only a chain **root**, a **dependency-inverted implementation** (store/persistence provider behind a seam), or a
+  **generic utility helper** takes a naked `IServiceCollection`, and each such case is deliberate; (4) larger packages
+  scope nested folders with additional (usually `internal`) markers via `NewBuilder<TChildMarker>()`; (5) host wiring
+  chains off the builders the composition root exposes rather than a flat `serviceCollection.AddX()` list. Produce a
+  ranked findings report of violations with the correct receiver/marker for each, then fix (or justify) each. A natural
+  companion check to fold into the [`/audit-conventions`](.github/skills/audit-conventions/SKILL.md) sweep. Known
+  follow-ups already catalogued: `R1` (foundational `AddJoseLibrary`/`AddJsonWebTokensLibrary` compile-time upgrade).

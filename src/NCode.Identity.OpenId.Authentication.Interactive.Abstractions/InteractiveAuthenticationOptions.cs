@@ -18,7 +18,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Server.InteractiveAuthentication;
+namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// Configures the opt-in interactive login/consent surface served by the OpenID Provider host.

@@ -22,10 +22,10 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 
-namespace NCode.Identity.Server.InteractiveAuthentication;
+namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
-/// Provides the request-pipeline counterpart to <see cref="InteractiveAuthenticationRegistration"/>: serves the built
+/// Provides the request-pipeline counterpart to <see cref="DefaultRegistration"/>: serves the built
 /// single-page login/consent bundle's hashed assets under <see cref="InteractiveAuthenticationDefaults.BasePath"/>.
 /// </summary>
 [PublicAPI]

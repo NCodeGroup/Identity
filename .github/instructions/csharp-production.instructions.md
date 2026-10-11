@@ -222,8 +222,20 @@ rationale.
   a **service** (`TryAddSingleton<IFoo, DefaultFoo>`) for a capability you call for an answer; a **strategy collection**
   (`TryAddEnumerable`) for many implementations the caller iterates or selects; the **mediator** (`ICommandHandler<T>`)
   only for a genuine pipeline seam where the sender must stay ignorant of the handlers.
-- 👁 **A package registers its own services from one `DefaultRegistration.cs`** `extension(IServiceBuilder<TMarker>)`
-  block, using `TryAdd*` so a consumer can override a default. Register a stateless capability as a singleton; register
+- 👁 **A package registers its own services from `DefaultRegistration.cs`** (the class is **always** `DefaultRegistration`)
+  using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
+  [ADR-0069](../../docs/adr/0069-registration-library-compile-time-marker-nesting.md). **The receiver marker is the
+  compile-time prerequisite:** a package root's `AddXLibrary()` extends its prerequisite library's builder
+  (`extension(IServiceBuilder<IdentityLibrary>) { AddOpenIdCoreLibrary() }`), and an **opt-in bolt-on capability**
+  extends the marker of the library it augments (`AddLocalAccountManagement()` on `IServiceBuilder<OpenIdManagementLibrary>`,
+  `AddInteractiveAuthentication()` on `IServiceBuilder<OpenIdAuthenticationLibrary>`) — **never** a naked
+  `IServiceCollection`, so it is compile-time-impossible to add a capability without its framework. A library marker a
+  cross-package bolt-on must name lives in that library's `.Abstractions`. A **larger package organized into subfolders**
+  registers each folder from its own `DefaultRegistration.cs` and may introduce **additional registration markers — most
+  often `internal`, though not required to be — to scope a nested folder**, created with `builder.NewBuilder<TChildMarker>()`
+  (e.g. `Endpoints` → `OpenIdAuthenticationEndpoints`). Only a chain **root** with no prerequisite, a
+  **dependency-inverted implementation** (a store / persistence provider registered behind a seam), or a **generic utility
+  helper** takes a naked `IServiceCollection`. Register a stateless capability as a singleton; register
   a long-running loop as an `AddHostedService<T>` over a `BackgroundService`. Wire-up stays out of the type that does
   the work, so the work stays constructor-injectable and testable.
 - 👁 **The package that owns a consumer registers that consumer's ambient dependencies**, so composing the server

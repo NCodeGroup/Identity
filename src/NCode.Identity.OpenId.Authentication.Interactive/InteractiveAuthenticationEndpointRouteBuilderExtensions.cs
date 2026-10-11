@@ -23,11 +23,11 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Contexts;
 
-namespace NCode.Identity.Server.InteractiveAuthentication;
+namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// Provides turnkey endpoint mapping for the interactive login/consent surface. The endpoints run inside the shared
-/// OpenID request environment (so the resolved tenant scopes the local-account lookup), mirroring the protocol
+/// OpenID request environment (so the resolved tenant scopes the credential verification), mirroring the protocol
 /// endpoints' pipeline.
 /// </summary>
 [PublicAPI]
@@ -40,7 +40,7 @@ public static class InteractiveAuthenticationEndpointRouteBuilderExtensions
         /// <see cref="InteractiveAuthenticationDefaults.BasePath"/>: the login and consent pages (<c>GET</c>), the
         /// credential and consent submissions (<c>POST</c>), and logout (<c>GET</c>). The group materializes the
         /// OpenID request environment via <see cref="OpenIdEnvironmentEndpointFilter"/> and opens the tenant scope the
-        /// local-account store reads. Requires <c>AddInteractiveAuthentication</c>.
+        /// credential verifier reads. Requires <c>AddInteractiveAuthentication</c>.
         /// </summary>
         /// <returns>The same <see cref="IEndpointRouteBuilder"/> instance for method chaining.</returns>
         public IEndpointRouteBuilder MapInteractiveAuthentication()

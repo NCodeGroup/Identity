@@ -21,8 +21,6 @@ using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Management;
 
-// TODO: move into abstractions
-
 /// <summary>
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>

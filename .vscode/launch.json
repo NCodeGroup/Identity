@@ -16,10 +16,12 @@
       }
     },
     {
-      // Starts the Management UI (Vite) dev server via build/dev-ui.ps1, which puts the
-      // NVS-managed Node 22 on PATH. js-debug auto-attaches to the spawned Vite node process,
-      // and serverReadyAction opens the browser once Vite prints its local URL.
-      "name": "UI: Management dev server",
+      // Starts the ENTIRE frontend stack (every Vite app) via build/dev-ui.ps1, which runs
+      // `pnpm dev` (turbo run dev) and puts the NVS-managed Node 22 on PATH. js-debug auto-attaches
+      // to the spawned node processes, and serverReadyAction opens the browser once a Vite dev
+      // server (e.g. the mgmt app) prints its local URL. Backend-served bundles (apps/auth) are
+      // build-watched into their `dist`, which the Playground serves.
+      "name": "UI: Frontend dev (all surfaces)",
       "type": "node-terminal",
       "request": "launch",
       "command": "pwsh -NoProfile -File \"${workspaceFolder}/build/dev-ui.ps1\"",
@@ -36,7 +38,7 @@
       "name": "API + UI (F5)",
       "configurations": [
         "C#: NCode.Identity.OpenId.Playground Debug",
-        "UI: Management dev server"
+        "UI: Frontend dev (all surfaces)"
       ],
       "stopAll": true,
       "presentation": {

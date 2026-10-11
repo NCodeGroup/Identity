@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   beginAuthorization,
   completeAuthorization,
@@ -30,17 +30,28 @@ export function AuthGate({ children }: { children: ReactNode }) {
     typeof window !== 'undefined' ? isAuthorizationCallback(window.location.search) : false,
   );
 
+  // Completing the callback consumes a single-use authorization code and the one-shot PKCE
+  // transaction, so it must run EXACTLY once. A run-once ref (not an effect-cancellation flag) guards
+  // it: React StrictMode intentionally double-invokes effects in development, and a cancellation flag
+  // lets the second invocation re-enter completeAuthorization after the first already consumed the
+  // transaction — which then dead-ends on "No in-flight authorization transaction was found." The ref
+  // is set only when completion actually starts, so a pre-discovery render (authConfig still null)
+  // does not consume the single attempt.
+  const completionStarted = useRef(false);
+
   useEffect(() => {
-    if (!authConfig || accessToken || !isAuthorizationCallback(window.location.search)) {
+    if (
+      completionStarted.current ||
+      !authConfig ||
+      accessToken ||
+      !isAuthorizationCallback(window.location.search)
+    ) {
       return;
     }
-    let cancelled = false;
+    completionStarted.current = true;
     setBusy(true);
     completeAuthorization(authConfig, window.location.search, deps)
       .then((tokens) => {
-        if (cancelled) {
-          return;
-        }
         const subject =
           (tokens.idToken && getSubject(tokens.idToken)) ||
           getSubject(tokens.accessToken) ||
@@ -58,18 +69,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
         window.history.replaceState({}, document.title, `${window.location.origin}/`);
       })
       .catch((cause: unknown) => {
-        if (!cancelled) {
-          setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
-        }
+        setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
       })
       .finally(() => {
-        if (!cancelled) {
-          setBusy(false);
-        }
+        setBusy(false);
       });
-    return () => {
-      cancelled = true;
-    };
   }, [authConfig, accessToken, deps, dispatch]);
 
   // Silent renewal: once signed in, keep the access token fresh by exchanging the refresh token

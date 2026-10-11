@@ -11,6 +11,7 @@ import {
   useDeleteResourceServerSecretMutation,
   useGetResourceServerEffectiveSettingsQuery,
   useGetResourceServerSettingsQuery,
+  useLazyGetResourceServerSecretPublicKeyQuery,
   useListResourceServerSecretsQuery,
   useUpdateResourceServerSettingsMutation,
 } from '@ncode/store';
@@ -94,6 +95,7 @@ function ResourceServerSecretsTab({ scope, resourceServerId }: ResourceServerTab
   const { data, isLoading, error } = useListResourceServerSecretsQuery({ scope, resourceServerId });
   const [createSecret, { isLoading: isCreating }] = useCreateResourceServerSecretMutation();
   const [deleteSecret, { isLoading: isDeleting }] = useDeleteResourceServerSecretMutation();
+  const [getPublicKey] = useLazyGetResourceServerSecretPublicKeyQuery();
 
   return (
     <SecretsManager
@@ -105,6 +107,7 @@ function ResourceServerSecretsTab({ scope, resourceServerId }: ResourceServerTab
       isDeleting={isDeleting}
       onCreate={(body) => createSecret({ scope, resourceServerId, body }).unwrap()}
       onDelete={(secretId) => deleteSecret({ scope, resourceServerId, secretId }).unwrap()}
+      onExportPublicKey={(secretId) => getPublicKey({ scope, resourceServerId, secretId }).unwrap()}
     />
   );
 }

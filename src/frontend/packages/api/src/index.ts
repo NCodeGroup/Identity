@@ -12,6 +12,7 @@ export type {
   EffectiveSettingsResource,
   GrantResource,
   GrantRevocationResult,
+  PublicKeyResource,
   ResourceServerResource,
   ScopeResource,
   SecretResource,

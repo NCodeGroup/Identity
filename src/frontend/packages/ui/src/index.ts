@@ -38,7 +38,12 @@ export {
 } from './components/ScopeFormDialog.js';
 export { ConfirmDialog, type ConfirmDialogProps } from './components/ConfirmDialog.js';
 export { SignInScreen, type SignInScreenProps } from './components/SignInScreen.js';
-export { SecretTable, type SecretRow, type SecretTableProps } from './components/SecretTable.js';
+export {
+  SecretTable,
+  isAsymmetricSecretType,
+  type SecretRow,
+  type SecretTableProps,
+} from './components/SecretTable.js';
 export {
   SecretFormDialog,
   emptySecretFormValues,
@@ -50,6 +55,11 @@ export {
   RevealSecretDialog,
   type RevealSecretDialogProps,
 } from './components/RevealSecretDialog.js';
+export {
+  ExportPublicKeyDialog,
+  type ExportPublicKeyDialogProps,
+  type PublicKeyMaterial,
+} from './components/ExportPublicKeyDialog.js';
 export { SettingsEditor, type SettingsEditorProps } from './components/SettingsEditor.js';
 export {
   InitialAccessTokenFormDialog,

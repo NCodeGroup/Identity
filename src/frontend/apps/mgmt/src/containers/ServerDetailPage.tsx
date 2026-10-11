@@ -11,6 +11,7 @@ import {
   useDeleteServerSecretMutation,
   useGetServerEffectiveSettingsQuery,
   useGetServerSettingsQuery,
+  useLazyGetServerSecretPublicKeyQuery,
   useListServerSecretsQuery,
   useUpdateServerSettingsMutation,
 } from '@ncode/store';
@@ -77,6 +78,7 @@ function ServerSecretsTab({ serverId }: ServerTabProps) {
   const { data, isLoading, error } = useListServerSecretsQuery({ serverId });
   const [createSecret, { isLoading: isCreating }] = useCreateServerSecretMutation();
   const [deleteSecret, { isLoading: isDeleting }] = useDeleteServerSecretMutation();
+  const [getPublicKey] = useLazyGetServerSecretPublicKeyQuery();
 
   return (
     <SecretsManager
@@ -88,6 +90,7 @@ function ServerSecretsTab({ serverId }: ServerTabProps) {
       isDeleting={isDeleting}
       onCreate={(body) => createSecret({ serverId, body }).unwrap()}
       onDelete={(secretId) => deleteSecret({ serverId, secretId }).unwrap()}
+      onExportPublicKey={(secretId) => getPublicKey({ serverId, secretId }).unwrap()}
     />
   );
 }

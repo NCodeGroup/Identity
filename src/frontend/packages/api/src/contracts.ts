@@ -205,6 +205,19 @@ export type CreatedSecretResource = SecretResource & {
 };
 
 /**
+ * Mirror of `PublicKeyResource` — the public key material of an asymmetric secret, in two representations:
+ * `jwk` (an RFC 7517 JSON Web Key carrying only the public members, the same shape the JWKS endpoint publishes)
+ * and `pem` (a `SubjectPublicKeyInfo` PEM string). No private material is ever included; only asymmetric secrets
+ * (`rsa`, `ecc`) expose this sub-resource. See ADR-0058.
+ */
+export type PublicKeyResource = {
+  readonly secretId: string;
+  readonly secretType: string;
+  readonly jwk: Readonly<Record<string, unknown>>;
+  readonly pem: string;
+};
+
+/**
  * Mirror of a `*SettingsResource` wrapper (e.g. `ClientSettingsResource`). `settings` is the opaque persisted
  * JSON settings object (a map of setting name to value); the owner-level `concurrencyToken` guards edits.
  */

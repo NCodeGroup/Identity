@@ -162,19 +162,6 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
 ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
 
-- **`U2` — Management console secrets/settings for the remaining owners + initial-access-token mint.** _Backend
-  complete; frontend remaining for resource servers._ The console extends the client **Secrets**/**Settings** pattern
-  (one-time reveal per [ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md); read-only
-  effective-settings view + top-level add/remove/replace JSON Patch diff via the `@ncode/api` `diffPatch` helper) to
-  **tenants** (a tenant-scope **Tenant** tab) and the **server** (a global-scope **Servers** tab), and surfaces the
-  initial-access-token mint (RFC 7591) in the **Grants** tab. The shared `SecretsManager`/`SettingsManager` containers
-  back every owner. **Resource-server (API) settings/secrets are now supported by the backend**
-  ([ADR-0066](docs/adr/0066-resource-server-settings-and-secret-owner.md)): `ResourceServerApiEndpointHandler` exposes
-  `GET`/`PATCH .../settings`, `GET .../effective-settings`, and the full `.../secrets` CRUD. **Remaining:** wire the
-  resource-server **Settings**/**Secrets** surface in the console (drill-in from the resource-servers list, same
-  pattern as clients) — add the `@ncode/api` contracts + `managementApi` endpoints + a `ResourceServerDetailPage`. A
-  client-secret rotate convenience is tracked separately under `S1`. Touch points: `src/frontend/packages/api`,
-  `packages/store` (`managementApi`), `packages/ui`, `apps/mgmt/src` (`containers`).
 - **`U7` — Runtime consumption + auditing of resource-server secrets/settings.** [ADR-0066](docs/adr/0066-resource-server-settings-and-secret-owner.md)
   delivers resource-server settings/secrets **management** only. Two follow-ups remain: (1) **runtime consumption** —
   resource servers have no runtime domain object and are not resolved at token-issuance time, so the stored per-audience

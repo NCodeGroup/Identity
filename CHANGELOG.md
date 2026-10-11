@@ -10,6 +10,19 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Management console client write operations (`apps/mgmt`).** Within a tenant scope the console now creates/edits/
+  deletes clients: scoped RTK Query mutations (`createClient`/`updateClient`/`deleteClient`) with `Client`-tag
+  invalidation, a stateless MUI `ClientTable` (id + status + row actions) and `ClientFormDialog`, reusing the shared
+  `ConfirmDialog`. Writes honor optimistic concurrency (`concurrencyToken` → `If-Match` over a `replace`-only JSON
+  Patch) and the tenant-nested path (`api/tenants/{tenantId}/clients/...`), so a tenant administrator can never address
+  another tenant. Second slice of backlog `U2`.
+- **Management console tenant write operations (`apps/mgmt`).** The console gained full tenant create/edit/delete on
+  the shared frontend platform: RTK Query mutations (`createTenant`/`updateTenant`/`deleteTenant`) with tenant-scoped
+  cache-tag invalidation, a stateless MUI `TenantFormDialog` and reusable `ConfirmDialog` (Storybook-driven), and
+  row-level edit/delete actions on the tenant table. Edits honor optimistic concurrency by sending the resource's
+  `concurrencyToken` as an `If-Match` header over a `replace`-only JSON Patch document; a UI-free `replacePatch` helper
+  (`@ncode/api`) and an RFC 7807-aware `apiErrorMessage` helper (`@ncode/store`) are unit-tested directly. First slice
+  of backlog `U2`.
 - **Interactive login/consent surface (`apps/auth`, OP-hosted).** The OpenID Provider gained its first interactive
   surface: a React + Material UI login/consent app (`@ncode/app-auth`) on the shared frontend platform, served by the
   host as same-origin static assets under `/account/*`, backed by an opt-in `NCode.Identity.Server` module
@@ -125,6 +138,10 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **Management console client mirror referenced a nonexistent `displayName`.** The frontend `ClientResource` type (and
+  the client list UI) read a `displayName` field that the server's `ClientResource` never emits — a client has no
+  display name; it is identified by its server-generated id. The TypeScript mirror was corrected to the real shape
+  (`{ clientId, tenantId, concurrencyToken, isDisabled }`) and the console now lists clients by id.
 - **Multi-audience access tokens are no longer wrongly rejected.** JWT claim validation for a multi-valued claim (the
   `aud` audience validator) required _every_ token value to appear in the expected set, so a token minted with more than
   one audience (for example `["urn:ncode:management", "urn:ncode:openid"]`) failed validation at any resource that

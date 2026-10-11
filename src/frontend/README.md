@@ -194,3 +194,20 @@ Playground serves it; on first launch give its initial build a moment to finish,
   StrictMode remount, so the second invocation short-circuits. Set the ref only when the work actually
   begins (not on an early bail-out such as pre-discovery `authConfig === null`) so the single attempt
   is not wasted.
+- **Management writes are JSON Patch + `If-Match`, not whole-object PUT.** The Management update endpoints
+  bind `JsonPatchDocument<T>` and hydrate the current resource before applying the document, and they gate
+  on an `If-Match` concurrency token (optimistic concurrency). RTK Query mutations express an edit as a
+  `replace`-only patch built from the stable wire property names via the UI-free
+  [`replacePatch`](packages/api/src/jsonPatch.ts) helper (`/displayName`, `/domainName`, …), and send the
+  resource's `concurrencyToken` as the `If-Match` header. Creates are plain `POST` (the id is
+  server-generated; the response carries the new `concurrencyToken`), deletes are `DELETE` (a `409` means
+  the resource still has dependents). Invalidate both the `LIST` tag and the per-id tag so the scoped
+  caches reconcile. Server failures are RFC 7807 Problem Details; surface them through
+  [`apiErrorMessage`](packages/store/src/apiError.ts) rather than re-deriving messages in each container.
+- **A `data-testid` on a MUI control lands on the root, not the native input.** `<Switch data-testid=…>`
+  (and friends) forward the attribute to the outer element, so `getByTestId(...)` returns a `<span>` and
+  matchers like `.toBeChecked()` fail. `TextField`'s `slotProps.htmlInput` _does_ reach the input (its
+  type has an index signature), but `Switch`'s `slotProps.input` / `inputProps` types reject `data-*`.
+  Prefer querying the control by role and accessible name instead —
+  `getByRole('checkbox', { name: 'Disabled' })` (the `FormControlLabel` supplies the name) — which is both
+  type-safe and closer to how a user finds it.

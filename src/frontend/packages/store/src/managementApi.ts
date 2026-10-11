@@ -1,11 +1,16 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import {
+  replacePatch,
   scopeApiPrefix,
   type ClientResource,
   type CollectionResource,
+  type CreateClientRequest,
+  type CreateTenantRequest,
   type ManagementScope,
   type ServerResource,
   type TenantResource,
+  type UpdateClientFields,
+  type UpdateTenantFields,
 } from '@ncode/api';
 import { dynamicBaseQuery } from './baseQuery.js';
 
@@ -42,8 +47,88 @@ export const managementApi = createApi({
         ...(result?.items ?? []).map((c) => ({ type: 'Client' as const, id: c.clientId })),
       ],
     }),
+    createTenant: build.mutation<TenantResource, CreateTenantRequest>({
+      query: (body) => ({ url: 'api/tenants', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Tenant', id: 'LIST' }],
+    }),
+    updateTenant: build.mutation<
+      void,
+      { tenantId: string; concurrencyToken: string; fields: UpdateTenantFields }
+    >({
+      query: ({ tenantId, concurrencyToken, fields }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}`,
+        method: 'PATCH',
+        body: replacePatch({ ...fields }),
+        headers: { 'If-Match': concurrencyToken },
+      }),
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'Tenant', id: 'LIST' },
+        { type: 'Tenant', id: tenantId },
+      ],
+    }),
+    deleteTenant: build.mutation<void, { tenantId: string }>({
+      query: ({ tenantId }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'Tenant', id: 'LIST' },
+        { type: 'Tenant', id: tenantId },
+      ],
+    }),
+    createClient: build.mutation<
+      ClientResource,
+      { scope: ManagementScope; body: CreateClientRequest }
+    >({
+      query: ({ scope, body }) => ({
+        url: `${scopeApiPrefix(scope)}/clients`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Client', id: 'LIST' }],
+    }),
+    updateClient: build.mutation<
+      void,
+      {
+        scope: ManagementScope;
+        clientId: string;
+        concurrencyToken: string;
+        fields: UpdateClientFields;
+      }
+    >({
+      query: ({ scope, clientId, concurrencyToken, fields }) => ({
+        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}`,
+        method: 'PATCH',
+        body: replacePatch({ ...fields }),
+        headers: { 'If-Match': concurrencyToken },
+      }),
+      invalidatesTags: (_result, _error, { clientId }) => [
+        { type: 'Client', id: 'LIST' },
+        { type: 'Client', id: clientId },
+      ],
+    }),
+    deleteClient: build.mutation<void, { scope: ManagementScope; clientId: string }>({
+      query: ({ scope, clientId }) => ({
+        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { clientId }) => [
+        { type: 'Client', id: 'LIST' },
+        { type: 'Client', id: clientId },
+      ],
+    }),
   }),
 });
 
-export const { useListTenantsQuery, useGetTenantQuery, useListServersQuery, useListClientsQuery } =
-  managementApi;
+export const {
+  useListTenantsQuery,
+  useGetTenantQuery,
+  useListServersQuery,
+  useListClientsQuery,
+  useCreateTenantMutation,
+  useUpdateTenantMutation,
+  useDeleteTenantMutation,
+  useCreateClientMutation,
+  useUpdateClientMutation,
+  useDeleteClientMutation,
+} = managementApi;

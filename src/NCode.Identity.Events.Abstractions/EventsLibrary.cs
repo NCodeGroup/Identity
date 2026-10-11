@@ -1,7 +1,6 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2025 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,23 +16,15 @@
 
 #endregion
 
-namespace NCode.Identity.Secrets;
+using JetBrains.Annotations;
+using NCode.Registration;
 
-public class SecretsLibraryTests
-{
-    [Fact]
-    public void DisplayName_ReturnsExpected()
-    {
-        var library = new SecretsLibrary();
+namespace NCode.Identity.Events;
 
-        Assert.Equal("NCode.Identity.Secrets", library.DisplayName);
-    }
-
-    [Fact]
-    public void ConfigureMethod_ReturnsExpected()
-    {
-        var library = new SecretsLibrary();
-
-        Assert.Equal("AddSecretsLibrary", library.ConfigureMethod);
-    }
-}
+/// <summary>
+/// Provides a type discriminator for <see cref="IServiceBuilder{T}"/> identifying the event-publishing library. It is
+/// minted by <c>AddEventServices</c>; the event opt-ins (<c>AddEventHandler</c>, <c>AddBackgroundEventDelivery</c>)
+/// require its builder so they cannot be added without the event library.
+/// </summary>
+[PublicAPI]
+public readonly struct EventsLibrary : IRegistrationMarker<EventsLibrary>;

@@ -21,22 +21,15 @@ using JetBrains.Annotations;
 namespace NCode.Registration;
 
 /// <summary>
-/// The base interface for all registration markers.
+/// Marks a type as a registration marker: a zero-member, curiously-recurring type discriminator that
+/// <see cref="IServiceBuilder{TMarker}"/> uses to identify a registered library at compile time.
 /// </summary>
-/// <typeparam name="TMarker">The type that discriminates the marker interface.</typeparam>
+/// <typeparam name="TMarker">The self-referencing marker type.</typeparam>
 [PublicAPI]
-public interface IRegistrationMarker<TMarker> : IMarker<TMarker>
+public interface IRegistrationMarker<TMarker>
     where TMarker : IRegistrationMarker<TMarker>, new()
 {
-    /// <summary>
-    /// Gets the display name of the registration marker.
-    /// </summary>
-    string DisplayName { get; }
-
-    /// <summary>
-    /// Gets the name of the method used to configure the services for this registration marker.
-    /// </summary>
-    string ConfigureMethod { get; }
+    // A marker is a pure type discriminator; it carries no members.
 }
 
 #if false
@@ -45,13 +38,6 @@ public interface IRegistrationMarker<TMarker> : IMarker<TMarker>
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>
 [PublicAPI]
-public readonly struct ExampleRegistrationMarker : IRegistrationMarker<ExampleRegistrationMarker>
-{
-    /// <inheritdoc />
-    public string DisplayName => "Example Registration Marker";
-
-    /// <inheritdoc />
-    public string ConfigureMethod => "AddExampleServices";
-}
+public readonly struct ExampleRegistrationMarker : IRegistrationMarker<ExampleRegistrationMarker>;
 
 #endif

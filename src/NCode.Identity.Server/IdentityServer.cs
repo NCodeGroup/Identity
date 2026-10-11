@@ -25,11 +25,4 @@ namespace NCode.Identity.Server;
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>
 [PublicAPI]
-public readonly struct IdentityServer : IRegistrationMarker<IdentityServer>
-{
-    /// <inheritdoc />
-    public string DisplayName => "NCode.Identity.Server";
-
-    /// <inheritdoc />
-    public string ConfigureMethod => nameof(DefaultRegistration.AddIdentityServer);
-}
+public readonly struct IdentityServer : IRegistrationMarker<IdentityServer>;

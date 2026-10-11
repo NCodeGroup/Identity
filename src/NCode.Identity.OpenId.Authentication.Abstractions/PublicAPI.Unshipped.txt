@@ -644,8 +644,6 @@ NCode.Identity.OpenId.Authentication.Models.PersistedGrantStatus.Active = 0 -> N
 NCode.Identity.OpenId.Authentication.Models.PersistedGrantStatus.Expired = 1 -> NCode.Identity.OpenId.Authentication.Models.PersistedGrantStatus
 NCode.Identity.OpenId.Authentication.Models.PersistedGrantStatus.Revoked = 2 -> NCode.Identity.OpenId.Authentication.Models.PersistedGrantStatus
 NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary
-NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary.ConfigureMethod.get -> string!
-NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary.DisplayName.get -> string!
 NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary.OpenIdAuthenticationLibrary() -> void
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectCommand
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectCommand.AuthenticateSubjectCommand() -> void

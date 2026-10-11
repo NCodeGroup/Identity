@@ -25,11 +25,4 @@ namespace NCode.Identity.JsonWebTokens;
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>
 [PublicAPI]
-public readonly struct JsonWebTokensLibrary : IRegistrationMarker<JsonWebTokensLibrary>
-{
-    /// <inheritdoc />
-    public string DisplayName => "NCode.Identity.JsonWebTokens";
-
-    /// <inheritdoc />
-    public string ConfigureMethod => "AddJsonWebTokensLibrary";
-}
+public readonly struct JsonWebTokensLibrary : IRegistrationMarker<JsonWebTokensLibrary>;

@@ -25,11 +25,4 @@ namespace NCode.Identity;
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>
 [PublicAPI]
-public readonly struct IdentityLibrary : IRegistrationMarker<IdentityLibrary>
-{
-    /// <inheritdoc />
-    public string DisplayName => "NCode.Identity";
-
-    /// <inheritdoc />
-    public string ConfigureMethod => "AddIdentityLibrary";
-}
+public readonly struct IdentityLibrary : IRegistrationMarker<IdentityLibrary>;

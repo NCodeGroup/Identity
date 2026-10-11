@@ -58,8 +58,6 @@ NCode.Identity.HashAlgorithmType.Sha256 = 32 -> NCode.Identity.HashAlgorithmType
 NCode.Identity.HashAlgorithmType.Sha512 = 64 -> NCode.Identity.HashAlgorithmType
 NCode.Identity.HashAlgorithmType.Unspecified = 0 -> NCode.Identity.HashAlgorithmType
 NCode.Identity.IdentityLibrary
-NCode.Identity.IdentityLibrary.ConfigureMethod.get -> string!
-NCode.Identity.IdentityLibrary.DisplayName.get -> string!
 NCode.Identity.IdentityLibrary.IdentityLibrary() -> void
 NCode.Identity.ISupportClone<T>
 NCode.Identity.ISupportClone<T>.Clone() -> T

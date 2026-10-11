@@ -1,4 +1,6 @@
 #nullable enable
+NCode.Identity.Events.EventsLibrary
+NCode.Identity.Events.EventsLibrary.EventsLibrary() -> void
 abstract NCode.Identity.Events.Audit.AuditEvent.Action.get -> string!
 abstract NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ResourceType.get -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Denied = "denied" -> string!

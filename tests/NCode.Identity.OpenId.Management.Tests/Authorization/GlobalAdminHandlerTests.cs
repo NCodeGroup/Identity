@@ -45,15 +45,3 @@ public class GlobalAdminHandlerTests
 
     #endregion
 }
-
-public class OpenIdManagementLibraryTests
-{
-    [Fact]
-    public void Metadata_ReturnsExpectedValues()
-    {
-        var library = new OpenIdManagementLibrary();
-
-        Assert.Equal("NCode.Identity.OpenId.Management", library.DisplayName);
-        Assert.Equal("AddOpenIdManagementLibrary", library.ConfigureMethod);
-    }
-}

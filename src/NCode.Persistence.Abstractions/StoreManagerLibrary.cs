@@ -1,7 +1,6 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2025 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,18 +16,15 @@
 
 #endregion
 
-using Xunit;
+using JetBrains.Annotations;
+using NCode.Registration;
 
-namespace NCode.Identity.OpenId.Core.Tests;
+namespace NCode.Persistence;
 
-public class OpenIdCoreLibraryTests
-{
-    [Fact]
-    public void Metadata_ReturnsExpectedValues()
-    {
-        var library = new OpenIdCoreLibrary();
-
-        Assert.Equal("NCode.Identity.OpenId.Core", library.DisplayName);
-        Assert.Equal("AddOpenIdCoreLibrary", library.ConfigureMethod);
-    }
-}
+/// <summary>
+/// A registration marker announcing that a persistence store-manager framework (an <c>IStoreManager</c> provider, such
+/// as the Entity Framework one) has been registered. A store slice — which registers a store factory the store manager
+/// resolves — requires this builder as its receiver, so a slice cannot be composed without the framework it depends on.
+/// </summary>
+[PublicAPI]
+public readonly struct StoreManagerLibrary : IRegistrationMarker<StoreManagerLibrary>;

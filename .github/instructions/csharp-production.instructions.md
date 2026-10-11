@@ -230,14 +230,22 @@ rationale.
   extends the marker of the library it augments (`AddLocalAccountManagement()` on `IServiceBuilder<OpenIdManagementLibrary>`,
   `AddInteractiveAuthentication()` on `IServiceBuilder<OpenIdAuthenticationLibrary>`) — **never** a naked
   `IServiceCollection`, so it is compile-time-impossible to add a capability without its framework. A library marker a
-  cross-package bolt-on must name lives in that library's `.Abstractions`. **A second litmus governs which `.Abstractions`
-  packages own a marker: only a registerable library _layer_ does.** Pure contract/DTO abstractions, **dependency-inverted
-  seams** (the local-account store per [ADR-0060](../../docs/adr/0060-local-account-one-store-seam-and-dependency-inverted-authentication.md),
-  the persistence seams — pluggable, so no single registration mints a marker and the gap surfaces at resolution per
-  [ADR-0061](../../docs/adr/0061-local-account-management-is-an-opt-in-capability.md)), cross-library helpers, and
-  foundational cross-cutting infrastructure own **none** — and that is correct, not an omission. A bolt-on over a seam
-  gates on the **framework library** it extends and treats the seam implementation as a resolved dependency, not a
-  marker. A **larger package organized into subfolders**
+  cross-package bolt-on must name lives in that library's `.Abstractions` (a marker is an empty `readonly struct`
+  implementing `IRegistrationMarker<TMarker>` — its type identity is the whole signal, with no `DisplayName` or
+  `ConfigureMethod` data to keep in sync). **A second litmus governs which `.Abstractions`
+  packages own a marker: a registerable library _layer_ does (minted by its `AddXLibrary()`), and a dependency-inverted
+  _seam that other registrations build on_ owns a _presence marker_ minted by every implementation.** Two seams own one:
+  the persistence framework owns `StoreManagerLibrary` (`NCode.Persistence.Abstractions`, minted by
+  `AddEntityFrameworkCorePersistence`), and the local-account store owns `LocalAccountLibrary`
+  (per [ADR-0060](../../docs/adr/0060-local-account-one-store-seam-and-dependency-inverted-authentication.md)): each store
+  registration (`AddLocalAccountEntityFramework`, `AddAspNetIdentityLocalAccountStore`, a custom store) receives
+  `IServiceBuilder<StoreManagerLibrary>` and **returns** `IServiceBuilder<LocalAccountLibrary>`, and the account bolt-ons
+  take it as a **required `IServiceBuilder<LocalAccountLibrary>` parameter** (their receiver stays the OpenId library they
+  extend), so a capability cannot even be written without a
+  store (the accepted cost: a custom store must mint/return it too). Pure contract/DTO abstractions, cross-library helpers,
+  foundational marker-less infrastructure, and **the interactive credential verifier** (registered after its surface, so
+  there is no builder to thread and a missing verifier surfaces at resolution) own **none** — a compile-time seam marker
+  applies exactly when the seam is registered **before** its dependent. A **larger package organized into subfolders**
   registers each folder from its own `DefaultRegistration.cs` and may introduce **additional registration markers — most
   often `internal`, though not required to be — to scope a nested folder**, created with `builder.NewBuilder<TChildMarker>()`
   (e.g. `Endpoints` → `OpenIdAuthenticationEndpoints`). **The litmus for a naked `IServiceCollection` receiver is
@@ -245,9 +253,12 @@ rationale.
   another marker-bearing library's services** is a bolt-on and **must** gate on that library's `IServiceBuilder<TMarker>`
   (e.g. the dev-host `AddDeveloperKeys` / `AddDeveloperInteractiveSeed`, which replace the server's tenant factory and
   hook its command handlers, extend `IServiceBuilder<IdentityServer>` — never the bare collection). Only a chain **root**
-  with no prerequisite, a **dependency-inverted implementation** (a store / persistence provider registered behind a
-  seam), a **generic utility helper**, or **foundational cross-cutting infrastructure that mints no library marker**
-  (`AddEventServices`, `AddPropertyBag`) takes a naked `IServiceCollection`. A **cross-library helper** invoked from more
+  with no prerequisite (`AddIdentityLibrary`, `AddSecretsLibrary`, `AddEventServices` which mints `EventsLibrary`, and the
+  persistence-framework root `AddEntityFrameworkCorePersistence` which mints `StoreManagerLibrary`), a **generic utility
+  helper**, or **foundational marker-less cross-cutting infrastructure** (`AddPropertyBag`, `AddDataProtection`) takes a
+  naked `IServiceCollection`; a dependency-inverted store instead receives its framework seam's builder
+  (`IServiceBuilder<StoreManagerLibrary>`), and the event opt-ins (`AddEventHandler`, `AddBackgroundEventDelivery`) receive
+  `IServiceBuilder<EventsLibrary>`. A **cross-library helper** invoked from more
   than one library's builder (so it cannot name a single marker) takes the **non-generic `IServiceBuilder`** receiver —
   stronger than a naked collection (the caller must hold _some_ library builder) but library-agnostic (e.g.
   `AddMessageFactory<TMessage>`, `AddEndpointProvider<T>`, `AddEndpointGroup<T>`); never pin such a helper to one marker

@@ -25,11 +25,4 @@ namespace NCode.Identity.Secrets.Persistence;
 /// Provides a type discriminator for <see cref="IServiceBuilder{T}"/>.
 /// </summary>
 [PublicAPI]
-public readonly struct SecretPersistenceLibrary : IRegistrationMarker<SecretPersistenceLibrary>
-{
-    /// <inheritdoc />
-    public string DisplayName => "NCode.Identity.Secrets.Persistence";
-
-    /// <inheritdoc />
-    public string ConfigureMethod => "AddPersistenceLibrary";
-}
+public readonly struct SecretPersistenceLibrary : IRegistrationMarker<SecretPersistenceLibrary>;

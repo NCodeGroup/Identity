@@ -9,4 +9,8 @@
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
     </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+    </ItemGroup>
 </Project>

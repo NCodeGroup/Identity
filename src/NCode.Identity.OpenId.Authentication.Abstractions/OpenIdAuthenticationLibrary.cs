@@ -26,11 +26,4 @@ namespace NCode.Identity.OpenId.Authentication;
 /// </summary>
 [PublicAPI]
 public readonly struct OpenIdAuthenticationLibrary
-    : IRegistrationMarker<OpenIdAuthenticationLibrary>
-{
-    /// <inheritdoc />
-    public string DisplayName => "NCode.Identity.OpenId.Authentication";
-
-    /// <inheritdoc />
-    public string ConfigureMethod => "AddOpenIdAuthenticationLibrary";
-}
+    : IRegistrationMarker<OpenIdAuthenticationLibrary>;

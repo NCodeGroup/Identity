@@ -36,18 +36,23 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> for <see cref="OpenIdAuthenticationLibrary"/>.</param>
+    /// <param name="builder">The <see cref="OpenIdAuthenticationLibrary"/> builder these capabilities extend.</param>
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
         /// <summary>
         /// Registers the resource-owner password grant capability over the configured <c>ILocalAccountStore</c>. This
         /// overrides the base <c>NCode.Identity.OpenId.Authentication</c> handler that reports the password grant as
-        /// unsupported, so calling it is what enables the grant. The host must separately register a local-account
-        /// store (for example, the generic Entity Framework reference or the ASP.NET Core Identity adapter).
+        /// unsupported, so calling it is what enables the grant.
         /// </summary>
-        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<OpenIdAuthenticationLibrary> AddLocalAccountAuthentication()
+        /// <param name="localAccountStore">The local-account store builder — the compile-time proof that a
+        /// <c>ILocalAccountStore</c> is registered, so this capability cannot be added without one.</param>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> for method chaining.</returns>
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddLocalAccountAuthentication(
+            IServiceBuilder<LocalAccountLibrary> localAccountStore
+        )
         {
+            ArgumentNullException.ThrowIfNull(localAccountStore);
+
             var serviceCollection = builder.ServiceCollection;
 
             // Replace (not TryAdd) so this capability wins over the base "unsupported password grant" default handler.
@@ -73,14 +78,21 @@ public static class DefaultRegistration
         /// Registers the local-account implementation of the <see cref="IInteractiveCredentialVerifier"/> seam, so the
         /// opt-in interactive login/consent surface (<c>AddInteractiveAuthentication</c>) verifies credentials against
         /// the configured <c>ILocalAccountStore</c> — the same credential path the resource-owner password grant uses.
-        /// The host must separately register a local-account store and the interactive surface. A host fronting a
-        /// different backend (LDAP, an external identity provider, passwordless) registers its own
-        /// <see cref="IInteractiveCredentialVerifier"/> instead.
+        /// The host registers the interactive surface separately. A host fronting a different backend (LDAP, an external
+        /// identity provider, passwordless) registers its own <see cref="IInteractiveCredentialVerifier"/> instead.
         /// </summary>
-        /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<OpenIdAuthenticationLibrary> AddLocalAccountInteractiveAuthentication()
+        /// <param name="localAccountStore">The local-account store builder — the compile-time proof that a
+        /// <c>ILocalAccountStore</c> is registered, so this capability cannot be added without one.</param>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> for method chaining.</returns>
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddLocalAccountInteractiveAuthentication(
+            IServiceBuilder<LocalAccountLibrary> localAccountStore
+        )
         {
-            builder.ServiceCollection.TryAddSingleton<
+            ArgumentNullException.ThrowIfNull(localAccountStore);
+
+            var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection.TryAddSingleton<
                 IInteractiveCredentialVerifier,
                 LocalAccountInteractiveCredentialVerifier
             >();

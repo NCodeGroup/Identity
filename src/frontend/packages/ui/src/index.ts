@@ -4,6 +4,7 @@ export { ScopeBadge, type ScopeBadgeProps, type ScopeKind } from './components/S
 export { DataStateBoundary, type DataStateBoundaryProps } from './components/DataStateBoundary.js';
 export { TenantTable, type TenantRow, type TenantTableProps } from './components/TenantTable.js';
 export { ClientTable, type ClientRow, type ClientTableProps } from './components/ClientTable.js';
+export { ServerTable, type ServerRow, type ServerTableProps } from './components/ServerTable.js';
 export { GrantTable, type GrantRow, type GrantTableProps } from './components/GrantTable.js';
 export {
   ResourceServerTable,
@@ -50,3 +51,13 @@ export {
   type RevealSecretDialogProps,
 } from './components/RevealSecretDialog.js';
 export { SettingsEditor, type SettingsEditorProps } from './components/SettingsEditor.js';
+export {
+  InitialAccessTokenFormDialog,
+  emptyInitialAccessTokenFormValues,
+  type InitialAccessTokenFormDialogProps,
+  type InitialAccessTokenFormValues,
+} from './components/InitialAccessTokenFormDialog.js';
+export {
+  RevealInitialAccessTokenDialog,
+  type RevealInitialAccessTokenDialogProps,
+} from './components/RevealInitialAccessTokenDialog.js';

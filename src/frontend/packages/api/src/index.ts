@@ -6,6 +6,8 @@ export type {
   CreateScopeRequest,
   CreateSecretRequest,
   CreatedSecretResource,
+  CreateInitialAccessTokenRequest,
+  CreatedInitialAccessTokenResource,
   CreateTenantRequest,
   EffectiveSettingsResource,
   GrantResource,

@@ -10,7 +10,22 @@ change to the public API is a **major** version bump.
 
 ### Added
 
-- **Management console grants, secrets, and settings write operations (`apps/mgmt`).** Completes backlog `U2` by
+- **Management console secrets/settings for tenants + the server, and initial-access-token mint (`apps/mgmt`).**
+  Extends the client **Secrets**/**Settings** pattern to the remaining backend-supported settings/secret owners and
+  surfaces protected dynamic-client-registration bootstrap. The client secrets/settings tab logic was factored into
+  shared, owner-agnostic `SecretsManager`/`SettingsManager` containers (the client detail view now consumes them).
+  **Tenant:** a tenant-scope **Tenant** tab manages the tenant's own secrets and settings
+  (`listTenantSecrets`/`createTenantSecret`/`deleteTenantSecret`, `getTenantSettings`/`getTenantEffectiveSettings`/
+  `updateTenantSettings`). **Server:** a global-scope **Servers** tab (new stateless MUI `ServerTable`) drills into a
+  server to manage its secrets and settings (`listServerSecrets`/`createServerSecret`/`deleteServerSecret`,
+  `getServerSettings`/`getServerEffectiveSettings`/`updateServerSettings`). Both honor the one-time secret reveal
+  ([ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md)) and the top-level add/remove/replace JSON
+  Patch `diffPatch` save with the owner `concurrencyToken` as `If-Match`. **Initial access token (RFC 7591):** the
+  **Grants** tab gained a **Mint initial access token** action (`createInitialAccessToken`, `Grant`-tag invalidation)
+  with a form (optional description + lifetime) and a one-time `RevealInitialAccessTokenDialog` that shows the plaintext
+  token exactly once. Fourth slice of backlog `U2`; the only `U2` remnant is resource-server (API) settings/secrets,
+  which is blocked on backend owner endpoints that do not yet exist.
+- **Management console grants, secrets, and settings write operations (`apps/mgmt`).** Advances backlog `U2` by
   extending the shared platform to the remaining management surfaces. **Grants:** a new tenant **Grants** tab lists
   persisted grants with subject/client filters and revokes them one-by-one or in a filtered bulk operation
   (`listGrants`/`revokeGrant`/`revokeGrants` with `Grant`-tag invalidation; the server requires a bulk revoke to carry

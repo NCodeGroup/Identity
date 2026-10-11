@@ -1,13 +1,22 @@
 import { useState } from 'react';
+import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { ConfirmDialog, DataStateBoundary, GrantTable } from '@ncode/ui';
-import type { GrantResource } from '@ncode/api';
+import {
+  ConfirmDialog,
+  DataStateBoundary,
+  GrantTable,
+  InitialAccessTokenFormDialog,
+  RevealInitialAccessTokenDialog,
+  type InitialAccessTokenFormValues,
+} from '@ncode/ui';
+import type { CreatedInitialAccessTokenResource, GrantResource } from '@ncode/api';
 import {
   apiErrorMessage,
+  useCreateInitialAccessTokenMutation,
   useListGrantsQuery,
   useRevokeGrantMutation,
   useRevokeGrantsMutation,
@@ -21,7 +30,9 @@ export type GrantsPageProps = {
 type DialogState =
   | { readonly kind: 'none' }
   | { readonly kind: 'revoke'; readonly grant: GrantResource }
-  | { readonly kind: 'revoke-many' };
+  | { readonly kind: 'revoke-many' }
+  | { readonly kind: 'mint' }
+  | { readonly kind: 'reveal'; readonly created: CreatedInitialAccessTokenResource };
 
 const closed: DialogState = { kind: 'none' };
 
@@ -49,9 +60,11 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
 
   const [revokeGrant, { isLoading: isRevoking }] = useRevokeGrantMutation();
   const [revokeGrants, { isLoading: isRevokingMany }] = useRevokeGrantsMutation();
+  const [mintToken, { isLoading: isMinting }] = useCreateInitialAccessTokenMutation();
 
   const [dialog, setDialog] = useState<DialogState>(closed);
   const [dialogError, setDialogError] = useState<string>();
+  const [mintError, setMintError] = useState<string>();
 
   const openRevoke = (grantId: string) => {
     const grant = grants.find((g) => g.grantId === grantId);
@@ -92,6 +105,23 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
     }
   };
 
+  const handleMint = async (values: InitialAccessTokenFormValues) => {
+    setMintError(undefined);
+    try {
+      const created = await mintToken({
+        tenantId,
+        body: {
+          description: values.description.length > 0 ? values.description : null,
+          lifetimeSeconds:
+            values.lifetimeSeconds.length > 0 ? Number(values.lifetimeSeconds) : null,
+        },
+      }).unwrap();
+      setDialog({ kind: 'reveal', created });
+    } catch (mintTokenError) {
+      setMintError(apiErrorMessage(mintTokenError as ApiError));
+    }
+  };
+
   const filterLabel = [
     trimmedSubject ? `subject “${trimmedSubject}”` : null,
     trimmedClient ? `client “${trimmedClient}”` : null,
@@ -105,18 +135,31 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
         <Typography variant="h5" component="h2">
           Grants
         </Typography>
-        <Button
-          variant="outlined"
-          color="error"
-          disabled={!hasFilter}
-          onClick={() => {
-            setDialogError(undefined);
-            setDialog({ kind: 'revoke-many' });
-          }}
-          data-testid="revoke-matching-grants"
-        >
-          Revoke matching
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setMintError(undefined);
+              setDialog({ kind: 'mint' });
+            }}
+            data-testid="mint-initial-access-token"
+          >
+            Mint initial access token
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            disabled={!hasFilter}
+            onClick={() => {
+              setDialogError(undefined);
+              setDialog({ kind: 'revoke-many' });
+            }}
+            data-testid="revoke-matching-grants"
+          >
+            Revoke matching
+          </Button>
+        </Stack>
       </Box>
       <Stack direction="row" spacing={2} mb={2}>
         <TextField
@@ -167,6 +210,22 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
         error={dialogError}
         onConfirm={handleRevokeMany}
         onCancel={() => setDialog(closed)}
+      />
+
+      <InitialAccessTokenFormDialog
+        open={dialog.kind === 'mint'}
+        isSubmitting={isMinting}
+        error={mintError}
+        onSubmit={handleMint}
+        onCancel={() => setDialog(closed)}
+      />
+
+      <RevealInitialAccessTokenDialog
+        open={dialog.kind === 'reveal'}
+        token={dialog.kind === 'reveal' ? dialog.created.initialAccessToken : ''}
+        grantId={dialog.kind === 'reveal' ? dialog.created.grantId : ''}
+        expiresWhen={dialog.kind === 'reveal' ? dialog.created.expiresWhen : null}
+        onClose={() => setDialog(closed)}
       />
     </>
   );

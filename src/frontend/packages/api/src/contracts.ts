@@ -220,3 +220,28 @@ export type SettingsResource = {
 export type EffectiveSettingsResource = {
   readonly settings: Readonly<Record<string, unknown>>;
 };
+
+/**
+ * Mirror of `CreateInitialAccessTokenRequest` (RFC 7591). Mints a token that authorizes its bearer to register a new
+ * client at the protected dynamic client registration endpoint. `description` is an optional administrative note;
+ * `lifetimeSeconds` is an optional positive lifetime (`null` means the token does not expire).
+ */
+export type CreateInitialAccessTokenRequest = {
+  readonly description: string | null;
+  readonly lifetimeSeconds: number | null;
+};
+
+/**
+ * Mirror of `CreatedInitialAccessTokenResource` — the mint response. The `initialAccessToken` plaintext is revealed
+ * exactly once here and never again (the grant store persists only its salted hash, like ADR-0050 secret material).
+ * `grantId` addresses the backing grant for later revocation; `expiresWhen` is `null` for a non-expiring token.
+ * Timestamps are ISO-8601 strings on the wire.
+ */
+export type CreatedInitialAccessTokenResource = {
+  readonly initialAccessToken: string;
+  readonly grantId: string;
+  readonly tenantId: string;
+  readonly description: string | null;
+  readonly createdWhen: string;
+  readonly expiresWhen: string | null;
+};

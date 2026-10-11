@@ -477,3 +477,201 @@ describe('managementApi client secret + settings endpoints (tenant scope)', () =
     ]);
   });
 });
+
+describe('managementApi tenant secret + settings endpoints', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('createTenantSecret POSTs the request body under the tenant path', async () => {
+    const captured = mockFetch(
+      new Response(
+        JSON.stringify({
+          secretId: 's-1',
+          concurrencyToken: 'c1',
+          use: null,
+          algorithm: null,
+          createdWhen: '2026-01-01T00:00:00Z',
+          expiresWhen: '2027-01-01T00:00:00Z',
+          secretType: 'symmetric',
+          keySizeBits: 256,
+          secretMaterial: 'abc',
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.createTenantSecret.initiate({
+        tenantId: 'acme',
+        body: {
+          secretType: 'symmetric',
+          keySizeBits: 256,
+          use: null,
+          algorithm: null,
+          expiresWhen: '2027-01-01T00:00:00Z',
+        },
+      }),
+    );
+
+    expect('data' in result && result.data?.secretMaterial).toBe('abc');
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/secrets');
+    expect(captured[0]?.method).toBe('POST');
+  });
+
+  it('deleteTenantSecret DELETEs the secret by id under the tenant path', async () => {
+    const captured = mockFetch(new Response(null, { status: 204 }));
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.deleteTenantSecret.initiate({ tenantId: 'acme', secretId: 's-1' }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/secrets/s-1');
+    expect(captured[0]?.method).toBe('DELETE');
+  });
+
+  it('updateTenantSettings PATCHes a JSON Patch diff with If-Match', async () => {
+    const captured = mockFetch(new Response(null, { status: 204 }));
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.updateTenantSettings.initiate({
+        tenantId: 'acme',
+        concurrencyToken: 'etag-3',
+        original: { keep: 1, drop: 2 },
+        desired: { keep: 1, added: 3 },
+      }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/settings');
+    expect(captured[0]?.method).toBe('PATCH');
+    expect(captured[0]?.ifMatch).toBe('etag-3');
+    expect(JSON.parse(captured[0]?.body ?? '[]')).toEqual([
+      { op: 'remove', path: '/drop' },
+      { op: 'add', path: '/added', value: 3 },
+    ]);
+  });
+
+  it('getTenantEffectiveSettings GETs the tenant effective-settings path', async () => {
+    const captured = mockFetch(
+      new Response(JSON.stringify({ settings: {} }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.getTenantEffectiveSettings.initiate({ tenantId: 'acme' }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/effective-settings');
+    expect(captured[0]?.method).toBe('GET');
+  });
+});
+
+describe('managementApi server secret + settings endpoints (global scope)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('createServerSecret POSTs the request body under the server path', async () => {
+    const captured = mockFetch(
+      new Response(
+        JSON.stringify({
+          secretId: 's-1',
+          concurrencyToken: 'c1',
+          use: null,
+          algorithm: null,
+          createdWhen: '2026-01-01T00:00:00Z',
+          expiresWhen: '2027-01-01T00:00:00Z',
+          secretType: 'symmetric',
+          keySizeBits: 256,
+          secretMaterial: 'abc',
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.createServerSecret.initiate({
+        serverId: 'root',
+        body: {
+          secretType: 'symmetric',
+          keySizeBits: 256,
+          use: null,
+          algorithm: null,
+          expiresWhen: '2027-01-01T00:00:00Z',
+        },
+      }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/servers/root/secrets');
+    expect(captured[0]?.method).toBe('POST');
+  });
+
+  it('updateServerSettings PATCHes a JSON Patch diff with If-Match', async () => {
+    const captured = mockFetch(new Response(null, { status: 204 }));
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.updateServerSettings.initiate({
+        serverId: 'root',
+        concurrencyToken: 'etag-5',
+        original: { a: 1 },
+        desired: { a: 2 },
+      }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/servers/root/settings');
+    expect(captured[0]?.method).toBe('PATCH');
+    expect(captured[0]?.ifMatch).toBe('etag-5');
+    expect(JSON.parse(captured[0]?.body ?? '[]')).toEqual([
+      { op: 'replace', path: '/a', value: 2 },
+    ]);
+  });
+});
+
+describe('managementApi initial access token mint (tenant scope)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('createInitialAccessToken POSTs the request body under the tenant grants path', async () => {
+    const captured = mockFetch(
+      new Response(
+        JSON.stringify({
+          initialAccessToken: 'iat-xyz',
+          grantId: 'g-1',
+          tenantId: 'acme',
+          description: 'Partner X',
+          createdWhen: '2026-01-01T00:00:00Z',
+          expiresWhen: '2026-01-01T01:00:00Z',
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.createInitialAccessToken.initiate({
+        tenantId: 'acme',
+        body: { description: 'Partner X', lifetimeSeconds: 3600 },
+      }),
+    );
+
+    expect('data' in result && result.data?.initialAccessToken).toBe('iat-xyz');
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/grants/initial-access-tokens');
+    expect(captured[0]?.method).toBe('POST');
+    expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual({
+      description: 'Partner X',
+      lifetimeSeconds: 3600,
+    });
+  });
+});

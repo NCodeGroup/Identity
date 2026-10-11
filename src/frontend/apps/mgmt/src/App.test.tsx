@@ -145,4 +145,31 @@ describe('App (global ↔ tenant boundary)', () => {
     );
     expect(requestedUrls).toContain('https://api.test/api/tenants/acme/resource-servers');
   });
+
+  it('switches to the global Servers surface and lists servers', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url =
+        input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
+      if (url.endsWith('/api/servers')) {
+        return jsonResponse({
+          items: [{ serverId: 'root', concurrencyToken: 'c', displayName: 'Root server' }],
+        });
+      }
+      if (url.endsWith('/api/tenants')) {
+        return jsonResponse({ items: [] });
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderApp();
+
+    fireEvent.click(await screen.findByTestId('global-tab-servers'));
+    expect(await screen.findByText('Root server')).toBeInTheDocument();
+
+    const requestedUrls = fetchMock.mock.calls.map(([input]) =>
+      input instanceof Request ? input.url : String(input),
+    );
+    expect(requestedUrls).toContain('https://api.test/api/servers');
+  });
 });

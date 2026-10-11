@@ -5,8 +5,10 @@ import {
   scopeApiPrefix,
   type ClientResource,
   type CollectionResource,
+  type CreatedInitialAccessTokenResource,
   type CreatedSecretResource,
   type CreateClientRequest,
+  type CreateInitialAccessTokenRequest,
   type CreateResourceServerRequest,
   type CreateScopeRequest,
   type CreateSecretRequest,
@@ -281,6 +283,18 @@ export const managementApi = createApi({
       }),
       invalidatesTags: [{ type: 'Grant', id: 'LIST' }],
     }),
+    // Mints an RFC 7591 initial access token; the plaintext value is revealed once and the backing grant is listed.
+    createInitialAccessToken: build.mutation<
+      CreatedInitialAccessTokenResource,
+      { tenantId: string; body: CreateInitialAccessTokenRequest }
+    >({
+      query: ({ tenantId, body }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/grants/initial-access-tokens`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Grant', id: 'LIST' }],
+    }),
     listClientSecrets: build.query<SecretsResource, { scope: ManagementScope; clientId: string }>({
       query: ({ scope, clientId }) =>
         `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/secrets`,
@@ -356,6 +370,132 @@ export const managementApi = createApi({
         { type: 'Settings', id: `client-effective:${clientId}` },
       ],
     }),
+    listTenantSecrets: build.query<SecretsResource, { tenantId: string }>({
+      query: ({ tenantId }) => `api/tenants/${encodeURIComponent(tenantId)}/secrets`,
+      providesTags: (result, _error, { tenantId }) => [
+        { type: 'Secret' as const, id: `tenant:${tenantId}` },
+        ...(result?.secrets ?? []).map((s) => ({ type: 'Secret' as const, id: s.secretId })),
+      ],
+    }),
+    createTenantSecret: build.mutation<
+      CreatedSecretResource,
+      { tenantId: string; body: CreateSecretRequest }
+    >({
+      query: ({ tenantId, body }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/secrets`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'Secret', id: `tenant:${tenantId}` },
+      ],
+    }),
+    deleteTenantSecret: build.mutation<void, { tenantId: string; secretId: string }>({
+      query: ({ tenantId, secretId }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/secrets/${encodeURIComponent(secretId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { tenantId, secretId }) => [
+        { type: 'Secret', id: `tenant:${tenantId}` },
+        { type: 'Secret', id: secretId },
+      ],
+    }),
+    getTenantSettings: build.query<SettingsResource, { tenantId: string }>({
+      query: ({ tenantId }) => `api/tenants/${encodeURIComponent(tenantId)}/settings`,
+      providesTags: (_result, _error, { tenantId }) => [
+        { type: 'Settings', id: `tenant:${tenantId}` },
+      ],
+    }),
+    getTenantEffectiveSettings: build.query<EffectiveSettingsResource, { tenantId: string }>({
+      query: ({ tenantId }) => `api/tenants/${encodeURIComponent(tenantId)}/effective-settings`,
+      providesTags: (_result, _error, { tenantId }) => [
+        { type: 'Settings', id: `tenant-effective:${tenantId}` },
+      ],
+    }),
+    // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
+    updateTenantSettings: build.mutation<
+      void,
+      {
+        tenantId: string;
+        concurrencyToken: string;
+        original: Readonly<Record<string, unknown>>;
+        desired: Readonly<Record<string, unknown>>;
+      }
+    >({
+      query: ({ tenantId, concurrencyToken, original, desired }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/settings`,
+        method: 'PATCH',
+        body: diffPatch(original, desired),
+        headers: { 'If-Match': concurrencyToken },
+      }),
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'Settings', id: `tenant:${tenantId}` },
+        { type: 'Settings', id: `tenant-effective:${tenantId}` },
+      ],
+    }),
+    listServerSecrets: build.query<SecretsResource, { serverId: string }>({
+      query: ({ serverId }) => `api/servers/${encodeURIComponent(serverId)}/secrets`,
+      providesTags: (result, _error, { serverId }) => [
+        { type: 'Secret' as const, id: `server:${serverId}` },
+        ...(result?.secrets ?? []).map((s) => ({ type: 'Secret' as const, id: s.secretId })),
+      ],
+    }),
+    createServerSecret: build.mutation<
+      CreatedSecretResource,
+      { serverId: string; body: CreateSecretRequest }
+    >({
+      query: ({ serverId, body }) => ({
+        url: `api/servers/${encodeURIComponent(serverId)}/secrets`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { serverId }) => [
+        { type: 'Secret', id: `server:${serverId}` },
+      ],
+    }),
+    deleteServerSecret: build.mutation<void, { serverId: string; secretId: string }>({
+      query: ({ serverId, secretId }) => ({
+        url: `api/servers/${encodeURIComponent(serverId)}/secrets/${encodeURIComponent(secretId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { serverId, secretId }) => [
+        { type: 'Secret', id: `server:${serverId}` },
+        { type: 'Secret', id: secretId },
+      ],
+    }),
+    getServerSettings: build.query<SettingsResource, { serverId: string }>({
+      query: ({ serverId }) => `api/servers/${encodeURIComponent(serverId)}/settings`,
+      providesTags: (_result, _error, { serverId }) => [
+        { type: 'Settings', id: `server:${serverId}` },
+      ],
+    }),
+    getServerEffectiveSettings: build.query<EffectiveSettingsResource, { serverId: string }>({
+      query: ({ serverId }) => `api/servers/${encodeURIComponent(serverId)}/effective-settings`,
+      providesTags: (_result, _error, { serverId }) => [
+        { type: 'Settings', id: `server-effective:${serverId}` },
+      ],
+    }),
+    // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
+    updateServerSettings: build.mutation<
+      void,
+      {
+        serverId: string;
+        concurrencyToken: string;
+        original: Readonly<Record<string, unknown>>;
+        desired: Readonly<Record<string, unknown>>;
+      }
+    >({
+      query: ({ serverId, concurrencyToken, original, desired }) => ({
+        url: `api/servers/${encodeURIComponent(serverId)}/settings`,
+        method: 'PATCH',
+        body: diffPatch(original, desired),
+        headers: { 'If-Match': concurrencyToken },
+      }),
+      invalidatesTags: (_result, _error, { serverId }) => [
+        { type: 'Settings', id: `server:${serverId}` },
+        { type: 'Settings', id: `server-effective:${serverId}` },
+      ],
+    }),
   }),
 });
 
@@ -380,10 +520,23 @@ export const {
   useListGrantsQuery,
   useRevokeGrantMutation,
   useRevokeGrantsMutation,
+  useCreateInitialAccessTokenMutation,
   useListClientSecretsQuery,
   useCreateClientSecretMutation,
   useDeleteClientSecretMutation,
   useGetClientSettingsQuery,
   useGetClientEffectiveSettingsQuery,
   useUpdateClientSettingsMutation,
+  useListTenantSecretsQuery,
+  useCreateTenantSecretMutation,
+  useDeleteTenantSecretMutation,
+  useGetTenantSettingsQuery,
+  useGetTenantEffectiveSettingsQuery,
+  useUpdateTenantSettingsMutation,
+  useListServerSecretsQuery,
+  useCreateServerSecretMutation,
+  useDeleteServerSecretMutation,
+  useGetServerSettingsQuery,
+  useGetServerEffectiveSettingsQuery,
+  useUpdateServerSettingsMutation,
 } = managementApi;

@@ -1,19 +1,18 @@
 ---
 name: audit-conventions
 description: "Audit the NCode.Identity codebase against its coding-convention instructions — sweep for violations, run the Definition of Done, verify tested-or-excluded coverage, and produce a ranked findings report. Use for a full conventions/compliance review."
-disable-model-invocation: true
 ---
 
 Run a full **convention audit** of this repository against its authoritative rules — the scoped instruction files
-[`csharp-production.instructions.md`](../instructions/csharp-production.instructions.md) and
-[`csharp-testing.instructions.md`](../instructions/csharp-testing.instructions.md), mirrored for orientation in
-[AGENTS.md](../../AGENTS.md). Produce a **ranked findings report**. Do **not** change code unless I explicitly ask —
+[`csharp-production.instructions.md`](../../instructions/csharp-production.instructions.md) and
+[`csharp-testing.instructions.md`](../../instructions/csharp-testing.instructions.md), mirrored for orientation in
+[AGENTS.md](../../../AGENTS.md). Produce a **ranked findings report**. Do **not** change code unless I explicitly ask —
 audit first, offer fixes second.
 
 ## 1. Load the rules
 
-Read the [production](../instructions/csharp-production.instructions.md) and
-[testing](../instructions/csharp-testing.instructions.md) instruction files in full. They are authoritative. Every
+Read the [production](../../instructions/csharp-production.instructions.md) and
+[testing](../../instructions/csharp-testing.instructions.md) instruction files in full. They are authoritative. Every
 rule is tagged ✅ tool-enforced / 👁 review-only / ⏳ rolling out. The ✅ subset is validated by the build, so spend
 your manual effort on the 👁 rules.
 

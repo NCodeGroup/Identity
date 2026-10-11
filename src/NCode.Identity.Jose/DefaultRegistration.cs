@@ -36,18 +36,18 @@ namespace NCode.Identity.Jose;
 [PublicAPI]
 public static class DefaultRegistration
 {
-    /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
-    extension(IServiceCollection serviceCollection)
+    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> to configure services for <see cref="SecretsLibrary"/>.</param>
+    extension(IServiceBuilder<SecretsLibrary> builder)
     {
         /// <summary>
-        /// Registers the required Jose services and algorithms to the specified <see cref="IServiceCollection"/>.
+        /// Registers the required Jose services and algorithms, layered on the <see cref="SecretsLibrary"/>.
         /// </summary>
-        /// <returns>The <see cref="IServiceBuilder"/> so that additional calls can be chained.</returns>
+        /// <returns>The <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>
         public IServiceBuilder<JoseLibrary> AddJoseLibrary()
         {
-            serviceCollection.VerifyIsRegistered<SecretsLibrary>();
+            var serviceCollection = builder.ServiceCollection;
 
-            var newBuilder = serviceCollection.NewBuilder<JoseLibrary>();
+            var newBuilder = builder.NewBuilder<JoseLibrary>();
 
             serviceCollection.TryAddSingleton<IAesKeyWrap, DefaultAesKeyWrap>();
 

@@ -1,7 +1,7 @@
 #nullable enable
 NCode.Identity.Jose.DefaultRegistration
-NCode.Identity.Jose.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.Jose.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddJoseLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!
+NCode.Identity.Jose.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!)
+NCode.Identity.Jose.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddJoseLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!
 NCode.Identity.Jose.JoseSerializerOptions
 NCode.Identity.Jose.JoseSerializerOptions.DisabledAlgorithms.get -> System.Collections.Generic.List<string!>!
 NCode.Identity.Jose.JoseSerializerOptions.DisabledAlgorithms.set -> void

@@ -276,33 +276,3 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   both for now — the prompt still serves VS Code chat via its `agent:` frontmatter, and `disable-model-invocation: true`
   is intended to return once github/copilot-cli#4438 is fixed (restoring explicit-only semantics). If kept, edits must be
   mirrored across both files to avoid drift.
-
-## DI registration & composition (group `R`)
-
-- **`R1` — Upgrade foundational libraries to compile-time marker receivers (consistency polish).**
-  [ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md) makes compile-time marker gating the
-  preferred form, and the opt-in **framework capabilities** (local-account authentication/management, interactive)
-  already extend their prerequisite marker builders. The remaining inconsistency is in the **foundational standalone
-  libraries**: `AddJoseLibrary` (`src/NCode.Identity.Jose/DefaultRegistration.cs`) and `AddJsonWebTokensLibrary`
-  (`src/NCode.Identity.JsonWebTokens/DefaultRegistration.cs`) still express their single prerequisite at **runtime**
-  (`VerifyIsRegistered<SecretsLibrary>` / `VerifyIsRegistered<JoseLibrary>`) instead of as a compile-time receiver
-  (`IServiceBuilder<SecretsLibrary>` / `IServiceBuilder<JoseLibrary>`). Upgrading them requires relocating the
-  `JsonWebTokensLibrary` marker into a (new) `NCode.Identity.JsonWebTokens.Abstractions` package and the
-  `OpenIdCoreLibrary` marker into `NCode.Identity.OpenId.Abstractions`, then repointing the composition root
-  (`src/NCode.Identity.Server/IdentityServerBuilder.cs`: `SecretsLibraryBuilder.AddJoseLibrary()`,
-  `JoseLibraryBuilder.AddJsonWebTokensLibrary()`) and the ~3 test call sites. This is a **consistency** improvement, not
-  a correctness gap (the runtime check already throws on a missing prerequisite). Breaking `PublicAPI` churn, acceptable
-  pre-release ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
-- **`R2` — Codebase-wide conformance sweep for the registration-marker pattern.** Audit **every** registration entry
-  point in `src/` against [ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md) and the §4
-  rule in [`csharp-production.instructions.md`](.github/instructions/csharp-production.instructions.md): (1) every
-  `DefaultRegistration`/registration class is named `DefaultRegistration` and uses C# `extension(...)` members; (2) each
-  **library layer** and **opt-in bolt-on capability** extends the `IServiceBuilder<TMarker>` of its prerequisite (never
-  a naked `IServiceCollection`), and a marker a cross-package bolt-on names lives in that library's `.Abstractions`;
-  (3) only a chain **root**, a **dependency-inverted implementation** (store/persistence provider behind a seam), or a
-  **generic utility helper** takes a naked `IServiceCollection`, and each such case is deliberate; (4) larger packages
-  scope nested folders with additional (usually `internal`) markers via `NewBuilder<TChildMarker>()`; (5) host wiring
-  chains off the builders the composition root exposes rather than a flat `serviceCollection.AddX()` list. Produce a
-  ranked findings report of violations with the correct receiver/marker for each, then fix (or justify) each. A natural
-  companion check to fold into the [`/audit-conventions`](.github/skills/audit-conventions/SKILL.md) sweep. Known
-  follow-ups already catalogued: `R1` (foundational `AddJoseLibrary`/`AddJsonWebTokensLibrary` compile-time upgrade).

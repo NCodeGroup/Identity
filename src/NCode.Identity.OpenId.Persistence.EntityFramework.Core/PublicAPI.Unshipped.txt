@@ -1,7 +1,7 @@
 #nullable enable
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.CoreRegistration
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.CoreRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.CoreRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEntityFrameworkCorePersistence<TDbContext>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.DefaultRegistration
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEntityFrameworkCorePersistence<TDbContext>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.ClientEntity() -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.ClientId.get -> string!

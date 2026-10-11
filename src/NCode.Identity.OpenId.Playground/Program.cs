@@ -82,7 +82,7 @@ identityServer
 identityServer.OpenIdManagementLibraryBuilder.AddLocalAccountManagement();
 
 // DEVELOPMENT CONVENIENCE: seed a public SPA client + administrator user so the management console can sign in.
-serviceCollection.AddDeveloperInteractiveSeed(configuration);
+identityServer.AddDeveloperInteractiveSeed(configuration);
 
 // DEVELOPMENT ONLY: choose how signing keys are provided (see ADR-0002). The default is ephemeral,
 // in-memory keys (hermetic, ideal for tests). Local running can opt into persistent developer keys —
@@ -90,7 +90,7 @@ serviceCollection.AddDeveloperInteractiveSeed(configuration);
 // in launchSettings.json, so test hosts keep the ephemeral default). Production must supply a stable,
 // securely-managed signing key instead.
 var developerKeyMode = configuration.GetDeveloperKeyMode();
-serviceCollection.AddDeveloperKeys(developerKeyMode, hostEnvironment);
+identityServer.AddDeveloperKeys(developerKeyMode, hostEnvironment);
 
 serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 

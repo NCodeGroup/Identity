@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 /// entities and stores) against the Entity Framework persistence framework.
 /// </summary>
 [PublicAPI]
-public static class CoreRegistration
+public static class DefaultRegistration
 {
     /// <param name="serviceCollection">The <see cref="IServiceCollection"/> to add services to.</param>
     extension(IServiceCollection serviceCollection)

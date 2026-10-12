@@ -306,6 +306,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestParameterSupporte
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestUriExpectedContentType = "request_uri_expected_content_type" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestUriParameterSupported = "request_uri_parameter_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestUriRequireStrictContentType = "request_uri_require_strict_content_type" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireConsent = "require_consent" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireCodeChallenge = "require_pkce" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireRequestObject = "require_request_object" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireRequestUriRegistration = "require_request_uri_registration" -> string!
@@ -404,6 +405,8 @@ NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identi
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidScope() -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidToken() -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).LoginRequired() -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).ConsentRequired() -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InteractionRequired() -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).MissingParameter(string! parameterName, string! errorCode = "invalid_request") -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).NotSupported(string! parameterName) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).RequestParameterNotSupported(string! errorCode = "request_not_supported") -> NCode.Identity.OpenId.Messages.IOpenIdError!
@@ -731,6 +734,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestParameterSupporte
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestUriExpectedContentType.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestUriParameterSupported.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestUriRequireStrictContentType.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireConsent.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireCodeChallenge.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireRequestObject.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireRequestUriRegistration.get -> NCode.Identity.Settings.SettingKey<bool>

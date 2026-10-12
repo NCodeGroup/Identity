@@ -20,12 +20,15 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 using NCode.Registration.AspNetCore;
 
@@ -35,10 +38,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// Provides a default implementation of a handler for the <see cref="AuthorizeCommand"/> message.
 /// </summary>
 internal class DefaultAuthorizeHandler(
+    IConsentService consentService,
     IAuditEventRecorder auditEventRecorder,
     ILogger<DefaultAuthorizeHandler> logger
 ) : ICommandResponseHandler<AuthorizeCommand, AuthorizeDisposition>
 {
+    private IConsentService ConsentService { get; } = consentService;
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
     private ILogger<DefaultAuthorizeHandler> Logger { get; } = logger;
 
@@ -47,6 +52,9 @@ internal class DefaultAuthorizeHandler(
     internal virtual AuthorizeDisposition Authorized() => new(ChallengeRequired: false);
 
     internal virtual AuthorizeDisposition ChallengeRequired() => new(ChallengeRequired: true);
+
+    internal virtual AuthorizeDisposition ConsentRequired() =>
+        new(ChallengeRequired: false, ConsentRequired: true);
 
     internal virtual AuthorizeDisposition LoginRequired(IOpenIdErrorFactory errorFactory) =>
         Failed(errorFactory.LoginRequired());
@@ -112,7 +120,18 @@ internal class DefaultAuthorizeHandler(
             return InteractionRequired(errorFactory, noPrompt);
         }
 
-        // TODO: check consent
+        var consentDisposition = await ValidateConsentAsync(
+            openIdContext,
+            openIdClient,
+            authorizationRequest,
+            authenticationTicket,
+            noPrompt,
+            cancellationToken
+        );
+        if (consentDisposition.HasValue)
+        {
+            return consentDisposition.Value;
+        }
 
         await AuditEventRecorder.RecordAuthorizationGrantedAsync(
             openIdContext,
@@ -121,6 +140,59 @@ internal class DefaultAuthorizeHandler(
             cancellationToken
         );
         return Authorized();
+    }
+
+    // Enforces durable consent when the client requires it (the `require_consent` setting) or the request forces a fresh
+    // decision (`prompt=consent`): a subject whose recorded consent does not already cover every requested scope is
+    // sent to the interactive consent surface, unless `prompt=none` forbids interaction (then `consent_required`).
+    private async ValueTask<AuthorizeDisposition?> ValidateConsentAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IAuthorizationRequest authorizationRequest,
+        SubjectAuthentication authenticationTicket,
+        bool noPrompt,
+        CancellationToken cancellationToken
+    )
+    {
+        var forceConsent = authorizationRequest.PromptTypes.Contains(
+            OpenIdConstants.PromptTypes.Consent
+        );
+        var requireConsent = openIdClient.Settings.GetValue(OpenIdSettingKeys.RequireConsent);
+
+        if (!forceConsent && !requireConsent)
+        {
+            return null;
+        }
+
+        var hasConsent =
+            !forceConsent
+            && await ConsentService.HasConsentAsync(
+                openIdContext,
+                openIdClient.ClientId,
+                authenticationTicket.SubjectId,
+                authorizationRequest.Scopes,
+                cancellationToken
+            );
+        if (hasConsent)
+        {
+            return null;
+        }
+
+        Logger.ConsentRequired();
+
+        if (noPrompt)
+        {
+            await AuditEventRecorder.RecordAuthorizationDeniedAsync(
+                openIdContext,
+                openIdClient,
+                authenticationTicket.SubjectId,
+                OpenIdConstants.ErrorCodes.ConsentRequired,
+                cancellationToken
+            );
+            return Failed(openIdContext.ErrorFactory.ConsentRequired());
+        }
+
+        return ConsentRequired();
     }
 
     private static async ValueTask<OperationDisposition<IOpenIdError>> ValidateSubjectAsync(

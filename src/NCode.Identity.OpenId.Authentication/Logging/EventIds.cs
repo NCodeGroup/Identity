@@ -55,4 +55,5 @@ internal static class EventIds
     public const int EndSessionPostLogoutRedirectUriRejected = Base + 24;
     public const int EndSessionCompleted = Base + 25;
     public const int BackChannelLogoutDeliveryFailed = Base + 26;
+    public const int ConsentRequired = Base + 27;
 }

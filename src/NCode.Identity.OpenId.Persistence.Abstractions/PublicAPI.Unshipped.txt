@@ -168,6 +168,22 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServerSecrets
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServerSecrets.PersistedResourceServerSecrets() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServerSettings
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServerSettings.PersistedResourceServerSettings() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.ClientId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.ClientId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.CreatedWhen.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.GrantedScopes.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.GrantedScopes.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.PersistedConsent() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.SubjectId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.SubjectId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.UpdatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.UpdatedWhen.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.AssignmentId.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment.AssignmentId.init -> void
@@ -285,6 +301,11 @@ NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.RemoveSecretAsync(
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.UpdateScopeAsync(string! resourceServerId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope! persistedScope, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.UpdateSecretAsync(string! resourceServerId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.UpdateSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServerSettings! persistedResourceServerSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.IConsentStore
+NCode.Identity.OpenId.Persistence.Stores.IConsentStore.GetBySubjectAsync(string! subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent!>!>
+NCode.Identity.OpenId.Persistence.Stores.IConsentStore.GetOrDefaultAsync(string! clientId, string! subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent?>
+NCode.Identity.OpenId.Persistence.Stores.IConsentStore.RemoveAsync(string! clientId, string! subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.IConsentStore.SaveAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent! consent, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore
 NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore.AddAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment! assignment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore.GetByPrincipalAsync(string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!>!>

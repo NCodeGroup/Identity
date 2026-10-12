@@ -276,6 +276,64 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
                     b.ToTable("ClientSecrets", (string)null);
                 });
 
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ClientId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset>("CreatedWhen")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GrantedScopesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NormalizedSubjectId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("SubjectId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("UpdatedWhen")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("TenantId", "NormalizedSubjectId");
+
+                    b.HasIndex("TenantId", "ClientId", "NormalizedSubjectId")
+                        .IsUnique();
+
+                    b.ToTable("Consents", (string)null);
+                });
+
             modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedIdentityEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -1068,6 +1126,25 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
                     b.Navigation("Client");
 
                     b.Navigation("Secret");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity", b =>
+                {
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Client");
 
                     b.Navigation("Tenant");
                 });

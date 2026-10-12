@@ -68,6 +68,32 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientSecretEnti
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientSecretEntity.Tenant.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientSecretEntity.TenantId.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientSecretEntity.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.Client.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.Client.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.ClientId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.ClientId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.ConsentEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.CreatedWhen.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.GrantedScopesJson.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.GrantedScopesJson.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.NormalizedSubjectId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.NormalizedSubjectId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.NormalizedTenantId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.NormalizedTenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.SubjectId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.SubjectId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.Tenant.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.TenantId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.UpdatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.UpdatedWhen.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedIdentityEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedIdentityEntity.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedIdentityEntity.ConcurrencyToken.set -> void

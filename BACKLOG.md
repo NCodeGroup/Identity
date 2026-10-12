@@ -61,10 +61,19 @@ one option is merely more work.
 
 ## Feature gaps — not yet implemented (group `F`)
 
-- **`F2` — Consent persistence and enforcement.** The authorize flow negotiates `prompt` and audits the
-  grant/deny decision, but there is no persisted consent record or scope pre-approval. See
-  `// TODO: check consent` in
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultAuthorizeHandler.cs`.
+- **`F2` — Consent follow-ups (granular per-scope, scope/client display, authorized-apps management).** Durable
+  consent persistence and enforcement **are implemented** ([ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md)):
+  a first-class `PersistedConsent` aggregate + `IConsentStore` + `ConsentEntity` table, the `IConsentService` seam, the
+  client `require_consent` setting (honored alongside `prompt=consent`) enforced in `DefaultAuthorizeHandler`, the
+  `ConsentChallengeCommand` routing seam, the interactive `GET /account/consent/details` + decision-recording
+  `POST /account/consent`, and the `apps/auth` consent screen showing the real client and requested scopes. **Remaining:**
+  per-scope (granular) consent toggling rather than an all-or-nothing allow; friendly scope descriptions and a client
+  display name on the consent screen (today it shows raw scope names and the client id); and the end-user
+  "authorized applications" self-service surface to **list and revoke** consents (the store already supports it via
+  `IConsentStore.GetBySubjectAsync` / `RemoveAsync` and `IConsentService.RevokeConsentAsync`). Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Consent/`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs`,
+  `src/frontend/apps/auth/src/ConsentForm.tsx`.
 - **`F3` — CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication).** The OAuth 2.0 Device
   Authorization Grant (`device_code`, RFC 8628) **is implemented** — device authorization and verification endpoints,
   the `device_code` token grant handler, and the pending-request persistence model (see
@@ -80,6 +89,16 @@ one option is merely more work.
   (`token.refresh.replay`), but there is no configurable response that revokes the whole token family
   on reuse. See `// TODO: refresh_token_reuse_policy` in
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/RefreshToken/DefaultRefreshTokenGrantHandler.cs`.
+- **`F17` — Session-scoped grant revocation on logout.** Logout bulk-revokes **every** grant a subject holds —
+  `DefaultRevokeGrantsOnEndSessionHandler` calls `IGrantStore.RevokeWhereAsync(subjectId, clientId: null, …)` — so
+  signing out of one session also invalidates refresh tokens issued to the subject's **other** sessions. The grant store
+  was a "one-stop shop" built before sessions existed; now that a login is a `sid`-keyed session
+  ([ADR-0074](docs/adr/0074-session-management-and-logout.md)), grants issued under a session should carry that `sid` so
+  logout can revoke only the terminating session's grants (RP-initiated single-logout semantics), with a deliberate
+  opt-in for global sign-out. (Durable consent is already immune — it is its own aggregate, not a grant, per
+  [ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md).) Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/Handlers/DefaultRevokeGrantsOnEndSessionHandler.cs`,
+  `src/NCode.Identity.OpenId.Persistence.Abstractions/Stores/IGrantStore.cs`.
 - **`F5` — First-class claim-shaping pipeline (Auth0-Actions-equivalent).** Custom claim shaping is already possible
   today by registering an `ICommandHandler` on the subject-claims / UserInfo commands (the mediator pipeline is the
   extension seam, per [ADR-0054](docs/adr/0054-local-account-metadata-projection.md)), but there is no first-class
@@ -196,11 +215,15 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
 ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
 
-- **`U3` — Remaining surfaces (Auth/Consent/Login, Playground, conformance) on the shared platform.** Build the `T2`
-  login/consent surface ([ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md)) and the eventual `F2`
-  consent screen as apps on this platform rather than bespoke UIs, honoring the stable-locator contract
-  (`id=username`/`password`/`login`/`consent-allow`/`consent-deny`). The server-driven cookie challenge flow stays
-  unchanged; the SPA is only the form surface.
+- **`U3` — Build out the Playground and conformance surfaces.** The Auth/Consent/Login surface is a full app on the
+  shared platform (the `apps/auth` consent screen now shows the real client and requested scopes and records the
+  decision — [ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md)), and the Playground (`apps/playground`)
+  and conformance (`apps/conformance`) surfaces are **scaffolded** as apps on the same `@ncode/*` platform
+  ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)) — each builds, lints, type-checks, and tests, and joins
+  the pnpm/Turborepo graph automatically. **Remaining:** flesh the two scaffolds into real surfaces (the Playground into
+  an interactive OAuth/OIDC flow explorer; the conformance app into the browser-drivable harness control surface that
+  `T1`/`T2` drive) and wire them into the Aspire AppHost and a serving model. Touch points:
+  `src/frontend/apps/playground/`, `src/frontend/apps/conformance/`.
 - **`U5` — Frontend CI job.** The frontend toolchain is intentionally outside `dod.ps1`. Add a separate CI job
   (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire

@@ -254,6 +254,26 @@ public static class OpenIdErrorFactoryExtensions
 
         /// <summary>
         /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
+        /// message produces an <see cref="OpenIdConstants.ErrorCodes.ConsentRequired"/> error.
+        /// </summary>
+        /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError ConsentRequired()
+        {
+            return factory.Create(OpenIdConstants.ErrorCodes.ConsentRequired);
+        }
+
+        /// <summary>
+        /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
+        /// message produces an <see cref="OpenIdConstants.ErrorCodes.InteractionRequired"/> error.
+        /// </summary>
+        /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError InteractionRequired()
+        {
+            return factory.Create(OpenIdConstants.ErrorCodes.InteractionRequired);
+        }
+
+        /// <summary>
+        /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
         /// message produces an <see cref="OpenIdConstants.ErrorCodes.AccessDenied"/> error.
         /// </summary>
         /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>

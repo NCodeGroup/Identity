@@ -697,6 +697,18 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // require_consent: whether the authorization endpoint must obtain (and persist) end-user consent for the
+            // requested scopes before issuing a grant, even when a valid session exists (default false; prompt=consent
+            // forces it regardless). Floor (Or): once a parent requires it, a child cannot un-require it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.RequireConsent,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Or,
+            };
+
             // require_pkce: whether the authorization-code flow must use PKCE (default false).
             // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>

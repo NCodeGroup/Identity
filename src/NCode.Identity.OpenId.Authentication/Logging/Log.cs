@@ -201,4 +201,47 @@ internal static partial class Log
         Message = "An access token presented to a protected endpoint failed validation (issuer, audience, lifetime, or signature) and was rejected as invalid_token."
     )]
     internal static partial void AccessTokenInvalid(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.EndSessionIdTokenHintInvalid,
+        Level = LogLevel.Warning,
+        Message = "RP-initiated logout: the supplied id_token_hint could not be validated and was ignored."
+    )]
+    internal static partial void EndSessionIdTokenHintInvalid(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = EventIds.EndSessionSubjectUnresolved,
+        Level = LogLevel.Information,
+        Message = "RP-initiated logout: no subject or session could be resolved; only the OP login cookie was cleared."
+    )]
+    internal static partial void EndSessionSubjectUnresolved(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = EventIds.EndSessionPostLogoutRedirectUriRejected,
+        Level = LogLevel.Warning,
+        Message = "RP-initiated logout: post_logout_redirect_uri '{PostLogoutRedirectUri}' is not registered for client '{ClientId}'; not redirecting."
+    )]
+    internal static partial void EndSessionPostLogoutRedirectUriRejected(
+        this ILogger logger,
+        string postLogoutRedirectUri,
+        string clientId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.EndSessionCompleted,
+        Level = LogLevel.Information,
+        Message = "RP-initiated logout completed; notified {ClientCount} participating client(s) via back-channel logout."
+    )]
+    internal static partial void EndSessionCompleted(this ILogger logger, int clientCount);
+
+    [LoggerMessage(
+        EventId = EventIds.BackChannelLogoutDeliveryFailed,
+        Level = LogLevel.Warning,
+        Message = "Back-channel logout delivery to client '{ClientId}' failed."
+    )]
+    internal static partial void BackChannelLogoutDeliveryFailed(
+        this ILogger logger,
+        string clientId,
+        Exception exception
+    );
 }

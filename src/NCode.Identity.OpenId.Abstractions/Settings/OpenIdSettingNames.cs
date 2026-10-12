@@ -259,6 +259,35 @@ public static class OpenIdSettingNames
     public const string RedirectUris = "redirect_uris";
 
     /// <summary>
+    /// Contains the name of the per-client <c>post_logout_redirect_uris</c> setting (RP-Initiated Logout 1.0): the
+    /// URIs the end-session endpoint is permitted to redirect back to after logout.
+    /// </summary>
+    public const string PostLogoutRedirectUris = "post_logout_redirect_uris";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>backchannel_logout_uri</c> setting (Back-Channel Logout 1.0): the URI the
+    /// OP sends the signed <c>logout_token</c> to when a session the client participates in is terminated.
+    /// </summary>
+    public const string BackChannelLogoutUri = "backchannel_logout_uri";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>backchannel_logout_session_required</c> setting (Back-Channel Logout
+    /// 1.0): whether the client requires a <c>sid</c> claim in the <c>logout_token</c> to identify the session.
+    /// </summary>
+    public const string BackChannelLogoutSessionRequired = "backchannel_logout_session_required";
+
+    /// <summary>
+    /// Contains the name of the server <c>backchannel_logout_supported</c> discovery setting (Back-Channel Logout 1.0).
+    /// </summary>
+    public const string BackChannelLogoutSupported = "backchannel_logout_supported";
+
+    /// <summary>
+    /// Contains the name of the server <c>backchannel_logout_session_supported</c> discovery setting (Back-Channel
+    /// Logout 1.0): whether the OP includes a <c>sid</c> claim in <c>logout_token</c>s.
+    /// </summary>
+    public const string BackChannelLogoutSessionSupported = "backchannel_logout_session_supported";
+
+    /// <summary>
     /// Contains the name of <c>registration_endpoint_allow_anonymous</c> setting.
     /// </summary>
     public const string RegistrationEndpointAllowAnonymous =

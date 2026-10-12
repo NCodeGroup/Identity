@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.Management;
 using NCode.Identity.OpenId.Authentication.Interactive;
@@ -190,8 +191,46 @@ static async Task InitializeDatabaseAsync(WebApplication app)
         return;
     }
 
-    // A database with tables but no migrations history was built by EnsureCreated (or by hand) and cannot be
-    // migrated in place; fail with guidance instead of a cryptic "table already exists". Never auto-delete.
+    // SELF-HEALING LOCAL DEV (SQLite only, ADR-0072): the file-backed dev database is disposable and is always
+    // reconciled to the current model on startup without manual intervention. This never runs against SQL Server — a
+    // developer pointing at a real server keeps the deliberate migrate-only path (with the not-managed guard) below.
+    if (context.Database.IsSqlite())
+    {
+        // Pending model changes = the live model has edits no migration captures yet (mid-feature iteration).
+        // Rebuild the disposable dev DB directly from the model so the inner loop never blocks on authoring a
+        // migration; the Definition of Done drift gate still forces a migration before the change can be pushed.
+        if (context.Database.HasPendingModelChanges())
+        {
+            app.Logger.LogWarning(
+                "The developer database model has pending changes with no migration; rebuilding "
+                    + "'App_Data/openid-dev.db*' from the current model. Author an EF migration before pushing "
+                    + "(the Definition of Done fails on un-migrated model changes)."
+            );
+            await context.Database.EnsureDeletedAsync();
+            await context.Database.EnsureCreatedAsync();
+            return;
+        }
+
+        // No drift: migrations are authoritative. A dev DB with tables but no migrations history was built by a prior
+        // model-rebuild (EnsureCreated) and cannot be migrated in place; discard it so MigrateAsync rebuilds a clean,
+        // migration-managed database — self-healing instead of forcing the developer to delete the file by hand.
+        var sqliteCreator = context.GetService<IRelationalDatabaseCreator>();
+        if (
+            await sqliteCreator.ExistsAsync()
+            && await sqliteCreator.HasTablesAsync()
+            && !(await context.Database.GetAppliedMigrationsAsync()).Any()
+        )
+        {
+            await context.Database.EnsureDeletedAsync();
+        }
+
+        await context.Database.MigrateAsync();
+        return;
+    }
+
+    // Non-SQLite relational dev DB (e.g. a developer-supplied SQL Server): never auto-delete. A database with tables
+    // but no migrations history was built by EnsureCreated (or by hand) and cannot be migrated in place; fail with
+    // guidance instead of a cryptic "table already exists".
     var databaseCreator = context.GetService<IRelationalDatabaseCreator>();
     if (
         await databaseCreator.ExistsAsync()
@@ -201,7 +240,7 @@ static async Task InitializeDatabaseAsync(WebApplication app)
     {
         throw new InvalidOperationException(
             "The developer database is not managed by EF Core migrations (it was likely created by an earlier "
-                + "EnsureCreated build). Delete 'App_Data/openid-dev.db*' and restart to rebuild it from migrations."
+                + "EnsureCreated build). Delete the database and restart to rebuild it from migrations."
         );
     }
 

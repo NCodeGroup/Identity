@@ -835,6 +835,11 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                         .IsUnicode(false)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .IsUnicode(true)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("NormalizedServerId")
                         .IsRequired()
                         .HasMaxLength(300)

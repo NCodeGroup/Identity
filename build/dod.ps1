@@ -72,6 +72,18 @@ try {
         }
     }
 
+    # EF model-drift gate: fail if the OpenIdDbContext model has changes no migration captures. Local dev is
+    # self-healing (the Playground rebuilds its disposable SQLite dev DB from the live model, ADR-0072), so an
+    # un-migrated model edit would otherwise slip through to a real database. Reuses the build output (--no-build);
+    # exit code 1 = pending changes. Catches the drift pre-push and in CI, when the feature is added.
+    Invoke-Step 'ef model drift' {
+        dotnet ef migrations has-pending-model-changes `
+            --no-build `
+            --configuration $Configuration `
+            --project src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj `
+            --startup-project src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj
+    }
+
     if (-not $SkipTests) {
         Invoke-Step 'test' {
             if ($Fast) {

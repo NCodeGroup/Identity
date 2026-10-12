@@ -32,7 +32,13 @@ const resourceServer: ResourceServerResource = {
 function renderPage(onBack = vi.fn()) {
   const store = createAppStore({
     config: { runtime },
-    auth: { accessToken: 'token', subject: 'admin', expiresAt: null, refreshToken: null },
+    auth: {
+      accessToken: 'token',
+      subject: 'admin',
+      expiresAt: null,
+      refreshToken: null,
+      idToken: null,
+    },
   });
   render(
     <Provider store={store}>

@@ -42,6 +42,17 @@ public static class InteractiveAuthenticationDefaults
     public const string BasePath = "/account";
 
     /// <summary>
+    /// The request path of the account/session ("me") self-service page, served at the surface root. It shows the
+    /// current end-user's session and hosts the first-party sign-out control.
+    /// </summary>
+    public const string AccountPath = "/account";
+
+    /// <summary>
+    /// The request path of the JSON endpoint that returns the current end-user's session for the account page.
+    /// </summary>
+    public const string MePath = "/account/me";
+
+    /// <summary>
     /// The request path of the login page the cookie scheme's <c>LoginPath</c> redirects a challenge to.
     /// </summary>
     public const string LoginPath = "/account/login";

@@ -9,32 +9,41 @@ describe('authSlice', () => {
       subject: null,
       expiresAt: null,
       refreshToken: null,
+      idToken: null,
     });
   });
 
-  it('stores the token, subject, expiry, and refresh token on sign-in', () => {
+  it('stores the token, subject, expiry, refresh token, and id token on sign-in', () => {
     const state = authSlice.reducer(
       undefined,
-      signedIn({ accessToken: 'abc', subject: 'user-1', expiresAt: 123, refreshToken: 'rt' }),
+      signedIn({
+        accessToken: 'abc',
+        subject: 'user-1',
+        expiresAt: 123,
+        refreshToken: 'rt',
+        idToken: 'it',
+      }),
     );
     expect(state).toEqual({
       accessToken: 'abc',
       subject: 'user-1',
       expiresAt: 123,
       refreshToken: 'rt',
+      idToken: 'it',
     });
   });
 
-  it('defaults expiry and refresh token to null when omitted', () => {
+  it('defaults expiry, refresh token, and id token to null when omitted', () => {
     const state = authSlice.reducer(undefined, signedIn({ accessToken: 'abc', subject: 'user-1' }));
     expect(state.expiresAt).toBeNull();
     expect(state.refreshToken).toBeNull();
+    expect(state.idToken).toBeNull();
   });
 
   it('clears credentials on sign-out', () => {
     const signedInState = authSlice.reducer(
       undefined,
-      signedIn({ accessToken: 'abc', subject: 'user-1', expiresAt: 123 }),
+      signedIn({ accessToken: 'abc', subject: 'user-1', expiresAt: 123, idToken: 'it' }),
     );
     const state = authSlice.reducer(signedInState, signedOut());
     expect(state).toEqual({
@@ -42,6 +51,7 @@ describe('authSlice', () => {
       subject: null,
       expiresAt: null,
       refreshToken: null,
+      idToken: null,
     });
   });
 });

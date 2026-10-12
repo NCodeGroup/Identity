@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
@@ -17,7 +17,13 @@ const runtime: RuntimeConfig = {
 function renderApp() {
   const store = createAppStore({
     config: { runtime },
-    auth: { accessToken: 'token', subject: 'admin', expiresAt: null, refreshToken: null },
+    auth: {
+      accessToken: 'token',
+      subject: 'admin',
+      expiresAt: null,
+      refreshToken: null,
+      idToken: null,
+    },
   });
   return render(
     <Provider store={store}>
@@ -171,5 +177,64 @@ describe('App (global ↔ tenant boundary)', () => {
       input instanceof Request ? input.url : String(input),
     );
     expect(requestedUrls).toContain('https://api.test/api/servers');
+  });
+});
+
+describe('App (sign-out)', () => {
+  const originalLocation = window.location;
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Object.defineProperty(window, 'location', { configurable: true, value: originalLocation });
+  });
+
+  it('clears local tokens and redirects to the OP RP-Initiated Logout', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url =
+        input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
+      if (url.endsWith('/api/tenants')) {
+        return jsonResponse({ items: [] });
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const assignMock = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { origin: 'https://ui.test', href: 'https://ui.test/', assign: assignMock },
+    });
+
+    const store = createAppStore({
+      config: {
+        runtime: {
+          ...runtime,
+          clientId: 'mgmt-spa',
+          endSessionEndpoint: 'https://op.test/end-session',
+        },
+      },
+      auth: {
+        accessToken: 'token',
+        subject: 'admin',
+        expiresAt: null,
+        refreshToken: null,
+        idToken: 'id-token',
+      },
+    });
+    render(
+      <Provider store={store}>
+        <App />
+      </Provider>,
+    );
+
+    expect(await screen.findByTestId('session-subject')).toHaveTextContent('admin');
+    fireEvent.click(screen.getByTestId('sign-out'));
+
+    expect(store.getState().auth.accessToken).toBeNull();
+    const target = new URL(assignMock.mock.calls[0]![0] as string);
+    expect(target.origin + target.pathname).toBe('https://op.test/end-session');
+    expect(target.searchParams.get('id_token_hint')).toBe('id-token');
+    expect(target.searchParams.get('client_id')).toBe('mgmt-spa');
+    expect(target.searchParams.get('post_logout_redirect_uri')).toBe('https://ui.test/');
   });
 });

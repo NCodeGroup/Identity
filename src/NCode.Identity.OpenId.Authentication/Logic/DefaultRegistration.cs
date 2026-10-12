@@ -50,6 +50,10 @@ internal static class DefaultRegistration
             >();
             serviceCollection.TryAddSingleton<IClientScopeService, DefaultClientScopeService>();
             serviceCollection.TryAddSingleton<
+                IScopeDescriptionService,
+                DefaultScopeDescriptionService
+            >();
+            serviceCollection.TryAddSingleton<
                 IResourceServerCredentialResolver,
                 DefaultResourceServerCredentialResolver
             >();

@@ -33,6 +33,12 @@ public readonly record struct AuthorizationRequestJsonEnvelope
     public required bool IsContinuation { get; init; }
 
     /// <summary>
+    /// Gets or sets the consent-narrowed subset of the requested scopes, or <see langword="null"/> when no consent
+    /// narrowing has been applied.
+    /// </summary>
+    public IReadOnlyList<string>? GrantedScopes { get; init; }
+
+    /// <summary>
     /// Gets or sets the original request message.
     /// </summary>
     public required IAuthorizationRequestMessage? OriginalRequestMessage { get; init; }

@@ -3,6 +3,7 @@ import {
   describeLoginError,
   getQueryParam,
   isAccountPath,
+  isApplicationsPath,
   isConsentPath,
   readCookie,
 } from './params.js';
@@ -48,6 +49,18 @@ describe('isAccountPath', () => {
   it('does not match the login or consent paths', () => {
     expect(isAccountPath('/account/login')).toBe(false);
     expect(isAccountPath('/account/consent')).toBe(false);
+  });
+});
+
+describe('isApplicationsPath', () => {
+  it('matches the applications path with trailing slashes', () => {
+    expect(isApplicationsPath('/account/applications')).toBe(true);
+    expect(isApplicationsPath('/account/applications/')).toBe(true);
+  });
+
+  it('does not match the account root or other paths', () => {
+    expect(isApplicationsPath('/account')).toBe(false);
+    expect(isApplicationsPath('/account/consent')).toBe(false);
   });
 });
 

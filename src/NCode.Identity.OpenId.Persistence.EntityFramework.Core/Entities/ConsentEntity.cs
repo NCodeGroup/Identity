@@ -18,6 +18,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
@@ -76,9 +77,16 @@ public sealed class ConsentEntity : ISupportTenantEntity, ISupportConcurrencyTok
     public required string NormalizedSubjectId { get; init; }
 
     /// <summary>
-    /// Gets or sets the JSON-serialized array of scopes the subject has granted to the client.
+    /// Gets or sets the JSON-serialized array of scopes the subject was asked to decide on (the "decided" universe,
+    /// a superset of <see cref="GrantedScopesJson"/>). A request whose scopes are all contained here has already been
+    /// decided and does not re-prompt the subject.
     /// </summary>
-    public required string GrantedScopesJson { get; set; }
+    public required JsonElement RequestedScopesJson { get; set; }
+
+    /// <summary>
+    /// Gets or sets the JSON-serialized array of scopes the subject has granted (allowed) to the client.
+    /// </summary>
+    public required JsonElement GrantedScopesJson { get; set; }
 
     /// <summary>
     /// Gets or sets when this consent record was first created.

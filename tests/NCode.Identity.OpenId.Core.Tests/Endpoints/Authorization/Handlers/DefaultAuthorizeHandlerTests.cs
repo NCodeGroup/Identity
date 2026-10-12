@@ -231,7 +231,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(["openid"]).Verifiable();
         MockConsentService
             .Setup(x =>
-                x.HasConsentAsync(
+                x.ResolveConsentAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
@@ -239,7 +239,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(false)
+            .ReturnsAsync(new ConsentResolution(IsDecided: false, GrantedScopes: []))
             .Verifiable();
 
         var result = await Handler.HandleAsync(command, CancellationToken.None);
@@ -258,9 +258,10 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         SetupValidateSubject(mockContext, mockMediator, subjectError: null);
         mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireConsent)).Returns(true);
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(["openid"]).Verifiable();
+        mockAuthRequest.SetupSet(x => x.GrantedScopes = It.IsAny<IReadOnlyList<string>?>());
         MockConsentService
             .Setup(x =>
-                x.HasConsentAsync(
+                x.ResolveConsentAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
@@ -268,7 +269,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(true)
+            .ReturnsAsync(new ConsentResolution(IsDecided: true, GrantedScopes: ["openid"]))
             .Verifiable();
         MockAuditEventRecorder
             .Setup(x =>
@@ -300,7 +301,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(["openid"]).Verifiable();
         MockConsentService
             .Setup(x =>
-                x.HasConsentAsync(
+                x.ResolveConsentAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
@@ -308,7 +309,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(false)
+            .ReturnsAsync(new ConsentResolution(IsDecided: false, GrantedScopes: []))
             .Verifiable();
         MockAuditEventRecorder
             .Setup(x =>
@@ -328,6 +329,56 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         Assert.False(result.ConsentRequired);
         Assert.False(result.ChallengeRequired);
         Assert.True(result.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenPromptConsentOnContinuationAndDecided_DownScopesAndAuthorizes()
+    {
+        var (command, mockContext, _, _, mockAuthRequest, mockMediator, _) = CreateScaffold([
+            OpenIdConstants.PromptTypes.Consent,
+        ]);
+
+        SetupValidateSubject(mockContext, mockMediator, subjectError: null);
+        // prompt=consent forces a fresh decision on the initial request, but on the resumed continuation (the subject
+        // just completed the consent screen) it must NOT re-prompt — it down-scopes to the granted subset.
+        mockAuthRequest.SetupGet(x => x.IsContinuation).Returns(true).Verifiable();
+        mockAuthRequest.SetupGet(x => x.Scopes).Returns(["openid", "profile"]).Verifiable();
+
+        IReadOnlyList<string>? downScoped = null;
+        mockAuthRequest
+            .SetupSet(x => x.GrantedScopes = It.IsAny<IReadOnlyList<string>?>())
+            .Callback((IReadOnlyList<string>? value) => downScoped = value);
+
+        MockConsentService
+            .Setup(x =>
+                x.ResolveConsentAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new ConsentResolution(IsDecided: true, GrantedScopes: ["openid"]))
+            .Verifiable();
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordAuthorizationGrantedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(result.ConsentRequired);
+        Assert.False(result.ChallengeRequired);
+        Assert.False(result.HasError);
+        Assert.Equal(["openid"], downScoped);
     }
 
     #endregion

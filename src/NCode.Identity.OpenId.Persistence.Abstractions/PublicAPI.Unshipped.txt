@@ -181,6 +181,8 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.CreatedWhen.ini
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.GrantedScopes.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.GrantedScopes.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.PersistedConsent() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.RequestedScopes.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.RequestedScopes.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.SubjectId.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.SubjectId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedConsent.TenantId.get -> string!

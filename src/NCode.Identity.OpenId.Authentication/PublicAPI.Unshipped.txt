@@ -17,6 +17,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.Authorizat
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.CodeVerifier.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.DisplayType.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.GrantType.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.GrantedScopes.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.GrantedScopes.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.IdTokenHint.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.IsContinuation.get -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.IsContinuation.set -> void
@@ -156,6 +158,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.Authorizati
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.TokenType.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization.AuthorizationRequestJsonEnvelope
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization.AuthorizationRequestJsonEnvelope.AuthorizationRequestJsonEnvelope() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization.AuthorizationRequestJsonEnvelope.GrantedScopes.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization.AuthorizationRequestJsonEnvelope.GrantedScopes.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization.AuthorizationRequestJsonEnvelope.IsContinuation.get -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization.AuthorizationRequestJsonEnvelope.IsContinuation.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization.AuthorizationRequestJsonEnvelope.OriginalRequestMessage.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequestMessage?

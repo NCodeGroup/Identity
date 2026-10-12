@@ -2,7 +2,8 @@ import type { ReactElement } from 'react';
 import { ConsentForm } from './ConsentForm.js';
 import { LoginForm } from './LoginForm.js';
 import { AccountPage } from './AccountPage.js';
-import { isAccountPath, isConsentPath } from './params.js';
+import { AuthorizedAppsPage } from './AuthorizedAppsPage.js';
+import { isAccountPath, isApplicationsPath, isConsentPath } from './params.js';
 
 /** The per-request inputs the interactive surfaces render against, derived from the environment. */
 export type RouteContext = {
@@ -23,6 +24,10 @@ type Route = {
  * should still present a login.
  */
 const ROUTES: readonly Route[] = [
+  {
+    match: isApplicationsPath,
+    render: ({ antiforgeryToken }) => <AuthorizedAppsPage antiforgeryToken={antiforgeryToken} />,
+  },
   {
     match: isAccountPath,
     render: ({ antiforgeryToken }) => <AccountPage antiforgeryToken={antiforgeryToken} />,

@@ -142,9 +142,11 @@ internal class DefaultAuthorizeHandler(
         return Authorized();
     }
 
-    // Enforces durable consent when the client requires it (the `require_consent` setting) or the request forces a fresh
-    // decision (`prompt=consent`): a subject whose recorded consent does not already cover every requested scope is
-    // sent to the interactive consent surface, unless `prompt=none` forbids interaction (then `consent_required`).
+    // Enforces durable, granular consent when the client requires it (the `require_consent` setting) or the request
+    // forces a fresh decision (`prompt=consent`): a subject whose recorded consent has not yet decided every requested
+    // scope is sent to the interactive consent surface; when consent is satisfied the request's issued scopes are
+    // narrowed to the granted subset (OIDC down-scoping), unless `prompt=none` forbids interaction (then
+    // `consent_required`).
     private async ValueTask<AuthorizeDisposition?> ValidateConsentAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
@@ -154,45 +156,51 @@ internal class DefaultAuthorizeHandler(
         CancellationToken cancellationToken
     )
     {
-        var forceConsent = authorizationRequest.PromptTypes.Contains(
+        var promptConsent = authorizationRequest.PromptTypes.Contains(
             OpenIdConstants.PromptTypes.Consent
         );
         var requireConsent = openIdClient.Settings.GetValue(OpenIdSettingKeys.RequireConsent);
 
-        if (!forceConsent && !requireConsent)
+        if (!promptConsent && !requireConsent)
         {
             return null;
         }
 
-        var hasConsent =
-            !forceConsent
-            && await ConsentService.HasConsentAsync(
-                openIdContext,
-                openIdClient.ClientId,
-                authenticationTicket.SubjectId,
-                authorizationRequest.Scopes,
-                cancellationToken
-            );
-        if (hasConsent)
+        var resolution = await ConsentService.ResolveConsentAsync(
+            openIdContext,
+            openIdClient.ClientId,
+            authenticationTicket.SubjectId,
+            authorizationRequest.Scopes,
+            cancellationToken
+        );
+
+        // `prompt=consent` forces a fresh decision, but only on the initial request — not when resuming the parked
+        // continuation after the subject has just completed the consent screen (which recorded their decision).
+        var mustPrompt =
+            (promptConsent && !authorizationRequest.IsContinuation) || !resolution.IsDecided;
+
+        if (mustPrompt)
         {
-            return null;
+            Logger.ConsentRequired();
+
+            if (noPrompt)
+            {
+                await AuditEventRecorder.RecordAuthorizationDeniedAsync(
+                    openIdContext,
+                    openIdClient,
+                    authenticationTicket.SubjectId,
+                    OpenIdConstants.ErrorCodes.ConsentRequired,
+                    cancellationToken
+                );
+                return Failed(openIdContext.ErrorFactory.ConsentRequired());
+            }
+
+            return ConsentRequired();
         }
 
-        Logger.ConsentRequired();
-
-        if (noPrompt)
-        {
-            await AuditEventRecorder.RecordAuthorizationDeniedAsync(
-                openIdContext,
-                openIdClient,
-                authenticationTicket.SubjectId,
-                OpenIdConstants.ErrorCodes.ConsentRequired,
-                cancellationToken
-            );
-            return Failed(openIdContext.ErrorFactory.ConsentRequired());
-        }
-
-        return ConsentRequired();
+        // Consent is satisfied: narrow the issued scopes to the subset the subject granted.
+        authorizationRequest.GrantedScopes = resolution.GrantedScopes;
+        return null;
     }
 
     private static async ValueTask<OperationDisposition<IOpenIdError>> ValidateSubjectAsync(

@@ -89,6 +89,18 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.Authentica
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthenticateCommand.OpenIdClient.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthenticateCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthenticateCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Consent.IConsentService
+NCode.Identity.OpenId.Authentication.Consent.IConsentService.GrantConsentAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! clientId, string! subjectId, System.Collections.Generic.IReadOnlyCollection<string!>! scopes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Consent.IConsentService.HasConsentAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! clientId, string! subjectId, System.Collections.Generic.IReadOnlyCollection<string!>! requestedScopes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Authentication.Consent.IConsentService.ResolvePendingConsentAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! returnUrl, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Consent.PendingConsent?>
+NCode.Identity.OpenId.Authentication.Consent.IConsentService.RevokeConsentAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! clientId, string! subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Consent.PendingConsent
+NCode.Identity.OpenId.Authentication.Consent.PendingConsent.ClientId.get -> string!
+NCode.Identity.OpenId.Authentication.Consent.PendingConsent.ClientId.init -> void
+NCode.Identity.OpenId.Authentication.Consent.PendingConsent.PendingConsent() -> void
+NCode.Identity.OpenId.Authentication.Consent.PendingConsent.PendingConsent(string! ClientId, System.Collections.Generic.IReadOnlyList<string!>! RequestedScopes) -> void
+NCode.Identity.OpenId.Authentication.Consent.PendingConsent.RequestedScopes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Authentication.Consent.PendingConsent.RequestedScopes.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeCommand
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeCommand.AuthorizationRequest.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeCommand.AuthorizationRequest.init -> void
@@ -102,10 +114,12 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeC
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeCommand.SubjectAuthentication.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition.AuthorizeDisposition() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition.AuthorizeDisposition(bool ChallengeRequired, NCode.Identity.OpenId.Messages.IOpenIdError? Error = null) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition.AuthorizeDisposition(bool ChallengeRequired, bool ConsentRequired = false, NCode.Identity.OpenId.Messages.IOpenIdError? Error = null) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition.AuthorizeDisposition(NCode.Identity.OpenId.Messages.IOpenIdError! error) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition.ChallengeRequired.get -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition.ChallengeRequired.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition.ConsentRequired.get -> bool
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition.ConsentRequired.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition.Error.get -> NCode.Identity.OpenId.Messages.IOpenIdError?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition.Error.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.AuthorizeDisposition.HasError.get -> bool
@@ -120,6 +134,17 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ChallengeC
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ChallengeCommand.OpenIdClient.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ChallengeCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ChallengeCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ConsentChallengeCommand
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ConsentChallengeCommand.AuthorizationRequest.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest!
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ConsentChallengeCommand.AuthorizationRequest.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ConsentChallengeCommand.ConsentChallengeCommand() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ConsentChallengeCommand.ConsentChallengeCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest! AuthorizationRequest, string! ContinueUrl) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ConsentChallengeCommand.ContinueUrl.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ConsentChallengeCommand.ContinueUrl.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ConsentChallengeCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ConsentChallengeCommand.OpenIdClient.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ConsentChallengeCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.ConsentChallengeCommand.OpenIdContext.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.CreateAuthorizationTicketCommand
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.CreateAuthorizationTicketCommand.AuthorizationRequest.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands.CreateAuthorizationTicketCommand.AuthorizationRequest.init -> void

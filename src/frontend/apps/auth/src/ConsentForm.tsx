@@ -1,10 +1,20 @@
+import { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ANTIFORGERY_FIELD, CONSENT_ACTION } from './params.js';
+import { ANTIFORGERY_FIELD, CONSENT_ACTION, CONSENT_DETAILS_ENDPOINT } from './params.js';
+
+/** The pending authorization request the consent page presents (mirrors the OP's consent-details payload). */
+export type ConsentDetails = {
+  readonly clientId: string;
+  readonly scopes: readonly string[];
+};
 
 export type ConsentFormProps = {
   /** The validated local return URL the server redirects to after the consent decision. */
@@ -13,13 +23,59 @@ export type ConsentFormProps = {
   readonly antiforgeryToken: string;
   /** The product/tenant display name shown in the heading. */
   readonly productName?: string;
+  /** Loads the pending request; defaults to a same-origin fetch of the consent-details endpoint. */
+  readonly loadDetails?: (returnUrl: string) => Promise<ConsentDetails | null>;
 };
 
 /**
- * The stateless consent form. Allow and deny submit as native HTML form POSTs carrying the decision; the
- * stable element ids (`consent-allow`, `consent-deny`) are the automation contract and are set explicitly.
+ * Default details loader: fetches the OP's consent-details endpoint for the pending authorization request. It is a
+ * no-op when `fetch` is unavailable (e.g. a DOM-free unit test that does not inject `loadDetails`).
  */
-export function ConsentForm({ returnUrl, antiforgeryToken, productName }: ConsentFormProps) {
+async function fetchDetails(returnUrl: string): Promise<ConsentDetails | null> {
+  if (typeof fetch !== 'function') {
+    return null;
+  }
+  const response = await fetch(
+    `${CONSENT_DETAILS_ENDPOINT}?ReturnUrl=${encodeURIComponent(returnUrl)}`,
+    { headers: { accept: 'application/json' } },
+  );
+  if (!response.ok) {
+    return null;
+  }
+  return (await response.json()) as ConsentDetails;
+}
+
+/**
+ * The consent form. It loads the pending authorization request (the client and the requested scopes) and renders it,
+ * then submits the allow/deny decision as a native HTML form POST. The stable element ids (`consent-allow`,
+ * `consent-deny`) are the automation contract and are set explicitly.
+ */
+export function ConsentForm({
+  returnUrl,
+  antiforgeryToken,
+  productName,
+  loadDetails = fetchDetails,
+}: ConsentFormProps) {
+  const [details, setDetails] = useState<ConsentDetails | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    loadDetails(returnUrl)
+      .then((loaded) => {
+        if (active) {
+          setDetails(loaded);
+        }
+      })
+      .catch(() => {
+        /* a failed load leaves the requested-scope list hidden; the decision controls remain available */
+      });
+    return () => {
+      active = false;
+    };
+  }, [loadDetails, returnUrl]);
+
+  const appName = productName ?? details?.clientId ?? 'An application';
+
   return (
     <Box
       sx={{
@@ -37,10 +93,21 @@ export function ConsentForm({ returnUrl, antiforgeryToken, productName }: Consen
               Authorize access
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {productName
-                ? `${productName} is requesting access to your account.`
-                : 'An application is requesting access to your account.'}
+              {`${appName} is requesting access to your account.`}
             </Typography>
+
+            {details && details.scopes.length > 0 ? (
+              <Stack spacing={1} data-testid="consent-scopes">
+                <Typography variant="subtitle2">This will allow it to:</Typography>
+                <List dense disablePadding>
+                  {details.scopes.map((scope) => (
+                    <ListItem key={scope} disablePadding>
+                      <ListItemText primary={scope} />
+                    </ListItem>
+                  ))}
+                </List>
+              </Stack>
+            ) : null}
 
             <input type="hidden" name="ReturnUrl" value={returnUrl} />
             <input type="hidden" name={ANTIFORGERY_FIELD} value={antiforgeryToken} />

@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
@@ -29,6 +30,8 @@ using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Settings;
 using NCode.Mediator;
 using Xunit;
 
@@ -36,14 +39,20 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Handlers;
 
 public class DefaultAuthorizeHandlerTests : BaseTests
 {
+    private Mock<IConsentService> MockConsentService { get; }
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
     private DefaultAuthorizeHandler Handler { get; }
 
     public DefaultAuthorizeHandlerTests()
     {
         var mockLogger = CreateLooseMock<ILogger<DefaultAuthorizeHandler>>();
+        MockConsentService = CreateStrictMock<IConsentService>();
         MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
-        Handler = new DefaultAuthorizeHandler(MockAuditEventRecorder.Object, mockLogger.Object);
+        Handler = new DefaultAuthorizeHandler(
+            MockConsentService.Object,
+            MockAuditEventRecorder.Object,
+            mockLogger.Object
+        );
     }
 
     #region Scaffolding
@@ -54,6 +63,8 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     private (
         AuthorizeCommand command,
         Mock<OpenIdContext> context,
+        Mock<OpenIdClient> client,
+        Mock<IReadOnlySettingCollection> settings,
         Mock<IAuthorizationRequest> authRequest,
         Mock<IMediator> mediator,
         Mock<IOpenIdError> error
@@ -61,6 +72,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
+        var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         var mockAuthRequest = CreateStrictMock<IAuthorizationRequest>();
         var mockMediator = CreateStrictMock<IMediator>();
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
@@ -71,6 +83,11 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         mockAuthRequest.SetupGet(x => x.PromptTypes).Returns(promptTypes).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
+        // Consent is disabled by default; individual tests opt in.
+        mockClient.SetupGet(x => x.ClientId).Returns("client-id");
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+        mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireConsent)).Returns(false);
+
         var command = new AuthorizeCommand(
             mockContext.Object,
             mockClient.Object,
@@ -78,7 +95,15 @@ public class DefaultAuthorizeHandlerTests : BaseTests
             CreateSubjectAuthentication()
         );
 
-        return (command, mockContext, mockAuthRequest, mockMediator, mockError);
+        return (
+            command,
+            mockContext,
+            mockClient,
+            mockSettings,
+            mockAuthRequest,
+            mockMediator,
+            mockError
+        );
     }
 
     private void SetupValidateSubject(
@@ -110,7 +135,9 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenCreateAccountPrompt_ReturnsChallengeRequired()
     {
-        var (command, _, _, _, _) = CreateScaffold([OpenIdConstants.PromptTypes.CreateAccount]);
+        var (command, _, _, _, _, _, _) = CreateScaffold([
+            OpenIdConstants.PromptTypes.CreateAccount,
+        ]);
 
         var result = await Handler.HandleAsync(command, CancellationToken.None);
 
@@ -121,7 +148,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenLoginPrompt_ReturnsChallengeRequired()
     {
-        var (command, _, _, _, _) = CreateScaffold([OpenIdConstants.PromptTypes.Login]);
+        var (command, _, _, _, _, _, _) = CreateScaffold([OpenIdConstants.PromptTypes.Login]);
 
         var result = await Handler.HandleAsync(command, CancellationToken.None);
 
@@ -132,7 +159,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenSubjectValid_ReturnsAuthorized()
     {
-        var (command, mockContext, _, mockMediator, _) = CreateScaffold([]);
+        var (command, mockContext, _, _, _, mockMediator, _) = CreateScaffold([]);
 
         SetupValidateSubject(mockContext, mockMediator, subjectError: null);
         MockAuditEventRecorder
@@ -156,7 +183,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenSubjectInvalidWithoutNonePrompt_ReturnsChallengeRequired()
     {
-        var (command, mockContext, _, mockMediator, mockError) = CreateScaffold([]);
+        var (command, mockContext, _, _, _, mockMediator, mockError) = CreateScaffold([]);
 
         SetupValidateSubject(mockContext, mockMediator, mockError.Object);
 
@@ -169,7 +196,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenSubjectInvalidWithNonePrompt_ReturnsLoginRequiredError()
     {
-        var (command, mockContext, _, mockMediator, mockError) = CreateScaffold([
+        var (command, mockContext, _, _, _, mockMediator, mockError) = CreateScaffold([
             OpenIdConstants.PromptTypes.None,
         ]);
 
@@ -189,6 +216,116 @@ public class DefaultAuthorizeHandlerTests : BaseTests
 
         var result = await Handler.HandleAsync(command, CancellationToken.None);
 
+        Assert.False(result.ChallengeRequired);
+        Assert.True(result.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenConsentRequiredAndNotGranted_ReturnsConsentRequired()
+    {
+        var (command, mockContext, _, mockSettings, mockAuthRequest, mockMediator, _) =
+            CreateScaffold([]);
+
+        SetupValidateSubject(mockContext, mockMediator, subjectError: null);
+        mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireConsent)).Returns(true);
+        mockAuthRequest.SetupGet(x => x.Scopes).Returns(["openid"]).Verifiable();
+        MockConsentService
+            .Setup(x =>
+                x.HasConsentAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.ConsentRequired);
+        Assert.False(result.ChallengeRequired);
+        Assert.False(result.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenConsentRequiredAndGranted_ReturnsAuthorized()
+    {
+        var (command, mockContext, _, mockSettings, mockAuthRequest, mockMediator, _) =
+            CreateScaffold([]);
+
+        SetupValidateSubject(mockContext, mockMediator, subjectError: null);
+        mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireConsent)).Returns(true);
+        mockAuthRequest.SetupGet(x => x.Scopes).Returns(["openid"]).Verifiable();
+        MockConsentService
+            .Setup(x =>
+                x.HasConsentAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordAuthorizationGrantedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(result.ConsentRequired);
+        Assert.False(result.ChallengeRequired);
+        Assert.False(result.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenConsentRequiredWithNonePrompt_ReturnsConsentRequiredError()
+    {
+        var (command, mockContext, _, mockSettings, mockAuthRequest, mockMediator, _) =
+            CreateScaffold([OpenIdConstants.PromptTypes.None]);
+
+        SetupValidateSubject(mockContext, mockMediator, subjectError: null);
+        mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireConsent)).Returns(true);
+        mockAuthRequest.SetupGet(x => x.Scopes).Returns(["openid"]).Verifiable();
+        MockConsentService
+            .Setup(x =>
+                x.HasConsentAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordAuthorizationDeniedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(result.ConsentRequired);
         Assert.False(result.ChallengeRequired);
         Assert.True(result.HasError);
     }

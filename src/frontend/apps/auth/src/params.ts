@@ -16,6 +16,9 @@ export const LOGIN_ACTION = '/account/login';
 /** The same-origin path the consent form posts its outcome to. */
 export const CONSENT_ACTION = '/account/consent';
 
+/** The same-origin JSON endpoint returning the pending authorization request the consent page presents. */
+export const CONSENT_DETAILS_ENDPOINT = '/account/consent/details';
+
 /** The same-origin path the account page's sign-out form posts to (first-party RP-Initiated Logout). */
 export const LOGOUT_ACTION = '/account/logout';
 

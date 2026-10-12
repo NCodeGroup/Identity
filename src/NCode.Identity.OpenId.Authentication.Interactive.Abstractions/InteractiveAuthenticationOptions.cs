@@ -35,13 +35,6 @@ public sealed class InteractiveAuthenticationOptions
     public string? BundleRootPath { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the seeded surface auto-approves consent (no consent screen) for a
-    /// first authorization. The consent page remains reachable for negative-path testing regardless. Defaults to
-    /// <see langword="true"/> while durable consent persistence is a separate concern.
-    /// </summary>
-    public bool AutoApproveConsent { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets the lifetime applied to the server-side end-user session established at sign-in. When
     /// <see langword="null"/>, the session does not expire on its own and remains valid until it is revoked (for
     /// example, by logout). Defaults to <see langword="null"/>.

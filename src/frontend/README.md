@@ -48,6 +48,9 @@ src/frontend/
     ui/       @ncode/ui      — MUI design system + stateless components + Storybook
   apps/
     mgmt/     @ncode/app-mgmt — Management console (first surface)
+    auth/     @ncode/app-auth — Interactive login/consent surface (OP-hosted under /account/*)
+    playground/   @ncode/app-playground — Playground developer surface (scaffold)
+    conformance/  @ncode/app-conformance — OIDC conformance harness surface (scaffold)
 ```
 
 ## Architectural invariants

@@ -63,6 +63,12 @@ public static class InteractiveAuthenticationDefaults
     public const string ConsentPath = "/account/consent";
 
     /// <summary>
+    /// The request path of the JSON endpoint that returns the pending authorization request (the client and the
+    /// requested scopes) the consent page must present.
+    /// </summary>
+    public const string ConsentDetailsPath = "/account/consent/details";
+
+    /// <summary>
     /// The request path that clears the interactive session.
     /// </summary>
     public const string LogoutPath = "/account/logout";

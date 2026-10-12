@@ -397,6 +397,11 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RequestUriExpectedContentType);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_consent' setting.
+    /// </summary>
+    public static SettingKey<bool> RequireConsent => new(OpenIdSettingNames.RequireConsent);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_pkce' setting.
     /// </summary>
     public static SettingKey<bool> RequireCodeChallenge =>

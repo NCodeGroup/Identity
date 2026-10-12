@@ -59,6 +59,11 @@ internal static class DefaultRegistration
                 Sessions.DefaultSessionService
             >();
 
+            serviceCollection.TryAddSingleton<
+                Consent.IConsentService,
+                Consent.DefaultConsentService
+            >();
+
             serviceCollection.AddHttpClient();
             serviceCollection.TryAddSingleton<
                 Sessions.IBackChannelLogoutNotifier,

@@ -8,12 +8,14 @@ export {
 export {
   AuthError,
   buildAuthorizeUrl,
+  buildEndSessionUrl,
   exchangeCodeForToken,
   parseCallbackParams,
   refreshAccessToken,
   type AuthRequestParams,
   type CallbackError,
   type CallbackSuccess,
+  type EndSessionParams,
   type FetchLike,
   type TokenSet,
 } from './flow.js';

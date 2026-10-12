@@ -16,6 +16,15 @@ export const LOGIN_ACTION = '/account/login';
 /** The same-origin path the consent form posts its outcome to. */
 export const CONSENT_ACTION = '/account/consent';
 
+/** The same-origin path the account page's sign-out form posts to (first-party RP-Initiated Logout). */
+export const LOGOUT_ACTION = '/account/logout';
+
+/** The account/session ("me") page, served at the interactive surface root. */
+export const ACCOUNT_PATH = '/account';
+
+/** The same-origin JSON endpoint returning the current end-user's session for the account page. */
+export const ME_ENDPOINT = '/account/me';
+
 /** The path that renders the consent page (every other path renders login). */
 export const CONSENT_PATH = '/account/consent';
 
@@ -40,6 +49,11 @@ export function readCookie(cookieString: string, name: string): string | null {
 /** True when the given path should render the consent page rather than the login page. */
 export function isConsentPath(pathname: string): boolean {
   return pathname.replace(/\/+$/, '') === CONSENT_PATH;
+}
+
+/** True when the given path should render the account/session ("me") page. */
+export function isAccountPath(pathname: string): boolean {
+  return pathname.replace(/\/+$/, '') === ACCOUNT_PATH;
 }
 
 /** Maps a login error code to a human-readable message. */

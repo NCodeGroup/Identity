@@ -25,7 +25,13 @@ const client: ClientResource = {
 function renderPage() {
   const store = createAppStore({
     config: { runtime },
-    auth: { accessToken: 'token', subject: 'admin', expiresAt: null, refreshToken: null },
+    auth: {
+      accessToken: 'token',
+      subject: 'admin',
+      expiresAt: null,
+      refreshToken: null,
+      idToken: null,
+    },
   });
   return render(
     <Provider store={store}>

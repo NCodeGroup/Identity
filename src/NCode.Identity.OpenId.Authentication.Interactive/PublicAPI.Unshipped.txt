@@ -2,9 +2,6 @@
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationApplicationBuilderExtensions
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseInteractiveAuthentication() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
-NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationEndpointRouteBuilderExtensions
-NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
-NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapInteractiveAuthentication() -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
 NCode.Identity.OpenId.Authentication.Interactive.DefaultRegistration
 NCode.Identity.OpenId.Authentication.Interactive.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!)
 NCode.Identity.OpenId.Authentication.Interactive.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!).AddInteractiveAuthentication(Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment, System.Action<NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions!>? configureOptions = null) -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!

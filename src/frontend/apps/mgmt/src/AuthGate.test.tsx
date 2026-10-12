@@ -18,7 +18,7 @@ const runtime: RuntimeConfig = {
 function renderGate(preloadedRuntime: RuntimeConfig, accessToken: string | null = null) {
   const store = createAppStore({
     config: { runtime: preloadedRuntime },
-    auth: { accessToken, subject: null, expiresAt: null, refreshToken: null },
+    auth: { accessToken, subject: null, expiresAt: null, refreshToken: null, idToken: null },
   });
   return render(
     <Provider store={store}>
@@ -96,7 +96,13 @@ describe('AuthGate', () => {
 
       const store = createAppStore({
         config: { runtime: { ...runtime, clientId: 'mgmt-spa' } },
-        auth: { accessToken: null, subject: null, expiresAt: null, refreshToken: null },
+        auth: {
+          accessToken: null,
+          subject: null,
+          expiresAt: null,
+          refreshToken: null,
+          idToken: null,
+        },
       });
       render(
         <StrictMode>

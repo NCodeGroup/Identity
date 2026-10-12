@@ -20,9 +20,9 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using NCode.Registration;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
@@ -51,9 +51,10 @@ public static class DefaultRegistration
         /// <c>LogoutPath</c> pointed at the surface) that the authorize endpoint's challenge redirects into, and the
         /// antiforgery configuration the single-page surface uses. The bundle location is read from the
         /// <c>InteractiveAuthentication:BundleRootPath</c> configuration value (resolved relative to the content root
-        /// when not rooted) and may be overridden through <paramref name="configureOptions"/>. Apply it to the
-        /// pipeline with <c>UseInteractiveAuthentication</c> and map it with <c>MapInteractiveAuthentication</c>. The
-        /// cookie scheme is registered as a named scheme and does not itself set the host's default authentication
+        /// when not rooted) and may be overridden through <paramref name="configureOptions"/>. Its endpoints register as
+        /// an <see cref="InteractiveAuthenticationEndpointGroup"/> discovered by <c>MapEndpointGroups</c> alongside the
+        /// protocol endpoints; apply the static-asset middleware to the pipeline with <c>UseInteractiveAuthentication</c>.
+        /// The cookie scheme is registered as a named scheme and does not itself set the host's default authentication
         /// scheme. Credential verification is deferred to a registered <see cref="IInteractiveCredentialVerifier"/>,
         /// which the host must supply separately.
         /// </summary>
@@ -93,7 +94,9 @@ public static class DefaultRegistration
             configureOptions?.Invoke(options);
 
             serviceCollection.AddSingleton(options);
-            serviceCollection.TryAddSingleton<InteractiveAuthenticationEndpointHandler>();
+
+            // The surface's endpoints flow through the same MapEndpointGroups discovery as every other endpoint.
+            builder.AddEndpointGroup<InteractiveAuthenticationEndpointGroup>();
 
             serviceCollection.AddAntiforgery(antiforgery =>
                 antiforgery.HeaderName = AntiforgeryHeaderName

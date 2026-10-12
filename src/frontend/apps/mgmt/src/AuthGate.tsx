@@ -64,6 +64,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               ? { expiresAt: Date.now() + tokens.expiresInSeconds * 1000 }
               : {}),
             ...(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
+            ...(tokens.idToken ? { idToken: tokens.idToken } : {}),
           }),
         );
         window.history.replaceState({}, document.title, `${window.location.origin}/`);
@@ -93,6 +94,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
           getSubject(tokens.accessToken) ||
           store.getState().auth.subject ||
           'unknown';
+        // A refresh may not re-issue an ID token; keep the prior one as the logout hint.
+        const idToken = tokens.idToken ?? store.getState().auth.idToken ?? undefined;
         dispatch(
           signedIn({
             accessToken: tokens.accessToken,
@@ -101,6 +104,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
               ? { expiresAt: Date.now() + tokens.expiresInSeconds * 1000 }
               : {}),
             ...(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
+            ...(idToken ? { idToken } : {}),
           }),
         );
       },

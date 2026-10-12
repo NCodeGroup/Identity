@@ -133,9 +133,16 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   ([ADR-0074](docs/adr/0074-session-management-and-logout.md)) are not yet covered. Add handler unit tests (in
   `NCode.Identity.OpenId.Core.Tests`, which already sees this package's internals) and/or an end-to-end
   `NCode.Identity.OpenId.IntegrationTests` case (login → `sid` in the ID token → `end_session_endpoint` revokes the
-  session/grants → a signed `logout_token` is POSTed to a stub `backchannel_logout_uri`). Touch points:
+  session/grants → a signed `logout_token` is POSTed to a stub `backchannel_logout_uri`). The **first-party**
+  interactive logout shares this gap: the account page's `POST /account/logout` (which runs the same pipeline from the
+  login cookie) and the `GET /account/me` session endpoint have only pure-helper unit tests (`BuildMeResponse`,
+  `ResolveSafeReturnUrl`) plus the existing login-POST antiforgery integration test
+  ([`tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLoginAntiforgeryTests.cs`](tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLoginAntiforgeryTests.cs));
+  add an integration case (login → `GET /account/me` returns the session → `POST /account/logout` clears the cookie,
+  revokes the session/grants, and fires back-channel). Touch points:
   `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/`,
-  `src/NCode.Identity.OpenId.Authentication/Sessions/`.
+  `src/NCode.Identity.OpenId.Authentication/Sessions/`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/`.
 
 ## Conformance & interop testing (group `T`)
 
@@ -192,9 +199,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   consent screen as apps on this platform rather than bespoke UIs, honoring the stable-locator contract
   (`id=username`/`password`/`login`/`consent-allow`/`consent-deny`). The server-driven cookie challenge flow stays
   unchanged; the SPA is only the form surface.
-- **`U4` — Runtime bootstrap endpoint on the OP host.** The tier-agnostic bundle fetches `/config/bootstrap.json` from
-  the serving host; only a dev copy exists (`apps/mgmt/public/config/bootstrap.json`). Add a host endpoint that emits
-  the bootstrap document (API base, issuer, feature flags, branding) per deployment so one bundle serves every tier.
 - **`U5` — Frontend CI job.** The frontend toolchain is intentionally outside `dod.ps1`. Add a separate CI job
   (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire

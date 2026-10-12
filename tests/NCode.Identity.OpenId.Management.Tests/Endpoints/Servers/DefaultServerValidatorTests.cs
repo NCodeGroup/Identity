@@ -21,6 +21,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Management.Contracts.Servers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
@@ -70,6 +71,7 @@ public sealed class DefaultServerValidatorTests : IDisposable
         {
             ServerId = ServerId,
             ConcurrencyToken = concurrencyToken,
+            DisplayName = "Test Server",
             Settings = new PersistedServerSettings
             {
                 ServerId = ServerId,
@@ -176,6 +178,84 @@ public sealed class DefaultServerValidatorTests : IDisposable
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
             CreateServer(),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    #endregion
+
+    #region ValidateUpdateAsync Tests
+
+    private static UpdateServerRequest CreateUpdateModel(string? displayName = "Renamed Server") =>
+        new() { DisplayName = displayName };
+
+    [Fact]
+    public async Task ValidateUpdateAsync_WhenForbiddenAndAuthenticated_Returns403()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.ValidateUpdateAsync(
+            CreateUser(authenticated: true),
+            CreateServer(),
+            CreateUpdateModel(),
+            ifMatch: null,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task ValidateUpdateAsync_WhenIfMatchMismatch_Returns412()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.ValidateUpdateAsync(
+            CreateUser(authenticated: true),
+            CreateServer("server-ct"),
+            CreateUpdateModel(),
+            ifMatch: "stale-token",
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task ValidateUpdateAsync_WhenDisplayNameMissing_Returns400()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.ValidateUpdateAsync(
+            CreateUser(authenticated: true),
+            CreateServer(),
+            CreateUpdateModel(displayName: null),
+            ifMatch: null,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task ValidateUpdateAsync_WhenValid_ReturnsNull()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.ValidateUpdateAsync(
+            CreateUser(authenticated: true),
+            CreateServer("server-ct"),
+            CreateUpdateModel(),
+            ifMatch: "server-ct",
             MockStoreManager.Object,
             CancellationToken.None
         );

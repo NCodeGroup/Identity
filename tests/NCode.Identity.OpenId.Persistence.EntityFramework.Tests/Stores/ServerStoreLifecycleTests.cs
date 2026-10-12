@@ -78,6 +78,7 @@ public sealed class ServerStoreLifecycleTests : IDisposable
         {
             ServerId = ServerId,
             ConcurrencyToken = string.Empty,
+            DisplayName = "Test Server",
             Settings = new PersistedServerSettings
             {
                 ServerId = ServerId,
@@ -158,5 +159,34 @@ public sealed class ServerStoreLifecycleTests : IDisposable
         var result = await _store.HasDependentsAsync(ServerId, CancellationToken.None);
 
         Assert.True(result);
+    }
+
+    [Fact]
+    public async Task GetOrDefaultAsync_RoundTripsDisplayName()
+    {
+        await SeedServerAsync();
+
+        var reloaded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+
+        Assert.NotNull(reloaded);
+        Assert.Equal("Test Server", reloaded.DisplayName);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_UpdatesDisplayName()
+    {
+        await SeedServerAsync();
+
+        var server = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(server);
+        server.DisplayName = "Renamed Server";
+
+        await _store.UpdateAsync(server, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.Equal("Renamed Server", reloaded.DisplayName);
     }
 }

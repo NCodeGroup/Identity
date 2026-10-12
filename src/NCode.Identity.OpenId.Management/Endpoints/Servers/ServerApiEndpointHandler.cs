@@ -107,6 +107,7 @@ internal class ServerApiEndpointHandler(
             .Produces<ServerResource>(StatusCodes.Status201Created);
         servers.MapGet("", ListServersAsync).Produces<CollectionResource<ServerResource>>();
         servers.MapGet("/{serverId}", GetServerAsync).Produces<ServerResource>();
+        servers.MapPatch("/{serverId}", UpdateServerAsync).Produces(StatusCodes.Status204NoContent);
         servers
             .MapDelete("/{serverId}", DeleteServerAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -146,6 +147,7 @@ internal class ServerApiEndpointHandler(
         {
             ServerId = server.ServerId,
             ConcurrencyToken = server.ConcurrencyToken,
+            DisplayName = server.DisplayName,
         };
     }
 
@@ -260,6 +262,7 @@ internal class ServerApiEndpointHandler(
         {
             ServerId = serverId,
             ConcurrencyToken = string.Empty,
+            DisplayName = request.DisplayName,
             Settings = new PersistedServerSettings
             {
                 ServerId = serverId,
@@ -290,9 +293,92 @@ internal class ServerApiEndpointHandler(
         await store.AddAsync(server, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var resource = ToServerResource(server);
+
+        await ManagementAuditRecorder.RecordServerChangedAsync(
+            httpContext,
+            server.ServerId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(resource),
+            cancellationToken
+        );
+
         // The store assigns the row token on insert (ADR-0012), so no re-read is needed.
         httpContext.Response.Headers.ETag = server.ConcurrencyToken;
-        return TypedResults.Created($"/servers/{server.ServerId}", ToServerResource(server));
+        return TypedResults.Created($"/servers/{server.ServerId}", resource);
+    }
+
+    /// <summary>
+    /// Updates an OpenID server.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="request">The JSON Patch document to apply to the server metadata.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current server.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="204">The server was updated.</response>
+    [EndpointName("api/servers/update")]
+    internal virtual async ValueTask<IResult> UpdateServerAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        [FromBody] JsonPatchDocument<UpdateServerRequest> request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IServerStore>();
+
+        var server = await store.GetOrDefaultAsync(serverId, cancellationToken);
+        if (server is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var model = new UpdateServerRequest { DisplayName = server.DisplayName };
+
+        try
+        {
+            request.ApplyTo(model);
+        }
+        catch (JsonPatchException exception)
+        {
+            Logger.JsonPatchFailed(exception);
+            return TypedResults.Problem(
+                detail: "The JSON Patch document could not be applied.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        // Core preconditions (authorization + If-Match + required fields) are asserted by the validator
+        // against the hydrated model (ADR-0014).
+        var error = await ServerValidator.ValidateUpdateAsync(
+            httpContext.User,
+            server,
+            model,
+            ifMatch,
+            storeManager,
+            cancellationToken
+        );
+        if (error is not null)
+        {
+            return ToErrorResult(error);
+        }
+
+        server.DisplayName = model.DisplayName;
+
+        await store.UpdateAsync(server, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        await ManagementAuditRecorder.RecordServerChangedAsync(
+            httpContext,
+            server.ServerId,
+            ResourceChangeTypes.Updated,
+            ToResourceValues(ToServerResource(server)),
+            cancellationToken
+        );
+
+        return TypedResults.NoContent();
     }
 
     /// <summary>
@@ -332,8 +418,18 @@ internal class ServerApiEndpointHandler(
             return ToErrorResult(error);
         }
 
+        var resourceValues = ToResourceValues(ToServerResource(server));
+
         await store.RemoveAsync(serverId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        await ManagementAuditRecorder.RecordServerChangedAsync(
+            httpContext,
+            server.ServerId,
+            ResourceChangeTypes.Deleted,
+            resourceValues,
+            cancellationToken
+        );
 
         return TypedResults.NoContent();
     }

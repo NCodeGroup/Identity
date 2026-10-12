@@ -35,6 +35,11 @@ public sealed class PersistedServer : BasePersistedServerResource
     public override string ResourceType => ResourceTypePrefix;
 
     /// <summary>
+    /// Gets or sets the display name for an OpenID Server instance.
+    /// </summary>
+    public required string DisplayName { get; set; }
+
+    /// <summary>
     /// Gets or sets the JSON settings for an OpenID Server instance.
     /// </summary>
     public required PersistedServerSettings Settings { get; set; }

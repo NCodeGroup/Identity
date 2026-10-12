@@ -54,6 +54,7 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
     private AuthorizationRequest(AuthorizationRequest other)
     {
         IsContinuation = other.IsContinuation;
+        GrantedScopes = other.GrantedScopes;
         OriginalRequestMessage = other.OriginalRequestMessage.Clone();
         OriginalRequestObject = other.OriginalRequestObject?.Clone();
     }
@@ -94,6 +95,9 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
 
     /// <inheritdoc />
     public bool IsContinuation { get; set; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string>? GrantedScopes { get; set; }
 
     /// <inheritdoc />
     public IAuthorizationRequestMessage OriginalRequestMessage { get; }
@@ -193,7 +197,7 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
 
     /// <inheritdoc />
     public IReadOnlyList<string> Scopes =>
-        Coalesce(OriginalRequestObject?.Scopes, OriginalRequestMessage.Scopes);
+        GrantedScopes ?? Coalesce(OriginalRequestObject?.Scopes, OriginalRequestMessage.Scopes);
 
     /// <inheritdoc />
     public string? State => OriginalRequestObject?.State ?? OriginalRequestMessage.State;

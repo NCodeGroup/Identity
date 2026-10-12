@@ -24,6 +24,11 @@ describe('resolveRoute', () => {
     expect(container.querySelector('#consent-allow')).not.toBeNull();
   });
 
+  it('renders the authorized-applications surface for the applications path', () => {
+    const { container } = renderRoute({ ...baseContext, pathname: '/account/applications' });
+    expect(container.querySelector('[data-testid="applications-loading"]')).not.toBeNull();
+  });
+
   it('falls back to the login surface for any unmatched path', () => {
     const { container } = renderRoute({ ...baseContext, pathname: '/anything/else' });
     expect(container.querySelector('#login')).not.toBeNull();

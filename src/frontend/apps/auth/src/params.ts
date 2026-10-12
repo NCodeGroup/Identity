@@ -28,6 +28,15 @@ export const ACCOUNT_PATH = '/account';
 /** The same-origin JSON endpoint returning the current end-user's session for the account page. */
 export const ME_ENDPOINT = '/account/me';
 
+/** The self-service "authorized applications" page, where the end-user reviews and revokes granted access. */
+export const APPLICATIONS_PATH = '/account/applications';
+
+/** The same-origin JSON endpoint returning the end-user's authorized applications. */
+export const APPLICATIONS_LIST_ENDPOINT = '/account/applications/list';
+
+/** The same-origin path the authorized-applications page posts to in order to revoke a single application. */
+export const APPLICATIONS_REVOKE_ACTION = '/account/applications/revoke';
+
 /** The path that renders the consent page (every other path renders login). */
 export const CONSENT_PATH = '/account/consent';
 
@@ -57,6 +66,11 @@ export function isConsentPath(pathname: string): boolean {
 /** True when the given path should render the account/session ("me") page. */
 export function isAccountPath(pathname: string): boolean {
   return pathname.replace(/\/+$/, '') === ACCOUNT_PATH;
+}
+
+/** True when the given path should render the authorized-applications page. */
+export function isApplicationsPath(pathname: string): boolean {
+  return pathname.replace(/\/+$/, '') === APPLICATIONS_PATH;
 }
 
 /** Maps a login error code to a human-readable message. */

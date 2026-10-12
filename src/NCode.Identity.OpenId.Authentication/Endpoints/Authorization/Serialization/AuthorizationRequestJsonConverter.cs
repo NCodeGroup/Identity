@@ -60,7 +60,10 @@ internal class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationR
                 || requestObject.OpenIdEnvironment == requestMessage.OpenIdEnvironment
         );
 
-        return new AuthorizationRequest(envelope.IsContinuation, requestMessage, requestObject);
+        return new AuthorizationRequest(envelope.IsContinuation, requestMessage, requestObject)
+        {
+            GrantedScopes = envelope.GrantedScopes,
+        };
     }
 
     /// <inheritdoc />
@@ -73,6 +76,7 @@ internal class AuthorizationRequestJsonConverter : JsonConverter<IAuthorizationR
         var envelope = new AuthorizationRequestJsonEnvelope
         {
             IsContinuation = value.IsContinuation,
+            GrantedScopes = value.GrantedScopes,
             OriginalRequestMessage = value.OriginalRequestMessage,
             OriginalRequestObject = value.OriginalRequestObject,
         };

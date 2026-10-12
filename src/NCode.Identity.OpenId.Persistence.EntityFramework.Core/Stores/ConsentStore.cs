@@ -58,6 +58,7 @@ internal class ConsentStore(
                 TenantId = entity.Tenant.TenantId,
                 ClientId = entity.Client.ClientId,
                 SubjectId = entity.SubjectId,
+                RequestedScopes = DeserializeScopes(entity.RequestedScopesJson),
                 GrantedScopes = DeserializeScopes(entity.GrantedScopesJson),
                 CreatedWhen = entity.CreatedWhen,
                 UpdatedWhen = entity.UpdatedWhen,
@@ -147,6 +148,7 @@ internal class ConsentStore(
     {
         var normalizedClientId = Normalize(consent.ClientId);
         var normalizedSubjectId = Normalize(consent.SubjectId);
+        var requestedScopesJson = SerializeScopes(consent.RequestedScopes);
         var scopesJson = SerializeScopes(consent.GrantedScopes);
 
         var existing = await GetEntityOrDefaultAsync(
@@ -159,6 +161,7 @@ internal class ConsentStore(
         if (existing is not null)
         {
             // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-0012).
+            existing.RequestedScopesJson = requestedScopesJson;
             existing.GrantedScopesJson = scopesJson;
             existing.UpdatedWhen = consent.UpdatedWhen.ToUniversalTime();
             DbContext.Consents.Update(existing);
@@ -183,6 +186,7 @@ internal class ConsentStore(
             ClientId = clientEntity.Id,
             SubjectId = consent.SubjectId,
             NormalizedSubjectId = normalizedSubjectId,
+            RequestedScopesJson = requestedScopesJson,
             GrantedScopesJson = scopesJson,
             CreatedWhen = consent.CreatedWhen.ToUniversalTime(),
             UpdatedWhen = consent.UpdatedWhen.ToUniversalTime(),
@@ -217,11 +221,11 @@ internal class ConsentStore(
         DbContext.Consents.Remove(entity);
     }
 
-    private static string SerializeScopes(IReadOnlyCollection<string> scopes) =>
-        JsonSerializer.Serialize(scopes);
+    private static JsonElement SerializeScopes(IReadOnlyCollection<string> scopes) =>
+        JsonSerializer.SerializeToElement(scopes);
 
-    private static IReadOnlyCollection<string> DeserializeScopes(string json) =>
-        string.IsNullOrEmpty(json)
-            ? []
-            : JsonSerializer.Deserialize<IReadOnlyCollection<string>>(json) ?? [];
+    private static IReadOnlyCollection<string> DeserializeScopes(JsonElement json) =>
+        json.ValueKind == JsonValueKind.Array
+            ? json.Deserialize<IReadOnlyCollection<string>>() ?? []
+            : [];
 }

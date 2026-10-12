@@ -52,7 +52,17 @@ public sealed class PersistedConsent : ISupportTenantId, ISupportConcurrencyToke
     public required string SubjectId { get; init; }
 
     /// <summary>
-    /// Gets or sets the set of scopes the subject has granted to the client.
+    /// Gets or sets the set of scopes the subject was asked to decide on (the "decided" universe). It is the superset
+    /// of every scope the subject has been presented with across their consent interactions, and it determines when a
+    /// fresh consent screen must be shown: a request whose scopes are all contained here has already been decided, so
+    /// the subject is not re-prompted; a request introducing a previously-unseen scope requires a new decision. It is
+    /// always a superset of <see cref="GrantedScopes"/>.
+    /// </summary>
+    public required IReadOnlyCollection<string> RequestedScopes { get; set; }
+
+    /// <summary>
+    /// Gets or sets the set of scopes the subject has granted (allowed) to the client. The scopes actually issued for a
+    /// request are the intersection of the request's scopes and this set (OIDC down-scoping).
     /// </summary>
     public required IReadOnlyCollection<string> GrantedScopes { get; set; }
 

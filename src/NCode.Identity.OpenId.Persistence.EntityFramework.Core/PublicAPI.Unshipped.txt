@@ -78,7 +78,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.Co
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.ConsentEntity() -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.CreatedWhen.init -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.GrantedScopesJson.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.GrantedScopesJson.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.GrantedScopesJson.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.Id.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.Id.init -> void
@@ -86,6 +86,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.No
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.NormalizedSubjectId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.NormalizedTenantId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.NormalizedTenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.RequestedScopesJson.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.RequestedScopesJson.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.SubjectId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.SubjectId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ConsentEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity!

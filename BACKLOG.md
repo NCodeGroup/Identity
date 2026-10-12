@@ -74,19 +74,6 @@ one option is merely more work.
 
 ## Feature gaps — not yet implemented (group `F`)
 
-- **`F2` — Consent follow-ups (granular per-scope, scope/client display, authorized-apps management).** Durable
-  consent persistence and enforcement **are implemented** ([ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md)):
-  a first-class `PersistedConsent` aggregate + `IConsentStore` + `ConsentEntity` table, the `IConsentService` seam, the
-  client `require_consent` setting (honored alongside `prompt=consent`) enforced in `DefaultAuthorizeHandler`, the
-  `ConsentChallengeCommand` routing seam, the interactive `GET /account/consent/details` + decision-recording
-  `POST /account/consent`, and the `apps/auth` consent screen showing the real client and requested scopes. **Remaining:**
-  per-scope (granular) consent toggling rather than an all-or-nothing allow; friendly scope descriptions and a client
-  display name on the consent screen (today it shows raw scope names and the client id); and the end-user
-  "authorized applications" self-service surface to **list and revoke** consents (the store already supports it via
-  `IConsentStore.GetBySubjectAsync` / `RemoveAsync` and `IConsentService.RevokeConsentAsync`). Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Consent/`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs`,
-  `src/frontend/apps/auth/src/ConsentForm.tsx`.
 - **`F3` — CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication).** The OAuth 2.0 Device
   Authorization Grant (`device_code`, RFC 8628) **is implemented** — device authorization and verification endpoints,
   the `device_code` token grant handler, and the pending-request persistence model (see
@@ -191,7 +178,7 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   [ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md). Detailed plan:
   [`docs/conformance/login-consent-ui.md`](docs/conformance/login-consent-ui.md). **Remaining for conformance:** a
   seeded conformance identity (`T4`) and the reachable HTTPS host to drive it headlessly end-to-end (`T3`); independent
-  of `F2`/`F6`.
+  of `F6`.
 - **`T3` — Reachable HTTPS Playground host for the external harness.** The only launchable host is the
   in-process `TestServer`; the suite needs a real HTTPS origin (Windows/Docker: `host.docker.internal`)
   whose discovery `issuer` byte-matches that origin (pin via the `tenant_issuer` setting). Detailed plan:

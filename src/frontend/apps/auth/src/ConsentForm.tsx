@@ -3,17 +3,25 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormGroup from '@mui/material/FormGroup';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { ANTIFORGERY_FIELD, CONSENT_ACTION, CONSENT_DETAILS_ENDPOINT } from './params.js';
 
+/** A single requested scope, with a friendly description and whether the subject has already granted it. */
+export type ConsentScope = {
+  readonly value: string;
+  readonly description?: string | null;
+  readonly granted: boolean;
+};
+
 /** The pending authorization request the consent page presents (mirrors the OP's consent-details payload). */
 export type ConsentDetails = {
   readonly clientId: string;
-  readonly scopes: readonly string[];
+  readonly clientName?: string | null;
+  readonly scopes: readonly ConsentScope[];
 };
 
 export type ConsentFormProps = {
@@ -46,9 +54,11 @@ async function fetchDetails(returnUrl: string): Promise<ConsentDetails | null> {
 }
 
 /**
- * The consent form. It loads the pending authorization request (the client and the requested scopes) and renders it,
- * then submits the allow/deny decision as a native HTML form POST. The stable element ids (`consent-allow`,
- * `consent-deny`) are the automation contract and are set explicitly.
+ * The consent form. It loads the pending authorization request (the client — with its friendly display name — and the
+ * requested scopes with friendly descriptions and already-granted state) and renders a per-scope checkbox so the
+ * end-user can grant a subset (the OP down-scopes the issued tokens to the selection). The allow/deny decision submits
+ * as a native HTML form POST. The stable element ids (`consent-allow`, `consent-deny`) are the automation contract and
+ * are set explicitly.
  */
 export function ConsentForm({
   returnUrl,
@@ -74,7 +84,7 @@ export function ConsentForm({
     };
   }, [loadDetails, returnUrl]);
 
-  const appName = productName ?? details?.clientId ?? 'An application';
+  const appName = productName ?? details?.clientName ?? details?.clientId ?? 'An application';
 
   return (
     <Box
@@ -93,20 +103,30 @@ export function ConsentForm({
               Authorize access
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {`${appName} is requesting access to your account.`}
+              {`${appName} is requesting access to your account. Choose what to allow:`}
             </Typography>
 
             {details && details.scopes.length > 0 ? (
-              <Stack spacing={1} data-testid="consent-scopes">
-                <Typography variant="subtitle2">This will allow it to:</Typography>
-                <List dense disablePadding>
-                  {details.scopes.map((scope) => (
-                    <ListItem key={scope} disablePadding>
-                      <ListItemText primary={scope} />
-                    </ListItem>
-                  ))}
-                </List>
-              </Stack>
+              <FormGroup data-testid="consent-scopes">
+                {details.scopes.map((scope) => (
+                  <FormControlLabel
+                    key={scope.value}
+                    control={
+                      <Checkbox name="scope" value={scope.value} defaultChecked={scope.granted} />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2">{scope.description ?? scope.value}</Typography>
+                        {scope.description ? (
+                          <Typography variant="caption" color="text.secondary">
+                            {scope.value}
+                          </Typography>
+                        ) : null}
+                      </Box>
+                    }
+                  />
+                ))}
+              </FormGroup>
             ) : null}
 
             <input type="hidden" name="ReturnUrl" value={returnUrl} />

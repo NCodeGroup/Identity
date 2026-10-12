@@ -310,6 +310,10 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<string>("RequestedScopesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("SubjectId")
                         .IsRequired()
                         .HasMaxLength(300)

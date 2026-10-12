@@ -33,6 +33,24 @@ change to the public API is a **major** version bump.
   `IResourceServerCredentialResolver.ResolveAsync` gains a `requestedResources` parameter. Greenfield, pre-release — no
   compatibility shims ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
+- **Granular per-scope consent, friendly consent screen, and self-service authorized applications — completes backlog
+  `F2`.** Durable consent ([ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md)) becomes **granular**: the
+  end-user grants a **subset** of the requested scopes and the OP issues only that subset (OIDC down-scoping), reviews
+  and revokes standing consent from a new surface, and sees friendly names instead of raw identifiers
+  ([ADR-0081](docs/adr/0081-granular-consent-and-authorized-applications.md)). The consent record now tracks both the
+  scopes the subject was asked to **decide** on and the subset they **granted** (`PersistedConsent.RequestedScopes` +
+  `ConsentEntity.RequestedScopesJson`, an `AddConsentRequestedScopes` EF migration), so the authorize endpoint prompts
+  only when a request introduces a previously-undecided scope and otherwise issues the request ∩ granted intersection;
+  `HasConsentAsync` is replaced by `ResolveConsentAsync` returning a `ConsentResolution`, `GrantConsentAsync` takes the
+  requested **and** granted sets (re-consent can revoke a scope), and a new mutable `IAuthorizationRequest.GrantedScopes`
+  override carries the narrowed set into the authorization code and tokens so the token endpoint cannot re-expand it. The
+  consent subsystem resolves the client's `client_name` and each scope's friendly description (a new
+  `IScopeDescriptionService`): `ResolvePendingConsentAsync` and the `GET /account/consent/details` payload now carry the
+  client display name and per-scope descriptions and already-granted state, the `apps/auth` consent screen renders a
+  per-scope checkbox (keeping the `consent-allow` / `consent-deny` locators), and a new OP-hosted authorized-applications
+  surface (`/account/applications` page, `/account/applications/list` JSON, and an antiforgery-protected
+  `/account/applications/revoke` POST, backed by `IConsentService.GetAuthorizedApplicationsAsync` / `RevokeConsentAsync`)
+  lets the end-user review and revoke the applications they have authorized.
 - **Session-scoped grant revocation on logout — completes backlog `F17`.** Logout now revokes **only the terminating
   session's grants** instead of every grant the subject holds, so signing out of one login no longer invalidates the
   subject's other sessions ([ADR-0077](docs/adr/0077-session-scoped-grant-revocation-on-logout.md)). A grant records the

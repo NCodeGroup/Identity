@@ -5,6 +5,8 @@ NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaul
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.AutoApproveConsent.get -> bool
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.AutoApproveConsent.set -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.SessionLifetime.get -> System.TimeSpan?
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.SessionLifetime.set -> void
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.BundleRootPath.get -> string?
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.BundleRootPath.set -> void
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.InteractiveAuthenticationOptions() -> void

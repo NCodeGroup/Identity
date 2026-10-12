@@ -10,6 +10,8 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+### Added
+
 - **PostgreSQL developer database orchestrated by Aspire, with a dedicated migration worker — completes backlog `U12`.**
   The Playground's local database is now **PostgreSQL** run by the Aspire AppHost
   ([ADR-0073](docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md)), replacing the in-process
@@ -24,6 +26,23 @@ change to the public API is a **major** version bump.
   together, with nothing left on the filesystem. A container runtime (Docker or Podman) is now required to run the
   AppHost.
 
+- **End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout — completes backlog `F1` and the `sid`
+  portion of `F11`.** The OpenID Provider now establishes a first-class, server-side **session** at interactive
+  sign-in (persisted as a `PersistedGrant` of type `session` keyed by an opaque `sid`, with no new table or migration),
+  mints the `sid` onto the login cookie, and emits the `sid` claim into ID tokens. A new RP-Initiated Logout
+  `end_session_endpoint` (self-advertised in discovery) validates the `id_token_hint`, clears the OP login, revokes the
+  subject's grants and session, notifies participating relying parties, and redirects to a validated
+  `post_logout_redirect_uri` (echoing `state`). **Back-Channel Logout** is delivered by a pluggable
+  `IBackChannelLogoutNotifier` whose default implementation builds a signed `logout_token` and `POST`s it,
+  server-to-server, to each client's `backchannel_logout_uri`. The endpoint follows the family's discrete-message +
+  mediator-pipeline conventions: the request is a typed `IEndSessionRequest` loaded via `LoadEndSessionRequestCommand`,
+  and the logout side effects are an extension seam — applications add an `ICommandHandler<OnEndSessionCommand>` (for
+  example, custom auditing) alongside the default revocation and back-channel handlers. New per-client settings
+  (`post_logout_redirect_uris`, `backchannel_logout_uri`, `backchannel_logout_session_required`) and server discovery
+  settings (`backchannel_logout_supported`, `backchannel_logout_session_supported`) are added. The two
+  third-party-cookie/iframe mechanisms (Front-Channel Logout and Session Management `check_session_iframe`) are
+  **deliberately not** implemented because the browser platform is removing third-party cookies; the decision and the
+  forward-looking design are captured in [ADR-0074](docs/adr/0074-session-management-and-logout.md).
 - **Runtime frontend bootstrap endpoint on the OpenID Provider host — completes backlog `U4`.** The tier-agnostic
   frontend bundles ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)) discover their deployment coordinates
   at boot from `/config/bootstrap.json` on their serving host; previously only a dev copy existed

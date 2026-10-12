@@ -217,6 +217,11 @@ public static partial class OpenIdConstants
         public const string LoginHint = "login_hint";
 
         /// <summary>
+        /// Contains the name of <c>logout_token</c> parameter (OpenID Connect Back-Channel Logout).
+        /// </summary>
+        public const string LogoutToken = "logout_token";
+
+        /// <summary>
         /// Contains the name of <c>max_age</c> parameter.
         /// </summary>
         public const string MaxAge = "max_age";

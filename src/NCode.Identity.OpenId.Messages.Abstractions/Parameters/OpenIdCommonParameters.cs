@@ -406,6 +406,17 @@ public static class OpenIdCommonParameters
     };
 
     /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>post_logout_redirect_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string> PostLogoutRedirectUri = new(
+        OpenIdConstants.Parameters.PostLogoutRedirectUri,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>ui_locales</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<List<string>> UiLocales = new(

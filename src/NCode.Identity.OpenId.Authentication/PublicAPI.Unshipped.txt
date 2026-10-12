@@ -185,6 +185,16 @@ NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocati
 NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.TokenRevocationRequest() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.TokenTypeHint.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.TokenTypeHint.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.EndSessionRequest() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.IdTokenHint.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.IdTokenHint.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.ClientId.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.ClientId.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.PostLogoutRedirectUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.PostLogoutRedirectUri.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.State.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.State.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.AuthorizationCode.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.AuthorizationCode.set -> void
@@ -240,6 +250,7 @@ override NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.A
 override NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket!
 override NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest!
+override NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse!
 static readonly NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters.Claims -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims!>!

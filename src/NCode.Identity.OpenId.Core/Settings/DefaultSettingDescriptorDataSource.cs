@@ -506,6 +506,57 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // post_logout_redirect_uris: the registered post-logout redirect URIs for a client (RP-Initiated Logout).
+            // Override (Replace): each client specifies its own set (per-client registration, not a cascade ceiling).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.PostLogoutRedirectUris,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // backchannel_logout_uri: the per-client URI the OP POSTs the logout_token to (Back-Channel Logout).
+            // Override (Replace): each client specifies its own endpoint.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.BackChannelLogoutUri,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // backchannel_logout_session_required: whether the client requires a sid in the logout_token.
+            // Override (Replace): each client specifies its own requirement.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.BackChannelLogoutSessionRequired,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // backchannel_logout_supported: server advertises Back-Channel Logout support (default true).
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.BackChannelLogoutSupported,
+                Default = true,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // backchannel_logout_session_supported: server advertises that logout_tokens include a sid (default true).
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.BackChannelLogoutSessionSupported,
+                Default = true,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // registration_endpoint_allow_anonymous: whether the dynamic client registration endpoint accepts
             // anonymous (no initial access token) requests (default false). (ADR-0063)
             // Floor (And): once a parent disallows anonymous registration, a child cannot re-enable it.

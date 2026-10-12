@@ -22,6 +22,7 @@ using NCode.Encoders;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Mediator;
 
@@ -35,15 +36,17 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// This handler is responsible for generating protocol claims and any claims derived from the subject are handled by
 /// <see cref="DefaultGetIdTokenSubjectClaimsHandler"/>.
 /// </remarks>
-internal class DefaultGetIdTokenPayloadClaimsHandler
+internal class DefaultGetIdTokenPayloadClaimsHandler(ISessionService sessionService)
     : ICommandHandler<GetIdTokenPayloadClaimsCommand>,
         ISupportMediatorPriority
 {
+    private ISessionService SessionService { get; } = sessionService;
+
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.Low;
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(
+    public async ValueTask HandleAsync(
         GetIdTokenPayloadClaimsCommand command,
         CancellationToken cancellationToken
     )
@@ -80,12 +83,29 @@ internal class DefaultGetIdTokenPayloadClaimsHandler
             signingCredentials
         );
 
+        // sid (session identifier)
+        // https://openid.net/specs/openid-connect-rpinitiated-1_0.html#IDToken
+        // Emitted from the server-side session established at interactive sign-in; it binds the ID token to the
+        // session so RP-initiated and back-channel logout can target it. A non-interactive issuance has no session.
+        var sessionId = tokenRequest
+            .SubjectAuthentication?.Subject.FindFirst(JoseClaimNames.Payload.Sid)
+            ?.Value;
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            payloadClaims[JoseClaimNames.Payload.Sid] = sessionId;
+
+            // Record that this client received an id token in the session so it is notified on back-channel logout.
+            await SessionService.AddClientAsync(
+                openIdContext,
+                sessionId,
+                openIdClient.ClientId,
+                cancellationToken
+            );
+        }
+
         // TODO: the following protocol claims require foundational subsystems that do not yet exist:
-        // - sid: requires a session-management subsystem (also flows to front/back-channel logout)
         // - cnf: requires a proof-of-possession (e.g. DPoP/mTLS) subsystem
         // - acr: requires authentication-context-class tracking
-
-        return ValueTask.CompletedTask;
     }
 
     private static void GenerateParameterHashes(

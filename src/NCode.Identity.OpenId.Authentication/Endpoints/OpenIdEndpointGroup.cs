@@ -23,6 +23,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
+using NCode.Identity.OpenId.Authentication.Endpoints.EndSession;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
@@ -76,6 +77,7 @@ internal sealed class OpenIdEndpointGroup : IEndpointGroup
         builder.AddRevocationEndpoint();
         builder.AddIntrospectionEndpoint();
         builder.AddUserInfoEndpoint();
+        builder.AddEndSessionEndpoint();
         builder.AddClientRegistrationEndpoint();
     }
 }

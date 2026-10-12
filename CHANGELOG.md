@@ -12,6 +12,19 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Runtime consumption of resource-server secrets/settings and uniform resource-server auditing — completes backlog
+  `U7`.** Access tokens now consume the per-audience material a resource server owns
+  ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)): at issuance the OP resolves the
+  resource servers a token targets (a new `IResourceServerCredentialResolver`) and, when the token targets **exactly
+  one** whose settings require it, **encrypts** the token to that resource server's own key so only it can read the
+  token — falling back to the tenant's key otherwise. **Signing is always the tenant's asymmetric key** validated via
+  JWKS (RFC 9068; aligned with FAPI's `PS256`/`ES256`-only, no-symmetric rule) — a resource server never holds a
+  token-signing key. A token spanning several resource servers where any one **requires** encryption is rejected rather
+  than silently downgraded. Separately, the resource-server management API now emits audit events uniformly for
+  **every** operation (create/update/delete, scopes, settings, and secrets) through `IManagementAuditRecorder`,
+  matching the client/tenant/server handlers; new `ResourceServerChangedAuditEvent`, `ResourceServerScopeChangedAuditEvent`,
+  and `ResourceServerSecretChangedAuditEvent` carry the non-sensitive snapshots.
+
 - **PostgreSQL developer database orchestrated by Aspire, with a dedicated migration worker — completes backlog `U12`.**
   The Playground's local database is now **PostgreSQL** run by the Aspire AppHost
   ([ADR-0073](docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md)), replacing the in-process

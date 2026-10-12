@@ -61,6 +61,11 @@ var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_Option
 var identityServer = serviceCollection.AddIdentityServer();
 identityServer.AddConfiguration(configuration, openIdOptionsSectionName);
 
+// Bind the frontend runtime bootstrap document (ADR-0064) from the 'Frontend' configuration section so the host can
+// publish this deployment's coordinates (API base, issuer, client id, feature flags, branding) to the tier-agnostic
+// bundles via MapFrontendBootstrap below.
+identityServer.AddFrontendBootstrap(configuration);
+
 var entityFrameworkPersistence =
     serviceCollection.AddEntityFrameworkCorePersistence<OpenIdDbContext>();
 

@@ -12,6 +12,21 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Durable consent — persisted, enforced, and surfaced — completes backlog `F2` and `U3`.** The OpenID Provider now
+  records and enforces end-user **consent** ([ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md)). Consent
+  is a first-class persisted aggregate — a new `PersistedConsent` DTO, `IConsentStore`, and `ConsentEntity` table (with
+  an `AddConsents` EF migration) keyed by `(tenant, client, subject)` and **upserted** in place — deliberately **separate
+  from the ephemeral grant store** so it survives logout and powers a future "authorized applications" surface. A new
+  client **`require_consent`** setting (default off; also forced by `prompt=consent`) makes `DefaultAuthorizeHandler`
+  route a subject whose recorded consent does not cover the requested scopes to the interactive consent screen (via a new
+  `AuthorizeDisposition.ConsentRequired` and a `ConsentChallengeCommand` seam the interactive module handles), or return
+  the OIDC `consent_required` error under `prompt=none`. The interactive surface gains
+  `GET /account/consent/details` (resolving the pending request from the return URL without consuming it) and a
+  decision-recording `POST /account/consent`, and the `apps/auth` consent screen now shows the **real** client and
+  requested scopes. The Playground (`apps/playground`) and OIDC conformance (`apps/conformance`) surfaces are scaffolded
+  as apps on the shared `@ncode/*` platform. The unused `InteractiveAuthenticationOptions.AutoApproveConsent` placeholder
+  is **removed** (use `require_consent = false`).
+
 - **Runtime consumption of resource-server secrets/settings and uniform resource-server auditing — completes backlog
   `U7`.** Access tokens now consume the per-audience material a resource server owns
   ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)): at issuance the OP resolves the

@@ -115,6 +115,10 @@ internal static class DefaultRegistration
                 DefaultChallengeHandler
             >();
             serviceCollection.TryAddSingleton<
+                ICommandResponseHandler<ConsentChallengeCommand, ReadOnlyEndpointDisposition>,
+                DefaultConsentChallengeHandler
+            >();
+            serviceCollection.TryAddSingleton<
                 ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>,
                 DefaultCreateAuthorizationTicketHandler
             >();

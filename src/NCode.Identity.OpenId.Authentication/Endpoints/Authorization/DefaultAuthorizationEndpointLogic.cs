@@ -194,6 +194,30 @@ internal class DefaultAuthorizationEndpointLogic(IContinueService continueServic
             );
         }
 
+        if (authorizeSubjectDisposition.ConsentRequired)
+        {
+            var consentDisposition = await RequestConsentAsync(
+                openIdContext,
+                openIdClient,
+                authorizationRequest,
+                cancellationToken
+            );
+            if (consentDisposition.WasHandled)
+            {
+                return consentDisposition;
+            }
+
+            // No interactive consent surface is registered to render the consent screen, so the request cannot
+            // obtain consent and the client is told interaction is required.
+            return ReadOnlyEndpointDisposition.Handled(
+                new AuthorizationResult(
+                    redirectUri,
+                    effectiveResponseMode,
+                    openIdContext.ErrorFactory.InteractionRequired()
+                )
+            );
+        }
+
         var authorizationTicket = await mediator.SendAsync<
             CreateAuthorizationTicketCommand,
             IAuthorizationTicket
@@ -220,14 +244,10 @@ internal class DefaultAuthorizationEndpointLogic(IContinueService continueServic
     )
     {
         var mediator = openIdContext.Mediator;
-        var clientSettings = openIdClient.Settings;
 
-        var continueUrl = await ContinueService.GetContinueUrlAsync(
+        var continueUrl = await GetContinueUrlAsync(
             openIdContext,
-            OpenIdConstants.ContinueCodes.Authorization,
-            openIdClient.ClientId,
-            subjectId: null,
-            clientSettings.GetValue(OpenIdSettingKeys.ContinueAuthorizationLifetime),
+            openIdClient,
             authorizationRequest,
             cancellationToken
         );
@@ -272,5 +292,53 @@ internal class DefaultAuthorizationEndpointLogic(IContinueService continueServic
             cancellationToken
         );
         return disposition;
+    }
+
+    private async ValueTask<ReadOnlyEndpointDisposition> RequestConsentAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IAuthorizationRequest authorizationRequest,
+        CancellationToken cancellationToken
+    )
+    {
+        var mediator = openIdContext.Mediator;
+
+        // The same parked continuation the login challenge uses resumes the authorization request after consent.
+        var continueUrl = await GetContinueUrlAsync(
+            openIdContext,
+            openIdClient,
+            authorizationRequest,
+            cancellationToken
+        );
+
+        return await mediator.SendAsync<ConsentChallengeCommand, ReadOnlyEndpointDisposition>(
+            new ConsentChallengeCommand(
+                openIdContext,
+                openIdClient,
+                authorizationRequest,
+                continueUrl
+            ),
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<string> GetContinueUrlAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IAuthorizationRequest authorizationRequest,
+        CancellationToken cancellationToken
+    )
+    {
+        var continueUrl = await ContinueService.GetContinueUrlAsync(
+            openIdContext,
+            OpenIdConstants.ContinueCodes.Authorization,
+            openIdClient.ClientId,
+            subjectId: null,
+            openIdClient.Settings.GetValue(OpenIdSettingKeys.ContinueAuthorizationLifetime),
+            authorizationRequest,
+            cancellationToken
+        );
+
+        return continueUrl;
     }
 }

@@ -359,6 +359,11 @@ public static class OpenIdSettingNames
     public const string RequestUriExpectedContentType = "request_uri_expected_content_type";
 
     /// <summary>
+    /// Contains the name of <c>require_consent</c> setting.
+    /// </summary>
+    public const string RequireConsent = "require_consent";
+
+    /// <summary>
     /// Contains the name of <c>require_pkce</c> setting.
     /// </summary>
     public const string RequireCodeChallenge = "require_pkce";

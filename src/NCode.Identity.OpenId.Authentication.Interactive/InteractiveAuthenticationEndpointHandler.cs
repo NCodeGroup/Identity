@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Sessions;
@@ -44,6 +45,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// </summary>
 internal sealed class InteractiveAuthenticationEndpointHandler(
     IInteractiveCredentialVerifier credentialVerifier,
+    IConsentService consentService,
     ISessionService sessionService,
     TimeProvider timeProvider,
     IAntiforgery antiforgery,
@@ -51,6 +53,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 ) : IEndpointProvider
 {
     private IInteractiveCredentialVerifier CredentialVerifier { get; } = credentialVerifier;
+    private IConsentService ConsentService { get; } = consentService;
     private ISessionService SessionService { get; } = sessionService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IAntiforgery Antiforgery { get; } = antiforgery;
@@ -64,6 +67,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         endpoints.MapGet(InteractiveAuthenticationDefaults.LoginPath, GetLoginPageAsync);
         endpoints.MapPost(InteractiveAuthenticationDefaults.LoginPath, PostLoginAsync);
         endpoints.MapGet(InteractiveAuthenticationDefaults.ConsentPath, GetConsentPageAsync);
+        endpoints.MapGet(
+            InteractiveAuthenticationDefaults.ConsentDetailsPath,
+            GetConsentDetailsAsync
+        );
         endpoints.MapPost(InteractiveAuthenticationDefaults.ConsentPath, PostConsentAsync);
         endpoints.MapPost(InteractiveAuthenticationDefaults.LogoutPath, PostLogoutAsync);
     }
@@ -249,20 +256,92 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     }
 
     /// <summary>
-    /// Records the consent outcome: an allow returns to the original authorize URL; a deny abandons the flow. Consent
-    /// is not yet durably persisted, so this is a stopgap front-end over the eventual persisted-consent decision.
+    /// Returns the pending authorization request (the client and the requested scopes) the consent page must present,
+    /// resolved — without consuming — from the parked continuation carried by the return URL. Returns <c>401</c> when
+    /// the request is not authenticated and <c>404</c> when no pending request resolves.
     /// </summary>
-    public static ValueTask<IResult> PostConsentAsync(
+    public async ValueTask<IResult> GetConsentDetailsAsync(
+        HttpContext httpContext,
+        [FromQuery(Name = "ReturnUrl")] string? returnUrl
+    )
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        if (string.IsNullOrEmpty(returnUrl))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var pending = await ConsentService.ResolvePendingConsentAsync(
+            openIdContext,
+            returnUrl,
+            httpContext.RequestAborted
+        );
+        if (pending is not { } value)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Json(new ConsentDetailsResponse(value.ClientId, value.RequestedScopes));
+    }
+
+    /// <summary>
+    /// Records the consent outcome: an allow persists the subject's consent for the pending request's scopes (resolved
+    /// authoritatively from the continuation, not the posted form) and returns to the original authorize URL to resume;
+    /// a deny abandons the flow.
+    /// </summary>
+    public async ValueTask<IResult> PostConsentAsync(
         HttpContext httpContext,
         [FromForm] string? action,
         [FromForm(Name = "ReturnUrl")] string? returnUrl
     )
     {
         var safeReturnUrl = ResolveSafeReturnUrl(httpContext, returnUrl);
-        IResult result = string.Equals(action, "deny", StringComparison.OrdinalIgnoreCase)
-            ? TypedResults.Redirect("/")
-            : TypedResults.Redirect(safeReturnUrl);
-        return ValueTask.FromResult(result);
+
+        if (string.Equals(action, "deny", StringComparison.OrdinalIgnoreCase))
+        {
+            return TypedResults.Redirect("/");
+        }
+
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return TypedResults.Redirect(BuildLoginRedirect(safeReturnUrl, "invalid_request"));
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var subjectId = openIdContext.GetSubjectId(authenticateResult.Principal);
+        if (string.IsNullOrEmpty(subjectId) || string.IsNullOrEmpty(returnUrl))
+        {
+            return TypedResults.Redirect(BuildLoginRedirect(safeReturnUrl, "invalid_request"));
+        }
+
+        var pending = await ConsentService.ResolvePendingConsentAsync(
+            openIdContext,
+            returnUrl,
+            httpContext.RequestAborted
+        );
+        if (pending is { } value)
+        {
+            await ConsentService.GrantConsentAsync(
+                openIdContext,
+                value.ClientId,
+                subjectId,
+                value.RequestedScopes,
+                httpContext.RequestAborted
+            );
+        }
+
+        return TypedResults.Redirect(safeReturnUrl);
     }
 
     /// <summary>

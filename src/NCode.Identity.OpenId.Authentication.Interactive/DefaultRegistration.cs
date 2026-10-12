@@ -20,7 +20,10 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
+using NCode.Mediator;
 using NCode.Registration;
 using NCode.Registration.AspNetCore;
 
@@ -97,6 +100,14 @@ public static class DefaultRegistration
 
             // The surface's endpoints flow through the same MapEndpointGroups discovery as every other endpoint.
             builder.AddEndpointGroup<InteractiveAuthenticationEndpointGroup>();
+
+            // Replace the core no-op consent-challenge handler with one that redirects to the interactive consent page.
+            serviceCollection.Replace(
+                ServiceDescriptor.Singleton<
+                    ICommandResponseHandler<ConsentChallengeCommand, ReadOnlyEndpointDisposition>,
+                    InteractiveConsentChallengeHandler
+                >()
+            );
 
             serviceCollection.AddAntiforgery(antiforgery =>
                 antiforgery.HeaderName = AntiforgeryHeaderName

@@ -49,6 +49,13 @@ internal static partial class Log
     internal static partial void ClientRequestedReAuthentication(this ILogger logger);
 
     [LoggerMessage(
+        EventId = EventIds.ConsentRequired,
+        Level = LogLevel.Information,
+        Message = "Consent is required for the requested scopes."
+    )]
+    internal static partial void ConsentRequired(this ILogger logger);
+
+    [LoggerMessage(
         EventId = EventIds.FailedToDecodeJwt,
         Level = LogLevel.Warning,
         Message = "Failed to decode JWT"

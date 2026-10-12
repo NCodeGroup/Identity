@@ -40,8 +40,6 @@ internal class DefaultResourceServerCredentialResolver(
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
 ) : IResourceServerCredentialResolver
 {
-    private const int PageSize = 100;
-
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -99,55 +97,45 @@ internal class DefaultResourceServerCredentialResolver(
         var matches = new SortedList<string, ResolvedResourceServer>(StringComparer.Ordinal);
         IReadOnlyCollection<PersistedSecret>? lastMatchSecrets = null;
 
-        string? cursor = null;
-        do
+        // The DBMS pre-filters to enabled resource servers owning one of the scopes (and, when resources were
+        // requested, to those audiences); the exact case-sensitive matches are applied here (ADR-0080).
+        var candidates = await resourceServerStore.FindEnabledByScopesAsync(
+            effectiveScopes,
+            hasRequestedResources ? requestedResources : null,
+            cancellationToken
+        );
+
+        foreach (var resourceServer in candidates)
         {
-            var page = await resourceServerStore.GetPageAsync(cursor, PageSize, cancellationToken);
-
-            foreach (var resourceServer in page.Items)
+            if (!resourceServer.Scopes.Any(scope => requestedScopes.Contains(scope.Value)))
             {
-                if (resourceServer.IsDisabled)
-                {
-                    continue;
-                }
-
-                if (!resourceServer.Scopes.Any(scope => requestedScopes.Contains(scope.Value)))
-                {
-                    continue;
-                }
-
-                // RFC 8707: when the client requested specific resources, only those resource servers are targeted.
-                if (
-                    hasRequestedResources && !requestedResources.Contains(resourceServer.Identifier)
-                )
-                {
-                    continue;
-                }
-
-                unmatchedResources?.Remove(resourceServer.Identifier);
-
-                var effectiveSettings = tenantEffectiveSettings.Merge(
-                    SettingSerializer.DeserializeSettings(
-                        resourceServer.Settings.Value,
-                        jsonOptions
-                    )
-                );
-
-                matches.Add(
-                    resourceServer.Identifier,
-                    new ResolvedResourceServer
-                    {
-                        ResourceServerId = resourceServer.ResourceServerId,
-                        Identifier = resourceServer.Identifier,
-                        EffectiveSettings = effectiveSettings,
-                    }
-                );
-
-                lastMatchSecrets = resourceServer.Secrets.Value;
+                continue;
             }
 
-            cursor = page.NextCursor;
-        } while (cursor is not null);
+            // RFC 8707: when the client requested specific resources, only those resource servers are targeted.
+            if (hasRequestedResources && !requestedResources.Contains(resourceServer.Identifier))
+            {
+                continue;
+            }
+
+            unmatchedResources?.Remove(resourceServer.Identifier);
+
+            var effectiveSettings = tenantEffectiveSettings.Merge(
+                SettingSerializer.DeserializeSettings(resourceServer.Settings.Value, jsonOptions)
+            );
+
+            matches.Add(
+                resourceServer.Identifier,
+                new ResolvedResourceServer
+                {
+                    ResourceServerId = resourceServer.ResourceServerId,
+                    Identifier = resourceServer.Identifier,
+                    EffectiveSettings = effectiveSettings,
+                }
+            );
+
+            lastMatchSecrets = resourceServer.Secrets.Value;
+        }
 
         // A requested resource that matched no enabled, scope-owning resource server is rejected (RFC 8707).
         if (unmatchedResources is { Count: > 0 })

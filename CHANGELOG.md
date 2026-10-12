@@ -10,7 +10,20 @@ change to the public API is a **major** version bump.
 
 ### Added
 
-### Added
+- **Resource-server runtime reads push filtering into the DBMS — completes backlog `D3`.** The six runtime readers that
+  previously paged the tenant's **entire** resource-server set and filtered in memory
+  (`DefaultDiscoverScopesHandler`, `DefaultClientScopeService.GetAllowedScopesAsync` / `ResolveAudiencesAsync` /
+  `GetEnabledResourceServerIdentifiersAsync`, `DefaultScopeDescriptionService.DescribeScopesAsync`, and
+  `DefaultResourceServerCredentialResolver`) now call discrete, intent-named `IResourceServerStore` query methods that
+  translate their predicate to SQL ([ADR-0080](docs/adr/0080-store-query-methods-push-filtering-to-dbms.md)). New public
+  surface: `IResourceServerStore.GetEnabledScopesAsync`, `GetEnabledIdentifiersAsync`,
+  `GetEnabledScopeProjectionsByScopesAsync`, `GetEnabledScopeProjectionsBySystemOrIdsAsync`, and `FindEnabledByScopesAsync`,
+  plus the lightweight `ResourceServerScopeProjection` data contract. The identifier/scope readers no longer load server
+  settings or secrets. **Behavior change:** `IScopeDescriptionService.DescribeScopesAsync` now ignores **disabled**
+  resource servers, consistent with every other runtime reader. Case-sensitive scope/identifier matching (RFC 6749 / RFC
+  8707) is preserved: the DBMS filter is a widening pre-filter on the normalized column and the exact match is re-applied
+  in memory. Greenfield, pre-release — no compatibility shims
+  ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
 - **Token-request validation hardening — completes backlog `F12`.** Three related gaps in the authorization-code
   grant validator are closed. (1) **Resource indicators (RFC 8707)** are now a first-class, multi-valued `resource`

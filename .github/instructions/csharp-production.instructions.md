@@ -332,6 +332,12 @@ Drawn from _Clean Code_ (R. C. Martin) and _Refactoring_ (Fowler / Beck). All �
   plumbing, not data. A clump that mirrors a well-known BCL shape (e.g. `ClaimsIdentity(authenticationType,
 nameType, roleType)`) is acceptable, and a private single-call-site helper isn't worth a parameter object.
 - **Command–Query Separation** — a method acts _or_ answers, never both; a query does not mutate.
+- **Push store filtering into the DBMS.** A reader that needs a **filtered** subset of a store's entities calls a
+  discrete, intent-named store method (`FindEnabledByScopesAsync`, `GetEnabledIdentifiersAsync`, …) that pushes the
+  predicate to the database — never page the whole set via `GetPageAsync` and filter in memory. Keep the store contract
+  ORM-agnostic (no `IQueryable` / `Expression` in the interface), project to only the columns the caller needs, and
+  reserve `GetPageAsync` for genuine **unfiltered** pagination. See
+  [ADR-0080](../../docs/adr/0080-store-query-methods-push-filtering-to-dbms.md).
 - **Don't pass or return `null`** where an empty/absent form exists (empty collections; model absence).
 - **Intention-revealing, honest, searchable names** — no `Manager` / `Helper` catch-alls, no encodings.
 - **No repeated magic string literals.** A string used in more than one place — a claim type, an algorithm code, a

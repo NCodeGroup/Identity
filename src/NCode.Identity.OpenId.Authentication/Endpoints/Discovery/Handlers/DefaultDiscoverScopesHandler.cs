@@ -34,8 +34,6 @@ internal class DefaultDiscoverScopesHandler(
     IAmbientTenantAccessor ambientTenantAccessor
 ) : ICommandHandler<DiscoverMetadataCommand>, ISupportMediatorPriority
 {
-    private const int PageSize = 100;
-
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
@@ -57,28 +55,15 @@ internal class DefaultDiscoverScopesHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
 
-        var scopes = new SortedSet<string>(StringComparer.Ordinal);
+        var enabledScopes = await resourceServerStore.GetEnabledScopesAsync(
+            scopeValues: null,
+            cancellationToken
+        );
 
-        string? cursor = null;
-        do
-        {
-            var page = await resourceServerStore.GetPageAsync(cursor, PageSize, cancellationToken);
-
-            foreach (var resourceServer in page.Items)
-            {
-                if (resourceServer.IsDisabled)
-                {
-                    continue;
-                }
-
-                foreach (var scope in resourceServer.Scopes)
-                {
-                    scopes.Add(scope.Value);
-                }
-            }
-
-            cursor = page.NextCursor;
-        } while (cursor is not null);
+        var scopes = new SortedSet<string>(
+            enabledScopes.Select(scope => scope.Value),
+            StringComparer.Ordinal
+        );
 
         metadata[OpenIdSettingNames.ScopesSupported] = scopes.ToList();
     }

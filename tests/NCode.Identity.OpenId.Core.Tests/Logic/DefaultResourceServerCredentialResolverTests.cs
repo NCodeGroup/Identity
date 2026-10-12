@@ -103,7 +103,6 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
 
     private static PersistedResourceServer ResourceServer(
         string resourceServerId,
-        bool isDisabled,
         params string[] scopes
     ) =>
         new()
@@ -114,7 +113,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
             ConcurrencyToken = "ct",
             Name = resourceServerId,
             IsSystem = false,
-            IsDisabled = isDisabled,
+            IsDisabled = false,
             Settings = new PersistedResourceServerSettings
             {
                 TenantId = TenantId,
@@ -166,17 +165,18 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
-    private void SetupResourceServers(params PersistedResourceServer[] resourceServers)
+    // The store applies the enabled/scope/identifier filtering; these tests supply the already-filtered matches.
+    private void SetupFindEnabledByScopes(params PersistedResourceServer[] resourceServers)
     {
         MockResourceServerStore
-            .Setup(x => x.GetPageAsync(null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                new PagedResult<PersistedResourceServer>
-                {
-                    Items = resourceServers,
-                    NextCursor = null,
-                }
+            .Setup(x =>
+                x.FindEnabledByScopesAsync(
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<IReadOnlyCollection<string>?>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
+            .ReturnsAsync(resourceServers)
             .Verifiable();
     }
 
@@ -219,7 +219,8 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     {
         SetupContext();
         SetupStore();
-        SetupResourceServers(ResourceServer("rs-other", isDisabled: false, "unrelated"));
+        // The store returns no match for a scope no enabled resource server owns.
+        SetupFindEnabledByScopes();
 
         await using var resolution = await Resolver.ResolveAsync(
             MockContext.Object,
@@ -238,7 +239,8 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     {
         SetupContext();
         SetupStore();
-        SetupResourceServers(ResourceServer("rs-api", isDisabled: true, "read:x"));
+        // The store excludes disabled resource servers, so no match is returned.
+        SetupFindEnabledByScopes();
 
         await using var resolution = await Resolver.ResolveAsync(
             MockContext.Object,
@@ -256,7 +258,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         SetupContext();
         SetupStore();
         SetupSettingsMerge();
-        SetupResourceServers(ResourceServer("rs-api", isDisabled: false, "read:x"));
+        SetupFindEnabledByScopes(ResourceServer("rs-api", "read:x"));
 
         var mockProvider = MockRepository.Create<ISecretKeyCollectionProvider>();
         mockProvider.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
@@ -289,9 +291,9 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         SetupContext();
         SetupStore();
         SetupSettingsMerge();
-        SetupResourceServers(
-            ResourceServer("rs-b", isDisabled: false, "read:x"),
-            ResourceServer("rs-a", isDisabled: false, "read:x")
+        SetupFindEnabledByScopes(
+            ResourceServer("rs-b", "read:x"),
+            ResourceServer("rs-a", "read:x")
         );
 
         await using var resolution = await Resolver.ResolveAsync(
@@ -314,10 +316,10 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         SetupContext();
         SetupStore();
         SetupSettingsMerge();
-        SetupResourceServers(
-            ResourceServer("rs-a", isDisabled: false, "read:x"),
-            ResourceServer("rs-b", isDisabled: false, "read:x"),
-            ResourceServer("rs-c", isDisabled: false, "read:x")
+        // The store applies the RFC 8707 identifier narrowing, so rs-c is not returned.
+        SetupFindEnabledByScopes(
+            ResourceServer("rs-a", "read:x"),
+            ResourceServer("rs-b", "read:x")
         );
 
         await using var resolution = await Resolver.ResolveAsync(
@@ -337,7 +339,8 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         SetupContext();
         SetupStore();
         SetupErrorFactory();
-        SetupResourceServers(ResourceServer("rs-a", isDisabled: false, "read:x"));
+        // The requested 'urn:unknown' narrows to no enabled, scope-owning resource server.
+        SetupFindEnabledByScopes();
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Resolver.ResolveAsync(

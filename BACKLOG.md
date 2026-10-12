@@ -195,9 +195,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   consent screen as apps on this platform rather than bespoke UIs, honoring the stable-locator contract
   (`id=username`/`password`/`login`/`consent-allow`/`consent-deny`). The server-driven cookie challenge flow stays
   unchanged; the SPA is only the form surface.
-- **`U4` — Runtime bootstrap endpoint on the OP host.** The tier-agnostic bundle fetches `/config/bootstrap.json` from
-  the serving host; only a dev copy exists (`apps/mgmt/public/config/bootstrap.json`). Add a host endpoint that emits
-  the bootstrap document (API base, issuer, feature flags, branding) per deployment so one bundle serves every tier.
 - **`U5` — Frontend CI job.** The frontend toolchain is intentionally outside `dod.ps1`. Add a separate CI job
   (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire

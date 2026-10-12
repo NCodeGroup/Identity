@@ -40,4 +40,11 @@ public sealed class InteractiveAuthenticationOptions
     /// <see langword="true"/> while durable consent persistence is a separate concern.
     /// </summary>
     public bool AutoApproveConsent { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the lifetime applied to the server-side end-user session established at sign-in. When
+    /// <see langword="null"/>, the session does not expire on its own and remains valid until it is revoked (for
+    /// example, by logout). Defaults to <see langword="null"/>.
+    /// </summary>
+    public TimeSpan? SessionLifetime { get; set; }
 }

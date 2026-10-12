@@ -283,6 +283,36 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RedirectUris);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'post_logout_redirect_uris' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> PostLogoutRedirectUris =>
+        new(OpenIdSettingNames.PostLogoutRedirectUris);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'backchannel_logout_uri' setting.
+    /// </summary>
+    public static SettingKey<string> BackChannelLogoutUri =>
+        new(OpenIdSettingNames.BackChannelLogoutUri);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'backchannel_logout_session_required' setting.
+    /// </summary>
+    public static SettingKey<bool> BackChannelLogoutSessionRequired =>
+        new(OpenIdSettingNames.BackChannelLogoutSessionRequired);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'backchannel_logout_supported' setting.
+    /// </summary>
+    public static SettingKey<bool> BackChannelLogoutSupported =>
+        new(OpenIdSettingNames.BackChannelLogoutSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'backchannel_logout_session_supported' setting.
+    /// </summary>
+    public static SettingKey<bool> BackChannelLogoutSessionSupported =>
+        new(OpenIdSettingNames.BackChannelLogoutSessionSupported);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'registration_endpoint_allow_anonymous' setting.
     /// </summary>
     public static SettingKey<bool> RegistrationEndpointAllowAnonymous =>

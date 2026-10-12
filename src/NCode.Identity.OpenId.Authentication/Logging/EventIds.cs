@@ -50,4 +50,9 @@ internal static class EventIds
     public const int AccessTokenValidationError = Base + 19;
     public const int AccessTokenInvalid = Base + 20;
     public const int EndUserSessionAuthenticationFailed = Base + 21;
+    public const int EndSessionIdTokenHintInvalid = Base + 22;
+    public const int EndSessionSubjectUnresolved = Base + 23;
+    public const int EndSessionPostLogoutRedirectUriRejected = Base + 24;
+    public const int EndSessionCompleted = Base + 25;
+    public const int BackChannelLogoutDeliveryFailed = Base + 26;
 }

@@ -102,6 +102,12 @@ public static partial class OpenIdConstants
         public const string UserInfo = "userinfo_endpoint";
 
         /// <summary>
+        /// Contains the name for the <c>end session</c> (RP-initiated logout) endpoint.
+        /// This value is also used as the <c>end_session_endpoint</c> key in the discovery metadata.
+        /// </summary>
+        public const string EndSession = "end_session_endpoint";
+
+        /// <summary>
         /// Contains the name for the <c>dynamic client registration</c> endpoint (RFC 7591).
         /// This value is also used as the <c>registration_endpoint</c> key in the discovery metadata.
         /// </summary>
@@ -174,6 +180,11 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the <c>userinfo</c> endpoint.
         /// </summary>
         public const string UserInfo = $"{Prefix}/userinfo";
+
+        /// <summary>
+        /// Contains the relative path for the <c>end session</c> (RP-initiated logout) endpoint.
+        /// </summary>
+        public const string EndSession = $"{Prefix}/end_session";
 
         /// <summary>
         /// Contains the relative path for the <c>dynamic client registration</c> endpoint (RFC 7591).
@@ -314,6 +325,13 @@ public static partial class OpenIdConstants
         /// authorizes a caller to register a new client at the dynamic client registration endpoint.
         /// </summary>
         public const string InitialAccessToken = "initial_access_token";
+
+        /// <summary>
+        /// Identifies a persisted grant for an end-user <c>session</c> (an OpenID Connect login at the OP), keyed by
+        /// the opaque <c>sid</c>, whose payload carries the authentication context and the set of relying parties the
+        /// session has issued tokens to. It backs the <c>sid</c> claim and the logout pipeline.
+        /// </summary>
+        public const string Session = "session";
     }
 
     /// <summary>
@@ -340,6 +358,28 @@ public static partial class OpenIdConstants
         /// Identifies an <c>authorization code</c> security token.
         /// </summary>
         public const string AuthorizationCode = "authorization_code";
+
+        /// <summary>
+        /// Identifies a <c>logout token</c> security token (OpenID Connect Back-Channel Logout); its value is the
+        /// <c>typ</c> header of the <c>logout_token</c> JWT.
+        /// </summary>
+        public const string LogoutToken = "logout+jwt";
+    }
+
+    /// <summary>
+    /// Contains constants used by OpenID Connect Back-Channel Logout.
+    /// </summary>
+    public static class BackChannelLogout
+    {
+        /// <summary>
+        /// Contains the event identifier that appears as a member of a <c>logout_token</c>'s <c>events</c> claim.
+        /// </summary>
+        public const string EventName = "http://schemas.openid.net/event/backchannel-logout";
+
+        /// <summary>
+        /// Contains the name of the <c>events</c> claim in a <c>logout_token</c> (RFC 8417 Security Event Token).
+        /// </summary>
+        public const string EventsClaimName = "events";
     }
 
     /// <summary>

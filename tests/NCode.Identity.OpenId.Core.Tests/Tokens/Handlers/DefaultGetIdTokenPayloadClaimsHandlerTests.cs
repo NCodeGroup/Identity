@@ -23,6 +23,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
@@ -42,7 +43,14 @@ public class DefaultGetIdTokenPayloadClaimsHandlerTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private DefaultGetIdTokenPayloadClaimsHandler Handler { get; } = new();
+    private Mock<ISessionService> MockSessionService { get; }
+    private DefaultGetIdTokenPayloadClaimsHandler Handler { get; }
+
+    public DefaultGetIdTokenPayloadClaimsHandlerTests()
+    {
+        MockSessionService = CreateStrictMock<ISessionService>();
+        Handler = new DefaultGetIdTokenPayloadClaimsHandler(MockSessionService.Object);
+    }
 
     #region Scaffolding
 

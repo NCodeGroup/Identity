@@ -16,11 +16,15 @@
 
 #endregion
 
+using System.Globalization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
@@ -33,11 +37,15 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// </summary>
 internal sealed class InteractiveAuthenticationEndpointHandler(
     IInteractiveCredentialVerifier credentialVerifier,
+    ISessionService sessionService,
+    TimeProvider timeProvider,
     IAntiforgery antiforgery,
     InteractiveAuthenticationOptions options
 )
 {
     private IInteractiveCredentialVerifier CredentialVerifier { get; } = credentialVerifier;
+    private ISessionService SessionService { get; } = sessionService;
+    private TimeProvider TimeProvider { get; } = timeProvider;
     private IAntiforgery Antiforgery { get; } = antiforgery;
     private InteractiveAuthenticationOptions Options { get; } = options;
 
@@ -83,12 +91,65 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             return TypedResults.Redirect(BuildLoginRedirect(safeReturnUrl, "invalid_credentials"));
         }
 
+        // Establish a server-side session and mint its opaque `sid` onto the cookie principal so every subsequent
+        // authorize request resolves the same session and the `sid` claim can be emitted into issued tokens.
+        await EstablishSessionAsync(openIdContext, principal, httpContext.RequestAborted);
+
         await httpContext.SignInAsync(
             InteractiveAuthenticationDefaults.CookieSchemeName,
             principal
         );
 
         return TypedResults.Redirect(safeReturnUrl);
+    }
+
+    private async ValueTask EstablishSessionAsync(
+        OpenIdContext openIdContext,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken
+    )
+    {
+        // A re-authentication onto an already-session-bearing principal keeps its existing session.
+        if (principal.HasClaim(claim => claim.Type == JoseClaimNames.Payload.Sid))
+            return;
+
+        var subjectId = openIdContext.GetSubjectId(principal);
+        if (string.IsNullOrEmpty(subjectId))
+            return;
+
+        var identity = principal.Identities.FirstOrDefault(candidate => candidate.IsAuthenticated);
+        if (identity is null)
+            return;
+
+        var amr = principal
+            .FindAll(JoseClaimNames.Payload.Amr)
+            .Select(claim => claim.Value)
+            .ToList();
+
+        var request = new CreateSessionRequest
+        {
+            SubjectId = subjectId,
+            AuthTime = ReadAuthTime(principal),
+            AuthenticationMethods = amr.Count > 0 ? amr : null,
+            IdentityProvider = principal.FindFirst(JoseClaimNames.Payload.Idp)?.Value,
+            Lifetime = Options.SessionLifetime,
+        };
+
+        var sessionId = await SessionService.CreateAsync(openIdContext, request, cancellationToken);
+        identity.AddClaim(new Claim(JoseClaimNames.Payload.Sid, sessionId));
+    }
+
+    private DateTimeOffset ReadAuthTime(ClaimsPrincipal principal)
+    {
+        var value = principal.FindFirst(JoseClaimNames.Payload.AuthTime)?.Value;
+        return long.TryParse(
+            value,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var authTime
+        )
+            ? DateTimeOffset.FromUnixTimeSeconds(authTime)
+            : TimeProvider.GetUtcNow();
     }
 
     /// <summary>

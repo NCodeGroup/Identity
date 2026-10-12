@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Registration;
 
@@ -48,6 +49,17 @@ internal static class DefaultRegistration
                 DefaultPersistedGrantService
             >();
             serviceCollection.TryAddSingleton<IClientScopeService, DefaultClientScopeService>();
+
+            serviceCollection.TryAddSingleton<
+                Sessions.ISessionService,
+                Sessions.DefaultSessionService
+            >();
+
+            serviceCollection.AddHttpClient();
+            serviceCollection.TryAddSingleton<
+                Sessions.IBackChannelLogoutNotifier,
+                Sessions.DefaultBackChannelLogoutNotifier
+            >();
 
             return builder;
         }

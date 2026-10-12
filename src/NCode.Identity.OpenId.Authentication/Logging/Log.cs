@@ -70,6 +70,16 @@ internal static partial class Log
     internal static partial void FailedToFetchRequestUri(this ILogger logger, Exception exception);
 
     [LoggerMessage(
+        EventId = EventIds.EndUserSessionAuthenticationFailed,
+        Level = LogLevel.Information,
+        Message = "The end-user session could not be authenticated; treating as no session and prompting for login."
+    )]
+    internal static partial void EndUserSessionAuthenticationFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
         EventId = EventIds.ClientAuthenticationClientNotFound,
         Level = LogLevel.Information,
         Message = "Client authentication failed: client '{ClientId}' was not found, is disabled, or does not belong to tenant '{TenantId}'."

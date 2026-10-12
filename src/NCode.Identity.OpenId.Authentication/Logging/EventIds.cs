@@ -49,4 +49,5 @@ internal static class EventIds
     public const int OpenIdErrorException = Base + 18;
     public const int AccessTokenValidationError = Base + 19;
     public const int AccessTokenInvalid = Base + 20;
+    public const int EndUserSessionAuthenticationFailed = Base + 21;
 }

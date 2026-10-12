@@ -18,7 +18,9 @@
 
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -30,11 +32,10 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthenticateCommand"/> message.
 /// </summary>
-internal class DefaultAuthenticateHandler
+internal class DefaultAuthenticateHandler(ILogger<DefaultAuthenticateHandler> logger)
     : ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectDisposition>
 {
-    private bool DefaultAuthenticateSchemeFetched { get; set; }
-    private string? DefaultAuthenticateSchemeName { get; set; }
+    private ILogger<DefaultAuthenticateHandler> Logger { get; } = logger;
 
     internal virtual AuthenticateSubjectDisposition Undefined() => new();
 
@@ -72,13 +73,15 @@ internal class DefaultAuthenticateHandler
             return Undefined();
         }
 
+        // A present-but-invalid session cookie (undecryptable after a data-protection key change, expired, or tampered)
+        // is NOT an access-denied error: the end-user simply has no valid session. Treat it as unauthenticated so the
+        // authorize flow prompts for interactive login (or returns login_required under prompt=none); a successful login
+        // re-issues a fresh cookie, so the stale cookie self-heals instead of dead-ending the user with access_denied.
+        // The failure is logged (not swallowed) so a systemic authentication fault stays diagnosable.
         if (baseResult.Failure is not null)
         {
-            return Failed(
-                errorFactory
-                    .AccessDenied("Failed to authenticate the end-user.")
-                    .WithException(baseResult.Failure)
-            );
+            Logger.EndUserSessionAuthenticationFailed(baseResult.Failure);
+            return Undefined();
         }
 
         Debug.Assert(baseResult.Succeeded);

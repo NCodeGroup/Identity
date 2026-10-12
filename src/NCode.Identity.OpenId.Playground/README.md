@@ -1,64 +1,73 @@
 # NCode.Identity.OpenId.Playground
 
 A runnable ASP.NET Core reference host for the OpenID Connect + OAuth 2.0 library family. This document covers the
-**local database environment** and the **reset procedure**.
+**local database environment**, **schema management**, and the **purge/reset procedure**.
 
-## Database providers
+## Database provider
 
-The host selects its persistence provider at startup (in `Program.cs`):
+The dev database is **PostgreSQL**, orchestrated by the Aspire AppHost
+([ADR-0073](../../docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md)). Run the stack through the
+AppHost (not this project directly) so the database, migrations, and host come up in the right order:
 
-| Condition                                                        | Provider                                    | State                     | Typical use                                         |
-| ---------------------------------------------------------------- | ------------------------------------------- | ------------------------- | --------------------------------------------------- |
-| `ConnectionStrings:OpenId` is set                                | **SQL Server**                              | persistent                | a real/shared database                              |
-| `DeveloperKeys:Mode=PersistentSigningKey` (no connection string) | **SQLite** file at `App_Data/openid-dev.db` | persistent, per-developer | local development with state that survives restarts |
-| otherwise                                                        | **EF in-memory**                            | ephemeral                 | zero-setup runs and tests (rebuilt each run)        |
+```pwsh
+dotnet run --project src/NCode.Identity.OpenId.Playground.AppHost
+```
 
-The persistent-SQLite mode is enabled together with persistent developer signing keys via
-`DeveloperKeys:Mode=PersistentSigningKey` (set in `launchSettings.json` for the local profile, so test hosts keep the
-ephemeral default). In that mode the host writes two things under `App_Data/` (both git-ignored):
+The AppHost:
 
-- `App_Data/openid-dev.db` (plus the `-wal` / `-shm` sidecars) — the SQLite database.
-- `App_Data/dp-keys/` — persistent developer signing keys (see ADR-0002). **Not** part of the database; leave it alone
-  when resetting the database.
+- starts a **Postgres container** (auto-detecting Docker or Podman) with a stable, named data volume
+  (`ncode-identity-openiddb-data`) so data **persists across restarts**;
+- runs the **migration worker** (`NCode.Identity.OpenId.Playground.MigrationService`), which applies the Npgsql
+  migrations for both contexts and then exits — a migration failure shows up as a **failed dashboard resource** that
+  holds back the `api`, instead of crashing it;
+- starts this `api` host, which receives the `openiddb` connection string via Aspire service discovery.
+
+A container runtime (Docker Desktop or Podman) must be running when you launch the AppHost.
+
+> Running this project **standalone** (without the AppHost) has no `openiddb` connection string, so it falls back to an
+> ephemeral **EF in-memory** database — convenient for a quick boot or for tests, but state does not survive restarts.
+
+### One database holds everything
+
+The single `openiddb` database holds the OpenID data, the **seeded developer signing key**, and the **DataProtection
+key ring** that protects it (persisted via `PersistKeysToDbContext`, not a file under `App_Data/`). Because they live
+together, one purge resets all three consistently, with nothing left on the filesystem.
 
 ## Schema management (EF Core migrations)
 
-The schema is managed by **EF Core migrations**, not `EnsureCreated()` (see
-[ADR-0041](../../docs/adr/0041-host-owned-ef-migrations-deliberate-outside-development.md)). The migrations live in this
-host under `Migrations/` (SQLite); the published persistence library ships none.
+The schema is managed by **EF Core migrations**, not `EnsureCreated()`
+([ADR-0041](../../docs/adr/0041-host-owned-ef-migrations-deliberate-outside-development.md)). The migrations live in the
+host-owned **`NCode.Identity.OpenId.Playground.Database`** project under `Migrations/OpenId` and
+`Migrations/DataProtection`; the published persistence library ships none.
 
-- **Development** auto-applies pending migrations on startup (`Database.Migrate()`), so the local database evolves in
-  place without losing data.
-- **Production** (any non-Development environment) never migrates on startup — apply schema changes deliberately with
-  `dotnet ef database update` or a generated idempotent script (`dotnet ef migrations script --idempotent`).
-- The **in-memory** provider has no migrations; it is built from the model each run.
+- The **migration worker** applies pending migrations before the `api` starts — the `api` never applies schema itself.
+- **Production** (any non-Development deployment) applies schema deliberately with `dotnet ef database update` or a
+  generated idempotent script (`dotnet ef migrations script --idempotent`).
 
-Add a migration after changing the EF model:
+Add a migration after changing the EF model (the `Database` project carries the design-time factories, so it is both
+`--project` and `--startup-project`):
 
 ```pwsh
 dotnet tool restore   # first time only (provides dotnet-ef)
 dotnet ef migrations add <Name> `
-  --project src/NCode.Identity.OpenId.Playground `
-  --startup-project src/NCode.Identity.OpenId.Playground `
-  --output-dir Migrations
+  --project src/NCode.Identity.OpenId.Playground.Database `
+  --startup-project src/NCode.Identity.OpenId.Playground.Database `
+  --context OpenIdDbContext `
+  --output-dir Migrations/OpenId
 ```
 
-It is applied automatically on the next Development run (or `dotnet ef database update` to apply now).
+The Definition of Done fails if the model has changes no migration captures (`dotnet ef migrations
+has-pending-model-changes`, run for both contexts), so author the migration before pushing.
 
-## Resetting the local database
+## Purging / resetting the local database
 
-A reset means deleting the **disposable database**, not the committed migrations. Delete the SQLite files and restart;
-the next Development run rebuilds the schema from migrations (and re-seeds):
+Data is persistent by default. To purge on demand, stop the AppHost and remove the data volume with the helper script —
+the next AppHost run rebuilds the schema (migration worker) and re-seeds the dev data:
 
 ```pwsh
-Remove-Item "src/NCode.Identity.OpenId.Playground/App_Data/openid-dev.db*" -Force
+./build/dev-db-reset.ps1
 ```
 
-Keep the `App_Data/dp-keys/` folder unless you also want to rotate the local developer signing keys.
-
-### "table … already exists" on startup
-
-If startup fails reporting that a table already exists, your database predates migrations (it was built by the old
-`EnsureCreated()`) and has no migrations history, so it cannot be migrated in place. Development startup detects this and
-fails with guidance to delete `App_Data/openid-dev.db*`; do that one-time reset and restart. The host never deletes the
-database for you.
+The script auto-detects Docker or Podman and removes the `ncode-identity-openiddb-data` volume (equivalently,
+`docker volume rm ncode-identity-openiddb-data`). This is the only reset needed — the seeded signing key and the
+DataProtection key ring are in the same database and are purged with it.

@@ -17,17 +17,16 @@
 
 #endregion
 
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.Management;
 using NCode.Identity.OpenId.Authentication.Interactive;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
+using NCode.Identity.OpenId.Playground.Database;
 using NCode.Identity.Server;
 using NCode.Registration;
 using NCode.Registration.AspNetCore;
@@ -98,41 +97,38 @@ identityServer.AddDeveloperInteractiveSeed(configuration);
 // in launchSettings.json, so test hosts keep the ephemeral default). Production must supply a stable,
 // securely-managed signing key instead.
 var developerKeyMode = configuration.GetDeveloperKeyMode();
-identityServer.AddDeveloperKeys(developerKeyMode, hostEnvironment);
+identityServer.AddDeveloperKeys(developerKeyMode);
 
 serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 
-// Select the database provider. A configured 'OpenId' connection string uses SQL Server; otherwise the
-// Playground uses a local SQLite file when persistent developer keys are enabled (so state survives
-// restarts; reset it by deleting the App_Data/openid-dev.db* files and the next Development run rebuilds it
-// from migrations), or a zero-setup in-memory database.
-var connectionString = configuration.GetConnectionString("OpenId");
-var migrationsAssembly = typeof(Program).Assembly.GetName().Name;
-serviceCollection.AddDbContextFactory<OpenIdDbContext>(dbOptions =>
+// The dev database is Postgres, orchestrated by the Aspire AppHost (ADR-0073): the AppHost provisions the container
+// and injects the 'openiddb' connection string, and a dedicated migration worker applies the schema before this host
+// starts — so the api never bootstraps the database itself. The developer data-protection key ring is persisted in the
+// same database, so one purge resets the OpenID data, the seeded signing key, and the ring that protects it together.
+var connectionString = configuration.GetConnectionString("openiddb");
+if (!string.IsNullOrEmpty(connectionString))
 {
-    if (!string.IsNullOrEmpty(connectionString))
-    {
-        dbOptions.UseSqlServer(connectionString, sql => sql.MigrationsAssembly(migrationsAssembly));
-    }
-    else if (developerKeyMode is DeveloperKeyMode.PersistentSigningKey)
-    {
-        var dataDirectory = Path.Combine(hostEnvironment.ContentRootPath, "App_Data");
-        Directory.CreateDirectory(dataDirectory);
-        var databasePath = Path.Combine(dataDirectory, "openid-dev.db");
-        dbOptions.UseSqlite(
-            $"Data Source={databasePath}",
-            sql => sql.MigrationsAssembly(migrationsAssembly)
-        );
-    }
-    else
-    {
-        dbOptions.UseInMemoryDatabase("OpenId");
-    }
-});
+    serviceCollection.AddDbContextFactory<OpenIdDbContext>(dbOptions =>
+        dbOptions.UseOpenIdNpgsql(connectionString)
+    );
+    serviceCollection.AddDbContext<DeveloperDataProtectionDbContext>(dbOptions =>
+        dbOptions.UseDataProtectionNpgsql(connectionString)
+    );
+    serviceCollection
+        .AddDataProtection()
+        .PersistKeysToDbContext<DeveloperDataProtectionDbContext>()
+        .SetApplicationName("NCode.Identity.OpenId.Playground");
+}
+else
+{
+    // No connection string: hermetic test hosts boot this composition root and override the context with an isolated
+    // in-memory store. Default (ephemeral) data protection is sufficient because tests use ephemeral signing keys.
+    serviceCollection.AddDbContextFactory<OpenIdDbContext>(dbOptions =>
+        dbOptions.UseInMemoryDatabase("OpenId")
+    );
+}
 
 await using var app = builder.Build();
-
-await InitializeDatabaseAsync(app);
 
 if (app.Environment.IsDevelopment())
 {
@@ -171,83 +167,3 @@ app.MapInteractiveAuthentication();
 app.MapHealthChecks("/health").WithName("health_endpoint");
 
 await app.RunAsync();
-
-return;
-
-static async Task InitializeDatabaseAsync(WebApplication app)
-{
-    await using var scope = app.Services.CreateAsyncScope();
-    var serviceProvider = scope.ServiceProvider;
-
-    var environment = serviceProvider.GetRequiredService<IHostEnvironment>();
-    var context = serviceProvider.GetRequiredService<OpenIdDbContext>();
-
-    // The in-memory provider has no migrations; just materialize the model from scratch.
-    if (!context.Database.IsRelational())
-    {
-        await context.Database.EnsureCreatedAsync();
-        return;
-    }
-
-    // Production applies schema changes deliberately (EF CLI / idempotent SQL script), never on startup. Only
-    // Development auto-applies pending migrations so the local developer database evolves without losing data.
-    if (!environment.IsDevelopment())
-    {
-        return;
-    }
-
-    // SELF-HEALING LOCAL DEV (SQLite only, ADR-0072): the file-backed dev database is disposable and is always
-    // reconciled to the current model on startup without manual intervention. This never runs against SQL Server — a
-    // developer pointing at a real server keeps the deliberate migrate-only path (with the not-managed guard) below.
-    if (context.Database.IsSqlite())
-    {
-        // Pending model changes = the live model has edits no migration captures yet (mid-feature iteration).
-        // Rebuild the disposable dev DB directly from the model so the inner loop never blocks on authoring a
-        // migration; the Definition of Done drift gate still forces a migration before the change can be pushed.
-        if (context.Database.HasPendingModelChanges())
-        {
-            app.Logger.LogWarning(
-                "The developer database model has pending changes with no migration; rebuilding "
-                    + "'App_Data/openid-dev.db*' from the current model. Author an EF migration before pushing "
-                    + "(the Definition of Done fails on un-migrated model changes)."
-            );
-            await context.Database.EnsureDeletedAsync();
-            await context.Database.EnsureCreatedAsync();
-            return;
-        }
-
-        // No drift: migrations are authoritative. A dev DB with tables but no migrations history was built by a prior
-        // model-rebuild (EnsureCreated) and cannot be migrated in place; discard it so MigrateAsync rebuilds a clean,
-        // migration-managed database — self-healing instead of forcing the developer to delete the file by hand.
-        var sqliteCreator = context.GetService<IRelationalDatabaseCreator>();
-        if (
-            await sqliteCreator.ExistsAsync()
-            && await sqliteCreator.HasTablesAsync()
-            && !(await context.Database.GetAppliedMigrationsAsync()).Any()
-        )
-        {
-            await context.Database.EnsureDeletedAsync();
-        }
-
-        await context.Database.MigrateAsync();
-        return;
-    }
-
-    // Non-SQLite relational dev DB (e.g. a developer-supplied SQL Server): never auto-delete. A database with tables
-    // but no migrations history was built by EnsureCreated (or by hand) and cannot be migrated in place; fail with
-    // guidance instead of a cryptic "table already exists".
-    var databaseCreator = context.GetService<IRelationalDatabaseCreator>();
-    if (
-        await databaseCreator.ExistsAsync()
-        && await databaseCreator.HasTablesAsync()
-        && !(await context.Database.GetAppliedMigrationsAsync()).Any()
-    )
-    {
-        throw new InvalidOperationException(
-            "The developer database is not managed by EF Core migrations (it was likely created by an earlier "
-                + "EnsureCreated build). Delete the database and restart to rebuild it from migrations."
-        );
-    }
-
-    await context.Database.MigrateAsync();
-}

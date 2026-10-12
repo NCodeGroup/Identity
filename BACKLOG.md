@@ -120,25 +120,6 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   `// TODO: validate actual scope values`, and `// TODO: provide a way to allow custom code challenge methods` markers
   in
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/AuthorizationCode/DefaultValidateAuthorizationCodeGrantHandler.cs`.
-- **`F13` — `max_age` re-authentication logs a WARN on the expected path.** When the end-user's `auth_time` exceeds the
-  request `max_age` or the client's `subject_max_age`, `DefaultValidateSubjectAuthenticationHandler` sets
-  `AccessDenied` and logs **`SubjectValidationFailed`** at warning level (event `2011`,
-  "The end-user's authentication time is too old from the client's MaxAge."). On an interactive authorize that is the
-  _normal_ freshness path — the flow re-challenges, the user re-authenticates, and the grant then succeeds
-  (`authorization.granted` + `token.issued` follow). Surfaced while running the Aspire dev stack: a stale persistent
-  dev cookie trips it on the first sign-in, so a successful re-auth looks like a failure in the logs. Decide whether to
-  log the max-age-exceeded → re-prompt transition at a lower level (or as a distinct "re-authentication required" signal
-  distinct from hard `AccessDenied` denials) so routine freshness re-prompts are not warnings. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Subject/DefaultValidateSubjectAuthenticationHandler.cs` (the two
-  `ValidateMaxAge` branches + `Logger.SubjectValidationFailed`).
-- **`F14` — EF `QuerySplittingBehavior` not configured (multi-collection includes).** The OpenID EF Core persistence
-  emits `Microsoft.EntityFrameworkCore.Query[20504]` at warning level — a query loads more than one collection
-  navigation (via `Include`/projection) with no `QuerySplittingBehavior` configured, so it defaults to `SingleQuery`
-  (a potential cartesian-explosion / slow-query risk on relational providers). Decide the default: configure
-  `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)` at the provider (or `AsSplitQuery()` on the specific
-  multi-collection query), or deliberately suppress the advisory where `SingleQuery` is intended. Touch points: the
-  relational provider configuration (`src/NCode.Identity.OpenId.Playground/Program.cs` `UseSqlServer`/`UseSqlite`) and
-  the multi-collection load in `src/NCode.Identity.OpenId.Persistence.EntityFramework*`.
 
 ## Conformance & interop testing (group `T`)
 
@@ -195,16 +176,88 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   consent screen as apps on this platform rather than bespoke UIs, honoring the stable-locator contract
   (`id=username`/`password`/`login`/`consent-allow`/`consent-deny`). The server-driven cookie challenge flow stays
   unchanged; the SPA is only the form surface.
+- **`U4` — Runtime bootstrap endpoint on the OP host.** The tier-agnostic bundle fetches `/config/bootstrap.json` from
+  the serving host; only a dev copy exists (`apps/mgmt/public/config/bootstrap.json`). Add a host endpoint that emits
+  the bootstrap document (API base, issuer, feature flags, branding) per deployment so one bundle serves every tier.
 - **`U5` — Frontend CI job.** The frontend toolchain is intentionally outside `dod.ps1`. Add a separate CI job
   (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
-- **`U12` — Aspire migration-worker resource (optional runtime polish).** [ADR-0072](docs/adr/0072-self-healing-dev-database-and-model-drift-gate.md)
-  keeps database bootstrap inside the Playground `api` process. The Aspire-idiomatic alternative is a dedicated
-  migration/initializer resource in the AppHost graph that other resources `WaitFor`, so a migration failure surfaces
-  as a failed dashboard resource rather than an `api` crash. This only relocates the failure (the self-healing +
-  Definition-of-Done drift gate already prevent drift), and costs a new project, so it is deferred.
-  Touch points: `src/NCode.Identity.OpenId.Playground.AppHost/Program.cs`.
+- **`U8` — Strip internal `$`-prefixed ticket parameters from the authorization response.** The interactive flow
+  surfaced that an internal ticket parameter (`$created_when`, `OpenIdConstants.Parameters.CreatedWhen`) leaks into the
+  authorization response callback query string sent back to the client. `$`-prefixed parameters are internal and should
+  never appear on the wire; the authorization-response/ticket rendering should omit them. Low priority (cosmetic — the
+  client ignores unknown params), but it is protocol hygiene. Touch point:
+  `src/NCode.Identity.OpenId.Core/Endpoints/Authorization/Results/AuthorizationResultExecutor.cs`.
+- **`U9` — Server create/edit management (UI + backend).** The Servers surface is read-only today: `ServersPage`
+  lists servers and drills into `ServerDetailPage` for a server's **settings and secrets** (which already exist),
+  but there is **no way to add a new server or edit a server's top-level record** (e.g. display name). Unlike
+  tenants and resource-servers — which have full create/update/delete contracts, API endpoints, and frontend
+  dialogs — servers have only `listServers` plus server-secrets/settings endpoints; there is no
+  `createServer`/`updateServer`/`deleteServer`. The current design treats the server inventory as provisioned
+  out of band (documented in `ServersPage.tsx`/`ServerTable.tsx`), so closing this gap is a cross-stack feature:
+  new management contracts, API endpoints (with `IManagementAuditRecorder` audit parity), persistence, and
+  `PublicAPI` changes on the backend, plus store mutations, a `ServerFormDialog`, and row-level actions on the
+  frontend. Decide first whether a server is intended to be a user-creatable, multi-instance entity or a
+  provisioned singleton; that product/security question gates the scope. Touch points:
+  `src/NCode.Identity.OpenId.Management.Abstractions`, `src/NCode.Identity.OpenId.Management/Endpoints`,
+  `src/frontend/packages/store/src/managementApi.ts`, `src/frontend/apps/mgmt/src/containers/ServersPage.tsx`,
+  `src/frontend/packages/ui/src/components/ServerTable.tsx`.
+- **`U10` — Re-home the interactive-auth capability out of the composition root, and expose its seams.** A design
+  review of how the interactive login/consent UI is served ([ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md))
+  found **one real inconsistency** and **one latent gap**; most other concerns raised were already resolved by existing
+  ADRs (recorded here so the review does not have to be re-derived).
+
+  **Actionable #1 — extract the capability to a leaf package (recommended).** The interactive-auth code currently lives
+  under [`src/NCode.Identity.Server/InteractiveAuthentication/`](src/NCode.Identity.Server/InteractiveAuthentication),
+  but `NCode.Identity.Server` is the **composition root** (`AddIdentityServer()`, `DefaultRegistration`, the builder) of
+  the capability packages — not a home for a capability itself. The folder *is* a capability: a cookie scheme, four
+  endpoints, credential verification, antiforgery wiring, and a static-file server. Every other capability (Accounts,
+  Management, Authentication) is a leaf package; this one got inlined. ADR-0065 even calls it "a reusable opt-in module …
+  surfaced from `NCode.Identity.Server`" — the module intent exists, the package boundary was just never drawn.
+  **Proposal:** move it to a leaf package (candidate name `NCode.Identity.OpenId.Authentication.Interactive`, with the
+  `Defaults`/`Options` + stable-locator contract in a thin `.Abstractions` pair); `NCode.Identity.Server` then only
+  *references* it like any other capability. Entails `PublicAPI.Unshipped.txt` churn + a new ADR (both expected under the
+  pre-release posture, [ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)). **Open fork:** confirm
+  the package name (`NCode.Identity.OpenId.Authentication.Interactive` vs. a `Server`-family name) before moving.
+  Files to move: all of
+  [`src/NCode.Identity.Server/InteractiveAuthentication/`](src/NCode.Identity.Server/InteractiveAuthentication)
+  (`InteractiveAuthenticationRegistration.cs`, `…ApplicationBuilderExtensions.cs`, `…EndpointRouteBuilderExtensions.cs`,
+  `…EndpointHandler.cs`, `…Options.cs`, `…Defaults.cs`); wiring to repoint in
+  [`src/NCode.Identity.OpenId.Playground/Program.cs`](src/NCode.Identity.OpenId.Playground/Program.cs) (lines ~30, 78,
+  135, 156) and `launchSettings.json` (`InteractiveAuthentication__BundleRootPath`).
+
+  **Actionable #2 — invert the credential verifier behind an interface (latent gap).** The real UI extensibility seam is
+  *already three seams*: (a) the **bundle** is swappable via `InteractiveAuthenticationOptions.BundleRootPath`; (b) the
+  **render surface** is swappable by pointing the cookie `LoginPath`/scheme elsewhere and serving anything at
+  `/account/*`; but (c) the **credential verifier** is **not** pluggable —
+  [`InteractiveAuthenticationEndpointHandler`](src/NCode.Identity.Server/InteractiveAuthentication/InteractiveAuthenticationEndpointHandler.cs)
+  hard-wires `ILocalAccountStore.VerifyCredentialAsync` and the `ClaimsPrincipal` construction. LDAP / external-IdP /
+  passwordless backends have no interface to replace. **Open fork:** invert (c) behind an interface now, or leave it
+  local-account-only and just document the (a)/(b) seams until a real second backend exists. (Decide with #1, since the
+  extraction is the natural moment to introduce the abstraction.)
+
+  **Already-resolved concerns (do not re-litigate; captured for the next session):**
+  - *Same-origin is the hard constraint for `apps/auth`.* The cookie `LoginPath` redirect, the antiforgery POST, and the
+    `ReturnUrl` round-trip all require same-origin with the OP issuing the cookie (ADR-0065). "Same-origin" ≠ "served by
+    Kestrel" — a CDN/reverse-proxy may front `/account/*` at the *same origin*, but the OP-hosted static root is the
+    correct default.
+  - *Serve assets by purpose.* `apps/auth` must be OP same-origin (cookie flow); `apps/mgmt` is a pure API client with
+    **no** same-origin requirement — it is the tier-agnostic "build once, discover at runtime" bundle
+    ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md) #5) and is the textbook CDN/static-host workload, not a
+    .NET-runtime concern. So production serving is **both, by purpose**: CDN-first for the console; OP-hosted (or
+    same-origin CDN path) for auth.
+  - *Dev orchestrator already exists.* The VS Code `API + UI (F5)` compound launch runs the Playground plus
+    [`build/dev-ui.ps1`](build/dev-ui.ps1) → `pnpm dev` → `turbo run dev` across every app; each app's `dev` script
+    self-describes its serving model and new surfaces join automatically. Accepted cost: `apps/auth` gets build-watch
+    (`vite build --watch`), **not** HMR, *because* the OP serves it same-origin (ADR-0065). If the auth inner loop
+    becomes painful, a **separate** decision is whether to adopt **.NET Aspire** as the orchestrator (model "API + node
+    dev servers" as one app graph) instead of the current PowerShell + compound-launch combo — a real fork, not a free
+    win; it would be its own ADR/backlog item.
+  - *Bundling is already decided.* ADR-0064 **rejected** the single unified SPA and chose **per-surface bundles sharing
+    `@ncode/*` packages** (auth vs. mgmt sit on different security boundaries / blast radius). Dev vs. prod use the
+    **same** bundle — "one bundle, every tier," nothing baked at build time; `@ncode/config` discovers API base / issuer
+    / flags / branding at boot.
 
 ## Secrets management (group `S`)
 
@@ -231,6 +284,15 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`.
+- **`S6` — Grow the management capabilities document.** `GET /api/capabilities`
+  ([ADR-0067](docs/adr/0067-secret-type-capability-catalog-and-capabilities-discovery.md)) is composed from
+  registered providers and currently publishes `secretTypes` and `eccCurves`
+  ([ADR-0068](docs/adr/0068-unified-extensible-elliptic-curve-catalog.md)). Natural next sections: the supported
+  signature/key-management **algorithms** (from `IAlgorithmCollectionProvider`) and per-type **key-size** options, so
+  the console create-secret form drives its algorithm and key-size inputs from discovery instead of its remaining
+  hard-coded defaults. Each is a new `ICommandHandler<DiscoverManagementCapabilitiesCommand>` provider.
+  Touch points: `src/NCode.Identity.OpenId.Management/Endpoints/Capabilities/`,
+  `src/frontend/packages/ui/src/components/SecretFormDialog.tsx`.
 
 ## Tooling & agent customization (group `X`)
 

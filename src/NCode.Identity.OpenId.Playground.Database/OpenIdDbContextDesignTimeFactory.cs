@@ -23,52 +23,39 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
-using NCode.Identity.OpenId.Persistence.Tenants;
 
-namespace NCode.Identity.OpenId.Playground;
+namespace NCode.Identity.OpenId.Playground.Database;
 
 /// <summary>
 /// Lets the EF Core tools (<c>dotnet ef migrations …</c>) construct <see cref="OpenIdDbContext"/> without booting the
-/// full host. Migrations are generated into this (the Playground) assembly and target SQLite; the published persistence
-/// library ships no migrations.
+/// full host. Migrations are generated into this (the Playground database) assembly and target Npgsql; the published
+/// persistence library ships no migrations. The connection string is a design-time placeholder — migrations are
+/// generated from the model and never open a connection.
 /// </summary>
 internal sealed class OpenIdDbContextDesignTimeFactory
     : IDesignTimeDbContextFactory<OpenIdDbContext>
 {
+    private const string DesignTimeConnectionString =
+        "Host=localhost;Port=5432;Database=openiddb;Username=postgres;Password=postgres";
+
     public OpenIdDbContext CreateDbContext(string[] args)
     {
-        var migrationsAssembly = typeof(OpenIdDbContextDesignTimeFactory).Assembly.GetName().Name;
-
-        // The context resolves its id-generation convention from the application service provider.
+        // The context resolves its id-generation convention and model contributors from the application service
+        // provider; the same contributors must be registered so the generated migration includes every slice.
         var serviceProvider = new ServiceCollection()
             .AddSingleton<IIdGenerator<long>>(new IdGenerator(0))
             .AddEntityFrameworkCorePersistence<OpenIdDbContext>()
             .AddLocalAccountEntityFramework()
             .ServiceCollection.BuildServiceProvider();
 
-        var options = new DbContextOptionsBuilder<OpenIdDbContext>()
-            .UseSqlite(
-                "Data Source=App_Data/openid-dev.db",
-                sqlite => sqlite.MigrationsAssembly(migrationsAssembly)
-            )
-            .UseApplicationServiceProvider(serviceProvider)
-            .Options;
+        var optionsBuilder = new DbContextOptionsBuilder<OpenIdDbContext>();
+        optionsBuilder.UseOpenIdNpgsql(DesignTimeConnectionString);
+        optionsBuilder.UseApplicationServiceProvider(serviceProvider);
 
-        // Migrations only build the model and emit schema, so the context is constructed unscoped; any registered
-        // model contributors still flow through so their entities are included in the generated migration.
         return new OpenIdDbContext(
-            options,
-            new UnscopedAmbientTenantAccessor(),
+            optionsBuilder.Options,
+            new PlaygroundDatabase.UnscopedAmbientTenantAccessor(),
             serviceProvider.GetServices<IOpenIdModelContributor>()
         );
-    }
-
-    private sealed class UnscopedAmbientTenantAccessor : IAmbientTenantAccessor
-    {
-        public bool IsScoped => false;
-        public string? TenantId => null;
-
-        public IDisposable BeginScope(string tenantId) =>
-            throw new NotSupportedException("Design-time construction is unscoped.");
     }
 }

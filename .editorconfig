@@ -92,6 +92,7 @@ dotnet_diagnostic.IDE0005.severity = none
 
 # ── EF Core generated migrations ────────────────────────────────────────────
 # Migrations are scaffolded by `dotnet ef`, not hand-edited; treat them as generated code so the
-# analyzer / warnings-as-errors gates (e.g. CA1861) don't apply to the generated output.
-[**/Migrations/*.cs]
+# analyzer / warnings-as-errors gates (e.g. CA1861) don't apply to the generated output. The glob covers
+# per-context subfolders (e.g. Migrations/OpenId, Migrations/DataProtection) as well as flat layouts.
+[**/Migrations/**.cs]
 generated_code = true

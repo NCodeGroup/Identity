@@ -51,11 +51,15 @@ internal sealed record FrontendBootstrapDocument
     /// <summary>
     /// Builds the bootstrap document from the configured <paramref name="options"/>, falling back to the serving
     /// <paramref name="requestOrigin"/> (<c>scheme://host</c>) for the API base and issuer when they are not
-    /// configured, so a single-origin host needs no explicit configuration.
+    /// configured, so a single-origin host needs no explicit configuration. When <paramref name="surface"/> names a
+    /// configured <see cref="FrontendBootstrapOptions.Surfaces"/> entry, that surface's coordinates (client id,
+    /// scopes, feature flags, branding) are published instead of the host default; an unknown or absent surface
+    /// receives the default.
     /// </summary>
     public static FrontendBootstrapDocument Create(
         FrontendBootstrapOptions options,
-        string requestOrigin
+        string requestOrigin,
+        string? surface = null
     )
     {
         var origin = NormalizeOrigin(requestOrigin);
@@ -67,9 +71,32 @@ internal sealed record FrontendBootstrapDocument
             string.IsNullOrWhiteSpace(options.Issuer) ? origin : options.Issuer
         );
 
-        var scopes = options.Scopes is { Length: > 0 } configuredScopes ? configuredScopes : null;
+        var overrides =
+            surface is not null && options.Surfaces.TryGetValue(surface, out var surfaceOptions)
+                ? surfaceOptions
+                : null;
 
-        var branding = options.Branding is { IsEmpty: false } source
+        // A surface override REPLACES the default client id and scopes (so a read-only surface can publish none),
+        // while feature flags merge per key and branding falls back to the default when the surface sets none.
+        var clientId = overrides is not null ? overrides.ClientId : options.ClientId;
+
+        var scopeSource = overrides?.Scopes ?? options.Scopes;
+        var scopes = scopeSource is { Length: > 0 } configuredScopes ? configuredScopes : null;
+
+        var features = new Dictionary<string, bool>(options.Features, StringComparer.Ordinal);
+        if (overrides?.Features is { } surfaceFeatures)
+        {
+            foreach (var (key, value) in surfaceFeatures)
+            {
+                features[key] = value;
+            }
+        }
+
+        var brandingSource = overrides?.Branding is { IsEmpty: false } surfaceBranding
+            ? surfaceBranding
+            : options.Branding;
+
+        var branding = brandingSource is { IsEmpty: false } source
             ? new FrontendBrandingDocument
             {
                 DisplayName = NullIfEmpty(source.DisplayName),
@@ -84,9 +111,9 @@ internal sealed record FrontendBootstrapDocument
         {
             ApiBaseUrl = apiBaseUrl,
             Issuer = issuer,
-            ClientId = NullIfEmpty(options.ClientId),
+            ClientId = NullIfEmpty(clientId),
             Scopes = scopes,
-            Features = new Dictionary<string, bool>(options.Features, StringComparer.Ordinal),
+            Features = features,
             Branding = branding,
         };
     }

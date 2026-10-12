@@ -45,8 +45,16 @@ public static class DeveloperCorsRegistration
 
     private static readonly string[] DefaultDevelopmentOrigins =
     [
+        // Management console dev server (apps/mgmt).
         "http://localhost:5173",
         "https://localhost:5173",
+        // Playground flow-explorer dev server (apps/playground).
+        "http://localhost:5174",
+        "https://localhost:5174",
+        // Conformance posture dashboard dev server (apps/conformance).
+        "http://localhost:5175",
+        "https://localhost:5175",
+        // Vite preview origin.
         "http://localhost:4173",
         "https://localhost:4173",
     ];

@@ -1,7 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AppThemeProvider } from '@ncode/ui';
+import { Provider } from 'react-redux';
+import { createAppStore } from '@ncode/store';
+import { BootstrapGate } from './BootstrapGate.js';
 import { App } from './App.js';
+
+const store = createAppStore();
 
 const container = document.getElementById('root');
 if (!container) {
@@ -10,8 +14,10 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <AppThemeProvider>
-      <App />
-    </AppThemeProvider>
+    <Provider store={store}>
+      <BootstrapGate>
+        <App />
+      </BootstrapGate>
+    </Provider>
   </StrictMode>,
 );

@@ -43,13 +43,17 @@ NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.Adm
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.AdminUserName.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.DeveloperInteractiveSeedOptions() -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.SeedAdminUser.get -> bool
-NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.SeedSpaClient.get -> bool
-NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.SpaClientId.get -> string?
-NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.SpaClientId.set -> void
-NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.SpaRedirectUris.get -> string![]!
-NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.SpaRedirectUris.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.SpaClients.get -> System.Collections.Generic.IList<NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed!>!
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.SpaClients.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.TenantId.get -> string?
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.TenantId.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ClientId.get -> string?
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ClientId.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.DeveloperSpaClientSeed() -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RedirectUris.get -> string![]!
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RedirectUris.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ShouldSeed.get -> bool
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapIdentityServerApiReference(System.Action<NCode.Identity.Server.IdentityServerApiReferenceOptions!>? configureOptions = null) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
@@ -92,6 +96,8 @@ NCode.Identity.Server.FrontendBootstrapOptions.Issuer.get -> string?
 NCode.Identity.Server.FrontendBootstrapOptions.Issuer.set -> void
 NCode.Identity.Server.FrontendBootstrapOptions.Scopes.get -> string![]?
 NCode.Identity.Server.FrontendBootstrapOptions.Scopes.set -> void
+NCode.Identity.Server.FrontendBootstrapOptions.Surfaces.get -> System.Collections.Generic.IDictionary<string!, NCode.Identity.Server.FrontendSurfaceOptions!>!
+NCode.Identity.Server.FrontendBootstrapOptions.Surfaces.set -> void
 NCode.Identity.Server.FrontendBrandingOptions
 NCode.Identity.Server.FrontendBrandingOptions.DisplayName.get -> string?
 NCode.Identity.Server.FrontendBrandingOptions.DisplayName.set -> void
@@ -105,3 +111,13 @@ NCode.Identity.Server.FrontendBrandingOptions.PrimaryColor.get -> string?
 NCode.Identity.Server.FrontendBrandingOptions.PrimaryColor.set -> void
 NCode.Identity.Server.FrontendBrandingOptions.SecondaryColor.get -> string?
 NCode.Identity.Server.FrontendBrandingOptions.SecondaryColor.set -> void
+NCode.Identity.Server.FrontendSurfaceOptions
+NCode.Identity.Server.FrontendSurfaceOptions.Branding.get -> NCode.Identity.Server.FrontendBrandingOptions?
+NCode.Identity.Server.FrontendSurfaceOptions.Branding.set -> void
+NCode.Identity.Server.FrontendSurfaceOptions.ClientId.get -> string?
+NCode.Identity.Server.FrontendSurfaceOptions.ClientId.set -> void
+NCode.Identity.Server.FrontendSurfaceOptions.Features.get -> System.Collections.Generic.IDictionary<string!, bool>?
+NCode.Identity.Server.FrontendSurfaceOptions.Features.set -> void
+NCode.Identity.Server.FrontendSurfaceOptions.FrontendSurfaceOptions() -> void
+NCode.Identity.Server.FrontendSurfaceOptions.Scopes.get -> string![]?
+NCode.Identity.Server.FrontendSurfaceOptions.Scopes.set -> void

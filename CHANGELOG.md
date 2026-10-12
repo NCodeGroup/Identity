@@ -10,6 +10,27 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Playground flow explorer and conformance posture dashboard — completes backlog `U3`.** The two frontend scaffolds
+  became real surfaces on the shared `@ncode/*` platform
+  ([ADR-0082](docs/adr/0082-playground-and-conformance-surfaces.md)). `apps/playground` is an interactive OAuth 2.1 /
+  OpenID Connect **authorization-code + PKCE (S256) flow explorer** that discovers the provider and walks the flow end
+  to end — surfacing the PKCE verifier/challenge, `state`, `nonce`, authorize URL, token response, and decoded JWT
+  header/payload claims, then exercising UserInfo, refresh, and RP-Initiated Logout; implicit, hybrid, and
+  resource-owner-password flows are intentionally not offered. `apps/conformance` is a **security-posture &
+  conformance-readiness dashboard** that audits the OP's published discovery metadata against modern guidance (OAuth
+  2.1, RFC 9700, OpenID Connect Core/Discovery, RFC 7636/8414/7009/7662/9126), flags insecure/deprecated configuration,
+  and reports OpenID Foundation Basic/Config OP readiness plus the external-suite configuration (issuer, alias, RP
+  callback URL). Both are standalone Vite SPAs wired into the Aspire AppHost (`playground` → `5174`, `conformance` →
+  `5175`). The host bootstrap document is now **surface-aware**: `@ncode/config`'s `loadRuntimeConfig` sends the
+  bundle's `SurfaceKind` as `?surface=`, and `FrontendBootstrapOptions.Surfaces` maps each surface to a per-surface
+  override (client id + scopes **replace** the default so a read-only surface can publish none; feature flags merge;
+  branding falls back). `@ncode/auth`'s `buildAuthorizeUrl` gained an optional OIDC `nonce`. **Breaking (pre-release):**
+  `DeveloperInteractiveSeedOptions` now seeds a **list** of public SPA clients (`SpaClients`, defaulting to `mgmt-spa`
+    - `playground-spa`); the single `SpaClientId`/`SpaRedirectUris`/`SeedSpaClient` members were removed, and the
+      developer CORS defaults now include the `5174`/`5175` dev-server origins. New public surface:
+      `FrontendBootstrapOptions.Surfaces`, `FrontendSurfaceOptions`, and `DeveloperSpaClientSeed`. Greenfield, pre-release
+      — no compatibility shims ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
 - **Resource-server runtime reads push filtering into the DBMS — completes backlog `D3`.** The six runtime readers that
   previously paged the tenant's **entire** resource-server set and filtered in memory
   (`DefaultDiscoverScopesHandler`, `DefaultClientScopeService.GetAllowedScopesAsync` / `ResolveAudiencesAsync` /
@@ -20,8 +41,7 @@ change to the public API is a **major** version bump.
   `GetEnabledScopeProjectionsByScopesAsync`, `GetEnabledScopeProjectionsBySystemOrIdsAsync`, and `FindEnabledByScopesAsync`,
   plus the lightweight `ResourceServerScopeProjection` data contract. The identifier/scope readers no longer load server
   settings or secrets. **Behavior change:** `IScopeDescriptionService.DescribeScopesAsync` now ignores **disabled**
-  resource servers, consistent with every other runtime reader. Case-sensitive scope/identifier matching (RFC 6749 / RFC
-  8707) is preserved: the DBMS filter is a widening pre-filter on the normalized column and the exact match is re-applied
+  resource servers, consistent with every other runtime reader. Case-sensitive scope/identifier matching (RFC 6749 / RFC 8707) is preserved: the DBMS filter is a widening pre-filter on the normalized column and the exact match is re-applied
   in memory. Greenfield, pre-release — no compatibility shims
   ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
@@ -412,6 +432,16 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **The UserInfo endpoint now authenticates the presented self-issued bearer access token in-environment, instead of a
+  host-configured default authentication scheme that never existed.** `DefaultAuthenticateSubjectHandler` resolved the
+  subject via `HttpContext.AuthenticateAsync()` (the host's default scheme), but per-tenant signing keys and issuer are
+  only known after the request environment resolves the tenant, so no pre-routing scheme can validate the token — the
+  reference host registered none, and every valid access token presented to `/userinfo` was rejected `401
+  invalid_token`. The handler now validates a presented `Authorization: Bearer` token through the same in-environment
+  self-issued `AuthenticateAccessTokenCommand` path the management API uses ([ADR-0044](docs/adr/0044-management-api-authentication-and-globaladmin-bootstrap.md)),
+  requiring the OpenID identity audience (`urn:ncode:openid`); requests that instead carry an interactive session (for
+  example device verification) have no bearer header and still fall back to the session cookie. Invalid/expired tokens
+  keep their `401` semantics.
 - **A stale or invalid end-user session cookie now self-heals at the authorization endpoint instead of dead-ending with
   `access_denied`.** When `AuthenticateAsync` returned a _failure_ (a present-but-invalid session cookie — for example
   undecryptable after a data-protection key change, expired, or tampered), the authorize flow surfaced

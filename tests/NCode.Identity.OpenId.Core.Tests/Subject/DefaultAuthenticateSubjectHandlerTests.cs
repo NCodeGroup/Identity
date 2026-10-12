@@ -24,10 +24,12 @@ using Moq;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Subject;
+using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -236,6 +238,100 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
         Assert.True(result.IsAuthenticated);
         Assert.Equal("principal-99", result.Ticket.Value.SubjectId);
+    }
+
+    #endregion
+
+    #region Bearer Access Token Tests
+
+    private (AuthenticateSubjectCommand command, Mock<IMediator> mediator) CreateBearerScaffold(
+        AuthenticateAccessTokenDisposition disposition
+    )
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        MockContext = mockContext;
+        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+        var mockMediator = CreateStrictMock<IMediator>();
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Authorization = "Bearer the-access-token";
+
+        mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
+        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+
+        mockMediator
+            .Setup(x =>
+                x.SendAsync<AuthenticateAccessTokenCommand, AuthenticateAccessTokenDisposition>(
+                    It.IsAny<AuthenticateAccessTokenCommand>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<AuthenticateAccessTokenDisposition>(disposition))
+            .Verifiable();
+
+        var command = new AuthenticateSubjectCommand(mockContext.Object);
+        return (command, mockMediator);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenBearerTokenValid_ReturnsTicket()
+    {
+        var principal = new ClaimsPrincipal(new ClaimsIdentity("Bearer"));
+        var (command, mockMediator) = CreateBearerScaffold(
+            new AuthenticateAccessTokenDisposition(principal)
+        );
+
+        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsAuthenticated);
+        Assert.Equal("subject-id", result.Ticket.Value.SubjectId);
+        // The bearer token is validated via the in-environment self-issued access-token command, not AuthenticateAsync.
+        mockMediator.Verify();
+        MockAuditEventRecorder.Verify(
+            x =>
+                x.RecordSubjectAuthenticatedAsync(
+                    command.OpenIdContext,
+                    "subject-id",
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenBearerTokenInvalid_ReturnsFailedAndAudits()
+    {
+        var mockError = CreateLooseMock<IOpenIdError>();
+        var (command, _) = CreateBearerScaffold(
+            new AuthenticateAccessTokenDisposition(mockError.Object)
+        );
+
+        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.HasError);
+        Assert.Same(mockError.Object, result.Error);
+        MockAuditEventRecorder.Verify(
+            x =>
+                x.RecordSubjectAuthenticationFailedAsync(
+                    command.OpenIdContext,
+                    It.IsAny<string?>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenBearerTokenUndefined_ReturnsUndefined()
+    {
+        // An empty disposition (no principal, no error) means the token could not be read; surface it as undefined.
+        var (command, _) = CreateBearerScaffold(default);
+
+        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsUndefined);
     }
 
     #endregion

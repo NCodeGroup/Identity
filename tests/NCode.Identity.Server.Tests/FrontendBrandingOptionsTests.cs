@@ -16,6 +16,7 @@
 
 #endregion
 
+using NCode.Identity.Server.Frontend;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;

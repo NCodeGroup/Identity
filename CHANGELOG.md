@@ -28,7 +28,9 @@ change to the public API is a **major** version bump.
   `DeveloperInteractiveSeedOptions` now seeds a **list** of public SPA clients (`SpaClients`, defaulting to `mgmt-spa`
     - `playground-spa`); the single `SpaClientId`/`SpaRedirectUris`/`SeedSpaClient` members were removed, and the
       developer CORS defaults now include the `5174`/`5175` dev-server origins. New public surface:
-      `FrontendBootstrapOptions.Surfaces`, `FrontendSurfaceOptions`, and `DeveloperSpaClientSeed`. Greenfield, pre-release
+      `FrontendBootstrapOptions.Surfaces`, `FrontendSurfaceOptions`, and `DeveloperSpaClientSeed`. The frontend
+      bootstrap types (`FrontendBootstrapOptions`, `FrontendSurfaceOptions`, `FrontendBrandingOptions`) live in the
+      `NCode.Identity.Server.Frontend` namespace, one type per file under a `Frontend/` folder. Greenfield, pre-release
       — no compatibility shims ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
 - **Resource-server runtime reads push filtering into the DBMS — completes backlog `D3`.** The six runtime readers that

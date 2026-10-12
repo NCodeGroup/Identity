@@ -70,6 +70,22 @@ internal class DefaultValidateAuthorizationRequestHandler(IClientScopeService cl
         );
         if (authorizationRequest.Scopes.Except(allowedScopes).Any())
             throw openIdEnvironment.ErrorFactory.InvalidScope().AsException();
+
+        // RFC 8707: each requested resource indicator must be a known, enabled resource server (audience).
+        if (authorizationRequest.Resources.Count > 0)
+        {
+            var enabledResourceServers =
+                await ClientScopeService.GetEnabledResourceServerIdentifiersAsync(
+                    openIdContext.Tenant.TenantId,
+                    cancellationToken
+                );
+            if (authorizationRequest.Resources.Except(enabledResourceServers).Any())
+                throw openIdEnvironment
+                    .ErrorFactory.InvalidTarget(
+                        "One or more requested resource indicators are unknown or disabled."
+                    )
+                    .AsException();
+        }
     }
 
     [AssertionMethod]
@@ -257,9 +273,6 @@ internal class DefaultValidateAuthorizationRequestHandler(IClientScopeService cl
     )
     {
         var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
-        var codeChallengeMethodIsPlain =
-            !hasCodeChallenge
-            || request.CodeChallengeMethod == OpenIdConstants.CodeChallengeMethods.Plain;
 
         if (
             request.OriginalRequestObject is null
@@ -287,15 +300,6 @@ internal class DefaultValidateAuthorizationRequestHandler(IClientScopeService cl
             throw errorFactory
                 .UnauthorizedClient("The configuration requires the use of PKCE parameters.")
                 .AsException();
-
-        // allow_plain_code_challenge_method
-        if (
-            codeChallengeMethodIsPlain
-            && !settings.GetValue(OpenIdSettingKeys.AllowPlainCodeChallengeMethod)
-        )
-            throw errorFactory
-                .UnauthorizedClient("The configuration prohibits the plain PKCE method.")
-                .AsException();
     }
 
     [AssertionMethod]
@@ -311,6 +315,18 @@ internal class DefaultValidateAuthorizationRequestHandler(IClientScopeService cl
             var acrValues = request.AcrValues;
             if (acrValues.Count > 0 && acrValues.Except(acrValuesSupported).Any())
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.AcrValues).AsException();
+        }
+
+        // code_challenge_methods_supported
+        if (!string.IsNullOrEmpty(request.CodeChallenge))
+        {
+            var codeChallengeMethodsSupported = settings.GetValue(
+                OpenIdSettingKeys.CodeChallengeMethodsSupported
+            );
+            if (!codeChallengeMethodsSupported.Contains(request.CodeChallengeMethod))
+                throw errorFactory
+                    .NotSupported(OpenIdConstants.Parameters.CodeChallengeMethod)
+                    .AsException();
         }
 
         // claims_locales_supported

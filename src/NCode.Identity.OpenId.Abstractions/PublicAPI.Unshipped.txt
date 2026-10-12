@@ -116,6 +116,7 @@ const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequest = "invalid
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequestJwt = "invalid_request_object" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequestUri = "invalid_request_uri" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidScope = "invalid_scope" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidTarget = "invalid_target" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidToken = "invalid_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.LoginRequired = "login_required" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RegistrationNotSupported = "registration_not_supported" -> string!
@@ -262,7 +263,6 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenType = "acces
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AcrValuesSupported = "acr_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowedIdentityProviders = "allowed_identity_providers" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowLoopbackRedirect = "allow_loopback_redirect" -> string!
-const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowPlainCodeChallengeMethod = "allow_plain_code_challenge_method" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowUnsafeTokenResponse = "allow_unsafe_token_response" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationAuthenticateScheme = "authorization_authenticate_scheme" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationChallengeScheme = "authorization_challenge_scheme" -> string!
@@ -273,6 +273,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsSupported = "claim
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsSupportedIsStrict = "claims_supported_is_strict" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimTypesSupported = "claim_types_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClockSkew = "clock_skew" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.CodeChallengeMethodsSupported = "code_challenge_methods_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ContinueAuthorizationLifetime = "continue_authorization_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DeviceCodeLifetime = "device_code_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DeviceCodePollingInterval = "device_code_polling_interval" -> string!
@@ -403,6 +404,7 @@ NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identi
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidRequest(string! errorDescription, string! errorCode = "invalid_request") -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidRequestUri(string! errorDescription, string! errorCode = "invalid_request_uri") -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidScope() -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidTarget(string! errorDescription) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).InvalidToken() -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).LoginRequired() -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).ConsentRequired() -> NCode.Identity.OpenId.Messages.IOpenIdError!
@@ -689,7 +691,6 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenType.get -> N
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AcrValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowedIdentityProviders.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowLoopbackRedirect.get -> NCode.Identity.Settings.SettingKey<bool>
-static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowPlainCodeChallengeMethod.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowUnsafeTokenResponse.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationAuthenticateScheme.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationChallengeScheme.get -> NCode.Identity.Settings.SettingKey<string!>
@@ -700,6 +701,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsSupported.get -> N
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsSupportedIsStrict.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClockSkew.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.CodeChallengeMethodsSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ContinueAuthorizationLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeviceCodeLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeviceCodePollingInterval.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>

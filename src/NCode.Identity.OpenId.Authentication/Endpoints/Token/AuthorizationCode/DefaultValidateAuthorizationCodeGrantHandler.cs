@@ -16,10 +16,9 @@
 
 #endregion
 
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
-using NCode.Buffers;
-using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
@@ -39,12 +38,13 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode
 /// with <see cref="AuthorizationGrant"/>.
 /// </summary>
 internal class DefaultValidateAuthorizationCodeGrantHandler(
-    ICryptoService cryptoService,
-    IClientScopeService clientScopeService
+    IClientScopeService clientScopeService,
+    ICodeChallengeMethodCollectionProvider codeChallengeMethodCollectionProvider
 ) : ICommandHandler<ValidateTokenGrantCommand<AuthorizationGrant>>, ISupportMediatorPriority
 {
-    private ICryptoService CryptoService { get; } = cryptoService;
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
+    private ICodeChallengeMethodCollectionProvider CodeChallengeMethodCollectionProvider { get; } =
+        codeChallengeMethodCollectionProvider;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -113,7 +113,10 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
                     "The requested scope exceeds the scope granted by the resource owner."
                 );
 
-        // A requested scope must be permitted by the client's grants (ADR-0026).
+        // A requested scope must be permitted by the client's grants and must be an actual scope value currently
+        // defined on one of the tenant's enabled resource servers (ADR-0026); GetAllowedScopesAsync already
+        // intersects the client's grants with the live resource-server scope definitions, so this one check both
+        // enforces the grant ceiling and validates the actual scope values.
         var allowedScopes = await ClientScopeService.GetAllowedScopesAsync(
             openIdContext.Tenant.TenantId,
             openIdClient.ClientId,
@@ -135,9 +138,22 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
             cancellationToken
         );
 
-        // TODO: validate resource
-
-        // TODO: validate actual scope values
+        // RFC 8707: a resource requested at the token endpoint must be within the resources authorized at the
+        // authorization endpoint. The token service additionally rejects (invalid_target) any requested resource that
+        // does not resolve to an enabled resource server owning one of the effective scopes.
+        var requestedResources = tokenRequest.Resources;
+        var authorizedResources = authorizationRequest.Resources;
+        if (
+            requestedResources is { Count: > 0 }
+            && authorizedResources.Count > 0
+            && requestedResources.Except(authorizedResources).Any()
+        )
+            throw errorFactory
+                .InvalidTarget(
+                    "The requested resource was not authorized in the original authorization request."
+                )
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
 
         // TODO: validate DPoP
 
@@ -202,21 +218,13 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
 
-            var expectedCodeChallenge = codeChallengeMethod switch
-            {
-                OpenIdConstants.CodeChallengeMethods.Plain => codeVerifier,
-                OpenIdConstants.CodeChallengeMethods.S256 => CryptoService.HashValue(
-                    codeVerifier,
-                    HashAlgorithmType.Sha256,
-                    BinaryEncodingType.Base64Url,
-                    SecureEncoding.ASCII
-                ),
-                _ => null,
-            };
-
-            // TODO: provide a way to allow custom code challenge methods
-
-            if (expectedCodeChallenge is null)
+            if (
+                string.IsNullOrEmpty(codeChallengeMethod)
+                || !CodeChallengeMethodCollectionProvider.TryGet(
+                    codeChallengeMethod,
+                    out var codeChallengeMethodHandler
+                )
+            )
                 throw errorFactory
                     .InvalidGrant(
                         "The provided 'code_challenge_method' parameter contains a value that is not supported."
@@ -224,10 +232,12 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
 
+            var expectedCodeChallenge = codeChallengeMethodHandler.ComputeChallenge(codeVerifier);
+
             if (
                 !CryptographicOperations.FixedTimeEquals(
-                    expectedCodeChallenge.AsSpan(),
-                    codeChallenge.AsSpan()
+                    MemoryMarshal.AsBytes(expectedCodeChallenge.AsSpan()),
+                    MemoryMarshal.AsBytes(codeChallenge.AsSpan())
                 )
             )
                 throw errorFactory

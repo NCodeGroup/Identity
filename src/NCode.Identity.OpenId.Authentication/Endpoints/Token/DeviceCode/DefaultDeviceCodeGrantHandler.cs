@@ -231,6 +231,7 @@ internal class DefaultDeviceCodeGrantHandler(
             GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.DeviceCode,
             OriginalScopes = originalScopes,
             EffectiveScopes = effectiveScopes,
+            Resources = tokenRequest.Resources,
             SubjectAuthentication = payload.SubjectAuthentication,
         };
 

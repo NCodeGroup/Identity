@@ -188,6 +188,7 @@ internal class DefaultRefreshTokenGrantHandler(
             GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.RefreshToken,
             OriginalScopes = originalScopes,
             EffectiveScopes = effectiveScopes,
+            Resources = tokenRequest.Resources,
             RefreshToken = tokenRequest.RefreshToken,
             SubjectAuthentication = subjectAuthentication,
         };

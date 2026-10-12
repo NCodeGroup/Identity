@@ -12,6 +12,27 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Token-request validation hardening — completes backlog `F12`.** Three related gaps in the authorization-code
+  grant validator are closed. (1) **Resource indicators (RFC 8707)** are now a first-class, multi-valued `resource`
+  parameter on the authorization and token requests
+  ([ADR-0078](docs/adr/0078-resource-indicators-rfc-8707.md)): the authorization endpoint rejects an unknown or disabled
+  resource (`invalid_target`), the authorization-code token endpoint rejects a resource not authorized at the
+  authorization endpoint, and `IResourceServerCredentialResolver.ResolveAsync` — the single choke point every grant
+  funnels through — **narrows** the access-token `aud` to the requested resources and rejects any that do not resolve to
+  an enabled resource server owning one of the token's effective scopes. A new `invalid_target` error code and
+  `IOpenIdErrorFactory.InvalidTarget(...)` carry the rejections. (2) The hardcoded PKCE `plain`/`S256` switch becomes an
+  extensible **`ICodeChallengeMethod` strategy collection**
+  ([ADR-0079](docs/adr/0079-extensible-pkce-code-challenge-methods.md)); the boolean
+  `allow_plain_code_challenge_method` setting is **removed** in favor of the standard, discoverable
+  `code_challenge_methods_supported` set (default `["plain", "S256"]`, `Intersect` merge), now advertised in the
+  discovery document. (3) Requested **scope values** are confirmed against the live resource-server scope definitions
+  (already enforced via `GetAllowedScopesAsync`). New public surface: `OpenIdCommonParameters.Resources`,
+  `IBaseAuthorizationRequestValues.Resources`/`IAuthorizationRequest.Resources`/`ITokenRequest.Resources`,
+  `CreateSecurityTokenRequest.Resources`, `IClientScopeService.GetEnabledResourceServerIdentifiersAsync`,
+  `ICodeChallengeMethod` + `ICodeChallengeMethodCollectionProvider`, and `OpenIdSettingKeys.CodeChallengeMethodsSupported`;
+  `IResourceServerCredentialResolver.ResolveAsync` gains a `requestedResources` parameter. Greenfield, pre-release — no
+  compatibility shims ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
 - **Session-scoped grant revocation on logout — completes backlog `F17`.** Logout now revokes **only the terminating
   session's grants** instead of every grant the subject holds, so signing out of one login no longer invalidates the
   subject's other sessions ([ADR-0077](docs/adr/0077-session-scoped-grant-revocation-on-logout.md)). A grant records the

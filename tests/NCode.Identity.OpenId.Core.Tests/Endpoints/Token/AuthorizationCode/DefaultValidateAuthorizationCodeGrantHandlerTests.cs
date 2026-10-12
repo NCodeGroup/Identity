@@ -19,7 +19,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Moq;
-using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode;
@@ -46,17 +45,18 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     private const string TenantId = "tenant-1";
     private static readonly Uri RedirectUri = new("https://client/callback");
 
-    private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IClientScopeService> MockClientScopeService { get; }
+    private Mock<ICodeChallengeMethodCollectionProvider> MockCodeChallengeMethodProvider { get; }
     private DefaultValidateAuthorizationCodeGrantHandler Handler { get; }
 
     public DefaultValidateAuthorizationCodeGrantHandlerTests()
     {
-        MockCryptoService = CreateStrictMock<ICryptoService>();
         MockClientScopeService = CreateStrictMock<IClientScopeService>();
+        MockCodeChallengeMethodProvider =
+            CreateStrictMock<ICodeChallengeMethodCollectionProvider>();
         Handler = new DefaultValidateAuthorizationCodeGrantHandler(
-            MockCryptoService.Object,
-            MockClientScopeService.Object
+            MockClientScopeService.Object,
+            MockCodeChallengeMethodProvider.Object
         );
     }
 
@@ -215,12 +215,51 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        // RFC 8707 resource indicators: neither the token request nor the authorization request named a resource.
+        mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
+        mockAuthRequest.SetupGet(x => x.Resources).Returns([]).Verifiable();
+
         // PKCE arguments are all evaluated at the ValidatePkce call site.
         mockTokenRequest.SetupGet(x => x.CodeVerifier).Returns((string?)null).Verifiable();
         mockAuthRequest.SetupGet(x => x.CodeChallenge).Returns((string?)null).Verifiable();
         mockAuthRequest.SetupGet(x => x.CodeChallengeMethod).Returns((string?)null).Verifiable();
 
         await Handler.HandleAsync(command, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenRequestedResourceNotAuthorized_ThrowsOpenIdException()
+    {
+        var (command, mockContext, mockTokenRequest, mockAuthRequest, mockSettings, mockMediator) =
+            CreateScaffold(ClientId);
+
+        mockTokenRequest.SetupGet(x => x.RedirectUri).Returns(RedirectUri).Verifiable();
+        mockAuthRequest.SetupGet(x => x.RedirectUri).Returns(RedirectUri).Verifiable();
+        mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
+        mockAuthRequest.SetupGet(x => x.Scopes).Returns(["api"]).Verifiable();
+
+        MockClientScopeService
+            .Setup(x => x.GetAllowedScopesAsync(TenantId, ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { "api" });
+
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.IsAny<ValidateSubjectAuthenticationCommand>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        // RFC 8707: the token request names a resource that was not authorized at the authorization endpoint.
+        mockTokenRequest.SetupGet(x => x.Resources).Returns(["urn:other"]).Verifiable();
+        mockAuthRequest.SetupGet(x => x.Resources).Returns(["urn:api"]).Verifiable();
+
+        await Assert.ThrowsAsync<OpenIdException>(async () =>
+            await Handler.HandleAsync(command, CancellationToken.None)
+        );
     }
 
     #endregion

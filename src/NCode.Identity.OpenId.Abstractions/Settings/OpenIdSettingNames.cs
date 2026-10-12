@@ -118,11 +118,6 @@ public static class OpenIdSettingNames
     public const string AllowLoopbackRedirect = "allow_loopback_redirect";
 
     /// <summary>
-    /// Contains the name of <c>allow_plain_code_challenge_method</c> setting.
-    /// </summary>
-    public const string AllowPlainCodeChallengeMethod = "allow_plain_code_challenge_method";
-
-    /// <summary>
     /// Contains the name of <c>allow_unsafe_token_response</c> setting.
     /// </summary>
     public const string AllowUnsafeTokenResponse = "allow_unsafe_token_response";
@@ -171,6 +166,12 @@ public static class OpenIdSettingNames
     /// Contains the name of <c>clock_skew</c> setting.
     /// </summary>
     public const string ClockSkew = "clock_skew";
+
+    /// <summary>
+    /// Contains the name of <c>code_challenge_methods_supported</c> setting (the PKCE <c>code_challenge_method</c>
+    /// transformations the server supports, RFC 7636 / RFC 8414).
+    /// </summary>
+    public const string CodeChallengeMethodsSupported = "code_challenge_methods_supported";
 
     /// <summary>
     /// Contains the name of <c>continue_authorization_lifetime</c> setting.

@@ -106,6 +106,13 @@ public sealed class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
     }
 
     /// <inheritdoc />
+    public List<string>? Resources
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.Resources);
+        set => SetKnownParameter(OpenIdCommonParameters.Resources, value);
+    }
+
+    /// <inheritdoc />
     public string? Username
     {
         get => GetKnownParameter(OpenIdCommonParameters.Username);

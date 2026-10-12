@@ -384,6 +384,18 @@ public static class OpenIdCommonParameters
     };
 
     /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>resource</c> message parameter (RFC 8707 Resource Indicators)
+    /// which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
+    /// </summary>
+    public static readonly KnownParameter<List<string>> Resources = new(
+        OpenIdConstants.Parameters.Resource,
+        CommonParameterParsers.StringList
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>scope</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<List<string>> Scopes = new(

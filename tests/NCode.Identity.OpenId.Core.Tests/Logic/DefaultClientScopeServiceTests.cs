@@ -290,4 +290,34 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
 
         Assert.Empty(audiences);
     }
+
+    [Fact]
+    public async Task GetEnabledResourceServerIdentifiersAsync_ExcludesDisabled()
+    {
+        MockAmbientTenantAccessor
+            .Setup(x => x.BeginScope(TenantId))
+            .Returns(Mock.Of<IDisposable>())
+            .Verifiable();
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<IResourceServerStore>())
+            .Returns(MockResourceServerStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        SetupResourceServers(
+            ResourceServer("rs-api", isSystem: false, isDisabled: false, "read:x"),
+            ResourceServer("rs-openid", isSystem: true, isDisabled: false, "openid"),
+            ResourceServer("rs-dead", isSystem: false, isDisabled: true, "read:x")
+        );
+
+        var identifiers = await Service.GetEnabledResourceServerIdentifiersAsync(
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Equal(["urn:rs-api", "urn:rs-openid"], identifiers.Order());
+    }
 }

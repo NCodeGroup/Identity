@@ -122,6 +122,12 @@ public interface IAuthorizationRequest
     Uri RedirectUri { get; }
 
     /// <summary>
+    /// Gets the <c>resource</c> parameter (RFC 8707 Resource Indicators) identifying the resource servers (audiences)
+    /// the issued access tokens are intended for.
+    /// </summary>
+    IReadOnlyList<string> Resources { get; }
+
+    /// <summary>
     /// Gets the <c>response_mode</c> parameter.
     /// </summary>
     string ResponseMode { get; }

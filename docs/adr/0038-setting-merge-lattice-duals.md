@@ -55,7 +55,7 @@ The built-in catalog is mapped by polarity:
   `claims_supported_is_strict`, `refresh_token_rotation_enabled`, `federated_identity_require_verified`,
   `federated_identity_explicit_only` — once a parent requires it, a child cannot un-require it.
 - **Permissions / capability toggles → ceiling (`And`)**: `allow_loopback_redirect`,
-  `allow_plain_code_challenge_method`, `allow_unsafe_token_response`, `request_parameter_supported`,
+  `allow_unsafe_token_response`, `request_parameter_supported`,
   `request_uri_parameter_supported`, `claims_parameter_supported` — once a parent forbids/disables it, a child cannot
   re-enable it.
 - **Capability lists → ceiling (`Intersect`)**: unchanged for the `*_values_supported` / `*_supported` families;

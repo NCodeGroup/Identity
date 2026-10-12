@@ -107,6 +107,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
         mockAuthRequest.SetupGet(x => x.Claims).Returns((IRequestClaims?)null).Verifiable();
         IReadOnlyList<string> scopes = ["openid"];
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(scopes).Verifiable();
+        mockAuthRequest.SetupGet(x => x.Resources).Returns([]).Verifiable();
 
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
 

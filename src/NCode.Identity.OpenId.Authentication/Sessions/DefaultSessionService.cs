@@ -69,6 +69,9 @@ internal class DefaultSessionService(
             TenantId = openIdContext.Tenant.TenantId,
             ClientId = null,
             SubjectId = request.SubjectId,
+            // The session grant carries its own sid so a session-scoped logout revokes it alongside the grants
+            // issued under it in a single pass.
+            SessionId = sessionId,
             Payload = payload,
         };
 
@@ -130,23 +133,6 @@ internal class DefaultSessionService(
             openIdContext,
             grantId,
             updatedPayload,
-            cancellationToken
-        );
-    }
-
-    /// <inheritdoc />
-    public ValueTask RevokeAsync(
-        OpenIdContext openIdContext,
-        string sessionId,
-        DateTimeOffset revokedWhen,
-        CancellationToken cancellationToken
-    )
-    {
-        var grantId = CreateGrantId(openIdContext, sessionId);
-        return PersistedGrantService.SetRevokedOnceAsync(
-            openIdContext,
-            grantId,
-            revokedWhen,
             cancellationToken
         );
     }

@@ -269,6 +269,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             TenantId = tenantId,
             ClientId = clientId,
             SubjectId = null,
+            SessionId = null,
             Payload = new RegistrationAccessTokenGrant { ClientId = clientId },
         };
 

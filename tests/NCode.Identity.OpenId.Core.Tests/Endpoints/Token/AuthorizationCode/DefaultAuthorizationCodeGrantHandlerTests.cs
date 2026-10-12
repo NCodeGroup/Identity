@@ -216,6 +216,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
             TenantId = TenantId,
             ClientId = "client-1",
             SubjectId = "subject-1",
+            SessionId = null,
             Payload = authorizationGrant,
         };
         SetupConsume(mockTokenRequest, persistedGrant);

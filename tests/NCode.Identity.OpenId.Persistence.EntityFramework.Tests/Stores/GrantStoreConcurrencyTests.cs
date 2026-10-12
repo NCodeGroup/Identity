@@ -104,6 +104,7 @@ public sealed class GrantStoreConcurrencyTests : IDisposable
             TenantId = TenantId,
             ClientId = null,
             SubjectId = "subject-1",
+            SessionId = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddHours(1),
             RevokedWhen = null,

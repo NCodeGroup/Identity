@@ -60,6 +60,7 @@ internal class GrantStore(
                 TenantId = entity.Tenant.TenantId,
                 ClientId = entity.Client?.ClientId,
                 SubjectId = entity.SubjectId,
+                SessionId = entity.SessionId,
                 CreatedWhen = entity.CreatedWhen,
                 ExpiresWhen = entity.ExpiresWhen,
                 RevokedWhen = entity.RevokedWhen,
@@ -149,6 +150,7 @@ internal class GrantStore(
     public async ValueTask<PagedResult<PersistedGrant>> GetPageAsync(
         string? subjectId,
         string? clientId,
+        string? sessionId,
         string? cursor,
         int limit,
         CancellationToken cancellationToken
@@ -166,7 +168,7 @@ internal class GrantStore(
             query = query.Where(entity => entity.Id > id);
         }
 
-        query = ApplyGrantFilters(query, subjectId, clientId);
+        query = ApplyGrantFilters(query, subjectId, clientId, sessionId);
 
         // Fetch one extra row so a full page signals that another page exists.
         var entities = await query
@@ -181,6 +183,7 @@ internal class GrantStore(
     public async ValueTask<long> RevokeWhereAsync(
         string? subjectId,
         string? clientId,
+        string? sessionId,
         DateTimeOffset revokedWhen,
         CancellationToken cancellationToken
     )
@@ -191,7 +194,7 @@ internal class GrantStore(
             .Grants.Include(entity => entity.Client)
             .Where(entity => entity.RevokedWhen == null);
 
-        query = ApplyGrantFilters(query, subjectId, clientId);
+        query = ApplyGrantFilters(query, subjectId, clientId, sessionId);
 
         var entities = await query.ToListAsync(cancellationToken);
 
@@ -207,7 +210,8 @@ internal class GrantStore(
     private static IQueryable<GrantEntity> ApplyGrantFilters(
         IQueryable<GrantEntity> query,
         string? subjectId,
-        string? clientId
+        string? clientId,
+        string? sessionId
     )
     {
         if (!string.IsNullOrEmpty(subjectId))
@@ -222,6 +226,12 @@ internal class GrantStore(
             query = query.Where(entity =>
                 entity.Client != null && entity.Client.NormalizedClientId == normalizedClientId
             );
+        }
+
+        // The sid is an opaque, case-sensitive key, so it is matched verbatim.
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            query = query.Where(entity => entity.SessionId == sessionId);
         }
 
         return query;
@@ -270,6 +280,7 @@ internal class GrantStore(
             ClientId = clientEntity?.Id,
             SubjectId = persistedGrant.SubjectId,
             NormalizedSubjectId = Normalize(persistedGrant.SubjectId),
+            SessionId = persistedGrant.SessionId,
             CreatedWhen = persistedGrant.CreatedWhen.ToUniversalTime(),
             ExpiresWhen = persistedGrant.ExpiresWhen?.ToUniversalTime(),
             RevokedWhen = persistedGrant.RevokedWhen?.ToUniversalTime(),

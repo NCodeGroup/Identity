@@ -55,6 +55,12 @@ public sealed class GrantResource
     public required string? SubjectId { get; init; }
 
     /// <summary>
+    /// Gets the opaque <c>sid</c> of the end-user session this grant was issued under, or <c>null</c> when the
+    /// grant is not tied to a session.
+    /// </summary>
+    public required string? SessionId { get; init; }
+
+    /// <summary>
     /// Gets when this grant was created.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }

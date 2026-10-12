@@ -85,6 +85,7 @@ public class DefaultInitialAccessTokenValidatorTests : BaseTests
             TenantId = TenantId,
             ClientId = null,
             SubjectId = null,
+            SessionId = null,
             Payload = new InitialAccessTokenGrant(),
         };
 

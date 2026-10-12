@@ -13,6 +13,7 @@ const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.Issuer = 1000 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.JoinKey = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.PrincipalId = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.RoleName = 100 -> int
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.SessionId = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.SubjectId = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.TenantDomainName = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.UrlType = 100 -> int
@@ -138,6 +139,8 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.PayloadJson.set -
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.PersistedGrant() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.RevokedWhen.get -> System.DateTimeOffset?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.RevokedWhen.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.SessionId.get -> string?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.SessionId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.SubjectId.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.SubjectId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.TenantId.get -> string!
@@ -284,8 +287,8 @@ NCode.Identity.OpenId.Persistence.Stores.IFederatedPrincipalStore.UpdateAsync(NC
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! grantType, string! hashedKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant?>
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! grantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant?>
-NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetPageAsync(string? subjectId, string? clientId, string? cursor, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant!>!>
-NCode.Identity.OpenId.Persistence.Stores.IGrantStore.RevokeWhereAsync(string? subjectId, string? clientId, System.DateTimeOffset revokedWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
+NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetPageAsync(string? subjectId, string? clientId, string? sessionId, string? cursor, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant!>!>
+NCode.Identity.OpenId.Persistence.Stores.IGrantStore.RevokeWhereAsync(string? subjectId, string? clientId, string? sessionId, System.DateTimeOffset revokedWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.AddScopeAsync(string! resourceServerId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope! persistedScope, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.AddSecretAsync(string! resourceServerId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

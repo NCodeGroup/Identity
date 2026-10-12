@@ -178,6 +178,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.Payl
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.PayloadJson.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.RevokedWhen.get -> System.DateTimeOffset?
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.RevokedWhen.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.SessionId.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.SessionId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.SubjectId.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.SubjectId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.Tenant.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity!

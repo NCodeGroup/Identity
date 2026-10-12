@@ -101,6 +101,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             TenantId = TenantId,
             ClientId = "client-1",
             SubjectId = "subject-1",
+            SessionId = null,
             Payload = new RefreshTokenGrant("client-1", scopes, scopes, null),
         };
 
@@ -252,6 +253,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             TenantId = TenantId,
             ClientId = "client-1",
             SubjectId = "subject-1",
+            SessionId = null,
             Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null),
         };
         SetupLookup(mockTokenRequest, revokedGrant);
@@ -290,6 +292,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             TenantId = TenantId,
             ClientId = "client-1",
             SubjectId = "subject-1",
+            SessionId = null,
             Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null),
         };
         SetupLookup(mockTokenRequest, expiredGrant);

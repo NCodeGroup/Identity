@@ -299,11 +299,18 @@ rationale.
   sync-over-async. Add house rules to that file as they emerge.
 - ⏳ **Warnings-as-errors**, and **NuGet vulnerability advisories (`NU190x`) as errors in CI**.
 - ✅ **EF Core model changes ship with their migration.** Any edit to an entity, an `IEntityTypeConfiguration`, or a
-  model contributor that changes the `OpenIdDbContext` model MUST be accompanied by a new migration
-  (`dotnet ef migrations add <Name>`). The Definition of Done runs `dotnet ef migrations has-pending-model-changes`
-  and fails on un-migrated model drift, so it is caught pre-push and in CI, not at runtime. Local dev is self-healing
-  (the Playground rebuilds its disposable SQLite dev DB from the live model) so an un-migrated edit does not crash the
-  inner loop — the gate is the reminder. See [ADR-0072](../../docs/adr/0072-self-healing-dev-database-and-model-drift-gate.md).
+  model contributor that changes a Playground context model (`OpenIdDbContext` or `DeveloperDataProtectionDbContext`)
+  MUST be accompanied by a new migration (`dotnet ef migrations add <Name>` into the
+  `NCode.Identity.OpenId.Playground.Database` project). The Definition of Done runs
+  `dotnet ef migrations has-pending-model-changes` for both contexts and fails on un-migrated model drift, so it is
+  caught pre-push and in CI, not at runtime. The dev database is Postgres applied by the migration worker, so migrations
+  are authoritative — the gate is the reminder. See
+  [ADR-0073](../../docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md).
+- ✅ **Raw SQL in the EF model must quote identifiers.** Any hand-written SQL fragment in the model (`HasFilter`,
+  `HasComputedColumnSql`, `HasDefaultValueSql`, …) MUST double-quote column/table names (e.g.
+  `HasFilter("\"NormalizedDomainName\" IS NOT NULL")`). Postgres folds unquoted identifiers to lower case (the schema
+  uses PascalCase), so an unquoted fragment compiles and passes the SQLite tests but fails at runtime against Postgres
+  (`column "…" does not exist`). The drift gate cannot catch this — only applying the migration to Postgres does.
 - ✅ The whole gate is [`build/dod.ps1`](../../build/dod.ps1) — the single Definition of Done that CI runs.
 - ⏳ **Local inner loop: `./build/dod.ps1 -Fast`.** It parallelizes project builds and test assemblies and skips the
   non-correctness stages (coverage collection + packing) for a quicker edit-run cycle, while keeping CSharpier,

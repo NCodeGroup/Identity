@@ -34,17 +34,18 @@ Two explicit, development-only opt-ins:
   in-memory RSA key, with no database or filesystem footprint. This is the right default for unit and integration
   tests, which want a hermetic, dependency-free, regenerate-per-run environment. Its read-path override is acceptable
   precisely because tests do not assert runtime-vs-management consistency.
-- **`AddDeveloperSigningKey(keyRingDirectory)` (local running).** Replaces the tenant factory with
+- **`AddDeveloperSigningKey()` (local running).** Replaces the tenant factory with
   `DeveloperSigningKeyOpenIdTenantFactory`, which **ensures a persisted RSA signing key exists** — generating one via
   `ISecretGenerator` and storing it with `ITenantStore.AddSecretAsync` when absent — then delegates to the unmodified
   `DefaultOpenIdTenantFactory.GetTenantSecretsAsync`. The key is therefore loaded from the store exactly as production
   loads it; JWKS and the management API observe the identical key.
-    - **Persistence.** Paired with a local SQLite database file and an explicit, persistent Data Protection key ring
-      (`PersistKeysToFileSystem`, DPAPI-protected on Windows), the seeded secret survives restarts — the runtime keeps a
-      stable signing key, so tokens issued before a restart still validate.
-    - **Self-healing.** If the persisted secret cannot be unprotected (for example, the key ring was deleted), it is
-      treated as absent and regenerated, so the server stays runnable. Deleting the SQLite file, the key ring, or both
-      always recovers on restart.
+    - **Persistence.** Paired with a local database and an explicit, persistent Data Protection key ring, the seeded
+      secret survives restarts — the runtime keeps a stable signing key, so tokens issued before a restart still
+      validate. ([ADR-0073](0073-postgres-dev-database-and-aspire-migration-worker.md) moved both the database to
+      PostgreSQL and the key ring from `App_Data/dp-keys` into that same database via `PersistKeysToDbContext`, so a
+      single database purge resets the data, the seeded key, and the ring together.)
+    - **Self-healing.** If the persisted secret cannot be unprotected (for example, the key ring was purged), it is
+      treated as absent and regenerated, so the server stays runnable. Purging the database always recovers on restart.
 - **Opt-in selection is out of band of shared configuration.** The persistent mode is selected by
   `DeveloperKeys:Mode=PersistentSigningKey`, set in the Playground's `launchSettings.json` (which test hosts do not
   load), so the test default remains ephemeral with no special-casing in the test host.
@@ -85,4 +86,5 @@ ADR only changes **how** the developer key is realized — from intercepting the
   secrets) are not query-scoped, so seeding and reading the tenant secret is unaffected by the ambient tenant filter.
 - Code: `NCode.Identity.Server.DeveloperSigningKeyOpenIdTenantFactory`,
   `NCode.Identity.Server.DeveloperKeysRegistration.AddDeveloperSigningKey`,
-  `NCode.Identity.OpenId.Playground.Program` (mode selection + SQLite provider in the EXE host).
+  `NCode.Identity.OpenId.Playground.Program` (mode selection; the host owns the Postgres provider and the
+  database-backed Data Protection key ring, see [ADR-0073](0073-postgres-dev-database-and-aspire-migration-worker.md)).

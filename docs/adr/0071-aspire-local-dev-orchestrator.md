@@ -1,6 +1,8 @@
 # 0071. Adopt .NET Aspire as the local development orchestrator
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0073](0073-postgres-dev-database-and-aspire-migration-worker.md): the AppHost
+  now also orchestrates a PostgreSQL database and a migration-worker resource, so a **container runtime (Docker or
+  Podman) is required** — reversing this ADR's original "no container-runtime prerequisite" note)
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
 
@@ -52,7 +54,7 @@ Rules:
   use `WithPnpm(install: false)` and rely on `build/frontend-install.ps1` having installed the pnpm workspace.
   Aspire's default is to auto-install per resource, but two `pnpm install` processes running concurrently against
   the shared, symlinked `node_modules` of a pnpm **workspace** collide (`ERR_PNPM_EBUSY: resource busy or locked,
-  rename ...`) and fail the losing installer, which in turn fails its dependent resource.
+rename ...`) and fail the losing installer, which in turn fails its dependent resource.
 - **Never packed, excluded from publish.** The AppHost is `IsPackable=false` (so the provenance/PublicAPI/pack
   gates in [`Directory.Build.targets`](../../Directory.Build.targets) skip it) and contributes no shippable
   artifact. The `Aspire.AppHost.Sdk` MSBuild SDK is pinned in lockstep in [`global.json`](../../global.json)

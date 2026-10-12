@@ -39,6 +39,8 @@
     <Project Path="src/NCode.Identity.OpenId.Persistence.EntityFramework/NCode.Identity.OpenId.Persistence.EntityFramework.csproj" />
     <Project Path="src/NCode.Identity.OpenId.Persistence/NCode.Identity.OpenId.Persistence.csproj" />
     <Project Path="src/NCode.Identity.OpenId.Playground.AppHost/NCode.Identity.OpenId.Playground.AppHost.csproj" />
+    <Project Path="src/NCode.Identity.OpenId.Playground.Database/NCode.Identity.OpenId.Playground.Database.csproj" />
+    <Project Path="src/NCode.Identity.OpenId.Playground.MigrationService/NCode.Identity.OpenId.Playground.MigrationService.csproj" />
     <Project Path="src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj" />
     <Project Path="src/NCode.Identity.Persistence.Abstractions/NCode.Identity.Persistence.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.Secrets.Abstractions/NCode.Identity.Secrets.Abstractions.csproj" />

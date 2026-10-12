@@ -72,16 +72,27 @@ try {
         }
     }
 
-    # EF model-drift gate: fail if the OpenIdDbContext model has changes no migration captures. Local dev is
-    # self-healing (the Playground rebuilds its disposable SQLite dev DB from the live model, ADR-0072), so an
-    # un-migrated model edit would otherwise slip through to a real database. Reuses the build output (--no-build);
-    # exit code 1 = pending changes. Catches the drift pre-push and in CI, when the feature is added.
+    # EF model-drift gate: fail if either Playground context has model changes no migration captures. The dev database
+    # is Postgres, applied by the migration worker (ADR-0073), so migrations are authoritative — an un-migrated model
+    # edit must fail pre-push and in CI, when the feature is added. Both contexts share the dev database (OpenID data +
+    # the developer DataProtection key ring), so both are checked. Reuses the build output (--no-build); exit code 1 =
+    # pending changes. The Database project carries the design-time factories, so it is both project and startup.
     Invoke-Step 'ef model drift' {
         dotnet ef migrations has-pending-model-changes `
             --no-build `
             --configuration $Configuration `
-            --project src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj `
-            --startup-project src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj
+            --project src/NCode.Identity.OpenId.Playground.Database/NCode.Identity.OpenId.Playground.Database.csproj `
+            --startup-project src/NCode.Identity.OpenId.Playground.Database/NCode.Identity.OpenId.Playground.Database.csproj `
+            --context OpenIdDbContext
+        if ($LASTEXITCODE -ne 0) {
+            throw "ef model drift (OpenIdDbContext) failed with exit code $LASTEXITCODE."
+        }
+        dotnet ef migrations has-pending-model-changes `
+            --no-build `
+            --configuration $Configuration `
+            --project src/NCode.Identity.OpenId.Playground.Database/NCode.Identity.OpenId.Playground.Database.csproj `
+            --startup-project src/NCode.Identity.OpenId.Playground.Database/NCode.Identity.OpenId.Playground.Database.csproj `
+            --context DeveloperDataProtectionDbContext
     }
 
     if (-not $SkipTests) {

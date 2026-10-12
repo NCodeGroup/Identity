@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace NCode.Identity.OpenId.Playground.Migrations
+namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -15,20 +15,20 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "LocalAccounts",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    TenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    LocalAccountId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedLocalAccountId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    UserName = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedUserName = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    Email = table.Column<string>(type: "TEXT", maxLength: 300, nullable: true),
-                    NormalizedEmail = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: true),
-                    EmailVerified = table.Column<bool>(type: "INTEGER", nullable: false),
-                    PasswordHash = table.Column<string>(type: "TEXT", unicode: false, maxLength: 1000, nullable: true),
-                    SecurityStamp = table.Column<string>(type: "TEXT", unicode: false, maxLength: 100, nullable: false),
-                    IsEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    LocalAccountId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedLocalAccountId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    UserName = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedUserName = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    Email = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    NormalizedEmail = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    EmailVerified = table.Column<bool>(type: "boolean", nullable: false),
+                    PasswordHash = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: true),
+                    SecurityStamp = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -39,17 +39,17 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "Secrets",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    SecretId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedSecretId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    Use = table.Column<string>(type: "TEXT", unicode: false, maxLength: 100, nullable: true),
-                    Algorithm = table.Column<string>(type: "TEXT", unicode: false, maxLength: 100, nullable: true),
-                    CreatedWhen = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    ExpiresWhen = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    SecretType = table.Column<string>(type: "TEXT", unicode: false, maxLength: 100, nullable: false),
-                    KeySizeBits = table.Column<int>(type: "INTEGER", nullable: false),
-                    EncodedValue = table.Column<string>(type: "TEXT", unicode: false, maxLength: 8000, nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    SecretId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedSecretId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    Use = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: true),
+                    Algorithm = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: true),
+                    CreatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    ExpiresWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    SecretType = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    KeySizeBits = table.Column<int>(type: "integer", nullable: false),
+                    EncodedValue = table.Column<string>(type: "character varying(8000)", unicode: false, maxLength: 8000, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -60,13 +60,14 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "Servers",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    ServerId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedServerId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    SettingsConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    SecretsConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    SettingsJson = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    ServerId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedServerId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    DisplayName = table.Column<string>(type: "text", nullable: false),
+                    SettingsJson = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -77,17 +78,17 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "Tenants",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    TenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    DomainName = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: true),
-                    NormalizedDomainName = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: true),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    SettingsConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    SecretsConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    IsDisabled = table.Column<bool>(type: "INTEGER", nullable: false),
-                    DisplayName = table.Column<string>(type: "TEXT", nullable: false),
-                    SettingsJson = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    DomainName = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    NormalizedDomainName = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    IsDisabled = table.Column<bool>(type: "boolean", nullable: false),
+                    DisplayName = table.Column<string>(type: "text", nullable: false),
+                    SettingsJson = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -98,11 +99,11 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "LocalAccountClaims",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    Type = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    Value = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: false),
-                    LocalAccountEntityId = table.Column<long>(type: "INTEGER", nullable: true)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    Type = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    Value = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    LocalAccountEntityId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -119,9 +120,9 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "ServerSecrets",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    ServerId = table.Column<long>(type: "INTEGER", nullable: false),
-                    SecretId = table.Column<long>(type: "INTEGER", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    ServerId = table.Column<long>(type: "bigint", nullable: false),
+                    SecretId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -144,16 +145,16 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "Clients",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    TenantId = table.Column<long>(type: "INTEGER", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ClientId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedClientId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    SettingsConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    SecretsConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    IsDisabled = table.Column<bool>(type: "INTEGER", nullable: false),
-                    SettingsJson = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ClientId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedClientId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    IsDisabled = table.Column<bool>(type: "boolean", nullable: false),
+                    SettingsJson = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -170,14 +171,14 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "FederatedPrincipals",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    PrincipalId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedPrincipalId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    TenantId = table.Column<long>(type: "INTEGER", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ProfileMetadataJson = table.Column<string>(type: "TEXT", nullable: false),
-                    SystemMetadataJson = table.Column<string>(type: "TEXT", nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    PrincipalId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedPrincipalId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ProfileMetadataJson = table.Column<string>(type: "text", nullable: false),
+                    SystemMetadataJson = table.Column<string>(type: "text", nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -194,19 +195,21 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "ResourceServers",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    TenantId = table.Column<long>(type: "INTEGER", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ResourceServerId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedResourceServerId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    Identifier = table.Column<string>(type: "TEXT", unicode: false, maxLength: 1000, nullable: false),
-                    NormalizedIdentifier = table.Column<string>(type: "TEXT", unicode: false, maxLength: 1000, nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    ScopesConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 300, nullable: false),
-                    IsSystem = table.Column<bool>(type: "INTEGER", nullable: false),
-                    IsDisabled = table.Column<bool>(type: "INTEGER", nullable: false),
-                    SettingsJson = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ResourceServerId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedResourceServerId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    Identifier = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: false),
+                    NormalizedIdentifier = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    ScopesConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    IsSystem = table.Column<bool>(type: "boolean", nullable: false),
+                    IsDisabled = table.Column<bool>(type: "boolean", nullable: false),
+                    SettingsJson = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -223,19 +226,19 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "RoleAssignments",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    TenantId = table.Column<long>(type: "INTEGER", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    AssignmentId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedAssignmentId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    PrincipalId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedPrincipalId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    RoleName = table.Column<string>(type: "TEXT", unicode: false, maxLength: 100, nullable: false),
-                    NormalizedRoleName = table.Column<string>(type: "TEXT", unicode: false, maxLength: 100, nullable: false),
-                    ResourceType = table.Column<string>(type: "TEXT", unicode: false, maxLength: 100, nullable: false),
-                    ResourceId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedResourceId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    AssignmentId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedAssignmentId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    PrincipalId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedPrincipalId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    RoleName = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    NormalizedRoleName = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    ResourceType = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    ResourceId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedResourceId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -252,10 +255,10 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "TenantSecrets",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    TenantId = table.Column<long>(type: "INTEGER", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    SecretId = table.Column<long>(type: "INTEGER", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    SecretId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -278,11 +281,11 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "ClientSecrets",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    TenantId = table.Column<long>(type: "INTEGER", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ClientId = table.Column<long>(type: "INTEGER", nullable: false),
-                    SecretId = table.Column<long>(type: "INTEGER", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ClientId = table.Column<long>(type: "bigint", nullable: false),
+                    SecretId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -311,22 +314,22 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "Grants",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    GrantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedGrantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    GrantType = table.Column<string>(type: "TEXT", unicode: false, maxLength: 100, nullable: false),
-                    HashedKey = table.Column<string>(type: "TEXT", unicode: false, maxLength: 1000, nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    TenantId = table.Column<long>(type: "INTEGER", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ClientId = table.Column<long>(type: "INTEGER", nullable: true),
-                    SubjectId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: true),
-                    NormalizedSubjectId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: true),
-                    CreatedWhen = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    ExpiresWhen = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
-                    RevokedWhen = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
-                    ConsumedWhen = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
-                    PayloadJson = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    GrantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedGrantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    GrantType = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    HashedKey = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ClientId = table.Column<long>(type: "bigint", nullable: true),
+                    SubjectId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    NormalizedSubjectId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    CreatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    ExpiresWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    RevokedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    ConsumedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    PayloadJson = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -349,19 +352,19 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "FederatedIdentities",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    FederatedIdentityId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedFederatedIdentityId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    TenantId = table.Column<long>(type: "INTEGER", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    FederatedPrincipalId = table.Column<long>(type: "INTEGER", nullable: false),
-                    Issuer = table.Column<string>(type: "TEXT", unicode: false, maxLength: 1000, nullable: false),
-                    NormalizedIssuer = table.Column<string>(type: "TEXT", unicode: false, maxLength: 1000, nullable: false),
-                    Subject = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedSubject = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    JoinKey = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: true),
-                    NormalizedJoinKey = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: true),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    FederatedIdentityId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedFederatedIdentityId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    FederatedPrincipalId = table.Column<long>(type: "bigint", nullable: false),
+                    Issuer = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: false),
+                    NormalizedIssuer = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: false),
+                    Subject = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedSubject = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    JoinKey = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    NormalizedJoinKey = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -384,13 +387,13 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 name: "ClientGrants",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    TenantId = table.Column<long>(type: "INTEGER", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ClientId = table.Column<long>(type: "INTEGER", nullable: false),
-                    ResourceServerId = table.Column<long>(type: "INTEGER", nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    ScopesJson = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ClientId = table.Column<long>(type: "bigint", nullable: false),
+                    ResourceServerId = table.Column<long>(type: "bigint", nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    ScopesJson = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -416,18 +419,51 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ResourceServerSecrets",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ResourceServerId = table.Column<long>(type: "bigint", nullable: false),
+                    SecretId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ResourceServerSecrets", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ResourceServerSecrets_ResourceServers_ResourceServerId",
+                        column: x => x.ResourceServerId,
+                        principalTable: "ResourceServers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ResourceServerSecrets_Secrets_SecretId",
+                        column: x => x.SecretId,
+                        principalTable: "Secrets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ResourceServerSecrets_Tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "Tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Scopes",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false),
-                    TenantId = table.Column<long>(type: "INTEGER", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ResourceServerId = table.Column<long>(type: "INTEGER", nullable: false),
-                    Value = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedValue = table.Column<string>(type: "TEXT", unicode: false, maxLength: 300, nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "TEXT", unicode: false, maxLength: 50, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
-                    IsSystem = table.Column<bool>(type: "INTEGER", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ResourceServerId = table.Column<long>(type: "bigint", nullable: false),
+                    Value = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedValue = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    IsSystem = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -496,7 +532,7 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_FederatedIdentities_TenantId_NormalizedIssuer_NormalizedSubject",
+                name: "IX_FederatedIdentities_TenantId_NormalizedIssuer_NormalizedSub~",
                 table: "FederatedIdentities",
                 columns: new[] { "TenantId", "NormalizedIssuer", "NormalizedSubject" },
                 unique: true);
@@ -579,13 +615,29 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_ResourceServerSecrets_ResourceServerId",
+                table: "ResourceServerSecrets",
+                column: "ResourceServerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ResourceServerSecrets_SecretId",
+                table: "ResourceServerSecrets",
+                column: "SecretId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ResourceServerSecrets_TenantId_ResourceServerId_SecretId",
+                table: "ResourceServerSecrets",
+                columns: new[] { "TenantId", "ResourceServerId", "SecretId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RoleAssignments_TenantId_NormalizedAssignmentId",
                 table: "RoleAssignments",
                 columns: new[] { "TenantId", "NormalizedAssignmentId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_RoleAssignments_TenantId_NormalizedPrincipalId_NormalizedRoleName_ResourceType_NormalizedResourceId",
+                name: "IX_RoleAssignments_TenantId_NormalizedPrincipalId_NormalizedRo~",
                 table: "RoleAssignments",
                 columns: new[] { "TenantId", "NormalizedPrincipalId", "NormalizedRoleName", "ResourceType", "NormalizedResourceId" },
                 unique: true);
@@ -634,7 +686,7 @@ namespace NCode.Identity.OpenId.Playground.Migrations
                 table: "Tenants",
                 column: "NormalizedDomainName",
                 unique: true,
-                filter: "NormalizedDomainName IS NOT NULL");
+                filter: "\"NormalizedDomainName\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tenants_NormalizedTenantId",
@@ -671,6 +723,9 @@ namespace NCode.Identity.OpenId.Playground.Migrations
 
             migrationBuilder.DropTable(
                 name: "LocalAccountClaims");
+
+            migrationBuilder.DropTable(
+                name: "ResourceServerSecrets");
 
             migrationBuilder.DropTable(
                 name: "RoleAssignments");

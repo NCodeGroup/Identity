@@ -17,10 +17,8 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Mediator;
@@ -40,35 +38,22 @@ namespace NCode.Identity.Server;
 [PublicAPI]
 public static class DeveloperKeysRegistration
 {
-    private const string DeveloperApplicationName = "NCode.Identity.Server";
-
     extension(IServiceBuilder<IdentityServer> builder)
     {
         /// <summary>
         /// Applies the development-only signing-key setup selected by <paramref name="mode"/>:
         /// <see cref="DeveloperKeyMode.Ephemeral"/> uses in-memory keys, while
-        /// <see cref="DeveloperKeyMode.PersistentSigningKey"/> seeds a persisted key and stores the data-protection
-        /// key ring under <c>App_Data/dp-keys</c> (relative to the content root) so it survives restarts. Must not be
-        /// used in production.
+        /// <see cref="DeveloperKeyMode.PersistentSigningKey"/> seeds a persisted key through the normal persistence
+        /// path so it survives restarts. The host owns where the data-protection key ring is stored (the Playground
+        /// persists it in its dev database, ADR-0073). Must not be used in production.
         /// </summary>
         /// <param name="mode">The <see cref="DeveloperKeyMode"/> that selects which setup to apply.</param>
-        /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> whose content root anchors the key-ring
-        /// directory when <paramref name="mode"/> is <see cref="DeveloperKeyMode.PersistentSigningKey"/>.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<IdentityServer> AddDeveloperKeys(
-            DeveloperKeyMode mode,
-            IHostEnvironment hostEnvironment
-        )
+        public IServiceBuilder<IdentityServer> AddDeveloperKeys(DeveloperKeyMode mode)
         {
-            if (mode is DeveloperKeyMode.PersistentSigningKey)
-            {
-                var keyRingDirectory = new DirectoryInfo(
-                    Path.Combine(hostEnvironment.ContentRootPath, "App_Data", "dp-keys")
-                );
-                return builder.AddDeveloperSigningKey(keyRingDirectory);
-            }
-
-            return builder.AddEphemeralDeveloperKeys();
+            return mode is DeveloperKeyMode.PersistentSigningKey
+                ? builder.AddDeveloperSigningKey()
+                : builder.AddEphemeralDeveloperKeys();
         }
 
         /// <summary>
@@ -91,32 +76,15 @@ public static class DeveloperKeysRegistration
 
         /// <summary>
         /// Replaces the default tenant factory with one that seeds a persisted <c>RSA</c> signing key through the
-        /// normal persistence path (so the runtime, JWKS, and the management API share a single source of truth),
-        /// and persists the data-protection key ring to <paramref name="keyRingDirectory"/> so the seeded secret
-        /// survives restarts. Intended for local development only; must not be used in production.
+        /// normal persistence path (so the runtime, JWKS, and the management API share a single source of truth).
+        /// The host is responsible for configuring data-protection key-ring persistence so the seeded secret can be
+        /// unprotected across restarts (the Playground persists the ring in its dev database, ADR-0073). Intended for
+        /// local development only; must not be used in production.
         /// </summary>
-        /// <param name="keyRingDirectory">The directory where the data-protection key ring is persisted. It should
-        /// be excluded from source control.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<IdentityServer> AddDeveloperSigningKey(
-            DirectoryInfo keyRingDirectory
-        )
+        public IServiceBuilder<IdentityServer> AddDeveloperSigningKey()
         {
             var serviceCollection = builder.ServiceCollection;
-
-            keyRingDirectory.Create();
-
-            // Persist the key ring so persisted secrets can be unprotected across restarts. On Windows the ring is
-            // encrypted at rest with DPAPI; on other platforms it is stored unprotected (development only).
-            var dataProtection = serviceCollection
-                .AddDataProtection()
-                .PersistKeysToFileSystem(keyRingDirectory)
-                .SetApplicationName(DeveloperApplicationName);
-
-            if (OperatingSystem.IsWindows())
-            {
-                dataProtection.ProtectKeysWithDpapi();
-            }
 
             // The production tenant factory reads secrets from the store; this development-only seed handler ensures a
             // persisted RSA signing key exists (and heals an undecryptable one) on the tenant seed path (ADR-0045).

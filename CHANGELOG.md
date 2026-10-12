@@ -10,6 +10,20 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **PostgreSQL developer database orchestrated by Aspire, with a dedicated migration worker — completes backlog `U12`.**
+  The Playground's local database is now **PostgreSQL** run by the Aspire AppHost
+  ([ADR-0073](docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md)), replacing the in-process
+  SQLite/SQL Server/in-memory provider selection. A stable **named data volume** makes data persist across restarts; a
+  new `build/dev-db-reset.ps1` (auto-detecting Docker or Podman) purges it **on demand**. A dedicated
+  `NCode.Identity.OpenId.Playground.MigrationService` worker applies the EF Core migrations and exits, and the `api`
+  `WaitForCompletion`s on it — so a migration failure surfaces as a **failed dashboard resource** that blocks the `api`
+  instead of crashing it. The migrations and Npgsql wiring move into a new host-owned
+  `NCode.Identity.OpenId.Playground.Database` project shared by the `api` and the worker. The developer **Data
+  Protection key ring** is now persisted in the **same** database (`PersistKeysToDbContext`) rather than a file under
+  `App_Data/dp-keys`, so one purge resets the OpenID data, the seeded signing key, and the ring that protects it
+  together, with nothing left on the filesystem. A container runtime (Docker or Podman) is now required to run the
+  AppHost.
+
 - **Runtime frontend bootstrap endpoint on the OpenID Provider host — completes backlog `U4`.** The tier-agnostic
   frontend bundles ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)) discover their deployment coordinates
   at boot from `/config/bootstrap.json` on their serving host; previously only a dev copy existed
@@ -267,7 +281,13 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
-- **Internal `$`-prefixed parameters no longer leak onto the authorization response (`U8`).** The authorization
+- **A stale or invalid end-user session cookie now self-heals at the authorization endpoint instead of dead-ending with
+  `access_denied`.** When `AuthenticateAsync` returned a _failure_ (a present-but-invalid session cookie — for example
+  undecryptable after a data-protection key change, expired, or tampered), the authorize flow surfaced
+  `access_denied` ("Failed to authenticate the end-user") back to the client, so the user could never reach the login
+  form. An invalid cookie is now treated as "no session": the authorize flow prompts for interactive login (or returns
+  `login_required` under `prompt=none`), and a successful login re-issues a fresh cookie. Bearer-token subject
+  authentication (userinfo/token) keeps its `401` semantics and is unchanged.
   response executor serialized every ticket parameter directly, so an internal, `$`-prefixed parameter
   (`$created_when`) surfaced in the redirect callback query string / form-post body sent back to the client. The
   executor now honors the same `ShouldSerialize(…, SerializationFormat.OpenId)` contract the JSON serializer uses — the
@@ -311,6 +331,12 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Developer-key registration no longer owns the Data Protection key-ring location (breaking,
+  `NCode.Identity.Server`).** `AddDeveloperKeys(DeveloperKeyMode)` drops its `IHostEnvironment` parameter and
+  `AddDeveloperSigningKey()` drops its `DirectoryInfo keyRingDirectory` parameter — the library now only seeds the
+  signing key, and the **host** owns where Data Protection keys are persisted (the Playground persists them in its dev
+  database, [ADR-0073](docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md)). The `App_Data/dp-keys`
+  file key ring and the `Microsoft.EntityFrameworkCore.SqlServer`/`.Sqlite` Playground provider references are removed.
 - **Opt-in framework capabilities now register through compile-time marker builders
   ([ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md)).** The registration library's
   `IServiceBuilder<TMarker>` becomes the one way bolt-on capabilities attach, so a capability is **un-addable** to a

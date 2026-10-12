@@ -1,6 +1,8 @@
 # 0072. Self-healing local developer database + a Definition-of-Done model-drift gate
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0073](0073-postgres-dev-database-and-aspire-migration-worker.md) — the dev database is
+  now PostgreSQL (orchestrated by Aspire, migrated by a dedicated worker), so the SQLite self-healing described here no
+  longer applies; the model-drift gate it introduced lives on, extended to both contexts. Retained for history.
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
 
@@ -30,11 +32,11 @@ Done so migrations stay authoritative for real databases.
 **Self-healing (Playground `InitializeDatabaseAsync`, `Development` only):**
 
 - **SQLite dev file — always reconciled to the live model, no manual intervention:**
-  - **Pending model changes** (mid-feature, no migration yet) → rebuild the disposable DB directly from the model
-    (`EnsureDeletedAsync` + `EnsureCreatedAsync`) and log a loud warning that a migration is still required before push.
-  - **No drift but tables without a migrations-history row** (built by a prior model-rebuild) → discard it so
-    `MigrateAsync` rebuilds a clean, migration-managed database. This replaces the old "delete the file yourself" error.
-  - **No drift, otherwise** → `MigrateAsync` (the production-fidelity path).
+    - **Pending model changes** (mid-feature, no migration yet) → rebuild the disposable DB directly from the model
+      (`EnsureDeletedAsync` + `EnsureCreatedAsync`) and log a loud warning that a migration is still required before push.
+    - **No drift but tables without a migrations-history row** (built by a prior model-rebuild) → discard it so
+      `MigrateAsync` rebuilds a clean, migration-managed database. This replaces the old "delete the file yourself" error.
+    - **No drift, otherwise** → `MigrateAsync` (the production-fidelity path).
 - **SQL Server in Development is never self-healed.** It keeps the deliberate migrate-only path and the
   "not managed by migrations" guard that throws rather than auto-deleting — a real server is never dropped.
 - **Production never auto-applies schema on startup** (unchanged): schema is applied deliberately (EF CLI / idempotent

@@ -117,6 +117,13 @@ For local development the Management app ships a dev copy at
 [`apps/mgmt/public/config/bootstrap.json`](apps/mgmt/public/config/bootstrap.json) pointing at the
 Playground host.
 
+Backend-served bundles (e.g. `apps/auth`, served by the OpenID Provider host) get this document from the
+host at runtime: `NCode.Identity.Server` binds the `Frontend` configuration section and registers the
+endpoint through the single `IIdentityServerBuilder.AddFrontendBootstrap(configuration)` seam — the host's
+existing `MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags,
+branding), falling back to the serving request's own origin for the API base and issuer when they are unset
+— so a single-origin host needs no configuration.
+
 ## Authentication (authorization-code + PKCE)
 
 The Management console authenticates with OAuth 2.0 **authorization-code + PKCE** to obtain a

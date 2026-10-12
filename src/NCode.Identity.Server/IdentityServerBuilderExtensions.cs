@@ -21,6 +21,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.Server;
 
@@ -71,6 +72,47 @@ public static class IdentityServerBuilderExtensions
             serviceCollection.Configure<BootstrapAdminOptions>(
                 configuration.GetSection(BootstrapAdminOptions.DefaultSectionName)
             );
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Binds the <see cref="FrontendBootstrapOptions"/> that back the frontend runtime bootstrap document
+        /// (ADR-0064) from the specified <paramref name="configuration"/> section, optionally applies a code-first
+        /// override, and registers the endpoint that publishes the document so the host's single
+        /// <c>MapEndpointGroups</c> call maps it alongside every other endpoint. The tier-agnostic frontend bundles
+        /// fetch this document from the serving host at boot to discover their deployment coordinates (API base,
+        /// issuer, client id, scopes, feature flags, branding); when the API base and issuer are left unconfigured the
+        /// published document falls back to the serving request's own origin, so a single-origin host needs no
+        /// configuration.
+        /// </summary>
+        /// <param name="configuration">The <see cref="IConfiguration"/> to bind the options from.</param>
+        /// <param name="sectionName">The configuration section name that holds the options, or <c>null</c> to use
+        /// <see cref="FrontendBootstrapOptions.DefaultSectionName"/>.</param>
+        /// <param name="configureOptions">An optional callback to further configure the options after binding.</param>
+        /// <returns>The same <see cref="IIdentityServerBuilder"/> instance for method chaining.</returns>
+        public IIdentityServerBuilder AddFrontendBootstrap(
+            IConfiguration configuration,
+            string? sectionName = null,
+            Action<FrontendBootstrapOptions>? configureOptions = null
+        )
+        {
+            var resolvedSectionName = string.IsNullOrEmpty(sectionName)
+                ? FrontendBootstrapOptions.DefaultSectionName
+                : sectionName;
+
+            var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection.Configure<FrontendBootstrapOptions>(
+                configuration.GetSection(resolvedSectionName)
+            );
+
+            if (configureOptions is not null)
+            {
+                serviceCollection.Configure(configureOptions);
+            }
+
+            builder.AddEndpointProvider<FrontendBootstrapEndpointProvider>();
 
             return builder;
         }

@@ -125,23 +125,6 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   unconditionally (`// TODO: … should we do this conditionally?`). Touch points (all
   `src/NCode.Identity.OpenId.Authentication/Tokens/`): `Handlers/DefaultGetIdTokenPayloadClaimsHandler.cs`,
   `DefaultTokenService.cs`.
-- **`F15` — Test coverage for the logout endpoint + back-channel delivery.** `DefaultSessionService` has unit tests
-  ([`tests/NCode.Identity.OpenId.Core.Tests/Sessions/DefaultSessionServiceTests.cs`](tests/NCode.Identity.OpenId.Core.Tests/Sessions/DefaultSessionServiceTests.cs)),
-  but the RP-Initiated Logout `end_session_endpoint` handler and the `DefaultBackChannelLogoutNotifier`
-  ([ADR-0074](docs/adr/0074-session-management-and-logout.md)) are not yet covered. Add handler unit tests (in
-  `NCode.Identity.OpenId.Core.Tests`, which already sees this package's internals) and/or an end-to-end
-  `NCode.Identity.OpenId.IntegrationTests` case (login → `sid` in the ID token → `end_session_endpoint` revokes the
-  session/grants → a signed `logout_token` is POSTed to a stub `backchannel_logout_uri`). The **first-party**
-  interactive logout shares this gap: the account page's `POST /account/logout` (which runs the same pipeline from the
-  login cookie) and the `GET /account/me` session endpoint have only pure-helper unit tests (`BuildMeResponse`,
-  `ResolveSafeReturnUrl`) plus the existing login-POST antiforgery integration test
-  ([`tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLoginAntiforgeryTests.cs`](tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLoginAntiforgeryTests.cs));
-  add an integration case (login → `GET /account/me` returns the session → `POST /account/logout` clears the cookie,
-  revokes the session/grants, and fires back-channel). Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/`,
-  `src/NCode.Identity.OpenId.Authentication/Sessions/`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/`.
-
 - **`F16` — FAPI (Financial-grade API) readiness epic.** An umbrella tracking the work to make the OP certifiable
   against the OpenID Foundation **FAPI** security profiles ([FAPI 1.0 Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html),
   [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)). FAPI mandates **sender-constrained access

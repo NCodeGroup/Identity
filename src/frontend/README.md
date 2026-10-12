@@ -113,16 +113,21 @@ The serving host must publish `/config/bootstrap.json`:
 }
 ```
 
-For local development the Management app ships a dev copy at
-[`apps/mgmt/public/config/bootstrap.json`](apps/mgmt/public/config/bootstrap.json) pointing at the
-Playground host.
+Every bundle gets this document from the host at runtime — there is no static dev copy to drift.
+`NCode.Identity.Server` binds the `Frontend` configuration section and registers the endpoint through the
+single `IIdentityServerBuilder.AddFrontendBootstrap(configuration)` seam — the host's existing
+`MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags, branding),
+falling back to the serving request's own origin for the API base and issuer when they are unset — so a
+single-origin host needs no configuration.
 
-Backend-served bundles (e.g. `apps/auth`, served by the OpenID Provider host) get this document from the
-host at runtime: `NCode.Identity.Server` binds the `Frontend` configuration section and registers the
-endpoint through the single `IIdentityServerBuilder.AddFrontendBootstrap(configuration)` seam — the host's
-existing `MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags,
-branding), falling back to the serving request's own origin for the API base and issuer when they are unset
-— so a single-origin host needs no configuration.
+- **Backend-served bundles** (e.g. `apps/auth`, served by the OpenID Provider host) fetch the document
+  straight from their serving host.
+- **Standalone bundles** (`apps/mgmt`, served by its own Vite dev server) don't share the OP's origin, so the
+  Vite dev server **proxies** `/config/bootstrap.json` to the Playground host instead of shipping a static
+  copy (see [`apps/mgmt/vite.config.ts`](apps/mgmt/vite.config.ts)). The proxy target comes from the Aspire
+  service-discovery variable the `mgmt` resource receives via `WithReference(api)`
+  ([ADR-0071](../../docs/adr/0071-aspire-local-dev-orchestrator.md)), falling back to the pinned
+  `https://localhost:5001` when run outside Aspire — so local dev exercises the real runtime endpoint.
 
 ## Authentication (authorization-code + PKCE)
 

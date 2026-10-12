@@ -66,7 +66,10 @@ rename ...`) and fail the losing installer, which in turn fails its dependent re
 
 `WithReference(api)` also exposes Aspire service discovery to the `mgmt` process; the browser SPA continues to
 resolve the API from the host-published bootstrap document per [ADR-0064](0064-frontend-presentation-platform.md),
-which points at the pinned `api` origin.
+which points at the pinned `api` origin. Because the `mgmt` bundle is **not** served by the OP host, its Vite dev
+server **proxies** the well-known `/config/bootstrap.json` path to the `api` origin (the service-discovery variable
+`WithReference(api)` injects, falling back to the pinned `https://localhost:5001` outside Aspire) rather than shipping
+a static dev copy — so local dev consumes the real runtime bootstrap endpoint and cannot drift from production.
 
 ## Options considered
 

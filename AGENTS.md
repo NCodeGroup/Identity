@@ -16,7 +16,8 @@ Production projects live under `src/`; test projects (the `*Tests` projects) liv
   `.Messages.Abstractions`, `.Persistence(.Abstractions)`, `.Persistence.EntityFramework`
 - **Persistence** — `NCode.Persistence.Abstractions`, `NCode.Identity.Persistence.Abstractions`
 - **Composition / host** — `NCode.Registration` (the `IServiceBuilder<TMarker>` builder), `NCode.Identity`,
-  `NCode.Identity.Server` (`AddIdentityServer()`), `NCode.Identity.OpenId.Playground` (ASP.NET Core reference host)
+  `NCode.Identity.Server` (`AddIdentityServer()`), `NCode.Identity.OpenId.Playground` (ASP.NET Core reference host),
+  `NCode.Identity.OpenId.Playground.AppHost` (.NET Aspire local-dev orchestrator — [ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md))
 
 The central extensibility model — **service** vs **strategy collection** vs **mediator** — is captured in
 [ADR-0001](docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md).

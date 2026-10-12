@@ -5,6 +5,24 @@
   "version": "0.2.0",
   "configurations": [
     {
+      // ONE-STOP FULL-STACK LAUNCH (ADR-0071). Starts the .NET Aspire AppHost, which orchestrates the whole local
+      // stack as one resource graph: the Playground OP host ("api"), the interactive-login build-watcher ("auth"),
+      // and the Management console Vite dev server ("mgmt"). Aspire gates each UI resource on the API being HEALTHY
+      // (WaitFor + /health), deterministically eliminating the old UI-before-API race, and the Aspire dashboard is the
+      // single place for ordered startup, logs, and traces. Prerequisite: run `pnpm install` once under src/frontend
+      // (Node via NVS — `nvs add 22`). The dashboard URL is printed on startup.
+      "name": "Aspire: Full stack (F5)",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.Playground.AppHost/NCode.Identity.OpenId.Playground.AppHost.csproj",
+      "launchSettingsProfile": "https",
+      "presentation": {
+        "group": "0-fullstack",
+        "order": 1
+      }
+    },
+    {
+      // Debug ONLY the Playground OP host, without the frontend apps or Aspire orchestration.
       "name": "C#: NCode.Identity.OpenId.Playground Debug",
       "type": "dotnet",
       "request": "launch",
@@ -13,37 +31,6 @@
       "justMyCode": true,
       "logging": {
         "moduleLoad": false
-      }
-    },
-    {
-      // Starts the ENTIRE frontend stack (every Vite app) via build/dev-ui.ps1, which runs
-      // `pnpm dev` (turbo run dev) and puts the NVS-managed Node 22 on PATH. js-debug auto-attaches
-      // to the spawned node processes, and serverReadyAction opens the browser once a Vite dev
-      // server (e.g. the mgmt app) prints its local URL. Backend-served bundles (apps/auth) are
-      // build-watched into their `dist`, which the Playground serves.
-      "name": "UI: Frontend dev (all surfaces)",
-      "type": "node-terminal",
-      "request": "launch",
-      "command": "pwsh -NoProfile -File \"${workspaceFolder}/build/dev-ui.ps1\"",
-      "cwd": "${workspaceFolder}",
-      "serverReadyAction": {
-        "pattern": "Local:\\s+(https?://\\S+)",
-        "uriFormat": "%s",
-        "action": "openExternally"
-      }
-    }
-  ],
-  "compounds": [
-    {
-      "name": "API + UI (F5)",
-      "configurations": [
-        "C#: NCode.Identity.OpenId.Playground Debug",
-        "UI: Frontend dev (all surfaces)"
-      ],
-      "stopAll": true,
-      "presentation": {
-        "group": "0-fullstack",
-        "order": 1
       }
     }
   ]

@@ -71,9 +71,11 @@ builder.AddJavaScriptApp("auth", "../frontend/apps/auth").WithPnpm(install: fals
 // The Management console (apps/mgmt) is a STANDALONE Vite dev server. It is pinned to http://localhost:5173 (direct,
 // un-proxied, so HMR and the OAuth authorization-code callback work) because the developer seed registers
 // https://localhost:5173/callback as the SPA redirect URI and AddDeveloperCors allowlists localhost:5173. The browser
-// SPA discovers the API from the host-published bootstrap document (ADR-0064), which points at the pinned api origin;
-// WithReference also exposes Aspire service discovery to the Vite process, and WaitFor holds startup until the API is
-// healthy so the first discovery/management call cannot race the API.
+// SPA discovers the API from the host-published bootstrap document (ADR-0064); because this bundle is NOT served by the
+// OP host, its Vite dev server proxies /config/bootstrap.json to the api so local dev consumes the real runtime
+// endpoint instead of a static copy. WithReference injects the service-discovery variable that proxy targets AND
+// exposes Aspire service discovery to the Vite process; WaitFor holds startup until the API is healthy so the first
+// discovery/management call cannot race the API.
 builder
     .AddViteApp("mgmt", "../frontend/apps/mgmt")
     .WithPnpm(install: false)

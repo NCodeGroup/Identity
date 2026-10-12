@@ -45,15 +45,18 @@ change to the public API is a **major** version bump.
   forward-looking design are captured in [ADR-0074](docs/adr/0074-session-management-and-logout.md).
 - **Runtime frontend bootstrap endpoint on the OpenID Provider host — completes backlog `U4`.** The tier-agnostic
   frontend bundles ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)) discover their deployment coordinates
-  at boot from `/config/bootstrap.json` on their serving host; previously only a dev copy existed
-  (`src/frontend/apps/mgmt/public/config/bootstrap.json`). `NCode.Identity.Server` now exposes a first-class
+  at boot from `/config/bootstrap.json` on their serving host; previously only a static dev copy existed.
+  `NCode.Identity.Server` now exposes a first-class
   `IIdentityServerBuilder.AddFrontendBootstrap(configuration)` seam that binds the `Frontend` configuration section
   into `FrontendBootstrapOptions` and registers the endpoint (as an `IEndpointProvider`) that publishes the bootstrap
   document (API base, issuer, client id, scopes, feature flags, branding) — so the host's single `MapEndpointGroups()`
   call maps it alongside every other endpoint. The document falls back to the serving request's own origin for the API
   base and issuer when they are unset, so a single-origin host serves every tier from one bundle with no configuration.
   The Playground opts in (`AddFrontendBootstrap`) and publishes the dev document (`mgmt-spa`, `dcr` feature flag, dev
-  branding).
+  branding). For local development the standalone Management Vite dev server no longer ships a static copy: it
+  **proxies** `/config/bootstrap.json` to the Playground host (the Aspire service-discovery target injected via
+  `WithReference(api)`, [ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)), so local dev consumes the real
+  runtime endpoint and cannot drift.
 - **Algorithm capabilities discovery drives the create-secret form — completes backlog `S6`.** The management
   capabilities document ([ADR-0067](docs/adr/0067-secret-type-capability-catalog-and-capabilities-discovery.md)) grows
   an `algorithms` section published by a new `AlgorithmCapabilitiesProvider`
@@ -179,7 +182,9 @@ change to the public API is a **major** version bump.
   surface: a React + Material UI login/consent app (`@ncode/app-auth`) on the shared frontend platform, served by the
   host as same-origin static assets under `/account/*`, backed by an opt-in leaf capability package
   `NCode.Identity.OpenId.Authentication.Interactive` (+ `.Abstractions`)
-  (`AddInteractiveAuthentication` / `UseInteractiveAuthentication` / `MapInteractiveAuthentication`). It registers a
+  (`AddInteractiveAuthentication` / `UseInteractiveAuthentication`). Its endpoints register as an
+  `IEndpointProvider` under an `InteractiveAuthenticationEndpointGroup`, so the host's single `MapEndpointGroups` call
+  maps the `/account/*` surface alongside every other endpoint (no bespoke mapping extension). It registers a
   cookie scheme (`Identity.Application`) that the authorize endpoint's challenge redirects into, defers credential
   verification to a pluggable `IInteractiveCredentialVerifier` seam (the local-account implementation,
   `AddLocalAccountInteractiveAuthentication()`, reuses the same path the resource-owner password grant uses), issues the

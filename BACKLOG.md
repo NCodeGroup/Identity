@@ -228,15 +228,6 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`.
-- **`S6` — Grow the management capabilities document.** `GET /api/capabilities`
-  ([ADR-0067](docs/adr/0067-secret-type-capability-catalog-and-capabilities-discovery.md)) is composed from
-  registered providers and currently publishes `secretTypes` and `eccCurves`
-  ([ADR-0068](docs/adr/0068-unified-extensible-elliptic-curve-catalog.md)). Natural next sections: the supported
-  signature/key-management **algorithms** (from `IAlgorithmCollectionProvider`) and per-type **key-size** options, so
-  the console create-secret form drives its algorithm and key-size inputs from discovery instead of its remaining
-  hard-coded defaults. Each is a new `ICommandHandler<DiscoverManagementCapabilitiesCommand>` provider.
-  Touch points: `src/NCode.Identity.OpenId.Management/Endpoints/Capabilities/`,
-  `src/frontend/packages/ui/src/components/SecretFormDialog.tsx`.
 
 ## Tooling & agent customization (group `X`)
 

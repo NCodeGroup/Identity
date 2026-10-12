@@ -43,6 +43,47 @@ describe('SecretFormDialog', () => {
     );
   });
 
+  it('offers only the discovered algorithms for the selected type, deriving the use on select', () => {
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        initialValues={{ ...initial, secretType: 'rsa' }}
+        algorithms={[
+          {
+            code: 'RS256',
+            use: 'sig',
+            secretTypes: ['rsa'],
+            keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }],
+          },
+          {
+            code: 'ES256',
+            use: 'sig',
+            secretTypes: ['ecc'],
+            keyBitSizes: [{ minBits: 256, maxBits: 256, skipBits: 0 }],
+          },
+        ]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    // The use field is derived from discovery and cannot be hand-entered while algorithms are offered.
+    expect(screen.getByTestId('secret-use')).toHaveAttribute('readonly');
+
+    // The use is derived from the selected algorithm and the key size is clamped into its legal range.
+    fireEvent.change(screen.getByTestId('secret-algorithm'), { target: { value: 'RS256' } });
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        secretType: 'rsa',
+        algorithm: 'RS256',
+        use: 'sig',
+        keySizeBits: 2048,
+      }),
+    );
+  });
+
   it('blocks submit when the expiry is empty', () => {
     const onSubmit = vi.fn();
     render(

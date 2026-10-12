@@ -494,12 +494,27 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Discovery metadata is now secure-by-default, operator-overridable — completes backlog `T5`.** The OpenID Provider
+  no longer advertises deprecated/insecure flows out of the box
+  ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)). `response_types_supported` defaults to
+  `["code"]` (dropping the implicit/hybrid combinations the formatter expands), `grant_types_supported` drops
+  `implicit`, `code_challenge_methods_supported` defaults to `["S256"]` only, and `subject_types_supported` now defaults
+  to `["public"]` so the required OpenID Connect Discovery field is present. The cross-trust-boundary token-signing
+  fields (`id_token`/`userinfo`/`access_token`) advertise **asymmetric** algorithms only — never symmetric `HS256`
+  (`request_object` and `token_endpoint_auth` signing keep the full set for `client_secret_jwt`). Because discovery and
+  request-time enforcement share one settings source, the implicit/hybrid authorization code paths are **fail-closed**
+  by default; a deployment re-enables any of these — and simultaneously re-advertises them — by widening the setting in
+  configuration (host `OpenId:Server:Settings` overrides are applied last and overwrite the baseline). The Playground
+  `appsettings.json` no longer over-advertises `implicit`. Greenfield, pre-release — no compatibility shims
+  ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
 - **Developer-key registration no longer owns the Data Protection key-ring location (breaking,
   `NCode.Identity.Server`).** `AddDeveloperKeys(DeveloperKeyMode)` drops its `IHostEnvironment` parameter and
   `AddDeveloperSigningKey()` drops its `DirectoryInfo keyRingDirectory` parameter — the library now only seeds the
   signing key, and the **host** owns where Data Protection keys are persisted (the Playground persists them in its dev
   database, [ADR-0073](docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md)). The `App_Data/dp-keys`
   file key ring and the `Microsoft.EntityFrameworkCore.SqlServer`/`.Sqlite` Playground provider references are removed.
+
 - **Opt-in framework capabilities now register through compile-time marker builders
   ([ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md)).** The registration library's
   `IServiceBuilder<TMarker>` becomes the one way bolt-on capabilities attach, so a capability is **un-addable** to a

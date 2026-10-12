@@ -140,12 +140,18 @@ change to the public API is a **major** version bump.
   completes the redirect callback for a `urn:ncode:management`-audience token and populates the auth slice, or renders a
   sign-in screen to start the flow; when no client id is discovered it runs open (local dev). The SPA's public client
   id and login scopes are discovered at runtime via the bootstrap document (tier-agnostic). Backlog `U1`.
-- **One-key full-stack dev launch (`API + UI`).** A VS Code compound launch starts the Playground API and the
-  **entire** frontend stack together (F5). The UI side runs [`build/dev-ui.ps1`](build/dev-ui.ps1), which puts the
-  repo-pinned Node (NVS) on PATH and drives `pnpm dev` (`turbo run dev`) across every Vite app, so a new surface joins
-  the launch automatically just by declaring its `dev` script. Each app encodes its serving model: backend-served
-  bundles (served by the host from static `dist`, e.g. the `apps/auth` login surface) build-watch into their `dist`,
-  while standalone apps (e.g. `apps/mgmt`) run an HMR dev server.
+- **One-stop full-stack dev launch via .NET Aspire ([ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)).** A
+  sibling AppHost project (`NCode.Identity.OpenId.Playground.AppHost`) orchestrates the whole local stack — the
+  Playground OP host (`api`), the interactive-login build-watcher (`auth`), and the Management console Vite dev server
+  (`mgmt`) — as one Aspire resource graph behind the `Aspire: Full stack (F5)` launch. Aspire gates each UI resource on
+  the API being **healthy** (`WithHttpHealthCheck("/health")` + `WaitFor`), deterministically eliminating the previous
+  compound launch's UI-before-API race, and its dashboard is one place for ordered startup, logs, and traces. Ports
+  stay pinned (`api` on `https://localhost:5001`, `mgmt` on `http://localhost:5173`, un-proxied) so the developer seed
+  redirect URI, developer CORS origins, and the browser bootstrap document stay valid; `apps/auth` is modeled as a
+  build-watcher (no endpoint) whose `dist` the Playground serves. The AppHost is never packed. This replaces the VS
+  Code `API + UI (F5)` compound; the old `build/dev-ui.ps1` is relegated to `build/frontend-install.ps1`, a one-time
+  pnpm-workspace bootstrap, now that Aspire owns `pnpm dev`. Backing SQL Server/Redis remain opt-in (SQLite/in-memory
+  stays the default, so there is no container-runtime prerequisite). Backlog `U11`.
 - **Opt-in developer CORS for the OpenID server (`AddDeveloperCors` / `UseDeveloperCors`).** A reusable
   development-oriented registration (in `NCode.Identity.Server`, beside `AddDeveloperKeys`) lets a local SPA dev server
   read discovery and call the management API cross-origin. Allowed origins come from the `Cors:AllowedOrigins`

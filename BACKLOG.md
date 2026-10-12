@@ -120,6 +120,25 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   `// TODO: validate actual scope values`, and `// TODO: provide a way to allow custom code challenge methods` markers
   in
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/AuthorizationCode/DefaultValidateAuthorizationCodeGrantHandler.cs`.
+- **`F13` — `max_age` re-authentication logs a WARN on the expected path.** When the end-user's `auth_time` exceeds the
+  request `max_age` or the client's `subject_max_age`, `DefaultValidateSubjectAuthenticationHandler` sets
+  `AccessDenied` and logs **`SubjectValidationFailed`** at warning level (event `2011`,
+  "The end-user's authentication time is too old from the client's MaxAge."). On an interactive authorize that is the
+  _normal_ freshness path — the flow re-challenges, the user re-authenticates, and the grant then succeeds
+  (`authorization.granted` + `token.issued` follow). Surfaced while running the Aspire dev stack: a stale persistent
+  dev cookie trips it on the first sign-in, so a successful re-auth looks like a failure in the logs. Decide whether to
+  log the max-age-exceeded → re-prompt transition at a lower level (or as a distinct "re-authentication required" signal
+  distinct from hard `AccessDenied` denials) so routine freshness re-prompts are not warnings. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Subject/DefaultValidateSubjectAuthenticationHandler.cs` (the two
+  `ValidateMaxAge` branches + `Logger.SubjectValidationFailed`).
+- **`F14` — EF `QuerySplittingBehavior` not configured (multi-collection includes).** The OpenID EF Core persistence
+  emits `Microsoft.EntityFrameworkCore.Query[20504]` at warning level — a query loads more than one collection
+  navigation (via `Include`/projection) with no `QuerySplittingBehavior` configured, so it defaults to `SingleQuery`
+  (a potential cartesian-explosion / slow-query risk on relational providers). Decide the default: configure
+  `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)` at the provider (or `AsSplitQuery()` on the specific
+  multi-collection query), or deliberately suppress the advisory where `SingleQuery` is intended. Touch points: the
+  relational provider configuration (`src/NCode.Identity.OpenId.Playground/Program.cs` `UseSqlServer`/`UseSqlite`) and
+  the multi-collection load in `src/NCode.Identity.OpenId.Persistence.EntityFramework*`.
 
 ## Conformance & interop testing (group `T`)
 
@@ -197,31 +216,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `src/NCode.Identity.OpenId.Management.Abstractions`, `src/NCode.Identity.OpenId.Management/Endpoints`,
   `src/frontend/packages/store/src/managementApi.ts`, `src/frontend/apps/mgmt/src/containers/ServersPage.tsx`,
   `src/frontend/packages/ui/src/components/ServerTable.tsx`.
-- **`U11` — Adopt .NET Aspire as the local dev orchestrator (needs its own ADR).** **Decided (2026-10-11):** adopt
-  Aspire to realize the Playground's intended purpose — a single one-stop entry to build/run/debug the entire stack
-  locally. Aspire is **not** added _inside_ the Playground (the Playground is the reference OP host — one process); it
-  is a new **sibling AppHost project** (`NCode.Identity.OpenId.Playground.AppHost`) that orchestrates the Playground +
-  the frontend apps (+ optional backing services) as one resource graph. This closes the orchestration fork left open
-  by the (now-complete) interactive-auth extraction and
-  [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md) and supersedes the
-  dev-orchestration half of that ADR (the `build/dev-ui.ps1` + VS Code `API + UI (F5)` compound launch, which has **no
-  dependency ordering** — the root symptom being `apps/auth`/`apps/mgmt` booting before the API is listening and failing
-  in the browser). **Why Aspire:** `WaitFor(api)` + ASP.NET Core health-check integration gates each UI resource on the
-  API being **healthy** (not merely "process started"), deterministically eliminating the race; `WithReference(api)`
-  provides service discovery that feeds `@ncode/config`'s runtime-discovery model
-  ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)); the dashboard gives one place for ordered startup,
-  logs, and traces. **Topology:**
-  `builder.AddProject<Projects.NCode_Identity_OpenId_Playground>("api")`, then
-  `builder.AddViteApp("auth", …).WithReference(api).WaitFor(api)` and the same for `"mgmt"`; backing SQL Server/Redis
-  modeled as containers is **opt-in** (keep SQLite/in-memory to avoid a hard container-runtime prerequisite). **Scope:**
-  new `*.AppHost` project (`IsPackable=false`, excluded from `dod.ps1` packing) + Aspire SDK/hosting packages pinned in
-  [`Directory.Packages.props`](Directory.Packages.props); node apps modeled as Aspire resources
-  (`AddViteApp`/`AddNpmApp`); repoint the F5/dev experience onto the AppHost and retire/relegate
-  [`build/dev-ui.ps1`](build/dev-ui.ps1). **Sequencing:** its own ADR'd change — a toolchain-wide
-  orchestration change on a different axis than the completed interactive-auth package extraction; keep the two
-  separate. Touch points: new
-  `src/NCode.Identity.OpenId.Playground.AppHost/`, [`Directory.Packages.props`](Directory.Packages.props),
-  [`build/dev-ui.ps1`](build/dev-ui.ps1), `.vscode/launch.json` (the `API + UI (F5)` compound), `NCode.Identity.slnx`.
 
 ## Secrets management (group `S`)
 

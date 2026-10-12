@@ -3,5 +3,8 @@
     "version": "10.0.100",
     "rollForward": "latestMinor",
     "allowPrerelease": false
+  },
+  "msbuild-sdks": {
+    "Aspire.AppHost.Sdk": "13.6.1"
   }
 }

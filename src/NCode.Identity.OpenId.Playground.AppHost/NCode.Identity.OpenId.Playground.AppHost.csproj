@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <!-- Aspire local-dev orchestrator (ADR-0071). The Aspire.AppHost.Sdk version is pinned in global.json
+         ('msbuild-sdks'); the hosting packages are pinned in Directory.Packages.props. This is a sibling of the
+         Playground (NOT nested inside it): the Playground stays a single reference OP process, and this AppHost
+         orchestrates it plus the frontend apps as one resource graph. It is never packed (IsPackable=false) and is
+         excluded from the publish pipeline. -->
+    <Sdk Name="Aspire.AppHost.Sdk" />
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IsAspireHost>true</IsAspireHost>
+        <IsPackable>false</IsPackable>
+        <UserSecretsId>7d2a4c1e-9b63-4f0a-8e5b-1c2d3e4f5a6b</UserSecretsId>
+        <!-- This AppHost is launched via `dotnet run` / F5, not the standalone `aspire` CLI, so it deliberately runs
+             without the Aspire CLI bundle (AspireUseCliBundle=false). ASPIRE010 only flags CLI-bundle-exclusive
+             features we do not use; suppress its noise rather than taking a hard dependency on the external CLI. -->
+        <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Aspire.Hosting.AppHost" />
+        <PackageReference Include="Aspire.Hosting.JavaScript" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The Aspire SDK generates the strongly-typed Projects.NCode_Identity_OpenId_Playground resource from this
+             reference; it is a build-time orchestration link, not a runtime dependency. -->
+        <ProjectReference Include="..\NCode.Identity.OpenId.Playground\NCode.Identity.OpenId.Playground.csproj" />
+    </ItemGroup>
+</Project>

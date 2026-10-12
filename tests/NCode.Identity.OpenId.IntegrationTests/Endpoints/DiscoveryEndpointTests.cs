@@ -98,4 +98,51 @@ public class DiscoveryEndpointTests(PlaygroundApplicationFactory factory)
         );
         Assert.True(claimsParameterSupported.GetBoolean());
     }
+
+    [Fact]
+    public async Task GetDiscovery_AdvertisesOnlySecureFlows()
+    {
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.GetAsync("/.well-known/openid-configuration");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+
+        // Secure-by-default: only the authorization-code flow is advertised — no implicit/hybrid response
+        // types, and no 'implicit' grant type (RFC 9700 / OAuth 2.1 direction).
+        var responseTypes = GetStringArray(root, "response_types_supported");
+        Assert.Equal(["code"], responseTypes);
+
+        var grantTypes = GetStringArray(root, "grant_types_supported");
+        Assert.DoesNotContain(OpenIdConstants.GrantTypes.Implicit, grantTypes);
+        Assert.Contains(OpenIdConstants.GrantTypes.AuthorizationCode, grantTypes);
+
+        // PKCE advertises only S256 (never 'plain').
+        var codeChallengeMethods = GetStringArray(root, "code_challenge_methods_supported");
+        Assert.Equal(["S256"], codeChallengeMethods);
+
+        // subject_types_supported is required by OIDC Discovery; the default advertises 'public'.
+        var subjectTypes = GetStringArray(root, "subject_types_supported");
+        Assert.Equal(["public"], subjectTypes);
+
+        // id_token signing crosses a trust boundary, so no symmetric (HS*) algorithm is advertised.
+        var idTokenSigningAlgs = GetStringArray(root, "id_token_signing_alg_values_supported");
+        Assert.NotEmpty(idTokenSigningAlgs);
+        Assert.DoesNotContain(
+            idTokenSigningAlgs,
+            alg => alg.StartsWith("HS", StringComparison.Ordinal)
+        );
+    }
+
+    private static string[] GetStringArray(JsonElement root, string propertyName)
+    {
+        Assert.True(root.TryGetProperty(propertyName, out var element));
+        return element.EnumerateArray().Select(value => value.GetString()!).ToArray();
+    }
 }

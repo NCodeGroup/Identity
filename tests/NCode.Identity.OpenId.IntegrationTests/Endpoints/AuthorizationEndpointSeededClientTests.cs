@@ -108,4 +108,32 @@ public class AuthorizationEndpointSeededClientTests(PlaygroundApplicationFactory
         Assert.True(document.RootElement.TryGetProperty("error", out var error));
         Assert.False(string.IsNullOrEmpty(error.GetString()));
     }
+
+    [Fact]
+    public async Task GetAuthorize_WithImplicitResponseType_IsRejectedByDefault()
+    {
+        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        var query =
+            $"?client_id={ClientId}"
+            + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+            + "&response_type=token"
+            + "&scope=openid"
+            + "&nonce=n-0S6_WzA2Mj"
+            + "&state=abc123";
+
+        using var response = await client.GetAsync("/oauth2/authorize" + query);
+
+        // The secure default does not advertise or accept the implicit flow: supported-values validation
+        // fails and the error is redirected back to the client's registered redirect_uri (rather than the
+        // interactive challenge an accepted request would produce).
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.StartsWith(RedirectUri, location.GetLeftPart(UriPartial.Path));
+    }
 }

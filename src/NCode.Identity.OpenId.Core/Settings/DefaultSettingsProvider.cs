@@ -31,12 +31,13 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
     /// <inheritdoc />
     public void Configure(ISettingCollection settings)
     {
-        // client_credentials and password are intentionally opt-in (host-enabled), not default-on.
+        // Secure-by-default: implicit/hybrid and client_credentials/password are intentionally not advertised.
+        // The implicit/hybrid capability still exists; an operator re-enables it by widening this setting (and
+        // response_types_supported) via configuration (RFC 9700 / OAuth 2.1 direction — no implicit/hybrid).
         settings.Set(
             OpenIdSettingKeys.GrantTypesSupported,
             [
                 OpenIdConstants.GrantTypes.AuthorizationCode,
-                OpenIdConstants.GrantTypes.Implicit,
                 OpenIdConstants.GrantTypes.RefreshToken,
                 OpenIdConstants.GrantTypes.DeviceCode,
             ]
@@ -62,13 +63,13 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
             ]
         );
 
+        // Secure-by-default: only the authorization-code flow is advertised. Advertising id_token/token would
+        // expand (via the response_types_supported formatter) into the implicit and hybrid front-channel-token
+        // combinations, which modern guidance (RFC 9700 / OAuth 2.1) removes. An operator re-enables them by
+        // widening this setting via configuration.
         settings.Set(
             OpenIdSettingKeys.ResponseTypesSupported,
-            [
-                OpenIdConstants.ResponseTypes.Code,
-                OpenIdConstants.ResponseTypes.IdToken,
-                OpenIdConstants.ResponseTypes.Token,
-            ]
+            [OpenIdConstants.ResponseTypes.Code]
         );
 
         // claims_supported is advisory by default; it only becomes an enforcement allow-list when

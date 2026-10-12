@@ -23,6 +23,7 @@ using NCode.Collections.Providers;
 using NCode.Disposables;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Settings;
@@ -219,6 +220,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
     private void LoadSupportedAlgorithms(ISettingCollection settings)
     {
         var signingAlgValuesSupported = new List<string>();
+        var asymmetricSigningAlgValuesSupported = new List<string>();
         var encryptionAlgValuesSupported = new List<string>();
         var encryptionEncValuesSupported = new List<string>();
         var encryptionZipValuesSupported = new List<string>();
@@ -236,6 +238,15 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             {
                 case AlgorithmType.DigitalSignature:
                     signingAlgValuesSupported.Add(algorithm.Code);
+                    // Secure-by-default: tokens that cross a trust boundary (id_token, userinfo, access_token)
+                    // advertise only asymmetric signing algorithms — never symmetric HS* (RFC 9700 posture).
+                    if (
+                        algorithm is KeyedAlgorithm keyedAlgorithm
+                        && typeof(AsymmetricSecretKey).IsAssignableFrom(keyedAlgorithm.KeyType)
+                    )
+                    {
+                        asymmetricSigningAlgValuesSupported.Add(algorithm.Code);
+                    }
                     break;
 
                 case AlgorithmType.KeyManagement:
@@ -252,15 +263,21 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             }
         }
 
-        settings.Set(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, signingAlgValuesSupported);
+        // Cross-trust-boundary token signing advertises asymmetric algorithms only (no HS*); an operator may
+        // widen any of these via configuration.
+        settings.Set(
+            OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
+            asymmetricSigningAlgValuesSupported
+        );
         settings.Set(
             OpenIdSettingKeys.UserInfoSigningAlgValuesSupported,
-            signingAlgValuesSupported
+            asymmetricSigningAlgValuesSupported
         );
         settings.Set(
             OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported,
-            signingAlgValuesSupported
+            asymmetricSigningAlgValuesSupported
         );
+        // request_object signing may legitimately be symmetric (client_secret_jwt), so it keeps the full set.
         settings.Set(
             OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported,
             signingAlgValuesSupported

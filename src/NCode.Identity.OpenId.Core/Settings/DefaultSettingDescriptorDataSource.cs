@@ -330,16 +330,13 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             };
 
             // code_challenge_methods_supported: the PKCE code_challenge_method transformations the server supports
-            // (RFC 7636 / RFC 8414). Default permits both "plain" and "S256"; remove "plain" to require S256.
+            // (RFC 7636 / RFC 8414). Secure-by-default advertises only "S256"; an operator may re-add "plain" via
+            // configuration (discouraged — RFC 9700 / OAuth 2.1).
             // Ceiling (Intersect): a child narrows the parent's set; it cannot re-add a method the parent removed.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.CodeChallengeMethodsSupported,
-                Default =
-                [
-                    OpenIdConstants.CodeChallengeMethods.Plain,
-                    OpenIdConstants.CodeChallengeMethods.S256,
-                ],
+                Default = [OpenIdConstants.CodeChallengeMethods.S256],
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -882,10 +879,12 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             };
 
             // subject_types_supported: subject identifier types the server supports (public, pairwise).
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Default advertises "public" (OIDC Discovery expects this field); "pairwise" is added only if
+            // implemented (F9). Ceiling (Intersect): a child narrows the parent's set.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SubjectTypesSupported,
+                Default = [OpenIdConstants.SubjectTypes.Public],
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,

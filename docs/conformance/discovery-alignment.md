@@ -1,8 +1,22 @@
 # T5 — Discovery-metadata alignment audit
 
-Status: **planned, not yet implemented.** Detailed plan for backlog item `T5`. Parent design:
-[`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #4 and Appendix A). Catalog
-entry: [`BACKLOG.md`](../../BACKLOG.md) group `T`.
+Status: **implemented** ([ADR-0083](../adr/0083-secure-by-default-discovery-metadata.md)). The OpenID Provider now
+advertises secure-by-default, verified capabilities, overridable by operators through configuration. This document is
+retained as the field-by-field reference and rationale. Parent design:
+[`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #4 and Appendix A).
+
+## What shipped
+
+- `response_types_supported` defaults to `["code"]` (no implicit/hybrid combinations); `grant_types_supported` drops
+  `implicit`; `code_challenge_methods_supported` defaults to `["S256"]`; `subject_types_supported` defaults to
+  `["public"]`.
+- The cross-trust-boundary token-signing fields (`id_token`/`userinfo`/`access_token`) advertise asymmetric algorithms
+  only (never symmetric `HS256`); `request_object` / `token_endpoint_auth` signing keep the full set for
+  `client_secret_jwt`.
+- The Playground `appsettings.json` no longer over-advertises `implicit`.
+- Because advertisement and request-time enforcement share one settings source, these flows are fail-closed by default;
+  an operator re-enables (and simultaneously re-advertises) any of them by widening the setting in host configuration.
+  Integration tests cover both the secure default and the operator-override path.
 
 ## Goal
 

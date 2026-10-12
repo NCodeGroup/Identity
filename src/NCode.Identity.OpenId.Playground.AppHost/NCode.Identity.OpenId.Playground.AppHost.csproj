@@ -24,11 +24,13 @@
     <ItemGroup>
         <PackageReference Include="Aspire.Hosting.AppHost" />
         <PackageReference Include="Aspire.Hosting.JavaScript" />
+        <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     </ItemGroup>
 
     <ItemGroup>
         <!-- The Aspire SDK generates the strongly-typed Projects.NCode_Identity_OpenId_Playground resource from this
              reference; it is a build-time orchestration link, not a runtime dependency. -->
         <ProjectReference Include="..\NCode.Identity.OpenId.Playground\NCode.Identity.OpenId.Playground.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Playground.MigrationService\NCode.Identity.OpenId.Playground.MigrationService.csproj" />
     </ItemGroup>
 </Project>

@@ -1,6 +1,8 @@
 # 41. The reference host owns schema with EF Core migrations, applied deliberately outside Development
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0073](0073-postgres-dev-database-and-aspire-migration-worker.md): the
+  migrations now live in the host-owned `NCode.Identity.OpenId.Playground.Database` project and are applied by the
+  Aspire migration worker; the policy that the host owns schema, applied deliberately outside Development, stands)
 - **Date:** 2026-10-03
 - **Deciders:** NCode Group
 

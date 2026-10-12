@@ -30,14 +30,33 @@ EnsureNvsNodeOnPath();
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+// The dev database is Postgres in a container (ADR-0073). WithDataVolume gives it a STABLE, named volume so data
+// survives restarts (persistent by default); the matching build/dev-db-reset.ps1 removes exactly this volume for an
+// on-demand purge. Aspire auto-detects the container runtime (Docker or Podman), so the graph is portable across dev
+// machines. `openiddb` is the single database holding the OpenID data, the seeded signing key, and the developer
+// DataProtection key ring — one purge resets all three together.
+var postgres = builder.AddPostgres("postgres").WithDataVolume("ncode-identity-openiddb-data");
+var openIdDb = postgres.AddDatabase("openiddb");
+
+// Dedicated migration resource (U12): applies the Npgsql migrations for both contexts, then exits. Dependents
+// WaitForCompletion on it, so a migration failure surfaces as a failed dashboard resource that blocks the api — it
+// never manifests as an api crash. WaitFor(postgres) holds it until the database is accepting connections.
+var migrations = builder
+    .AddProject<Projects.NCode_Identity_OpenId_Playground_MigrationService>("migrations")
+    .WithReference(openIdDb)
+    .WaitFor(postgres);
+
 // The reference OpenID Provider host. Its default launch profile supplies the Development environment variables and
 // the fixed dev endpoints (https://localhost:5001, http://localhost:5000) the rest of the stack is pinned to — the
 // issuer, the browser-published bootstrap document, the seeded SPA redirect URIs, and the developer CORS origins all
 // assume those ports. WithHttpHealthCheck gates dependents on the app being HEALTHY (its /health returns 200 once
 // Kestrel is listening), not merely "process started", which is what deterministically removes the UI-before-API race.
+// WithReference injects the 'openiddb' connection string; WaitForCompletion holds the api until migrations succeed.
 var api = builder
     .AddProject<Projects.NCode_Identity_OpenId_Playground>("api")
     .WithHttpHealthCheck("/health")
+    .WithReference(openIdDb)
+    .WaitForCompletion(migrations)
     .WithExternalHttpEndpoints();
 
 // The interactive login/consent surface (apps/auth) is a BACKEND-SERVED bundle: its `dev` script is `vite build

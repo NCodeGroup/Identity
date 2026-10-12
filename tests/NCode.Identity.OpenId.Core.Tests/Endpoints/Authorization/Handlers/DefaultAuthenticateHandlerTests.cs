@@ -20,6 +20,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -43,7 +44,7 @@ public class DefaultAuthenticateHandlerTests : BaseTests
     private DefaultAuthenticateHandler CreateHandler(string? subjectId)
     {
         MockContext.Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>())).Returns(subjectId);
-        return new DefaultAuthenticateHandler();
+        return new DefaultAuthenticateHandler(NullLogger<DefaultAuthenticateHandler>.Instance);
     }
 
     private (
@@ -114,15 +115,16 @@ public class DefaultAuthenticateHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenAuthenticationFailed_ReturnsFailedError()
+    public async Task HandleAsync_WhenAuthenticationFailed_ReturnsUndefined()
     {
-        var (command, mockAuthService, mockError) = CreateScaffold();
+        // A present-but-invalid session cookie self-heals: it is treated as "no session" so the authorize flow prompts
+        // for interactive login, rather than dead-ending the end-user with access_denied.
+        var (command, mockAuthService, _) = CreateScaffold();
         SetupAuthenticate(mockAuthService, AuthenticateResult.Fail(new Exception("boom")));
 
         var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
 
-        Assert.True(result.HasError);
-        Assert.Same(mockError.Object, result.Error);
+        Assert.True(result.IsUndefined);
     }
 
     [Fact]

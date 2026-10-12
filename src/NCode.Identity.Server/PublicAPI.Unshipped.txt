@@ -31,8 +31,8 @@ NCode.Identity.Server.DeveloperKeyModeConfiguration.extension(Microsoft.Extensio
 NCode.Identity.Server.DeveloperKeyModeConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!).GetDeveloperKeyMode() -> NCode.Identity.Server.DeveloperKeyMode
 NCode.Identity.Server.DeveloperKeysRegistration
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
-NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperKeys(NCode.Identity.Server.DeveloperKeyMode mode, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
-NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperSigningKey(System.IO.DirectoryInfo! keyRingDirectory) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperKeys(NCode.Identity.Server.DeveloperKeyMode mode) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperSigningKey() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddEphemeralDeveloperKeys() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.AdminEmail.get -> string?

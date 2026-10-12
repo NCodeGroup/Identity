@@ -51,11 +51,13 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
 
         // A tenant's domain name is optional; enforce uniqueness only over non-null values (a filtered index) so
         // that multiple tenants may omit it. The in-memory provider ignores the filter and does not enforce indexes.
+        // Quote the column so the raw filter is portable: Postgres folds unquoted identifiers to lower case (the column
+        // is PascalCase), while SQLite treats the quoted name as the same identifier.
         modelBuilder
             .Entity<TenantEntity>()
             .ToTable("Tenants")
             .HasIndex(entity => entity.NormalizedDomainName)
             .IsUnique()
-            .HasFilter("NormalizedDomainName IS NOT NULL");
+            .HasFilter("\"NormalizedDomainName\" IS NOT NULL");
     }
 }

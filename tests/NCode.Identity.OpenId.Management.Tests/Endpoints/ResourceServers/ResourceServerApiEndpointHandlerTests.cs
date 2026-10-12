@@ -26,6 +26,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
@@ -62,6 +63,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
+    private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private ResourceServerApiEndpointHandler Handler { get; }
 
     public ResourceServerApiEndpointHandlerTests()
@@ -93,6 +95,46 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             )
             .Returns(ValueTask.CompletedTask);
 
+        MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceServerChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceServerScopeChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceServerSecretChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
+
         Handler = new ResourceServerApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
@@ -105,6 +147,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             MockSettingSerializer.Object,
             MockServerProvider.Object,
             MockResourceOwnershipService.Object,
+            MockManagementAuditRecorder.Object,
             NullLogger<ResourceServerApiEndpointHandler>.Instance
         );
     }

@@ -258,6 +258,91 @@ internal class DefaultManagementAuditRecorder(
     }
 
     /// <inheritdoc />
+    public ValueTask RecordResourceServerChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string resourceServerId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new ResourceServerChangedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = GetCorrelationId(httpContext),
+            ActorId = GetActorId(httpContext),
+            Source = GetSource(httpContext),
+            TenantId = tenantId,
+            Outcome = AuditOutcome.Success,
+            ResourceId = resourceServerId,
+            ChangeType = changeType,
+            ResourceValues = resourceValues,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask RecordResourceServerScopeChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string resourceServerId,
+        string scopeValue,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new ResourceServerScopeChangedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = GetCorrelationId(httpContext),
+            ActorId = GetActorId(httpContext),
+            Source = GetSource(httpContext),
+            TenantId = tenantId,
+            Outcome = AuditOutcome.Success,
+            ResourceServerId = resourceServerId,
+            ResourceId = scopeValue,
+            ChangeType = changeType,
+            ResourceValues = resourceValues,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask RecordResourceServerSecretChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string resourceServerId,
+        string secretId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new ResourceServerSecretChangedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = GetCorrelationId(httpContext),
+            ActorId = GetActorId(httpContext),
+            Source = GetSource(httpContext),
+            TenantId = tenantId,
+            Outcome = AuditOutcome.Success,
+            ResourceServerId = resourceServerId,
+            ResourceId = secretId,
+            ChangeType = changeType,
+            ResourceValues = resourceValues,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public ValueTask RecordResourceChangeAsync(
         HttpContext httpContext,
         ResourceChangeAuditEvent auditEvent,

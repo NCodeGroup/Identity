@@ -246,6 +246,92 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
+    /// Records that an administrator created, updated, or deleted a resource server (API), or updated its settings.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the tenant the resource server belongs to.</param>
+    /// <param name="resourceServerId">The identifier of the affected resource server.</param>
+    /// <param name="changeType">
+    /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
+    /// </param>
+    /// <param name="resourceValues">
+    /// A non-sensitive snapshot of the resource server's values, or <c>null</c> when none is captured.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordResourceServerChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string resourceServerId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records that an administrator created, updated, or deleted a scope belonging to a resource server.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the tenant the resource server belongs to.</param>
+    /// <param name="resourceServerId">The identifier of the resource server the scope belongs to.</param>
+    /// <param name="scopeValue">The value of the affected scope.</param>
+    /// <param name="changeType">
+    /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
+    /// </param>
+    /// <param name="resourceValues">
+    /// A non-sensitive snapshot of the scope's values, or <c>null</c> when none is captured.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordResourceServerScopeChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string resourceServerId,
+        string scopeValue,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records that an administrator created, updated, or deleted a secret belonging to a resource server.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the tenant the resource server belongs to.</param>
+    /// <param name="resourceServerId">The identifier of the resource server the secret belongs to.</param>
+    /// <param name="secretId">The identifier of the affected secret.</param>
+    /// <param name="changeType">
+    /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
+    /// </param>
+    /// <param name="resourceValues">
+    /// A non-sensitive snapshot of the secret's metadata, or <c>null</c> when none is captured. Never
+    /// contains secret material.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordResourceServerSecretChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string resourceServerId,
+        string secretId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Records an arbitrary resource-change audit event, deriving the common audit envelope — the event id, timestamp,
     /// correlation id, acting administrator, and source — from the current request and publishing through the event
     /// seam. This is the extension seam a capability package (for example, local accounts) uses to record its own

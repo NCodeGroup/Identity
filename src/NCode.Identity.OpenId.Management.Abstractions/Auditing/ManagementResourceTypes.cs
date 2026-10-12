@@ -59,6 +59,21 @@ public static class ManagementResourceTypes
     public const string ServerSecret = "server.secret";
 
     /// <summary>
+    /// A resource server (API, in Auth0 terms).
+    /// </summary>
+    public const string ResourceServer = "resource_server";
+
+    /// <summary>
+    /// A scope belonging to a resource server.
+    /// </summary>
+    public const string ResourceServerScope = "resource_server.scope";
+
+    /// <summary>
+    /// A secret belonging to a resource server.
+    /// </summary>
+    public const string ResourceServerSecret = "resource_server.secret";
+
+    /// <summary>
     /// An initial access token (RFC 7591) that authorizes protected dynamic client registration.
     /// </summary>
     public const string InitialAccessToken = "initial_access_token";

@@ -24,8 +24,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
@@ -88,6 +90,7 @@ internal class ResourceServerApiEndpointHandler(
     ISettingSerializer settingSerializer,
     IOpenIdServerProvider serverProvider,
     IResourceOwnershipService resourceOwnershipService,
+    IManagementAuditRecorder managementAuditRecorder,
     ILogger<ResourceServerApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
@@ -100,6 +103,7 @@ internal class ResourceServerApiEndpointHandler(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
+    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -336,6 +340,15 @@ internal class ResourceServerApiEndpointHandler(
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordResourceServerChangedAsync(
+            httpContext,
+            resourceServer.TenantId,
+            resourceServer.ResourceServerId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(ToResourceServerResource(resourceServer)),
+            cancellationToken
+        );
+
         httpContext.Response.Headers.ETag = resourceServer.ConcurrencyToken;
         return TypedResults.Created(
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}",
@@ -400,6 +413,15 @@ internal class ResourceServerApiEndpointHandler(
         await store.UpdateAsync(resourceServer, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordResourceServerChangedAsync(
+            httpContext,
+            resourceServer.TenantId,
+            resourceServer.ResourceServerId,
+            ResourceChangeTypes.Updated,
+            ToResourceValues(ToResourceServerResource(resourceServer)),
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -435,8 +457,19 @@ internal class ResourceServerApiEndpointHandler(
             return ToErrorResult(error);
         }
 
+        var resourceValues = ToResourceValues(ToResourceServerResource(resourceServer));
+
         await store.RemoveAsync(resourceServerId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        await ManagementAuditRecorder.RecordResourceServerChangedAsync(
+            httpContext,
+            resourceServer.TenantId,
+            resourceServer.ResourceServerId,
+            ResourceChangeTypes.Deleted,
+            resourceValues,
+            cancellationToken
+        );
 
         return TypedResults.NoContent();
     }
@@ -520,6 +553,16 @@ internal class ResourceServerApiEndpointHandler(
             );
         }
 
+        await ManagementAuditRecorder.RecordResourceServerScopeChangedAsync(
+            httpContext,
+            resourceServer.TenantId,
+            resourceServerId,
+            persistedScope.Value,
+            ResourceChangeTypes.Created,
+            ToResourceValues(ToScopeResource(persistedScope)),
+            cancellationToken
+        );
+
         return TypedResults.Created(
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{request.Value}",
             ToScopeResource(persistedScope)
@@ -601,6 +644,25 @@ internal class ResourceServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
+        await ManagementAuditRecorder.RecordResourceServerScopeChangedAsync(
+            httpContext,
+            resourceServer.TenantId,
+            resourceServerId,
+            scopeValue,
+            ResourceChangeTypes.Updated,
+            ToResourceValues(
+                ToScopeResource(
+                    new PersistedScope
+                    {
+                        Value = scopeValue,
+                        Description = request.Description,
+                        IsSystem = false,
+                    }
+                )
+            ),
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -657,6 +719,17 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        await ManagementAuditRecorder.RecordResourceServerScopeChangedAsync(
+            httpContext,
+            resourceServer.TenantId,
+            resourceServerId,
+            scopeValue,
+            ResourceChangeTypes.Deleted,
+            resourceValues: null,
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -897,6 +970,15 @@ internal class ResourceServerApiEndpointHandler(
         await store.UpdateSettingsAsync(settings, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordResourceServerChangedAsync(
+            httpContext,
+            settings.TenantId,
+            settings.ResourceServerId,
+            ResourceChangeTypes.SettingsUpdated,
+            ToResourceValues(ToResourceServerSettingsResource(settings)),
+            cancellationToken
+        );
+
         httpContext.Response.Headers.ETag = settings.ConcurrencyToken;
         return TypedResults.NoContent();
     }
@@ -1054,6 +1136,16 @@ internal class ResourceServerApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordResourceServerSecretChangedAsync(
+            httpContext,
+            resourceServer.TenantId,
+            resourceServerId,
+            secretId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(ToSecretResource(generatedSecret.Secret)),
+            cancellationToken
+        );
+
         httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
         return TypedResults.Created(
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets/{secretId}",
@@ -1197,6 +1289,16 @@ internal class ResourceServerApiEndpointHandler(
         await store.UpdateSecretAsync(resourceServerId, updated, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await ManagementAuditRecorder.RecordResourceServerSecretChangedAsync(
+            httpContext,
+            resourceServerSecret.TenantId,
+            resourceServerId,
+            secretId,
+            ResourceChangeTypes.Updated,
+            ToResourceValues(ToSecretResource(updated)),
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -1237,6 +1339,16 @@ internal class ResourceServerApiEndpointHandler(
 
         await store.RemoveSecretAsync(resourceServerId, secretId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        await ManagementAuditRecorder.RecordResourceServerSecretChangedAsync(
+            httpContext,
+            resourceServerSecret.TenantId,
+            resourceServerId,
+            secretId,
+            ResourceChangeTypes.Deleted,
+            ToResourceValues(ToSecretResource(resourceServerSecret.Value)),
+            cancellationToken
+        );
 
         return TypedResults.NoContent();
     }

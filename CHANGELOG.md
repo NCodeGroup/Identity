@@ -10,6 +10,16 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Server create/edit management across the stack — completes backlog `U9`.** The Servers surface is no longer
+  read-only: an OpenID server now carries an editable top-level **display name**, and the management console lists
+  servers with a **Create server** action plus row-level **edit/delete** (mirroring tenants and resource servers) in
+  addition to the existing drill-in to a server's secrets/settings. Backend: `ServerResource`/`CreateServerRequest`
+  gain `DisplayName`, a new `UpdateServerRequest` + `PATCH /api/servers/{serverId}` endpoint lands (JSON Patch with
+  `If-Match`, validated by `IServerValidator.ValidateUpdateAsync`), and `DisplayName` is persisted on `PersistedServer`
+  (and the EF `ServerEntity`) and round-tripped through `IServerStore`. Audit reaches parity with the other resources:
+  a new `ServerChangedAuditEvent` (`ManagementResourceTypes.Server`) and `IManagementAuditRecorder.RecordServerChangedAsync`
+  record **create/update/delete** (servers are the `GlobalAdmin`-only control plane, so the event carries no tenant).
+  Frontend: new `createServer`/`updateServer`/`deleteServer` RTK Query mutations and a `ServerFormDialog`.
 - **Public-key export, a secret-type capability catalog, and composable capabilities discovery
   ([ADR-0067](docs/adr/0067-secret-type-capability-catalog-and-capabilities-discovery.md)).** The management console
   can now export an asymmetric secret's **public key** (JWK + PEM, copy/download) from the secrets table; the action

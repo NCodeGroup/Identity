@@ -75,6 +75,14 @@ public sealed class ServerEntity : ISupportConcurrencyToken
     public required string SecretsConcurrencyToken { get; set; }
 
     /// <summary>
+    /// Gets or sets the display name for the server.
+    /// </summary>
+    [Unicode]
+    // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
+    // We never know how long the value will be.
+    public required string DisplayName { get; set; }
+
+    /// <summary>
     /// Gets or sets the serialized JSON for the server's settings.
     /// </summary>
     public required JsonElement SettingsJson { get; set; }

@@ -97,6 +97,7 @@ internal class ServerStore(
         {
             ServerId = entity.ServerId,
             ConcurrencyToken = entity.ConcurrencyToken,
+            DisplayName = entity.DisplayName,
             Settings = await MapSettingsAsync(entity, cancellationToken),
             Secrets = await MapSecretsAsync(entity, cancellationToken),
         };
@@ -203,6 +204,7 @@ internal class ServerStore(
             ConcurrencyToken = persistedServer.ConcurrencyToken,
             SettingsConcurrencyToken = persistedServer.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedServer.Secrets.ConcurrencyToken,
+            DisplayName = persistedServer.DisplayName,
             SettingsJson = persistedServer.Settings.Value,
             Secrets = secrets,
         };
@@ -255,6 +257,8 @@ internal class ServerStore(
         }
 
         // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-0012).
+        serverEntity.DisplayName = persistedServer.DisplayName;
+
         DbContext.Servers.Update(serverEntity);
     }
 

@@ -298,6 +298,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Use
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.DisplayName.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.DisplayName.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.Id.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.Id.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.NormalizedServerId.get -> string!

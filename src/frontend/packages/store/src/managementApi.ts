@@ -28,7 +28,9 @@ import {
   type UpdateClientFields,
   type UpdateResourceServerFields,
   type UpdateScopeRequest,
+  type UpdateServerFields,
   type UpdateTenantFields,
+  type CreateServerRequest,
 } from '@ncode/api';
 import { dynamicBaseQuery } from './baseQuery.js';
 
@@ -59,7 +61,39 @@ export const managementApi = createApi({
     }),
     listServers: build.query<CollectionResource<ServerResource>, void>({
       query: () => 'api/servers',
-      providesTags: [{ type: 'Server', id: 'LIST' }],
+      providesTags: (result) => [
+        { type: 'Server' as const, id: 'LIST' },
+        ...(result?.items ?? []).map((s) => ({ type: 'Server' as const, id: s.serverId })),
+      ],
+    }),
+    createServer: build.mutation<ServerResource, CreateServerRequest>({
+      query: (body) => ({ url: 'api/servers', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Server', id: 'LIST' }],
+    }),
+    updateServer: build.mutation<
+      void,
+      { serverId: string; concurrencyToken: string; fields: UpdateServerFields }
+    >({
+      query: ({ serverId, concurrencyToken, fields }) => ({
+        url: `api/servers/${encodeURIComponent(serverId)}`,
+        method: 'PATCH',
+        body: replacePatch({ ...fields }),
+        headers: { 'If-Match': concurrencyToken },
+      }),
+      invalidatesTags: (_result, _error, { serverId }) => [
+        { type: 'Server', id: 'LIST' },
+        { type: 'Server', id: serverId },
+      ],
+    }),
+    deleteServer: build.mutation<void, { serverId: string }>({
+      query: ({ serverId }) => ({
+        url: `api/servers/${encodeURIComponent(serverId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { serverId }) => [
+        { type: 'Server', id: 'LIST' },
+        { type: 'Server', id: serverId },
+      ],
     }),
     listClients: build.query<CollectionResource<ClientResource>, { scope: ManagementScope }>({
       query: ({ scope }) => `${scopeApiPrefix(scope)}/clients`,
@@ -636,6 +670,9 @@ export const {
   useListServersQuery,
   useListClientsQuery,
   useListResourceServersQuery,
+  useCreateServerMutation,
+  useUpdateServerMutation,
+  useDeleteServerMutation,
   useCreateTenantMutation,
   useUpdateTenantMutation,
   useDeleteTenantMutation,

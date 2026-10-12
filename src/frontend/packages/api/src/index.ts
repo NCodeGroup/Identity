@@ -8,6 +8,7 @@ export type {
   CreatedSecretResource,
   CreateInitialAccessTokenRequest,
   CreatedInitialAccessTokenResource,
+  CreateServerRequest,
   CreateTenantRequest,
   EccCurveCapability,
   EffectiveSettingsResource,
@@ -26,6 +27,7 @@ export type {
   UpdateClientFields,
   UpdateResourceServerFields,
   UpdateScopeRequest,
+  UpdateServerFields,
   UpdateTenantFields,
 } from './contracts.js';
 export {

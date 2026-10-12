@@ -36,4 +36,9 @@ public sealed class ServerResource : ISupportServerId, ISupportConcurrencyToken
 
     /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }
+
+    /// <summary>
+    /// Gets the display name for the server.
+    /// </summary>
+    public required string DisplayName { get; init; }
 }

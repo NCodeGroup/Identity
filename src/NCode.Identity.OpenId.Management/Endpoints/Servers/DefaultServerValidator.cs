@@ -19,6 +19,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Management.Contracts.Servers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
@@ -60,6 +61,52 @@ internal class DefaultServerValidator(IAuthorizationService authorizationService
             {
                 StatusCode = StatusCodes.Status409Conflict,
                 Detail = "A server with the specified identifier already exists.",
+            };
+        }
+
+        return null;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<ManagementError?> ValidateUpdateAsync(
+        ClaimsPrincipal user,
+        PersistedServer server,
+        UpdateServerRequest model,
+        string? ifMatch,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        var error = await AuthorizeAsync(
+            user,
+            server,
+            Operations.Update,
+            "The caller is not authorized to update this server.",
+            "Authentication is required to update this server."
+        );
+        if (error is not null)
+        {
+            return error;
+        }
+
+        if (
+            !string.IsNullOrEmpty(ifMatch)
+            && !string.Equals(ifMatch, server.ConcurrencyToken, StringComparison.Ordinal)
+        )
+        {
+            return new ManagementError
+            {
+                StatusCode = StatusCodes.Status412PreconditionFailed,
+                Detail = "The supplied If-Match token does not match the current server.",
+            };
+        }
+
+        if (string.IsNullOrEmpty(model.DisplayName))
+        {
+            return new ManagementError
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+                Detail = "The 'displayName' is required.",
             };
         }
 

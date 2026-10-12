@@ -86,6 +86,17 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
         MockManagementAuditRecorder
             .Setup(x =>
+                x.RecordServerChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
+        MockManagementAuditRecorder
+            .Setup(x =>
                 x.RecordServerSecretChangedAsync(
                     It.IsAny<HttpContext>(),
                     It.IsAny<string>(),
@@ -205,6 +216,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         {
             ServerId = ServerId,
             ConcurrencyToken = concurrencyToken,
+            DisplayName = "Test Server",
             Settings = CreateSettings("settings-ct", EmptyObject()),
             Secrets = CreateSecrets("secrets-ct"),
         };
@@ -1254,6 +1266,263 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region CreateServerAsync Tests
+
+    [Fact]
+    public async Task CreateServerAsync_WhenValid_ReturnsCreatedWithDisplayName()
+    {
+        SetupStore();
+        SetupResourceId("generated-id");
+        MockServerValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedServer>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        MockServerStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedServer>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+        var request = new CreateServerRequest
+        {
+            DisplayName = "My Server",
+            Settings = EmptyObject(),
+        };
+
+        var result = await Handler.CreateServerAsync(httpContext, request, CancellationToken.None);
+
+        var created = Assert.IsType<Created<ServerResource>>(result);
+        Assert.Equal("generated-id", created.Value?.ServerId);
+        Assert.Equal("My Server", created.Value?.DisplayName);
+        MockManagementAuditRecorder.Verify(
+            x =>
+                x.RecordServerChangedAsync(
+                    httpContext,
+                    "generated-id",
+                    ResourceChangeTypes.Created,
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task CreateServerAsync_WhenValidationFails_ReturnsProblem()
+    {
+        SetupStore();
+        SetupResourceId("generated-id");
+        MockServerValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedServer>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = "conflict",
+                }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+        var request = new CreateServerRequest
+        {
+            DisplayName = "My Server",
+            Settings = EmptyObject(),
+        };
+
+        var result = await Handler.CreateServerAsync(httpContext, request, CancellationToken.None);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region UpdateServerAsync Tests
+
+    private static JsonPatchDocument<UpdateServerRequest> CreateDisplayNamePatch(string displayName)
+    {
+        var patch = new JsonPatchDocument<UpdateServerRequest>();
+        patch.Operations.Add(
+            new Operation<UpdateServerRequest>(
+                "replace",
+                "/displayName",
+                from: null,
+                value: displayName
+            )
+        );
+        return patch;
+    }
+
+    [Fact]
+    public async Task UpdateServerAsync_WhenValid_AppliesPatchAndReturnsNoContent()
+    {
+        SetupStore();
+        var server = CreateServer("server-ct");
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(server)
+            .Verifiable();
+        MockServerValidator
+            .Setup(x =>
+                x.ValidateUpdateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedServer>(),
+                    It.IsAny<UpdateServerRequest>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        MockServerStore
+            .Setup(x => x.UpdateAsync(server, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateServerAsync(
+            httpContext,
+            ServerId,
+            CreateDisplayNamePatch("Renamed Server"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal("Renamed Server", server.DisplayName);
+        MockManagementAuditRecorder.Verify(
+            x =>
+                x.RecordServerChangedAsync(
+                    httpContext,
+                    ServerId,
+                    ResourceChangeTypes.Updated,
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task UpdateServerAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedServer?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateServerAsync(
+            httpContext,
+            ServerId,
+            CreateDisplayNamePatch("Renamed Server"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task UpdateServerAsync_WhenValidatorReportsPreconditionFailed_ReturnsProblem()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateServer("server-ct"))
+            .Verifiable();
+        MockServerValidator
+            .Setup(x =>
+                x.ValidateUpdateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedServer>(),
+                    It.IsAny<UpdateServerRequest>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status412PreconditionFailed,
+                    Detail = "stale",
+                }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateServerAsync(
+            httpContext,
+            ServerId,
+            CreateDisplayNamePatch("Renamed Server"),
+            ifMatch: "stale-token",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateServerAsync_WhenPatchInvalid_ReturnsBadRequest()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateServer("server-ct"))
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Replace on a path that does not exist throws a JsonPatchException.
+        var patch = new JsonPatchDocument<UpdateServerRequest>();
+        patch.Operations.Add(
+            new Operation<UpdateServerRequest>("replace", "/missing", from: null, value: "value")
+        );
+
+        var result = await Handler.UpdateServerAsync(
+            httpContext,
+            ServerId,
+            patch,
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
     #endregion

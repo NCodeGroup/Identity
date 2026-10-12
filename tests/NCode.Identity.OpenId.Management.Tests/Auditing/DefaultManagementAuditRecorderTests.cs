@@ -343,6 +343,50 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
     #endregion
 
+    #region RecordServerChangedAsync Tests
+
+    [Fact]
+    public async Task RecordServerChangedAsync_PublishesServerChangedAuditEventWithSnapshot()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        ServerChangedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<ServerChangedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (ServerChangedAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = CreateRecorder(mockPublisher.Object);
+
+        var httpContext = CreateHttpContext("admin-1");
+        var resourceValues = JsonSerializer.SerializeToElement(new { displayName = "My Server" });
+
+        await recorder.RecordServerChangedAsync(
+            httpContext,
+            "server-1",
+            ResourceChangeTypes.Updated,
+            resourceValues,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("server.updated", captured.Action);
+        Assert.Equal(ManagementResourceTypes.Server, captured.ResourceType);
+        Assert.Equal(ResourceChangeTypes.Updated, captured.ChangeType);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Null(captured.TenantId);
+        Assert.Equal("server-1", captured.ResourceId);
+        Assert.Equal("admin-1", captured.ActorId);
+        Assert.NotNull(captured.ResourceValues);
+    }
+
+    #endregion
+
     #region RecordServerSecretChangedAsync Tests
 
     [Fact]

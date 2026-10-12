@@ -186,6 +186,7 @@ internal class DefaultOpenIdServerFactory(
         {
             ServerId = serverId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
+            DisplayName = serverId,
             Settings = settings,
             Secrets = secrets,
         };

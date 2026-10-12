@@ -47,6 +47,23 @@ export type ServerResource = {
   readonly displayName: string;
 };
 
+/**
+ * Mirror of `CreateServerRequest`. The server id is server-generated (not supplied), and `settings`
+ * is the initial JSON settings object (empty by default; settings have their own PATCH endpoint).
+ */
+export type CreateServerRequest = {
+  readonly displayName: string;
+  readonly settings: Readonly<Record<string, unknown>>;
+};
+
+/**
+ * The mutable server metadata a JSON Patch may modify (mirror of `UpdateServerRequest`). The store
+ * turns this into a `replace`-only JSON Patch document; keys match the server's wire property names.
+ */
+export type UpdateServerFields = {
+  readonly displayName: string;
+};
+
 /** Mirror of `ClientResource` (tenant scope). A client has no display name; it is identified by id. */
 export type ClientResource = {
   readonly clientId: string;

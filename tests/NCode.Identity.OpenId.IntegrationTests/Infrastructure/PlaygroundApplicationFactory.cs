@@ -24,7 +24,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Extensions.DataProtection;
@@ -417,21 +416,6 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         builder.UseSolutionRelativeContentRoot("src/NCode.Identity.OpenId.Playground");
         builder.UseEnvironment(Microsoft.Extensions.Hosting.Environments.Development);
 
-        // Append the resource-owner 'password' grant to the server ceiling (grant_types_supported is an
-        // Intersect setting, so every layer must list it). The Playground host stays conservative and does not
-        // enable this deprecated grant by default; the test host opts in here to exercise the local-account flow.
-        builder.ConfigureAppConfiguration(configurationBuilder =>
-        {
-            configurationBuilder.AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["OpenId:Server:Settings:grant_types_supported:4"] = OpenIdConstants
-                        .GrantTypes
-                        .Password,
-                }
-            );
-        });
-
         builder.ConfigureTestServices(serviceCollection =>
         {
             // Replace the Playground's shared in-memory database with a per-factory isolated one.
@@ -444,7 +428,8 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
             );
 
             // Widen the server ceiling (registered after the library default, so it unions on top):
-            // enables the client_credentials grant and a custom "api" scope for integration coverage.
+            // enables the client_credentials and resource-owner password grants plus a custom "api" scope for
+            // integration coverage. Both grants stay off in the Playground host's own secure defaults.
             serviceCollection.AddSingleton<IDefaultSettingsProvider, TestServerSettingsProvider>();
         });
     }

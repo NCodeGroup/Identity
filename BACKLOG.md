@@ -146,7 +146,9 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   in its dedicated doc: [`docs/conformance-testing.md`](docs/conformance-testing.md). The Dynamic OP profile
   prerequisite (Dynamic Client Registration) is implemented ([ADR-0063](docs/adr/0063-dynamic-client-registration.md));
   the harness enables anonymous registration (`registration_endpoint_allow_anonymous`). Depends on the prerequisite
-  work items `T2`–`T5` below (the seeded, automatable, correctly-advertised OP the harness drives).
+  work items `T2`–`T4` below (the seeded, automatable OP the harness drives). The discovery-metadata alignment
+  prerequisite is **done**: the OP advertises secure-by-default, verified capabilities
+  ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface
   implemented._ The OpenID Provider has an opt-in interactive login/consent surface
   ([ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md)): a cookie scheme the authorize
@@ -167,10 +169,6 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   fixed test user. Detailed plan:
   [`docs/conformance/conformance-seeding.md`](docs/conformance/conformance-seeding.md). Static client half
   is retired by `F6` (DCR); tenant/user seeding is not.
-- **`T5` — Discovery-metadata alignment audit.** Discovery is data-driven from discoverable settings;
-  `appsettings.json` over-advertises `grant_types_supported` (`implicit`) and the response-type set
-  includes unverified flows, which fails Config OP. Audit every advertised field down to verified support.
-  Detailed plan: [`docs/conformance/discovery-alignment.md`](docs/conformance/discovery-alignment.md).
 
 ## Frontend presentation platform (group `U`)
 

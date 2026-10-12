@@ -298,6 +298,12 @@ rationale.
   `JwtSecurityTokenHandler` / `JwtSecurityToken` (use `JsonWebTokenHandler`), and no
   sync-over-async. Add house rules to that file as they emerge.
 - ⏳ **Warnings-as-errors**, and **NuGet vulnerability advisories (`NU190x`) as errors in CI**.
+- ✅ **EF Core model changes ship with their migration.** Any edit to an entity, an `IEntityTypeConfiguration`, or a
+  model contributor that changes the `OpenIdDbContext` model MUST be accompanied by a new migration
+  (`dotnet ef migrations add <Name>`). The Definition of Done runs `dotnet ef migrations has-pending-model-changes`
+  and fails on un-migrated model drift, so it is caught pre-push and in CI, not at runtime. Local dev is self-healing
+  (the Playground rebuilds its disposable SQLite dev DB from the live model) so an un-migrated edit does not crash the
+  inner loop — the gate is the reminder. See [ADR-0072](../../docs/adr/0072-self-healing-dev-database-and-model-drift-gate.md).
 - ✅ The whole gate is [`build/dod.ps1`](../../build/dod.ps1) — the single Definition of Done that CI runs.
 - ⏳ **Local inner loop: `./build/dod.ps1 -Fast`.** It parallelizes project builds and test assemblies and skips the
   non-correctness stages (coverage collection + packing) for a quicker edit-run cycle, while keeping CSharpier,

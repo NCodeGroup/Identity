@@ -202,6 +202,12 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
+- **`U12` — Aspire migration-worker resource (optional runtime polish).** [ADR-0072](docs/adr/0072-self-healing-dev-database-and-model-drift-gate.md)
+  keeps database bootstrap inside the Playground `api` process. The Aspire-idiomatic alternative is a dedicated
+  migration/initializer resource in the AppHost graph that other resources `WaitFor`, so a migration failure surfaces
+  as a failed dashboard resource rather than an `api` crash. This only relocates the failure (the self-healing +
+  Definition-of-Done drift gate already prevent drift), and costs a new project, so it is deferred.
+  Touch points: `src/NCode.Identity.OpenId.Playground.AppHost/Program.cs`.
 
 ## Secrets management (group `S`)
 

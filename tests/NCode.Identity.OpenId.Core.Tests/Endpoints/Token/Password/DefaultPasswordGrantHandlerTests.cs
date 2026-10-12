@@ -135,6 +135,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
             .Verifiable();
 
         mockTokenRequest.SetupGet(x => x.Scopes).Returns(scopes).Verifiable();
+        mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
             .Returns(OpenIdConstants.GrantTypes.Password)

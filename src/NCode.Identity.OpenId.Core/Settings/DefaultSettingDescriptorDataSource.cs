@@ -205,17 +205,6 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = And,
             };
 
-            // allow_plain_code_challenge_method: permit the PKCE "plain" code-challenge method (default true).
-            // Ceiling (And): once a parent forbids it, a child cannot re-allow it.
-            yield return new SettingDescriptor<bool>
-            {
-                Name = OpenIdSettingNames.AllowPlainCodeChallengeMethod,
-                Default = true,
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = And,
-            };
-
             // allow_unsafe_token_response: permit returning tokens via a query/fragment response (default true).
             // Ceiling (And): once a parent forbids it, a child cannot re-allow it.
             yield return new SettingDescriptor<bool>
@@ -338,6 +327,22 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Min,
+            };
+
+            // code_challenge_methods_supported: the PKCE code_challenge_method transformations the server supports
+            // (RFC 7636 / RFC 8414). Default permits both "plain" and "S256"; remove "plain" to require S256.
+            // Ceiling (Intersect): a child narrows the parent's set; it cannot re-add a method the parent removed.
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.CodeChallengeMethodsSupported,
+                Default =
+                [
+                    OpenIdConstants.CodeChallengeMethods.Plain,
+                    OpenIdConstants.CodeChallengeMethods.S256,
+                ],
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
             };
 
             // continue_authorization_lifetime: validity window for a paused ("continue") authorization flow (default 15 minutes).

@@ -18,6 +18,7 @@
 
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.Secrets.Logic;
@@ -52,11 +53,24 @@ internal class DefaultResourceServerCredentialResolver(
     public async ValueTask<ResourceServerCredentialResolution> ResolveAsync(
         OpenIdContext openIdContext,
         IReadOnlyCollection<string> effectiveScopes,
+        IReadOnlyCollection<string> requestedResources,
         CancellationToken cancellationToken
     )
     {
+        var hasRequestedResources = requestedResources.Count > 0;
+
         if (effectiveScopes.Count == 0)
         {
+            // A resource was requested but no scope backs it, so no resource server can be targeted (RFC 8707).
+            if (hasRequestedResources)
+            {
+                throw openIdContext
+                    .ErrorFactory.InvalidTarget(
+                        "The requested resource is not associated with any of the granted scopes."
+                    )
+                    .AsException();
+            }
+
             return new ResourceServerCredentialResolution { ResourceServers = [] };
         }
 
@@ -67,6 +81,11 @@ internal class DefaultResourceServerCredentialResolver(
         var requestedScopes =
             effectiveScopes as IReadOnlySet<string>
             ?? effectiveScopes.ToHashSet(StringComparer.Ordinal);
+
+        // Track which requested resources were satisfied so an unsatisfied one can be rejected as invalid_target.
+        var unmatchedResources = hasRequestedResources
+            ? new HashSet<string>(requestedResources, StringComparer.Ordinal)
+            : null;
 
         // The OIDC runtime endpoints do not establish an ambient tenant scope, so set it explicitly here so the
         // persistence-layer tenant query filter applies to the resource-server reads (ADR-0018).
@@ -97,6 +116,16 @@ internal class DefaultResourceServerCredentialResolver(
                     continue;
                 }
 
+                // RFC 8707: when the client requested specific resources, only those resource servers are targeted.
+                if (
+                    hasRequestedResources && !requestedResources.Contains(resourceServer.Identifier)
+                )
+                {
+                    continue;
+                }
+
+                unmatchedResources?.Remove(resourceServer.Identifier);
+
                 var effectiveSettings = tenantEffectiveSettings.Merge(
                     SettingSerializer.DeserializeSettings(
                         resourceServer.Settings.Value,
@@ -119,6 +148,16 @@ internal class DefaultResourceServerCredentialResolver(
 
             cursor = page.NextCursor;
         } while (cursor is not null);
+
+        // A requested resource that matched no enabled, scope-owning resource server is rejected (RFC 8707).
+        if (unmatchedResources is { Count: > 0 })
+        {
+            throw openIdContext
+                .ErrorFactory.InvalidTarget(
+                    "The requested resource is unknown, disabled, or not associated with any of the granted scopes."
+                )
+                .AsException();
+        }
 
         var resourceServers = matches.Values.ToList();
 

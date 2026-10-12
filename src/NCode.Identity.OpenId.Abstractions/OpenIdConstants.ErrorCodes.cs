@@ -98,6 +98,13 @@ public static partial class OpenIdConstants
         public const string InvalidScope = "invalid_scope";
 
         /// <summary>
+        /// Contains the error code for <c>invalid_target</c>, returned when a requested <c>resource</c> indicator
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc8707">RFC 8707</see>) is unknown, malformed, or exceeds
+        /// what the client is authorized to target.
+        /// </summary>
+        public const string InvalidTarget = "invalid_target";
+
+        /// <summary>
         /// Contains the error code for <c>server_error</c>.
         /// </summary>
         public const string ServerError = "server_error";

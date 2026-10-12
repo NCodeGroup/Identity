@@ -144,6 +144,40 @@ internal class DefaultClientScopeService(
         return audiences;
     }
 
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyCollection<string>> GetEnabledResourceServerIdentifiersAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        // The OIDC runtime endpoints do not establish an ambient tenant scope, so set it explicitly here so the
+        // persistence-layer tenant query filter applies to the resource-server reads (ADR-0018).
+        using var tenantScope = AmbientTenantAccessor.BeginScope(tenantId);
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
+
+        var identifiers = new HashSet<string>(StringComparer.Ordinal);
+
+        string? cursor = null;
+        do
+        {
+            var page = await resourceServerStore.GetPageAsync(cursor, PageSize, cancellationToken);
+
+            foreach (var resourceServer in page.Items)
+            {
+                if (!resourceServer.IsDisabled)
+                {
+                    identifiers.Add(resourceServer.Identifier);
+                }
+            }
+
+            cursor = page.NextCursor;
+        } while (cursor is not null);
+
+        return identifiers;
+    }
+
     private static async ValueTask<Dictionary<string, HashSet<string>>> LoadClientGrantsAsync(
         IClientGrantStore clientGrantStore,
         string clientId,

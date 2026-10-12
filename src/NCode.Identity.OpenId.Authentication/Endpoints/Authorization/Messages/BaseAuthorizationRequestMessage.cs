@@ -162,6 +162,13 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
         set => SetKnownParameter(OpenIdCommonParameters.RedirectUri, value);
     }
 
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.Resources" />
+    public List<string>? Resources
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.Resources);
+        set => SetKnownParameter(OpenIdCommonParameters.Resources, value);
+    }
+
     /// <inheritdoc cref="IAuthorizationRequestMessage.RequestJwt" />
     public string? RequestJwt
     {

@@ -58,4 +58,17 @@ public interface IClientScopeService
         IReadOnlyCollection<string> scopes,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Gets the identifiers (audiences) of the tenant's currently-enabled resource servers, used to validate the
+    /// <c>resource</c> indicators (RFC 8707) a client may request.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant that owns the resource servers.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the distinct
+    /// identifiers (audiences) of the enabled resource servers.</returns>
+    ValueTask<IReadOnlyCollection<string>> GetEnabledResourceServerIdentifiersAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    );
 }

@@ -74,6 +74,12 @@ public interface ITokenRequest : IOpenIdRequest
     List<string>? Scopes { get; set; }
 
     /// <summary>
+    /// Gets or sets a <see cref="string"/> collection containing the <c>resource</c> parameter (RFC 8707 Resource
+    /// Indicators) identifying the resource servers (audiences) the issued access token is intended for.
+    /// </summary>
+    List<string>? Resources { get; set; }
+
+    /// <summary>
     /// Gets or sets a <see cref="string"/> value containing the username of the resource owner.
     /// </summary>
     string? Username { get; set; }

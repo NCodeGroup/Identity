@@ -54,6 +54,17 @@ internal static class DefaultRegistration
                 DefaultResourceServerCredentialResolver
             >();
 
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ICodeChallengeMethod, PlainCodeChallengeMethod>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ICodeChallengeMethod, S256CodeChallengeMethod>()
+            );
+            serviceCollection.TryAddSingleton<
+                ICodeChallengeMethodCollectionProvider,
+                DefaultCodeChallengeMethodCollectionProvider
+            >();
+
             serviceCollection.TryAddSingleton<
                 Sessions.ISessionService,
                 Sessions.DefaultSessionService

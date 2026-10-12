@@ -249,6 +249,16 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSecrets
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSecrets.PersistedTenantSecrets() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSettings
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSettings.PersistedTenantSettings() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection
+NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection.Identifier.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection.Identifier.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection.IsSystem.get -> bool
+NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection.IsSystem.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection.ResourceServerId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection.ResourceServerId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection.ResourceServerScopeProjection() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection.ScopeValues.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection.ScopeValues.init -> void
 NCode.Identity.OpenId.Persistence.ISupportClientId
 NCode.Identity.OpenId.Persistence.ISupportClientId.ClientId.get -> string!
 NCode.Identity.OpenId.Persistence.ISupportResourceServerId
@@ -294,7 +304,12 @@ NCode.Identity.OpenId.Persistence.Stores.IGrantStore.RevokeWhereAsync(string? su
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.AddScopeAsync(string! resourceServerId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope! persistedScope, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.AddSecretAsync(string! resourceServerId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.FindEnabledByScopesAsync(System.Collections.Generic.IReadOnlyCollection<string!>! scopeValues, System.Collections.Generic.IReadOnlyCollection<string!>? identifiers, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer!>!>
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.GetByIdentifierOrDefaultAsync(string! identifier, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer?>
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.GetEnabledIdentifiersAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyCollection<string!>!>
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.GetEnabledScopeProjectionsByScopesAsync(System.Collections.Generic.IReadOnlyCollection<string!>! scopeValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection!>!>
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.GetEnabledScopeProjectionsBySystemOrIdsAsync(System.Collections.Generic.IReadOnlyCollection<string!>! resourceServerIds, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Persistence.DataContracts.ResourceServerScopeProjection!>!>
+NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.GetEnabledScopesAsync(System.Collections.Generic.IReadOnlyCollection<string!>? scopeValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope!>!>
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.GetOrDefaultAsync(string! resourceServerId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer?>
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.GetPageAsync(string? cursor, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer!>!>
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.GetSecretOrDefaultAsync(string! resourceServerId, string! secretId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServerSecret?>

@@ -56,42 +56,34 @@ internal class DefaultClientScopeService(
             cancellationToken
         );
 
+        // The DBMS returns only the enabled resource servers that are system-owned or that this client holds a grant
+        // for; everything else cannot contribute an allowed scope (ADR-0080).
+        var projections = await resourceServerStore.GetEnabledScopeProjectionsBySystemOrIdsAsync(
+            grantedScopesByResourceServer.Keys.ToList(),
+            cancellationToken
+        );
+
         // Scope values are case-sensitive per RFC 6749.
         var allowedScopes = new HashSet<string>(StringComparer.Ordinal);
 
-        string? cursor = null;
-        do
+        foreach (var resourceServer in projections)
         {
-            var page = await resourceServerStore.GetPageAsync(cursor, PageSize, cancellationToken);
-
-            foreach (var resourceServer in page.Items)
+            if (resourceServer.IsSystem)
             {
-                if (resourceServer.IsDisabled)
-                {
-                    continue;
-                }
-
-                var resourceServerScopes = resourceServer.Scopes.Select(scope => scope.Value);
-
-                if (resourceServer.IsSystem)
-                {
-                    // A system resource server is implicitly available to every client (ADR-0025).
-                    allowedScopes.UnionWith(resourceServerScopes);
-                }
-                else if (
-                    grantedScopesByResourceServer.TryGetValue(
-                        resourceServer.ResourceServerId,
-                        out var grantedScopes
-                    )
-                )
-                {
-                    // Read-time intersection: a granted scope no longer defined on the resource server is ignored.
-                    allowedScopes.UnionWith(resourceServerScopes.Where(grantedScopes.Contains));
-                }
+                // A system resource server is implicitly available to every client (ADR-0025).
+                allowedScopes.UnionWith(resourceServer.ScopeValues);
             }
-
-            cursor = page.NextCursor;
-        } while (cursor is not null);
+            else if (
+                grantedScopesByResourceServer.TryGetValue(
+                    resourceServer.ResourceServerId,
+                    out var grantedScopes
+                )
+            )
+            {
+                // Read-time intersection: a granted scope no longer defined on the resource server is ignored.
+                allowedScopes.UnionWith(resourceServer.ScopeValues.Where(grantedScopes.Contains));
+            }
+        }
 
         return allowedScopes;
     }
@@ -118,28 +110,22 @@ internal class DefaultClientScopeService(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
 
+        // The DBMS pre-filters to enabled resource servers owning one of the scopes (case-insensitive); the exact
+        // case-sensitive ownership match is applied here (ADR-0080).
+        var projections = await resourceServerStore.GetEnabledScopeProjectionsByScopesAsync(
+            scopes,
+            cancellationToken
+        );
+
         var audiences = new SortedSet<string>(StringComparer.Ordinal);
 
-        string? cursor = null;
-        do
+        foreach (var resourceServer in projections)
         {
-            var page = await resourceServerStore.GetPageAsync(cursor, PageSize, cancellationToken);
-
-            foreach (var resourceServer in page.Items)
+            if (resourceServer.ScopeValues.Any(requestedScopes.Contains))
             {
-                if (resourceServer.IsDisabled)
-                {
-                    continue;
-                }
-
-                if (resourceServer.Scopes.Any(scope => requestedScopes.Contains(scope.Value)))
-                {
-                    audiences.Add(resourceServer.Identifier);
-                }
+                audiences.Add(resourceServer.Identifier);
             }
-
-            cursor = page.NextCursor;
-        } while (cursor is not null);
+        }
 
         return audiences;
     }
@@ -157,25 +143,9 @@ internal class DefaultClientScopeService(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
 
-        var identifiers = new HashSet<string>(StringComparer.Ordinal);
+        var identifiers = await resourceServerStore.GetEnabledIdentifiersAsync(cancellationToken);
 
-        string? cursor = null;
-        do
-        {
-            var page = await resourceServerStore.GetPageAsync(cursor, PageSize, cancellationToken);
-
-            foreach (var resourceServer in page.Items)
-            {
-                if (!resourceServer.IsDisabled)
-                {
-                    identifiers.Add(resourceServer.Identifier);
-                }
-            }
-
-            cursor = page.NextCursor;
-        } while (cursor is not null);
-
-        return identifiers;
+        return identifiers as IReadOnlySet<string> ?? identifiers.ToHashSet(StringComparer.Ordinal);
     }
 
     private static async ValueTask<Dictionary<string, HashSet<string>>> LoadClientGrantsAsync(

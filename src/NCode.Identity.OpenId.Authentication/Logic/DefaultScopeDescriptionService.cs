@@ -31,8 +31,6 @@ internal class DefaultScopeDescriptionService(
     IAmbientTenantAccessor ambientTenantAccessor
 ) : IScopeDescriptionService
 {
-    private const int PageSize = 100;
-
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
@@ -60,28 +58,24 @@ internal class DefaultScopeDescriptionService(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
 
-        string? cursor = null;
-        do
+        // The DBMS pre-filters to enabled scopes matching the wanted values (case-insensitive); the exact
+        // case-sensitive match is applied here (ADR-0080).
+        var scopes = await resourceServerStore.GetEnabledScopesAsync(
+            scopeValues,
+            cancellationToken
+        );
+
+        foreach (var scope in scopes)
         {
-            var page = await resourceServerStore.GetPageAsync(cursor, PageSize, cancellationToken);
-
-            foreach (var resourceServer in page.Items)
+            if (
+                !descriptions.ContainsKey(scope.Value)
+                && wanted.Contains(scope.Value)
+                && !string.IsNullOrEmpty(scope.Description)
+            )
             {
-                foreach (var scope in resourceServer.Scopes)
-                {
-                    if (
-                        !descriptions.ContainsKey(scope.Value)
-                        && wanted.Contains(scope.Value)
-                        && !string.IsNullOrEmpty(scope.Description)
-                    )
-                    {
-                        descriptions[scope.Value] = scope.Description;
-                    }
-                }
+                descriptions[scope.Value] = scope.Description;
             }
-
-            cursor = page.NextCursor;
-        } while (cursor is not null);
+        }
 
         return descriptions;
     }

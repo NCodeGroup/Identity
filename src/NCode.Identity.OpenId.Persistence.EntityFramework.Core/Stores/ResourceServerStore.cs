@@ -174,6 +174,149 @@ internal class ResourceServerStore(
     protected override long GetSortKey(ResourceServerEntity entity) => entity.Id;
 
     /// <inheritdoc />
+    public async ValueTask<IReadOnlyCollection<PersistedScope>> GetEnabledScopesAsync(
+        IReadOnlyCollection<string>? scopeValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var query = DbContext
+            .ResourceServers.Where(resourceServer => !resourceServer.IsDisabled)
+            .SelectMany(resourceServer => resourceServer.Scopes);
+
+        if (scopeValues is { Count: > 0 })
+        {
+            var normalizedValues = scopeValues.Select(Normalize).ToList();
+            query = query.Where(scope => normalizedValues.Contains(scope.NormalizedValue));
+        }
+
+        var scopes = await query
+            .Select(scope => new
+            {
+                scope.Value,
+                scope.Description,
+                scope.IsSystem,
+            })
+            .ToListAsync(cancellationToken);
+
+        return scopes
+            .Select(scope => new PersistedScope
+            {
+                Value = scope.Value,
+                Description = scope.Description,
+                IsSystem = scope.IsSystem,
+            })
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyCollection<string>> GetEnabledIdentifiersAsync(
+        CancellationToken cancellationToken
+    )
+    {
+        return await DbContext
+            .ResourceServers.Where(resourceServer => !resourceServer.IsDisabled)
+            .Select(resourceServer => resourceServer.Identifier)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<
+        IReadOnlyCollection<ResourceServerScopeProjection>
+    > GetEnabledScopeProjectionsByScopesAsync(
+        IReadOnlyCollection<string> scopeValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedValues = scopeValues.Select(Normalize).ToList();
+
+        return await DbContext
+            .ResourceServers.Where(resourceServer =>
+                !resourceServer.IsDisabled
+                && resourceServer.Scopes.Any(scope =>
+                    normalizedValues.Contains(scope.NormalizedValue)
+                )
+            )
+            .Select(resourceServer => new ResourceServerScopeProjection
+            {
+                Identifier = resourceServer.Identifier,
+                ResourceServerId = resourceServer.ResourceServerId,
+                IsSystem = resourceServer.IsSystem,
+                ScopeValues = resourceServer.Scopes.Select(scope => scope.Value).ToList(),
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<
+        IReadOnlyCollection<ResourceServerScopeProjection>
+    > GetEnabledScopeProjectionsBySystemOrIdsAsync(
+        IReadOnlyCollection<string> resourceServerIds,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedIds = resourceServerIds.Select(Normalize).ToList();
+
+        return await DbContext
+            .ResourceServers.Where(resourceServer =>
+                !resourceServer.IsDisabled
+                && (
+                    resourceServer.IsSystem
+                    || normalizedIds.Contains(resourceServer.NormalizedResourceServerId)
+                )
+            )
+            .Select(resourceServer => new ResourceServerScopeProjection
+            {
+                Identifier = resourceServer.Identifier,
+                ResourceServerId = resourceServer.ResourceServerId,
+                IsSystem = resourceServer.IsSystem,
+                ScopeValues = resourceServer.Scopes.Select(scope => scope.Value).ToList(),
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyCollection<PersistedResourceServer>> FindEnabledByScopesAsync(
+        IReadOnlyCollection<string> scopeValues,
+        IReadOnlyCollection<string>? identifiers,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedValues = scopeValues.Select(Normalize).ToList();
+
+        var query = DbContext
+            .ResourceServers.Include(entity => entity.Tenant)
+            .Include(entity => entity.Scopes)
+            .Include(entity => entity.Secrets)
+                .ThenInclude(resourceServerSecret => resourceServerSecret.Secret)
+            .Where(resourceServer =>
+                !resourceServer.IsDisabled
+                && resourceServer.Scopes.Any(scope =>
+                    normalizedValues.Contains(scope.NormalizedValue)
+                )
+            );
+
+        if (identifiers is { Count: > 0 })
+        {
+            var normalizedIdentifiers = identifiers.Select(Normalize).ToList();
+            query = query.Where(resourceServer =>
+                normalizedIdentifiers.Contains(resourceServer.NormalizedIdentifier)
+            );
+        }
+
+        var entities = await query
+            .OrderBy(resourceServer => resourceServer.Identifier)
+            .ToListAsync(cancellationToken);
+
+        var items = new List<PersistedResourceServer>(entities.Count);
+        foreach (var entity in entities)
+        {
+            items.Add(await MapFromEntityAsync(entity, cancellationToken));
+        }
+
+        return items;
+    }
+
+    /// <inheritdoc />
     public override async ValueTask AddAsync(
         PersistedResourceServer persistedResourceServer,
         CancellationToken cancellationToken

@@ -20,12 +20,30 @@ NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCount.get -> long
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCount.init -> void
 NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.AlgorithmCapabilityResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Code.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Code.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource!>!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.KeyBitSizes.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.SecretTypes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.SecretTypes.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Use.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Use.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveName.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveName.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveSizeBits.get -> int
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveSizeBits.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.EccCurveCapabilityResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource
+NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource.KeyBitSizesResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource.MaxBits.get -> int
+NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource.MaxBits.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource.MinBits.get -> int
+NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource.MinBits.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource.SkipBits.get -> int
+NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource.SkipBits.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.ManagementCapabilitiesResource
 NCode.Identity.OpenId.Management.Contracts.Capabilities.ManagementCapabilitiesResource.Capabilities.get -> System.Collections.Generic.Dictionary<string!, object!>!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.ManagementCapabilitiesResource.Capabilities.init -> void

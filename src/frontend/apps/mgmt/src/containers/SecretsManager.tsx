@@ -86,6 +86,7 @@ export function SecretsManager({
     .filter((capability) => capability.supportsPublicKeyExport)
     .map((capability) => capability.secretType);
   const eccCurves = capabilities?.eccCurves ?? [];
+  const algorithms = capabilities?.algorithms ?? [];
 
   const openDelete = (secretId: string) => {
     const secret = secrets.find((s) => s.secretId === secretId);
@@ -179,6 +180,7 @@ export function SecretsManager({
         isSubmitting={isCreating}
         error={formError}
         eccCurves={eccCurves}
+        algorithms={algorithms}
         onSubmit={handleCreate}
         onCancel={() => setDialog(closed)}
       />

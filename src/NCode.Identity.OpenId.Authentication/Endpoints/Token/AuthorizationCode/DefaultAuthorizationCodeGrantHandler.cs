@@ -131,6 +131,10 @@ internal class DefaultAuthorizationCodeGrantHandler(
         var originalScopes = authorizationRequest.Scopes;
         var effectiveScopes = tokenRequest.Scopes ?? originalScopes;
 
+        // RFC 8707: a resource specified at the token endpoint narrows (within) the resources authorized at the
+        // authorization endpoint; absent one, the token targets everything the authorization request authorized.
+        var effectiveResources = tokenRequest.Resources ?? authorizationRequest.Resources;
+
         var tokenResponse = TokenResponse.Create(openIdEnvironment);
 
         tokenResponse.Scopes = effectiveScopes.ToList();
@@ -143,6 +147,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
             State = authorizationRequest.State,
             OriginalScopes = originalScopes,
             EffectiveScopes = effectiveScopes,
+            Resources = effectiveResources,
             AuthorizationCode = tokenRequest.AuthorizationCode,
             SubjectAuthentication = subjectAuthentication,
             RequestClaims = authorizationRequest.Claims,

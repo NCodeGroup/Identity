@@ -124,12 +124,6 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.AllowLoopbackRedirect);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'allow_plain_code_challenge_method' setting.
-    /// </summary>
-    public static SettingKey<bool> AllowPlainCodeChallengeMethod =>
-        new(OpenIdSettingNames.AllowPlainCodeChallengeMethod);
-
-    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'allow_unsafe_token_response' setting.
     /// </summary>
     public static SettingKey<bool> AllowUnsafeTokenResponse =>
@@ -187,6 +181,12 @@ public static class OpenIdSettingKeys
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'clock_skew' setting.
     /// </summary>
     public static SettingKey<TimeSpan> ClockSkew => new(OpenIdSettingNames.ClockSkew);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'code_challenge_methods_supported' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> CodeChallengeMethodsSupported =>
+        new(OpenIdSettingNames.CodeChallengeMethodsSupported);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'continue_authorization_lifetime' setting.

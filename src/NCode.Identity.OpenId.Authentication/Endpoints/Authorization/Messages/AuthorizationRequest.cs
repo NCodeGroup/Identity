@@ -178,6 +178,10 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
             .AsException();
 
     /// <inheritdoc />
+    public IReadOnlyList<string> Resources =>
+        Coalesce(OriginalRequestObject?.Resources, OriginalRequestMessage.Resources);
+
+    /// <inheritdoc />
     public string ResponseMode =>
         OriginalRequestObject?.ResponseMode
         ?? OriginalRequestMessage.ResponseMode

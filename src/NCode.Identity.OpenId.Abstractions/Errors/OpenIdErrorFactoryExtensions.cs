@@ -97,6 +97,20 @@ public static class OpenIdErrorFactoryExtensions
         }
 
         /// <summary>
+        /// Creates an <see cref="IOpenIdError"/> for when a requested <c>resource</c> indicator
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc8707">RFC 8707</see>) is unknown, malformed, or exceeds
+        /// what the client is authorized to target.
+        /// </summary>
+        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>.</param>
+        /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError InvalidTarget(string errorDescription)
+        {
+            return factory
+                .Create(OpenIdConstants.ErrorCodes.InvalidTarget)
+                .WithDescription(errorDescription);
+        }
+
+        /// <summary>
         /// Creates an <see cref="IOpenIdError"/> for when processing the <c>request_uri</c> parameter produces an error.
         /// </summary>
         /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>

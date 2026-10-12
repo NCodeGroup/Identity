@@ -129,6 +129,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
             GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.Password,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
+            Resources = tokenRequest.Resources,
             SubjectAuthentication = passwordGrant.SubjectAuthentication,
         };
 

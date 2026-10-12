@@ -76,6 +76,7 @@ internal class DefaultCreateAuthorizationTicketHandler(
             State = authorizationRequest.State,
             OriginalScopes = authorizationRequest.Scopes,
             EffectiveScopes = authorizationRequest.Scopes,
+            Resources = authorizationRequest.Resources,
             AuthorizationCode = ticket.AuthorizationCode,
             SubjectAuthentication = subjectAuthentication,
             RequestClaims = authorizationRequest.Claims,

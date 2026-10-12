@@ -159,6 +159,7 @@ internal class DefaultTokenService(
         await using var resolution = await ResourceServerCredentialResolver.ResolveAsync(
             openIdContext,
             tokenRequest.EffectiveScopes,
+            tokenRequest.Resources ?? [],
             cancellationToken
         );
 

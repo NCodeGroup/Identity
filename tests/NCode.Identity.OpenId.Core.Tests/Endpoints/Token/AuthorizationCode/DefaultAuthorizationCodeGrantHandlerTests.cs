@@ -205,6 +205,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
         mockAuthRequest.SetupGet(x => x.Nonce).Returns((string?)null).Verifiable();
         mockAuthRequest.SetupGet(x => x.State).Returns((string?)null).Verifiable();
         mockAuthRequest.SetupGet(x => x.Claims).Returns((IRequestClaims?)null).Verifiable();
+        mockAuthRequest.SetupGet(x => x.Resources).Returns([]).Verifiable();
 
         var authorizationGrant = new AuthorizationGrant(
             mockAuthRequest.Object,
@@ -237,6 +238,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
             .Verifiable();
 
         mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
+        mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
             .Returns(OpenIdConstants.GrantTypes.AuthorizationCode)

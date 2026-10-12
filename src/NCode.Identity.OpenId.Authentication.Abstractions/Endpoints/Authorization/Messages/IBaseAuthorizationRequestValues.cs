@@ -98,6 +98,12 @@ public interface IBaseAuthorizationRequestValues : IBaseAuthorizationRequest
     Uri? RedirectUri { get; set; }
 
     /// <summary>
+    /// Gets or sets the <c>resource</c> parameter (RFC 8707 Resource Indicators) identifying the resource servers
+    /// (audiences) the issued access tokens are intended for.
+    /// </summary>
+    List<string>? Resources { get; set; }
+
+    /// <summary>
     /// Gets or sets the <c>response_mode</c> parameter.
     /// </summary>
     string? ResponseMode { get; set; }

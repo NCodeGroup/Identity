@@ -21,6 +21,9 @@ using Moq;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Exceptions;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -201,6 +204,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         await using var resolution = await Resolver.ResolveAsync(
             MockContext.Object,
             [],
+            [],
             CancellationToken.None
         );
 
@@ -220,6 +224,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         await using var resolution = await Resolver.ResolveAsync(
             MockContext.Object,
             ["read:x"],
+            [],
             CancellationToken.None
         );
 
@@ -238,6 +243,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         await using var resolution = await Resolver.ResolveAsync(
             MockContext.Object,
             ["read:x"],
+            [],
             CancellationToken.None
         );
 
@@ -266,6 +272,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         await using var resolution = await Resolver.ResolveAsync(
             MockContext.Object,
             ["read:x"],
+            [],
             CancellationToken.None
         );
 
@@ -290,6 +297,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         await using var resolution = await Resolver.ResolveAsync(
             MockContext.Object,
             ["read:x"],
+            [],
             CancellationToken.None
         );
 
@@ -298,5 +306,69 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         Assert.Null(resolution.SingleSecretsProvider);
         // Audiences are ordered by identifier (urn:rs-a before urn:rs-b).
         Assert.Equal(["urn:rs-a", "urn:rs-b"], resolution.Audiences);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_RequestedResourceNarrowsAudience()
+    {
+        SetupContext();
+        SetupStore();
+        SetupSettingsMerge();
+        SetupResourceServers(
+            ResourceServer("rs-a", isDisabled: false, "read:x"),
+            ResourceServer("rs-b", isDisabled: false, "read:x"),
+            ResourceServer("rs-c", isDisabled: false, "read:x")
+        );
+
+        await using var resolution = await Resolver.ResolveAsync(
+            MockContext.Object,
+            ["read:x"],
+            ["urn:rs-a", "urn:rs-b"],
+            CancellationToken.None
+        );
+
+        // Only the requested resources are targeted, even though rs-c also owns the scope (RFC 8707).
+        Assert.Equal(["urn:rs-a", "urn:rs-b"], resolution.Audiences);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_RequestedResourceNotScopeOwning_ThrowsInvalidTarget()
+    {
+        SetupContext();
+        SetupStore();
+        SetupErrorFactory();
+        SetupResourceServers(ResourceServer("rs-a", isDisabled: false, "read:x"));
+
+        await Assert.ThrowsAsync<OpenIdException>(async () =>
+            await Resolver.ResolveAsync(
+                MockContext.Object,
+                ["read:x"],
+                ["urn:unknown"],
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task ResolveAsync_RequestedResourceWithoutScopes_ThrowsInvalidTarget()
+    {
+        SetupErrorFactory();
+
+        await Assert.ThrowsAsync<OpenIdException>(async () =>
+            await Resolver.ResolveAsync(
+                MockContext.Object,
+                [],
+                ["urn:rs-a"],
+                CancellationToken.None
+            )
+        );
+    }
+
+    private void SetupErrorFactory()
+    {
+        var mockErrorFactory = new Mock<IOpenIdErrorFactory>(MockBehavior.Loose);
+        var mockError = new Mock<IOpenIdError>(MockBehavior.Loose);
+        mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
+        MockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
     }
 }

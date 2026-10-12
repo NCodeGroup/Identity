@@ -58,6 +58,19 @@ one option is merely more work.
   behavior can add it without a redesign. Rationale: [ADR-0074](docs/adr/0074-session-management-and-logout.md).
   Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/`,
   `src/NCode.Identity.OpenId.Authentication/Sessions/`.
+- **`D3` — Cached per-tenant resource-server collection provider.** Several runtime readers page the tenant's
+  **entire** resource-server set and filter in memory (`DefaultClientScopeService.GetAllowedScopesAsync` /
+  `ResolveAudiencesAsync` / `GetEnabledResourceServerIdentifiersAsync`, and `DefaultResourceServerCredentialResolver`),
+  and a single token/authorization request runs **several** of them — each independently re-scanning the same set 2–4×.
+  Resource servers are a small, slowly-changing per-tenant set, so the cohesive fix is a cached, concurrency-token
+  -validated `IResourceServerCollectionProvider` (mirroring `IReadOnlySettingCollectionProvider` /
+  `ISecretKeyCollectionProvider` and the `ConcurrentState<T>` store pattern) that loads the projection once per request
+  and serves all readers from memory; add discrete store filter methods only where a predicate is selective over a large
+  cold set. Deferred as a performance/persistence refactor behind its own ADR
+  ([ADR-0080](docs/adr/0080-cached-resource-server-collection-provider.md), `Proposed`). Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Logic/DefaultClientScopeService.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Logic/DefaultResourceServerCredentialResolver.cs`,
+  `src/NCode.Identity.OpenId.Persistence.Abstractions/Stores/IResourceServerStore.cs`.
 
 ## Feature gaps — not yet implemented (group `F`)
 
@@ -130,12 +143,6 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   unconditionally (`// TODO: … should we do this conditionally?`). Touch points (all
   `src/NCode.Identity.OpenId.Authentication/Tokens/`): `Handlers/DefaultGetIdTokenPayloadClaimsHandler.cs`,
   `DefaultTokenService.cs`.
-- **`F12` — Token-request validation hardening.** The authorization-code grant validator does not yet validate the
-  requested `resource`, does not validate the actual `scope` values against the grant, and hardcodes the supported PKCE
-  `code_challenge_method` set with no extensibility seam. See the `// TODO: validate resource`,
-  `// TODO: validate actual scope values`, and `// TODO: provide a way to allow custom code challenge methods` markers
-  in
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/AuthorizationCode/DefaultValidateAuthorizationCodeGrantHandler.cs`.
 - **`F15` — Test coverage for the logout endpoint + back-channel delivery.** `DefaultSessionService` has unit tests
   ([`tests/NCode.Identity.OpenId.Core.Tests/Sessions/DefaultSessionServiceTests.cs`](tests/NCode.Identity.OpenId.Core.Tests/Sessions/DefaultSessionServiceTests.cs)),
   but the RP-Initiated Logout `end_session_endpoint` handler and the `DefaultBackChannelLogoutNotifier`

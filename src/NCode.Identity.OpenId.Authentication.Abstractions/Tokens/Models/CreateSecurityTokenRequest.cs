@@ -59,6 +59,12 @@ public readonly record struct CreateSecurityTokenRequest
     public required IReadOnlyList<string> EffectiveScopes { get; init; }
 
     /// <summary>
+    /// Gets the <c>resource</c> indicators (RFC 8707) the access token targets, or <see langword="null"/> when none
+    /// were requested. When non-empty, the access token's audience is narrowed to these resource servers.
+    /// </summary>
+    public IReadOnlyList<string>? Resources { get; init; }
+
+    /// <summary>
     /// Gets or sets the <c>code</c> value that was provided by the client application.
     /// </summary>
     public string? AuthorizationCode { get; init; }

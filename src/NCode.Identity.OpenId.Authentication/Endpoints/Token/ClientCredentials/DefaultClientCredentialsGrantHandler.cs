@@ -108,6 +108,7 @@ internal class DefaultClientCredentialsGrantHandler(
             GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.ClientCredentials,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
+            Resources = tokenRequest.Resources,
         };
 
         var securityToken = await TokenService.CreateAccessTokenAsync(

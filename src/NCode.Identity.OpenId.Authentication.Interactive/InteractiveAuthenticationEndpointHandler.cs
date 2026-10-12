@@ -73,6 +73,18 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
         endpoints.MapPost(InteractiveAuthenticationDefaults.ConsentPath, PostConsentAsync);
         endpoints.MapPost(InteractiveAuthenticationDefaults.LogoutPath, PostLogoutAsync);
+        endpoints.MapGet(
+            InteractiveAuthenticationDefaults.ApplicationsPath,
+            GetApplicationsPageAsync
+        );
+        endpoints.MapGet(
+            InteractiveAuthenticationDefaults.ApplicationsListPath,
+            GetApplicationsAsync
+        );
+        endpoints.MapPost(
+            InteractiveAuthenticationDefaults.ApplicationsRevokePath,
+            PostRevokeApplicationAsync
+        );
     }
 
     /// <summary>
@@ -256,9 +268,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     }
 
     /// <summary>
-    /// Returns the pending authorization request (the client and the requested scopes) the consent page must present,
-    /// resolved — without consuming — from the parked continuation carried by the return URL. Returns <c>401</c> when
-    /// the request is not authenticated and <c>404</c> when no pending request resolves.
+    /// Returns the pending authorization request (the client — with its friendly display name — and the requested
+    /// scopes with friendly descriptions and already-granted state) the consent page must present, resolved — without
+    /// consuming — from the parked continuation carried by the return URL. Returns <c>401</c> when the request is not
+    /// authenticated and <c>404</c> when no pending request resolves.
     /// </summary>
     public async ValueTask<IResult> GetConsentDetailsAsync(
         HttpContext httpContext,
@@ -279,8 +292,15 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         }
 
         var openIdContext = httpContext.GetOpenIdContext();
+        var subjectId = openIdContext.GetSubjectId(authenticateResult.Principal);
+        if (string.IsNullOrEmpty(subjectId))
+        {
+            return TypedResults.Unauthorized();
+        }
+
         var pending = await ConsentService.ResolvePendingConsentAsync(
             openIdContext,
+            subjectId,
             returnUrl,
             httpContext.RequestAborted
         );
@@ -289,13 +309,26 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Json(new ConsentDetailsResponse(value.ClientId, value.RequestedScopes));
+        return TypedResults.Json(
+            new ConsentDetailsResponse(
+                value.ClientId,
+                value.ClientName,
+                value
+                    .Scopes.Select(scope => new ConsentScopeResponse(
+                        scope.Value,
+                        scope.Description,
+                        scope.IsGranted
+                    ))
+                    .ToList()
+            )
+        );
     }
 
     /// <summary>
-    /// Records the consent outcome: an allow persists the subject's consent for the pending request's scopes (resolved
-    /// authoritatively from the continuation, not the posted form) and returns to the original authorize URL to resume;
-    /// a deny abandons the flow.
+    /// Records the granular consent outcome: an allow persists the subject's decision — the requested scopes (resolved
+    /// authoritatively from the continuation, not the posted form) and the subset the subject selected (the posted
+    /// <c>scope</c> fields, intersected with the requested scopes) — and returns to the original authorize URL to
+    /// resume; a deny abandons the flow.
     /// </summary>
     public async ValueTask<IResult> PostConsentAsync(
         HttpContext httpContext,
@@ -327,16 +360,21 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
         var pending = await ConsentService.ResolvePendingConsentAsync(
             openIdContext,
+            subjectId,
             returnUrl,
             httpContext.RequestAborted
         );
         if (pending is { } value)
         {
+            var requestedScopes = value.Scopes.Select(scope => scope.Value).ToList();
+            var grantedScopes = httpContext.Request.Form["scope"].OfType<string>().ToList();
+
             await ConsentService.GrantConsentAsync(
                 openIdContext,
                 value.ClientId,
                 subjectId,
-                value.RequestedScopes,
+                requestedScopes,
+                grantedScopes,
                 httpContext.RequestAborted
             );
         }
@@ -377,6 +415,107 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 : returnUrl
         );
         return TypedResults.Redirect(safeReturnUrl);
+    }
+
+    /// <summary>
+    /// Serves the authorized-applications page (the single-page bundle), establishing the antiforgery token the revoke
+    /// form echoes back. An anonymous request is redirected to the login page with the applications page as its return
+    /// URL.
+    /// </summary>
+    public async ValueTask<IResult> GetApplicationsPageAsync(HttpContext httpContext)
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return TypedResults.Redirect(
+                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
+                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.ApplicationsPath)
+            );
+        }
+
+        return await ServeBundleAsync(httpContext);
+    }
+
+    /// <summary>
+    /// Returns the current end-user's authorized applications (each with its granted scopes) as JSON for the
+    /// authorized-applications page, or <c>401</c> when the request is not authenticated.
+    /// </summary>
+    public async ValueTask<IResult> GetApplicationsAsync(HttpContext httpContext)
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var subjectId = openIdContext.GetSubjectId(authenticateResult.Principal);
+        if (string.IsNullOrEmpty(subjectId))
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var applications = await ConsentService.GetAuthorizedApplicationsAsync(
+            openIdContext,
+            subjectId,
+            httpContext.RequestAborted
+        );
+
+        return TypedResults.Json(
+            new AuthorizedApplicationsResponse(
+                applications
+                    .Select(app => new AuthorizedApplicationResponse(
+                        app.ClientId,
+                        app.ClientName,
+                        app.Scopes.Select(scope => new ConsentScopeResponse(
+                                scope.Value,
+                                scope.Description,
+                                scope.IsGranted
+                            ))
+                            .ToList()
+                    ))
+                    .ToList()
+            )
+        );
+    }
+
+    /// <summary>
+    /// Revokes the current end-user's standing consent for a single application, then redirects back to the
+    /// authorized-applications page.
+    /// </summary>
+    public async ValueTask<IResult> PostRevokeApplicationAsync(
+        HttpContext httpContext,
+        [FromForm(Name = "client_id")] string? clientId
+    )
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return TypedResults.Redirect(
+                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
+                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.ApplicationsPath)
+            );
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var subjectId = openIdContext.GetSubjectId(authenticateResult.Principal);
+        if (!string.IsNullOrEmpty(subjectId) && !string.IsNullOrEmpty(clientId))
+        {
+            await ConsentService.RevokeConsentAsync(
+                openIdContext,
+                clientId,
+                subjectId,
+                httpContext.RequestAborted
+            );
+        }
+
+        return TypedResults.Redirect(InteractiveAuthenticationDefaults.ApplicationsPath);
     }
 
     private async ValueTask<ContentHttpResult> ServeBundleAsync(HttpContext httpContext)

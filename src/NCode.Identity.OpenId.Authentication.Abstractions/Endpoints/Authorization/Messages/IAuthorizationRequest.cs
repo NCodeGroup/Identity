@@ -31,9 +31,36 @@ public interface IAuthorizationRequest
         ISupportClone<IAuthorizationRequest>
 {
     /// <summary>
-    /// Gets or sets a boolean indicating whether the current authorization request has been continued from user interaction.
+    /// Gets or sets a value indicating whether this authorization request is a resumption of a previously-parked
+    /// request, continued after an interactive step (login or consent) rather than received fresh from the client.
     /// </summary>
+    /// <remarks>
+    /// This is deliberately a settable member even though the OAuth/OIDC parameters on this interface are read-only
+    /// projections unioned from the request message and the JAR request object. It is <b>not</b> a wire parameter: it is
+    /// <b>server-applied runtime state</b> — set to <see langword="true"/> by the continuation provider when it resumes
+    /// a parked request, rather than parsed from the request — and is serialized with the request so the flag survives
+    /// the parked-continuation round-trip. The authorization endpoint reads it to avoid re-triggering an interactive
+    /// step it has already performed (for example, not re-forcing <c>prompt=consent</c> on the pass that resumes right
+    /// after the end-user completed the consent screen).
+    /// </remarks>
     bool IsContinuation { get; set; }
+
+    /// <summary>
+    /// Gets or sets the end-user's granted subset of the requested scopes, used to down-scope the issued authorization
+    /// code and tokens to exactly what was consented (OIDC down-scoping).
+    /// </summary>
+    /// <remarks>
+    /// This is deliberately a settable member even though the OAuth/OIDC parameters on this interface are read-only
+    /// projections unioned from the request message and the JAR request object. It is <b>not</b> a wire parameter: like
+    /// <see cref="IsContinuation"/>, it is <b>server-applied runtime state</b> — set by the authorization endpoint after
+    /// a granular consent decision rather than parsed from the request — and is serialized with the request so it
+    /// survives the authorization-code round-trip to the token endpoint. It is the single down-scoping enforcement
+    /// point: when set, it <b>overrides <see cref="Scopes"/></b>, so every consumer (authorization-ticket creation, the
+    /// persisted authorization code, and the token-endpoint scope validation) observes only the consented scopes and a
+    /// client cannot obtain a scope the end-user did not consent to. When <see langword="null"/>, no consent narrowing
+    /// is applied and <see cref="Scopes"/> returns the originally-requested scopes.
+    /// </remarks>
+    IReadOnlyList<string>? GrantedScopes { get; set; }
 
     /// <summary>
     /// Gets the <see cref="IAuthorizationRequestMessage"/> which represents the OAuth request message.
@@ -138,7 +165,9 @@ public interface IAuthorizationRequest
     IReadOnlyList<string> ResponseTypes { get; }
 
     /// <summary>
-    /// Gets the <c>scope</c> parameter.
+    /// Gets the <c>scope</c> parameter — the scopes the request is authorized for. After a granular consent decision
+    /// this is narrowed to the consented subset carried by <see cref="GrantedScopes"/> (OIDC down-scoping); it is
+    /// otherwise the originally-requested scopes.
     /// </summary>
     IReadOnlyList<string> Scopes { get; }
 

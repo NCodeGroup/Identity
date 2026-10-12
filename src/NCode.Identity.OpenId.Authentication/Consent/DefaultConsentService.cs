@@ -19,34 +19,49 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using NCode.Identity.Jose.Extensions;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models;
+using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Consent;
 
 /// <summary>
-/// Provides a default implementation of <see cref="IConsentService"/> that persists durable consent through the
-/// dedicated <see cref="IConsentStore"/> (keyed by tenant, client, and subject) and resolves the pending authorization
-/// request by peeking — without consuming — the parked continuation grant.
+/// Provides a default implementation of <see cref="IConsentService"/> that persists durable, granular consent through
+/// the dedicated <see cref="IConsentStore"/> (keyed by tenant, client, and subject). A consent record tracks both the
+/// scopes the subject was asked to decide on (the "decided" universe, grown monotonically) and the subset the subject
+/// granted; the authorization endpoint shows the consent screen only when a request introduces a previously-undecided
+/// scope, and issues the intersection of the request's scopes with the granted subset (OIDC down-scoping).
 /// </summary>
 internal class DefaultConsentService(
     TimeProvider timeProvider,
     IStoreManagerFactory storeManagerFactory,
-    IPersistedGrantService persistedGrantService
+    IPersistedGrantService persistedGrantService,
+    IAmbientTenantAccessor ambientTenantAccessor,
+    IOpenIdClientResolver clientResolver,
+    IScopeDescriptionService scopeDescriptionService
 ) : IConsentService
 {
+    // Scope values are case-sensitive per RFC 6749.
+    private static readonly StringComparer ScopeComparer = StringComparer.Ordinal;
+
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
+    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
+    private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
+    private IScopeDescriptionService ScopeDescriptionService { get; } = scopeDescriptionService;
 
     /// <inheritdoc />
-    public async ValueTask<bool> HasConsentAsync(
+    public async ValueTask<ConsentResolution> ResolveConsentAsync(
         OpenIdContext openIdContext,
         string clientId,
         string subjectId,
@@ -55,17 +70,23 @@ internal class DefaultConsentService(
     )
     {
         if (requestedScopes.Count == 0)
-            return true;
+        {
+            return new ConsentResolution(IsDecided: true, GrantedScopes: []);
+        }
 
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IConsentStore>();
-
-        var consent = await store.GetOrDefaultAsync(clientId, subjectId, cancellationToken);
+        var consent = await ReadConsentAsync(openIdContext, clientId, subjectId, cancellationToken);
         if (consent is null)
-            return false;
+        {
+            return new ConsentResolution(IsDecided: false, GrantedScopes: []);
+        }
 
-        var granted = new HashSet<string>(consent.GrantedScopes, StringComparer.Ordinal);
-        return requestedScopes.All(granted.Contains);
+        var decided = new HashSet<string>(consent.RequestedScopes, ScopeComparer);
+        var granted = new HashSet<string>(consent.GrantedScopes, ScopeComparer);
+
+        var isDecided = requestedScopes.All(decided.Contains);
+        var grantedSubset = requestedScopes.Where(granted.Contains).ToList();
+
+        return new ConsentResolution(isDecided, grantedSubset);
     }
 
     /// <inheritdoc />
@@ -73,29 +94,41 @@ internal class DefaultConsentService(
         OpenIdContext openIdContext,
         string clientId,
         string subjectId,
-        IReadOnlyCollection<string> scopes,
+        IReadOnlyCollection<string> requestedScopes,
+        IReadOnlyCollection<string> grantedScopes,
         CancellationToken cancellationToken
     )
     {
+        // Never trust a granted scope that was not part of what was requested/presented.
+        var requestedSet = new HashSet<string>(requestedScopes, ScopeComparer);
+        var grantedSet = new HashSet<string>(
+            grantedScopes.Where(requestedSet.Contains),
+            ScopeComparer
+        );
+
+        using var tenantScope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IConsentStore>();
 
         var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var existing = await store.GetOrDefaultAsync(clientId, subjectId, cancellationToken);
 
-        // Widen (union) rather than replace, so a follow-up request for a superset of scopes keeps the earlier grants.
-        var mergedScopes = new HashSet<string>(scopes, StringComparer.Ordinal);
-        if (existing is not null)
-        {
-            mergedScopes.UnionWith(existing.GrantedScopes);
-        }
+        // The decided universe grows monotonically; the granted subset is replaced in place for the requested scopes
+        // (so re-consent can revoke a previously-granted scope) while preserving decisions outside this request.
+        var decided = new HashSet<string>(existing?.RequestedScopes ?? [], ScopeComparer);
+        decided.UnionWith(requestedScopes);
+
+        var granted = new HashSet<string>(existing?.GrantedScopes ?? [], ScopeComparer);
+        granted.ExceptWith(requestedSet);
+        granted.UnionWith(grantedSet);
 
         var consent = new PersistedConsent
         {
             TenantId = openIdContext.Tenant.TenantId,
             ClientId = clientId,
             SubjectId = subjectId,
-            GrantedScopes = mergedScopes.ToList(),
+            RequestedScopes = decided.ToList(),
+            GrantedScopes = granted.ToList(),
             CreatedWhen = existing?.CreatedWhen ?? utcNow,
             UpdatedWhen = utcNow,
             ConcurrencyToken = string.Empty,
@@ -113,6 +146,7 @@ internal class DefaultConsentService(
         CancellationToken cancellationToken
     )
     {
+        using var tenantScope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IConsentStore>();
 
@@ -121,7 +155,123 @@ internal class DefaultConsentService(
     }
 
     /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<AuthorizedApplication>> GetAuthorizedApplicationsAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        CancellationToken cancellationToken
+    )
+    {
+        List<PersistedConsent> consents;
+        using (AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId))
+        {
+            await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+            var store = storeManager.GetStore<IConsentStore>();
+            consents = (await store.GetBySubjectAsync(subjectId, cancellationToken))
+                // Only surface applications the subject actually has standing grants for.
+                .Where(consent => consent.GrantedScopes.Count > 0)
+                .ToList();
+        }
+
+        var applications = new List<AuthorizedApplication>(consents.Count);
+        foreach (var consent in consents)
+        {
+            var client = await ClientResolver.ResolveClientOrDefaultAsync(
+                openIdContext,
+                consent.ClientId,
+                cancellationToken
+            );
+
+            var descriptions = await ScopeDescriptionService.DescribeScopesAsync(
+                openIdContext.Tenant.TenantId,
+                consent.GrantedScopes,
+                cancellationToken
+            );
+
+            var scopes = consent
+                .GrantedScopes.Select(value => new ConsentScope(
+                    value,
+                    descriptions.GetValueOrDefault(value),
+                    IsGranted: true
+                ))
+                .ToList();
+
+            applications.Add(
+                new AuthorizedApplication(consent.ClientId, ResolveClientName(client), scopes)
+            );
+        }
+
+        return applications
+            .OrderBy(app => app.ClientName ?? app.ClientId, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <inheritdoc />
     public async ValueTask<PendingConsent?> ResolvePendingConsentAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        string returnUrl,
+        CancellationToken cancellationToken
+    )
+    {
+        var authorizationRequest = await ResolvePendingRequestAsync(
+            openIdContext,
+            returnUrl,
+            cancellationToken
+        );
+        if (authorizationRequest is null)
+        {
+            return null;
+        }
+
+        var clientId = authorizationRequest.ClientId;
+        var requestedScopes = authorizationRequest.Scopes;
+
+        var resolution = await ResolveConsentAsync(
+            openIdContext,
+            clientId,
+            subjectId,
+            requestedScopes,
+            cancellationToken
+        );
+        var granted = new HashSet<string>(resolution.GrantedScopes, ScopeComparer);
+
+        var client = await ClientResolver.ResolveClientOrDefaultAsync(
+            openIdContext,
+            clientId,
+            cancellationToken
+        );
+
+        var descriptions = await ScopeDescriptionService.DescribeScopesAsync(
+            openIdContext.Tenant.TenantId,
+            requestedScopes,
+            cancellationToken
+        );
+
+        var scopes = requestedScopes
+            .Select(value => new ConsentScope(
+                value,
+                descriptions.GetValueOrDefault(value),
+                granted.Contains(value)
+            ))
+            .ToList();
+
+        return new PendingConsent(clientId, ResolveClientName(client), scopes);
+    }
+
+    private async ValueTask<PersistedConsent?> ReadConsentAsync(
+        OpenIdContext openIdContext,
+        string clientId,
+        string subjectId,
+        CancellationToken cancellationToken
+    )
+    {
+        using var tenantScope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IConsentStore>();
+        return await store.GetOrDefaultAsync(clientId, subjectId, cancellationToken);
+    }
+
+    private async ValueTask<IAuthorizationRequest?> ResolvePendingRequestAsync(
         OpenIdContext openIdContext,
         string returnUrl,
         CancellationToken cancellationToken
@@ -156,14 +306,20 @@ internal class DefaultConsentService(
         )
             return null;
 
-        var authorizationRequest = envelope.PayloadJson.Deserialize<IAuthorizationRequest>(
+        return envelope.PayloadJson.Deserialize<IAuthorizationRequest>(
             openIdContext.Environment.JsonSerializerOptions
         );
-        if (authorizationRequest is null)
-            return null;
-
-        return new PendingConsent(authorizationRequest.ClientId, authorizationRequest.Scopes);
     }
+
+    private static string? ResolveClientName(OpenIdClient? client) =>
+        client is not null
+        && client.Settings.TryGetValue(
+            new SettingKey<string>(RegistrationMetadataKeys.ClientName),
+            out var clientName
+        )
+        && !string.IsNullOrEmpty(clientName)
+            ? clientName
+            : null;
 
     // The parked authorization request is addressed by the continue endpoint's opaque 'state' key, carried inside the
     // local return URL the consent surface was redirected to; the framework query parser decodes it.

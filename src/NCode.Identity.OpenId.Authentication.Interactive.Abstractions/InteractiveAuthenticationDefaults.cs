@@ -74,6 +74,23 @@ public static class InteractiveAuthenticationDefaults
     public const string LogoutPath = "/account/logout";
 
     /// <summary>
+    /// The request path of the self-service "authorized applications" page, where the end-user reviews and revokes the
+    /// applications they have granted standing consent to.
+    /// </summary>
+    public const string ApplicationsPath = "/account/applications";
+
+    /// <summary>
+    /// The request path of the JSON endpoint that returns the end-user's authorized applications (each with its
+    /// granted scopes) for the authorized-applications page.
+    /// </summary>
+    public const string ApplicationsListPath = "/account/applications/list";
+
+    /// <summary>
+    /// The request path the authorized-applications page posts to in order to revoke a single application's consent.
+    /// </summary>
+    public const string ApplicationsRevokePath = "/account/applications/revoke";
+
+    /// <summary>
     /// The name of the JavaScript-readable cookie the login/consent pages echo back as the antiforgery request token,
     /// so the single-page surface can submit an antiforgery-protected form without the server rendering the token.
     /// </summary>

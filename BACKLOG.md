@@ -58,19 +58,14 @@ one option is merely more work.
   behavior can add it without a redesign. Rationale: [ADR-0074](docs/adr/0074-session-management-and-logout.md).
   Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/`,
   `src/NCode.Identity.OpenId.Authentication/Sessions/`.
-- **`D3` — Cached per-tenant resource-server collection provider.** Several runtime readers page the tenant's
-  **entire** resource-server set and filter in memory (`DefaultClientScopeService.GetAllowedScopesAsync` /
-  `ResolveAudiencesAsync` / `GetEnabledResourceServerIdentifiersAsync`, and `DefaultResourceServerCredentialResolver`),
-  and a single token/authorization request runs **several** of them — each independently re-scanning the same set 2–4×.
-  Resource servers are a small, slowly-changing per-tenant set, so the cohesive fix is a cached, concurrency-token
-  -validated `IResourceServerCollectionProvider` (mirroring `IReadOnlySettingCollectionProvider` /
-  `ISecretKeyCollectionProvider` and the `ConcurrentState<T>` store pattern) that loads the projection once per request
-  and serves all readers from memory; add discrete store filter methods only where a predicate is selective over a large
-  cold set. Deferred as a performance/persistence refactor behind its own ADR
-  ([ADR-0080](docs/adr/0080-cached-resource-server-collection-provider.md), `Proposed`). Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Logic/DefaultClientScopeService.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Logic/DefaultResourceServerCredentialResolver.cs`,
-  `src/NCode.Identity.OpenId.Persistence.Abstractions/Stores/IResourceServerStore.cs`.
+- **`D3` — Index tuning for resource-server runtime query filters.** The resource-server reads now push their
+  predicates to the DBMS ([ADR-0080](docs/adr/0080-store-query-methods-push-filtering-to-dbms.md)), but no supporting
+  indexes were added — resource servers and scopes are a small, slowly-changing per-tenant set, so a sequential scan is
+  cheap today. If a deployment carries large per-tenant resource-server/scope counts, add an index on
+  `ScopeEntity.NormalizedValue` (for the owns-any-scope join) and consider a filtered index on
+  `ResourceServerEntity.IsDisabled`; measure before adding, since the extra write cost may not pay off for small sets.
+  Touch points: `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Entities/ScopeEntity.cs`,
+  `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Entities/ResourceServerEntity.cs`.
 
 ## Feature gaps — not yet implemented (group `F`)
 

@@ -57,6 +57,6 @@ No discovery-metadata field is advertised for resource indicators: RFC 8707 and 
   point rather than being duplicated per grant handler.
 - The scope model is unchanged: `resource` can only **narrow** within what the granted scopes already
   authorize — it never grants access to a resource the client has no scope for.
-- The resolver now scans the tenant's resource servers with a resource filter in addition to the scope
-  filter; this reuses the existing full-scan read path and shares the caching follow-up tracked for all
-  resource-server runtime reads (backlog `D3`).
+- The resolver narrows the tenant's resource servers by resource identifier in addition to scope; both
+  filters are pushed into the DBMS by the discrete `IResourceServerStore.FindEnabledByScopesAsync` query
+  ([ADR-0080](0080-store-query-methods-push-filtering-to-dbms.md)) rather than scanning the full set in memory.

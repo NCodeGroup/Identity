@@ -475,4 +475,187 @@ public sealed class ResourceServerStoreTests : IDisposable
     }
 
     #endregion
+
+    #region Runtime Query Tests
+
+    private async Task AddServerAsync(
+        string resourceServerId,
+        string identifier,
+        bool isSystem,
+        bool isDisabled,
+        params string[] scopes
+    )
+    {
+        var resourceServer = new PersistedResourceServer
+        {
+            TenantId = TenantId,
+            ResourceServerId = resourceServerId,
+            Identifier = identifier,
+            ConcurrencyToken = string.Empty,
+            Name = resourceServerId,
+            IsSystem = isSystem,
+            IsDisabled = isDisabled,
+            Settings = new PersistedResourceServerSettings
+            {
+                TenantId = TenantId,
+                ResourceServerId = resourceServerId,
+                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
+            Scopes = scopes.Select(scope => CreateScope(scope)).ToList(),
+            Secrets = new PersistedResourceServerSecrets
+            {
+                TenantId = TenantId,
+                ResourceServerId = resourceServerId,
+                Value = [],
+            },
+        };
+
+        await _store.AddAsync(resourceServer, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+    }
+
+    [Fact]
+    public async Task GetEnabledScopesAsync_WhenNoFilter_ReturnsAllEnabledScopes()
+    {
+        await SeedTenantAsync();
+        await AddServerAsync(
+            "rs-a",
+            "urn:a",
+            isSystem: false,
+            isDisabled: false,
+            "read:a",
+            "write:a"
+        );
+        await AddServerAsync("rs-dead", "urn:dead", isSystem: false, isDisabled: true, "read:dead");
+
+        var scopes = await _store.GetEnabledScopesAsync(scopeValues: null, CancellationToken.None);
+
+        var values = scopes.Select(scope => scope.Value).ToHashSet();
+        Assert.Contains("read:a", values);
+        Assert.Contains("write:a", values);
+        Assert.DoesNotContain("read:dead", values);
+    }
+
+    [Fact]
+    public async Task GetEnabledScopesAsync_WhenFiltered_ReturnsOnlyMatchingValues()
+    {
+        await SeedTenantAsync();
+        await AddServerAsync(
+            "rs-a",
+            "urn:a",
+            isSystem: false,
+            isDisabled: false,
+            "read:a",
+            "write:a"
+        );
+
+        var scopes = await _store.GetEnabledScopesAsync(["read:a"], CancellationToken.None);
+
+        Assert.Single(scopes);
+        Assert.Equal("read:a", scopes.First().Value);
+    }
+
+    [Fact]
+    public async Task GetEnabledIdentifiersAsync_ExcludesDisabled()
+    {
+        await SeedTenantAsync();
+        await AddServerAsync("rs-a", "urn:a", isSystem: false, isDisabled: false, "read:a");
+        await AddServerAsync("rs-dead", "urn:dead", isSystem: false, isDisabled: true, "read:dead");
+
+        var identifiers = await _store.GetEnabledIdentifiersAsync(CancellationToken.None);
+
+        Assert.Equal(["urn:a"], identifiers);
+    }
+
+    [Fact]
+    public async Task GetEnabledScopeProjectionsByScopesAsync_ReturnsOwningEnabledServers()
+    {
+        await SeedTenantAsync();
+        await AddServerAsync(
+            "rs-a",
+            "urn:a",
+            isSystem: false,
+            isDisabled: false,
+            "read:x",
+            "write:a"
+        );
+        await AddServerAsync("rs-b", "urn:b", isSystem: false, isDisabled: false, "read:b");
+        await AddServerAsync("rs-dead", "urn:dead", isSystem: false, isDisabled: true, "read:x");
+
+        var projections = await _store.GetEnabledScopeProjectionsByScopesAsync(
+            ["read:x"],
+            CancellationToken.None
+        );
+
+        var projection = Assert.Single(projections);
+        Assert.Equal("rs-a", projection.ResourceServerId);
+        Assert.Contains("read:x", projection.ScopeValues);
+    }
+
+    [Fact]
+    public async Task GetEnabledScopeProjectionsBySystemOrIdsAsync_ReturnsSystemAndGranted()
+    {
+        await SeedTenantAsync();
+        await AddServerAsync("rs-sys", "urn:sys", isSystem: true, isDisabled: false, "openid");
+        await AddServerAsync(
+            "rs-granted",
+            "urn:granted",
+            isSystem: false,
+            isDisabled: false,
+            "read:g"
+        );
+        await AddServerAsync("rs-other", "urn:other", isSystem: false, isDisabled: false, "read:o");
+        await AddServerAsync("rs-dead", "urn:dead", isSystem: true, isDisabled: true, "dead");
+
+        var projections = await _store.GetEnabledScopeProjectionsBySystemOrIdsAsync(
+            ["rs-granted"],
+            CancellationToken.None
+        );
+
+        var ids = projections.Select(projection => projection.ResourceServerId).ToHashSet();
+        Assert.Contains("rs-sys", ids);
+        Assert.Contains("rs-granted", ids);
+        Assert.DoesNotContain("rs-other", ids);
+        Assert.DoesNotContain("rs-dead", ids);
+    }
+
+    [Fact]
+    public async Task FindEnabledByScopesAsync_ReturnsOwningEnabledServersWithSecrets()
+    {
+        await SeedTenantAsync();
+        await AddServerAsync("rs-a", "urn:a", isSystem: false, isDisabled: false, "read:x");
+        await AddServerAsync("rs-b", "urn:b", isSystem: false, isDisabled: false, "read:y");
+        await AddServerAsync("rs-dead", "urn:dead", isSystem: false, isDisabled: true, "read:x");
+
+        var matches = await _store.FindEnabledByScopesAsync(
+            ["read:x"],
+            identifiers: null,
+            CancellationToken.None
+        );
+
+        var match = Assert.Single(matches);
+        Assert.Equal("rs-a", match.ResourceServerId);
+        Assert.NotNull(match.Secrets);
+    }
+
+    [Fact]
+    public async Task FindEnabledByScopesAsync_WhenIdentifiersProvided_NarrowsByIdentifier()
+    {
+        await SeedTenantAsync();
+        await AddServerAsync("rs-a", "urn:a", isSystem: false, isDisabled: false, "read:x");
+        await AddServerAsync("rs-b", "urn:b", isSystem: false, isDisabled: false, "read:x");
+        await AddServerAsync("rs-c", "urn:c", isSystem: false, isDisabled: false, "read:x");
+
+        var matches = await _store.FindEnabledByScopesAsync(
+            ["read:x"],
+            ["urn:a", "urn:b"],
+            CancellationToken.None
+        );
+
+        var identifiers = matches.Select(match => match.Identifier).ToList();
+        Assert.Equal(["urn:a", "urn:b"], identifiers);
+    }
+
+    #endregion
 }

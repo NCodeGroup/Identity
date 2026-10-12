@@ -47,6 +47,82 @@ public interface IResourceServerStore : IStore<PersistedResourceServer>
     );
 
     /// <summary>
+    /// Gets the scopes owned by the tenant's <b>enabled</b> resource servers, optionally pre-filtered to a set of
+    /// scope values. The DBMS applies the enabled filter (and, when provided, a case-insensitive value pre-filter);
+    /// callers still apply the case-sensitive match required by RFC 6749.
+    /// </summary>
+    /// <param name="scopeValues">The scope values to pre-filter by (matched case-insensitively), or <c>null</c> to
+    /// return every enabled scope.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the matching
+    /// scopes (values may repeat across resource servers).</returns>
+    ValueTask<IReadOnlyCollection<PersistedScope>> GetEnabledScopesAsync(
+        IReadOnlyCollection<string>? scopeValues,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets the audience identifiers of the tenant's <b>enabled</b> resource servers.
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the enabled
+    /// audience identifiers.</returns>
+    ValueTask<IReadOnlyCollection<string>> GetEnabledIdentifiersAsync(
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets lightweight scope projections for the tenant's <b>enabled</b> resource servers that own at least one of
+    /// the specified scope values. The DBMS applies the enabled filter and a case-insensitive owns-any-scope
+    /// pre-filter; callers apply the case-sensitive match required by RFC 6749.
+    /// </summary>
+    /// <param name="scopeValues">The scope values to pre-filter by (matched case-insensitively).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the matching
+    /// projections.</returns>
+    ValueTask<
+        IReadOnlyCollection<ResourceServerScopeProjection>
+    > GetEnabledScopeProjectionsByScopesAsync(
+        IReadOnlyCollection<string> scopeValues,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets lightweight scope projections for the tenant's <b>enabled</b> resource servers that are either
+    /// system-owned or whose opaque identifier is in the specified set. This serves the allowed-scopes computation,
+    /// where system resource servers are implicitly available and non-system ones require a client grant.
+    /// </summary>
+    /// <param name="resourceServerIds">The opaque identifiers of the resource servers the client holds grants for
+    /// (matched case-insensitively).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the matching
+    /// projections.</returns>
+    ValueTask<
+        IReadOnlyCollection<ResourceServerScopeProjection>
+    > GetEnabledScopeProjectionsBySystemOrIdsAsync(
+        IReadOnlyCollection<string> resourceServerIds,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Finds the tenant's <b>enabled</b> resource servers (with their settings and secrets) that own at least one of
+    /// the specified scope values, optionally narrowed to a set of audience identifiers (RFC 8707 resource
+    /// indicators). The DBMS applies the enabled filter, a case-insensitive owns-any-scope pre-filter, and (when
+    /// provided) a case-insensitive identifier pre-filter; callers apply the case-sensitive matches.
+    /// </summary>
+    /// <param name="scopeValues">The scope values to pre-filter by (matched case-insensitively).</param>
+    /// <param name="identifiers">The audience identifiers to narrow to (matched case-insensitively), or <c>null</c>
+    /// to not narrow by identifier.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the matching
+    /// resource servers ordered by audience identifier.</returns>
+    ValueTask<IReadOnlyCollection<PersistedResourceServer>> FindEnabledByScopesAsync(
+        IReadOnlyCollection<string> scopeValues,
+        IReadOnlyCollection<string>? identifiers,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Attempts to get a <see cref="PersistedResourceServer"/> from the store by its opaque identifier.
     /// </summary>
     /// <param name="resourceServerId">The opaque identifier of the resource server.</param>

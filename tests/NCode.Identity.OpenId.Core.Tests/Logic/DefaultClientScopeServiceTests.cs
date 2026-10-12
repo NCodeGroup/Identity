@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Text.Json;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -59,45 +58,17 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
 
     #region Helpers
 
-    private static JsonElement EmptyObject() =>
-        JsonSerializer.SerializeToElement(new Dictionary<string, object>());
-
-    private static PersistedScope Scope(string value) =>
-        new()
-        {
-            Value = value,
-            Description = null,
-            IsSystem = false,
-        };
-
-    private static PersistedResourceServer ResourceServer(
+    private static ResourceServerScopeProjection Projection(
         string resourceServerId,
         bool isSystem,
-        bool isDisabled,
         params string[] scopes
     ) =>
         new()
         {
-            TenantId = TenantId,
-            ResourceServerId = resourceServerId,
             Identifier = $"urn:{resourceServerId}",
-            ConcurrencyToken = "ct",
-            Name = resourceServerId,
+            ResourceServerId = resourceServerId,
             IsSystem = isSystem,
-            IsDisabled = isDisabled,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = TenantId,
-                ResourceServerId = resourceServerId,
-                Value = EmptyObject(),
-            },
-            Scopes = scopes.Select(Scope).ToList(),
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = TenantId,
-                ResourceServerId = resourceServerId,
-                Value = [],
-            },
+            ScopeValues = scopes,
         };
 
     private static PersistedClientGrant Grant(string resourceServerId, params string[] scopes) =>
@@ -127,17 +98,52 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
-    private void SetupResourceServers(params PersistedResourceServer[] resourceServers)
+    private void SetupResourceServerStoreOnly()
+    {
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<IResourceServerStore>())
+            .Returns(MockResourceServerStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+    }
+
+    private void SetupScopeProjectionsBySystemOrIds(
+        params ResourceServerScopeProjection[] projections
+    )
     {
         MockResourceServerStore
-            .Setup(x => x.GetPageAsync(null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                new PagedResult<PersistedResourceServer>
-                {
-                    Items = resourceServers,
-                    NextCursor = null,
-                }
+            .Setup(x =>
+                x.GetEnabledScopeProjectionsBySystemOrIdsAsync(
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
+            .ReturnsAsync(projections)
+            .Verifiable();
+    }
+
+    private void SetupScopeProjectionsByScopes(params ResourceServerScopeProjection[] projections)
+    {
+        MockResourceServerStore
+            .Setup(x =>
+                x.GetEnabledScopeProjectionsByScopesAsync(
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(projections)
+            .Verifiable();
+    }
+
+    private void SetupEnabledIdentifiers(params string[] identifiers)
+    {
+        MockResourceServerStore
+            .Setup(x => x.GetEnabledIdentifiersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(identifiers)
             .Verifiable();
     }
 
@@ -163,14 +169,8 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
             .Returns(Mock.Of<IDisposable>())
             .Verifiable();
         SetupStores();
-        SetupResourceServers(
-            ResourceServer(
-                "rs-openid",
-                isSystem: true,
-                isDisabled: false,
-                "openid",
-                "offline_access"
-            )
+        SetupScopeProjectionsBySystemOrIds(
+            Projection("rs-openid", isSystem: true, "openid", "offline_access")
         );
         SetupClientGrants();
 
@@ -192,8 +192,8 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
             .Returns(Mock.Of<IDisposable>())
             .Verifiable();
         SetupStores();
-        SetupResourceServers(
-            ResourceServer("rs-api", isSystem: false, isDisabled: false, "read:x", "write:x")
+        SetupScopeProjectionsBySystemOrIds(
+            Projection("rs-api", isSystem: false, "read:x", "write:x")
         );
         // Granted read:x (kept) and stale:y (ignored, not defined on the resource server).
         SetupClientGrants(Grant("rs-api", "read:x", "stale:y"));
@@ -217,9 +217,9 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
             .Returns(Mock.Of<IDisposable>())
             .Verifiable();
         SetupStores();
-        SetupResourceServers(
-            ResourceServer("rs-api", isSystem: false, isDisabled: false, "read:x")
-        );
+        // A non-system resource server with no grant is filtered out by the store (not system, not in the
+        // client's granted ids), so none are returned.
+        SetupScopeProjectionsBySystemOrIds();
         SetupClientGrants();
 
         var allowed = await Service.GetAllowedScopesAsync(
@@ -239,7 +239,8 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
             .Returns(Mock.Of<IDisposable>())
             .Verifiable();
         SetupStores();
-        SetupResourceServers(ResourceServer("rs-dead", isSystem: true, isDisabled: true, "dead:z"));
+        // The store excludes disabled resource servers, so none are returned.
+        SetupScopeProjectionsBySystemOrIds();
         SetupClientGrants();
 
         var allowed = await Service.GetAllowedScopesAsync(
@@ -258,19 +259,12 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
             .Setup(x => x.BeginScope(TenantId))
             .Returns(Mock.Of<IDisposable>())
             .Verifiable();
-        MockStoreManagerFactory
-            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MockStoreManager.Object)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.GetStore<IResourceServerStore>())
-            .Returns(MockResourceServerStore.Object)
-            .Verifiable();
-        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
-        SetupResourceServers(
-            ResourceServer("rs-api", isSystem: false, isDisabled: false, "read:x", "write:x"),
-            ResourceServer("rs-openid", isSystem: true, isDisabled: false, "openid"),
-            ResourceServer("rs-dead", isSystem: false, isDisabled: true, "read:x")
+        SetupResourceServerStoreOnly();
+        // The store returns only enabled resource servers owning one of the scopes (the disabled 'rs-dead' is
+        // excluded even though it also owns 'read:x').
+        SetupScopeProjectionsByScopes(
+            Projection("rs-api", isSystem: false, "read:x", "write:x"),
+            Projection("rs-openid", isSystem: true, "openid")
         );
 
         var audiences = await Service.ResolveAudiencesAsync(
@@ -279,7 +273,6 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
             CancellationToken.None
         );
 
-        // The disabled resource server is excluded even though it also owns 'read:x'.
         Assert.Equal(new[] { "urn:rs-api", "urn:rs-openid" }, audiences);
     }
 
@@ -298,20 +291,9 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
             .Setup(x => x.BeginScope(TenantId))
             .Returns(Mock.Of<IDisposable>())
             .Verifiable();
-        MockStoreManagerFactory
-            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MockStoreManager.Object)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.GetStore<IResourceServerStore>())
-            .Returns(MockResourceServerStore.Object)
-            .Verifiable();
-        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
-        SetupResourceServers(
-            ResourceServer("rs-api", isSystem: false, isDisabled: false, "read:x"),
-            ResourceServer("rs-openid", isSystem: true, isDisabled: false, "openid"),
-            ResourceServer("rs-dead", isSystem: false, isDisabled: true, "read:x")
-        );
+        SetupResourceServerStoreOnly();
+        // The store returns only the enabled identifiers (the disabled 'rs-dead' is excluded).
+        SetupEnabledIdentifiers("urn:rs-api", "urn:rs-openid");
 
         var identifiers = await Service.GetEnabledResourceServerIdentifiersAsync(
             TenantId,

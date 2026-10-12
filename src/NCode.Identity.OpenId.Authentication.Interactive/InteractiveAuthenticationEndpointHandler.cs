@@ -20,20 +20,27 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
+using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Mediator;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
-/// Handles the interactive login/consent surface's endpoints: it serves the single-page bundle for the login and
-/// consent pages, verifies credentials through the registered <see cref="IInteractiveCredentialVerifier"/>, issues the
-/// cookie session on success, and clears it on logout. The login and consent forms submit as native form POSTs
-/// carrying the antiforgery token, so the server-driven cookie challenge/redirect flow is preserved.
+/// The <see cref="IEndpointProvider"/> for the interactive login/consent/account surface. It serves the single-page
+/// bundle for the login, consent, and account ("me") pages, verifies credentials through the registered
+/// <see cref="IInteractiveCredentialVerifier"/>, issues the cookie session on success, exposes the current session as
+/// JSON, and clears it on logout. The login, consent, and logout forms submit as native form POSTs carrying the
+/// antiforgery token, so the server-driven cookie challenge/redirect flow is preserved.
 /// </summary>
 internal sealed class InteractiveAuthenticationEndpointHandler(
     IInteractiveCredentialVerifier credentialVerifier,
@@ -41,13 +48,25 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     TimeProvider timeProvider,
     IAntiforgery antiforgery,
     InteractiveAuthenticationOptions options
-)
+) : IEndpointProvider
 {
     private IInteractiveCredentialVerifier CredentialVerifier { get; } = credentialVerifier;
     private ISessionService SessionService { get; } = sessionService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IAntiforgery Antiforgery { get; } = antiforgery;
     private InteractiveAuthenticationOptions Options { get; } = options;
+
+    /// <inheritdoc />
+    public void Map(IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapGet(InteractiveAuthenticationDefaults.AccountPath, GetAccountPageAsync);
+        endpoints.MapGet(InteractiveAuthenticationDefaults.MePath, GetMeAsync);
+        endpoints.MapGet(InteractiveAuthenticationDefaults.LoginPath, GetLoginPageAsync);
+        endpoints.MapPost(InteractiveAuthenticationDefaults.LoginPath, PostLoginAsync);
+        endpoints.MapGet(InteractiveAuthenticationDefaults.ConsentPath, GetConsentPageAsync);
+        endpoints.MapPost(InteractiveAuthenticationDefaults.ConsentPath, PostConsentAsync);
+        endpoints.MapPost(InteractiveAuthenticationDefaults.LogoutPath, PostLogoutAsync);
+    }
 
     /// <summary>
     /// Serves the login page (the single-page bundle), establishing the antiforgery token the form echoes back.
@@ -60,6 +79,83 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetConsentPageAsync(HttpContext httpContext) =>
         await ServeBundleAsync(httpContext);
+
+    /// <summary>
+    /// Serves the account ("me") page (the single-page bundle), establishing the antiforgery token the sign-out form
+    /// echoes back. An anonymous request is redirected to the login page with the account page as its return URL.
+    /// </summary>
+    public async ValueTask<IResult> GetAccountPageAsync(HttpContext httpContext)
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return TypedResults.Redirect(
+                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
+                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.AccountPath)
+            );
+        }
+
+        return await ServeBundleAsync(httpContext);
+    }
+
+    /// <summary>
+    /// Returns the current end-user's session as JSON for the account page, or <c>401</c> when the request is not
+    /// authenticated.
+    /// </summary>
+    public static async ValueTask<IResult> GetMeAsync(HttpContext httpContext)
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var principal = authenticateResult.Principal;
+        var subjectId = openIdContext.GetSubjectId(principal);
+        if (string.IsNullOrEmpty(subjectId))
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        return TypedResults.Json(BuildMeResponse(principal, subjectId));
+    }
+
+    // Projects the authenticated cookie principal into the account page's view model.
+    internal static AccountMeResponse BuildMeResponse(ClaimsPrincipal principal, string subjectId)
+    {
+        var name =
+            principal.FindFirst(JoseClaimNames.Payload.Name)?.Value
+            ?? principal.FindFirst(JoseClaimNames.Payload.PreferredUsername)?.Value
+            ?? subjectId;
+
+        var amr = principal
+            .FindAll(JoseClaimNames.Payload.Amr)
+            .Select(claim => claim.Value)
+            .ToList();
+
+        long? authTime = long.TryParse(
+            principal.FindFirst(JoseClaimNames.Payload.AuthTime)?.Value,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var parsedAuthTime
+        )
+            ? parsedAuthTime
+            : null;
+
+        return new AccountMeResponse(
+            subjectId,
+            name,
+            authTime,
+            amr,
+            principal.FindFirst(JoseClaimNames.Payload.Idp)?.Value,
+            principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value
+        );
+    }
 
     /// <summary>
     /// Verifies the posted credentials through the registered verifier and, on success, signs in the cookie session
@@ -170,15 +266,38 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     }
 
     /// <summary>
-    /// Clears the interactive cookie session and redirects to the validated local return URL.
+    /// Ends the current end-user's session from the first-party account page. It runs the same server-side logout
+    /// pipeline as the OpenID Connect <c>end_session_endpoint</c> — resolving the session from the login cookie,
+    /// clearing the cookie, revoking the session and the subject's grants, and notifying participating relying parties
+    /// via back-channel logout — then redirects to the validated local return URL (the login page by default).
     /// </summary>
-    public static async ValueTask<IResult> LogoutAsync(
+    public static async ValueTask<IResult> PostLogoutAsync(
         HttpContext httpContext,
-        [FromQuery(Name = "ReturnUrl")] string? returnUrl
+        [FromForm(Name = "ReturnUrl")] string? returnUrl
     )
     {
-        await httpContext.SignOutAsync(InteractiveAuthenticationDefaults.CookieSchemeName);
-        return TypedResults.Redirect(ResolveSafeReturnUrl(httpContext, returnUrl));
+        var openIdContext = httpContext.GetOpenIdContext();
+        var mediator = openIdContext.Mediator;
+
+        // No id_token_hint is supplied: this is a first-party sign-out, so the pipeline resolves the session from the
+        // OP login cookie. The end_session_endpoint remains the entry point for RP-initiated logout.
+        var request = await mediator.SendAsync<LoadEndSessionRequestCommand, IEndSessionRequest>(
+            new LoadEndSessionRequestCommand(openIdContext),
+            httpContext.RequestAborted
+        );
+
+        await mediator.SendAsync<EndSessionCommand, EndSessionDisposition>(
+            new EndSessionCommand(openIdContext, request),
+            httpContext.RequestAborted
+        );
+
+        var safeReturnUrl = ResolveSafeReturnUrl(
+            httpContext,
+            string.IsNullOrEmpty(returnUrl)
+                ? InteractiveAuthenticationDefaults.LoginPath
+                : returnUrl
+        );
+        return TypedResults.Redirect(safeReturnUrl);
     }
 
     private async ValueTask<ContentHttpResult> ServeBundleAsync(HttpContext httpContext)

@@ -11,8 +11,10 @@ NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOption
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.BundleRootPath.set -> void
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.InteractiveAuthenticationOptions() -> void
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.AntiforgeryTokenCookieName = "XSRF-TOKEN" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.AccountPath = "/account" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.BasePath = "/account" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.ConsentPath = "/account/consent" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.LoginPath = "/account/login" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.LogoutPath = "/account/logout" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.MePath = "/account/me" -> string!
 static readonly NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.CookieSchemeName -> string!

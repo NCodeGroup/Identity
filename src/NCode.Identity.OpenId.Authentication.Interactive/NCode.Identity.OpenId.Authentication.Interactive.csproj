@@ -15,6 +15,7 @@
         <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Authentication.Abstractions\NCode.Identity.OpenId.Authentication.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Authentication.Interactive.Abstractions\NCode.Identity.OpenId.Authentication.Interactive.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Registration.AspNetCore\NCode.Registration.AspNetCore.csproj" />
     </ItemGroup>
 
     <ItemGroup>

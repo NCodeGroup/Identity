@@ -1,6 +1,6 @@
 # 74. End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
 
@@ -64,6 +64,15 @@ Concretely:
   client), validates `post_logout_redirect_uri` against the client's registered `post_logout_redirect_uris`, clears the
   OP cookie (`SignOutAsync`), revokes the session and the subject's grants, fires back-channel notifications, and
   redirects to the validated `post_logout_redirect_uri` with the echoed `state` (or renders a confirmation otherwise).
+- **The OP's own account page is a first-party entry point into the same pipeline.** The interactive surface's account
+  ("me") page offers an end-user sign-out that `POST`s (antiforgery-protected) to the interactive `/account/logout`,
+  which runs the identical `EndSessionCommand` pipeline but supplies **no `id_token_hint`**: the end-user is already
+  authenticated by the OP login cookie, so the session resolves from the cookie (the pipeline's documented fallback)
+  rather than a relying party's token. One termination pipeline, two entry points — an RP's `id_token_hint` at the
+  `end_session_endpoint`, or the first-party login cookie at `/account/logout`. This replaces the earlier bare
+  cookie-clearing (`SignOutAsync`-only) logout, so a first-party sign-out now also revokes the session and grants and
+  fires back-channel notifications. The logout verb is hardened from `GET` to `POST` (state-changing, antiforgery-bound,
+  matching login/consent); the spec-facing `end_session_endpoint` keeps its `GET`/`POST` support.
 - **Back-Channel Logout is a pluggable notifier.** On logout the OP builds a signed `logout_token` per participating RP
   (carrying `iss`, `aud`, `iat`, `jti`, `sid`/`sub`, and the `events` claim) and `POST`s it to each client's
   `backchannel_logout_uri` through an injectable `IBackChannelLogoutNotifier` (default implementation uses a named

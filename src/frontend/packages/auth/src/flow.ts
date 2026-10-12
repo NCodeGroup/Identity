@@ -49,6 +49,39 @@ export function buildAuthorizeUrl(
   return url.toString();
 }
 
+/** Parameters for the OpenID Connect RP-Initiated Logout redirect to the `end_session_endpoint`. */
+export type EndSessionParams = {
+  /** An ID token previously issued to the client; identifies the session and requesting client. */
+  readonly idTokenHint?: string;
+  /** The client id requesting the logout; lets the OP validate the post-logout redirect. */
+  readonly clientId?: string;
+  /** Where the OP returns the user agent after logout; honored only when registered for the client. */
+  readonly postLogoutRedirectUri?: string;
+  /** Opaque value echoed back on the post-logout redirect. */
+  readonly state?: string;
+};
+
+/**
+ * Builds the `end_session_endpoint` redirect URL for OpenID Connect RP-Initiated Logout. Only the
+ * parameters that are present are emitted, so a caller may rely on the OP login cookie alone.
+ */
+export function buildEndSessionUrl(endSessionEndpoint: string, params: EndSessionParams): string {
+  const url = new URL(endSessionEndpoint);
+  if (params.idTokenHint) {
+    url.searchParams.set('id_token_hint', params.idTokenHint);
+  }
+  if (params.clientId) {
+    url.searchParams.set('client_id', params.clientId);
+  }
+  if (params.postLogoutRedirectUri) {
+    url.searchParams.set('post_logout_redirect_uri', params.postLogoutRedirectUri);
+  }
+  if (params.state) {
+    url.searchParams.set('state', params.state);
+  }
+  return url.toString();
+}
+
 /** A successful authorization-code callback. */
 export type CallbackSuccess = { readonly code: string; readonly state: string };
 /** An error returned on the authorization callback. */

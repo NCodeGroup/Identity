@@ -15,7 +15,13 @@ const runtime: RuntimeConfig = {
 function createStore() {
   return createAppStore({
     config: { runtime },
-    auth: { accessToken: 'token-123', subject: 'admin', expiresAt: null, refreshToken: null },
+    auth: {
+      accessToken: 'token-123',
+      subject: 'admin',
+      expiresAt: null,
+      refreshToken: null,
+      idToken: null,
+    },
   });
 }
 

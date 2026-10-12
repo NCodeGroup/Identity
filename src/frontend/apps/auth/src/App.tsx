@@ -1,15 +1,8 @@
-import { ConsentForm } from './ConsentForm.js';
-import { LoginForm } from './LoginForm.js';
-import {
-  ANTIFORGERY_COOKIE,
-  describeLoginError,
-  getQueryParam,
-  isConsentPath,
-  readCookie,
-} from './params.js';
+import { ANTIFORGERY_COOKIE, describeLoginError, getQueryParam, readCookie } from './params.js';
+import { resolveRoute } from './routes.js';
 
 export type AppProps = {
-  /** The current path (defaults to the live location); selects the login vs consent surface. */
+  /** The current path (defaults to the live location); selects which interactive surface to render. */
   readonly pathname?: string;
   /** The current query string (defaults to the live location). */
   readonly search?: string;
@@ -19,27 +12,18 @@ export type AppProps = {
 
 /**
  * The interactive surface shell: it reads the return URL, the antiforgery token, and the error code from
- * the environment and renders either the consent or the login form. All inputs are injectable so it is
- * testable without the DOM globals.
+ * the environment, then delegates to the declarative route table to render the matching surface. All
+ * inputs are injectable so it is testable without the DOM globals.
  */
 export function App({
   pathname = window.location.pathname,
   search = window.location.search,
   cookie = document.cookie,
 }: AppProps) {
-  const returnUrl = getQueryParam(search, 'ReturnUrl') ?? '/';
-  const antiforgeryToken = readCookie(cookie, ANTIFORGERY_COOKIE) ?? '';
-
-  if (isConsentPath(pathname)) {
-    return <ConsentForm returnUrl={returnUrl} antiforgeryToken={antiforgeryToken} />;
-  }
-
-  const errorMessage = describeLoginError(getQueryParam(search, 'error'));
-  return (
-    <LoginForm
-      returnUrl={returnUrl}
-      antiforgeryToken={antiforgeryToken}
-      {...(errorMessage ? { errorMessage } : {})}
-    />
-  );
+  return resolveRoute({
+    pathname,
+    returnUrl: getQueryParam(search, 'ReturnUrl') ?? '/',
+    antiforgeryToken: readCookie(cookie, ANTIFORGERY_COOKIE) ?? '',
+    errorMessage: describeLoginError(getQueryParam(search, 'error')),
+  });
 }

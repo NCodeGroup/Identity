@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   AuthError,
   buildAuthorizeUrl,
+  buildEndSessionUrl,
   exchangeCodeForToken,
   parseCallbackParams,
   refreshAccessToken,
@@ -27,6 +28,29 @@ describe('buildAuthorizeUrl', () => {
     expect(url.searchParams.get('state')).toBe('xyz');
     expect(url.searchParams.get('code_challenge')).toBe('chal');
     expect(url.searchParams.get('code_challenge_method')).toBe('S256');
+  });
+});
+
+describe('buildEndSessionUrl', () => {
+  it('emits every supplied RP-Initiated Logout parameter', () => {
+    const url = new URL(
+      buildEndSessionUrl('https://op.test/end-session', {
+        idTokenHint: 'id-token',
+        clientId: 'mgmt-spa',
+        postLogoutRedirectUri: 'https://ui.test/',
+        state: 'xyz',
+      }),
+    );
+    expect(url.origin + url.pathname).toBe('https://op.test/end-session');
+    expect(url.searchParams.get('id_token_hint')).toBe('id-token');
+    expect(url.searchParams.get('client_id')).toBe('mgmt-spa');
+    expect(url.searchParams.get('post_logout_redirect_uri')).toBe('https://ui.test/');
+    expect(url.searchParams.get('state')).toBe('xyz');
+  });
+
+  it('omits parameters that are not supplied so the OP cookie can identify the session', () => {
+    const url = new URL(buildEndSessionUrl('https://op.test/end-session', {}));
+    expect(url.search).toBe('');
   });
 });
 

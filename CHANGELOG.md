@@ -43,6 +43,19 @@ change to the public API is a **major** version bump.
   third-party-cookie/iframe mechanisms (Front-Channel Logout and Session Management `check_session_iframe`) are
   **deliberately not** implemented because the browser platform is removing third-party cookies; the decision and the
   forward-looking design are captured in [ADR-0074](docs/adr/0074-session-management-and-logout.md).
+- **End-user and administrator sign-out UX, and a first-party account page on the OP.** Both front-ends gained a
+  sign-out control. The **Management console** (`@ncode/app-mgmt`) shows the signed-in subject and a header **Sign out**
+  that clears local tokens and redirects to the OP's `end_session_endpoint` (RP-Initiated Logout), replaying the ID
+  token as `id_token_hint`; the auth store now persists the ID token (across silent renewals) for exactly this, and the
+  logout URL is built by a new `buildEndSessionUrl` helper in `@ncode/auth`. The OP's **interactive surface**
+  (`@ncode/app-auth`) gained a first-class account ("me") page at `/account` that fetches `/account/me` (a new
+  same-origin JSON endpoint) and renders the current session (subject, `auth_time`, `amr`, `idp`, `sid`) plus a
+  **Sign out** control. That control `POST`s (antiforgery-protected) to `/account/logout`, which is hardened from a bare
+  cookie-clearing `GET` into a `POST` that runs the **full server-side logout pipeline** — the same `EndSessionCommand`
+  used by the `end_session_endpoint`, but cookie-identified (no `id_token_hint`), so a first-party sign-out also revokes
+  the session and grants and fires back-channel notifications ([ADR-0074](docs/adr/0074-session-management-and-logout.md)).
+  The `apps/auth` shell now resolves its surface (account/consent/login) through a small **declarative route table**
+  instead of nested conditionals.
 - **Runtime frontend bootstrap endpoint on the OpenID Provider host — completes backlog `U4`.** The tier-agnostic
   frontend bundles ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)) discover their deployment coordinates
   at boot from `/config/bootstrap.json` on their serving host; previously only a static dev copy existed.

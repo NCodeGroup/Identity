@@ -163,7 +163,6 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapEndpointGroups();
-app.MapInteractiveAuthentication();
 app.MapHealthChecks("/health").WithName("health_endpoint");
 
 await app.RunAsync();

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { describeLoginError, getQueryParam, isConsentPath, readCookie } from './params.js';
+import {
+  describeLoginError,
+  getQueryParam,
+  isAccountPath,
+  isConsentPath,
+  readCookie,
+} from './params.js';
 
 describe('getQueryParam', () => {
   it('reads a value with or without a leading question mark', () => {
@@ -30,6 +36,18 @@ describe('isConsentPath', () => {
 
   it('does not match the login path', () => {
     expect(isConsentPath('/account/login')).toBe(false);
+  });
+});
+
+describe('isAccountPath', () => {
+  it('matches the account root with trailing slashes', () => {
+    expect(isAccountPath('/account')).toBe(true);
+    expect(isAccountPath('/account/')).toBe(true);
+  });
+
+  it('does not match the login or consent paths', () => {
+    expect(isAccountPath('/account/login')).toBe(false);
+    expect(isAccountPath('/account/consent')).toBe(false);
   });
 });
 

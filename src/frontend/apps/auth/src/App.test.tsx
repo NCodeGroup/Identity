@@ -58,3 +58,25 @@ describe('App consent surface', () => {
     expect(container.querySelector('form')?.getAttribute('action')).toBe('/account/consent');
   });
 });
+
+describe('App account surface', () => {
+  it('renders the account page with a sign-out form posting to the logout endpoint', () => {
+    const { container } = renderApp({
+      pathname: '/account',
+      search: '',
+      cookie: 'XSRF-TOKEN=the-token',
+    });
+
+    const logout = container.querySelector('#logout');
+    expect(logout).not.toBeNull();
+
+    const form = container.querySelector('form');
+    expect(form?.getAttribute('action')).toBe('/account/logout');
+    expect(form?.getAttribute('method')).toBe('post');
+
+    const token = container.querySelector(
+      'input[name="__RequestVerificationToken"]',
+    ) as HTMLInputElement | null;
+    expect(token?.value).toBe('the-token');
+  });
+});

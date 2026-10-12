@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import { GLOBAL_SCOPE, tenantScope, type ManagementScope } from '@ncode/api';
+import { signedOut, useAppDispatch, useAppSelector } from '@ncode/store';
 import { AppLayout } from './components/AppLayout.js';
 import { TenantsPage } from './containers/TenantsPage.js';
 import { ServersPage } from './containers/ServersPage.js';
@@ -9,6 +10,7 @@ import { ClientsPage } from './containers/ClientsPage.js';
 import { ResourceServersPage } from './containers/ResourceServersPage.js';
 import { GrantsPage } from './containers/GrantsPage.js';
 import { TenantDetailPage } from './containers/TenantDetailPage.js';
+import { endSessionUrlFromRuntime } from './auth.js';
 
 type GlobalSurface = 'tenants' | 'servers';
 type TenantSurface = 'clients' | 'resource-servers' | 'grants' | 'tenant';
@@ -21,6 +23,12 @@ type TenantSurface = 'clients' | 'resource-servers' | 'grants' | 'tenant';
  * wires scope/surface state and navigation.
  */
 export function App() {
+  const dispatch = useAppDispatch();
+  const runtime = useAppSelector((state) => state.config.runtime);
+  const subject = useAppSelector((state) => state.auth.subject);
+  const idToken = useAppSelector((state) => state.auth.idToken);
+  const isSignedIn = useAppSelector((state) => state.auth.accessToken !== null);
+
   const [scope, setScope] = useState<ManagementScope>(GLOBAL_SCOPE);
   const [globalSurface, setGlobalSurface] = useState<GlobalSurface>('tenants');
   const [tenantSurface, setTenantSurface] = useState<TenantSurface>('clients');
@@ -30,12 +38,25 @@ export function App() {
     setScope(tenantScope(tenantId));
   };
 
+  // Clear local tokens, then hand off to the OP's RP-Initiated Logout so the server session and its
+  // participating relying parties are also ended; when no end_session_endpoint is advertised, clearing
+  // local state alone returns the app to the sign-in screen.
+  const handleSignOut = () => {
+    const endSessionUrl = runtime ? endSessionUrlFromRuntime(runtime, idToken) : null;
+    dispatch(signedOut());
+    if (endSessionUrl) {
+      window.location.assign(endSessionUrl);
+    }
+  };
+
   return (
     <AppLayout
       title="Management"
       scopeKind={scope.kind}
       {...(scope.kind === 'tenant' ? { scopeLabel: scope.tenantId } : {})}
       {...(scope.kind === 'tenant' ? { onExitTenant: () => setScope(GLOBAL_SCOPE) } : {})}
+      {...(isSignedIn && subject ? { subject } : {})}
+      {...(isSignedIn ? { onSignOut: handleSignOut } : {})}
     >
       {scope.kind === 'global' ? (
         <>

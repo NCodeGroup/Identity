@@ -48,14 +48,13 @@ services/logic — so every layer is independently testable.** Concretely:
   and activated with **Corepack** (Node-built-in), so every machine and CI runner uses the exact same
   pnpm with no global install. The frontend toolchain stays **out of the hermetic `dod.ps1` inner
   loop**; it has its own `pnpm` scripts and (later) its own CI job.
-- **Full-stack dev launch is Turborepo-driven and per-app self-describing.** The VS Code `API + UI (F5)`
-  compound runs the Playground API plus `pnpm dev` (`turbo run dev`) across the whole workspace, so a new
-  surface joins the one-key full-stack launch automatically just by existing — the launch script
-  ([`build/dev-ui.ps1`](../../build/dev-ui.ps1)) names no app. Each app's **`dev` script encodes its own
-  serving model**: a **backend-served** bundle (served by the .NET host from static `dist`, e.g.
-  `apps/auth` through the interactive-login endpoint) uses `vite build --watch` to keep `dist` fresh;
-  a **standalone** bundle (e.g. `apps/mgmt`) uses `vite` for an HMR dev server. This avoids any
-  central app registry or per-app branching in the launch tooling.
+- **Full-stack dev launch is health-ordered and per-app self-describing.** The `Aspire: Full stack (F5)`
+  launch ([ADR-0071](0071-aspire-local-dev-orchestrator.md)) orchestrates the Playground API plus each app as
+  one .NET Aspire resource graph, gating the UIs on the API being healthy so they cannot race it. Each app's
+  **`dev` script still encodes its own serving model**: a **backend-served** bundle (served by the .NET host
+  from static `dist`, e.g. `apps/auth` through the interactive-login endpoint) uses `vite build --watch` to keep
+  `dist` fresh; a **standalone** bundle (e.g. `apps/mgmt`) uses `vite` for an HMR dev server. Adding a surface is
+  one `AddViteApp`/`AddJavaScriptApp` line in the AppHost — no central app registry or per-app branching.
 - **App topology — shared packages + thin app shells.** Independent deployable bundles per surface
   maximize reuse and preserve the security boundary between surfaces:
     - `@ncode/config` — runtime tier discovery (see below).

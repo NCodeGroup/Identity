@@ -136,18 +136,25 @@ scope binds the audience — see [ADR-0044](../../docs/adr/0044-management-api-a
 
 ## Running the full stack (VS Code F5)
 
-Pick **`API + UI (F5)`** in the Run and Debug view (or press F5) — a compound launch that starts the
-Playground API and the **entire frontend stack** together. The UI side runs
-[`build/dev-ui.ps1`](../../build/dev-ui.ps1), which puts the repo-pinned Node (via NVS) on PATH and runs
-`pnpm dev` (`turbo run dev`) across every app. Node not on your PATH? `nvs add 22` once (optionally
-`nvs link 22`).
+Pick **`Aspire: Full stack (F5)`** in the Run and Debug view (or press F5) — a **.NET Aspire** AppHost
+([ADR-0071](../../docs/adr/0071-aspire-local-dev-orchestrator.md)) that orchestrates the whole local stack
+as one resource graph: the Playground OP host (`api`), the interactive-login build-watcher (`auth`), and the
+Management console Vite dev server (`mgmt`). Aspire gates each UI resource on the API being **healthy**
+(`WaitFor` + `/health`), so the browser UIs no longer race the API, and its **dashboard** is one place for
+ordered startup, logs, and traces.
 
-Because the launch is driven by Turborepo, **any future app is included automatically** — each app just
-declares its `dev` script per its serving model (build-watch for backend-served bundles like `apps/auth`,
-a dev server for standalone apps like `apps/mgmt`; see "The `dev` script encodes each app's serving
-model" above). So the interactive login surface (`apps/auth`) is build-watched into its `dist` and the
-Playground serves it; on first launch give its initial build a moment to finish, then refresh
-`/account/login` if you beat it there.
+One-time setup (**required** before the first launch, and again whenever dependencies change): run
+[`build/frontend-install.ps1`](../../build/frontend-install.ps1) to install the pnpm workspace and enable the
+Corepack `pnpm` shim. The AppHost does **not** auto-install (concurrent per-app installs collide on a pnpm
+workspace), so this script is the single installer. The AppHost automatically puts the repo-pinned
+**NVS-managed Node 22** on `PATH` for the frontend resources, so you only need `nvs add 22` once — no global
+`nvs link` required.
+
+Each app keeps its own `dev` script per its serving model (see "The `dev` script encodes each app's serving
+model" above): the interactive login surface (`apps/auth`) build-watches into its `dist`, which the Playground
+serves under `/account/*` — on a cold start give its first build a moment, then refresh `/account/login` if you
+beat it there; `apps/mgmt` is a standalone HMR dev server pinned to `http://localhost:5173`. Adding a surface is
+one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
 
 > Dev connectivity: the Playground opts into `AddDeveloperCors` so the browser UI (`http://localhost:5173`) can read
 > discovery and call the management API cross-origin. The UI still renders in **open mode** and management calls return

@@ -252,6 +252,27 @@ export type EccCurveCapability = {
   readonly curveSizeBits: number;
 };
 
+/** Mirror of `KeyBitSizesResource` — an inclusive range of legal key sizes (bits). `skipBits` 0 means fixed size. */
+export type KeyBitSizes = {
+  readonly minBits: number;
+  readonly maxBits: number;
+  readonly skipBits: number;
+};
+
+/**
+ * Mirror of `AlgorithmCapabilityResource` — one signature or key-management algorithm the server supports, with
+ * its implied use, compatible secret types, and legal key sizes, so the create-secret form can drive its
+ * algorithm, use, and key-size inputs from server discovery rather than hard-coded defaults.
+ */
+export type AlgorithmCapability = {
+  readonly code: string;
+  /** The key use the algorithm implies: `sig` for signature, `enc` for key-management. */
+  readonly use: string;
+  /** The secret-type discriminators (e.g. `rsa`, `ecc`) whose key material is compatible with this algorithm. */
+  readonly secretTypes: readonly string[];
+  readonly keyBitSizes: readonly KeyBitSizes[];
+};
+
 /**
  * Mirror of `ManagementCapabilitiesResource` — the server-wide management capabilities discovery document
  * returned by `GET /api/capabilities`. Intentionally extensible with additional capability sections over time.
@@ -259,6 +280,7 @@ export type EccCurveCapability = {
 export type ManagementCapabilitiesResource = {
   readonly secretTypes: readonly SecretTypeCapability[];
   readonly eccCurves?: readonly EccCurveCapability[];
+  readonly algorithms?: readonly AlgorithmCapability[];
 };
 
 /**

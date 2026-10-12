@@ -10,6 +10,17 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Algorithm capabilities discovery drives the create-secret form — completes backlog `S6`.** The management
+  capabilities document ([ADR-0067](docs/adr/0067-secret-type-capability-catalog-and-capabilities-discovery.md)) grows
+  an `algorithms` section published by a new `AlgorithmCapabilitiesProvider`
+  (`ICommandHandler<DiscoverManagementCapabilitiesCommand>`). It projects every supported signature and key-management
+  algorithm from the live `IAlgorithmCollectionProvider` as an `AlgorithmCapabilityResource` carrying its `code`, the
+  implied `use` (`sig`/`enc`), the compatible secret-type discriminators (cross-referenced against the
+  `ISecretKeyTypeCatalog`), and its legal `keyBitSizes` ranges — so the console create-secret form drives its
+  **algorithm**, **use**, and **key-size** inputs from discovery instead of free-text defaults: the algorithm picker
+  offers only algorithms compatible with the chosen secret type, selecting one derives the read-only use and clamps the
+  key size into the algorithm's legal range (min/max/step). A new capability is still added only by registering a
+  provider, never by editing the endpoint or resource type.
 - **Server create/edit management across the stack — completes backlog `U9`.** The Servers surface is no longer
   read-only: an OpenID server now carries an editable top-level **display name**, and the management console lists
   servers with a **Create server** action plus row-level **edit/delete** (mirroring tenants and resource servers) in

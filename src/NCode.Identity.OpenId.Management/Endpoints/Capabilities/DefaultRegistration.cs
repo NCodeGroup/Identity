@@ -50,6 +50,12 @@ internal static class DefaultRegistration
                     EccCurveCapabilitiesProvider
                 >()
             );
+            builder.ServiceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<DiscoverManagementCapabilitiesCommand>,
+                    AlgorithmCapabilitiesProvider
+                >()
+            );
         }
     }
 }

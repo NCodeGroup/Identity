@@ -22,13 +22,18 @@ using NCode.Identity.Events.Audit;
 namespace NCode.Identity.OpenId.Management.Auditing;
 
 /// <summary>
-/// An audit event raised when an administrator bulk-revokes grants by subject and/or client filter.
+/// An audit event raised when an administrator bulk-revokes grants by subject, client, and/or session filter.
 /// </summary>
 [PublicAPI]
 public sealed record GrantsRevokedBulkAuditEvent : AuditEvent
 {
     /// <inheritdoc />
     public override string Action => "grant.revoked.bulk";
+
+    /// <summary>
+    /// Gets the opaque <c>sid</c> filter applied to the revocation, if any.
+    /// </summary>
+    public string? SessionId { get; init; }
 
     /// <summary>
     /// Gets the number of grants that were revoked.

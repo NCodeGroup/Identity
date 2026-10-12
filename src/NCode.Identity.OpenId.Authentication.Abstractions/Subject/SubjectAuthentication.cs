@@ -19,6 +19,7 @@
 using System.Security.Claims;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
+using NCode.Identity.Jose;
 
 namespace NCode.Identity.OpenId.Authentication.Subject;
 
@@ -31,4 +32,12 @@ public readonly record struct SubjectAuthentication(
     AuthenticationProperties AuthenticationProperties,
     ClaimsPrincipal Subject,
     string SubjectId
-);
+)
+{
+    /// <summary>
+    /// Gets the opaque <c>sid</c> of the end-user session this authentication belongs to, read from the subject's
+    /// <see cref="JoseClaimNames.Payload.Sid"/> claim, or <c>null</c> when the subject was authenticated outside a
+    /// server-side session.
+    /// </summary>
+    public string? SessionId => Subject.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+}

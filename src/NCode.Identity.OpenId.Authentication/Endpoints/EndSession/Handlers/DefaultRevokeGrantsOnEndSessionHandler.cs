@@ -18,7 +18,6 @@
 
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
-using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -26,19 +25,19 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 
 /// <summary>
-/// Handles <see cref="OnEndSessionCommand"/> by performing the server-side termination: revoking the subject's grants
-/// (which includes the session grant), or revoking the session directly when the subject is unknown. Runs at high
-/// priority so revocation happens before notification side effects.
+/// Handles <see cref="OnEndSessionCommand"/> by performing the server-side termination: revoking the terminating
+/// session's grants (which includes the session grant itself, since it carries its own <c>sid</c>) so other sessions
+/// the subject holds are left intact — RP-initiated single-logout semantics. When no session is resolved the
+/// revocation falls back to the subject's grants. Runs at high priority so revocation happens before notification
+/// side effects.
 /// </summary>
 internal class DefaultRevokeGrantsOnEndSessionHandler(
     TimeProvider timeProvider,
-    IStoreManagerFactory storeManagerFactory,
-    ISessionService sessionService
+    IStoreManagerFactory storeManagerFactory
 ) : ICommandHandler<OnEndSessionCommand>, ISupportMediatorPriority
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private ISessionService SessionService { get; } = sessionService;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -49,29 +48,34 @@ internal class DefaultRevokeGrantsOnEndSessionHandler(
         CancellationToken cancellationToken
     )
     {
-        var (openIdContext, subject) = command;
+        var (_, subject) = command;
         var revokedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
-        if (!string.IsNullOrEmpty(subject.SubjectId))
+        // Prefer session-scoped revocation: a logout terminates the identified session only, leaving the subject's
+        // other sessions (and their refresh tokens) valid. A subject-wide ("sign out everywhere") revocation is the
+        // deliberate opt-in offered by the management bulk-revoke surface (ADR-0022), not the default on logout.
+        string? subjectId = null;
+        var sessionId = subject.SessionId;
+        if (string.IsNullOrEmpty(sessionId))
         {
-            await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-            var grantStore = storeManager.GetStore<IGrantStore>();
-            await grantStore.RevokeWhereAsync(
-                subject.SubjectId,
-                clientId: null,
-                revokedWhen,
-                cancellationToken
-            );
-            await storeManager.SaveChangesAsync(cancellationToken);
+            // No session was resolved (for example a non-interactive id_token_hint without a sid); fall back to the
+            // subject's grants so the logout still invalidates server-side state.
+            subjectId = subject.SubjectId;
+            if (string.IsNullOrEmpty(subjectId))
+            {
+                return;
+            }
         }
-        else if (!string.IsNullOrEmpty(subject.SessionId))
-        {
-            await SessionService.RevokeAsync(
-                openIdContext,
-                subject.SessionId,
-                revokedWhen,
-                cancellationToken
-            );
-        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var grantStore = storeManager.GetStore<IGrantStore>();
+        await grantStore.RevokeWhereAsync(
+            subjectId,
+            clientId: null,
+            sessionId,
+            revokedWhen,
+            cancellationToken
+        );
+        await storeManager.SaveChangesAsync(cancellationToken);
     }
 }

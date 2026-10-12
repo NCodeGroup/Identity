@@ -75,6 +75,14 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
     public required string? SubjectId { get; init; }
 
     /// <summary>
+    /// Gets the opaque <c>sid</c> of the end-user session this grant was issued under, or <c>null</c> for a grant
+    /// not tied to a session (such as a non-interactive or administrative grant). Logout revokes grants by this
+    /// value so signing out of one session leaves the subject's other sessions intact.
+    /// </summary>
+    [MaxLength(OpenIdMaxLengths.SessionId)]
+    public required string? SessionId { get; init; }
+
+    /// <summary>
     /// Gets or sets when this entity was created.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }

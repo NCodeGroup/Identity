@@ -48,6 +48,12 @@ public readonly record struct PersistedGrant<TPayload>
     public required string? SubjectId { get; init; }
 
     /// <summary>
+    /// Gets the opaque <c>sid</c> of the end-user session this grant was issued under, or <c>null</c> for a grant
+    /// not tied to a session. Logout revokes a session's grants by this value.
+    /// </summary>
+    public required string? SessionId { get; init; }
+
+    /// <summary>
     /// Gets or sets the payload of the grant.
     /// </summary>
     public required TPayload Payload { get; init; }

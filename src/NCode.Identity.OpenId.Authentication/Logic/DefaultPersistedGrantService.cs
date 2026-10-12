@@ -96,6 +96,7 @@ internal class DefaultPersistedGrantService(
             TenantId = grant.TenantId,
             ClientId = grant.ClientId,
             SubjectId = grant.SubjectId,
+            SessionId = grant.SessionId,
             CreatedWhen = createdWhen,
             ExpiresWhen = expiresWhen,
             RevokedWhen = null,
@@ -161,6 +162,7 @@ internal class DefaultPersistedGrantService(
             TenantId = envelope.TenantId,
             ClientId = envelope.ClientId,
             SubjectId = envelope.SubjectId,
+            SessionId = envelope.SessionId,
             Payload = payload,
         };
 
@@ -214,6 +216,7 @@ internal class DefaultPersistedGrantService(
             TenantId = envelope.TenantId,
             ClientId = envelope.ClientId,
             SubjectId = envelope.SubjectId,
+            SessionId = envelope.SessionId,
             Payload = payload,
         };
 

@@ -60,12 +60,13 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
-    /// Records that an administrator bulk-revoked grants by subject and/or client filter.
+    /// Records that an administrator bulk-revoked grants by subject, client, and/or session filter.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the tenant the grants belong to.</param>
     /// <param name="subjectId">The subject filter applied to the revocation, if any.</param>
     /// <param name="clientId">The client filter applied to the revocation, if any.</param>
+    /// <param name="sessionId">The session (<c>sid</c>) filter applied to the revocation, if any.</param>
     /// <param name="revokedCount">The number of grants that were revoked.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
@@ -78,6 +79,7 @@ public interface IManagementAuditRecorder
         string tenantId,
         string? subjectId,
         string? clientId,
+        string? sessionId,
         long revokedCount,
         CancellationToken cancellationToken
     );

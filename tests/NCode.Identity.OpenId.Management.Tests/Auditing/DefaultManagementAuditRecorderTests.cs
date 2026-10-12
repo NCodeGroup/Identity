@@ -139,6 +139,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "tenant-1",
             "subject-1",
             clientId: null,
+            sessionId: "sid-1",
             revokedCount: 7,
             CancellationToken.None
         );
@@ -149,6 +150,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
         Assert.Null(captured.ClientId);
+        Assert.Equal("sid-1", captured.SessionId);
         Assert.Equal(7, captured.RevokedCount);
         Assert.Equal("admin-1", captured.ActorId);
     }

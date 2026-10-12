@@ -93,6 +93,7 @@ internal class DefaultContinueService(
             TenantId = tenantId,
             ClientId = clientId,
             SubjectId = subjectId,
+            SessionId = null,
             Payload = continueEnvelope,
         };
 

@@ -100,6 +100,7 @@ public class DefaultGetRequestedUserInfoClaimsHandlerTests : BaseTests
                 TenantId = TenantId,
                 ClientId = "client-1",
                 SubjectId = "subject-123",
+                SessionId = null,
                 Payload = payload,
             };
         mockGrantService

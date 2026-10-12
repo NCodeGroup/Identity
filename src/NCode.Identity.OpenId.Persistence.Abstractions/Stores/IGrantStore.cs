@@ -31,10 +31,11 @@ public interface IGrantStore : IStore<PersistedGrant>
 {
     /// <summary>
     /// Gets a single page of <see cref="PersistedGrant"/> instances ordered by their identifier, using keyset
-    /// (cursor) pagination, optionally filtered to a subject and/or a client.
+    /// (cursor) pagination, optionally filtered to a subject, a client, and/or a session.
     /// </summary>
     /// <param name="subjectId">When specified, restricts the page to grants for this subject; otherwise all subjects.</param>
     /// <param name="clientId">When specified, restricts the page to grants for this client; otherwise all clients.</param>
+    /// <param name="sessionId">When specified, restricts the page to grants issued under this session; otherwise all sessions.</param>
     /// <param name="cursor">The opaque cursor returned by a previous call that fetches the next page, or <c>null</c>
     /// to fetch the first page.</param>
     /// <param name="limit">The maximum number of items to return on the page.</param>
@@ -44,18 +45,21 @@ public interface IGrantStore : IStore<PersistedGrant>
     ValueTask<PagedResult<PersistedGrant>> GetPageAsync(
         string? subjectId,
         string? clientId,
+        string? sessionId,
         string? cursor,
         int limit,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Soft-revokes every active grant matching the specified subject and/or client by setting its
+    /// Soft-revokes every active grant matching the specified subject, client, and/or session by setting its
     /// <c>RevokedWhen</c> timestamp; already-revoked grants are left unchanged. At least one of
-    /// <paramref name="subjectId"/> or <paramref name="clientId"/> should be specified by the caller.
+    /// <paramref name="subjectId"/>, <paramref name="clientId"/>, or <paramref name="sessionId"/> should be
+    /// specified by the caller.
     /// </summary>
     /// <param name="subjectId">When specified, restricts the revocation to grants for this subject.</param>
     /// <param name="clientId">When specified, restricts the revocation to grants for this client.</param>
+    /// <param name="sessionId">When specified, restricts the revocation to grants issued under this session.</param>
     /// <param name="revokedWhen">The timestamp to record as the revocation time.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
@@ -63,6 +67,7 @@ public interface IGrantStore : IStore<PersistedGrant>
     ValueTask<long> RevokeWhereAsync(
         string? subjectId,
         string? clientId,
+        string? sessionId,
         DateTimeOffset revokedWhen,
         CancellationToken cancellationToken
     );

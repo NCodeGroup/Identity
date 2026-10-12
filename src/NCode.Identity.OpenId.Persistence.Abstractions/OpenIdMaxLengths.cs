@@ -68,6 +68,12 @@ public static class OpenIdMaxLengths
     public const int GrantType = 100;
 
     /// <summary>
+    /// Specifies the maximum length of a <c>SessionId</c>: the opaque <c>sid</c> of the end-user session a
+    /// session-scoped grant was issued under.
+    /// </summary>
+    public const int SessionId = 300;
+
+    /// <summary>
     /// Specifies the maximum length of a <c>HashedKey</c>.
     /// </summary>
     public const int HashedKey = 1000;

@@ -35,6 +35,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 [Index(nameof(NormalizedGrantId), IsUnique = true)]
 [Index(nameof(TenantId), nameof(ClientId), IsUnique = false)]
 [Index(nameof(TenantId), nameof(NormalizedSubjectId), IsUnique = false)]
+[Index(nameof(TenantId), nameof(SessionId), IsUnique = false)]
 [Index(nameof(ExpiresWhen), IsUnique = false)]
 public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
@@ -117,6 +118,15 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string? NormalizedSubjectId { get; init; }
+
+    /// <summary>
+    /// Gets the opaque <c>sid</c> of the end-user session this grant was issued under, or <c>null</c> for a grant
+    /// not tied to a session. The <c>sid</c> is an opaque, case-significant Base64Url key matched verbatim, so it is
+    /// indexed directly with no normalized companion column (see ADR-0052 on normalized vs. verbatim-indexed keys).
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(OpenIdMaxLengths.SessionId)]
+    public required string? SessionId { get; init; }
 
     /// <summary>
     /// Gets or sets when this entity was created.

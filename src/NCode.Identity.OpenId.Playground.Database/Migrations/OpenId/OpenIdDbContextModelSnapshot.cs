@@ -534,6 +534,11 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
                     b.Property<DateTimeOffset?>("RevokedWhen")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("SessionId")
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("SubjectId")
                         .HasMaxLength(300)
                         .IsUnicode(false)
@@ -557,6 +562,8 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
                     b.HasIndex("TenantId", "ClientId");
 
                     b.HasIndex("TenantId", "NormalizedSubjectId");
+
+                    b.HasIndex("TenantId", "SessionId");
 
                     b.ToTable("Grants", (string)null);
                 });

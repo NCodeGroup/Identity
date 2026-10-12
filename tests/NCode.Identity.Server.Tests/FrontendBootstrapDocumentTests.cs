@@ -17,6 +17,7 @@
 #endregion
 
 using System.Text.Json;
+using NCode.Identity.Server.Frontend;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;

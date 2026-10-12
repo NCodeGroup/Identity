@@ -70,7 +70,7 @@ NCode.Identity.Server.IdentityServer.IdentityServer() -> void
 NCode.Identity.Server.IdentityServerBuilderExtensions
 NCode.Identity.Server.IdentityServerBuilderExtensions.extension(NCode.Identity.Server.IIdentityServerBuilder!)
 NCode.Identity.Server.IdentityServerBuilderExtensions.extension(NCode.Identity.Server.IIdentityServerBuilder!).AddConfiguration(Microsoft.Extensions.Configuration.IConfiguration! configuration, string? sectionName = null) -> NCode.Identity.Server.IIdentityServerBuilder!
-NCode.Identity.Server.IdentityServerBuilderExtensions.extension(NCode.Identity.Server.IIdentityServerBuilder!).AddFrontendBootstrap(Microsoft.Extensions.Configuration.IConfiguration! configuration, string? sectionName = null, System.Action<NCode.Identity.Server.FrontendBootstrapOptions!>? configureOptions = null) -> NCode.Identity.Server.IIdentityServerBuilder!
+NCode.Identity.Server.IdentityServerBuilderExtensions.extension(NCode.Identity.Server.IIdentityServerBuilder!).AddFrontendBootstrap(Microsoft.Extensions.Configuration.IConfiguration! configuration, string? sectionName = null, System.Action<NCode.Identity.Server.Frontend.FrontendBootstrapOptions!>? configureOptions = null) -> NCode.Identity.Server.IIdentityServerBuilder!
 NCode.Identity.Server.IIdentityServerBuilder
 NCode.Identity.Server.IIdentityServerBuilder.DataProtectionBuilder.get -> Microsoft.AspNetCore.DataProtection.IDataProtectionBuilder!
 NCode.Identity.Server.IIdentityServerBuilder.IdentityLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!
@@ -81,43 +81,43 @@ NCode.Identity.Server.IIdentityServerBuilder.OpenIdCoreLibraryBuilder.get -> NCo
 NCode.Identity.Server.IIdentityServerBuilder.OpenIdManagementLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.SecretPersistenceLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.SecretsLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
-const NCode.Identity.Server.FrontendBootstrapOptions.DefaultSectionName = "Frontend" -> string!
-NCode.Identity.Server.FrontendBootstrapOptions
-NCode.Identity.Server.FrontendBootstrapOptions.ApiBaseUrl.get -> string?
-NCode.Identity.Server.FrontendBootstrapOptions.ApiBaseUrl.set -> void
-NCode.Identity.Server.FrontendBootstrapOptions.Branding.get -> NCode.Identity.Server.FrontendBrandingOptions?
-NCode.Identity.Server.FrontendBootstrapOptions.Branding.set -> void
-NCode.Identity.Server.FrontendBootstrapOptions.ClientId.get -> string?
-NCode.Identity.Server.FrontendBootstrapOptions.ClientId.set -> void
-NCode.Identity.Server.FrontendBootstrapOptions.Features.get -> System.Collections.Generic.IDictionary<string!, bool>!
-NCode.Identity.Server.FrontendBootstrapOptions.Features.set -> void
-NCode.Identity.Server.FrontendBootstrapOptions.FrontendBootstrapOptions() -> void
-NCode.Identity.Server.FrontendBootstrapOptions.Issuer.get -> string?
-NCode.Identity.Server.FrontendBootstrapOptions.Issuer.set -> void
-NCode.Identity.Server.FrontendBootstrapOptions.Scopes.get -> string![]?
-NCode.Identity.Server.FrontendBootstrapOptions.Scopes.set -> void
-NCode.Identity.Server.FrontendBootstrapOptions.Surfaces.get -> System.Collections.Generic.IDictionary<string!, NCode.Identity.Server.FrontendSurfaceOptions!>!
-NCode.Identity.Server.FrontendBootstrapOptions.Surfaces.set -> void
-NCode.Identity.Server.FrontendBrandingOptions
-NCode.Identity.Server.FrontendBrandingOptions.DisplayName.get -> string?
-NCode.Identity.Server.FrontendBrandingOptions.DisplayName.set -> void
-NCode.Identity.Server.FrontendBrandingOptions.FrontendBrandingOptions() -> void
-NCode.Identity.Server.FrontendBrandingOptions.IsEmpty.get -> bool
-NCode.Identity.Server.FrontendBrandingOptions.LogoUrl.get -> string?
-NCode.Identity.Server.FrontendBrandingOptions.LogoUrl.set -> void
-NCode.Identity.Server.FrontendBrandingOptions.Mode.get -> string?
-NCode.Identity.Server.FrontendBrandingOptions.Mode.set -> void
-NCode.Identity.Server.FrontendBrandingOptions.PrimaryColor.get -> string?
-NCode.Identity.Server.FrontendBrandingOptions.PrimaryColor.set -> void
-NCode.Identity.Server.FrontendBrandingOptions.SecondaryColor.get -> string?
-NCode.Identity.Server.FrontendBrandingOptions.SecondaryColor.set -> void
-NCode.Identity.Server.FrontendSurfaceOptions
-NCode.Identity.Server.FrontendSurfaceOptions.Branding.get -> NCode.Identity.Server.FrontendBrandingOptions?
-NCode.Identity.Server.FrontendSurfaceOptions.Branding.set -> void
-NCode.Identity.Server.FrontendSurfaceOptions.ClientId.get -> string?
-NCode.Identity.Server.FrontendSurfaceOptions.ClientId.set -> void
-NCode.Identity.Server.FrontendSurfaceOptions.Features.get -> System.Collections.Generic.IDictionary<string!, bool>?
-NCode.Identity.Server.FrontendSurfaceOptions.Features.set -> void
-NCode.Identity.Server.FrontendSurfaceOptions.FrontendSurfaceOptions() -> void
-NCode.Identity.Server.FrontendSurfaceOptions.Scopes.get -> string![]?
-NCode.Identity.Server.FrontendSurfaceOptions.Scopes.set -> void
+const NCode.Identity.Server.Frontend.FrontendBootstrapOptions.DefaultSectionName = "Frontend" -> string!
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.ApiBaseUrl.get -> string?
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.ApiBaseUrl.set -> void
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.Branding.get -> NCode.Identity.Server.Frontend.FrontendBrandingOptions?
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.Branding.set -> void
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.ClientId.get -> string?
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.ClientId.set -> void
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.Features.get -> System.Collections.Generic.IDictionary<string!, bool>!
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.Features.set -> void
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.FrontendBootstrapOptions() -> void
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.Issuer.get -> string?
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.Issuer.set -> void
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.Scopes.get -> string![]?
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.Scopes.set -> void
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.Surfaces.get -> System.Collections.Generic.IDictionary<string!, NCode.Identity.Server.Frontend.FrontendSurfaceOptions!>!
+NCode.Identity.Server.Frontend.FrontendBootstrapOptions.Surfaces.set -> void
+NCode.Identity.Server.Frontend.FrontendBrandingOptions
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.DisplayName.get -> string?
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.DisplayName.set -> void
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.FrontendBrandingOptions() -> void
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.IsEmpty.get -> bool
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.LogoUrl.get -> string?
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.LogoUrl.set -> void
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.Mode.get -> string?
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.Mode.set -> void
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.PrimaryColor.get -> string?
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.PrimaryColor.set -> void
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.SecondaryColor.get -> string?
+NCode.Identity.Server.Frontend.FrontendBrandingOptions.SecondaryColor.set -> void
+NCode.Identity.Server.Frontend.FrontendSurfaceOptions
+NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Branding.get -> NCode.Identity.Server.Frontend.FrontendBrandingOptions?
+NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Branding.set -> void
+NCode.Identity.Server.Frontend.FrontendSurfaceOptions.ClientId.get -> string?
+NCode.Identity.Server.Frontend.FrontendSurfaceOptions.ClientId.set -> void
+NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Features.get -> System.Collections.Generic.IDictionary<string!, bool>?
+NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Features.set -> void
+NCode.Identity.Server.Frontend.FrontendSurfaceOptions.FrontendSurfaceOptions() -> void
+NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Scopes.get -> string![]?
+NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Scopes.set -> void

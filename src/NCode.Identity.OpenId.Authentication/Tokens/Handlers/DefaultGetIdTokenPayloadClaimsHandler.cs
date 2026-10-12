@@ -87,9 +87,7 @@ internal class DefaultGetIdTokenPayloadClaimsHandler(ISessionService sessionServ
         // https://openid.net/specs/openid-connect-rpinitiated-1_0.html#IDToken
         // Emitted from the server-side session established at interactive sign-in; it binds the ID token to the
         // session so RP-initiated and back-channel logout can target it. A non-interactive issuance has no session.
-        var sessionId = tokenRequest
-            .SubjectAuthentication?.Subject.FindFirst(JoseClaimNames.Payload.Sid)
-            ?.Value;
+        var sessionId = tokenRequest.SubjectAuthentication?.SessionId;
         if (!string.IsNullOrEmpty(sessionId))
         {
             payloadClaims[JoseClaimNames.Payload.Sid] = sessionId;

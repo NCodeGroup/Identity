@@ -137,6 +137,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             TenantId = TenantId,
             ClientId = "client-1",
             SubjectId = "subject-1",
+            SessionId = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddHours(1),
             RevokedWhen = revokedWhen,
@@ -155,7 +156,14 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockGrantStore
             .Setup(x =>
-                x.GetPageAsync(null, null, null, It.IsAny<int>(), It.IsAny<CancellationToken>())
+                x.GetPageAsync(
+                    null,
+                    null,
+                    null,
+                    null,
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
             .ReturnsAsync(
                 new PagedResult<PersistedGrant> { Items = [CreateGrant()], NextCursor = "next" }
@@ -169,6 +177,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             TenantId,
             subjectId: null,
             clientId: null,
+            sessionId: null,
             cursor: null,
             limit: null,
             CancellationToken.None
@@ -190,6 +199,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
                 x.GetPageAsync(
                     "subject-1",
                     "client-1",
+                    "sid-1",
                     null,
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()
@@ -207,6 +217,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             TenantId,
             subjectId: "subject-1",
             clientId: "client-1",
+            sessionId: "sid-1",
             cursor: null,
             limit: null,
             CancellationToken.None
@@ -228,6 +239,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             TenantId,
             subjectId: null,
             clientId: null,
+            sessionId: null,
             cursor: null,
             limit: null,
             CancellationToken.None
@@ -252,6 +264,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             TenantId,
             subjectId: null,
             clientId: null,
+            sessionId: null,
             CancellationToken.None
         );
 
@@ -268,6 +281,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.RevokeWhereAsync(
                     "subject-1",
+                    null,
                     null,
                     It.IsAny<DateTimeOffset>(),
                     It.IsAny<CancellationToken>()
@@ -287,6 +301,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
                     TenantId,
                     "subject-1",
                     null,
+                    null,
                     3,
                     It.IsAny<CancellationToken>()
                 )
@@ -301,6 +316,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             TenantId,
             subjectId: "subject-1",
             clientId: null,
+            sessionId: null,
             CancellationToken.None
         );
 
@@ -320,6 +336,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             TenantId,
             subjectId: "subject-1",
             clientId: null,
+            sessionId: null,
             CancellationToken.None
         );
 

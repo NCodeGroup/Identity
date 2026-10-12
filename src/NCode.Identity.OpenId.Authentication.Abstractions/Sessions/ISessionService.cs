@@ -24,8 +24,9 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 
 /// <summary>
 /// Provides an abstraction for managing persisted end-user sessions, including creating a session at sign-in, resolving
-/// a session by its <c>sid</c>, tracking the relying parties a session has issued tokens to, and revoking a session at
-/// logout.
+/// a session by its <c>sid</c>, and tracking the relying parties a session has issued tokens to. A session is revoked
+/// at logout by the session-scoped grant revocation (<see cref="NCode.Identity.OpenId.Persistence.Stores"/>), which
+/// revokes the session grant alongside the grants issued under it.
 /// </summary>
 [PublicAPI]
 public interface ISessionService
@@ -72,21 +73,6 @@ public interface ISessionService
         OpenIdContext openIdContext,
         string sessionId,
         string clientId,
-        CancellationToken cancellationToken
-    );
-
-    /// <summary>
-    /// Revokes the session with the specified opaque session identifier (<c>sid</c>) if it is still active.
-    /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
-    /// <param name="sessionId">The opaque session identifier (<c>sid</c>).</param>
-    /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask RevokeAsync(
-        OpenIdContext openIdContext,
-        string sessionId,
-        DateTimeOffset revokedWhen,
         CancellationToken cancellationToken
     );
 }

@@ -49,6 +49,26 @@ filter compares that single indexed column, so the framework interface stays dec
 `UseIdGeneratorAttribute` become **public**, so a slice reuses the store base, the registration helper, and opaque-id
 generation instead of re-implementing them.
 
+#### Normalized companion columns vs. verbatim-indexed keys
+
+The framework's `Normalize` helper is `value?.ToLowerInvariant()`, and a `Normalized<Name>` companion column exists for
+exactly one reason: to make a **case-insensitive** lookup _sargable_ (index-usable) on DBMS engines without
+case-insensitive collations. The convention for whether a string column gets a normalized companion is therefore driven
+by whether case-insensitive matching is _wanted_, not by whether the column happens to be an identifier:
+
+- **Add a `Normalized<Name>` companion + index** when the value is an **externally-supplied or caller-addressable**
+  identifier whose match should be case-insensitive — e.g. `TenantId`, `ClientId`, `SubjectId` (an upstream `sub` whose
+  case semantics vary by IdP), and even the opaque `GrantId` (a Base64Url resource id that is nonetheless the
+  management-API-addressable public handle an operator may paste into a URL, so forgiving case-insensitive addressing is
+  deliberately chosen over its tiny entropy cost).
+- **Index the front-facing value verbatim (no companion)** when the value is an **opaque, case-significant key matched
+  only against the exact bytes the server stored** — e.g. `GrantType` (a fixed lowercase protocol literal), `HashedKey`
+  (a Base64Url SHA-256 hash), and the session `sid` (an opaque 256-bit Base64Url key that round-trips verbatim through
+  the OP cookie / `id_token_hint`). Normalizing these would be **wrong**: Base64Url is case-significant, so lowercasing
+  would let two distinct values collide and a lowercased lookup would never match the stored mixed-case key. For a
+  bearer-grade secret such as `sid`, verbatim matching is also the safer choice.
+
+
 ### The slices
 
 Each slice is a package of entities + stores + an `IOpenIdModelContributor` + store registrations, depending only on the

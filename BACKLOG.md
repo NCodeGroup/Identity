@@ -89,16 +89,6 @@ one option is merely more work.
   (`token.refresh.replay`), but there is no configurable response that revokes the whole token family
   on reuse. See `// TODO: refresh_token_reuse_policy` in
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/RefreshToken/DefaultRefreshTokenGrantHandler.cs`.
-- **`F17` — Session-scoped grant revocation on logout.** Logout bulk-revokes **every** grant a subject holds —
-  `DefaultRevokeGrantsOnEndSessionHandler` calls `IGrantStore.RevokeWhereAsync(subjectId, clientId: null, …)` — so
-  signing out of one session also invalidates refresh tokens issued to the subject's **other** sessions. The grant store
-  was a "one-stop shop" built before sessions existed; now that a login is a `sid`-keyed session
-  ([ADR-0074](docs/adr/0074-session-management-and-logout.md)), grants issued under a session should carry that `sid` so
-  logout can revoke only the terminating session's grants (RP-initiated single-logout semantics), with a deliberate
-  opt-in for global sign-out. (Durable consent is already immune — it is its own aggregate, not a grant, per
-  [ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md).) Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/Handlers/DefaultRevokeGrantsOnEndSessionHandler.cs`,
-  `src/NCode.Identity.OpenId.Persistence.Abstractions/Stores/IGrantStore.cs`.
 - **`F5` — First-class claim-shaping pipeline (Auth0-Actions-equivalent).** Custom claim shaping is already possible
   today by registering an `ICommandHandler` on the subject-claims / UserInfo commands (the mediator pipeline is the
   extension seam, per [ADR-0054](docs/adr/0054-local-account-metadata-projection.md)), but there is no first-class

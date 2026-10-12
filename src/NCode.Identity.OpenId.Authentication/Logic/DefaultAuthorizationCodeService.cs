@@ -79,6 +79,7 @@ internal class DefaultAuthorizationCodeService(
             TenantId = tenantId,
             ClientId = clientId,
             SubjectId = subjectId,
+            SessionId = subjectAuthentication.SessionId,
             Payload = authorizationGrant,
         };
 

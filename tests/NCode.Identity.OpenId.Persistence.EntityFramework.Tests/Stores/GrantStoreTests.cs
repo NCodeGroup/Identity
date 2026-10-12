@@ -95,7 +95,8 @@ public sealed class GrantStoreTests : IDisposable
     private static PersistedGrant CreateGrant(
         string hashedKey = HashedKey,
         string grantId = "grant-1",
-        string? subjectId = "subject-1"
+        string? subjectId = "subject-1",
+        string? sessionId = null
     ) =>
         new()
         {
@@ -106,6 +107,7 @@ public sealed class GrantStoreTests : IDisposable
             TenantId = TenantId,
             ClientId = null,
             SubjectId = subjectId,
+            SessionId = sessionId,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddHours(1),
             RevokedWhen = null,
@@ -173,6 +175,7 @@ public sealed class GrantStoreTests : IDisposable
         var firstPage = await _store.GetPageAsync(
             subjectId: null,
             clientId: null,
+            sessionId: null,
             cursor: null,
             limit: 2,
             CancellationToken.None
@@ -184,6 +187,7 @@ public sealed class GrantStoreTests : IDisposable
         var secondPage = await _store.GetPageAsync(
             subjectId: null,
             clientId: null,
+            sessionId: null,
             firstPage.NextCursor,
             limit: 2,
             CancellationToken.None
@@ -213,6 +217,7 @@ public sealed class GrantStoreTests : IDisposable
         var page = await _store.GetPageAsync(
             subjectId: "alice",
             clientId: null,
+            sessionId: null,
             cursor: null,
             limit: 50,
             CancellationToken.None
@@ -220,6 +225,33 @@ public sealed class GrantStoreTests : IDisposable
 
         Assert.Single(page.Items);
         Assert.Equal("grant-a", page.Items[0].GrantId);
+    }
+
+    [Fact]
+    public async Task GetPageAsync_FiltersBySession()
+    {
+        await _store.AddAsync(
+            CreateGrant(hashedKey: "hk-s1", grantId: "grant-s1", sessionId: "sid-1"),
+            CancellationToken.None
+        );
+        await _store.AddAsync(
+            CreateGrant(hashedKey: "hk-s2", grantId: "grant-s2", sessionId: "sid-2"),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var page = await _store.GetPageAsync(
+            subjectId: null,
+            clientId: null,
+            sessionId: "sid-1",
+            cursor: null,
+            limit: 50,
+            CancellationToken.None
+        );
+
+        Assert.Single(page.Items);
+        Assert.Equal("grant-s1", page.Items[0].GrantId);
     }
 
     #endregion
@@ -248,6 +280,7 @@ public sealed class GrantStoreTests : IDisposable
         var count = await _store.RevokeWhereAsync(
             subjectId: "alice",
             clientId: null,
+            sessionId: null,
             revokedWhen,
             CancellationToken.None
         );
@@ -277,6 +310,7 @@ public sealed class GrantStoreTests : IDisposable
         var first = await _store.RevokeWhereAsync(
             subjectId: "alice",
             clientId: null,
+            sessionId: null,
             DateTimeOffset.UnixEpoch.AddMinutes(10),
             CancellationToken.None
         );
@@ -286,12 +320,58 @@ public sealed class GrantStoreTests : IDisposable
         var second = await _store.RevokeWhereAsync(
             subjectId: "alice",
             clientId: null,
+            sessionId: null,
             DateTimeOffset.UnixEpoch.AddMinutes(20),
             CancellationToken.None
         );
 
         Assert.Equal(1, first);
         Assert.Equal(0, second);
+    }
+
+    [Fact]
+    public async Task RevokeWhereAsync_BySession_RevokesOnlyThatSessionsGrants()
+    {
+        await _store.AddAsync(
+            CreateGrant(
+                hashedKey: "hk-s1",
+                grantId: "grant-s1",
+                subjectId: "alice",
+                sessionId: "sid-1"
+            ),
+            CancellationToken.None
+        );
+        await _store.AddAsync(
+            CreateGrant(
+                hashedKey: "hk-s2",
+                grantId: "grant-s2",
+                subjectId: "alice",
+                sessionId: "sid-2"
+            ),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var revokedWhen = DateTimeOffset.UnixEpoch.AddMinutes(10);
+        var count = await _store.RevokeWhereAsync(
+            subjectId: null,
+            clientId: null,
+            sessionId: "sid-1",
+            revokedWhen,
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(1, count);
+
+        var session1 = await _store.GetOrDefaultAsync("grant-s1", CancellationToken.None);
+        var session2 = await _store.GetOrDefaultAsync("grant-s2", CancellationToken.None);
+        Assert.NotNull(session1);
+        Assert.NotNull(session2);
+        Assert.Equal(revokedWhen, session1.RevokedWhen);
+        Assert.Null(session2.RevokedWhen);
     }
 
     #endregion

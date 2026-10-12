@@ -363,6 +363,7 @@ internal class DefaultTokenService(
             TenantId = tenantId,
             ClientId = openIdClient.ClientId,
             SubjectId = tokenRequest.SubjectAuthentication?.SubjectId,
+            SessionId = tokenRequest.SubjectAuthentication?.SessionId,
             Payload = requestClaims,
         };
 
@@ -521,6 +522,7 @@ internal class DefaultTokenService(
             TenantId = tenantId,
             ClientId = clientId,
             SubjectId = subjectId,
+            SessionId = subjectAuthentication?.SessionId,
             Payload = refreshTokenGrant,
         };
 

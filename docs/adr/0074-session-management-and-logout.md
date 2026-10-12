@@ -1,6 +1,7 @@
 # 74. End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout
 
-- **Status:** Accepted
+- **Status:** Accepted (the logout revocation scope is refined by [ADR-0077](0077-session-scoped-grant-revocation-on-logout.md):
+  logout revokes the terminating session's grants, not the whole subject's)
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
 

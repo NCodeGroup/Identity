@@ -74,6 +74,7 @@ internal class DefaultManagementAuditRecorder(
         string tenantId,
         string? subjectId,
         string? clientId,
+        string? sessionId,
         long revokedCount,
         CancellationToken cancellationToken
     )
@@ -88,6 +89,7 @@ internal class DefaultManagementAuditRecorder(
             TenantId = tenantId,
             SubjectId = subjectId,
             ClientId = clientId,
+            SessionId = sessionId,
             Outcome = AuditOutcome.Success,
             RevokedCount = revokedCount,
         };

@@ -144,6 +144,7 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
             TenantId = TenantId,
             ClientId = ClientId,
             SubjectId = subjectId,
+            SessionId = null,
             Payload = new RefreshTokenGrant(ClientId, [], effectiveScopes, null),
         };
 

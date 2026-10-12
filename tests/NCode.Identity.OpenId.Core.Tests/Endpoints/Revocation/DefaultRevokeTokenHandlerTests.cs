@@ -119,6 +119,7 @@ public class DefaultRevokeTokenHandlerTests : BaseTests
             TenantId = TenantId,
             ClientId = clientId,
             SubjectId = null,
+            SessionId = null,
             Payload = new RefreshTokenGrant(clientId, [], [], null),
         };
 

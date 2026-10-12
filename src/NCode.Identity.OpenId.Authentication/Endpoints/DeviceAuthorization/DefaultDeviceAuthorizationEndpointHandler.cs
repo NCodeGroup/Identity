@@ -158,6 +158,7 @@ internal class DefaultDeviceAuthorizationEndpointHandler(
             TenantId = tenantId,
             ClientId = openIdClient.ClientId,
             SubjectId = null,
+            SessionId = null,
             Payload = new DeviceCodeGrant
             {
                 ClientId = openIdClient.ClientId,
@@ -187,6 +188,7 @@ internal class DefaultDeviceAuthorizationEndpointHandler(
             TenantId = tenantId,
             ClientId = openIdClient.ClientId,
             SubjectId = null,
+            SessionId = null,
             Payload = new DeviceUserCodeGrant(deviceCode),
         };
 

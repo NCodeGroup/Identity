@@ -86,6 +86,7 @@ public class DefaultSessionServiceTests : BaseTests
             TenantId = TenantId,
             ClientId = null,
             SubjectId = SubjectId,
+            SessionId = null,
             Payload = new SessionGrant
             {
                 AuthTime = UtcNow,
@@ -304,37 +305,6 @@ public class DefaultSessionServiceTests : BaseTests
         );
 
         Assert.False(result);
-    }
-
-    #endregion
-
-    #region RevokeAsync Tests
-
-    [Fact]
-    public async Task RevokeAsync_Always_RevokesTheSessionGrant()
-    {
-        var mockContext = CreateContext();
-        var grantId = CreateGrantId();
-
-        MockPersistedGrantService
-            .Setup(x =>
-                x.CreateGrantId(TenantId, OpenIdConstants.PersistedGrantTypes.Session, SessionId)
-            )
-            .Returns(grantId)
-            .Verifiable();
-        MockPersistedGrantService
-            .Setup(x =>
-                x.SetRevokedOnceAsync(
-                    mockContext.Object,
-                    grantId,
-                    UtcNow,
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-
-        await Service.RevokeAsync(mockContext.Object, SessionId, UtcNow, CancellationToken.None);
     }
 
     #endregion

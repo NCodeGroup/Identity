@@ -12,20 +12,34 @@ change to the public API is a **major** version bump.
 
 ### Added
 
-- **Durable consent — persisted, enforced, and surfaced — completes backlog `F2` and `U3`.** The OpenID Provider now
-  records and enforces end-user **consent** ([ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md)). Consent
-  is a first-class persisted aggregate — a new `PersistedConsent` DTO, `IConsentStore`, and `ConsentEntity` table (with
-  an `AddConsents` EF migration) keyed by `(tenant, client, subject)` and **upserted** in place — deliberately **separate
-  from the ephemeral grant store** so it survives logout and powers a future "authorized applications" surface. A new
-  client **`require_consent`** setting (default off; also forced by `prompt=consent`) makes `DefaultAuthorizeHandler`
-  route a subject whose recorded consent does not cover the requested scopes to the interactive consent screen (via a new
-  `AuthorizeDisposition.ConsentRequired` and a `ConsentChallengeCommand` seam the interactive module handles), or return
-  the OIDC `consent_required` error under `prompt=none`. The interactive surface gains
-  `GET /account/consent/details` (resolving the pending request from the return URL without consuming it) and a
-  decision-recording `POST /account/consent`, and the `apps/auth` consent screen now shows the **real** client and
-  requested scopes. The Playground (`apps/playground`) and OIDC conformance (`apps/conformance`) surfaces are scaffolded
-  as apps on the shared `@ncode/*` platform. The unused `InteractiveAuthenticationOptions.AutoApproveConsent` placeholder
-  is **removed** (use `require_consent = false`).
+- **Session-scoped grant revocation on logout — completes backlog `F17`.** Logout now revokes **only the terminating
+  session's grants** instead of every grant the subject holds, so signing out of one login no longer invalidates the
+  subject's other sessions ([ADR-0077](docs/adr/0077-session-scoped-grant-revocation-on-logout.md)). A grant records the
+  opaque `sid` of the session it was issued under: `PersistedGrant` (and the typed `PersistedGrant<TPayload>` envelope)
+  gains a nullable `SessionId`, `GrantEntity` gains a `SessionId` column and `(TenantId, SessionId)` index (an
+  `AddGrantSessionId` EF migration), and the authorization-code, refresh-token, and per-access-token UserInfo-claims
+  grants — plus the session grant itself — stamp the `sid` read from the authenticated subject (a new
+  `SubjectAuthentication.SessionId` convenience). `IGrantStore.RevokeWhereAsync` and `GetPageAsync` gain an optional
+  `sessionId` filter (combined with the existing subject/client filters), surfaced on the management grant list and
+  bulk-revoke endpoints, `GrantResource`, and the bulk-revocation audit event;
+  `DefaultRevokeGrantsOnEndSessionHandler` revokes by `sid` when a session is resolved and falls back to subject-wide
+  revocation only when it is not. Subject-wide "sign out everywhere" remains the deliberate management bulk-revoke
+  ([ADR-0022](docs/adr/0022-grant-filters-and-bulk-revocation.md)). The redundant `ISessionService.RevokeAsync` (which
+  revoked only the session grant, leaving its child tokens live) is **removed**.
+
+    records and enforces end-user **consent** ([ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md)). Consent
+    is a first-class persisted aggregate — a new `PersistedConsent` DTO, `IConsentStore`, and `ConsentEntity` table (with
+    an `AddConsents` EF migration) keyed by `(tenant, client, subject)` and **upserted** in place — deliberately **separate
+    from the ephemeral grant store** so it survives logout and powers a future "authorized applications" surface. A new
+    client **`require_consent`** setting (default off; also forced by `prompt=consent`) makes `DefaultAuthorizeHandler`
+    route a subject whose recorded consent does not cover the requested scopes to the interactive consent screen (via a new
+    `AuthorizeDisposition.ConsentRequired` and a `ConsentChallengeCommand` seam the interactive module handles), or return
+    the OIDC `consent_required` error under `prompt=none`. The interactive surface gains
+    `GET /account/consent/details` (resolving the pending request from the return URL without consuming it) and a
+    decision-recording `POST /account/consent`, and the `apps/auth` consent screen now shows the **real** client and
+    requested scopes. The Playground (`apps/playground`) and OIDC conformance (`apps/conformance`) surfaces are scaffolded
+    as apps on the shared `@ncode/*` platform. The unused `InteractiveAuthenticationOptions.AutoApproveConsent` placeholder
+    is **removed** (use `require_consent = false`).
 
 - **Runtime consumption of resource-server secrets/settings and uniform resource-server auditing — completes backlog
   `U7`.** Access tokens now consume the per-audience material a resource server owns

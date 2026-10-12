@@ -102,6 +102,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             TenantId = TenantId,
             ClientId = "client-1",
             SubjectId = "subject-1",
+            SessionId = null,
             Payload = new DeviceCodeGrant
             {
                 ClientId = "client-1",

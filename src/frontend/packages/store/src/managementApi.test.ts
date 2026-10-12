@@ -573,6 +573,61 @@ describe('managementApi tenant secret + settings endpoints', () => {
   });
 });
 
+describe('managementApi server CRUD endpoints (global scope)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('createServer POSTs the request body under the server path', async () => {
+    const captured = mockFetch(
+      new Response(
+        JSON.stringify({ serverId: 's-new', concurrencyToken: 'c1', displayName: 'New server' }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.createServer.initiate({ displayName: 'New server', settings: {} }),
+    );
+
+    expect('data' in result && result.data?.serverId).toBe('s-new');
+    expect(captured[0]?.url).toBe('https://api.test/api/servers');
+    expect(captured[0]?.method).toBe('POST');
+  });
+
+  it('updateServer PATCHes a replace patch with If-Match', async () => {
+    const captured = mockFetch(new Response(null, { status: 204 }));
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.updateServer.initiate({
+        serverId: 'root',
+        concurrencyToken: 'etag-7',
+        fields: { displayName: 'Renamed' },
+      }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/servers/root');
+    expect(captured[0]?.method).toBe('PATCH');
+    expect(captured[0]?.ifMatch).toBe('etag-7');
+    expect(JSON.parse(captured[0]?.body ?? '[]')).toEqual([
+      { op: 'replace', path: '/displayName', value: 'Renamed' },
+    ]);
+  });
+
+  it('deleteServer DELETEs under the server path', async () => {
+    const captured = mockFetch(new Response(null, { status: 204 }));
+    const store = createStore();
+
+    await store.dispatch(managementApi.endpoints.deleteServer.initiate({ serverId: 'root' }));
+
+    expect(captured[0]?.url).toBe('https://api.test/api/servers/root');
+    expect(captured[0]?.method).toBe('DELETE');
+  });
+});
+
 describe('managementApi server secret + settings endpoints (global scope)', () => {
   afterEach(() => {
     vi.restoreAllMocks();

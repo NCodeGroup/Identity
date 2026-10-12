@@ -79,6 +79,7 @@ public sealed class ServerStoreSecretsTests : IDisposable
         {
             ServerId = ServerId,
             ConcurrencyToken = string.Empty,
+            DisplayName = "Test Server",
             Settings = new PersistedServerSettings
             {
                 ServerId = ServerId,

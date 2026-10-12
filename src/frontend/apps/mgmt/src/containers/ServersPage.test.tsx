@@ -92,3 +92,116 @@ describe('ServersPage', () => {
     });
   });
 });
+
+describe('ServersPage (CRUD wiring)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('creates a server through the form dialog', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/servers') && method === 'POST') {
+        return jsonResponse({ ...server, serverId: 'new', displayName: 'New server' }, 201);
+      }
+      if (url.endsWith('/api/servers')) {
+        return jsonResponse({ items: [server] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    expect(await screen.findByText('Root server')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('create-server'));
+    fireEvent.change(screen.getByTestId('server-display-name'), {
+      target: { value: 'New server' },
+    });
+    fireEvent.click(screen.getByTestId('server-form-submit'));
+
+    await waitFor(() => expect(screen.queryByTestId('server-form-submit')).not.toBeInTheDocument());
+    const post = calls.find((c) => c.method === 'POST');
+    expect(post?.url).toBe('https://api.test/api/servers');
+    expect(JSON.parse(post?.body ?? '{}')).toEqual({
+      displayName: 'New server',
+      settings: {},
+    });
+  });
+
+  it('edits a server through the form dialog with an If-Match patch', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/servers/root') && method === 'PATCH') {
+        return new Response(null, { status: 204 });
+      }
+      if (url.endsWith('/api/servers')) {
+        return jsonResponse({ items: [server] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    expect(await screen.findByText('Root server')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('server-edit-root'));
+    fireEvent.change(await screen.findByTestId('server-display-name'), {
+      target: { value: 'Renamed server' },
+    });
+    fireEvent.click(screen.getByTestId('server-form-submit'));
+
+    await waitFor(() => {
+      const patch = calls.find((c) => c.method === 'PATCH');
+      expect(patch?.url).toBe('https://api.test/api/servers/root');
+      expect(JSON.parse(patch?.body ?? '[]')).toEqual([
+        { op: 'replace', path: '/displayName', value: 'Renamed server' },
+      ]);
+    });
+  });
+
+  it('deletes a server after confirmation', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/servers/root') && method === 'DELETE') {
+        return new Response(null, { status: 204 });
+      }
+      if (url.endsWith('/api/servers')) {
+        return jsonResponse({ items: [server] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    expect(await screen.findByText('Root server')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('server-delete-root'));
+    expect(await screen.findByTestId('confirm-accept')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('confirm-accept'));
+
+    await waitFor(() =>
+      expect(calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/api/servers/root'))).toBe(
+        true,
+      ),
+    );
+  });
+
+  it('surfaces a server error in the form and keeps it open', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/servers') && method === 'POST') {
+        return jsonResponse({ detail: 'A server with that identifier already exists.' }, 409);
+      }
+      if (url.endsWith('/api/servers')) {
+        return jsonResponse({ items: [server] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    expect(await screen.findByText('Root server')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('create-server'));
+    fireEvent.change(screen.getByTestId('server-display-name'), { target: { value: 'Dup' } });
+    fireEvent.click(screen.getByTestId('server-form-submit'));
+
+    expect(await screen.findByTestId('server-form-error')).toHaveTextContent(
+      'A server with that identifier already exists.',
+    );
+    expect(screen.getByTestId('server-form-submit')).toBeInTheDocument();
+  });
+});

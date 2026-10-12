@@ -193,6 +193,8 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.PersistedScope() 
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.Value.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.Value.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.DisplayName.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.DisplayName.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.PersistedServer() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.Secrets.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedServerSecrets!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.Secrets.set -> void

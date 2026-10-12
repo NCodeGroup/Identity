@@ -37,6 +37,7 @@ using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Settings;
@@ -52,7 +53,7 @@ internal class DefaultTokenService(
     ICredentialSelector credentialSelector,
     IJsonWebTokenService jsonWebTokenService,
     IPersistedGrantService persistedGrantService,
-    IClientScopeService clientScopeService,
+    IResourceServerCredentialResolver resourceServerCredentialResolver,
     IAuditEventRecorder auditEventRecorder
 ) : ITokenService
 {
@@ -62,7 +63,8 @@ internal class DefaultTokenService(
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
-    private IClientScopeService ClientScopeService { get; } = clientScopeService;
+    private IResourceServerCredentialResolver ResourceServerCredentialResolver { get; } =
+        resourceServerCredentialResolver;
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
 
     private static IEnumerable<Claim> FilterClaims(
@@ -148,21 +150,59 @@ internal class DefaultTokenService(
         var settings = openIdClient.Settings;
         var mediator = openIdContext.Mediator;
         var openIdTenant = openIdContext.Tenant;
-        var secretKeys = openIdTenant.SecretsProvider.Collection;
+        var tenantSecretKeys = openIdTenant.SecretsProvider.Collection;
+        var candidateAlgorithms = AlgorithmCollectionProvider.Collection;
 
-        var signingCredentials = GetSigningCredentials(
-            AlgorithmCollectionProvider.Collection,
-            settings.GetValue(OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported),
-            secretKeys
+        // Resolve the resource servers this token targets so we can both bind its audience (ADR-0027) and, when it
+        // targets a single resource server, encrypt it to that resource server's own key (ADR-0075). Disposed after
+        // issuance so the transient per-request secret-key provider is released.
+        await using var resolution = await ResourceServerCredentialResolver.ResolveAsync(
+            openIdContext,
+            tokenRequest.EffectiveScopes,
+            cancellationToken
         );
 
-        var encryptionCredentials = GetEncryptionCredentials(
-            AlgorithmCollectionProvider.Collection,
-            settings.GetValue(OpenIdSettingKeys.AccessTokenEncryptionRequired),
-            settings.GetValue(OpenIdSettingKeys.AccessTokenEncryptionAlgValuesSupported),
-            settings.GetValue(OpenIdSettingKeys.AccessTokenEncryptionEncValuesSupported),
-            settings.GetValue(OpenIdSettingKeys.AccessTokenEncryptionZipValuesSupported),
-            secretKeys
+        // A single targeted resource server governs the token's encryption with its own effective settings and keys;
+        // zero or many fall back to the client's settings over the tenant's keys (ADR-0075).
+        var encryptionSettings = resolution.Single?.EffectiveSettings ?? settings;
+        var resourceServerSecretKeys = resolution.SingleSecretsProvider?.Collection;
+
+        // A compact JWE encrypts to a single recipient, so a token targeting several resource servers where any one
+        // requires its tokens be encrypted cannot be satisfied — reject rather than silently downgrade (ADR-0075).
+        if (resolution.ResourceServers.Count > 1)
+        {
+            foreach (var resourceServer in resolution.ResourceServers)
+            {
+                if (
+                    resourceServer.EffectiveSettings.GetValue(
+                        OpenIdSettingKeys.AccessTokenEncryptionRequired
+                    )
+                )
+                {
+                    throw openIdContext
+                        .ErrorFactory.InvalidRequest(
+                            "The requested scopes span multiple resource servers but at least one requires its "
+                                + "access tokens be encrypted, which cannot be satisfied for a multi-audience token."
+                        )
+                        .AsException();
+                }
+            }
+        }
+
+        // Access tokens are always signed with the tenant's asymmetric key and validated by resource servers via JWKS
+        // (RFC 9068; FAPI permits only PS256/ES256 and forbids symmetric signing) — a resource server never holds a
+        // token-signing key (ADR-0075).
+        var signingCredentials = GetSigningCredentials(
+            candidateAlgorithms,
+            settings.GetValue(OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported),
+            tenantSecretKeys
+        );
+
+        var encryptionCredentials = GetAccessTokenEncryptionCredentials(
+            candidateAlgorithms,
+            encryptionSettings,
+            resourceServerSecretKeys,
+            tenantSecretKeys
         );
 
         var ticket = tokenRequest.SubjectAuthentication;
@@ -234,16 +274,11 @@ internal class DefaultTokenService(
             ? EnsureAuthTime(openIdContext, ticket.Value, tokenRequest, filteredClaims)
             : filteredClaims;
 
-        // Bind the access token audience to the resource servers that own its effective scopes (ADR-0027);
-        // fall back to the client when no resource-server audience applies (for example, a scopeless token).
-        var audiences = await ClientScopeService.ResolveAudiencesAsync(
-            openIdTenant.TenantId,
-            tokenRequest.EffectiveScopes,
-            cancellationToken
-        );
+        // Bind the access token audience to the resource servers resolved above (ADR-0027); fall back to the client
+        // when no resource-server audience applies (for example, a scopeless token).
         StringValues audience =
-            audiences.Count > 0
-                ? new StringValues(audiences.ToArray())
+            resolution.Audiences.Count > 0
+                ? new StringValues(resolution.Audiences.ToArray())
                 : new StringValues(openIdClient.ClientId);
 
         var parameters = new EncodeJwtParameters
@@ -536,6 +571,55 @@ internal class DefaultTokenService(
         return initial == null
             ? new Dictionary<string, object>(StringComparer.Ordinal)
             : new Dictionary<string, object>(initial, StringComparer.Ordinal);
+    }
+
+    // Selects the access token's encryption credentials when encryption is required, preferring the single targeted
+    // resource server's own key so only it can read the token, and falling back to the tenant's key (ADR-0075).
+    private JoseEncryptionCredentials? GetAccessTokenEncryptionCredentials(
+        IAlgorithmCollection candidateAlgorithms,
+        IReadOnlySettingCollection settings,
+        ISecretKeyCollection? resourceServerSecretKeys,
+        ISecretKeyCollection tenantSecretKeys
+    )
+    {
+        if (!settings.GetValue(OpenIdSettingKeys.AccessTokenEncryptionRequired))
+        {
+            return null;
+        }
+
+        var encryptionAlgValuesSupported = settings.GetValue(
+            OpenIdSettingKeys.AccessTokenEncryptionAlgValuesSupported
+        );
+        var encryptionEncValuesSupported = settings.GetValue(
+            OpenIdSettingKeys.AccessTokenEncryptionEncValuesSupported
+        );
+        var encryptionZipValuesSupported = settings.GetValue(
+            OpenIdSettingKeys.AccessTokenEncryptionZipValuesSupported
+        );
+
+        if (
+            resourceServerSecretKeys is not null
+            && CredentialSelector.TryGetEncryptionCredentials(
+                candidateAlgorithms,
+                encryptionAlgValuesSupported,
+                encryptionEncValuesSupported,
+                encryptionZipValuesSupported,
+                resourceServerSecretKeys,
+                out var resourceServerCredentials
+            )
+        )
+        {
+            return resourceServerCredentials;
+        }
+
+        return GetEncryptionCredentials(
+            candidateAlgorithms,
+            encryptionRequired: true,
+            encryptionAlgValuesSupported,
+            encryptionEncValuesSupported,
+            encryptionZipValuesSupported,
+            tenantSecretKeys
+        );
     }
 
     private JoseSigningCredentials GetSigningCredentials(

@@ -144,6 +144,17 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   `src/NCode.Identity.OpenId.Authentication/Sessions/`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/`.
 
+- **`F16` — FAPI (Financial-grade API) readiness epic.** An umbrella tracking the work to make the OP certifiable
+  against the OpenID Foundation **FAPI** security profiles ([FAPI 1.0 Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html),
+  [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)). FAPI mandates **sender-constrained access
+  tokens** (DPoP / mTLS — `F7`), **Pushed Authorization Requests** (`F8`), **signed request objects and responses**
+  (JAR / JARM — not yet tracked separately), and **strong client authentication** (`private_key_jwt` or mTLS — the
+  `private_key_jwt` half rides `S3`). It also restricts signing to **`PS256`/`ES256`** and forbids symmetric (`HS256`)
+  signing — the always-tenant-asymmetric access-token signing from
+  [ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md) already satisfies the algorithm rule; a
+  FAPI **profile** would additionally constrain the advertised `*_signing_alg_values_supported` settings to that set.
+  This item is the tracking anchor; the concrete deliverables are `F7`, `F8`, `S3`, and a new JAR/JARM work item.
+
 ## Conformance & interop testing (group `T`)
 
 - **`T1` — Independent OIDC/OAuth conformance validation (OpenID Foundation Conformance Suite).** Our own
@@ -185,15 +196,6 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
 ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
 
-- **`U7` — Runtime consumption + auditing of resource-server secrets/settings.** [ADR-0066](docs/adr/0066-resource-server-settings-and-secret-owner.md)
-  delivers resource-server settings/secrets **management** only. Two follow-ups remain: (1) **runtime consumption** —
-  resource servers have no runtime domain object and are not resolved at token-issuance time, so the stored per-audience
-  secrets (HS256 signing, JWE decryption) are not yet used to actually sign/encrypt access tokens; and (2) **auditing** —
-  `ResourceServerApiEndpointHandler` emits no `IManagementAuditRecorder` events for **any** operation (create, update,
-  delete, scopes, settings, secrets), unlike the client/tenant/server handlers. Retrofit audit uniformly across all
-  resource-server operations rather than only the new leaves. Touch points:
-  `src/NCode.Identity.OpenId.Management/Endpoints/ResourceServers/ResourceServerApiEndpointHandler.cs`,
-  `src/NCode.Identity.OpenId.Management.Abstractions/Auditing`, and the token-issuance pipeline for consumption.
 - **`U3` — Remaining surfaces (Auth/Consent/Login, Playground, conformance) on the shared platform.** Build the `T2`
   login/consent surface ([ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md)) and the eventual `F2`
   consent screen as apps on this platform rather than bespoke UIs, honoring the stable-locator contract

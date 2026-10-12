@@ -49,6 +49,10 @@ internal static class DefaultRegistration
                 DefaultPersistedGrantService
             >();
             serviceCollection.TryAddSingleton<IClientScopeService, DefaultClientScopeService>();
+            serviceCollection.TryAddSingleton<
+                IResourceServerCredentialResolver,
+                DefaultResourceServerCredentialResolver
+            >();
 
             serviceCollection.TryAddSingleton<
                 Sessions.ISessionService,

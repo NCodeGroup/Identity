@@ -155,4 +155,34 @@ describe('loadRuntimeConfig', () => {
       /HTTP 503/,
     );
   });
+
+  it('requests surface-specific coordinates when a surface is given', async () => {
+    const fetchFn = vi.fn<FetchLike>((url) => {
+      if (url.includes('/config/bootstrap.json')) {
+        return okJson({
+          apiBaseUrl: 'https://api.example',
+          issuer: 'https://op.example',
+          clientId: 'playground-spa',
+        });
+      }
+      return okJson({
+        issuer: 'https://op.example',
+        authorization_endpoint: 'https://op.example/authorize',
+        token_endpoint: 'https://op.example/token',
+      });
+    });
+
+    const result = await loadRuntimeConfig({
+      origin: 'https://ui.example',
+      surface: 'playground',
+      fetchFn,
+    });
+
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      1,
+      'https://ui.example/config/bootstrap.json?surface=playground',
+      undefined,
+    );
+    expect(result.clientId).toBe('playground-spa');
+  });
 });

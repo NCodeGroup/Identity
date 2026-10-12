@@ -11,6 +11,24 @@ shims. Surface a fork for the user to decide **only** when the options are genui
 value/security/semantics trade-off), not when one is merely more work. Full statement: the standing posture in
 [`BACKLOG.md`](../BACKLOG.md).
 
+### Security-practice default — decide, don't ask
+
+Default **autonomously** to the modern, secure, recommended practice for OIDC / OAuth 2.x / identity platforms; do
+**not** ask the user to adjudicate security design. The user has **no opinion** beyond "it must be modern, secure,
+recommended practice" — so questions whose answer is settled by current best practice are noise, not a real fork.
+Concretely, this means defaulting to the current authoritative guidance (OAuth 2.1 direction, the Security BCP
+[RFC 9700], OpenID Connect Core/Discovery, FAPI where relevant): authorization-code **+ PKCE `S256`** for interactive
+clients; **no** implicit, hybrid front-channel-token, or resource-owner-password flows; asymmetric token signing
+(`PS256`/`ES256`, never `HS256` across trust boundaries); exact-match redirect URIs; sender-constraining and
+short-lived tokens where applicable; least-privilege scopes; and secure-by-default headers/CORS. Only surface a
+genuine value/semantics/security **trade-off** (two defensible modern options), never a question whose answer is just
+"the recommended one".
+
+**Treat existing repo code, comments, settings, and docs as point-in-time artifacts that may be wrong.** They are
+evidence of intent, not a constraint: do not preserve an insecure or outdated shape merely because it is already
+there. Correct it to the modern best-practice design (greenfield posture above), and update the surrounding
+comments/docs/ADRs in the same change so the repository — not chat history — carries the correction.
+
 ## Orientation
 
 Repo orientation and the build / contributing workflow are in [`AGENTS.md`](../AGENTS.md). All coding conventions are

@@ -4,7 +4,7 @@ import {
   parseOpenIdDiscovery,
   RuntimeConfigError,
 } from './parse.js';
-import type { RuntimeConfig } from './types.js';
+import type { RuntimeConfig, SurfaceKind } from './types.js';
 
 /** Well-known path, relative to the serving host, of the bootstrap document. */
 export const BOOTSTRAP_PATH = '/config/bootstrap.json';
@@ -25,6 +25,12 @@ export type FetchLike = (
 export type LoadRuntimeConfigOptions = {
   /** Origin that serves the static bundle and publishes the bootstrap document. */
   readonly origin: string;
+  /**
+   * Which presentation surface is loading. When set, it is sent as the `surface` query parameter so the host can
+   * return surface-specific coordinates (for example, each SPA's own public client id) from the one bootstrap
+   * endpoint. Omit it to receive the host's default (base) document.
+   */
+  readonly surface?: SurfaceKind;
   /** Injected fetch; defaults to global `fetch` in the browser. */
   readonly fetchFn?: FetchLike;
   readonly signal?: AbortSignal;
@@ -49,7 +55,10 @@ export async function loadRuntimeConfig(options: LoadRuntimeConfigOptions): Prom
   }
 
   const origin = options.origin.endsWith('/') ? options.origin.slice(0, -1) : options.origin;
-  const bootstrapRaw = await fetchJson(fetchFn, `${origin}${BOOTSTRAP_PATH}`, options.signal);
+  const bootstrapUrl = options.surface
+    ? `${origin}${BOOTSTRAP_PATH}?surface=${encodeURIComponent(options.surface)}`
+    : `${origin}${BOOTSTRAP_PATH}`;
+  const bootstrapRaw = await fetchJson(fetchFn, bootstrapUrl, options.signal);
   const bootstrap = parseBootstrapDocument(bootstrapRaw);
 
   const discoveryRaw = await fetchJson(

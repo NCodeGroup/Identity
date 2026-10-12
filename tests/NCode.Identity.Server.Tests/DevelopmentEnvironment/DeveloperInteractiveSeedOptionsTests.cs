@@ -23,38 +23,47 @@ namespace NCode.Identity.Server.Tests;
 
 public class DeveloperInteractiveSeedOptionsTests
 {
-    #region SeedSpaClient Tests
+    #region SpaClients Tests
 
     [Fact]
-    public void SeedSpaClient_WhenClientIdAndRedirectUrisPresent_IsTrue()
+    public void SpaClients_ByDefault_SeedsManagementAndPlayground()
     {
-        var options = new DeveloperInteractiveSeedOptions
-        {
-            SpaClientId = "mgmt-spa",
-            SpaRedirectUris = ["https://localhost:5173/callback"],
-        };
+        var options = new DeveloperInteractiveSeedOptions();
 
-        Assert.True(options.SeedSpaClient);
+        Assert.Contains(options.SpaClients, client => client.ClientId == "mgmt-spa");
+        Assert.Contains(options.SpaClients, client => client.ClientId == "playground-spa");
     }
 
     [Fact]
-    public void SeedSpaClient_WhenClientIdEmpty_IsFalse()
+    public void ShouldSeed_WhenClientIdAndRedirectUrisPresent_IsTrue()
     {
-        var options = new DeveloperInteractiveSeedOptions { SpaClientId = null };
+        var client = new DeveloperSpaClientSeed
+        {
+            ClientId = "mgmt-spa",
+            RedirectUris = ["https://localhost:5173/callback"],
+        };
 
-        Assert.False(options.SeedSpaClient);
+        Assert.True(client.ShouldSeed);
     }
 
     [Fact]
-    public void SeedSpaClient_WhenNoRedirectUris_IsFalse()
+    public void ShouldSeed_WhenClientIdEmpty_IsFalse()
     {
-        var options = new DeveloperInteractiveSeedOptions
+        var client = new DeveloperSpaClientSeed
         {
-            SpaClientId = "mgmt-spa",
-            SpaRedirectUris = [],
+            ClientId = null,
+            RedirectUris = ["https://localhost:5173/callback"],
         };
 
-        Assert.False(options.SeedSpaClient);
+        Assert.False(client.ShouldSeed);
+    }
+
+    [Fact]
+    public void ShouldSeed_WhenNoRedirectUris_IsFalse()
+    {
+        var client = new DeveloperSpaClientSeed { ClientId = "mgmt-spa", RedirectUris = [] };
+
+        Assert.False(client.ShouldSeed);
     }
 
     #endregion

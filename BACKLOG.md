@@ -194,15 +194,21 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
 ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
 
-- **`U3` — Build out the Playground and conformance surfaces.** The Auth/Consent/Login surface is a full app on the
-  shared platform (the `apps/auth` consent screen now shows the real client and requested scopes and records the
+- **`U3` — Build out the Playground and conformance surfaces.** _Done._ The Auth/Consent/Login surface is a full app on
+  the shared platform (the `apps/auth` consent screen shows the real client and requested scopes and records the
   decision — [ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md)), and the Playground (`apps/playground`)
-  and conformance (`apps/conformance`) surfaces are **scaffolded** as apps on the same `@ncode/*` platform
-  ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)) — each builds, lints, type-checks, and tests, and joins
-  the pnpm/Turborepo graph automatically. **Remaining:** flesh the two scaffolds into real surfaces (the Playground into
-  an interactive OAuth/OIDC flow explorer; the conformance app into the browser-drivable harness control surface that
-  `T1`/`T2` drive) and wire them into the Aspire AppHost and a serving model. Touch points:
-  `src/frontend/apps/playground/`, `src/frontend/apps/conformance/`.
+  and conformance (`apps/conformance`) surfaces are now **real apps** on the same `@ncode/*` platform
+  ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md), [ADR-0082](docs/adr/0082-playground-and-conformance-surfaces.md)).
+  The Playground is an interactive OAuth 2.1 / OIDC **authorization-code + PKCE (S256) flow explorer** (surfacing the
+  PKCE challenge, `state`, `nonce`, authorize URL, token response, decoded claims, UserInfo, refresh, RP-Initiated
+  Logout; implicit/hybrid/password flows are intentionally unavailable). The conformance app is a **security-posture &
+  conformance-readiness dashboard** that audits the OP's published discovery metadata against modern guidance (OAuth
+  2.1, RFC 9700, OIDC Core/Discovery, RFC 7636/8414/7009/7662/9126) and reports Basic/Config OP readiness plus the
+  external-suite config hints — it does **not** duplicate the `apps/auth` login/consent surface the suite drives (`T2`).
+  Both are standalone Vite SPAs served via the Aspire AppHost (`playground` → `5174`, `conformance` → `5175`), each
+  with a surface-aware bootstrap (`?surface=`), and the Playground has its own seeded public `playground-spa` client
+  and dev CORS origin. Touch points: `src/frontend/apps/playground/`, `src/frontend/apps/conformance/`,
+  `src/NCode.Identity.Server/FrontendBootstrapOptions.cs`, `src/NCode.Identity.Server/DevelopmentEnvironment/`.
 - **`U5` — Frontend CI job.** The frontend toolchain is intentionally outside `dod.ps1`. Add a separate CI job
   (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire

@@ -54,7 +54,14 @@ internal sealed class FrontendBootstrapEndpointProvider : IEndpointProvider
         var request = httpContext.Request;
         var requestOrigin = $"{request.Scheme}://{request.Host}";
 
-        var document = FrontendBootstrapDocument.Create(optionsAccessor.Value, requestOrigin);
+        // Every surface shares this one endpoint and names itself via the `surface` query parameter so the host can
+        // return that surface's own coordinates (for example, each SPA's public client id); absent, the default is served.
+        var surface = request.Query["surface"].ToString();
+        var document = FrontendBootstrapDocument.Create(
+            optionsAccessor.Value,
+            requestOrigin,
+            string.IsNullOrEmpty(surface) ? null : surface
+        );
 
         return TypedResults.Json(document, JsonSerializerOptions.Web);
     }

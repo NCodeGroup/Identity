@@ -49,8 +49,8 @@ src/frontend/
   apps/
     mgmt/     @ncode/app-mgmt — Management console (first surface)
     auth/     @ncode/app-auth — Interactive login/consent surface (OP-hosted under /account/*)
-    playground/   @ncode/app-playground — Playground developer surface (scaffold)
-    conformance/  @ncode/app-conformance — OIDC conformance harness surface (scaffold)
+    playground/   @ncode/app-playground — OAuth 2.1 / OIDC authorization-code + PKCE flow explorer (dev server :5174)
+    conformance/  @ncode/app-conformance — Security-posture & conformance-readiness dashboard (dev server :5175)
 ```
 
 ## Architectural invariants
@@ -117,6 +117,14 @@ The serving host must publish `/config/bootstrap.json`:
 ```
 
 Every bundle gets this document from the host at runtime — there is no static dev copy to drift.
+
+> **Surface-aware.** Each bundle declares its `SurfaceKind` when it loads config, which `@ncode/config` sends as
+> `?surface=` (for example `/config/bootstrap.json?surface=playground`). The host maps that to a per-surface override
+> (`FrontendBootstrapOptions.Surfaces`) so every surface gets its **own** public client id and scopes from the one
+> endpoint — the Playground discovers `playground-spa`, while the read-only conformance dashboard gets no client at all
+> ([ADR-0082](../../docs/adr/0082-playground-and-conformance-surfaces.md)). A surface with no override, or no
+> `?surface=`, receives the host default (the Management console's).
+
 `NCode.Identity.Server` binds the `Frontend` configuration section and registers the endpoint through the
 single `IIdentityServerBuilder.AddFrontendBootstrap(configuration)` seam — the host's existing
 `MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags, branding),
@@ -153,10 +161,11 @@ scope binds the audience — see [ADR-0044](../../docs/adr/0044-management-api-a
 
 Pick **`Aspire: Full stack (F5)`** in the Run and Debug view (or press F5) — a **.NET Aspire** AppHost
 ([ADR-0071](../../docs/adr/0071-aspire-local-dev-orchestrator.md)) that orchestrates the whole local stack
-as one resource graph: the Playground OP host (`api`), the interactive-login build-watcher (`auth`), and the
-Management console Vite dev server (`mgmt`). Aspire gates each UI resource on the API being **healthy**
-(`WaitFor` + `/health`), so the browser UIs no longer race the API, and its **dashboard** is one place for
-ordered startup, logs, and traces.
+as one resource graph: the Playground OP host (`api`), the interactive-login build-watcher (`auth`), the
+Management console Vite dev server (`mgmt`), the flow-explorer Vite dev server (`playground`, :5174), and the
+conformance-dashboard Vite dev server (`conformance`, :5175). Aspire gates each UI resource on the API being
+**healthy** (`WaitFor` + `/health`), so the browser UIs no longer race the API, and its **dashboard** is one place
+for ordered startup, logs, and traces.
 
 One-time setup (**required** before the first launch, and again whenever dependencies change): run
 [`build/frontend-install.ps1`](../../build/frontend-install.ps1) to install the pnpm workspace and enable the

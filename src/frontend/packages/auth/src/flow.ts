@@ -31,6 +31,8 @@ export type AuthRequestParams = {
   readonly scopes: readonly string[];
   readonly state: string;
   readonly codeChallenge: string;
+  /** OpenID Connect nonce, bound into the issued ID token to mitigate replay. Emitted only when present. */
+  readonly nonce?: string;
 };
 
 /** Builds the `/authorize` redirect URL for an authorization-code + PKCE (S256) request. */
@@ -46,6 +48,9 @@ export function buildAuthorizeUrl(
   url.searchParams.set('state', params.state);
   url.searchParams.set('code_challenge', params.codeChallenge);
   url.searchParams.set('code_challenge_method', 'S256');
+  if (params.nonce) {
+    url.searchParams.set('nonce', params.nonce);
+  }
   return url.toString();
 }
 

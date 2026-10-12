@@ -29,6 +29,31 @@ describe('buildAuthorizeUrl', () => {
     expect(url.searchParams.get('code_challenge')).toBe('chal');
     expect(url.searchParams.get('code_challenge_method')).toBe('S256');
   });
+
+  it('omits the nonce when absent and emits it when present', () => {
+    const without = new URL(
+      buildAuthorizeUrl('https://op.test/authorize', {
+        clientId: 'spa',
+        redirectUri: 'https://ui.test/callback',
+        scopes: ['openid'],
+        state: 'xyz',
+        codeChallenge: 'chal',
+      }),
+    );
+    expect(without.searchParams.has('nonce')).toBe(false);
+
+    const withNonce = new URL(
+      buildAuthorizeUrl('https://op.test/authorize', {
+        clientId: 'spa',
+        redirectUri: 'https://ui.test/callback',
+        scopes: ['openid'],
+        state: 'xyz',
+        codeChallenge: 'chal',
+        nonce: 'n-123',
+      }),
+    );
+    expect(withNonce.searchParams.get('nonce')).toBe('n-123');
+  });
 });
 
 describe('buildEndSessionUrl', () => {

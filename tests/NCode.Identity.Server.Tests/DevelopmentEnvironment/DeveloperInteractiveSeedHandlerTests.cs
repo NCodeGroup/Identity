@@ -65,7 +65,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
     public async Task HandleAsync_WhenNothingConfiguredToSeed_DoesNothing()
     {
         var handler = CreateHandler(
-            new DeveloperInteractiveSeedOptions { SpaClientId = null, AdminPassword = null }
+            new DeveloperInteractiveSeedOptions { SpaClients = [], AdminPassword = null }
         );
 
         await handler.HandleAsync(
@@ -78,11 +78,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
     public async Task HandleAsync_WhenRootPlane_DoesNothing()
     {
         var handler = CreateHandler(
-            new DeveloperInteractiveSeedOptions
-            {
-                SpaClientId = "mgmt-spa",
-                AdminPassword = "dev-password",
-            }
+            new DeveloperInteractiveSeedOptions { AdminPassword = "dev-password" }
         );
 
         await handler.HandleAsync(CreateCommand("root", TenantPlane.Root), CancellationToken.None);
@@ -94,7 +90,6 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         var handler = CreateHandler(
             new DeveloperInteractiveSeedOptions
             {
-                SpaClientId = "mgmt-spa",
                 AdminPassword = "dev-password",
                 TenantId = "tenant-a",
             }

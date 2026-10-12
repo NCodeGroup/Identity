@@ -31,10 +31,10 @@ using NCode.Mediator;
 namespace NCode.Identity.Server.DevelopmentEnvironment;
 
 /// <summary>
-/// A <strong>development-only</strong> seed handler that provisions a public (PKCE-only) single-page-application client
-/// and a deterministic administrator user into each workload tenant, so a local host can exercise the interactive
-/// authorization-code + PKCE flow and the management console end to end. It is idempotent, inert unless its inputs are
-/// configured, and never targets the control-plane root tenant.
+/// A <strong>development-only</strong> seed handler that provisions the public (PKCE-only) single-page-application
+/// clients and a deterministic administrator user into each workload tenant, so a local host can exercise the
+/// interactive authorization-code + PKCE flow and every frontend surface end to end. It is idempotent, inert unless
+/// its inputs are configured, and never targets the control-plane root tenant.
 /// </summary>
 internal sealed class DeveloperInteractiveSeedHandler(DeveloperInteractiveSeedOptions options)
     : ICommandHandler<SeedTenantCommand>,
@@ -59,9 +59,12 @@ internal sealed class DeveloperInteractiveSeedHandler(DeveloperInteractiveSeedOp
             return;
         }
 
-        if (Options.SeedSpaClient)
+        foreach (var spaClient in Options.SpaClients)
         {
-            await SeedSpaClientAsync(context, cancellationToken);
+            if (spaClient.ShouldSeed)
+            {
+                await SeedSpaClientAsync(context, spaClient, cancellationToken);
+            }
         }
 
         if (Options.SeedAdminUser)
@@ -70,12 +73,13 @@ internal sealed class DeveloperInteractiveSeedHandler(DeveloperInteractiveSeedOp
         }
     }
 
-    private async ValueTask SeedSpaClientAsync(
+    private static async ValueTask SeedSpaClientAsync(
         TenantSeedContext context,
+        DeveloperSpaClientSeed spaClient,
         CancellationToken cancellationToken
     )
     {
-        var clientId = Options.SpaClientId;
+        var clientId = spaClient.ClientId;
         if (string.IsNullOrEmpty(clientId))
         {
             return;
@@ -91,7 +95,7 @@ internal sealed class DeveloperInteractiveSeedHandler(DeveloperInteractiveSeedOp
         var settings = JsonSerializer.SerializeToElement(
             new Dictionary<string, object>
             {
-                [OpenIdSettingNames.RedirectUris] = Options.SpaRedirectUris,
+                [OpenIdSettingNames.RedirectUris] = spaClient.RedirectUris,
                 [OpenIdSettingNames.TokenEndpointAuthMethodsSupported] = PublicClientAuthMethods,
                 [OpenIdSettingNames.RequireCodeChallenge] = true,
             }

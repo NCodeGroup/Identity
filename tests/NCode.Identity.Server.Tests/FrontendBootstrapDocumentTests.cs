@@ -121,6 +121,117 @@ public class FrontendBootstrapDocumentTests
 
     #endregion
 
+    #region Surface Override Tests
+
+    [Fact]
+    public void Create_WhenSurfaceOverridesClientId_ReplacesDefault()
+    {
+        var options = new FrontendBootstrapOptions
+        {
+            ClientId = "mgmt-spa",
+            Surfaces =
+            {
+                ["playground"] = new FrontendSurfaceOptions { ClientId = "playground-spa" },
+            },
+        };
+
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            "https://id.example",
+            "playground"
+        );
+
+        Assert.Equal("playground-spa", document.ClientId);
+    }
+
+    [Fact]
+    public void Create_WhenSurfaceOmitsClientId_PublishesNoClient()
+    {
+        // A read-only surface (for example, conformance) replaces — not merges — the default client id, so it can
+        // publish no client even though the host default configures one.
+        var options = new FrontendBootstrapOptions
+        {
+            ClientId = "mgmt-spa",
+            Surfaces = { ["conformance"] = new FrontendSurfaceOptions() },
+        };
+
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            "https://id.example",
+            "conformance"
+        );
+
+        Assert.Null(document.ClientId);
+    }
+
+    [Fact]
+    public void Create_WhenSurfaceUnknown_FallsBackToDefault()
+    {
+        var options = new FrontendBootstrapOptions
+        {
+            ClientId = "mgmt-spa",
+            Surfaces =
+            {
+                ["playground"] = new FrontendSurfaceOptions { ClientId = "playground-spa" },
+            },
+        };
+
+        var document = FrontendBootstrapDocument.Create(options, "https://id.example", "mgmt");
+
+        Assert.Equal("mgmt-spa", document.ClientId);
+    }
+
+    [Fact]
+    public void Create_WhenSurfaceOverridesScopes_ReplacesDefault()
+    {
+        var options = new FrontendBootstrapOptions
+        {
+            Scopes = ["openid", "read:clients"],
+            Surfaces =
+            {
+                ["playground"] = new FrontendSurfaceOptions
+                {
+                    Scopes = ["openid", "offline_access"],
+                },
+            },
+        };
+
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            "https://id.example",
+            "playground"
+        );
+
+        Assert.Equal(["openid", "offline_access"], document.Scopes);
+    }
+
+    [Fact]
+    public void Create_WhenSurfaceOverridesFeatures_MergesPerKey()
+    {
+        var options = new FrontendBootstrapOptions
+        {
+            Features = { ["dcr"] = true },
+            Surfaces =
+            {
+                ["playground"] = new FrontendSurfaceOptions
+                {
+                    Features = new Dictionary<string, bool> { ["par"] = true },
+                },
+            },
+        };
+
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            "https://id.example",
+            "playground"
+        );
+
+        Assert.True(document.Features["dcr"]);
+        Assert.True(document.Features["par"]);
+    }
+
+    #endregion
+
     #region Serialization Tests
 
     [Fact]

@@ -19,7 +19,9 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -30,10 +32,13 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="AuthenticateSubjectCommand"/> message that
-/// authenticates the subject using the ASP.NET Core authentication scheme configured by the host (the same mechanism
-/// the management API relies on). Applications replace this handler (or configure the authentication scheme) to change
-/// how the subject's credentials are validated.
+/// Provides a default implementation of a handler for the <see cref="AuthenticateSubjectCommand"/> message. When the
+/// request presents a bearer access token (the UserInfo path) it validates that self-issued token against the resolved
+/// tenant's keys, issuer, and the OpenID identity audience — the same in-environment validation the management API uses
+/// (ADR-0044), because the per-tenant signing keys and issuer are only known after the request environment resolves the
+/// tenant, so a pre-routing authentication scheme cannot validate it. When no bearer token is present the request
+/// carries an interactive session, so it falls back to the host's default authentication scheme (the session cookie).
+/// Applications replace this handler to change how the subject's credentials are validated.
 /// </summary>
 internal class DefaultAuthenticateSubjectHandler(
     IStoreManagerFactory storeManagerFactory,
@@ -44,6 +49,16 @@ internal class DefaultAuthenticateSubjectHandler(
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
+
+    private const string BearerPrefix = "Bearer ";
+    private const string BearerScheme = "Bearer";
+
+    // A UserInfo access token binds the OpenID identity resource server, which owns the openid/profile/email scopes
+    // (ADR-0027); require that audience so a token minted for a different resource server is rejected.
+    private static readonly string[] UserInfoAudiences =
+    [
+        OpenIdConstants.SystemResourceServerIdentifiers.OpenId,
+    ];
 
     internal virtual AuthenticateSubjectDisposition Undefined() => new();
 
@@ -62,7 +77,19 @@ internal class DefaultAuthenticateSubjectHandler(
         var httpContext = openIdContext.Http;
         var errorFactory = openIdContext.ErrorFactory;
 
-        // Uses the host's default authenticate scheme (for example, a JWT bearer scheme), matching the management API.
+        // A presented bearer access token (the UserInfo path) is validated in-environment against the resolved tenant,
+        // not via a pre-routing authentication scheme the host cannot tenant-scope (ADR-0044).
+        if (TryGetBearerToken(httpContext, out var accessToken))
+        {
+            return await AuthenticateAccessTokenAsync(
+                openIdContext,
+                accessToken,
+                cancellationToken
+            );
+        }
+
+        // No bearer token: the request carries an interactive session, so use the host's default authenticate scheme
+        // (the session cookie).
         var baseResult = await httpContext.AuthenticateAsync();
 
         if (baseResult.None)
@@ -88,9 +115,63 @@ internal class DefaultAuthenticateSubjectHandler(
         Debug.Assert(baseResult.Succeeded);
 
         var baseTicket = baseResult.Ticket;
-        var authenticationScheme = baseTicket.AuthenticationScheme;
-        var authenticationProperties = baseTicket.Properties;
-        var subject = baseTicket.Principal;
+        return await CompleteAsync(
+            openIdContext,
+            baseTicket.Principal,
+            baseTicket.AuthenticationScheme,
+            baseTicket.Properties,
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<AuthenticateSubjectDisposition> AuthenticateAccessTokenAsync(
+        OpenIdContext openIdContext,
+        string accessToken,
+        CancellationToken cancellationToken
+    )
+    {
+        var disposition = await openIdContext.Mediator.SendAsync<
+            AuthenticateAccessTokenCommand,
+            AuthenticateAccessTokenDisposition
+        >(
+            new AuthenticateAccessTokenCommand(openIdContext, accessToken, UserInfoAudiences),
+            cancellationToken
+        );
+
+        if (disposition.HasError)
+        {
+            await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
+                openIdContext,
+                "Failed to authenticate the end-user.",
+                attemptedSubjectId: null,
+                cancellationToken
+            );
+            return Failed(disposition.Error);
+        }
+
+        if (!disposition.IsAuthenticated)
+        {
+            return Undefined();
+        }
+
+        return await CompleteAsync(
+            openIdContext,
+            disposition.Principal,
+            BearerScheme,
+            new AuthenticationProperties(),
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<AuthenticateSubjectDisposition> CompleteAsync(
+        OpenIdContext openIdContext,
+        ClaimsPrincipal subject,
+        string authenticationScheme,
+        AuthenticationProperties authenticationProperties,
+        CancellationToken cancellationToken
+    )
+    {
+        var errorFactory = openIdContext.ErrorFactory;
 
         var subjectId = openIdContext.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
@@ -131,6 +212,19 @@ internal class DefaultAuthenticateSubjectHandler(
         );
 
         return Authenticated(ticket);
+    }
+
+    private static bool TryGetBearerToken(HttpContext httpContext, out string token)
+    {
+        var authorization = httpContext.Request.Headers.Authorization.ToString();
+        if (authorization.StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            token = authorization[BearerPrefix.Length..].Trim();
+            return token.Length > 0;
+        }
+
+        token = string.Empty;
+        return false;
     }
 
     private async ValueTask<string> ResolvePrincipalIdAsync(

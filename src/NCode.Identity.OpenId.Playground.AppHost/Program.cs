@@ -93,6 +93,49 @@ builder
     .WaitFor(api)
     .WithExternalHttpEndpoints();
 
+// The Playground flow explorer (apps/playground) is a STANDALONE Vite dev server pinned to http://localhost:5174 (the
+// port the seeded `playground-spa` redirect URI and AddDeveloperCors allowlist assume). It drives a live
+// authorization-code + PKCE round trip against the OP, so — like `mgmt` — it has its own seeded public client and CORS
+// origin, and proxies /config/bootstrap.json to the api, discovering its `playground` surface coordinates at boot
+// (ADR-0064). The same un-proxied fixed-port rules as `mgmt` apply so the OAuth redirect callback resolves.
+builder
+    .AddViteApp("playground", "../frontend/apps/playground")
+    .WithPnpm(install: false)
+    .WithEndpoint(
+        "http",
+        endpoint =>
+        {
+            endpoint.Port = 5174;
+            endpoint.TargetPort = 5174;
+            endpoint.IsProxied = false;
+        },
+        createIfNotExists: false
+    )
+    .WithReference(api)
+    .WaitFor(api)
+    .WithExternalHttpEndpoints();
+
+// The conformance posture dashboard (apps/conformance) is a STANDALONE, read-only Vite dev server pinned to
+// http://localhost:5175. It only audits the OP's published discovery metadata, so it needs no OAuth client; it proxies
+// /config/bootstrap.json to the api to learn the issuer, then reads discovery cross-origin (allowlisted by
+// AddDeveloperCors). WaitFor holds startup until the API is healthy so the first discovery read cannot race it.
+builder
+    .AddViteApp("conformance", "../frontend/apps/conformance")
+    .WithPnpm(install: false)
+    .WithEndpoint(
+        "http",
+        endpoint =>
+        {
+            endpoint.Port = 5175;
+            endpoint.TargetPort = 5175;
+            endpoint.IsProxied = false;
+        },
+        createIfNotExists: false
+    )
+    .WithReference(api)
+    .WaitFor(api)
+    .WithExternalHttpEndpoints();
+
 builder.Build().Run();
 
 return;

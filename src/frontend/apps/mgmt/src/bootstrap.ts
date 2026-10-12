@@ -7,9 +7,13 @@ export function currentOrigin(): string {
 
 /**
  * Loads the tier-agnostic runtime configuration for this bundle. Thin wrapper over
- * {@link loadRuntimeConfig} that binds the browser origin, kept separate from React so the boot
- * sequence is testable.
+ * {@link loadRuntimeConfig} that binds the browser origin and this surface identity, kept separate from
+ * React so the boot sequence is testable.
  */
 export function bootstrapRuntimeConfig(signal?: AbortSignal): Promise<RuntimeConfig> {
-  return loadRuntimeConfig({ origin: currentOrigin(), ...(signal ? { signal } : {}) });
+  return loadRuntimeConfig({
+    origin: currentOrigin(),
+    surface: 'mgmt',
+    ...(signal ? { signal } : {}),
+  });
 }

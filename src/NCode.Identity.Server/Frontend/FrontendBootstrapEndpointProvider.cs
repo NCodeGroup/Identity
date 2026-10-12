@@ -24,7 +24,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
 using NCode.Registration.AspNetCore;
 
-namespace NCode.Identity.Server;
+namespace NCode.Identity.Server.Frontend;
 
 /// <summary>
 /// Maps the frontend runtime bootstrap document (ADR-0064) at <see cref="EndpointPath"/>. Registered as an

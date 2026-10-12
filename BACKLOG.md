@@ -208,7 +208,7 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   Both are standalone Vite SPAs served via the Aspire AppHost (`playground` → `5174`, `conformance` → `5175`), each
   with a surface-aware bootstrap (`?surface=`), and the Playground has its own seeded public `playground-spa` client
   and dev CORS origin. Touch points: `src/frontend/apps/playground/`, `src/frontend/apps/conformance/`,
-  `src/NCode.Identity.Server/FrontendBootstrapOptions.cs`, `src/NCode.Identity.Server/DevelopmentEnvironment/`.
+  `src/NCode.Identity.Server/Frontend/`, `src/NCode.Identity.Server/DevelopmentEnvironment/`.
 - **`U5` — Frontend CI job.** The frontend toolchain is intentionally outside `dod.ps1`. Add a separate CI job
   (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire

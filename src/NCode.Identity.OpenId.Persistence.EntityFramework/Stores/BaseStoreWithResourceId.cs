@@ -70,7 +70,7 @@ public abstract class BaseStoreWithResourceId<TItem, TEntity>
     /// <summary>
     /// Attempts to get a persisted item from the store with the specified identifier.
     /// </summary>
-    /// <param name="resourceId">The identifier of the persisted item  to retrieve.</param>
+    /// <param name="resourceId">The identifier of the persisted item to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the persisted item if found; otherwise <c>null</c>.</returns>
     public async ValueTask<TItem?> GetOrDefaultAsync(

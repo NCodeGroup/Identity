@@ -1,6 +1,6 @@
 # 65. Interactive login/consent as the OP-hosted `apps/auth` surface
 
-- **Status:** Proposed
+- **Status:** Accepted (packaging superseded by [ADR-0070](0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md))
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

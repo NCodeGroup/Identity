@@ -1,9 +1,38 @@
 # T2 — Browser-automatable login + consent UI (with a seeded conformance identity)
 
-Status: **planned, not yet implemented.** Detailed plan for backlog item `T2`. Parent design:
+Status: **implemented.** Detailed plan for backlog item `T2`. Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #2 and Appendix B). Decision
-record: [ADR-0062](../adr/0062-opt-in-interactive-login-consent-ui.md). Catalog entry:
+records: [ADR-0062](../adr/0062-opt-in-interactive-login-consent-ui.md) (seam + stable-locator contract),
+[ADR-0065](../adr/0065-interactive-login-consent-op-hosted-auth-surface.md) (realized as the OP-hosted
+`apps/auth` surface), [ADR-0070](../adr/0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md)
+(leaf capability package + pluggable credential verifier). Catalog entry:
 [`BACKLOG.md`](../../BACKLOG.md) group `T`.
+
+The interactive login/consent surface landed as the opt-in leaf capability package
+[`NCode.Identity.OpenId.Authentication.Interactive`](../../src/NCode.Identity.OpenId.Authentication.Interactive)
+(+ [`.Abstractions`](../../src/NCode.Identity.OpenId.Authentication.Interactive.Abstractions)): a single
+`AddInteractiveAuthentication` / `UseInteractiveAuthentication` registration
+([`DefaultRegistration`](../../src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs))
+registers the `Identity.Application` cookie scheme (`LoginPath = /account/login`) the authorize challenge
+redirects into, and maps the `/account/*` endpoints through an `IEndpointProvider`
+([`InteractiveAuthenticationEndpointHandler`](../../src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs)).
+Credential verification is a pluggable `IInteractiveCredentialVerifier` seam whose local-account
+implementation ([`LocalAccountInteractiveCredentialVerifier`](../../src/NCode.Identity.OpenId.Accounts.Authentication/LocalAccountInteractiveCredentialVerifier.cs),
+registered via `AddLocalAccountInteractiveAuthentication()`) reuses the resource-owner-password credential
+path. The render surface is the React + MUI `apps/auth` bundle ([`src/frontend/apps/auth`](../../src/frontend/apps/auth)),
+served same-origin under `/account/*`, exposing the Appendix B locators (`username`, `password`, `login`,
+`consent-allow`, `consent-deny`). The Playground opts in
+([`Program.cs`](../../src/NCode.Identity.OpenId.Playground/Program.cs)) and the endpoints are covered by
+integration and unit tests
+([`InteractiveLoginAntiforgeryTests`](../../tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLoginAntiforgeryTests.cs),
+[`InteractiveLogoutTests`](../../tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLogoutTests.cs),
+[`InteractiveAuthenticationEndpointHandlerTests`](../../tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/InteractiveAuthenticationEndpointHandlerTests.cs)).
+Consent went beyond the auto-approve stopgap below: durable, granular consent now enforces through this
+same surface ([ADR-0076](../adr/0076-consent-persistence-and-enforcement.md),
+[ADR-0081](../adr/0081-granular-consent-and-authorized-applications.md)). The remaining conformance
+prerequisite is the reachable HTTPS host with a byte-matched `issuer` (`T3`).
+
+The rest of this document is the original planning-time plan, retained as a record.
 
 ## Goal
 
@@ -13,7 +42,7 @@ deterministic signed-in session, and a consent outcome — so a protocol-correct
 actually complete under automation. Without this, full conformance automation is impossible even though
 the wire protocol is correct.
 
-## Current state (verified)
+## Current state at planning time (superseded by the implementation summary above)
 
 - **No interactive UI exists at all.** There are zero `.cshtml` / `.razor` / `.html` assets and no
   minimal-API HTML endpoints anywhere in `src/` or `tests/`. The authorization flow has no login screen

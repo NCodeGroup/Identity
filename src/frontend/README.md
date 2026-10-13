@@ -154,8 +154,9 @@ scope binds the audience — see [ADR-0044](../../docs/adr/0044-management-api-a
   screen to start the flow. **When no `clientId` is discovered it runs open** (local dev), so the
   console renders without a login.
 - The SPA's public `clientId` and `scopes` come from the runtime bootstrap document — nothing is baked
-  in. End-to-end sign-in additionally needs a registered public SPA client and the interactive login UI
-  (backlog `T2`).
+  in. End-to-end sign-in additionally needs a registered public SPA client (seeded in development by
+  `AddDeveloperInteractiveSeed`) and the OP-hosted interactive login surface (`apps/auth`); both now exist
+  (backlog `T2`, done).
 
 ## Running the full stack (VS Code F5)
 
@@ -181,8 +182,9 @@ beat it there; `apps/mgmt` is a standalone HMR dev server pinned to `http://loca
 one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
 
 > Dev connectivity: the Playground opts into `AddDeveloperCors` so the browser UI (`http://localhost:5173`) can read
-> discovery and call the management API cross-origin. The UI still renders in **open mode** and management calls return
-> `401` until a public SPA client is seeded and the interactive login (`T2`) exists — tracked under backlog `U1`/`U7`.
+> discovery and call the management API cross-origin. Without a seeded public SPA client the UI renders in **open
+> mode** and management calls return `401`; the development seeder (`AddDeveloperInteractiveSeed`) and the interactive
+> login surface (`T2`, done) close that gap for local end-to-end sign-in (backlog `U1`/`U7`).
 
 ## Gotchas (hard-won)
 

@@ -75,6 +75,11 @@ one option is merely more work.
   but the matching **encryption** alg/enc advertisement (`backchannel_authentication_request_encryption_*`) is not yet
   surfaced — encrypted request objects still decrypt through the shared JWT path, but the capability is not advertised.
   Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/`.
+- **`D5` — Standardize the "Json Web Token" label casing to "JSON Web Token".** Prose `///` comments consistently write
+  "Json Web Token (JWT)" (97 occurrences across 19 files), carrying the .NET `JsonWebToken` type casing into
+  documentation; the spec-correct form is "JSON Web Token". Left as uniform house style rather than churned during the
+  doc-quality pass; standardize in one mechanical sweep if desired. Touch points: repo-wide `///` comments, chiefly
+  `src/NCode.Identity.Jose*` and `src/NCode.Identity.JsonWebTokens*`.
 
 ## Feature gaps — not yet implemented (group `F`)
 

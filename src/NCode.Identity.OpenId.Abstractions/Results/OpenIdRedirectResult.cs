@@ -32,12 +32,12 @@ namespace NCode.Identity.OpenId.Results;
 public sealed class OpenIdRedirectResult : IResult
 {
     /// <summary>
-    /// Gets or sets the URL used for the redirect operation.
+    /// Gets the URL used for the redirect operation.
     /// </summary>
     public required string RedirectUrl { get; init; }
 
     /// <summary>
-    /// Gets or sets the function that is used to determine if the current request is an <c>AJAX</c> request.
+    /// Gets the function that is used to determine if the current request is an <c>AJAX</c> request.
     /// If <c>null</c>, a default implementation is provided that checks the <c>X-Requested-With</c> header for the
     /// value <c>XMLHttpRequest</c>.
     /// See the following for more information: https://github.com/aspnet/Security/issues/1394
@@ -45,7 +45,7 @@ public sealed class OpenIdRedirectResult : IResult
     public Func<HttpContext, bool>? IsAjaxRequest { get; init; }
 
     /// <summary>
-    /// Gets or sets the HTTP status code that is only used for <c>AJAX</c> redirects.
+    /// Gets the HTTP status code that is only used for <c>AJAX</c> redirects.
     /// Browser redirects will always use status code <c>302</c>.
     /// </summary>
     public int? AjaxStatusCode { get; init; }

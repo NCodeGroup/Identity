@@ -1,6 +1,6 @@
 # 51. Local accounts behind a pluggable account-source seam
 
-- **Status:** Proposed (the source/provisioner/store split and `PasswordHash` field amended by [ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md))
+- **Status:** Accepted (the source/provisioner/store split and `PasswordHash` field amended by [ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md))
 - **Date:** 2026-10-07
 - **Deciders:** NCode Group
 

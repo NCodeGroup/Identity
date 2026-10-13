@@ -1,6 +1,6 @@
 # 64. A single cohesive frontend presentation platform
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

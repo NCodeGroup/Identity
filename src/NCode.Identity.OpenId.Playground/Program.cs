@@ -91,6 +91,11 @@ identityServer.OpenIdManagementLibraryBuilder.AddLocalAccountManagement(localAcc
 // DEVELOPMENT CONVENIENCE: seed a public SPA client + administrator user so the management console can sign in.
 identityServer.AddDeveloperInteractiveSeed(configuration);
 
+// CONFORMANCE CONVENIENCE: seed the confidential clients and deterministic test user the OpenID Foundation
+// conformance suite drives (T4). Inert unless the 'ConformanceSeed' section is configured (the Conformance
+// environment overlay supplies it); must not be used in production.
+identityServer.AddConformanceSeed(configuration);
+
 // DEVELOPMENT ONLY: choose how signing keys are provided (see ADR-0002). The default is ephemeral,
 // in-memory keys (hermetic, ideal for tests). Local running can opt into persistent developer keys —
 // seeded through the store and surviving restarts — via 'DeveloperKeys:Mode=PersistentSigningKey' (set

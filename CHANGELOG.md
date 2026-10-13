@@ -10,6 +10,19 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Deterministic conformance tenant, clients, and test-user seeding — completes backlog `T4`.** A new
+  **conformance-only**, config-driven startup seeder provisions the confidential clients and a fixed test user the
+  OpenID Foundation conformance suite drives, into each workload tenant, so a launched Playground host always exposes
+  the same identities with **no manual API calls**. `AddConformanceSeed(IConfiguration)` (chained off
+  `AddIdentityServer()`) registers an idempotent `SeedTenantCommand` handler modeled on the bootstrap-admin seeder: it
+  is inert unless the `ConformanceSeed` configuration section is supplied, re-running never duplicates, and it never
+  targets the control-plane root tenant. The new `Conformance` launch profile and `appsettings.Conformance.json` overlay
+  seed the three Basic-OP clients (two `client_secret_basic`, one `client_secret_post`, all `S256`) and the
+  `conformance-user`. New public surface: `ConformanceSeedRegistration.AddConformanceSeed`, `ConformanceSeedOptions`,
+  and `ConformanceClientSeed` (one type per file under a `ConformanceEnvironment/` folder). Client secrets are supplied
+  `Base64Url`-encoded and never linger on the GC heap. Must not be used in production. Development/conformance
+  convenience only ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
 - **Playground flow explorer and conformance posture dashboard — completes backlog `U3`.** The two frontend scaffolds
   became real surfaces on the shared `@ncode/*` platform
   ([ADR-0082](docs/adr/0082-playground-and-conformance-surfaces.md)). `apps/playground` is an interactive OAuth 2.1 /

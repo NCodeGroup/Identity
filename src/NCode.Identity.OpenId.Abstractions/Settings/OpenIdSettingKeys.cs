@@ -212,6 +212,36 @@ public static class OpenIdSettingKeys
     public static SettingKey<int> UserCodeLength => new(OpenIdSettingNames.UserCodeLength);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'backchannel_token_delivery_mode' setting.
+    /// </summary>
+    public static SettingKey<string> BackchannelTokenDeliveryMode =>
+        new(OpenIdSettingNames.BackchannelTokenDeliveryMode);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'backchannel_token_delivery_modes_supported' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> BackchannelTokenDeliveryModesSupported =>
+        new(OpenIdSettingNames.BackchannelTokenDeliveryModesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'backchannel_user_code_parameter_supported' setting.
+    /// </summary>
+    public static SettingKey<bool> BackchannelUserCodeParameterSupported =>
+        new(OpenIdSettingNames.BackchannelUserCodeParameterSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'ciba_request_lifetime' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> CibaRequestLifetime =>
+        new(OpenIdSettingNames.CibaRequestLifetime);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'ciba_polling_interval' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> CibaPollingInterval =>
+        new(OpenIdSettingNames.CibaPollingInterval);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'display_values_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> DisplayValuesSupported =>

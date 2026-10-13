@@ -36,7 +36,6 @@ using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 
-// TODO: Ciba Grant
 // TODO: Extension Grant
 
 /// <summary>

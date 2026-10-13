@@ -10,6 +10,28 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication) — completes backlog `F3`.** The OP gains a
+  decoupled backchannel-authentication flow (poll and ping delivery) that reuses the device flow's
+  pending-authorization-as-persisted-grant pattern with **no new table or EF migration**
+  ([ADR-0085](docs/adr/0085-ciba-grant.md)). A new `backchannel_authentication_endpoint` (`/oauth2/bc-authorize`) accepts
+  a strongly-typed `BackchannelAuthenticationRequest` and — like the token and end-session endpoints — is a thin
+  orchestrator over mediator commands (`ValidateBackchannelAuthenticationRequestCommand`,
+  `AuthenticateBackchannelRequestCommand` → `AuthenticateSubjectDisposition`,
+  `CreateBackchannelAuthenticationRequestCommand` → `BackchannelAuthenticationResult`); the
+  `urn:openid:params:grant-type:ciba` token grant polls by `auth_req_id` with the same
+  `authorization_pending` / `slow_down` / `expired_token` / `access_denied` semantics as the device grant. Login-hint
+  resolution is an injectable mediator seam whose default reports `unknown_user_id` (a deployment registers a CIBA
+  authentication capability that replaces it); the authentication-device notification (`ICibaNotificationService`) and
+  the out-of-band approval (`ICibaRequestService`) are injectable services with safe defaults, mirroring
+  `IBackChannelLogoutNotifier`. New settings `backchannel_token_delivery_modes_supported` (default `poll` / `ping`) and
+  `backchannel_user_code_parameter_supported`, plus `ciba_request_lifetime` / `ciba_polling_interval`, are advertised in
+  discovery along with the endpoint and grant — which flips the spec-coverage harness's CIBA rows to _implemented_
+  ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)). **Push** delivery and signed backchannel request
+  objects remain backlog `F17`. New public surface across `NCode.Identity.OpenId.Abstractions`,
+  `.Messages.Abstractions`, and `.Authentication(.Abstractions)` (grant type, persisted-grant type, endpoint name/path,
+  CIBA parameters, `unknown_user_id`, `BackchannelTokenDeliveryModes`, the settings, the request/result messages, the
+  mediator commands, and the `ICibaNotificationService` / `ICibaRequestService` seams).
+
 - **Spec-coverage conformance harness + exercisable consent — advances backlog `T6`.** The conformance surface
   (`apps/conformance`) gained a **spec-coverage matrix** that measures the OP against the full published
   OAuth/OIDC/CIBA/FAPI catalog — independent of what is implemented — so missing functionality (CIBA `F3`, DPoP/mTLS

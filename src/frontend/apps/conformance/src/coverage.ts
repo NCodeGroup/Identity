@@ -218,7 +218,6 @@ const ENDPOINTS: Catalog = {
       'backchannel_authentication_endpoint',
       'OpenID Connect CIBA Core §4',
       'probe-runner',
-      'F3',
     ),
     endpoint(
       'ep-check-session',
@@ -270,7 +269,6 @@ const GRANTS: Catalog = {
       'urn:openid:params:grant-type:ciba',
       'OpenID Connect CIBA Core §7.1',
       'probe-runner',
-      'F3',
     ),
     {
       id: 'grant-insecure',

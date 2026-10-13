@@ -50,6 +50,13 @@ public sealed class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
     }
 
     /// <inheritdoc />
+    public string? AuthReqId
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.AuthReqId);
+        set => SetKnownParameter(OpenIdCommonParameters.AuthReqId, value);
+    }
+
+    /// <inheritdoc />
     public string? ClientId
     {
         get => GetKnownParameter(OpenIdCommonParameters.ClientId);

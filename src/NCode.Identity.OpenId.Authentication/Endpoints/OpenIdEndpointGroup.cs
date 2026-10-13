@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
+using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery;
@@ -70,6 +71,7 @@ internal sealed class OpenIdEndpointGroup : IEndpointGroup
     {
         builder.AddAuthorizationEndpoint();
         builder.AddContinueEndpoint();
+        builder.AddBackchannelAuthenticationEndpoint();
         builder.AddDeviceAuthorizationEndpoint();
         builder.AddDiscoveryEndpoint();
         builder.AddJwksEndpoint();

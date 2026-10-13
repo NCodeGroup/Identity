@@ -82,6 +82,12 @@ public static partial class OpenIdConstants
         public const string ExpiredToken = "expired_token";
 
         /// <summary>
+        /// Contains the constant value 'unknown_user_id' (OpenID Connect CIBA): the OP could not resolve the supplied
+        /// login hint to a known user.
+        /// </summary>
+        public const string UnknownUserId = "unknown_user_id";
+
+        /// <summary>
         /// Contains the error code for <c>invalid_token</c>, used when a bearer access token is missing, malformed,
         /// expired, revoked, or otherwise invalid (<see href="https://datatracker.ietf.org/doc/html/rfc6750#section-3.1">RFC 6750</see>).
         /// </summary>

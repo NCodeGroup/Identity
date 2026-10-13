@@ -52,7 +52,14 @@ public class DefaultSettingsProviderTests : BaseTests
             OpenIdSettingKeys.GrantTypesSupported,
             OpenIdConstants.GrantTypes.AuthorizationCode,
             OpenIdConstants.GrantTypes.RefreshToken,
-            OpenIdConstants.GrantTypes.DeviceCode
+            OpenIdConstants.GrantTypes.DeviceCode,
+            OpenIdConstants.GrantTypes.Ciba
+        );
+        SetupBaseline(
+            mockSettings,
+            OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
+            OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+            OpenIdConstants.BackchannelTokenDeliveryModes.Ping
         );
         SetupBaseline(
             mockSettings,

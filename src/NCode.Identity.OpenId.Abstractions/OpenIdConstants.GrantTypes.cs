@@ -60,5 +60,11 @@ public static partial class OpenIdConstants
         /// Contains the constant value 'urn:ietf:params:oauth:grant-type:device_code'.
         /// </summary>
         public const string DeviceCode = "urn:ietf:params:oauth:grant-type:device_code";
+
+        /// <summary>
+        /// Contains the constant value 'urn:openid:params:grant-type:ciba' (OpenID Connect Client-Initiated
+        /// Backchannel Authentication).
+        /// </summary>
+        public const string Ciba = "urn:openid:params:grant-type:ciba";
     }
 }

@@ -316,6 +316,66 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizat
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationTicket.State.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationTicket.TokenType.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationTicket.TokenType.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.AuthenticateBackchannelRequestCommand
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.AuthenticateBackchannelRequestCommand.AuthenticateBackchannelRequestCommand() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.AuthenticateBackchannelRequestCommand.AuthenticateBackchannelRequestCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest! Request) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.AuthenticateBackchannelRequestCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.AuthenticateBackchannelRequestCommand.OpenIdClient.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.AuthenticateBackchannelRequestCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.AuthenticateBackchannelRequestCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.AuthenticateBackchannelRequestCommand.Request.get -> NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest!
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.AuthenticateBackchannelRequestCommand.Request.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.CreateBackchannelAuthenticationRequestCommand
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.CreateBackchannelAuthenticationRequestCommand.CreateBackchannelAuthenticationRequestCommand() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.CreateBackchannelAuthenticationRequestCommand.CreateBackchannelAuthenticationRequestCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest! Request, NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication SubjectAuthentication) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.CreateBackchannelAuthenticationRequestCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.CreateBackchannelAuthenticationRequestCommand.OpenIdClient.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.CreateBackchannelAuthenticationRequestCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.CreateBackchannelAuthenticationRequestCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.CreateBackchannelAuthenticationRequestCommand.Request.get -> NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest!
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.CreateBackchannelAuthenticationRequestCommand.Request.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.CreateBackchannelAuthenticationRequestCommand.SubjectAuthentication.get -> NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.CreateBackchannelAuthenticationRequestCommand.SubjectAuthentication.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.ValidateBackchannelAuthenticationRequestCommand
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.ValidateBackchannelAuthenticationRequestCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.ValidateBackchannelAuthenticationRequestCommand.OpenIdClient.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.ValidateBackchannelAuthenticationRequestCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.ValidateBackchannelAuthenticationRequestCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.ValidateBackchannelAuthenticationRequestCommand.Request.get -> NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest!
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.ValidateBackchannelAuthenticationRequestCommand.Request.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.ValidateBackchannelAuthenticationRequestCommand.ValidateBackchannelAuthenticationRequestCommand() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.ValidateBackchannelAuthenticationRequestCommand.ValidateBackchannelAuthenticationRequestCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest! Request) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic.ICibaNotificationService
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic.ICibaNotificationService.NotifyAuthenticationDeviceAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string! authReqId, NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic.ICibaNotificationService.NotifyClientAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string! authReqId, NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic.ICibaRequestService
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic.ICibaRequestService.ApproveAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string! authReqId, NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication subjectAuthentication, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic.ICibaRequestService.DenyAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string! authReqId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.BindingMessage.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.BindingMessage.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.ClientNotificationToken.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.ClientNotificationToken.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.IdTokenHint.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.IdTokenHint.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.LoginHint.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.LoginHint.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.LoginHintToken.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.LoginHintToken.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.RequestedExpiry.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.RequestedExpiry.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.Resources.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.Resources.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.Scopes.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.IBackchannelAuthenticationRequest.Scopes.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results.BackchannelAuthenticationResult
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results.BackchannelAuthenticationResult.AuthReqId.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results.BackchannelAuthenticationResult.AuthReqId.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results.BackchannelAuthenticationResult.BackchannelAuthenticationResult() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results.BackchannelAuthenticationResult.ExpiresIn.get -> int
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results.BackchannelAuthenticationResult.ExpiresIn.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results.BackchannelAuthenticationResult.Interval.get -> int
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results.BackchannelAuthenticationResult.Interval.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProvider
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProvider.ContinueAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Text.Json.JsonElement continuePayloadJson, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition>
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.IContinueProvider.ContinueCode.get -> string!
@@ -551,6 +611,24 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.ValidateTokenReque
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.ValidateTokenRequestCommand.ValidateTokenRequestCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest! TokenRequest) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.AuthorizationGrant
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.AuthorizationGrant.AuthorizationGrant() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.BindingMessage.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.BindingMessage.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.CibaGrant() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.ClientId.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.ClientId.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.ClientNotificationToken.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.ClientNotificationToken.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.DeliveryMode.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.DeliveryMode.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.LastPolledWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.LastPolledWhen.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.Scopes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.Scopes.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.Status.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.Status.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.SubjectAuthentication.get -> NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.SubjectAuthentication.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.DeviceAuthorizationStatus
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.DeviceCodeGrant
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.DeviceCodeGrant.DeviceCodeGrant() -> void
@@ -604,6 +682,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic.ITokenGrantHandler.Ha
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.AuthorizationCode.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.AuthorizationCode.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.AuthReqId.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.AuthReqId.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.ClientId.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.ClientId.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.CodeVerifier.get -> string?

@@ -40,6 +40,16 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
                 OpenIdConstants.GrantTypes.AuthorizationCode,
                 OpenIdConstants.GrantTypes.RefreshToken,
                 OpenIdConstants.GrantTypes.DeviceCode,
+                OpenIdConstants.GrantTypes.Ciba,
+            ]
+        );
+
+        // CIBA token delivery: poll and ping complete through the token endpoint; push is not yet implemented.
+        settings.Set(
+            OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
+            [
+                OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
             ]
         );
 

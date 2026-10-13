@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token.Ciba;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.ClientCredentials;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.DeviceCode;
@@ -103,6 +104,12 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ITokenGrantHandler, DefaultDeviceCodeGrantHandler>()
+            );
+
+            // CIBA (Client-Initiated Backchannel Authentication)
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ITokenGrantHandler, DefaultCibaGrantHandler>()
             );
 
             // Client Credentials

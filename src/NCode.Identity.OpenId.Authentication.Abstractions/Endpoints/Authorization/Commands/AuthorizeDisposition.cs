@@ -23,7 +23,7 @@ using NCode.Identity.OpenId.Messages;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Represents the disposition of authorizing a subject (aka end-user).
+/// Represents the disposition of authorizing a subject (the end-user).
 /// </summary>
 /// <param name="ChallengeRequired">Indicates whether the authorization request requires the user-agent to
 /// (re-)authenticate.</param>

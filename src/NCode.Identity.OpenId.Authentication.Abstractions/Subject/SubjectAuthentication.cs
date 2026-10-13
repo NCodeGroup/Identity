@@ -24,7 +24,7 @@ using NCode.Identity.Jose;
 namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
-/// Contains the contextual information about the subject (aka end-user) and how the subject was authenticated.
+/// Contains the contextual information about the subject (the end-user) and how the subject was authenticated.
 /// </summary>
 [PublicAPI]
 public readonly record struct SubjectAuthentication(

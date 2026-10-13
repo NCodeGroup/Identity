@@ -26,19 +26,19 @@ using NCode.Json;
 namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
-/// Factory class that provides the ability to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT) payload.
+/// Factory class that provides the ability to create a <see cref="ClaimsIdentity"/> instance from a JSON Web Token (JWT) payload.
 /// </summary>
 internal static class DefaultClaimsIdentityFactory
 {
     /// <summary>
-    /// Factory method that provides the ability to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT) payload.
+    /// Factory method that provides the ability to create a <see cref="ClaimsIdentity"/> instance from a JSON Web Token (JWT) payload.
     /// </summary>
     /// <param name="authenticationType">A <see cref="string"/> for the <c>AuthenticationType</c> that is used when creating a <see cref="ClaimsIdentity"/> instance.</param>
     /// <param name="nameClaimType">A <see cref="string"/> that specifies which <see cref="Claim.Type"/> is used to store the <c>Name</c>
     /// claim for a <see cref="ClaimsIdentity"/> instance.</param>
     /// <param name="roleClaimType">A <see cref="string"/> that specifies which <see cref="Claim.Type"/> is used to store the <c>Role</c>
     /// claim for a <see cref="ClaimsIdentity"/> instance.</param>
-    /// <param name="payload">A <see cref="JsonElement"/> that contains the Json Web Token (JWT) payload.</param>
+    /// <param name="payload">A <see cref="JsonElement"/> that contains the JSON Web Token (JWT) payload.</param>
     /// <returns>The newly created <see cref="ClaimsIdentity"/> instance.</returns>
     public static ClaimsIdentity CreateClaimsIdentity(
         string authenticationType,

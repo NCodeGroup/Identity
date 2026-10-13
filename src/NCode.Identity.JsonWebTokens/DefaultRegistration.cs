@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -26,7 +26,7 @@ namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
 /// Provides extension methods for <see cref="IServiceBuilder{T}"/> to register the required services needed for using
-/// Json Web Token (JWT) validation.
+/// JSON Web Token (JWT) validation.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
@@ -35,7 +35,7 @@ public static class DefaultRegistration
     extension(IServiceBuilder<JoseLibrary> builder)
     {
         /// <summary>
-        /// Registers the required Json Web Token (JWT) services, layered on the <see cref="JoseLibrary"/>.
+        /// Registers the required JSON Web Token (JWT) services, layered on the <see cref="JoseLibrary"/>.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>
         public IServiceBuilder<JsonWebTokensLibrary> AddJsonWebTokensLibrary()

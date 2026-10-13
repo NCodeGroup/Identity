@@ -25,10 +25,10 @@ using NCode.PropertyBag;
 namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
-/// An opaque context that is used when validating a Json Web Token (JWT).
+/// An opaque context that is used when validating a JSON Web Token (JWT).
 /// </summary>
-/// <param name="secretKey">The <see cref="SecretKey"/> that was used to decode the Json Web Token (JWT).</param>
-/// <param name="decodedJwt">A <see cref="DecodedJwt"/> that contains the decoded Json Web Token (JWT) header and payload.</param>
+/// <param name="secretKey">The <see cref="SecretKey"/> that was used to decode the JSON Web Token (JWT).</param>
+/// <param name="decodedJwt">A <see cref="DecodedJwt"/> that contains the decoded JSON Web Token (JWT) header and payload.</param>
 /// <param name="propertyBag">A <see cref="PropertyBag"/> that can be used to store custom state information.</param>
 /// <param name="serviceProvider">An <see cref="IServiceProvider"/> that can be used to resolve services.</param>
 /// <param name="timeProvider">A <see cref="TimeProvider"/> that can be used to get the current time.</param>
@@ -42,12 +42,12 @@ public sealed class ValidateJwtContext(
 )
 {
     /// <summary>
-    /// Gets the <see cref="SecretKey"/> that was used to decode the Json Web Token (JWT).
+    /// Gets the <see cref="SecretKey"/> that was used to decode the JSON Web Token (JWT).
     /// </summary>
     public SecretKey SecretKey { get; } = secretKey;
 
     /// <summary>
-    /// Gets a <see cref="DecodedJwt"/> that contains the decoded Json Web Token (JWT) header and payload.
+    /// Gets a <see cref="DecodedJwt"/> that contains the decoded JSON Web Token (JWT) header and payload.
     /// </summary>
     public DecodedJwt DecodedJwt { get; } = decodedJwt;
 

@@ -24,7 +24,7 @@ using NCode.Identity.Secrets.Keys;
 namespace NCode.Identity.JsonWebTokens.Exceptions;
 
 /// <summary>
-/// Represents errors that occur when a <see cref="SecretKey"/> is not found during <c>Json Web Token (JWT)</c> validation.
+/// Represents errors that occur when a <see cref="SecretKey"/> is not found during <c>JSON Web Token (JWT)</c> validation.
 /// </summary>
 [PublicAPI]
 [Serializable]

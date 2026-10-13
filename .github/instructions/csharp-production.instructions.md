@@ -463,6 +463,10 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   according to its accessors. An **`init`-only** property (`{ get; init; }`) opens with **"Gets"**: it is read-only
   after construction, so it reads as a get-only property, not "Gets or sets". Reserve "Gets or sets" for a genuinely
   mutable `{ get; set; }` property.
+- 👁 **Prose spells protocol terms the spec way, not the .NET-type way.** In `///` and `//` text write **"JSON Web
+  Token (JWT)"** (and likewise JSON/JOSE/OAuth/OpenID in their canonical casing); do not carry the `JsonWebToken` type's
+  Pascal casing into documentation. This applies only to prose — a `<see cref="JsonWebToken"/>` or an identifier keeps
+  its real casing.
 - 👁 **No internal citations in `///` doc comments.** A `///` comment ships to consumers — it lands in the package's
   XML-doc file (IntelliSense) and, for any type on an HTTP API surface, is surfaced into the generated **OpenAPI**
   document (.NET's XML-comment integration turns a DTO/property `<summary>` into a schema `description`). So a `///`

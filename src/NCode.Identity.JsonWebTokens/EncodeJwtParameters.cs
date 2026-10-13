@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -26,7 +26,7 @@ using NCode.Identity.Jose.Credentials;
 namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
-/// Contains the parameters used to encode a Json Web Token (JWT) security token.
+/// Contains the parameters used to encode a JSON Web Token (JWT) security token.
 /// </summary>
 [PublicAPI]
 public class EncodeJwtParameters

@@ -25,7 +25,7 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Handlers;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="ValidateTokenRequestCommand"/> messsage.
+/// Provides a default implementation of a handler for the <see cref="ValidateTokenRequestCommand"/> message.
 /// </summary>
 internal class DefaultValidateTokenRequestHandler(IClientScopeService clientScopeService)
     : ICommandHandler<ValidateTokenRequestCommand>,

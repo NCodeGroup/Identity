@@ -29,8 +29,9 @@ namespace NCode.Identity.Secrets.Persistence.Logic;
 /// Provides a default implementation of the <see cref="ISecretGenerator"/> abstraction that generates key
 /// material server-side and data-protects it using the same protector <see cref="DefaultSecretSerializer"/>
 /// uses to unprotect it. The per-type generation logic is delegated to the registered
-/// <see cref="ISecretKeyTypeDescriptor"/> for the requested key type (ADR-0067).
+/// <see cref="ISecretKeyTypeDescriptor"/> for the requested key type.
 /// </summary>
+// See ADR-0067.
 internal class DefaultSecretGenerator(
     IDataProtectorFactory<PersistedSecret> dataProtectorFactory,
     ISecretKeyTypeCatalog secretKeyTypeCatalog

@@ -26,8 +26,9 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// The built-in <see cref="ISecretKeyTypeDescriptor"/> for <see cref="SecretKeyTypes.Symmetric"/> keys. Symmetric
 /// keys have no public key, so <see cref="ISecretKeyTypeDescriptor.SupportsPublicKeyExport"/> is <c>false</c>;
-/// their generated material is the one-time reveal value (ADR-0050).
+/// their generated material is the one-time reveal value.
 /// </summary>
+// See ADR-0050.
 internal sealed class SymmetricSecretKeyTypeDescriptor : SecretKeyTypeDescriptor
 {
     /// <inheritdoc />

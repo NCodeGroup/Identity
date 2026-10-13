@@ -38,7 +38,8 @@ public sealed class GeneratedSecret
     /// <summary>
     /// Gets the one-time unprotected key material, base64url-encoded, or <c>null</c> when the secret has no
     /// externally-held material to reveal. Populated only for symmetric secrets; asymmetric private keys are
-    /// never surfaced. The value exists only in memory and is never persisted. See ADR-0050.
+    /// never surfaced. The value exists only in memory and is never persisted.
     /// </summary>
+    // See ADR-0050.
     public required string? SecretMaterial { get; init; }
 }

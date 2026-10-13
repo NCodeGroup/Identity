@@ -26,7 +26,7 @@ namespace NCode.Identity.Claims;
 public class SerializableClaimsPrincipal
 {
     /// <summary>
-    /// Gets or sets the value for the <see cref="ClaimsPrincipal.Identities"/> property.
+    /// Gets the value for the <see cref="ClaimsPrincipal.Identities"/> property.
     /// </summary>
     public required IReadOnlyCollection<SerializableClaimsIdentity> Identities { get; init; }
 }

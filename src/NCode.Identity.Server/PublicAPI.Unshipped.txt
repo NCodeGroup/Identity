@@ -1,5 +1,6 @@
 #nullable enable
 const NCode.Identity.Server.BootstrapAdminOptions.DefaultSectionName = "BootstrapAdmin" -> string!
+const NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.DefaultSectionName = "ConformanceSeed" -> string!
 const NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.DefaultSectionName = "DeveloperInteractiveSeed" -> string!
 NCode.Identity.Server.BootstrapAdminOptions
 NCode.Identity.Server.BootstrapAdminOptions.BootstrapAdminOptions() -> void
@@ -10,6 +11,39 @@ NCode.Identity.Server.BootstrapAdminOptions.ClientSecret.set -> void
 NCode.Identity.Server.BootstrapAdminOptions.IsEnabled.get -> bool
 NCode.Identity.Server.BootstrapAdminOptions.TenantId.get -> string?
 NCode.Identity.Server.BootstrapAdminOptions.TenantId.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientId.get -> string?
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientId.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientSecret.get -> string?
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientSecret.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.CodeChallengeMethods.get -> string![]!
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.CodeChallengeMethods.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ConformanceClientSeed() -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.GrantTypes.get -> string![]!
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.GrantTypes.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.RedirectUris.get -> string![]!
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.RedirectUris.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.Scopes.get -> string![]!
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.Scopes.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ShouldSeed.get -> bool
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethods.get -> string![]!
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethods.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.Clients.get -> System.Collections.Generic.IList<NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed!>!
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.Clients.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.ConformanceSeedOptions() -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.SeedTestUser.get -> bool
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TenantId.get -> string?
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TenantId.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserEmail.get -> string?
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserEmail.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserName.get -> string?
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserName.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserPassword.get -> string?
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserPassword.set -> void
+NCode.Identity.Server.ConformanceSeedRegistration
+NCode.Identity.Server.ConformanceSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
+NCode.Identity.Server.ConformanceSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddConformanceSeed(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DefaultRegistration
 NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddIdentityServer() -> NCode.Identity.Server.IIdentityServerBuilder!

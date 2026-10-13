@@ -48,4 +48,26 @@ internal static partial class Log
         string clientId,
         string tenantId
     );
+
+    [LoggerMessage(
+        EventId = EventIds.ConformanceClientSeeded,
+        Level = LogLevel.Information,
+        Message = "Seeded conformance client '{ClientId}' into tenant '{TenantId}'"
+    )]
+    internal static partial void ConformanceClientSeeded(
+        this ILogger logger,
+        string clientId,
+        string tenantId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ConformanceTestUserSeeded,
+        Level = LogLevel.Information,
+        Message = "Seeded conformance test user '{UserName}' into tenant '{TenantId}'"
+    )]
+    internal static partial void ConformanceTestUserSeeded(
+        this ILogger logger,
+        string userName,
+        string tenantId
+    );
 }

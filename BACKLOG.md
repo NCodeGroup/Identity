@@ -146,8 +146,9 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   in its dedicated doc: [`docs/conformance-testing.md`](docs/conformance-testing.md). The Dynamic OP profile
   prerequisite (Dynamic Client Registration) is implemented ([ADR-0063](docs/adr/0063-dynamic-client-registration.md));
   the harness enables anonymous registration (`registration_endpoint_allow_anonymous`). Depends on the prerequisite
-  work items `T2`–`T4` below (the seeded, automatable OP the harness drives). The discovery-metadata alignment
-  prerequisite is **done**: the OP advertises secure-by-default, verified capabilities
+  work items `T2`–`T3` below (the seeded, automatable OP the harness drives). The deterministic conformance tenant,
+  clients, and test-user seeding prerequisite is **done** (`T4` — `AddConformanceSeed`). The discovery-metadata
+  alignment prerequisite is **done**: the OP advertises secure-by-default, verified capabilities
   ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface
   implemented._ The OpenID Provider has an opt-in interactive login/consent surface
@@ -156,19 +157,13 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   endpoints reusing the local-account path, exposing the stable locators (`username`, `password`, `login`,
   `consent-allow`, `consent-deny`). Decision record:
   [ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md). Detailed plan:
-  [`docs/conformance/login-consent-ui.md`](docs/conformance/login-consent-ui.md). **Remaining for conformance:** a
-  seeded conformance identity (`T4`) and the reachable HTTPS host to drive it headlessly end-to-end (`T3`); independent
-  of `F6`.
+  [`docs/conformance/login-consent-ui.md`](docs/conformance/login-consent-ui.md). **Remaining for conformance:** the
+  reachable HTTPS host to drive it headlessly end-to-end (`T3`); the seeded conformance identity is **done** (`T4`);
+  independent of `F6`.
 - **`T3` — Reachable HTTPS Playground host for the external harness.** The only launchable host is the
   in-process `TestServer`; the suite needs a real HTTPS origin (Windows/Docker: `host.docker.internal`)
   whose discovery `issuer` byte-matches that origin (pin via the `tenant_issuer` setting). Detailed plan:
   [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
-- **`T4` — Deterministic conformance tenant, clients, and test user seeding.** Seeding exists only in test
-  infrastructure; a launched host seeds only the bootstrap-admin client. Add an idempotent, config-driven
-  startup seeder (bootstrap-admin-style) for the conformance tenant, the three Basic-OP clients, and a
-  fixed test user. Detailed plan:
-  [`docs/conformance/conformance-seeding.md`](docs/conformance/conformance-seeding.md). Static client half
-  is retired by `F6` (DCR); tenant/user seeding is not.
 
 ## Frontend presentation platform (group `U`)
 

@@ -29,7 +29,7 @@ namespace NCode.Identity.Settings;
 public abstract class SettingDescriptor
 {
     /// <summary>
-    /// Gets or sets the name of the setting.
+    /// Gets the name of the setting.
     /// </summary>
     public required string Name { get; init; }
 
@@ -39,7 +39,7 @@ public abstract class SettingDescriptor
     public abstract Type ValueType { get; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the setting is discoverable.
+    /// Gets a value indicating whether the setting is discoverable.
     /// </summary>
     public bool IsDiscoverable { get; init; }
 
@@ -101,7 +101,7 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     public override bool HasDefault => DefaultOrNull is not null;
 
     /// <summary>
-    /// Gets or sets the default value for the setting.
+    /// Gets the default value for the setting.
     /// </summary>
     public TValue? DefaultOrNull { get; init; }
 
@@ -115,20 +115,20 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     }
 
     /// <summary>
-    /// Gets or sets the factory method used to create a new <see cref="Setting{TValue}"/> instance with the specified <paramref name="value"/>.
+    /// Gets the factory method used to create a new <see cref="Setting{TValue}"/> instance with the specified <paramref name="value"/>.
     /// The default implementation calls the <see cref="Setting{TValue}"/> constructor.
     /// </summary>
     public Func<SettingDescriptor<TValue>, TValue, Setting<TValue>> OnCreate { get; init; } =
         (descriptor, value) => new Setting<TValue>(descriptor, value);
 
     /// <summary>
-    /// Gets or sets the function that is used to merge two <see cref="Setting{TValue}"/> instances into a new <see cref="Setting{TValue}"/> instance.
+    /// Gets the function that is used to merge two <see cref="Setting{TValue}"/> instances into a new <see cref="Setting{TValue}"/> instance.
     /// The default implementation always returns the other value.
     /// </summary>
     public Func<TValue, TValue, TValue> OnMerge { get; init; } = (_, other) => other;
 
     /// <summary>
-    /// Gets or sets the function that is used to format the setting's value to be returned in the discovery document.
+    /// Gets the function that is used to format the setting's value to be returned in the discovery document.
     /// The default implementation returns the value as-is.
     /// </summary>
     public Func<Setting<TValue>, object> OnFormat { get; init; } = setting => setting.Value;

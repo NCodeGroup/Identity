@@ -23,7 +23,7 @@ using NCode.Identity.OpenId.Messages;
 namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
-/// Represents the disposition of authenticating a subject (aka end-user).
+/// Represents the disposition of authenticating a subject (the end-user).
 /// </summary>
 /// <param name="Error">Contains the <see cref="IOpenIdError"/> for a failed authentication result.</param>
 /// <param name="Ticket">Contains the <see cref="SubjectAuthentication"/> for a successful authentication result.</param>

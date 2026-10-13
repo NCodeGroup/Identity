@@ -21,8 +21,9 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Server.Frontend;
 
 /// <summary>
-/// Configures the brandable theme tokens injected into the frontend bundles at runtime (ADR-0064 branding seam).
+/// Configures the brandable theme tokens injected into the frontend bundles at runtime.
 /// </summary>
+// See ADR-0064 (branding seam).
 [PublicAPI]
 public sealed class FrontendBrandingOptions
 {

@@ -21,11 +21,12 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Server.Frontend;
 
 /// <summary>
-/// Configures the per-surface overrides a single bootstrap endpoint serves to each frontend surface (ADR-0064). Only
+/// Configures the per-surface overrides a single bootstrap endpoint serves to each frontend surface. Only
 /// the coordinates that differ from the host default need to be set; an unset member falls back to the default, except
 /// <see cref="ClientId"/> and <see cref="Scopes"/>, which replace the default so a read-only surface can publish no
 /// client at all.
 /// </summary>
+// See ADR-0064.
 [PublicAPI]
 public sealed class FrontendSurfaceOptions
 {

@@ -27,11 +27,12 @@ using NCode.Registration.AspNetCore;
 namespace NCode.Identity.Server.Frontend;
 
 /// <summary>
-/// Maps the frontend runtime bootstrap document (ADR-0064) at <see cref="EndpointPath"/>. Registered as an
+/// Maps the frontend runtime bootstrap document at <see cref="EndpointPath"/>. Registered as an
 /// <see cref="IEndpointProvider"/> so the host's single <c>MapEndpointGroups</c> call maps it alongside every other
 /// endpoint; the tier-agnostic bundles fetch this document from their serving host at boot to discover their
 /// deployment coordinates (API base, issuer, client id, feature flags, branding), so one bundle serves every tier.
 /// </summary>
+// See ADR-0064.
 internal sealed class FrontendBootstrapEndpointProvider : IEndpointProvider
 {
     /// <summary>

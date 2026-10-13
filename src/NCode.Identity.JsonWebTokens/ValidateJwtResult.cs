@@ -25,7 +25,7 @@ using NCode.PropertyBag;
 namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
-/// Contains the result after a Json Web Token (JWT) has been validation.
+/// Contains the result after a Json Web Token (JWT) has been validated.
 /// </summary>
 [PublicAPI]
 public sealed class ValidateJwtResult

@@ -24,9 +24,9 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// Describes a single secret key type (for example <c>symmetric</c>, <c>rsa</c>, or <c>ecc</c>) and its intrinsic
 /// capabilities. The set of registered descriptors is the single source of truth for which key types exist, how
-/// their key sizes are validated, how their material is generated, and which expose exportable public-key material
-/// — replacing the per-type switch statements that previously duplicated this knowledge (ADR-0067).
+/// their key sizes are validated, how their material is generated, and which expose exportable public-key material.
 /// </summary>
+// See ADR-0067.
 [PublicAPI]
 public interface ISecretKeyTypeDescriptor
 {

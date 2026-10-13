@@ -30,13 +30,13 @@ namespace NCode.Identity.OpenId.Accounts.DataContracts;
 public sealed class PersistedLocalAccountClaim
 {
     /// <summary>
-    /// Gets or sets the claim type.
+    /// Gets the claim type.
     /// </summary>
     [MaxLength(AccountMaxLengths.ClaimType)]
     public required string Type { get; init; }
 
     /// <summary>
-    /// Gets or sets the claim value.
+    /// Gets the claim value.
     /// </summary>
     [MaxLength(AccountMaxLengths.ClaimValue)]
     public required string Value { get; init; }

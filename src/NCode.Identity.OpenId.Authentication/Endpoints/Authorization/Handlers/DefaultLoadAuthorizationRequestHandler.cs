@@ -61,9 +61,6 @@ internal class DefaultLoadAuthorizationRequestHandler(
         );
         requestMessage.AuthorizationSourceType = openIdRequestValues.SourceType;
 
-        // TODO: add support for OAuth 2.0 Pushed Authorization Requests (PAR)
-        // https://datatracker.ietf.org/doc/html/rfc9126
-
         var requestObject = await LoadRequestObjectAsync(
             openIdEnvironment,
             openIdClient,

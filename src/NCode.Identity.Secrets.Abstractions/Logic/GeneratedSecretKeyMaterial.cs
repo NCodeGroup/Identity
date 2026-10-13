@@ -43,7 +43,8 @@ public sealed class GeneratedSecretKeyMaterial
     /// <summary>
     /// Gets the one-time unprotected key material, base64url-encoded, or <c>null</c> when the key has no
     /// externally-held material to reveal. Populated only for symmetric keys; asymmetric private keys are never
-    /// surfaced. See ADR-0050.
+    /// surfaced.
     /// </summary>
+    // See ADR-0050.
     public required string? SecretMaterial { get; init; }
 }

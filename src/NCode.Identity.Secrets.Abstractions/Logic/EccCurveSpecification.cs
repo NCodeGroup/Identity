@@ -25,8 +25,9 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// Describes a supported elliptic curve: its <c>JWK</c> <c>crv</c> name, its size in bits, and the underlying
 /// <see cref="System.Security.Cryptography.ECCurve"/> used to generate and name keys. This is the single source of
-/// truth for elliptic curves, shared by key generation and <c>JWK</c> publication (ADR-0068).
+/// truth for elliptic curves, shared by key generation and <c>JWK</c> publication.
 /// </summary>
+// See ADR-0068.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class EccCurveSpecification

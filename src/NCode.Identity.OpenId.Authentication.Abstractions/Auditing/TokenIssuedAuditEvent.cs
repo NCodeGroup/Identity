@@ -32,7 +32,7 @@ public sealed record TokenIssuedAuditEvent : AuditEvent
     public override string Action => OpenIdAuditActions.TokenIssued;
 
     /// <summary>
-    /// Gets the type of the issued token (for example an access token, id token, refresh token, or
+    /// Gets the type of the issued token (for example an access token, ID token, refresh token, or
     /// authorization code).
     /// </summary>
     public required string TokenType { get; init; }

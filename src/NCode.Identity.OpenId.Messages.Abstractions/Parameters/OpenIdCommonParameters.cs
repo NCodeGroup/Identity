@@ -306,6 +306,61 @@ public static class OpenIdCommonParameters
     };
 
     /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>auth_req_id</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string> AuthReqId = new(
+        OpenIdConstants.Parameters.AuthReqId,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>login_hint_token</c> message parameter (OpenID Connect CIBA).
+    /// </summary>
+    public static readonly KnownParameter<string> LoginHintToken = new(
+        OpenIdConstants.Parameters.LoginHintToken,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>binding_message</c> message parameter (OpenID Connect CIBA).
+    /// </summary>
+    public static readonly KnownParameter<string> BindingMessage = new(
+        OpenIdConstants.Parameters.BindingMessage,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>client_notification_token</c> message parameter (OpenID Connect CIBA).
+    /// </summary>
+    public static readonly KnownParameter<string> ClientNotificationToken = new(
+        OpenIdConstants.Parameters.ClientNotificationToken,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>requested_expiry</c> message parameter (OpenID Connect CIBA).
+    /// </summary>
+    public static readonly KnownParameter<string> RequestedExpiry = new(
+        OpenIdConstants.Parameters.RequestedExpiry,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>refresh_token</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> RefreshToken = new(

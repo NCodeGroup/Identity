@@ -69,17 +69,24 @@ one option is merely more work.
 
 ## Feature gaps — not yet implemented (group `F`)
 
-- **`F3` — CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication).** The OAuth 2.0 Device
-  Authorization Grant (`device_code`, RFC 8628) **is implemented** — device authorization and verification endpoints,
-  the `device_code` token grant handler, and the pending-request persistence model (see
-  [ADR-0059](docs/adr/0059-device-authorization-grant.md)). CIBA is **not** implemented: there is no
-  `backchannel_authentication_endpoint`, no `auth_req_id` grant, and no poll/ping/push token-delivery modes. CIBA
-  reuses the same pending-authorization-as-persisted-grant pattern the device flow established, but adds two design
-  questions that need their own ADR before implementation: resolving `login_hint` / `login_hint_token` /
-  `id_token_hint` to a subject, and the decoupled **authentication-device notification** seam (deployment-specific, so
-  it must be an injectable abstraction rather than a built-in transport). Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/` (the `// TODO: Ciba Grant` marker in
-  `DefaultTokenEndpointProvider.cs`), plus a new `Endpoints/BackchannelAuthentication/` family.
+- **`F17` — CIBA push delivery and signed backchannel request objects.** CIBA **poll** and **ping** delivery are
+  implemented ([ADR-0085](docs/adr/0085-ciba-grant.md)): the `backchannel_authentication_endpoint`, the
+  `urn:openid:params:grant-type:ciba` token grant, the pending-request persistence model, and the injectable
+  subject-resolution (`AuthenticateBackchannelRequestCommand`) + notification (`ICibaNotificationService`) + approval
+  (`ICibaRequestService`) seams all exist, and `backchannel_token_delivery_modes_supported` advertises `poll`/`ping`.
+  **Push** delivery (`mode=push`, where the OP delivers the tokens inside the notification) is **not** implemented — it
+  needs the notification channel to carry and secure a full token response; it layers onto the existing
+  `ICibaNotificationService` seam. Signed/encrypted backchannel request objects
+  (`backchannel_authentication_request_signing_alg_values_supported`, a FAPI-CIBA concern) are likewise a follow-up.
+  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/`.
+- **`F18` — Migrate the device-authorization endpoint to the canonical endpoint shape.** The canonical OpenID endpoint
+  shape — a thin `IEndpointProvider` over a strongly-typed `OpenIdMessage<T>` request and a mediator
+  validate/process pipeline — is codified in [ADR-0086](docs/adr/0086-canonical-openid-endpoint-shape.md) and followed
+  by the token, end-session, and CIBA endpoints. `DefaultDeviceAuthorizationEndpointHandler` predates the convention: it
+  reads the form directly (`form.TryGetValue(...)`) and inlines its validation and persistence. Refactor it to a
+  `DeviceAuthorizationRequest : OpenIdMessage<…>` + `ValidateDeviceAuthorizationRequestCommand` +
+  `CreateDeviceAuthorizationRequestCommand` so the endpoint family is uniform. Touch point:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/DeviceAuthorization/`.
 - **`F4` — `refresh_token_reuse_policy` (none / revoke_all).** Refresh-token replay is _detected and audited_
   (`token.refresh.replay`), but there is no configurable response that revokes the whole token family
   on reuse. See `// TODO: refresh_token_reuse_policy` in
@@ -162,7 +169,7 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   `F7`, PAR `F8`, token exchange, pairwise `F9`, `acr` `F11`, the FAPI profile `F16`) surfaces as explicit, attributable
   gap rows. Because every row is classified from **live discovery metadata**, the same matrix is a **regression**
   detector: a capability that silently stops being advertised (or flips to non-conformant) flips its row, so the harness
-  guards *shipped* features as well as tracking *missing* ones. Design and
+  guards _shipped_ features as well as tracking _missing_ ones. Design and
   rationale, including the `browser` / `probe-runner` / `external-suite` exercise boundary, are in
   [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). Phases: **(1 — done)** the data-first spec catalog
   (`coverage.ts`) + coverage-matrix UI, classified from live discovery metadata (semantics: _advertised_, per the

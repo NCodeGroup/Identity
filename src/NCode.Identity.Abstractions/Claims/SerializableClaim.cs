@@ -26,32 +26,32 @@ namespace NCode.Identity.Claims;
 public class SerializableClaim
 {
     /// <summary>
-    /// Gets or sets the value for the <see cref="Claim.Type"/> property.
+    /// Gets the value for the <see cref="Claim.Type"/> property.
     /// </summary>
     public required string Type { get; init; }
 
     /// <summary>
-    /// Gets or sets the value for the <see cref="Claim.Value"/> property.
+    /// Gets the value for the <see cref="Claim.Value"/> property.
     /// </summary>
     public required string Value { get; init; }
 
     /// <summary>
-    /// Gets or sets the value for the <see cref="Claim.ValueType"/> property.
+    /// Gets the value for the <see cref="Claim.ValueType"/> property.
     /// </summary>
     public required string? ValueType { get; init; }
 
     /// <summary>
-    /// Gets or sets the value for the <see cref="Claim.Issuer"/> property.
+    /// Gets the value for the <see cref="Claim.Issuer"/> property.
     /// </summary>
     public required string? Issuer { get; init; }
 
     /// <summary>
-    /// Gets or sets the value for the <see cref="Claim.OriginalIssuer"/> property.
+    /// Gets the value for the <see cref="Claim.OriginalIssuer"/> property.
     /// </summary>
     public required string? OriginalIssuer { get; init; }
 
     /// <summary>
-    /// Gets or sets the value for the <see cref="Claim.Properties"/> property.
+    /// Gets the value for the <see cref="Claim.Properties"/> property.
     /// </summary>
     public required IDictionary<string, string> Properties { get; init; }
 

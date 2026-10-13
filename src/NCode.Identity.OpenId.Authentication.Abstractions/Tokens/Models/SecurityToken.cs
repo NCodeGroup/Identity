@@ -28,17 +28,17 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Models;
 public readonly record struct SecurityToken
 {
     /// <summary>
-    /// Gets or sets the type of the token.
+    /// Gets the type of the token.
     /// </summary>
     public string TokenType { get; init; }
 
     /// <summary>
-    /// Gets or sets the value of the token.
+    /// Gets the value of the token.
     /// </summary>
     public string TokenValue { get; init; }
 
     /// <summary>
-    /// Gets or sets the lifetime of the token.
+    /// Gets the lifetime of the token.
     /// </summary>
     public TimePeriod TokenLifetime { get; init; }
 }

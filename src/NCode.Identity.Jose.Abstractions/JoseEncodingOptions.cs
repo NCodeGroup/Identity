@@ -35,25 +35,25 @@ public abstract class JoseEncodingOptions
     public abstract JoseCredentials Credentials { get; }
 
     /// <summary>
-    /// Gets or set the value for the <c>typ</c> JOSE header parameter.
+    /// Gets the value for the <c>typ</c> JOSE header parameter.
     /// The default value is <c>JWT</c>.
     /// </summary>
     public string TokenType { get; init; } = JoseTokenTypes.Jwt;
 
     /// <summary>
-    /// Gets or sets a boolean indicating whether to add the secret's <c>kid</c> value to the JOSE header.
+    /// Gets a boolean indicating whether to add the secret's <c>kid</c> value to the JOSE header.
     /// The default value is <c>true</c>.
     /// </summary>
     public bool AddKeyIdHeader { get; init; } = true;
 
     /// <summary>
-    /// Gets or sets any additional headers to include in the JOSE header.
+    /// Gets any additional headers to include in the JOSE header.
     /// The default value is <c>null</c>.
     /// </summary>
     public IEnumerable<KeyValuePair<string, object>>? ExtraHeaders { get; init; }
 
     /// <summary>
-    /// Gets or sets the options that control JSON serialization behavior when encoding a strongly-typed payload.
+    /// Gets the options that control JSON serialization behavior when encoding a strongly-typed payload.
     /// The default value is <c>null</c>.
     /// </summary>
     public JsonSerializerOptions? JsonOptions { get; init; }

@@ -24,10 +24,11 @@ using NCode.Identity.OpenId.Persistence.Tenants;
 namespace NCode.Identity.OpenId.Playground.Database;
 
 /// <summary>
-/// Shared Npgsql wiring for the Playground reference OP database (ADR-0073). The Playground <c>api</c> host and the
+/// Shared Npgsql wiring for the Playground reference OP database. The Playground <c>api</c> host and the
 /// <c>MigrationService</c> worker both configure the dev Postgres database through these helpers so the provider,
 /// migrations assembly, and migrations-history tables stay a single source of truth.
 /// </summary>
+// See ADR-0073.
 [PublicAPI]
 public static class PlaygroundDatabase
 {

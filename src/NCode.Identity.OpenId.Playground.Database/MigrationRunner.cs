@@ -26,8 +26,9 @@ namespace NCode.Identity.OpenId.Playground.Database;
 /// <summary>
 /// Applies the EF Core migrations for every Playground context against the Postgres database. Invoked by the
 /// <c>MigrationService</c> worker so schema application is a dedicated Aspire resource: a migration failure surfaces as
-/// a failed dashboard resource instead of crashing the <c>api</c> host (ADR-0073).
+/// a failed dashboard resource instead of crashing the <c>api</c> host.
 /// </summary>
+// See ADR-0073.
 [PublicAPI]
 public static class MigrationRunner
 {

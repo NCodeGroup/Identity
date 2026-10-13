@@ -23,11 +23,12 @@ namespace NCode.Identity.OpenId.Authentication.Models;
 
 /// <summary>
 /// The result of resolving the resource servers an access token targets, used to bind the token's audience and — when
-/// it targets a single resource server — encrypt it to that resource server's own key (ADR-0075). When the token
+/// it targets a single resource server — encrypt it to that resource server's own key. When the token
 /// targets exactly one resource server, <see cref="SingleSecretsProvider"/> exposes that resource server's own secret
 /// keys; otherwise it is <c>null</c> and the token uses the tenant's keys. The transient provider is owned by this
 /// instance and released on disposal. Access tokens are always signed with the tenant's key, never a resource server's.
 /// </summary>
+// See ADR-0075.
 [PublicAPI]
 public sealed class ResourceServerCredentialResolution : IAsyncDisposable
 {
@@ -45,7 +46,7 @@ public sealed class ResourceServerCredentialResolution : IAsyncDisposable
 
     /// <summary>
     /// Gets the single targeted resource server, or <c>null</c> when the token targets zero or more than one resource
-    /// server. Per-audience encryption material is only well-defined for a single-audience token (ADR-0075).
+    /// server. Per-audience encryption material is only well-defined for a single-audience token.
     /// </summary>
     public ResolvedResourceServer? Single => ResourceServers.Count == 1 ? ResourceServers[0] : null;
 

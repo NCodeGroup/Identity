@@ -34,12 +34,13 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthenticateSubjectCommand"/> message. When the
 /// request presents a bearer access token (the UserInfo path) it validates that self-issued token against the resolved
-/// tenant's keys, issuer, and the OpenID identity audience — the same in-environment validation the management API uses
-/// (ADR-0044), because the per-tenant signing keys and issuer are only known after the request environment resolves the
+/// tenant's keys, issuer, and the OpenID identity audience — the same in-environment validation the management API uses,
+/// because the per-tenant signing keys and issuer are only known after the request environment resolves the
 /// tenant, so a pre-routing authentication scheme cannot validate it. When no bearer token is present the request
 /// carries an interactive session, so it falls back to the host's default authentication scheme (the session cookie).
 /// Applications replace this handler to change how the subject's credentials are validated.
 /// </summary>
+// See ADR-0044.
 internal class DefaultAuthenticateSubjectHandler(
     IStoreManagerFactory storeManagerFactory,
     IPrincipalResolver principalResolver,

@@ -390,9 +390,30 @@ NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetada
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.Metadata.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands.DiscoverMetadataCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.CreateDeviceAuthorizationRequestCommand
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.CreateDeviceAuthorizationRequestCommand.CreateDeviceAuthorizationRequestCommand() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.CreateDeviceAuthorizationRequestCommand.CreateDeviceAuthorizationRequestCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.IDeviceAuthorizationRequest! Request) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.CreateDeviceAuthorizationRequestCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.CreateDeviceAuthorizationRequestCommand.OpenIdClient.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.CreateDeviceAuthorizationRequestCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.CreateDeviceAuthorizationRequestCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.CreateDeviceAuthorizationRequestCommand.Request.get -> NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.IDeviceAuthorizationRequest!
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.CreateDeviceAuthorizationRequestCommand.Request.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.ValidateDeviceAuthorizationRequestCommand
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.ValidateDeviceAuthorizationRequestCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.ValidateDeviceAuthorizationRequestCommand.OpenIdClient.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.ValidateDeviceAuthorizationRequestCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.ValidateDeviceAuthorizationRequestCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.ValidateDeviceAuthorizationRequestCommand.Request.get -> NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.IDeviceAuthorizationRequest!
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.ValidateDeviceAuthorizationRequestCommand.Request.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.ValidateDeviceAuthorizationRequestCommand.ValidateDeviceAuthorizationRequestCommand() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands.ValidateDeviceAuthorizationRequestCommand.ValidateDeviceAuthorizationRequestCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.IDeviceAuthorizationRequest! Request) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Logic.IUserCodeGenerator
 NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Logic.IUserCodeGenerator.Generate(int length) -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Logic.IUserCodeGenerator.Normalize(string! userCode) -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.IDeviceAuthorizationRequest
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.IDeviceAuthorizationRequest.Scopes.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.IDeviceAuthorizationRequest.Scopes.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Results.DeviceAuthorizationResult
 NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Results.DeviceAuthorizationResult.DeviceAuthorizationResult() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Results.DeviceAuthorizationResult.DeviceCode.get -> string!

@@ -10,6 +10,16 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Device-authorization endpoint migrated to the canonical endpoint shape — completes backlog `F18`.** The
+  `/oauth2/device_authorization` endpoint (`DefaultDeviceAuthorizationEndpointHandler`) is now a thin orchestrator over
+  a strongly-typed `DeviceAuthorizationRequest : OpenIdMessage<…>` and mediator commands
+  (`ValidateDeviceAuthorizationRequestCommand`, `CreateDeviceAuthorizationRequestCommand` →
+  `DeviceAuthorizationResult`), matching the token, end-session, and CIBA endpoints and the shape codified in
+  [ADR-0086](docs/adr/0086-canonical-openid-endpoint-shape.md). It no longer reads the form directly or inlines its
+  validation and persistence, so each protocol step is independently testable and replaceable. Behavior is unchanged.
+  New public surface across `NCode.Identity.OpenId.Authentication(.Abstractions)`: the `IDeviceAuthorizationRequest` /
+  `DeviceAuthorizationRequest` messages and the two mediator commands.
+
 - **CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication) — completes backlog `F3`.** The OP gains a
   decoupled backchannel-authentication flow (poll and ping delivery) that reuses the device flow's
   pending-authorization-as-persisted-grant pattern with **no new table or EF migration**

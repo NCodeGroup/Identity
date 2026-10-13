@@ -79,7 +79,7 @@ public static class IdentityServerBuilderExtensions
 
         /// <summary>
         /// Binds the <see cref="FrontendBootstrapOptions"/> that back the frontend runtime bootstrap document
-        /// (ADR-0064) from the specified <paramref name="configuration"/> section, optionally applies a code-first
+        /// from the specified <paramref name="configuration"/> section, optionally applies a code-first
         /// override, and registers the endpoint that publishes the document so the host's single
         /// <c>MapEndpointGroups</c> call maps it alongside every other endpoint. The tier-agnostic frontend bundles
         /// fetch this document from the serving host at boot to discover their deployment coordinates (API base,

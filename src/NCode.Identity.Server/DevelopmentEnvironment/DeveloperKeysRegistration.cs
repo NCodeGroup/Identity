@@ -45,7 +45,7 @@ public static class DeveloperKeysRegistration
         /// <see cref="DeveloperKeyMode.Ephemeral"/> uses in-memory keys, while
         /// <see cref="DeveloperKeyMode.PersistentSigningKey"/> seeds a persisted key through the normal persistence
         /// path so it survives restarts. The host owns where the data-protection key ring is stored (the Playground
-        /// persists it in its dev database, ADR-0073). Must not be used in production.
+        /// persists it in its dev database). Must not be used in production.
         /// </summary>
         /// <param name="mode">The <see cref="DeveloperKeyMode"/> that selects which setup to apply.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
@@ -78,7 +78,7 @@ public static class DeveloperKeysRegistration
         /// Replaces the default tenant factory with one that seeds a persisted <c>RSA</c> signing key through the
         /// normal persistence path (so the runtime, JWKS, and the management API share a single source of truth).
         /// The host is responsible for configuring data-protection key-ring persistence so the seeded secret can be
-        /// unprotected across restarts (the Playground persists the ring in its dev database, ADR-0073). Intended for
+        /// unprotected across restarts (the Playground persists the ring in its dev database). Intended for
         /// local development only; must not be used in production.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>

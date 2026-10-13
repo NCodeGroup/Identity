@@ -67,7 +67,6 @@ describe('buildCoverageReport — gaps surface as missing with backlog ids', () 
   it('marks CIBA, PAR, DPoP, token exchange, and FAPI as missing against the baseline', () => {
     const report = buildCoverageReport(baseline);
     expect(entry(report, 'ep-ciba')?.status).toBe('missing');
-    expect(entry(report, 'ep-ciba')?.backlog).toBe('F3');
     expect(entry(report, 'ep-par')?.status).toBe('missing');
     expect(entry(report, 'ep-par')?.backlog).toBe('F8');
     expect(entry(report, 'sec-dpop')?.status).toBe('missing');

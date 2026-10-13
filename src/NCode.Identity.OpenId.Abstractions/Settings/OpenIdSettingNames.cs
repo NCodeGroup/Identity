@@ -197,6 +197,38 @@ public static class OpenIdSettingNames
     public const string UserCodeLength = "user_code_length";
 
     /// <summary>
+    /// Contains the name of the per-client <c>backchannel_token_delivery_mode</c> setting (OpenID Connect CIBA): how
+    /// the OP delivers the result — <c>poll</c>, <c>ping</c>, or <c>push</c>.
+    /// </summary>
+    public const string BackchannelTokenDeliveryMode = "backchannel_token_delivery_mode";
+
+    /// <summary>
+    /// Contains the name of the server <c>backchannel_token_delivery_modes_supported</c> discovery setting (OpenID
+    /// Connect CIBA).
+    /// </summary>
+    public const string BackchannelTokenDeliveryModesSupported =
+        "backchannel_token_delivery_modes_supported";
+
+    /// <summary>
+    /// Contains the name of the server <c>backchannel_user_code_parameter_supported</c> discovery setting (OpenID
+    /// Connect CIBA).
+    /// </summary>
+    public const string BackchannelUserCodeParameterSupported =
+        "backchannel_user_code_parameter_supported";
+
+    /// <summary>
+    /// Contains the name of <c>ciba_request_lifetime</c> setting (the validity window of a pending CIBA backchannel
+    /// authentication request).
+    /// </summary>
+    public const string CibaRequestLifetime = "ciba_request_lifetime";
+
+    /// <summary>
+    /// Contains the name of <c>ciba_polling_interval</c> setting (the minimum interval the client must wait between
+    /// polls of the token endpoint for a CIBA request).
+    /// </summary>
+    public const string CibaPollingInterval = "ciba_polling_interval";
+
+    /// <summary>
     /// Contains the name of <c>display_values_supported</c> setting.
     /// </summary>
     public const string DisplayValuesSupported = "display_values_supported";

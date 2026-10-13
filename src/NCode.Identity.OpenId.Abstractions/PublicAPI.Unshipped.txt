@@ -768,6 +768,30 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectClaimTypes = "sub
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityJoinClaim = "federated_identity_join_claim" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityVerifiedClaim = "federated_identity_verified_claim" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityRequireVerified = "federated_identity_require_verified" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.Ciba = "urn:openid:params:grant-type:ciba" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.Ciba = "ciba" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.BackchannelAuthentication = "backchannel_authentication_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.BackchannelAuthentication = "/oauth2/bc-authorize" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.LoginHintToken = "login_hint_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.AuthReqId = "auth_req_id" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.BindingMessage = "binding_message" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClientNotificationToken = "client_notification_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.RequestedExpiry = "requested_expiry" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UnknownUserId = "unknown_user_id" -> string!
+NCode.Identity.OpenId.OpenIdConstants.BackchannelTokenDeliveryModes
+const NCode.Identity.OpenId.OpenIdConstants.BackchannelTokenDeliveryModes.Poll = "poll" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.BackchannelTokenDeliveryModes.Ping = "ping" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.BackchannelTokenDeliveryModes.Push = "push" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelTokenDeliveryMode = "backchannel_token_delivery_mode" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelTokenDeliveryModesSupported = "backchannel_token_delivery_modes_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelUserCodeParameterSupported = "backchannel_user_code_parameter_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.CibaRequestLifetime = "ciba_request_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.CibaPollingInterval = "ciba_polling_interval" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackchannelTokenDeliveryMode.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackchannelUserCodeParameterSupported.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.CibaRequestLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.CibaPollingInterval.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityExplicitOnly = "federated_identity_explicit_only" -> string!
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PrincipalIssuerClaim.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectClaimTypes.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>

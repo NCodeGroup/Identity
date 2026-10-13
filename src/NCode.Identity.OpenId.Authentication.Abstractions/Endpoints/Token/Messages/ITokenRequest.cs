@@ -33,6 +33,12 @@ public interface ITokenRequest : IOpenIdRequest
     string? AuthorizationCode { get; set; }
 
     /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the <c>auth_req_id</c> that the client received from the
+    /// backchannel authentication endpoint and polls the token endpoint with (OpenID Connect CIBA).
+    /// </summary>
+    string? AuthReqId { get; set; }
+
+    /// <summary>
     /// Gets or sets a <see cref="string"/> value containing the unique identifier for the <c>OAuth</c> or <c>OpenID Connect</c> client.
     /// </summary>
     string? ClientId { get; set; }

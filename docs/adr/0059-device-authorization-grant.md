@@ -114,7 +114,7 @@ Concretely:
 - Because the request's approval state lives in its payload, the verification endpoint and the polling token endpoint
   are fully decoupled — they never share memory, only the persisted record — which is what makes the "authorize on a
   second device" topology work across nodes.
-- CIBA ([ADR-0060](0060-ciba-grant.md)) reuses this exact pattern (a pending request persisted as a grant payload,
+- CIBA ([ADR-0085](0085-ciba-grant.md)) reuses this exact pattern (a pending request persisted as a grant payload,
   approved out of band, polled for completion), so the `UpdatePayloadAsync` capability and the pending-request modelling
   are shared rather than reinvented.
 - A "you chose wrong" smell: if retention of short-lived pending rows ever becomes a hot-path cost, or a third grant
@@ -131,5 +131,5 @@ Concretely:
   the settings descriptor and merge conventions the new settings follow.
 - [ADR-0028](0028-token-revocation-refresh-tokens-only.md) — the `PersistedGrant` revoke/consume semantics reused here.
 - [ADR-0041](0041-host-owned-ef-migrations-deliberate-outside-development.md) — why avoiding a new migration matters.
-- [ADR-0060](0060-ciba-grant.md) — the CIBA grant that reuses this pending-authorization pattern.
+- [ADR-0085](0085-ciba-grant.md) — the CIBA grant that reuses this pending-authorization pattern.
 - <see href="https://datatracker.ietf.org/doc/html/rfc8628">RFC 8628</see> — the OAuth 2.0 Device Authorization Grant.

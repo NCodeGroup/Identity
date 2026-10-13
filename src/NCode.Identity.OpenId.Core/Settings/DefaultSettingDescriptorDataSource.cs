@@ -386,6 +386,60 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Max,
             };
 
+            // backchannel_token_delivery_mode: per-client CIBA delivery mode (poll/ping/push; default poll).
+            // Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.BackchannelTokenDeliveryMode,
+                Default = OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // backchannel_token_delivery_modes_supported: CIBA delivery modes the server supports.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.BackchannelTokenDeliveryModesSupported,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // backchannel_user_code_parameter_supported: whether the server supports the CIBA user_code parameter (default false).
+            // Ceiling (And): once a parent disables it, a child cannot re-enable it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.BackchannelUserCodeParameterSupported,
+                Default = false,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = And,
+            };
+
+            // ciba_request_lifetime: validity window for a pending CIBA request (default 10 minutes).
+            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.CibaRequestLifetime,
+                Default = TimeSpan.FromMinutes(10),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // ciba_polling_interval: minimum interval the client must wait between token-endpoint polls (default 5 seconds).
+            // Floor (Max): a child may only lengthen it (poll more slowly); it cannot poll faster than a parent allows.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.CibaPollingInterval,
+                Default = TimeSpan.FromSeconds(5),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Max,
+            };
+
             // display_values_supported: OIDC "display" parameter values the server supports.
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>

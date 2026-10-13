@@ -1,0 +1,47 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+namespace NCode.Identity.OpenId;
+
+public static partial class OpenIdConstants
+{
+    /// <summary>
+    /// Contains constant values for the CIBA (OpenID Connect Client-Initiated Backchannel Authentication) token
+    /// delivery modes.
+    /// </summary>
+    public static class BackchannelTokenDeliveryModes
+    {
+        /// <summary>
+        /// Contains the constant value 'poll': the client polls the token endpoint with its <c>auth_req_id</c> until
+        /// the request completes.
+        /// </summary>
+        public const string Poll = "poll";
+
+        /// <summary>
+        /// Contains the constant value 'ping': the OP notifies the client's <c>client_notification_endpoint</c> when
+        /// the request completes, and the client then polls the token endpoint once.
+        /// </summary>
+        public const string Ping = "ping";
+
+        /// <summary>
+        /// Contains the constant value 'push': the OP delivers the tokens directly to the client's
+        /// <c>client_notification_endpoint</c> when the request completes.
+        /// </summary>
+        public const string Push = "push";
+    }
+}

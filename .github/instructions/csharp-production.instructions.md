@@ -226,6 +226,19 @@ rationale.
   a **service** (`TryAddSingleton<IFoo, DefaultFoo>`) for a capability you call for an answer; a **strategy collection**
   (`TryAddEnumerable`) for many implementations the caller iterates or selects; the **mediator** (`ICommandHandler<T>`)
   only for a genuine pipeline seam where the sender must stay ignorant of the handlers.
+- 👁 **Build a protocol endpoint to the canonical shape** per [ADR-0086](../../docs/adr/0086-canonical-openid-endpoint-shape.md):
+  a **thin** `IEndpointProvider` whose `HandleRouteAsync` only orchestrates — verb/content-type guard →
+  `IClientAuthenticationService.AuthenticateClientAsync` → load a **strongly-typed** `OpenIdMessage<T>` request
+  (`FooRequest.Load(env, formData)` with `KnownParameter`-backed properties, registered via `AddMessageFactory<T>()`;
+  **never** hand-rolled `form.TryGetValue(...)`) → dispatch mediator commands → render. Validation is a
+  `ValidateFooRequestCommand : ICommand` + `ICommandHandler` (High priority) that **throws**
+  `errorFactory.X().WithStatusCode(...).AsException()`; each replaceable protocol step (subject resolution, grant
+  issuance, the processing tail) is a `DoFooCommand : ICommand<FooDisposition>` + `ICommandResponseHandler` whose
+  **default handler reports “unsupported/undecided”** (reuse `AuthenticateSubjectDisposition` where it fits) so a
+  capability package replaces it via `TryAddSingleton`. A side-effecting **transport** (notification, back-channel
+  delivery) stays an injectable service invoked **from** a handler, not a mediator command. Exemplars: the token,
+  end-session, and CIBA ([ADR-0085](../../docs/adr/0085-ciba-grant.md)) endpoints; the device-authorization endpoint is
+  the pre-convention outlier (backlog `F18`), **not** a template to copy.
 - 👁 **A package registers its own services from `DefaultRegistration.cs`** (the class is **always** `DefaultRegistration`)
   using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
   [ADR-0069](../../docs/adr/0069-registration-library-compile-time-marker-nesting.md). **The receiver marker is the

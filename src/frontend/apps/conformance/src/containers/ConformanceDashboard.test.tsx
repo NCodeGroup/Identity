@@ -76,8 +76,8 @@ describe('ConformanceDashboard', () => {
 
     await findByTestId('coverage-matrix');
     expect(getByTestId('coverage-summary')).toBeInTheDocument();
-    // CIBA is not advertised by the baseline, so its tracking backlog id surfaces as a gap.
-    expect(getAllByTestId('backlog-F3').length).toBeGreaterThan(0);
+    // PAR is not advertised by the baseline, so its tracking backlog id surfaces as a gap.
+    expect(getAllByTestId('backlog-F8').length).toBeGreaterThan(0);
   });
 
   it('organizes the panels into tabs and switches on click', async () => {

@@ -217,6 +217,35 @@ public static partial class OpenIdConstants
         public const string LoginHint = "login_hint";
 
         /// <summary>
+        /// Contains the name of <c>login_hint_token</c> parameter (OpenID Connect CIBA).
+        /// </summary>
+        public const string LoginHintToken = "login_hint_token";
+
+        /// <summary>
+        /// Contains the name of <c>auth_req_id</c> parameter (OpenID Connect CIBA): the identifier the client polls the
+        /// token endpoint with.
+        /// </summary>
+        public const string AuthReqId = "auth_req_id";
+
+        /// <summary>
+        /// Contains the name of <c>binding_message</c> parameter (OpenID Connect CIBA): a short, human-readable value
+        /// the client and authentication device display to bind the two interactions.
+        /// </summary>
+        public const string BindingMessage = "binding_message";
+
+        /// <summary>
+        /// Contains the name of <c>client_notification_token</c> parameter (OpenID Connect CIBA): the bearer token the
+        /// OP presents when it notifies the client's <c>client_notification_endpoint</c> (ping/push modes).
+        /// </summary>
+        public const string ClientNotificationToken = "client_notification_token";
+
+        /// <summary>
+        /// Contains the name of <c>requested_expiry</c> parameter (OpenID Connect CIBA): the client's requested
+        /// lifetime, in seconds, for the <c>auth_req_id</c>.
+        /// </summary>
+        public const string RequestedExpiry = "requested_expiry";
+
+        /// <summary>
         /// Contains the name of <c>logout_token</c> parameter (OpenID Connect Back-Channel Logout).
         /// </summary>
         public const string LogoutToken = "logout_token";

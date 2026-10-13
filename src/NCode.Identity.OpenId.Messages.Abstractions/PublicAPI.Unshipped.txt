@@ -135,8 +135,11 @@ static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AcrValues -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthorizationCode -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthorizationSourceType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.AuthReqId -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.BindingMessage -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClaimsLocales -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClientId -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClientNotificationToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ClientSecret -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeChallenge -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeChallengeMethod -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
@@ -152,6 +155,7 @@ static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IdTokenHint -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Issuer -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.LoginHint -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.LoginHintToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.MaxAge -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Nonce -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Password -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
@@ -159,6 +163,7 @@ static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.PromptType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RedirectUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RefreshToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestedExpiry -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestJwt -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Resources -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!

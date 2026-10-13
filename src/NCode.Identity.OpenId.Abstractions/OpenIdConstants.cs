@@ -76,6 +76,12 @@ public static partial class OpenIdConstants
         public const string DeviceVerification = "device_verification_endpoint";
 
         /// <summary>
+        /// Contains the name for the <c>backchannel authentication</c> endpoint (OpenID Connect CIBA).
+        /// This value is also used as the <c>backchannel_authentication_endpoint</c> key in the discovery metadata.
+        /// </summary>
+        public const string BackchannelAuthentication = "backchannel_authentication_endpoint";
+
+        /// <summary>
         /// Contains the name for the <c>JSON Web Key Set (JWKS)</c> endpoint.
         /// This value is also used as the <c>jwks_uri</c> key in the discovery metadata.
         /// </summary>
@@ -155,6 +161,11 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the user-facing <c>device verification</c> endpoint.
         /// </summary>
         public const string DeviceVerification = $"{Prefix}/device";
+
+        /// <summary>
+        /// Contains the relative path for the <c>backchannel authentication</c> endpoint (OpenID Connect CIBA).
+        /// </summary>
+        public const string BackchannelAuthentication = $"{Prefix}/bc-authorize";
 
         /// <summary>
         /// Contains the relative path for the <c>JSON Web Key Set (JWKS)</c> endpoint.
@@ -306,6 +317,12 @@ public static partial class OpenIdConstants
         /// request, so the verification endpoint can resolve the request from the <c>user_code</c> alone.
         /// </summary>
         public const string DeviceUserCode = "device_user_code";
+
+        /// <summary>
+        /// Identifies a persisted grant for a pending <c>CIBA</c> backchannel authentication request (OpenID Connect
+        /// CIBA), keyed by the <c>auth_req_id</c> that the client polls with.
+        /// </summary>
+        public const string Ciba = "ciba";
 
         /// <summary>
         /// Identifies a persisted grant that carries the UserInfo claims requested via the OpenID Connect

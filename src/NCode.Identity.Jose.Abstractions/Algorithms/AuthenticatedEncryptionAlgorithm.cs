@@ -39,7 +39,7 @@ public abstract class AuthenticatedEncryptionAlgorithm : KeyedAlgorithm
     public abstract int ContentKeySizeBytes { get; }
 
     /// <summary>
-    /// Gets the size, in bytes, of the nonce (aka IV) that is supported by this authenticated encryption (AEAD) algorithm.
+    /// Gets the size, in bytes, of the nonce (initialization vector, or IV) that is supported by this authenticated encryption (AEAD) algorithm.
     /// </summary>
     public abstract int NonceSizeBytes { get; }
 

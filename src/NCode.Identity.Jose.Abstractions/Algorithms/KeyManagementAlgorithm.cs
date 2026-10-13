@@ -97,7 +97,7 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm
     );
 
     /// <summary>
-    /// Performs the cryptographic operation of decrypting an encrypted content encryption key (CEK) with an key encryption key (KEK).
+    /// Performs the cryptographic operation of decrypting an encrypted content encryption key (CEK) with a key encryption key (KEK).
     /// </summary>
     /// <remarks>
     /// This method doesn't use <see cref="IBufferWriter{T}"/> because the size of the content key is determined by the calling code.

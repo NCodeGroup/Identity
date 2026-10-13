@@ -58,14 +58,6 @@ one option is merely more work.
   behavior can add it without a redesign. Rationale: [ADR-0074](docs/adr/0074-session-management-and-logout.md).
   Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/`,
   `src/NCode.Identity.OpenId.Authentication/Sessions/`.
-- **`D3` — Index tuning for resource-server runtime query filters.** The resource-server reads now push their
-  predicates to the DBMS ([ADR-0080](docs/adr/0080-store-query-methods-push-filtering-to-dbms.md)), but no supporting
-  indexes were added — resource servers and scopes are a small, slowly-changing per-tenant set, so a sequential scan is
-  cheap today. If a deployment carries large per-tenant resource-server/scope counts, add an index on
-  `ScopeEntity.NormalizedValue` (for the owns-any-scope join) and consider a filtered index on
-  `ResourceServerEntity.IsDisabled`; measure before adding, since the extra write cost may not pay off for small sets.
-  Touch points: `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Entities/ScopeEntity.cs`,
-  `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Entities/ResourceServerEntity.cs`.
 - **`D4` — CIBA push delivery durability and request-object encryption advertisement.** CIBA **push** delivery
   ([ADR-0085](docs/adr/0085-ciba-grant.md)) issues and `POST`s the tokens to the client's `client_notification_endpoint`
   on a best-effort basis — a failed delivery is logged, not retried or queued, and the client cannot fall back to

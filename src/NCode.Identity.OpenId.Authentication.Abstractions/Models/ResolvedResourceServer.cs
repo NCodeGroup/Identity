@@ -23,9 +23,9 @@ namespace NCode.Identity.OpenId.Authentication.Models;
 
 /// <summary>
 /// Represents a resource server resolved at access-token issuance as one of the audiences a token targets, carrying the
-/// effective settings used to govern per-audience encryption of the token when it targets this resource server alone
-/// (ADR-0075).
+/// effective settings used to govern per-audience encryption of the token when it targets this resource server alone.
 /// </summary>
+// See ADR-0075.
 [PublicAPI]
 public sealed class ResolvedResourceServer
 {

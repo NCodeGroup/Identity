@@ -24,11 +24,12 @@ namespace NCode.Identity.OpenId.Authentication.Logic;
 
 /// <summary>
 /// Resolves the resource servers an access token targets — the tenant's enabled resource servers that own at least one
-/// of the token's effective scopes — and materializes the per-audience encryption material consumed at token issuance
-/// (ADR-0075). When exactly one resource server is targeted, its effective settings and own secret keys govern the
+/// of the token's effective scopes — and materializes the per-audience encryption material consumed at token issuance.
+/// When exactly one resource server is targeted, its effective settings and own secret keys govern the
 /// token's encryption; the token is always signed with the tenant's key. Register a custom implementation to replace
 /// the default behavior.
 /// </summary>
+// See ADR-0075.
 [PublicAPI]
 public interface IResourceServerCredentialResolver
 {

@@ -447,6 +447,12 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **Client-aborted requests at the OpenID endpoint pipeline are no longer rendered as `server_error` or audited.**
+  When a client disconnects mid-request (for example a browser/SPA cancelling an in-flight discovery fetch), the
+  resulting `OperationCanceledException` whose token is `HttpContext.RequestAborted` is a normal disconnect, not a
+  protocol failure. `OpenIdExceptionEndpointFilter` now rethrows request-abort cancellations so ASP.NET Core abandons
+  the request, instead of invoking the OpenID exception handler to write an error response to a dead connection and
+  record an `openid.error` audit row (whose own write would then fail against the already-cancelled token).
 - **The UserInfo endpoint now authenticates the presented self-issued bearer access token in-environment, instead of a
   host-configured default authentication scheme that never existed.** `DefaultAuthenticateSubjectHandler` resolved the
   subject via `HttpContext.AuthenticateAsync()` (the host's default scheme), but per-tenant signing keys and issuer are

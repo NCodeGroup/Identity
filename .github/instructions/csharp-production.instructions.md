@@ -36,6 +36,10 @@ rationale.
 - ✅ **No `ConfigureAwait(false)`.** This is an ASP.NET-Core-oriented library, and ASP.NET Core installs no
   `SynchronizationContext` (nor a custom `TaskScheduler`), so `ConfigureAwait(false)` is a runtime no-op — the
   deadlock/marshalling reason for it belonged to classic ASP.NET (Framework) and UI apps. `CA2007` is disabled, not required.
+- 👁 **Request-abort cancellation is a disconnect, not an error.** An `OperationCanceledException` whose token is the
+  request's `HttpContext.RequestAborted` means the client went away; at an endpoint/middleware boundary rethrow it so
+  the framework abandons the request — never convert it into a rendered error response, a retry, or an audit write (the
+  aborted token would fail those writes anyway).
 - ✅ **Prefer C# 12+ collection expressions** over `new[] { … }` / `new List<T> { … }` / `Array.Empty<T>()`:
   `byte[] data = [1, 2, 3];`, `List<string> names = ["a", "b"];`, `int[] empty = [];`. Cast when a target type needs
   it for generic inference, e.g. `(byte[])[1, 2, 3]` for a `ReadOnlyMemory<T>` parameter.

@@ -24,8 +24,13 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Represents a mediator command to validate an authorization request.
+/// Represents a mediator command that validates a loaded <see cref="IAuthorizationRequest"/> against the protocol
+/// rules and the client's configuration. A handler reports a validation failure as an OpenID error; a successful
+/// validation completes without a result.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+/// <param name="OpenIdClient">The <see cref="OpenIdClient"/> that initiated the authorization request.</param>
+/// <param name="AuthorizationRequest">The <see cref="IAuthorizationRequest"/> being validated.</param>
 [PublicAPI]
 public readonly record struct ValidateAuthorizationRequestCommand(
     OpenIdContext OpenIdContext,

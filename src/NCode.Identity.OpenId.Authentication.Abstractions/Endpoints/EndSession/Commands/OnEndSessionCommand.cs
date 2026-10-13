@@ -30,6 +30,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 /// auditing) by registering additional <see cref="ICommandHandler{TCommand}"/> instances, ordered by
 /// <see cref="ISupportMediatorPriority"/>.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+/// <param name="Subject">The <see cref="EndSessionSubject"/> whose session is being terminated.</param>
 [PublicAPI]
 public readonly record struct OnEndSessionCommand(
     OpenIdContext OpenIdContext,

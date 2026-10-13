@@ -25,8 +25,13 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands;
 
 /// <summary>
-/// Represents a mediator command to validate an OAuth 2.0 device authorization request (RFC 8628).
+/// Represents a mediator command that validates an OAuth 2.0 device authorization request (RFC 8628) against the
+/// protocol rules and the client's configuration. A handler reports a validation failure as an OpenID error; a
+/// successful validation completes without a result.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+/// <param name="OpenIdClient">The <see cref="OpenIdClient"/> that initiated the device authorization request.</param>
+/// <param name="Request">The <see cref="IDeviceAuthorizationRequest"/> being validated.</param>
 [PublicAPI]
 public readonly record struct ValidateDeviceAuthorizationRequestCommand(
     OpenIdContext OpenIdContext,

@@ -30,6 +30,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 /// revocation and back-channel notification), and resolves the validated <c>post_logout_redirect_uri</c>. It returns
 /// an <see cref="EndSessionDisposition"/> describing where (if anywhere) the user agent should be redirected.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+/// <param name="Request">The loaded <see cref="IEndSessionRequest"/> to process.</param>
 [PublicAPI]
 public readonly record struct EndSessionCommand(
     OpenIdContext OpenIdContext,

@@ -26,8 +26,16 @@ using NCode.Registration.AspNetCore;
 namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
-/// Represents a mediator command to validate a subject (aka end-user).
+/// Represents a mediator command that validates an authenticated subject for an OpenID request, applying the
+/// post-authentication checks (for example, <c>max_age</c>, a required ACR, and account state) that must pass before
+/// the subject is used to issue tokens. A handler records a failure on <paramref name="OperationDisposition"/> rather
+/// than returning a result.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+/// <param name="OpenIdClient">The <see cref="OpenIdClient"/> the request is for.</param>
+/// <param name="OpenIdRequest">The <see cref="IOpenIdRequest"/> being processed.</param>
+/// <param name="SubjectAuthentication">The <see cref="SubjectAuthentication"/> identifying the authenticated end-user to validate.</param>
+/// <param name="OperationDisposition">The disposition a handler records a validation error on when the subject must not proceed.</param>
 [PublicAPI]
 public readonly record struct ValidateSubjectAuthenticationCommand(
     OpenIdContext OpenIdContext,

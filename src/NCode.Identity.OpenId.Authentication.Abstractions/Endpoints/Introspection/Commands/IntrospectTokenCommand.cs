@@ -30,6 +30,10 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands;
 /// (RFC 7662). Handlers determine whether the token is active and contribute its claims; register additional handlers
 /// to enrich the response.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+/// <param name="OpenIdClient">The authenticated <see cref="OpenIdClient"/> on whose behalf introspection is performed.</param>
+/// <param name="TokenIntrospectionRequest">The <see cref="ITokenIntrospectionRequest"/> identifying the token to introspect.</param>
+/// <param name="Result">The mutable <see cref="IntrospectionResult"/> that handlers populate with the token's active state and claims.</param>
 [PublicAPI]
 public readonly record struct IntrospectTokenCommand(
     OpenIdContext OpenIdContext,

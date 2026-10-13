@@ -24,6 +24,7 @@ const NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.Auth
 const NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationSourceTypes.Query = "query" -> string!
 const NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationSourceTypes.Union = "union" -> string!
 const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.Form = "form" -> string!
+const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.PushedAuthorizationRequest = "pushed_authorization_request" -> string!
 const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.Query = "query" -> string!
 NCode.Identity.OpenId.Authentication.Auditing.AuthorizationDeniedAuditEvent
 NCode.Identity.OpenId.Authentication.Auditing.AuthorizationGrantedAuditEvent
@@ -1114,3 +1115,18 @@ override NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebK
 override NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.KeyType.get -> string!
 static NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.Undefined.get -> NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult
 static NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.JsonWebKeyConverter<TSecretKey>.NullIfEmpty(string? value) -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Grants.PushedAuthorizationGrant
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Grants.PushedAuthorizationGrant.PushedAuthorizationGrant() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Grants.PushedAuthorizationGrant.ClientId.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Grants.PushedAuthorizationGrant.ClientId.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Grants.PushedAuthorizationGrant.Parameters.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<string!>!>!
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Grants.PushedAuthorizationGrant.Parameters.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Logic.IPushedAuthorizationRequestService
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Logic.IPushedAuthorizationRequestService.StoreAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Messages.IRequestValues! requestValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Results.PushedAuthorizationResult!>
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Logic.IPushedAuthorizationRequestService.ConsumeAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string! requestUri, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Messages.IRequestValues!>
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Results.PushedAuthorizationResult
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Results.PushedAuthorizationResult.PushedAuthorizationResult() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Results.PushedAuthorizationResult.RequestUri.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Results.PushedAuthorizationResult.RequestUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Results.PushedAuthorizationResult.ExpiresIn.get -> int
+NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Results.PushedAuthorizationResult.ExpiresIn.init -> void

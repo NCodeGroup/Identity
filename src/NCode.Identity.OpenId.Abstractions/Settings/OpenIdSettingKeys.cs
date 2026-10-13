@@ -501,6 +501,18 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RequireRequestUriRegistration);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_pushed_authorization_requests' setting (RFC 9126).
+    /// </summary>
+    public static SettingKey<bool> RequirePushedAuthorizationRequests =>
+        new(OpenIdSettingNames.RequirePushedAuthorizationRequests);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'pushed_authorization_request_lifetime' setting (RFC 9126).
+    /// </summary>
+    public static SettingKey<TimeSpan> PushedAuthorizationRequestLifetime =>
+        new(OpenIdSettingNames.PushedAuthorizationRequestLifetime);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'response_modes_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> ResponseModesSupported =>

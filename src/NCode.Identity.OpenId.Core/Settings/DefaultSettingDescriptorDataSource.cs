@@ -887,6 +887,29 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
+            // require_pushed_authorization_requests: whether the client must push its authorization request to the PAR
+            // endpoint before invoking the authorization endpoint (default false; RFC 9126 §5).
+            // Floor (Or): once a parent requires it, a child cannot un-require it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.RequirePushedAuthorizationRequests,
+                Default = false,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Or,
+            };
+
+            // pushed_authorization_request_lifetime: validity window of a pushed authorization request (default 90
+            // seconds; RFC 9126 §2.2). Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.PushedAuthorizationRequestLifetime,
+                Default = TimeSpan.FromSeconds(90),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
             // response_modes_supported: OAuth response modes the server supports (default supplied by the baseline provider).
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>

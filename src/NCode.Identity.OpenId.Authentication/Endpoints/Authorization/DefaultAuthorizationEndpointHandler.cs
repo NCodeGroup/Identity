@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Models;
+using NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Logic;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Messages;
 using NCode.Identity.OpenId.Authentication.Messages.Commands;
@@ -47,6 +48,7 @@ internal class DefaultAuthorizationEndpointHandler(
     ILogger<DefaultAuthorizationEndpointHandler> logger,
     IClientAuthenticationService clientAuthenticationService,
     IAuthorizationEndpointLogic authorizationEndpointLogic,
+    IPushedAuthorizationRequestService pushedAuthorizationRequestService,
     IKnownParameterCollectionProvider knownParameterCollectionProvider
 ) : IEndpointProvider
 {
@@ -55,6 +57,8 @@ internal class DefaultAuthorizationEndpointHandler(
         clientAuthenticationService;
     private IAuthorizationEndpointLogic AuthorizationEndpointLogic { get; } =
         authorizationEndpointLogic;
+    private IPushedAuthorizationRequestService PushedAuthorizationRequestService { get; } =
+        pushedAuthorizationRequestService;
     private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
         knownParameterCollectionProvider;
 
@@ -117,8 +121,18 @@ internal class DefaultAuthorizationEndpointHandler(
             cancellationToken
         );
 
-        // this will throw if client_id or redirect_uri are invalid
         var openIdClient = authResult.Client;
+
+        // RFC 9126: if the request references a pushed authorization request, replay its stored parameters; otherwise
+        // enforce the require_pushed_authorization_requests policy. This runs before any parameter is trusted.
+        requestValues = await ResolvePushedAuthorizationRequestAsync(
+            openIdContext,
+            openIdClient,
+            requestValues,
+            cancellationToken
+        );
+
+        // this will throw if client_id or redirect_uri are invalid
         var clientRedirectContext = GetClientRedirectContext(
             openIdContext,
             openIdClient,
@@ -155,6 +169,47 @@ internal class DefaultAuthorizationEndpointHandler(
 
         Logger.AuthorizationRequestNotHandled();
         return TypedResults.StatusCode(StatusCodes.Status501NotImplemented);
+    }
+
+    private async ValueTask<IRequestValues> ResolvePushedAuthorizationRequestAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IRequestValues requestValues,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            requestValues.TryGetValue(
+                OpenIdConstants.Parameters.RequestUri,
+                out var requestUriValues
+            )
+            && requestUriValues.Count == 1
+            && requestUriValues[0] is { } requestUri
+            && requestUri.StartsWith(
+                OpenIdConstants.PushedAuthorizationRequestUriPrefix,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            return await PushedAuthorizationRequestService.ConsumeAsync(
+                openIdContext,
+                openIdClient,
+                requestUri,
+                cancellationToken
+            );
+        }
+
+        if (openIdClient.Settings.GetValue(OpenIdSettingKeys.RequirePushedAuthorizationRequests))
+        {
+            throw openIdContext
+                .ErrorFactory.InvalidRequest(
+                    "This client requires the use of pushed authorization requests."
+                )
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+        }
+
+        return requestValues;
     }
 
     private static ClientRedirectContext GetClientRedirectContext(

@@ -10,6 +10,20 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Pushed Authorization Requests (PAR, RFC 9126) — completes backlog `F8`.** The OP now exposes a
+  `pushed_authorization_request_endpoint` (`/oauth2/par`) where a client authenticates (identically to the token
+  endpoint) and POSTs its authorization request parameters as `application/x-www-form-urlencoded`; the request is
+  loaded and validated exactly as the authorization endpoint would, then persisted as a single-use grant and answered
+  with `201 Created` carrying an opaque `request_uri` (`urn:ietf:params:oauth:request_uri:<reference>`) and
+  `expires_in`. The client then invokes the authorization endpoint with just `client_id` + `request_uri`; the pushed
+  parameters are replayed from storage, consumed once (a replay is rejected), and bound to the client that pushed them
+  (a `request_uri` issued to another client is rejected with `invalid_request_uri`). Client-authentication secrets
+  (`client_secret`, `client_assertion`, `client_assertion_type`) are stripped before persistence and never replayed.
+  New per-client/tenant settings: `require_pushed_authorization_requests` (secure opt-in; when set, a direct
+  authorization request without a pushed `request_uri` is rejected — advertised in discovery) and
+  `pushed_authorization_request_lifetime` (default 90 seconds). The endpoint is auto-advertised in discovery metadata
+  ([ADR-0089](docs/adr/0089-pushed-authorization-requests.md)).
+
 - **Front-Channel Logout 1.0 and Session Management 1.0, available but disabled by default — completes backlog `D2`.**
   The OP now implements both browser-mediated session mechanisms behind opt-in server settings, complementing the
   cookie-independent RP-Initiated and Back-Channel Logout it already shipped. **Front-Channel Logout:** when

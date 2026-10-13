@@ -35,4 +35,10 @@ public static class RequestValuesSourceTypes
     /// Specifies that the request was loaded from the HTTP form data.
     /// </summary>
     public const string Form = "form";
+
+    /// <summary>
+    /// Specifies that the request was replayed from a pushed authorization request (RFC 9126) that the client
+    /// previously stored at the pushed authorization request endpoint.
+    /// </summary>
+    public const string PushedAuthorizationRequest = "pushed_authorization_request";
 }

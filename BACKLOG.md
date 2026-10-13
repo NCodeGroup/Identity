@@ -81,11 +81,6 @@ one option is merely more work.
   `Endpoints/Token/RefreshToken/DefaultRefreshTokenGrantHandler.cs`,
   `Tokens/Handlers/DefaultGetAccessTokenPayloadClaimsHandler.cs` /
   `Tokens/Handlers/DefaultGetIdTokenPayloadClaimsHandler.cs` (the `cnf` claim).
-- **`F8` — Pushed Authorization Requests (PAR, RFC 9126).** There is no `pushed_authorization_request_endpoint`; the
-  authorize endpoint only accepts inline request parameters. See
-  `// TODO: add support for OAuth 2.0 Pushed Authorization Requests (PAR)` in
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`.
-  Touch points: a new `Endpoints/PushedAuthorization/` family plus discovery-metadata advertisement.
 - **`F9` — Pairwise subject identifiers (PPID) via the `subject_type` setting.** The subject identifier emitted into
   tokens is always the raw public subject; the `subject_type` (`public`/`pairwise`) setting is not honored, so there is
   no per-client/RP pseudonymous `sub`. See `// TODO: use the subject_type setting to support PPID` in
@@ -105,13 +100,15 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 - **`F16` — FAPI (Financial-grade API) readiness epic.** An umbrella tracking the work to make the OP certifiable
   against the OpenID Foundation **FAPI** security profiles ([FAPI 1.0 Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html),
   [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)). FAPI mandates **sender-constrained access
-  tokens** (DPoP / mTLS — `F7`), **Pushed Authorization Requests** (`F8`), **signed request objects and responses**
-  (JAR / JARM — not yet tracked separately), and **strong client authentication** (`private_key_jwt` or mTLS — the
+  tokens** (DPoP / mTLS — `F7`), **Pushed Authorization Requests** (implemented — the
+  `pushed_authorization_request_endpoint` plus the `require_pushed_authorization_requests` policy), **signed request
+  objects and responses** (JAR / JARM — not yet tracked separately), and **strong client authentication**
+  (`private_key_jwt` or mTLS — the
   `private_key_jwt` half rides `S3`). It also restricts signing to **`PS256`/`ES256`** and forbids symmetric (`HS256`)
   signing — the always-tenant-asymmetric access-token signing from
   [ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md) already satisfies the algorithm rule; a
   FAPI **profile** would additionally constrain the advertised `*_signing_alg_values_supported` settings to that set.
-  This item is the tracking anchor; the concrete deliverables are `F7`, `F8`, `S3`, and a new JAR/JARM work item.
+  This item is the tracking anchor; the concrete deliverables are `F7`, `S3`, and a new JAR/JARM work item.
 
 ## Conformance & interop testing (group `T`)
 
@@ -136,8 +133,8 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 - **`T6` — Spec-coverage conformance harness (in-house gap & regression dashboard).** Evolve `apps/conformance` from a
   discovery _security audit_ into a _spec-coverage matrix_ that measures the OP against the **full published
   OAuth/OIDC/CIBA/FAPI catalog**, independent of what is implemented, so missing functionality (CIBA `F3`, DPoP/mTLS
-  `F7`, PAR `F8`, token exchange, pairwise `F9`, `acr` `F11`, the FAPI profile `F16`) surfaces as explicit, attributable
-  gap rows. Because every row is classified from **live discovery metadata**, the same matrix is a **regression**
+  `F7`, token exchange, pairwise `F9`, `acr` `F11`, the FAPI profile `F16`; PAR is implemented) surfaces as explicit,
+  attributable gap rows. Because every row is classified from **live discovery metadata**, the same matrix is a **regression**
   detector: a capability that silently stops being advertised (or flips to non-conformant) flips its row, so the harness
   guards _shipped_ features as well as tracking _missing_ ones. Design and
   rationale, including the `browser` / `probe-runner` / `external-suite` exercise boundary, are in

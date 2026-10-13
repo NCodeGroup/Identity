@@ -26,7 +26,7 @@ using NCode.Registration.AspNetCore;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Represents a mediator command to prompt a subject (aka an end-user) for consent to the requested scopes. The default
+/// Represents a mediator command to prompt a subject (the end-user) for consent to the requested scopes. The default
 /// handler degrades to an <c>interaction_required</c> error; an interactive consent surface (for example the opt-in
 /// login/consent module) handles it by redirecting the user-agent to its consent page, carrying the parked
 /// <see cref="ContinueUrl"/> as the return URL so the authorization request resumes after the decision.

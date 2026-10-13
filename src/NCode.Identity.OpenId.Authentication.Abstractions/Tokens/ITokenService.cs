@@ -46,7 +46,7 @@ public interface ITokenService
     );
 
     /// <summary>
-    /// Generates a id token.
+    /// Generates an ID token.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>

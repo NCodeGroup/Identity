@@ -62,14 +62,14 @@ public sealed class CreateLocalAccountRequest
 
     /// <summary>
     /// Gets the owner-updatable profile metadata to set on the account's owning principal as a free-form JSON object,
-    /// or <c>null</c> for an empty object (ADR-0055).
+    /// or <c>null</c> for an empty object.
     /// </summary>
     public JsonElement? ProfileMetadata { get; init; }
 
     /// <summary>
     /// Gets the server-controlled system metadata to set on the account's owning principal as a free-form JSON object,
     /// or <c>null</c> for an empty object. It may carry authorization-relevant data and is never end-user writable; the
-    /// administrator-gated management API is its only write path (ADR-0054, ADR-0055).
+    /// administrator-gated management API is its only write path.
     /// </summary>
     public JsonElement? SystemMetadata { get; init; }
 }

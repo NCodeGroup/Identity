@@ -25,9 +25,10 @@ namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 
 /// <summary>
 /// Represents the REST resource for a local account's server-owned metadata bags, which live on the account's owning
-/// principal and project into issued tokens and the UserInfo response (ADR-0054, ADR-0055). The
+/// principal and project into issued tokens and the UserInfo response. The
 /// <see cref="ConcurrencyToken"/> is the owning principal's token.
 /// </summary>
+// See ADR-0054, ADR-0055.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class LocalAccountMetadataResource : ISupportConcurrencyToken
@@ -54,7 +55,7 @@ public sealed class LocalAccountMetadataResource : ISupportConcurrencyToken
 
     /// <summary>
     /// Gets the server-controlled system metadata as a free-form JSON object. It is never end-user writable and may
-    /// carry authorization-relevant data (ADR-0054, ADR-0055).
+    /// carry authorization-relevant data.
     /// </summary>
     public required JsonElement SystemMetadata { get; init; }
 

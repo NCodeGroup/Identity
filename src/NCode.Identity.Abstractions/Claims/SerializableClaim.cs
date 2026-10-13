@@ -56,7 +56,8 @@ public class SerializableClaim
     public required IDictionary<string, string> Properties { get; init; }
 
     /// <summary>
-    /// Gets or sets the unique reference identifier for the <see cref="Claim.Subject"/> property.
+    /// Gets the reference identifier of the owning subject identity (the <see cref="Claim.Subject"/>), matching the
+    /// <see cref="SerializableClaimsIdentity.ReferenceId"/> of the identity this claim belongs to.
     /// </summary>
     public string? SubjectRef { get; init; }
 }

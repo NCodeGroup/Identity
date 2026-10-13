@@ -45,7 +45,7 @@ public interface ISecretKeyFactory
 
     /// <summary>
     /// Factory method to create <see cref="SymmetricSecretKey"/> instances from symmetric cryptographic key material
-    /// that is encoded as a UTF8 string (aka password).
+    /// that is encoded as a UTF8 string (for example, a password).
     /// </summary>
     /// <param name="metadata">The <see cref="KeyMetadata"/> for the secret key.</param>
     /// <param name="password">The symmetric cryptographic key material that is encoded as a UTF8 string.</param>

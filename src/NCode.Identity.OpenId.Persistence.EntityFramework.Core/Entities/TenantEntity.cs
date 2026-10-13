@@ -33,21 +33,21 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 public sealed class TenantEntity : ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
+    /// Gets the surrogate identifier for this entity.
     /// </summary>
     [Key]
     [UseIdGenerator]
     public long Id { get; init; }
 
     /// <summary>
-    /// Gets or sets the natural identifier for this entity.
+    /// Gets the natural identifier for this entity.
     /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.ResourceId)]
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the value of <see cref="TenantId"/> in uppercase so that lookups can be sargable for DBMS
+    /// Gets the value of <see cref="TenantId"/> in uppercase so that lookups can be sargable for DBMS
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
@@ -117,7 +117,7 @@ public sealed class TenantEntity : ISupportConcurrencyToken
     // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
     // We use DTOs to avoid circular dependencies.
     /// <summary>
-    /// Gets or sets the collection of secrets only known to this tenant.
+    /// Gets the collection of secrets only known to this tenant.
     /// </summary>
     public required IEnumerable<TenantSecretEntity> Secrets { get; init; }
 }

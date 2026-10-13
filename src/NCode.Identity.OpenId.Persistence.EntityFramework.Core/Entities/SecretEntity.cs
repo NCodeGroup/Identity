@@ -34,14 +34,14 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 public sealed class SecretEntity : ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
+    /// Gets the surrogate identifier for this entity.
     /// </summary>
     [Key]
     [UseIdGenerator]
     public required long Id { get; init; }
 
     /// <summary>
-    /// Gets or sets the natural key for this entity.
+    /// Gets the natural key for this entity.
     /// Also known as <c>kid</c> or <c>Key ID</c>.
     /// </summary>
     [Unicode(false)]
@@ -49,7 +49,7 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     public required string SecretId { get; init; }
 
     /// <summary>
-    /// Gets or sets the value of <see cref="SecretId"/> in uppercase so that lookups can be sargable for DBMS
+    /// Gets the value of <see cref="SecretId"/> in uppercase so that lookups can be sargable for DBMS
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
@@ -83,7 +83,7 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     public required string? Algorithm { get; set; }
 
     /// <summary>
-    /// Gets or sets the <see cref="DateTimeOffset"/> when this secret was created.
+    /// Gets the <see cref="DateTimeOffset"/> when this secret was created.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }
 
@@ -93,7 +93,7 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     public required DateTimeOffset ExpiresWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets a value that specifies the type of secret.
+    /// Gets a value that specifies the type of secret.
     /// See <see cref="SecretTypes"/> for possible values.
     /// </summary>
     [Unicode(false)]
@@ -101,14 +101,14 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     public required string SecretType { get; init; }
 
     /// <summary>
-    /// Gets or sets the size, in bits, of the key material.
+    /// Gets the size, in bits, of the key material.
     /// For asymmetric keys, this is the size of the modulus.
     /// For symmetric keys, this is the size of the actual key material.
     /// </summary>
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets or sets the base64url encoded value of the key material.
+    /// Gets the base64url encoded value of the key material.
     /// </summary>
     [Unicode(false)]
     [MaxLength(SecretMaxLengths.EncodedValue)]

@@ -358,6 +358,36 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.BackChannelLogoutSessionSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'frontchannel_logout_uri' setting.
+    /// </summary>
+    public static SettingKey<string> FrontChannelLogoutUri =>
+        new(OpenIdSettingNames.FrontChannelLogoutUri);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'frontchannel_logout_session_required' setting.
+    /// </summary>
+    public static SettingKey<bool> FrontChannelLogoutSessionRequired =>
+        new(OpenIdSettingNames.FrontChannelLogoutSessionRequired);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'frontchannel_logout_supported' setting.
+    /// </summary>
+    public static SettingKey<bool> FrontChannelLogoutSupported =>
+        new(OpenIdSettingNames.FrontChannelLogoutSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'frontchannel_logout_session_supported' setting.
+    /// </summary>
+    public static SettingKey<bool> FrontChannelLogoutSessionSupported =>
+        new(OpenIdSettingNames.FrontChannelLogoutSessionSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'session_management_supported' setting.
+    /// </summary>
+    public static SettingKey<bool> SessionManagementSupported =>
+        new(OpenIdSettingNames.SessionManagementSupported);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'registration_endpoint_allow_anonymous' setting.
     /// </summary>
     public static SettingKey<bool> RegistrationEndpointAllowAnonymous =>

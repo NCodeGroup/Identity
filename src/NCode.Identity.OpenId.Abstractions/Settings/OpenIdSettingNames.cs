@@ -334,6 +334,45 @@ public static class OpenIdSettingNames
     public const string BackChannelLogoutSessionSupported = "backchannel_logout_session_supported";
 
     /// <summary>
+    /// Contains the name of the per-client <c>frontchannel_logout_uri</c> setting (Front-Channel Logout 1.0): the URI
+    /// the OP loads in a hidden iframe so the client can clear its own session in the user agent. Front-Channel Logout
+    /// is available but disabled by default (it depends on third-party cookies the browser platform is removing); see
+    /// <c>frontchannel_logout_supported</c>.
+    /// </summary>
+    public const string FrontChannelLogoutUri = "frontchannel_logout_uri";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>frontchannel_logout_session_required</c> setting (Front-Channel Logout
+    /// 1.0): whether the OP must append the <c>iss</c> and <c>sid</c> query parameters to the
+    /// <c>frontchannel_logout_uri</c> so the client can identify the session being terminated.
+    /// </summary>
+    public const string FrontChannelLogoutSessionRequired = "frontchannel_logout_session_required";
+
+    /// <summary>
+    /// Contains the name of the server <c>frontchannel_logout_supported</c> discovery setting (Front-Channel Logout
+    /// 1.0). Defaults to <see langword="false"/> — the mechanism is available but disabled by default because it
+    /// depends on third-party cookies the browser platform is removing; prefer Back-Channel Logout.
+    /// </summary>
+    public const string FrontChannelLogoutSupported = "frontchannel_logout_supported";
+
+    /// <summary>
+    /// Contains the name of the server <c>frontchannel_logout_session_supported</c> discovery setting (Front-Channel
+    /// Logout 1.0): whether the OP appends <c>iss</c>/<c>sid</c> to front-channel logout URIs. Defaults to
+    /// <see langword="false"/>.
+    /// </summary>
+    public const string FrontChannelLogoutSessionSupported =
+        "frontchannel_logout_session_supported";
+
+    /// <summary>
+    /// Contains the name of the server <c>session_management_supported</c> setting (OpenID Connect Session Management
+    /// 1.0): whether the OP advertises the <c>check_session_iframe</c>, emits the <c>session_state</c> authorization
+    /// response parameter, and maintains the OP browser-state cookie. Defaults to <see langword="false"/> — the
+    /// mechanism is available but disabled by default because it depends on third-party cookies the browser platform
+    /// is removing.
+    /// </summary>
+    public const string SessionManagementSupported = "session_management_supported";
+
+    /// <summary>
     /// Contains the name of <c>registration_endpoint_allow_anonymous</c> setting.
     /// </summary>
     public const string RegistrationEndpointAllowAnonymous =

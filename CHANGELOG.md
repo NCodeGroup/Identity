@@ -10,6 +10,21 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Front-Channel Logout 1.0 and Session Management 1.0, available but disabled by default — completes backlog `D2`.**
+  The OP now implements both browser-mediated session mechanisms behind opt-in server settings, complementing the
+  cookie-independent RP-Initiated and Back-Channel Logout it already shipped. **Front-Channel Logout:** when
+  `frontchannel_logout_supported` is enabled, the `end_session_endpoint` renders a hidden iframe per participating client
+  (each client's `frontchannel_logout_uri`, with `iss`/`sid` appended when `frontchannel_logout_session_required`) so
+  relying parties clear their own sessions in the user agent. **Session Management:** when `session_management_supported`
+  is enabled, the authorization response carries the `session_state` parameter, the OP maintains an opaque browser-state
+  cookie, and discovery advertises a `check_session_iframe` the relying party polls via `postMessage`. Both default to
+  **off** because they depend on third-party cookies the browser platform is removing (prefer Back-Channel Logout); a
+  deployment that still needs them enables the corresponding setting
+  ([ADR-0088](docs/adr/0088-opt-in-front-channel-logout-and-session-management.md), which reverses the earlier deferral
+  in [ADR-0074](docs/adr/0074-session-management-and-logout.md)). New settings: `frontchannel_logout_supported`,
+  `frontchannel_logout_session_supported`, per-client `frontchannel_logout_uri` /
+  `frontchannel_logout_session_required`, and `session_management_supported`.
+
 - **Supporting index for resource-server scope lookups — completes backlog `D3`.** The resource-server runtime reads
   push their scope-value predicate to the DBMS ([ADR-0080](docs/adr/0080-store-query-methods-push-filtering-to-dbms.md)),
   but the scope-driven `SelectMany` join could not seek on scope value: the only index leading with `NormalizedValue`

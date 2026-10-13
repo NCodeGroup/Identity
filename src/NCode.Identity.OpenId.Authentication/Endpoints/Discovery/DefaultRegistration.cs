@@ -55,6 +55,13 @@ internal static class DefaultRegistration
                     DefaultDiscoverScopesHandler
                 >()
             );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<DiscoverMetadataCommand>,
+                    DefaultDiscoverSessionManagementHandler
+                >()
+            );
         }
     }
 }

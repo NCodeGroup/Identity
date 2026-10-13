@@ -314,6 +314,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizat
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationTicket.Issuer.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationTicket.State.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationTicket.State.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationTicket.SessionState.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationTicket.SessionState.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationTicket.TokenType.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationTicket.TokenType.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands.AuthenticateBackchannelRequestCommand
@@ -876,6 +878,11 @@ NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ClientIds.get -> Syst
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ClientIds.init -> void
 NCode.Identity.OpenId.Authentication.Sessions.IBackChannelLogoutNotifier
 NCode.Identity.OpenId.Authentication.Sessions.IBackChannelLogoutNotifier.NotifyAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string? subjectId, string? sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Sessions.IFrontChannelLogoutService
+NCode.Identity.OpenId.Authentication.Sessions.IFrontChannelLogoutService.GetLogoutUrisAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject subject, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+NCode.Identity.OpenId.Authentication.Sessions.ISessionStateService
+NCode.Identity.OpenId.Authentication.Sessions.ISessionStateService.ClearBrowserState(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext) -> void
+NCode.Identity.OpenId.Authentication.Sessions.ISessionStateService.CreateSessionState(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! clientId, System.Uri! clientRedirectUri) -> string!
 NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary
 NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary.OpenIdAuthenticationLibrary() -> void
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectCommand
@@ -911,7 +918,9 @@ NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ResolveEndSes
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ResolveEndSessionSubjectCommand.Request.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionDisposition
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionDisposition.EndSessionDisposition() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionDisposition.EndSessionDisposition(string? RedirectUri) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionDisposition.EndSessionDisposition(string? RedirectUri, System.Collections.Generic.IReadOnlyList<string!>! FrontChannelLogoutUris) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionDisposition.FrontChannelLogoutUris.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionDisposition.FrontChannelLogoutUris.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionDisposition.RedirectUri.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionDisposition.RedirectUri.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.IEndSessionRequest

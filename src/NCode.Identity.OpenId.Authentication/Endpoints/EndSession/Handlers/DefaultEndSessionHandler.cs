@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
@@ -32,14 +33,21 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 /// Provides a default implementation of the <see cref="EndSessionCommand"/> handler that orchestrates OpenID Connect
 /// RP-Initiated Logout: it resolves the subject/session (<see cref="ResolveEndSessionSubjectCommand"/>), clears the OP
 /// login, dispatches <see cref="OnEndSessionCommand"/> to run the logout side effects (revocation, back-channel
-/// notification, and any application extensions), and resolves the validated <c>post_logout_redirect_uri</c>.
+/// notification, and any application extensions), and resolves the validated <c>post_logout_redirect_uri</c>. When
+/// front-channel logout or session management are enabled, it also collects the front-channel logout iframe URIs and
+/// clears the OP browser-state cookie.
 /// </summary>
 internal class DefaultEndSessionHandler(
     IOpenIdClientResolver clientResolver,
+    IFrontChannelLogoutService frontChannelLogoutService,
+    ISessionStateService sessionStateService,
     ILogger<DefaultEndSessionHandler> logger
 ) : ICommandResponseHandler<EndSessionCommand, EndSessionDisposition>
 {
     private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
+    private IFrontChannelLogoutService FrontChannelLogoutService { get; } =
+        frontChannelLogoutService;
+    private ISessionStateService SessionStateService { get; } = sessionStateService;
     private ILogger<DefaultEndSessionHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -51,6 +59,7 @@ internal class DefaultEndSessionHandler(
         var openIdContext = command.OpenIdContext;
         var request = command.Request;
         var mediator = openIdContext.Mediator;
+        var settings = openIdContext.Tenant.SettingsProvider.Collection;
 
         var subject = await mediator.SendAsync<ResolveEndSessionSubjectCommand, EndSessionSubject>(
             new ResolveEndSessionSubjectCommand(openIdContext, request),
@@ -60,11 +69,27 @@ internal class DefaultEndSessionHandler(
         // Clear the OP login cookie.
         await openIdContext.Http.SignOutAsync();
 
+        // Removing the OP browser-state cookie lets session-management relying parties observe the login-state change.
+        if (settings.GetValue(OpenIdSettingKeys.SessionManagementSupported))
+        {
+            SessionStateService.ClearBrowserState(openIdContext);
+        }
+
         // Run the logout side effects (revocation, back-channel notification, and any application extensions).
         await mediator.SendAsync(
             new OnEndSessionCommand(openIdContext, subject),
             cancellationToken
         );
+
+        var frontChannelLogoutUris = settings.GetValue(
+            OpenIdSettingKeys.FrontChannelLogoutSupported
+        )
+            ? await FrontChannelLogoutService.GetLogoutUrisAsync(
+                openIdContext,
+                subject,
+                cancellationToken
+            )
+            : [];
 
         var redirectUri = await ResolveRedirectUriAsync(
             openIdContext,
@@ -76,7 +101,7 @@ internal class DefaultEndSessionHandler(
 
         Logger.EndSessionCompleted(subject.ParticipatingClientIds.Count);
 
-        return new EndSessionDisposition(redirectUri);
+        return new EndSessionDisposition(redirectUri, frontChannelLogoutUris);
     }
 
     private async ValueTask<string?> ResolveRedirectUriAsync(

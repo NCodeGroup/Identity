@@ -75,6 +75,16 @@ internal static class DefaultRegistration
             >();
 
             serviceCollection.TryAddSingleton<
+                Sessions.ISessionStateService,
+                Sessions.DefaultSessionStateService
+            >();
+
+            serviceCollection.TryAddSingleton<
+                Sessions.IFrontChannelLogoutService,
+                Sessions.DefaultFrontChannelLogoutService
+            >();
+
+            serviceCollection.TryAddSingleton<
                 Consent.IConsentService,
                 Consent.DefaultConsentService
             >();

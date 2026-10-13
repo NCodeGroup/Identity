@@ -26,8 +26,10 @@ using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using Xunit;
@@ -42,13 +44,19 @@ public class DefaultEndSessionHandlerTests : BaseTests
     private const string RedirectUri = "https://rp.example/after-logout";
 
     private Mock<IOpenIdClientResolver> MockClientResolver { get; }
+    private Mock<IFrontChannelLogoutService> MockFrontChannelLogoutService { get; }
+    private Mock<ISessionStateService> MockSessionStateService { get; }
     private DefaultEndSessionHandler Handler { get; }
 
     public DefaultEndSessionHandlerTests()
     {
         MockClientResolver = CreateStrictMock<IOpenIdClientResolver>();
+        MockFrontChannelLogoutService = CreateStrictMock<IFrontChannelLogoutService>();
+        MockSessionStateService = CreateStrictMock<ISessionStateService>();
         Handler = new DefaultEndSessionHandler(
             MockClientResolver.Object,
+            MockFrontChannelLogoutService.Object,
+            MockSessionStateService.Object,
             NullLogger<DefaultEndSessionHandler>.Instance
         );
     }
@@ -82,6 +90,21 @@ public class DefaultEndSessionHandlerTests : BaseTests
 
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
+
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
+        var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
+        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
+        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockSettings.Object);
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.SessionManagementSupported))
+            .Returns(false)
+            .Verifiable();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.FrontChannelLogoutSupported))
+            .Returns(false)
+            .Verifiable();
 
         mockRequest
             .SetupGet(x => x.PostLogoutRedirectUri)

@@ -331,6 +331,11 @@ public static partial class OpenIdConstants
         public const string Scope = "scope";
 
         /// <summary>
+        /// Contains the name of <c>session_state</c> parameter (OpenID Connect Session Management 1.0).
+        /// </summary>
+        public const string SessionState = "session_state";
+
+        /// <summary>
         /// Contains the name of <c>state</c> parameter.
         /// </summary>
         public const string State = "state";

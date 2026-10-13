@@ -26,11 +26,9 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Handlers;
 
 /// <summary>
-/// Provides a default implementation of handler for the <see cref="SelectTokenGrantHandlerCommand"/> message.
+/// Provides a default implementation of a handler for the <see cref="SelectTokenGrantHandlerCommand"/> message.
 /// </summary>
-/// <remarks>
-/// No, the duplicate ...Handler term is not a typo as this is a handler that returns a handler.
-/// </remarks>
+// The doubled "Handler" suffix is intentional: this command handler selects and returns an ITokenGrantHandler.
 internal class DefaultSelectTokenGrantHandlerHandler(IEnumerable<ITokenGrantHandler> handlers)
     : ICommandResponseHandler<SelectTokenGrantHandlerCommand, ITokenGrantHandler>
 {

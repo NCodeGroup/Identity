@@ -31,7 +31,7 @@ using NCode.Registration.AspNetCore;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 
 /// <summary>
-/// Provides a default implementation of handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
+/// Provides a default implementation of a handler for the <see cref="ValidateTokenGrantCommand{TGrant}"/> message
 /// with <see cref="RefreshTokenGrant"/>.
 /// </summary>
 internal class DefaultValidateRefreshTokenGrantHandler(IClientScopeService clientScopeService)

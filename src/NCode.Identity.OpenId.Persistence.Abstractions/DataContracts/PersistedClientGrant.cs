@@ -32,19 +32,19 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 public sealed class PersistedClientGrant : ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the identifier of the tenant that owns this client grant.
+    /// Gets the identifier of the tenant that owns this client grant.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the identifier of the authorized client.
+    /// Gets the identifier of the authorized client.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string ClientId { get; init; }
 
     /// <summary>
-    /// Gets or sets the identifier of the resource server the client is authorized to.
+    /// Gets the identifier of the resource server the client is authorized to.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string ResourceServerId { get; init; }

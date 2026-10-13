@@ -38,7 +38,7 @@ public sealed class PersistedResourceServer : BasePersistedResourceServerResourc
     //
 
     /// <summary>
-    /// Gets or sets the operator-supplied audience identifier for this resource server.
+    /// Gets the operator-supplied audience identifier for this resource server.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.ResourceServerIdentifier)]
     public required string Identifier { get; init; }
@@ -50,7 +50,7 @@ public sealed class PersistedResourceServer : BasePersistedResourceServerResourc
     public required string Name { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether this resource server is a reserved, system-owned resource server that
+    /// Gets a value indicating whether this resource server is a reserved, system-owned resource server that
     /// cannot be deleted.
     /// </summary>
     public required bool IsSystem { get; init; }

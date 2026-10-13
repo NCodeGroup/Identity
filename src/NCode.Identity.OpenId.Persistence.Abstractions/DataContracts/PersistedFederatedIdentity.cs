@@ -33,37 +33,37 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 public sealed class PersistedFederatedIdentity : ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the identifier of the tenant that owns this identity.
+    /// Gets the identifier of the tenant that owns this identity.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the server-generated opaque public identifier of this federated identity.
+    /// Gets the server-generated opaque public identifier of this federated identity.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string FederatedIdentityId { get; init; }
 
     /// <summary>
-    /// Gets or sets the identifier of the federated principal that owns this identity.
+    /// Gets the identifier of the federated principal that owns this identity.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.PrincipalId)]
     public required string PrincipalId { get; init; }
 
     /// <summary>
-    /// Gets or sets the upstream issuer that authenticated this connection identity.
+    /// Gets the upstream issuer that authenticated this connection identity.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.Issuer)]
     public required string Issuer { get; init; }
 
     /// <summary>
-    /// Gets or sets the upstream subject value (the OpenID <c>sub</c>) as issued by the <see cref="Issuer"/>.
+    /// Gets the upstream subject value (the OpenID <c>sub</c>) as issued by the <see cref="Issuer"/>.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string Subject { get; init; }
 
     /// <summary>
-    /// Gets or sets the optional join key (such as a verified email address) asserted by this connection identity,
+    /// Gets the optional join key (such as a verified email address) asserted by this connection identity,
     /// used by the linking policy to attach a new identity to an existing principal. This value is <c>null</c> when
     /// the connection asserts no usable join key.
     /// </summary>

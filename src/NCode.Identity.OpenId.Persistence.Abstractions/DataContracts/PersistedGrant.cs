@@ -33,13 +33,13 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 public sealed class PersistedGrant : ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the type of grant.
+    /// Gets the type of grant.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.GrantType)]
     public required string GrantType { get; init; }
 
     /// <summary>
-    /// Gets or sets the <c>SHA-256</c> hash of the key that uniquely identifies this entity.
+    /// Gets the <c>SHA-256</c> hash of the key that uniquely identifies this entity.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.HashedKey)]
     public required string HashedKey { get; init; }
@@ -57,19 +57,19 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
     public string ConcurrencyToken { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the <c>TenantId</c> associated with this entity.
+    /// Gets the <c>TenantId</c> associated with this entity.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the <c>ClientId</c> associated with this entity.
+    /// Gets the <c>ClientId</c> associated with this entity.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string? ClientId { get; init; }
 
     /// <summary>
-    /// Gets or sets the <c>SubjectId</c> associated with this entity.
+    /// Gets the <c>SubjectId</c> associated with this entity.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string? SubjectId { get; init; }
@@ -91,7 +91,7 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
     public required string? RefreshTokenLineageId { get; init; }
 
     /// <summary>
-    /// Gets or sets when this entity was created.
+    /// Gets when this entity was created.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }
 

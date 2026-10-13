@@ -23,7 +23,7 @@ using Microsoft.AspNetCore.Http;
 namespace NCode.Identity.Exceptions;
 
 /// <summary>
-/// Represents an error that occured while executing a <c>HTTP</c> endpoint.
+/// Represents an error that occurred while executing an <c>HTTP</c> endpoint.
 /// </summary>
 [PublicAPI]
 public class HttpResultException : Exception

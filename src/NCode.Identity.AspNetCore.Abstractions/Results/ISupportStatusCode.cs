@@ -21,7 +21,7 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Results;
 
 /// <summary>
-/// Provides the ability to associate a HTTP Status Code with the current instance.
+/// Provides the ability to associate an HTTP Status Code with the current instance.
 /// </summary>
 [PublicAPI]
 public interface ISupportStatusCode

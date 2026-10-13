@@ -31,7 +31,7 @@ internal interface ICibaTokenResponseService
 {
     /// <summary>
     /// Creates the <see cref="ITokenResponse"/> for an approved CIBA request, issuing the access token and, when the
-    /// requested scopes call for them, the id token and refresh token.
+    /// requested scopes call for them, the ID token and refresh token.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that initiated the request.</param>

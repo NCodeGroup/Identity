@@ -30,6 +30,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthenticati
 /// authentication request's login hint. Mapping an opaque hint to a local subject is deployment-specific; the default
 /// handler reports the request as unresolved (<c>unknown_user_id</c>), and a capability package replaces it.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+/// <param name="OpenIdClient">The <see cref="OpenIdClient"/> that initiated the backchannel authentication request.</param>
+/// <param name="Request">The <see cref="IBackchannelAuthenticationRequest"/> whose subject is being resolved.</param>
 [PublicAPI]
 public readonly record struct AuthenticateBackchannelRequestCommand(
     OpenIdContext OpenIdContext,

@@ -26,8 +26,14 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 
 /// <summary>
-/// Represents a mediator command to authenticate a password grant request.
+/// Represents a mediator command that authenticates the resource owner for an OAuth 2.0 password grant
+/// (<c>grant_type=password</c>) from the credentials in the token request, producing an
+/// <see cref="AuthenticateSubjectDisposition"/>. The default handler reports the grant as unsupported; a capability
+/// package replaces it to validate the supplied username and password.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+/// <param name="OpenIdClient">The authenticated <see cref="OpenIdClient"/> making the token request.</param>
+/// <param name="TokenRequest">The <see cref="ITokenRequest"/> carrying the resource-owner credentials.</param>
 [PublicAPI]
 public readonly record struct AuthenticatePasswordGrantCommand(
     OpenIdContext OpenIdContext,

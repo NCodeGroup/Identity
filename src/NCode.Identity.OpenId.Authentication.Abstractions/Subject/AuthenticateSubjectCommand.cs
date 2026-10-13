@@ -23,11 +23,12 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
-/// Represents a mediator command to authenticate the subject (aka end-user) of the current HTTP request from the
+/// Represents a mediator command that authenticates the subject (the end-user) of the current HTTP request from the
 /// credentials it presents (for example, a bearer access token), returning an <see cref="AuthenticateSubjectDisposition"/>.
 /// This is the resource-facing counterpart to the interactive authorization-endpoint authentication and is reused by
 /// endpoints such as <c>UserInfo</c>.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
 [PublicAPI]
 public readonly record struct AuthenticateSubjectCommand(OpenIdContext OpenIdContext)
     : ICommand<AuthenticateSubjectDisposition>;

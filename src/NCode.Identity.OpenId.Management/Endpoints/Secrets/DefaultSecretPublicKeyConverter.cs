@@ -31,11 +31,12 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// <summary>
 /// Provides the default implementation of <see cref="ISecretPublicKeyConverter"/>. Whether a secret exposes a
 /// public key is decided by the deserialized key's runtime type against the <see cref="ISecretKeyTypeCatalog"/>
-/// (the single source of truth, ADR-0067) — so a certificate secret, which resolves to an RSA or ECC key, is
+/// (the single source of truth) — so a certificate secret, which resolves to an RSA or ECC key, is
 /// handled uniformly. For an exportable key it projects the public half into a <c>JWK</c> (reusing the registered
 /// <see cref="IJsonWebKeyConverter"/> pipeline, the same source of truth the JWKS endpoint uses) and a
 /// <c>SubjectPublicKeyInfo</c> <c>PEM</c>. Secrets without a public key yield <c>null</c>.
 /// </summary>
+// See ADR-0067.
 internal class DefaultSecretPublicKeyConverter(
     ISecretSerializer secretSerializer,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,

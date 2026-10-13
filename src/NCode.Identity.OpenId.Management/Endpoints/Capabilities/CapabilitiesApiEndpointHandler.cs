@@ -36,8 +36,9 @@ GET api/capabilities
 /// Provides the server-wide management capabilities discovery endpoint, letting management clients discover server
 /// behavior (such as the supported secret types and which expose a public key) instead of hard-coding it. The
 /// document is composed from the registered <see cref="DiscoverManagementCapabilitiesCommand"/> handlers, so new
-/// capabilities are exposed by registering a provider rather than by changing this endpoint (ADR-0067).
+/// capabilities are exposed by registering a provider rather than by changing this endpoint.
 /// </summary>
+// See ADR-0067.
 internal class CapabilitiesApiEndpointHandler : IEndpointProvider
 {
     /// <inheritdoc />

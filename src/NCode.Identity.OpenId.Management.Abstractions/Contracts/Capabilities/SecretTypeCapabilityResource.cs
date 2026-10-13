@@ -24,8 +24,9 @@ namespace NCode.Identity.OpenId.Management.Contracts.Capabilities;
 /// <summary>
 /// Describes a single secret type the server understands and the capabilities it exposes, so that management
 /// clients can drive their UI (for example which types can be created, or which expose an exportable public key)
-/// from server discovery rather than hard-coded assumptions (ADR-0067).
+/// from server discovery rather than hard-coded assumptions.
 /// </summary>
+// See ADR-0067.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class SecretTypeCapabilityResource

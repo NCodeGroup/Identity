@@ -111,7 +111,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
 
     /// <summary>
     /// Maps a single <see cref="PersistedSecret"/> instance to its <see cref="CreatedSecretResource"/>
-    /// representation, carrying the one-time unprotected key material to reveal (ADR-0050). Used only by the
+    /// representation, carrying the one-time unprotected key material to reveal. Used only by the
     /// client-secret create path; every read path returns the material-free <see cref="SecretResource"/>.
     /// </summary>
     /// <param name="secret">The <see cref="PersistedSecret"/> instance to map.</param>

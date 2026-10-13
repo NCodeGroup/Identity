@@ -1,8 +1,20 @@
 # T4 — Deterministic conformance tenant, clients, and test user seeding
 
-Status: **planned, not yet implemented.** Detailed plan for backlog item `T4`. Parent design:
+Status: **implemented.** Detailed plan for backlog item `T4`. Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #3 and Appendix C). Catalog
 entry: [`BACKLOG.md`](../../BACKLOG.md) group `T`.
+
+The config-driven startup seeder landed as `AddConformanceSeed(IConfiguration)` in `NCode.Identity.Server`
+([`ConformanceSeedRegistration`](../../src/NCode.Identity.Server/ConformanceSeedRegistration.cs),
+[`ConformanceSeedHandler`](../../src/NCode.Identity.Server/ConformanceEnvironment/ConformanceSeedHandler.cs),
+[`ConformanceSeedOptions`](../../src/NCode.Identity.Server/ConformanceEnvironment/ConformanceSeedOptions.cs),
+[`ConformanceClientSeed`](../../src/NCode.Identity.Server/ConformanceEnvironment/ConformanceClientSeed.cs)). It is
+wired into the Playground
+([`Program.cs`](../../src/NCode.Identity.OpenId.Playground/Program.cs)) and activated by the `Conformance`
+launch profile plus the
+[`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Playground/appsettings.Conformance.json)
+overlay, which seeds the three Basic-OP clients and the `conformance-user`. The remaining conformance
+prerequisite is the reachable HTTPS host with a byte-matched `issuer` (`T3`).
 
 ## Goal
 

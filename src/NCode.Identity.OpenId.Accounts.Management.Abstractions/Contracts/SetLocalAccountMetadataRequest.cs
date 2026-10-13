@@ -26,8 +26,9 @@ namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 /// Represents the request body to set a local account's server-owned metadata bags. Each bag is replaced only when
 /// present in the request; an omitted bag is left unchanged. Because the management API is administrator-gated, this is
 /// the server/admin write path through which the server-controlled <c>SystemMetadata</c> may be set — it is never
-/// end-user writable (ADR-0054, ADR-0055).
+/// end-user writable.
 /// </summary>
+// See ADR-0054, ADR-0055.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class SetLocalAccountMetadataRequest

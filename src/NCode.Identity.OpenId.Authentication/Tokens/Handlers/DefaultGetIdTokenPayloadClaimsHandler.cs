@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 
 /// <summary>
 /// Provides a default implementation for a <see cref="GetIdTokenPayloadClaimsCommand"/> handler that generates the payload
-/// claims for an id token.
+/// claims for an ID token.
 /// </summary>
 /// <remarks>
 /// This handler is responsible for generating protocol claims and any claims derived from the subject are handled by

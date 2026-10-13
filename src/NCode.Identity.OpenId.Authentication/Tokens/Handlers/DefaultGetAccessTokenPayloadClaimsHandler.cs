@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 
 /// <summary>
 /// Provides a default implementation for a <see cref="GetAccessTokenPayloadClaimsCommand"/> handler that generates the
-/// payload claims for an id token.
+/// payload claims for an access token.
 /// </summary>
 /// <remarks>
 /// This handler is responsible for generating protocol claims and any claims derived from the subject are handled by

@@ -37,7 +37,7 @@ public sealed class DynamicByHostTenantOptions
     /// <summary>
     /// Gets or sets the relative base path for the tenant.
     /// When specified, this value must include a leading slash.
-    /// The default value is undefined (aka empty).
+    /// The default value is undefined (empty).
     /// </summary>
     public PathString TenantPath { get; set; }
 }

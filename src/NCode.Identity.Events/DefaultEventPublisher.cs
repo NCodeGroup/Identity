@@ -32,8 +32,9 @@ namespace NCode.Identity.Events;
 /// </summary>
 /// <remarks>
 /// Hierarchical dispatch resolves handlers via reflection (<see cref="Type.MakeGenericType"/>), which
-/// is not compatible with ahead-of-time compilation or trimming; see ADR-0047.
+/// is not compatible with ahead-of-time compilation or trimming.
 /// </remarks>
+// Reflection-based hierarchical dispatch is a deliberate trade-off; see ADR-0047.
 internal class DefaultEventPublisher(
     IServiceScopeFactory serviceScopeFactory,
     IServiceProviderIsService serviceProviderIsService,

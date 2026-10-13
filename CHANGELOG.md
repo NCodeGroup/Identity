@@ -10,6 +10,16 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Supporting index for resource-server scope lookups — completes backlog `D3`.** The resource-server runtime reads
+  push their scope-value predicate to the DBMS ([ADR-0080](docs/adr/0080-store-query-methods-push-filtering-to-dbms.md)),
+  but the scope-driven `SelectMany` join could not seek on scope value: the only index leading with `NormalizedValue`
+  was the composite unique `(ResourceServerId, NormalizedValue)`, whose leading column is the owner. A standalone
+  non-unique index on `ScopeEntity.NormalizedValue` (new EF migration) backs the owns-any-scope lookup. The companion
+  option — a filtered index on `ResourceServerEntity.IsDisabled` — was deliberately **not** added: `IsDisabled` is a
+  low-selectivity boolean (nearly every resource server is enabled), so a standalone or partial index on it would not be
+  chosen by the query planner and would only add write cost; the selective scope-value index above is what carries those
+  queries.
+
 - **Refresh-token reuse detection with family revocation — completes backlog `F4`.** A revoked refresh token presented
   again is a replay signal; the OP already detected and audited it (`token.refresh.replay`), and now responds per the
   new per-client `refresh_token_reuse_policy` setting: `revoke_all` (the secure default) revokes the entire **rotation

@@ -833,6 +833,8 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
 
                     b.HasKey("Id");
 
+                    b.HasIndex("NormalizedValue");
+
                     b.HasIndex("TenantId");
 
                     b.HasIndex("ResourceServerId", "NormalizedValue")

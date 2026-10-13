@@ -26,8 +26,8 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Tenants.Strategies;
 
 /// <summary>
-/// Provides a tenant-selection strategy that resolves the tenant dynamically from a route parameter (aka path)
-/// of the request.
+/// Provides a tenant-selection strategy that resolves the tenant dynamically from a route parameter in the
+/// request's path.
 /// </summary>
 internal class DynamicByPathTenantStrategy(
     IStoreManagerFactory storeManagerFactory,

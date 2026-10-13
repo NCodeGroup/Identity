@@ -58,7 +58,7 @@ public static class OpenIdErrorFactoryExtensions
         /// <summary>
         /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c> message produces an error.
         /// </summary>
-        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
+        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>.</param>
         /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.InvalidRequest"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError InvalidRequest(
@@ -72,7 +72,7 @@ public static class OpenIdErrorFactoryExtensions
         /// <summary>
         /// Creates an <see cref="IOpenIdError"/> for when then provided authorization grant or refresh token is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.
         /// </summary>
-        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
+        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>.</param>
         /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.InvalidGrant"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError InvalidGrant(
@@ -113,7 +113,7 @@ public static class OpenIdErrorFactoryExtensions
         /// <summary>
         /// Creates an <see cref="IOpenIdError"/> for when processing the <c>request_uri</c> parameter produces an error.
         /// </summary>
-        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
+        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>.</param>
         /// <param name="errorCode">The value for <see cref="IOpenIdError.Code"/>. Defaults to <see cref="OpenIdConstants.ErrorCodes.InvalidRequestUri"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError InvalidRequestUri(
@@ -234,7 +234,7 @@ public static class OpenIdErrorFactoryExtensions
         /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
         /// message produces an <see cref="OpenIdConstants.ErrorCodes.UnsupportedGrantType"/> error.
         /// </summary>
-        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
+        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError UnsupportedGrantType(string errorDescription)
         {
@@ -247,7 +247,7 @@ public static class OpenIdErrorFactoryExtensions
         /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
         /// message produces an <see cref="OpenIdConstants.ErrorCodes.UnauthorizedClient"/> error.
         /// </summary>
-        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
+        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError UnauthorizedClient(string errorDescription)
         {
@@ -290,7 +290,7 @@ public static class OpenIdErrorFactoryExtensions
         /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
         /// message produces an <see cref="OpenIdConstants.ErrorCodes.AccessDenied"/> error.
         /// </summary>
-        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>..</param>
+        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>.</param>
         /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
         public IOpenIdError AccessDenied(string errorDescription)
         {

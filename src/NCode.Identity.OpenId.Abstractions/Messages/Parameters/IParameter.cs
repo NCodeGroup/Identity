@@ -35,7 +35,7 @@ public interface IParameter
     public ParameterDescriptor Descriptor { get; }
 
     /// <summary>
-    /// Gets the formatted (aka openid) representation of this parameter.
+    /// Gets the formatted (<c>openid</c>) representation of this parameter.
     /// </summary>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> to use while formatting the parameter.</param>
     public StringValues GetStringValues(OpenIdEnvironment openIdEnvironment);

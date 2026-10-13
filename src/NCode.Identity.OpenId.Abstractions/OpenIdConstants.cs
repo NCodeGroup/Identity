@@ -54,7 +54,7 @@ public static partial class OpenIdConstants
         public const string Authorization = "authorization_endpoint";
 
         /// <summary>
-        /// Contains the name for the <c>continue</c> (aka callback) endpoint.
+        /// Contains the name for the <c>continue</c> (callback) endpoint.
         /// </summary>
         public const string Continue = "continue_endpoint";
 
@@ -143,7 +143,7 @@ public static partial class OpenIdConstants
         public const string Authorization = $"{Prefix}/authorize";
 
         /// <summary>
-        /// Contains the relative path for the <c>continue</c> (aka callback) endpoint.
+        /// Contains the relative path for the <c>continue</c> (callback) endpoint.
         /// </summary>
         public const string Continue = $"{Prefix}/continue";
 
@@ -292,7 +292,7 @@ public static partial class OpenIdConstants
     public static class PersistedGrantTypes
     {
         /// <summary>
-        /// Identifies a persisted grant for a <c>continue</c> (aka callback) operation.
+        /// Identifies a persisted grant for a <c>continue</c> (callback) operation.
         /// </summary>
         public const string Continue = "continue";
 

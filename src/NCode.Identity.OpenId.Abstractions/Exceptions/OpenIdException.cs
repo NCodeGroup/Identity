@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Exceptions;
 // Justification: optional parameters with default values is not backwards compatible and causes breaking changes
 
 /// <summary>
-/// Represents an error that occured while executing an <c>OAuth</c> or <c>OpenID Connect</c> handler.
+/// Represents an error that occurred while executing an <c>OAuth</c> or <c>OpenID Connect</c> handler.
 /// </summary>
 [PublicAPI]
 public class OpenIdException : Exception

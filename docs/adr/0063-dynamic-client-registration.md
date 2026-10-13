@@ -1,6 +1,6 @@
 # 63. Dynamic Client Registration (RFC 7591/7592) over the persisted-grant store
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

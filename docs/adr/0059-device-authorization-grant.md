@@ -1,6 +1,6 @@
 # 59. Device Authorization Grant (RFC 8628) over the persisted-grant store
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

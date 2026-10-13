@@ -1,6 +1,6 @@
 # 47. Auditing and events: a dedicated observation seam, distinct from the mediator
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-04
 - **Deciders:** NCode Group
 

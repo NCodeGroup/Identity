@@ -1,6 +1,6 @@
 # 52. Entity Framework persistence is a reusable framework plus domain slices
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-07
 - **Deciders:** NCode Group
 
@@ -67,7 +67,6 @@ by whether case-insensitive matching is _wanted_, not by whether the column happ
   the OP cookie / `id_token_hint`). Normalizing these would be **wrong**: Base64Url is case-significant, so lowercasing
   would let two distinct values collide and a lowercased lookup would never match the stored mixed-case key. For a
   bearer-grade secret such as `sid`, verbatim matching is also the safer choice.
-
 
 ### The slices
 

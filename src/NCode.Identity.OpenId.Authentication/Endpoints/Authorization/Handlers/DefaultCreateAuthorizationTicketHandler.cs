@@ -20,8 +20,10 @@ using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
+using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
@@ -32,12 +34,14 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 internal class DefaultCreateAuthorizationTicketHandler(
     TimeProvider timeProvider,
     IAuthorizationCodeService authorizationCodeService,
-    ITokenService tokenService
+    ITokenService tokenService,
+    ISessionStateService sessionStateService
 ) : ICommandResponseHandler<CreateAuthorizationTicketCommand, IAuthorizationTicket>
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IAuthorizationCodeService AuthorizationCodeService { get; } = authorizationCodeService;
     private ITokenService TokenService { get; } = tokenService;
+    private ISessionStateService SessionStateService { get; } = sessionStateService;
 
     /// <inheritdoc />
     public async ValueTask<IAuthorizationTicket> HandleAsync(
@@ -54,6 +58,20 @@ internal class DefaultCreateAuthorizationTicketHandler(
         ticket.CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         ticket.State = authorizationRequest.State;
         ticket.Issuer = openIdContext.Tenant.Issuer;
+
+        // Session Management 1.0: emit session_state (and maintain the OP browser-state cookie) only when enabled.
+        if (
+            openIdContext.Tenant.SettingsProvider.Collection.GetValue(
+                OpenIdSettingKeys.SessionManagementSupported
+            )
+        )
+        {
+            ticket.SessionState = SessionStateService.CreateSessionState(
+                openIdContext,
+                openIdClient.ClientId,
+                authorizationRequest.RedirectUri
+            );
+        }
 
         if (responseTypes.Contains(OpenIdConstants.ResponseTypes.Code))
         {

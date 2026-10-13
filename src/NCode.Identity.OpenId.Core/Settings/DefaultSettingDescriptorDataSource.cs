@@ -633,6 +633,62 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // frontchannel_logout_uri: the per-client URI the OP loads in a hidden iframe (Front-Channel Logout).
+            // Override (Replace): each client specifies its own endpoint.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.FrontChannelLogoutUri,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // frontchannel_logout_session_required: whether the OP appends iss/sid to the client's frontchannel_logout_uri.
+            // Override (Replace): each client specifies its own requirement.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.FrontChannelLogoutSessionRequired,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // frontchannel_logout_supported: server advertises Front-Channel Logout support (default false — the
+            // mechanism is available but disabled by default because it depends on third-party cookies). (ADR-0088)
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.FrontChannelLogoutSupported,
+                Default = false,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // frontchannel_logout_session_supported: server advertises that it appends iss/sid to front-channel
+            // logout URIs (default false).
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.FrontChannelLogoutSessionSupported,
+                Default = false,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // session_management_supported: gates the check_session_iframe advertisement, the session_state
+            // authorization response parameter, and the OP browser-state cookie. Non-discoverable (the standard
+            // discovery signal is the check_session_iframe URL). Default false — available but disabled by default
+            // because it depends on third-party cookies the browser platform is removing. (ADR-0088)
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.SessionManagementSupported,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // registration_endpoint_allow_anonymous: whether the dynamic client registration endpoint accepts
             // anonymous (no initial access token) requests (default false). (ADR-0063)
             // Floor (And): once a parent disallows anonymous registration, a child cannot re-enable it.

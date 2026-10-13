@@ -154,6 +154,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.Authorizati
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.Issuer.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.State.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.State.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.SessionState.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.SessionState.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.TokenType.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.TokenType.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization.AuthorizationRequestJsonEnvelope

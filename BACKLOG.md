@@ -49,15 +49,6 @@ one option is merely more work.
   an opt-in; revisit if a compliance requirement needs per-access PII records.
   Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/`,
   `IAuditEventRecorder`.
-- **`D2` — Front-Channel Logout and Session Management (`check_session_iframe`).** The OpenID Provider
-  implements RP-Initiated Logout and Back-Channel Logout (both cookie-independent), but **not** Front-Channel
-  Logout 1.0 (per-RP hidden iframes) or Session Management 1.0 (`check_session_iframe` / `session_state`). Both
-  depend on third-party cookies inside an iframe, which the browser platform (Safari ITP, Firefox partitioning,
-  Chrome deprecation) is removing, so they are unreliable by construction. The session model records each
-  participating client and the logout pipeline is a mediator seam, so a deployment that still needs front-channel
-  behavior can add it without a redesign. Rationale: [ADR-0074](docs/adr/0074-session-management-and-logout.md).
-  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/`,
-  `src/NCode.Identity.OpenId.Authentication/Sessions/`.
 - **`D4` — CIBA push delivery durability and request-object encryption advertisement.** CIBA **push** delivery
   ([ADR-0085](docs/adr/0085-ciba-grant.md)) issues and `POST`s the tokens to the client's `client_notification_endpoint`
   on a best-effort basis — a failed delivery is logged, not retried or queued, and the client cannot fall back to

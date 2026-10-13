@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Text;
+using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -81,11 +83,66 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
             cancellationToken
         );
 
+        // When front-channel logout URIs are present, the OP must render a page that loads each one in a hidden iframe
+        // so the participating clients clear their own sessions before the user agent leaves the OP.
+        if (disposition.FrontChannelLogoutUris.Count > 0)
+        {
+            var html = BuildFrontChannelLogoutHtml(
+                disposition.FrontChannelLogoutUris,
+                disposition.RedirectUri
+            );
+            return TypedResults.Content(html, "text/html; charset=utf-8");
+        }
+
         if (!string.IsNullOrEmpty(disposition.RedirectUri))
         {
             return TypedResults.Redirect(disposition.RedirectUri);
         }
 
         return TypedResults.Content("You have been logged out.", "text/plain");
+    }
+
+    // Builds the Front-Channel Logout 1.0 page: a hidden iframe per participating client, then a scripted redirect to
+    // the validated post-logout URI (or a plain confirmation when none was supplied). All URIs are registered client
+    // values but are HTML-encoded defensively before they are embedded in the markup.
+    private static string BuildFrontChannelLogoutHtml(
+        IReadOnlyList<string> frontChannelLogoutUris,
+        string? redirectUri
+    )
+    {
+        var encoder = HtmlEncoder.Default;
+        var builder = new StringBuilder();
+        builder.Append(
+            "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Logout</title></head><body>"
+        );
+
+        foreach (var uri in frontChannelLogoutUris)
+        {
+            builder
+                .Append("<iframe style=\"display:none\" src=\"")
+                .Append(encoder.Encode(uri))
+                .Append("\"></iframe>");
+        }
+
+        if (!string.IsNullOrEmpty(redirectUri))
+        {
+            // Redirect only after the iframes have had a chance to load; the target is read from a DOM attribute so
+            // the validated URI is never interpolated into an inline script literal.
+            builder
+                .Append("<a id=\"pl\" data-url=\"")
+                .Append(encoder.Encode(redirectUri))
+                .Append("\" style=\"display:none\"></a>")
+                .Append(
+                    "<script>window.addEventListener('load',function(){setTimeout(function(){"
+                        + "window.location.href=document.getElementById('pl').getAttribute('data-url');},2000);});</script>"
+                );
+        }
+        else
+        {
+            builder.Append("<p>You have been logged out.</p>");
+        }
+
+        builder.Append("</body></html>");
+        return builder.ToString();
     }
 }

@@ -79,14 +79,6 @@ one option is merely more work.
   `ICibaNotificationService` seam. Signed/encrypted backchannel request objects
   (`backchannel_authentication_request_signing_alg_values_supported`, a FAPI-CIBA concern) are likewise a follow-up.
   Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/`.
-- **`F18` — Migrate the device-authorization endpoint to the canonical endpoint shape.** The canonical OpenID endpoint
-  shape — a thin `IEndpointProvider` over a strongly-typed `OpenIdMessage<T>` request and a mediator
-  validate/process pipeline — is codified in [ADR-0086](docs/adr/0086-canonical-openid-endpoint-shape.md) and followed
-  by the token, end-session, and CIBA endpoints. `DefaultDeviceAuthorizationEndpointHandler` predates the convention: it
-  reads the form directly (`form.TryGetValue(...)`) and inlines its validation and persistence. Refactor it to a
-  `DeviceAuthorizationRequest : OpenIdMessage<…>` + `ValidateDeviceAuthorizationRequestCommand` +
-  `CreateDeviceAuthorizationRequestCommand` so the endpoint family is uniform. Touch point:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/DeviceAuthorization/`.
 - **`F4` — `refresh_token_reuse_policy` (none / revoke_all).** Refresh-token replay is _detected and audited_
   (`token.refresh.replay`), but there is no configurable response that revokes the whole token family
   on reuse. See `// TODO: refresh_token_reuse_policy` in

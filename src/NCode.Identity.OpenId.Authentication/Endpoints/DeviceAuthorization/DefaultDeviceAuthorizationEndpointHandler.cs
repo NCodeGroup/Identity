@@ -20,42 +20,29 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
-using NCode.Identity.Jose.Extensions;
-using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Logic;
+using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands;
+using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Results;
-using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
-using NCode.Identity.OpenId.Authentication.Logic;
-using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Results;
-using NCode.Identity.OpenId.Settings;
+using NCode.Mediator;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization;
 
 /// <summary>
-/// Provides a default implementation of the required services and handlers used by the device authorization endpoint
-/// (RFC 8628 §3.1–3.2).
+/// Provides a default implementation of the device authorization endpoint (OAuth 2.0 Device Authorization Grant,
+/// RFC 8628 §3.1–3.2). The endpoint is a thin orchestrator: it authenticates the client, loads the strongly-typed
+/// <see cref="DeviceAuthorizationRequest"/>, then dispatches validation and request creation through mediator commands.
 /// </summary>
 internal class DefaultDeviceAuthorizationEndpointHandler(
-    TimeProvider timeProvider,
-    LinkGenerator linkGenerator,
-    ICryptoService cryptoService,
-    IClientAuthenticationService clientAuthenticationService,
-    IPersistedGrantService persistedGrantService,
-    IUserCodeGenerator userCodeGenerator
+    IClientAuthenticationService clientAuthenticationService
 ) : IEndpointProvider
 {
-    private TimeProvider TimeProvider { get; } = timeProvider;
-    private LinkGenerator LinkGenerator { get; } = linkGenerator;
-    private ICryptoService CryptoService { get; } = cryptoService;
     private IClientAuthenticationService ClientAuthenticationService { get; } =
         clientAuthenticationService;
-    private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
-    private IUserCodeGenerator UserCodeGenerator { get; } = userCodeGenerator;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
@@ -92,7 +79,7 @@ internal class DefaultDeviceAuthorizationEndpointHandler(
         var openIdContext = httpContext.GetOpenIdContext();
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdContext.ErrorFactory;
-        var tenantId = openIdContext.Tenant.TenantId;
+        var mediator = openIdContext.Mediator;
 
         var isPostVerb = httpContext.Request.Method == HttpMethods.Post;
         if (!isPostVerb || !IsApplicationFormContentType(httpContext))
@@ -126,125 +113,23 @@ internal class DefaultDeviceAuthorizationEndpointHandler(
         }
 
         var openIdClient = authResult.Client;
-        var settings = openIdClient.Settings;
-
-        if (
-            settings.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out var grantTypesSupported)
-            && !grantTypesSupported.Contains(OpenIdConstants.GrantTypes.DeviceCode)
-        )
-        {
-            return errorFactory
-                .UnauthorizedClient("The device authorization grant is not allowed by the client.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsHttpResult();
-        }
 
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
-        var scopes = ParseScopes(formData);
+        var request = DeviceAuthorizationRequest.Load(openIdEnvironment, formData);
 
-        var deviceCode = CryptoService.GenerateUrlSafeKey();
-
-        var userCodeLength = settings.GetValue(OpenIdSettingKeys.UserCodeLength);
-        var userCodeDisplay = UserCodeGenerator.Generate(userCodeLength);
-        var userCodeNormalized = UserCodeGenerator.Normalize(userCodeDisplay);
-
-        var lifetime = settings.GetValue(OpenIdSettingKeys.DeviceCodeLifetime);
-        var interval = settings.GetValue(OpenIdSettingKeys.DeviceCodePollingInterval);
-        var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
-
-        var deviceCodeGrant = new PersistedGrant<DeviceCodeGrant>
-        {
-            Status = PersistedGrantStatus.Active,
-            TenantId = tenantId,
-            ClientId = openIdClient.ClientId,
-            SubjectId = null,
-            SessionId = null,
-            Payload = new DeviceCodeGrant
-            {
-                ClientId = openIdClient.ClientId,
-                Scopes = scopes,
-                Status = DeviceAuthorizationStatus.Pending,
-                SubjectAuthentication = null,
-                LastPolledWhen = null,
-            },
-        };
-
-        await PersistedGrantService.AddAsync(
-            openIdContext,
-            PersistedGrantService.CreateGrantId(
-                tenantId,
-                OpenIdConstants.PersistedGrantTypes.DeviceCode,
-                deviceCode
-            ),
-            deviceCodeGrant,
-            createdWhen,
-            lifetime,
+        await mediator.SendAsync(
+            new ValidateDeviceAuthorizationRequestCommand(openIdContext, openIdClient, request),
             cancellationToken
         );
 
-        var userCodeGrant = new PersistedGrant<DeviceUserCodeGrant>
-        {
-            Status = PersistedGrantStatus.Active,
-            TenantId = tenantId,
-            ClientId = openIdClient.ClientId,
-            SubjectId = null,
-            SessionId = null,
-            Payload = new DeviceUserCodeGrant(deviceCode),
-        };
-
-        await PersistedGrantService.AddAsync(
-            openIdContext,
-            PersistedGrantService.CreateGrantId(
-                tenantId,
-                OpenIdConstants.PersistedGrantTypes.DeviceUserCode,
-                userCodeNormalized
-            ),
-            userCodeGrant,
-            createdWhen,
-            lifetime,
+        var result = await mediator.SendAsync<
+            CreateDeviceAuthorizationRequestCommand,
+            DeviceAuthorizationResult
+        >(
+            new CreateDeviceAuthorizationRequestCommand(openIdContext, openIdClient, request),
             cancellationToken
         );
-
-        var verificationUri = LinkGenerator.GetUriByName(
-            httpContext,
-            OpenIdConstants.EndpointNames.DeviceVerification,
-            values: null
-        );
-
-        if (string.IsNullOrEmpty(verificationUri))
-            throw new InvalidOperationException("Unable to determine the device verification URI.");
-
-        var verificationUriComplete = LinkGenerator.GetUriByName(
-            httpContext,
-            OpenIdConstants.EndpointNames.DeviceVerification,
-            new { user_code = userCodeDisplay }
-        );
-
-        var result = new DeviceAuthorizationResult
-        {
-            DeviceCode = deviceCode,
-            UserCode = userCodeDisplay,
-            VerificationUri = verificationUri,
-            VerificationUriComplete = verificationUriComplete,
-            ExpiresIn = (int)lifetime.TotalSeconds,
-            Interval = (int)interval.TotalSeconds,
-        };
 
         return TypedResults.Json(result, openIdEnvironment.JsonSerializerOptions);
-    }
-
-    private static string[] ParseScopes(IFormCollection formData)
-    {
-        if (!formData.TryGetValue(OpenIdConstants.Parameters.Scope, out var scopeValues))
-            return [];
-
-        var scope = scopeValues.ToString();
-        if (string.IsNullOrEmpty(scope))
-            return [];
-
-        return scope.Split(
-            OpenIdConstants.ParameterSeparatorChar,
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-        );
     }
 }

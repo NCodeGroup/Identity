@@ -184,6 +184,10 @@ NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Message
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.Resources.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.Scopes.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.Scopes.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.DeviceAuthorizationRequest
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.DeviceAuthorizationRequest.DeviceAuthorizationRequest() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.DeviceAuthorizationRequest.Scopes.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.DeviceAuthorizationRequest.Scopes.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models.ContinueEnvelope
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models.ContinueEnvelope.Code.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models.ContinueEnvelope.Code.init -> void
@@ -278,6 +282,7 @@ override NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.A
 override NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequestObject.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequestObject!
 override NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationTicket!
 override NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest!
+override NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.DeviceAuthorizationRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages.DeviceAuthorizationRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.TokenIntrospectionRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.TokenRevocationRequest!
 override NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest!

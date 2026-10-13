@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 public sealed class PersistedScope
 {
     /// <summary>
-    /// Gets or sets the value of this scope (for example, <c>read:messages</c>).
+    /// Gets the value of this scope (for example, <c>read:messages</c>).
     /// </summary>
     [MaxLength(OpenIdMaxLengths.ScopeValue)]
     public required string Value { get; init; }
@@ -42,7 +42,7 @@ public sealed class PersistedScope
     public required string? Description { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether this scope is a reserved, system-owned scope that cannot be deleted.
+    /// Gets a value indicating whether this scope is a reserved, system-owned scope that cannot be deleted.
     /// </summary>
     public required bool IsSystem { get; init; }
 }

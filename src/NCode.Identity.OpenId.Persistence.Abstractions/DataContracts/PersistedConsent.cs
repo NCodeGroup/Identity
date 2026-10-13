@@ -34,19 +34,19 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 public sealed class PersistedConsent : ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the identifier of the tenant that owns this consent record.
+    /// Gets the identifier of the tenant that owns this consent record.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the natural identifier of the client the subject consented to.
+    /// Gets the natural identifier of the client the subject consented to.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string ClientId { get; init; }
 
     /// <summary>
-    /// Gets or sets the identifier of the subject (end-user) that granted the consent.
+    /// Gets the identifier of the subject (end-user) that granted the consent.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string SubjectId { get; init; }
@@ -67,7 +67,7 @@ public sealed class PersistedConsent : ISupportTenantId, ISupportConcurrencyToke
     public required IReadOnlyCollection<string> GrantedScopes { get; set; }
 
     /// <summary>
-    /// Gets or sets when this consent record was first created.
+    /// Gets when this consent record was first created.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }
 

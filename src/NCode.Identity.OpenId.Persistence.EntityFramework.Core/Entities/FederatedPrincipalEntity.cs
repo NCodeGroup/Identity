@@ -74,13 +74,13 @@ public sealed class FederatedPrincipalEntity : ISupportTenantEntity, ISupportCon
 
     /// <summary>
     /// Gets or sets the principal's owner-updatable profile metadata as a free-form JSON object, defaulting to an
-    /// empty object <c>{}</c>; converted to a string column by the shared JsonElement value converter (ADR-0055).
+    /// empty object <c>{}</c>; converted to a string column by the shared JsonElement value converter.
     /// </summary>
     public required JsonElement ProfileMetadataJson { get; set; }
 
     /// <summary>
     /// Gets or sets the principal's server-controlled system metadata as a free-form JSON object, defaulting to an
-    /// empty object <c>{}</c>; never end-user writable, as it may carry authorization-relevant data (ADR-0055).
+    /// empty object <c>{}</c>; never end-user writable, as it may carry authorization-relevant data.
     /// </summary>
     public required JsonElement SystemMetadataJson { get; set; }
 

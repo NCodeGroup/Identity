@@ -24,11 +24,12 @@ namespace NCode.Identity.OpenId.Playground.Database;
 
 /// <summary>
 /// Host-owned context that stores the ASP.NET Core Data Protection key ring in the same dev Postgres database as the
-/// OpenID data (ADR-0073). Persisting the ring in the database — rather than a file under <c>App_Data/dp-keys</c> —
+/// OpenID data. Persisting the ring in the database — rather than a file under <c>App_Data/dp-keys</c> —
 /// means a single database purge resets the OpenID data, the seeded signing key, and the key ring that protects it
 /// together, with nothing left on the filesystem. Kept out of the shared <c>OpenIdDbContext</c> so the published
 /// persistence library never forces a <c>DataProtectionKeys</c> table on other hosts.
 /// </summary>
+// See ADR-0073.
 [PublicAPI]
 public sealed class DeveloperDataProtectionDbContext(
     DbContextOptions<DeveloperDataProtectionDbContext> options

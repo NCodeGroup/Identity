@@ -123,8 +123,9 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     /// <summary>
     /// Gets the opaque <c>sid</c> of the end-user session this grant was issued under, or <c>null</c> for a grant
     /// not tied to a session. The <c>sid</c> is an opaque, case-significant Base64Url key matched verbatim, so it is
-    /// indexed directly with no normalized companion column (see ADR-0052 on normalized vs. verbatim-indexed keys).
+    /// indexed directly with no normalized companion column.
     /// </summary>
+    // See ADR-0052 on normalized vs. verbatim-indexed keys.
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.SessionId)]
     public required string? SessionId { get; init; }

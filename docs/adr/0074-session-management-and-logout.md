@@ -1,7 +1,10 @@
 # 74. End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout
 
 - **Status:** Accepted (the logout revocation scope is refined by [ADR-0077](0077-session-scoped-grant-revocation-on-logout.md):
-  logout revokes the terminating session's grants, not the whole subject's)
+  logout revokes the terminating session's grants, not the whole subject's). The outright decline of the two
+  iframe-based mechanisms below is **superseded by [ADR-0088](0088-opt-in-front-channel-logout-and-session-management.md)**,
+  which implements Front-Channel Logout 1.0 and Session Management 1.0 as opt-in capabilities that are available but
+  disabled by default.
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
 
@@ -84,6 +87,9 @@ Concretely:
   logout pipeline leave the seam open (a session knows its participating clients; the logout command is a mediator
   pipeline others can extend), so a deployment that still needs front-channel behavior can add it without a redesign.
   The omission is recorded as a deferred item in [`BACKLOG.md`](../../BACKLOG.md), with this ADR as the rationale.
+  **(Superseded by [ADR-0088](0088-opt-in-front-channel-logout-and-session-management.md): both mechanisms are now
+  implemented as opt-in capabilities, available but disabled by default. The seam this ADR left open is exactly what
+  made that an additive, migration-free change.)**
 
 ## Options considered
 
@@ -111,8 +117,9 @@ Concretely:
   issuance path). Back-channel delivery is best-effort over HTTP; durable delivery (retry/outbox, cf.
   [ADR-0048](0048-durable-audit-delivery-outbox.md)) is a later hardening. `max_age` / re-authentication semantics and
   the `auth_time` conditionality ([`BACKLOG.md`](../../BACKLOG.md) `F11`, `F13`) interact with the session's recorded
-  `auth_time`. Front-Channel Logout / Session Management remain unavailable; a deployment that requires them must add
-  them via the open seam.
+  `auth_time`. Front-Channel Logout / Session Management remain unavailable **by default** (now implementable as an
+  opt-in capability via [ADR-0088](0088-opt-in-front-channel-logout-and-session-management.md)); a deployment that
+  requires them enables the corresponding setting.
 - **You-chose-wrong smells:** an RP that only supports front-channel logout and cannot be migrated to back-channel; a
   deployment that needs cross-RP _session-change detection_ (not just logout). Either would reopen the iframe question
   under its own ADR.

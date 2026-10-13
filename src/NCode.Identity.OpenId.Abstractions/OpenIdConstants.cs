@@ -114,6 +114,12 @@ public static partial class OpenIdConstants
         public const string EndSession = "end_session_endpoint";
 
         /// <summary>
+        /// Contains the name for the <c>check session</c> iframe endpoint (OpenID Connect Session Management 1.0).
+        /// This value is also used as the <c>check_session_iframe</c> key in the discovery metadata.
+        /// </summary>
+        public const string CheckSessionIframe = "check_session_iframe";
+
+        /// <summary>
         /// Contains the name for the <c>dynamic client registration</c> endpoint (RFC 7591).
         /// This value is also used as the <c>registration_endpoint</c> key in the discovery metadata.
         /// </summary>
@@ -196,6 +202,12 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the <c>end session</c> (RP-initiated logout) endpoint.
         /// </summary>
         public const string EndSession = $"{Prefix}/end_session";
+
+        /// <summary>
+        /// Contains the relative path for the <c>check session</c> iframe endpoint (OpenID Connect Session
+        /// Management 1.0).
+        /// </summary>
+        public const string CheckSession = $"{Prefix}/check_session";
 
         /// <summary>
         /// Contains the relative path for the <c>dynamic client registration</c> endpoint (RFC 7591).

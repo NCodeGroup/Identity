@@ -57,6 +57,13 @@ public sealed class AuthorizationTicket : OpenIdMessage<AuthorizationTicket>, IA
     }
 
     /// <inheritdoc />
+    public string? SessionState
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.SessionState);
+        set => SetKnownParameter(OpenIdCommonParameters.SessionState, value);
+    }
+
+    /// <inheritdoc />
     public string? AuthorizationCode
     {
         get => GetKnownParameter(OpenIdCommonParameters.AuthorizationCode);

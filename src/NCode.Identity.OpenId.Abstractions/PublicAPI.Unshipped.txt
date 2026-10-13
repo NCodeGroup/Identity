@@ -79,6 +79,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Jwks = "jwks_uri" -> s
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Revocation = "revocation_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Token = "token_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.UserInfo = "userinfo_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.CheckSessionIframe = "check_session_iframe" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.EndSession = "end_session_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Registration = "registration_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.RegistrationManagement = "registration_management_endpoint" -> string!
@@ -92,6 +93,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Jwks = "/oauth2/jwks" 
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Revocation = "/oauth2/revoke" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Token = "/oauth2/token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.UserInfo = "/oauth2/userinfo" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.CheckSession = "/oauth2/check_session" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.EndSession = "/oauth2/end_session" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Registration = "/oauth2/register" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ClientGrants = "ClientGrants" -> string!
@@ -189,6 +191,7 @@ const NCode.Identity.OpenId.OpenIdConstants.Parameters.Resource = "resource" -> 
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.ResponseMode = "response_mode" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.ResponseType = "response_type" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.Scope = "scope" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.SessionState = "session_state" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.State = "state" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.StateHash = "s_hash" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.Subject = "sub" -> string!
@@ -295,6 +298,11 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PostLogoutRedirectUris =
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackChannelLogoutUri = "backchannel_logout_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackChannelLogoutSessionRequired = "backchannel_logout_session_required" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackChannelLogoutSupported = "backchannel_logout_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FrontChannelLogoutSessionRequired = "frontchannel_logout_session_required" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FrontChannelLogoutSessionSupported = "frontchannel_logout_session_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FrontChannelLogoutSupported = "frontchannel_logout_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FrontChannelLogoutUri = "frontchannel_logout_uri" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SessionManagementSupported = "session_management_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackChannelLogoutSessionSupported = "backchannel_logout_session_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RegistrationEndpointAllowAnonymous = "registration_endpoint_allow_anonymous" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenExpirationPolicy = "refresh_token_expiration_policy" -> string!
@@ -726,6 +734,11 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PostLogoutRedirectUris.g
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutSessionRequired.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutSupported.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FrontChannelLogoutSessionRequired.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FrontChannelLogoutSessionSupported.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FrontChannelLogoutSupported.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FrontChannelLogoutUri.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SessionManagementSupported.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutSessionSupported.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RegistrationEndpointAllowAnonymous.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenExpirationPolicy.get -> NCode.Identity.Settings.SettingKey<string!>

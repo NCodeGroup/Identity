@@ -26,12 +26,15 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Handlers;
@@ -48,6 +51,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
     private Mock<TimeProvider> MockTimeProvider { get; }
     private Mock<IAuthorizationCodeService> MockAuthorizationCodeService { get; }
     private Mock<ITokenService> MockTokenService { get; }
+    private Mock<ISessionStateService> MockSessionStateService { get; }
     private DefaultCreateAuthorizationTicketHandler Handler { get; }
 
     public DefaultCreateAuthorizationTicketHandlerTests()
@@ -55,10 +59,12 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
         MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockAuthorizationCodeService = CreateStrictMock<IAuthorizationCodeService>();
         MockTokenService = CreateStrictMock<ITokenService>();
+        MockSessionStateService = CreateStrictMock<ISessionStateService>();
         Handler = new DefaultCreateAuthorizationTicketHandler(
             MockTimeProvider.Object,
             MockAuthorizationCodeService.Object,
-            MockTokenService.Object
+            MockTokenService.Object,
+            MockSessionStateService.Object
         );
     }
 
@@ -96,6 +102,15 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
             .Verifiable();
         mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.SetupGet(x => x.Issuer).Returns(Issuer).Verifiable();
+
+        var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
+        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockSettings.Object);
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.SessionManagementSupported))
+            .Returns(false)
+            .Verifiable();
 
         mockAuthRequest.SetupGet(x => x.ResponseTypes).Returns(responseTypes).Verifiable();
         mockAuthRequest.SetupGet(x => x.State).Returns("state-value").Verifiable();

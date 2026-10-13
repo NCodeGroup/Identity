@@ -39,7 +39,7 @@ namespace NCode.Identity.Secrets.Keys;
 public readonly record struct KeyMetadata
 {
     /// <summary>
-    /// Gets or sets the <c>Key ID (kid)</c> for the secret key.
+    /// Gets the <c>Key ID (kid)</c> for the secret key.
     /// </summary>
     /// <value>
     /// A string that uniquely identifies the key, or <c>null</c> if no identifier is specified.
@@ -52,7 +52,7 @@ public readonly record struct KeyMetadata
     public string? KeyId { get; init; }
 
     /// <summary>
-    /// Gets or sets the intended use for the secret key.
+    /// Gets the intended use for the secret key.
     /// </summary>
     /// <value>
     /// A string indicating the intended use of the key, or <c>null</c> to indicate the key
@@ -72,7 +72,7 @@ public readonly record struct KeyMetadata
     public string? Use { get; init; }
 
     /// <summary>
-    /// Gets or sets the intended algorithm for the secret key.
+    /// Gets the intended algorithm for the secret key.
     /// </summary>
     /// <value>
     /// A string identifying the algorithm intended for use with the key, or <c>null</c> to indicate
@@ -89,7 +89,7 @@ public readonly record struct KeyMetadata
     public string? Algorithm { get; init; }
 
     /// <summary>
-    /// Gets or sets the expiration time for the secret key.
+    /// Gets the expiration time for the secret key.
     /// </summary>
     /// <value>
     /// A <see cref="DateTimeOffset"/> indicating when the key expires and is no longer valid,

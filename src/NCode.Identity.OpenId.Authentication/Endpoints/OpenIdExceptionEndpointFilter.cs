@@ -56,6 +56,13 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
             await TryPublishErrorAsync(httpContext, result);
             return result;
         }
+        catch (OperationCanceledException) when (httpContext.RequestAborted.IsCancellationRequested)
+        {
+            // A client-aborted request is a normal disconnect, not a protocol error: do not render or audit
+            // it (the connection is gone and the request-aborted token is already cancelled). Let the
+            // framework abandon the request.
+            throw;
+        }
         catch (Exception exception)
         {
             // The OpenId context (environment + mediator) is published on the request by the context factory.

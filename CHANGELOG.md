@@ -10,6 +10,24 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Spec-coverage conformance harness + exercisable consent — advances backlog `T6`.** The conformance surface
+  (`apps/conformance`) gained a **spec-coverage matrix** that measures the OP against the full published
+  OAuth/OIDC/CIBA/FAPI catalog — independent of what is implemented — so missing functionality (CIBA `F3`, DPoP/mTLS
+  `F7`, PAR `F8`, token exchange, pairwise `F9`, `acr` `F11`, the FAPI 2.0 profile `F16`) surfaces as explicit,
+  attributable gap rows classified from the **live discovery document**; because the classifier is pure over discovery,
+  the same matrix is a **regression** detector (a capability that stops being advertised, or flips to non-conformant,
+  changes its row). It also adds a user-triggered **active-probe** panel (Phase 2) that exercises the browser-reachable
+  endpoints — JWKS validity, the RFC 6749 §5.2 token-error contract, UserInfo's `401`, and PAR when advertised — to
+  turn _advertised_ into _verified_. Design and the `browser` / `probe-runner` / `external-suite` exercise boundary are
+  in [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). Separately, the Playground flow explorer gained a
+  **Force consent (`prompt=consent`)** toggle and the developer-seeded `playground-spa` client now sets
+  `require_consent = true`, so the OP's durable, granular consent surface is exercised out of the box; `@ncode/auth`'s
+  `buildAuthorizeUrl` gained an optional OIDC `prompt`. New public surface: `DeveloperSpaClientSeed.RequireConsent`.
+  The dashboard is organized into **tabs** (Overview · Security audit · Coverage · Probes · Suite config) with
+  **collapsible** coverage categories (gaps start expanded) so the growing surface stays scannable; adds
+  `@mui/icons-material` to the app. Development/conformance convenience only
+  ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
 - **Deterministic conformance tenant, clients, and test-user seeding — completes backlog `T4`.** A new
   **conformance-only**, config-driven startup seeder provisions the confidential clients and a fixed test user the
   OpenID Foundation conformance suite drives, into each workload tenant, so a launched Playground host always exposes
@@ -458,7 +476,7 @@ change to the public API is a **major** version bump.
   subject via `HttpContext.AuthenticateAsync()` (the host's default scheme), but per-tenant signing keys and issuer are
   only known after the request environment resolves the tenant, so no pre-routing scheme can validate the token — the
   reference host registered none, and every valid access token presented to `/userinfo` was rejected `401
-  invalid_token`. The handler now validates a presented `Authorization: Bearer` token through the same in-environment
+invalid_token`. The handler now validates a presented `Authorization: Bearer` token through the same in-environment
   self-issued `AuthenticateAccessTokenCommand` path the management API uses ([ADR-0044](docs/adr/0044-management-api-authentication-and-globaladmin-bootstrap.md)),
   requiring the OpenID identity audience (`urn:ncode:openid`); requests that instead carry an interactive session (for
   example device verification) have no bearer header and still fall back to the session cookie. Invalid/expired tokens

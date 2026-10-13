@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AppThemeProvider } from '@ncode/ui';
 import type { RuntimeConfig } from '@ncode/config';
@@ -68,6 +68,29 @@ describe('ConformanceDashboard', () => {
     await findByTestId('summary');
     expect(getByTestId('callback-url').textContent).toContain('/test/a/ncode/callback');
     expect(getByTestId('issuer').textContent).toBe('https://op.test');
+  });
+
+  it('renders the spec-coverage matrix with missing gaps surfaced', async () => {
+    const loadDiscovery = vi.fn(() => Promise.resolve(secureDiscovery));
+    const { getByTestId, getAllByTestId, findByTestId } = renderDashboard(loadDiscovery);
+
+    await findByTestId('coverage-matrix');
+    expect(getByTestId('coverage-summary')).toBeInTheDocument();
+    // CIBA is not advertised by the baseline, so its tracking backlog id surfaces as a gap.
+    expect(getAllByTestId('backlog-F3').length).toBeGreaterThan(0);
+  });
+
+  it('organizes the panels into tabs and switches on click', async () => {
+    const loadDiscovery = vi.fn(() => Promise.resolve(secureDiscovery));
+    const { getByTestId, findByTestId } = renderDashboard(loadDiscovery);
+
+    await findByTestId('summary');
+    expect(getByTestId('tab-overview')).toHaveAttribute('aria-selected', 'true');
+
+    const coverageTab = getByTestId('tab-coverage');
+    fireEvent.click(coverageTab);
+    expect(coverageTab).toHaveAttribute('aria-selected', 'true');
+    expect(getByTestId('tab-overview')).toHaveAttribute('aria-selected', 'false');
   });
 
   it('shows an error when discovery cannot be loaded', async () => {

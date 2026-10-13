@@ -40,6 +40,8 @@ export type FlowDeps = {
 export type FlowRequest = {
   readonly clientId: string;
   readonly scopes: readonly string[];
+  /** OpenID Connect `prompt` to force (for example, `consent`); omitted when the user does not opt in. */
+  readonly prompt?: string;
 };
 
 /** The in-flight authorization transaction and the artifacts the explorer surfaces for inspection. */
@@ -98,6 +100,7 @@ export async function beginFlow(
     state,
     codeChallenge,
     nonce,
+    ...(request.prompt ? { prompt: request.prompt } : {}),
   });
 
   return { authorizeUrl, transaction };

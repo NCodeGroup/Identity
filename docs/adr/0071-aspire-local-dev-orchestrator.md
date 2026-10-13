@@ -54,7 +54,12 @@ Rules:
   use `WithPnpm(install: false)` and rely on `build/frontend-install.ps1` having installed the pnpm workspace.
   Aspire's default is to auto-install per resource, but two `pnpm install` processes running concurrently against
   the shared, symlinked `node_modules` of a pnpm **workspace** collide (`ERR_PNPM_EBUSY: resource busy or locked,
-rename ...`) and fail the losing installer, which in turn fails its dependent resource.
+rename ...`) and fail the losing installer, which in turn fails its dependent resource. Because of that same
+  concurrency hazard, `build/frontend-install.ps1` is also the **single, serial self-heal/repair point**: after its
+  fast `--frozen-lockfile` install it probes every workspace package's directly-declared links and force-reinstalls
+  only when one is actually missing or broken (symlinks lost out-of-band to a branch switch, antivirus, or an aborted
+  install — the symptom is a dev-time Vite `Failed to resolve import "react-redux"`). Re-running that one script is the
+  repair; a per-app `pnpm install` is never the answer because it reintroduces the `ERR_PNPM_EBUSY` collision.
 - **Never packed, excluded from publish.** The AppHost is `IsPackable=false` (so the provenance/PublicAPI/pack
   gates in [`Directory.Build.targets`](../../Directory.Build.targets) skip it) and contributes no shippable
   artifact. The `Aspire.AppHost.Sdk` MSBuild SDK is pinned in lockstep in [`global.json`](../../global.json)

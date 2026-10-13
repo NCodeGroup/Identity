@@ -61,8 +61,9 @@ FooDisposition>`. When a step is a **capability seam** a deployment supplies (re
   litmus: mediator only for a genuine pipeline seam).
 
 The reference exemplars are the **token** and **end-session** endpoints and the **CIBA** backchannel endpoint
-([ADR-0085](0085-ciba-grant.md)). The **device-authorization** endpoint is the known pre-convention outlier and is to
-be migrated to this shape (backlog `F18`).
+([ADR-0085](0085-ciba-grant.md)). The **device-authorization** endpoint was the known pre-convention outlier and has
+been migrated to this shape (`DeviceAuthorizationRequest : OpenIdMessage<…>` +
+`ValidateDeviceAuthorizationRequestCommand` + `CreateDeviceAuthorizationRequestCommand`).
 
 ## Options considered
 
@@ -86,7 +87,7 @@ be migrated to this shape (backlog `F18`).
   endpoint stays thin and every protocol step is an independently testable, replaceable mediator handler.
 - Capability seams (subject resolution, grant issuance, notification) are uniform: a default "unsupported" handler plus
   a capability package that replaces it, so the core ships protocol-correct and deployment-specific behavior plugs in.
-- The device-authorization endpoint is now explicitly a deviation to be reconciled (backlog `F18`), rather than an
+- The device-authorization endpoint now follows the canonical shape, so the endpoint family no longer carries an
   undocumented second pattern a new author might copy.
 - The convention is enforced by convention/review, not the compiler; the [production C# instructions](../../.github/instructions/csharp-production.instructions.md)
   carry the rule so it is auto-applied to `src/**/*.cs` work.

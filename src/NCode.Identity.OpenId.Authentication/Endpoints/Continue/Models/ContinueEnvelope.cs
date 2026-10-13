@@ -27,12 +27,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models;
 public readonly record struct ContinueEnvelope
 {
     /// <summary>
-    /// Gets or sets the <see cref="string"/> code that contains the type of operation to continue.
+    /// Gets the <see cref="string"/> code that contains the type of operation to continue.
     /// </summary>
     public required string Code { get; init; }
 
     /// <summary>
-    /// Gets or sets the <see cref="JsonElement"/> payload that contains any required data to continue the operation.
+    /// Gets the <see cref="JsonElement"/> payload that contains any required data to continue the operation.
     /// </summary>
     public required JsonElement PayloadJson { get; init; }
 }

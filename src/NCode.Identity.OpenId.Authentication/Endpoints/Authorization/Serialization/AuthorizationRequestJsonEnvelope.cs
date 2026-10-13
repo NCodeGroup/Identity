@@ -28,23 +28,23 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serializa
 public readonly record struct AuthorizationRequestJsonEnvelope
 {
     /// <summary>
-    /// Gets or sets a value indicating whether the request is a continuation.
+    /// Gets a value indicating whether the request is a continuation.
     /// </summary>
     public required bool IsContinuation { get; init; }
 
     /// <summary>
-    /// Gets or sets the consent-narrowed subset of the requested scopes, or <see langword="null"/> when no consent
+    /// Gets the consent-narrowed subset of the requested scopes, or <see langword="null"/> when no consent
     /// narrowing has been applied.
     /// </summary>
     public IReadOnlyList<string>? GrantedScopes { get; init; }
 
     /// <summary>
-    /// Gets or sets the original request message.
+    /// Gets the original request message.
     /// </summary>
     public required IAuthorizationRequestMessage? OriginalRequestMessage { get; init; }
 
     /// <summary>
-    /// Gets or sets the original request object.
+    /// Gets the original request object.
     /// </summary>
     public required IAuthorizationRequestObject? OriginalRequestObject { get; init; }
 }

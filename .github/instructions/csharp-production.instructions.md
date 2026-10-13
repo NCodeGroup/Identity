@@ -460,7 +460,9 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
 - 👁 **A `<summary>` tag is multi-line** — the opening tag, content, and closing tag on separate lines, even for a short
   summary; never collapse them onto one line.
 - 👁 **A property summary follows the Microsoft convention** — open with **"Gets or sets"**, **"Gets"**, or **"Sets"**
-  according to its accessors.
+  according to its accessors. An **`init`-only** property (`{ get; init; }`) opens with **"Gets"**: it is read-only
+  after construction, so it reads as a get-only property, not "Gets or sets". Reserve "Gets or sets" for a genuinely
+  mutable `{ get; set; }` property.
 - 👁 **No internal citations in `///` doc comments.** A `///` comment ships to consumers — it lands in the package's
   XML-doc file (IntelliSense) and, for any type on an HTTP API surface, is surfaced into the generated **OpenAPI**
   document (.NET's XML-comment integration turns a DTO/property `<summary>` into a schema `description`). So a `///`

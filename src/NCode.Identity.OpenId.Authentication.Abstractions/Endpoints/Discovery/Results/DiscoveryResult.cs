@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results;
 public sealed class DiscoveryResult
 {
     /// <summary>
-    /// Gets or sets the issuer identifier.
+    /// Gets the issuer identifier.
     /// </summary>
     public required string Issuer { get; init; }
 

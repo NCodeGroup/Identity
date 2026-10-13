@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 public sealed class JsonWebKeySetResult
 {
     /// <summary>
-    /// Gets or sets the collection of <see cref="JsonWebKey"/> instances that make up the key set.
+    /// Gets the collection of <see cref="JsonWebKey"/> instances that make up the key set.
     /// </summary>
     [JsonPropertyName("keys")]
     public IReadOnlyCollection<JsonWebKey> Keys { get; init; } = [];

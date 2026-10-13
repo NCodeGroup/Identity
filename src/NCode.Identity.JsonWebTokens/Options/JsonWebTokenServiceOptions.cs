@@ -33,7 +33,7 @@ public sealed class JsonWebTokenServiceOptions
     public bool EnsureTokenLifetime { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the default lifetime for generated tokens.
+    /// Gets the default lifetime for generated tokens.
     /// </summary>
     public TimeSpan DefaultTokenLifetime { get; } = TimeSpan.FromMinutes(60);
 }

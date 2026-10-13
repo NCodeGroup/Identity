@@ -27,8 +27,14 @@ using NCode.Registration.AspNetCore;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 
 /// <summary>
-/// Represents a mediator command to challenge a subject (aka an end-user must interactively provide their credentials or use SSO).
+/// Represents a mediator command that challenges the end-user to authenticate interactively (by signing in or through
+/// single sign-on) when no subject could be authenticated for an authorization request. It returns a
+/// <see cref="ReadOnlyEndpointDisposition"/> that typically redirects the user-agent to the configured login surface.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+/// <param name="OpenIdClient">The <see cref="OpenIdClient"/> that initiated the authorization request.</param>
+/// <param name="AuthorizationRequest">The <see cref="IAuthorizationRequest"/> that triggered the challenge.</param>
+/// <param name="AuthenticationProperties">The <see cref="AuthenticationProperties"/> carried into the challenge, such as the return URL that resumes the request.</param>
 [PublicAPI]
 public readonly record struct ChallengeCommand(
     OpenIdContext OpenIdContext,

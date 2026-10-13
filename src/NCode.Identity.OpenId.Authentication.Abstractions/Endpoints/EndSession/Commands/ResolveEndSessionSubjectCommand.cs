@@ -29,6 +29,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 /// client, and participating clients) for an RP-Initiated Logout from the request's <c>id_token_hint</c>, falling back
 /// to the current OP login cookie.
 /// </summary>
+/// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+/// <param name="Request">The <see cref="IEndSessionRequest"/> whose <c>id_token_hint</c> identifies the subject.</param>
 [PublicAPI]
 public readonly record struct ResolveEndSessionSubjectCommand(
     OpenIdContext OpenIdContext,

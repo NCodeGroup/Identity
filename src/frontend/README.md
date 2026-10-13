@@ -175,6 +175,13 @@ workspace), so this script is the single installer. The AppHost automatically pu
 **NVS-managed Node 22** on `PATH` for the frontend resources, so you only need `nvs add 22` once — no global
 `nvs link` required.
 
+> **Self-healing / repair.** If a surface fails at dev time with Vite `Failed to resolve import "react-redux"` (or any
+> workspace dependency) — the symptom of `node_modules` symlinks lost out-of-band to a branch switch, antivirus, or an
+> aborted install — just **re-run `build/frontend-install.ps1`**. After its fast `--frozen-lockfile` install it probes
+> every workspace package's links and force-reinstalls only when one is actually missing/broken, so re-running it is
+> the single, serial repair (never run a per-app `pnpm install` against this workspace — concurrent installs collide
+> with `ERR_PNPM_EBUSY`).
+
 Each app keeps its own `dev` script per its serving model (see "The `dev` script encodes each app's serving
 model" above): the interactive login surface (`apps/auth`) build-watches into its `dist`, which the Playground
 serves under `/account/*` — on a cold start give its first build a moment, then refresh `/account/login` if you

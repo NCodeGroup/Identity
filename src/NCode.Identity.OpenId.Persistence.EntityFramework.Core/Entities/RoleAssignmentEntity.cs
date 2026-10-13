@@ -44,7 +44,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 public sealed class RoleAssignmentEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
+    /// Gets the surrogate identifier for this entity.
     /// </summary>
     [Key]
     [UseIdGenerator]

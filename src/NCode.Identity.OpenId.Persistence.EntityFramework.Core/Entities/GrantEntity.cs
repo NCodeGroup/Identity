@@ -41,7 +41,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
+    /// Gets the surrogate identifier for this entity.
     /// </summary>
     [Key]
     [UseIdGenerator]
@@ -64,14 +64,14 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     public required string NormalizedGrantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the type of grant.
+    /// Gets the type of grant.
     /// </summary>
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.GrantType)]
     public required string GrantType { get; init; }
 
     /// <summary>
-    /// Gets or sets the <c>SHA-256</c> hash of the natural key that uniquely identifies this entity.
+    /// Gets the <c>SHA-256</c> hash of the natural key that uniquely identifies this entity.
     /// </summary>
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.HashedKey)]
@@ -86,7 +86,7 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     public required string ConcurrencyToken { get; set; }
 
     /// <summary>
-    /// Gets or sets the <c>TenantId</c> associated with this entity.
+    /// Gets the <c>TenantId</c> associated with this entity.
     /// </summary>
     [ForeignKey(nameof(Tenant))]
     public required long TenantId { get; init; }
@@ -100,20 +100,20 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     public required string NormalizedTenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the <c>ClientId</c> associated with this entity.
+    /// Gets the <c>ClientId</c> associated with this entity.
     /// </summary>
     [ForeignKey(nameof(Client))]
     public required long? ClientId { get; init; }
 
     /// <summary>
-    /// Gets or sets the <c>SubjectId</c> associated with this entity.
+    /// Gets the <c>SubjectId</c> associated with this entity.
     /// </summary>
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string? SubjectId { get; init; }
 
     /// <summary>
-    /// Gets or sets the value of <see cref="SubjectId"/> in uppercase so that lookups can be sargable for DBMS
+    /// Gets the value of <see cref="SubjectId"/> in uppercase so that lookups can be sargable for DBMS
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
@@ -141,7 +141,7 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     public required string? RefreshTokenLineageId { get; init; }
 
     /// <summary>
-    /// Gets or sets when this entity was created.
+    /// Gets when this entity was created.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }
 

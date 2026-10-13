@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 public sealed class ConsentEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
+    /// Gets the surrogate identifier for this entity.
     /// </summary>
     [Key]
     [UseIdGenerator]
@@ -89,7 +89,7 @@ public sealed class ConsentEntity : ISupportTenantEntity, ISupportConcurrencyTok
     public required JsonElement GrantedScopesJson { get; set; }
 
     /// <summary>
-    /// Gets or sets when this consent record was first created.
+    /// Gets when this consent record was first created.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }
 

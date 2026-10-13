@@ -87,6 +87,8 @@ NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ClientId.set
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.DeveloperSpaClientSeed() -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RedirectUris.get -> string![]!
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RedirectUris.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RequireConsent.get -> bool
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RequireConsent.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ShouldSeed.get -> bool
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)

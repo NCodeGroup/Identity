@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type InputHTMLAttributes } from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
 import Divider from '@mui/material/Divider';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -47,6 +49,11 @@ function parseScopes(text: string): string[] {
   return text.split(/\s+/).filter((scope) => scope.length > 0);
 }
 
+// MUI's Checkbox types `inputProps` as bare `InputHTMLAttributes` (no data-* index), so the automation hook is typed.
+const consentToggleInputProps: InputHTMLAttributes<HTMLInputElement> & {
+  readonly 'data-testid': string;
+} = { 'data-testid': 'prompt-consent' };
+
 function JwtView({ label, token }: { label: string; token: string }) {
   const decoded = inspectJwt(token);
   if (!decoded) {
@@ -76,6 +83,7 @@ export function FlowExplorer({
 }: FlowExplorerProps) {
   const [clientId, setClientId] = useState(runtime.clientId ?? '');
   const [scopesText, setScopesText] = useState(runtime.scopes.join(' '));
+  const [promptConsent, setPromptConsent] = useState(false);
   const [beginError, setBeginError] = useState<string | null>(null);
 
   const [tokens, setTokens] = useState<TokenSet | null>(null);
@@ -114,7 +122,11 @@ export function FlowExplorer({
     try {
       const { authorizeUrl } = await beginFlow(
         runtime,
-        { clientId, scopes: parseScopes(scopesText) },
+        {
+          clientId,
+          scopes: parseScopes(scopesText),
+          ...(promptConsent ? { prompt: 'consent' } : {}),
+        },
         origin,
         deps,
       );
@@ -194,6 +206,16 @@ export function FlowExplorer({
             inputProps={{ 'data-testid': 'scopes' }}
           />
           <CodeBlock label="Redirect URI (registered)" value={`${origin}/callback`} />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={promptConsent}
+                onChange={(event) => setPromptConsent(event.target.checked)}
+                inputProps={consentToggleInputProps}
+              />
+            }
+            label="Force consent (prompt=consent)"
+          />
           {beginError ? <Alert severity="error">{beginError}</Alert> : null}
           <Box>
             <Button

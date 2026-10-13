@@ -56,6 +56,9 @@ public sealed class DeveloperInteractiveSeedOptions
         {
             ClientId = "playground-spa",
             RedirectUris = ["http://localhost:5174/callback", "https://localhost:5174/callback"],
+            // The Playground is a flow explorer; requiring consent makes the OP exercise its durable, granular consent
+            // surface on first authorization (and remember the decision thereafter).
+            RequireConsent = true,
         },
     ];
 
@@ -98,6 +101,12 @@ public sealed class DeveloperSpaClientSeed
     /// Gets or sets the redirect URIs registered for this client.
     /// </summary>
     public string[] RedirectUris { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the authorization endpoint must obtain (and persist) end-user consent
+    /// for this client's requested scopes. Defaults to <see langword="false"/>.
+    /// </summary>
+    public bool RequireConsent { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether this client should be seeded.

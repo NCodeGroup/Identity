@@ -35,6 +35,27 @@ public class DeveloperInteractiveSeedOptionsTests
     }
 
     [Fact]
+    public void SpaClients_ByDefault_RequiresConsentOnlyForPlayground()
+    {
+        var options = new DeveloperInteractiveSeedOptions();
+
+        Assert.True(
+            options.SpaClients.Single(client => client.ClientId == "playground-spa").RequireConsent
+        );
+        Assert.False(
+            options.SpaClients.Single(client => client.ClientId == "mgmt-spa").RequireConsent
+        );
+    }
+
+    [Fact]
+    public void RequireConsent_ByDefault_IsFalse()
+    {
+        var client = new DeveloperSpaClientSeed();
+
+        Assert.False(client.RequireConsent);
+    }
+
+    [Fact]
     public void ShouldSeed_WhenClientIdAndRedirectUrisPresent_IsTrue()
     {
         var client = new DeveloperSpaClientSeed

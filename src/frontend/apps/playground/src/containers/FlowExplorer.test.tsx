@@ -65,6 +65,20 @@ describe('FlowExplorer', () => {
     expect(url.searchParams.get('client_id')).toBe('playground-spa');
     expect(url.searchParams.get('code_challenge_method')).toBe('S256');
     expect(url.searchParams.get('redirect_uri')).toBe('https://ui.test/callback');
+    // The consent toggle is off by default, so no prompt is forced.
+    expect(url.searchParams.has('prompt')).toBe(false);
+  });
+
+  it('forces prompt=consent when the consent toggle is checked', async () => {
+    const navigate = vi.fn();
+    const { getByTestId } = renderExplorer({ navigate });
+
+    getByTestId('prompt-consent').click();
+    getByTestId('begin').click();
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledTimes(1));
+    const url = new URL(navigate.mock.calls[0]![0] as string);
+    expect(url.searchParams.get('prompt')).toBe('consent');
   });
 
   it('completes a callback by exchanging the code for tokens', async () => {

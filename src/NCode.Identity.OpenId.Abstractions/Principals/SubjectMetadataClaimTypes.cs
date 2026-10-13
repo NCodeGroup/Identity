@@ -23,9 +23,10 @@ namespace NCode.Identity.OpenId.Principals;
 /// <summary>
 /// Contains the claim types under which a principal's <see cref="PrincipalMetadata"/> bags are projected — each as a
 /// single JSON object claim — into issued tokens and the UserInfo response. Metadata is a principal-level concept
-/// resolved at issuance and projected uniformly for every connection kind (ADR-0055), so these claim types live with
+/// resolved at issuance and projected uniformly for every connection kind, so these claim types live with
 /// the principal metadata rather than any single connection's account model.
 /// </summary>
+// See ADR-0055.
 [PublicAPI]
 public static class SubjectMetadataClaimTypes
 {

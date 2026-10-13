@@ -1,6 +1,6 @@
 # 62. An opt-in interactive login/consent UI for the OpenID Provider
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

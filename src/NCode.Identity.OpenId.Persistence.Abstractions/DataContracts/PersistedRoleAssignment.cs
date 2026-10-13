@@ -33,40 +33,40 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 public sealed class PersistedRoleAssignment : ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the identifier of the tenant that owns this role assignment.
+    /// Gets the identifier of the tenant that owns this role assignment.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the opaque, server-generated public identifier for this role assignment.
+    /// Gets the opaque, server-generated public identifier for this role assignment.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string AssignmentId { get; init; }
 
     /// <summary>
-    /// Gets or sets the server-generated opaque identifier of the principal that is granted the role (a federated
+    /// Gets the server-generated opaque identifier of the principal that is granted the role (a federated
     /// principal today, a service principal later).
     /// </summary>
     [MaxLength(OpenIdMaxLengths.PrincipalId)]
     public required string PrincipalId { get; init; }
 
     /// <summary>
-    /// Gets or sets the name of the role that is granted (a built-in role such as <c>Owner</c>, or an operator-defined
+    /// Gets the name of the role that is granted (a built-in role such as <c>Owner</c>, or an operator-defined
     /// custom role).
     /// </summary>
     [MaxLength(OpenIdMaxLengths.RoleName)]
     public required string RoleName { get; init; }
 
     /// <summary>
-    /// Gets or sets the type of the resource node the role is granted at (for example <c>server</c>, <c>tenant</c>,
+    /// Gets the type of the resource node the role is granted at (for example <c>server</c>, <c>tenant</c>,
     /// <c>client</c>, <c>resource_server</c>, or <c>grant</c>).
     /// </summary>
     [MaxLength(MaxLengths.ResourceType)]
     public required string ResourceType { get; init; }
 
     /// <summary>
-    /// Gets or sets the identifier of the resource node the role is granted at. Authority at this node is inherited by
+    /// Gets the identifier of the resource node the role is granted at. Authority at this node is inherited by
     /// every resource beneath it.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]

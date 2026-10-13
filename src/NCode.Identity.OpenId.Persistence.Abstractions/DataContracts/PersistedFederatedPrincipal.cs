@@ -36,13 +36,13 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 public sealed class PersistedFederatedPrincipal : ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the identifier of the tenant that owns this principal.
+    /// Gets the identifier of the tenant that owns this principal.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the server-generated opaque public identifier of the principal.
+    /// Gets the server-generated opaque public identifier of the principal.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.PrincipalId)]
     public required string PrincipalId { get; init; }

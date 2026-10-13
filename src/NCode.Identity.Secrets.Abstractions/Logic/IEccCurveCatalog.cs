@@ -25,9 +25,10 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// Provides the single, discoverable source of truth for the elliptic curves the server supports — used by key
 /// generation (to resolve a requested curve) and by <c>JWK</c> publication (to name a key's <c>crv</c>). A curve
-/// absent from the catalog is not generatable and is intentionally omitted from the <c>JWKS</c> (ADR-0068).
+/// absent from the catalog is not generatable and is intentionally omitted from the <c>JWKS</c>.
 /// Applications extend the set by registering additional <see cref="EccCurveSpecification"/> services.
 /// </summary>
+// See ADR-0068.
 [PublicAPI]
 public interface IEccCurveCatalog
 {

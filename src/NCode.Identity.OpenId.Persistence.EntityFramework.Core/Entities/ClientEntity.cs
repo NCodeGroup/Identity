@@ -36,7 +36,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 public sealed class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
+    /// Gets the surrogate identifier for this entity.
     /// </summary>
     [Key]
     [UseIdGenerator]
@@ -55,14 +55,14 @@ public sealed class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToke
     public required string NormalizedTenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the natural identifier for this entity.
+    /// Gets the natural identifier for this entity.
     /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.ResourceId)]
     public required string ClientId { get; init; }
 
     /// <summary>
-    /// Gets or sets the value of <see cref="ClientId"/> in uppercase so that lookups can be sargable for DBMS
+    /// Gets the value of <see cref="ClientId"/> in uppercase so that lookups can be sargable for DBMS
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
@@ -107,7 +107,7 @@ public sealed class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToke
     public required TenantEntity Tenant { get; init; }
 
     /// <summary>
-    /// Gets or sets the collection of secrets only known to this client.
+    /// Gets the collection of secrets only known to this client.
     /// </summary>
     public required IEnumerable<ClientSecretEntity> Secrets { get; init; }
 }

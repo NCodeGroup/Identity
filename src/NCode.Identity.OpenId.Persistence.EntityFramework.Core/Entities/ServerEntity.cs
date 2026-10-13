@@ -33,21 +33,21 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 public sealed class ServerEntity : ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the surrogate identifier for this entity.
+    /// Gets the surrogate identifier for this entity.
     /// </summary>
     [Key]
     [UseIdGenerator]
     public long Id { get; init; }
 
     /// <summary>
-    /// Gets or sets the natural identifier for this entity.
+    /// Gets the natural identifier for this entity.
     /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.ResourceId)]
     public required string ServerId { get; init; }
 
     /// <summary>
-    /// Gets or sets the value of <see cref="ServerId"/> in uppercase so that lookups can be sargable for DBMS
+    /// Gets the value of <see cref="ServerId"/> in uppercase so that lookups can be sargable for DBMS
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
@@ -92,7 +92,7 @@ public sealed class ServerEntity : ISupportConcurrencyToken
     // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
     // We use DTOs to avoid circular dependencies.
     /// <summary>
-    /// Gets or sets the collection of secrets only known to this server.
+    /// Gets the collection of secrets only known to this server.
     /// </summary>
     public required IEnumerable<ServerSecretEntity> Secrets { get; init; }
 }

@@ -1,6 +1,6 @@
 # 54. Local-account metadata projects into tokens through the subject-claims pipeline
 
-- **Status:** Proposed (metadata home and stamping seam amended by [ADR-0055](0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md))
+- **Status:** Accepted (metadata home and stamping seam amended by [ADR-0055](0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md))
 - **Date:** 2026-10-09
 - **Deciders:** NCode Group
 

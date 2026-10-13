@@ -39,14 +39,14 @@ public sealed class JoseSigningOptions(JoseSigningCredentials signingCredentials
     public JoseSigningCredentials SigningCredentials { get; } = signingCredentials;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the payload should be base64url encoded (default).
+    /// Gets a value indicating whether the payload should be base64url encoded (default).
     /// Note that unencoded and non-detached payloads may cause issues with JWS compact serialization.
     /// See RFC 7797 Section 5 for more information.
     /// </summary>
     public bool EncodePayload { get; init; } = true;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the payload should NOT be included to the encoded token.
+    /// Gets a value indicating whether the payload should NOT be included to the encoded token.
     /// See RFC 7515 Appendix F for more information.
     /// </summary>
     public bool DetachPayload { get; init; }

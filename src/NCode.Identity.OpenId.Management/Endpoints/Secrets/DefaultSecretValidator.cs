@@ -31,12 +31,13 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// </summary>
 /// <remarks>
 /// The key-type taxonomy and intrinsic per-type key-size rules come from the <see cref="ISecretKeyTypeCatalog"/>
-/// (the single source of truth, ADR-0067), so the validator cannot drift from the types the generator can actually
+/// (the single source of truth), so the validator cannot drift from the types the generator can actually
 /// produce. Algorithm compatibility is resolved against the live <see cref="IAlgorithmCollectionProvider"/> rather
 /// than a hardcoded table, so the validator also cannot drift from the set of algorithms the server actually
 /// supports (including any custom algorithms an integrator registers): the same <see cref="KeyedAlgorithm"/>
 /// metadata the crypto runtime uses to validate a key is what gates its creation here.
 /// </remarks>
+// See ADR-0067.
 internal sealed class DefaultSecretValidator(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog

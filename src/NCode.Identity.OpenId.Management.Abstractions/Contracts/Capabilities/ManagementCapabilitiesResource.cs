@@ -27,8 +27,9 @@ namespace NCode.Identity.OpenId.Management.Contracts.Capabilities;
 /// <c>GET /api/capabilities</c>. Mirroring the OpenID discovery document, it is <b>composed</b> from registered
 /// capability providers rather than a fixed schema: each provider contributes a named section that is serialized
 /// as a top-level member (via <see cref="JsonExtensionDataAttribute"/>), so new capabilities can be exposed by
-/// registering a provider without changing this type (ADR-0067).
+/// registering a provider without changing this type.
 /// </summary>
+// See ADR-0067.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class ManagementCapabilitiesResource

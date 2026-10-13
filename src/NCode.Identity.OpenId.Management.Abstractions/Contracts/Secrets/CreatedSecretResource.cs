@@ -25,8 +25,9 @@ namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 /// <summary>
 /// Represents the REST resource returned when a client secret is created. It carries the same metadata as
 /// <see cref="SecretResource"/> plus the one-time unprotected key material. The material is revealed only in
-/// this create response and is never returned by any read path. See ADR-0050.
+/// this create response and is never returned by any read path.
 /// </summary>
+// See ADR-0050.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class CreatedSecretResource
@@ -58,7 +59,7 @@ public sealed class CreatedSecretResource
     /// <summary>
     /// Gets the one-time unprotected key material, base64url-encoded, or <c>null</c> when the secret has no
     /// externally-held material to reveal (asymmetric secrets). This value appears only in this create response
-    /// and is never persisted, logged, audited, or returned by any read path. See ADR-0050.
+    /// and is never persisted, logged, audited, or returned by any read path.
     /// </summary>
     public required string? SecretMaterial { get; init; }
 }

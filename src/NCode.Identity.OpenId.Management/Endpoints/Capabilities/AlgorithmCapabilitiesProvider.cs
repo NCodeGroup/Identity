@@ -28,8 +28,9 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 /// Contributes the <c>algorithms</c> section to the management capabilities document, projecting each supported
 /// signature and key-management <see cref="KeyedAlgorithm"/> (from the live <see cref="IAlgorithmCollectionProvider"/>)
 /// with its implied use, compatible secret types, and legal key sizes, so the console create-secret form can drive
-/// its algorithm, use, and key-size inputs from discovery instead of hard-coded defaults (ADR-0067).
+/// its algorithm, use, and key-size inputs from discovery instead of hard-coded defaults.
 /// </summary>
+// See ADR-0067.
 internal sealed class AlgorithmCapabilitiesProvider(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog

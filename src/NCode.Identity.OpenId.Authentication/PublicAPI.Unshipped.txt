@@ -180,6 +180,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Message
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.LoginHintToken.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.RequestedExpiry.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.RequestedExpiry.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.RequestJwt.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.RequestJwt.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.Resources.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.Resources.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages.BackchannelAuthenticationRequest.Scopes.get -> System.Collections.Generic.List<string!>?

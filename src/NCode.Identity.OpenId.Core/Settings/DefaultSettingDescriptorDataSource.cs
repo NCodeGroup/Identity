@@ -397,6 +397,16 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // client_notification_endpoint: per-client CIBA endpoint the OP POSTs ping/push notifications to.
+            // Override (Replace): each client specifies its own endpoint.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.ClientNotificationEndpoint,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // backchannel_token_delivery_modes_supported: CIBA delivery modes the server supports.
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
@@ -416,6 +426,16 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = And,
+            };
+
+            // backchannel_authentication_request_signing_alg_values_supported: permitted "alg" values for a signed CIBA request object.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
             };
 
             // ciba_request_lifetime: validity window for a pending CIBA request (default 10 minutes).

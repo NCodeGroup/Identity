@@ -119,6 +119,26 @@ Concretely:
 - Push delivery (`F17`) and signed/encrypted backchannel request objects
   (`backchannel_authentication_request_signing_alg_values_supported`, a FAPI-CIBA concern) remain backlog follow-ups.
 
+## Update (2026-10-12) — push delivery and signed request objects (backlog `F17` complete)
+
+The two deferrals above are now implemented, completing backlog `F17`:
+
+- **Push delivery (`mode=push`).** `backchannel_token_delivery_modes_supported` now advertises `push` by default. On
+  approval, `ICibaRequestService` composes the token response (via the shared `ICibaTokenResponseService`, extracted
+  from the `auth_req_id` token handler so poll/ping and push issue identical tokens from the grant payload) and the
+  default `ICibaNotificationService.DeliverTokensAsync` `POST`s it to the client's registered
+  `client_notification_endpoint` with the `client_notification_token` as a bearer credential — a real HTTP transport
+  mirroring `IBackChannelLogoutNotifier` (the same change gives ping's `NotifyClientAsync` a real `POST` too; only the
+  authentication-device transport stays an inert seam). The `urn:openid:params:grant-type:ciba` token endpoint rejects a
+  push-mode poll with `unauthorized_client`, since push clients never poll. Delivery is best-effort (no built-in retry;
+  see backlog `D4`). The grant payload gained `Resources` so push honors the originally requested resource indicators.
+- **Signed backchannel request objects.** The request message gained a `request` parameter; a new
+  `LoadBackchannelAuthenticationRequestCommand` (default handler) validates the signed/encrypted JWT against the
+  client's keys (issuer = client id, audience = issuer, lifetime), enforces its `alg` against
+  `backchannel_authentication_request_signing_alg_values_supported` (advertised in discovery), and uses the JWT claims
+  as the authoritative request — reusing the JAR validation shape from the authorization endpoint. Encryption-alg
+  advertisement (`backchannel_authentication_request_encryption_*`) remains a follow-up (backlog `D4`).
+
 ## References
 
 - [ADR-0059](0059-device-authorization-grant.md) — the device authorization grant whose pending-request/`UpdatePayloadAsync`

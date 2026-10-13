@@ -75,6 +75,7 @@ internal class DefaultCreateBackchannelAuthenticationRequestHandler(
         {
             ClientId = openIdClient.ClientId,
             Scopes = request.Scopes ?? [],
+            Resources = request.Resources,
             Status = DeviceAuthorizationStatus.Pending,
             DeliveryMode = deliveryMode,
             SubjectAuthentication = subjectAuthentication,

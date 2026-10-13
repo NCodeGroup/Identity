@@ -24,8 +24,6 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
-using NCode.Identity.OpenId.Authentication.Tokens;
-using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -42,12 +40,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Ciba;
 internal class DefaultCibaGrantHandler(
     TimeProvider timeProvider,
     IPersistedGrantService persistedGrantService,
-    ITokenService tokenService
+    ICibaTokenResponseService tokenResponseService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
-    private ITokenService TokenService { get; } = tokenService;
+    private ICibaTokenResponseService TokenResponseService { get; } = tokenResponseService;
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
@@ -104,6 +102,22 @@ internal class DefaultCibaGrantHandler(
 
         var payload = persistedGrant.Payload;
 
+        // Push delivery pushes the tokens inside the client notification at approval time; the client never polls the
+        // token endpoint for a push-mode request (CIBA §10.3).
+        if (
+            string.Equals(
+                payload.DeliveryMode,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+                StringComparison.Ordinal
+            )
+        )
+            return errorFactory
+                .Create(OpenIdConstants.ErrorCodes.UnauthorizedClient)
+                .WithDescription(
+                    "The token endpoint cannot be used with push token delivery; the tokens are delivered to the client notification endpoint."
+                )
+                .WithStatusCode(StatusCodes.Status400BadRequest);
+
         switch (payload.Status)
         {
             case DeviceAuthorizationStatus.Denied:
@@ -128,7 +142,6 @@ internal class DefaultCibaGrantHandler(
                     openIdContext,
                     openIdClient,
                     errorFactory,
-                    tokenRequest,
                     grantId,
                     cancellationToken
                 );
@@ -182,7 +195,6 @@ internal class DefaultCibaGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IOpenIdErrorFactory errorFactory,
-        ITokenRequest tokenRequest,
         PersistedGrantId grantId,
         CancellationToken cancellationToken
     )
@@ -201,83 +213,12 @@ internal class DefaultCibaGrantHandler(
 
         var payload = consumedOrNull.Value.Payload;
 
-        return await CreateTokenResponseAsync(
+        return await TokenResponseService.CreateTokenResponseAsync(
             openIdContext,
             openIdClient,
-            tokenRequest,
             payload,
             cancellationToken
         );
-    }
-
-    private async ValueTask<TokenResponse> CreateTokenResponseAsync(
-        OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
-        ITokenRequest tokenRequest,
-        CibaGrant payload,
-        CancellationToken cancellationToken
-    )
-    {
-        var openIdEnvironment = openIdContext.Environment;
-
-        var originalScopes = payload.Scopes;
-        var effectiveScopes = tokenRequest.Scopes ?? originalScopes;
-
-        var tokenResponse = TokenResponse.Create(openIdEnvironment);
-        tokenResponse.Scopes = effectiveScopes.ToList();
-
-        var securityTokenRequest = new CreateSecurityTokenRequest
-        {
-            CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.Ciba,
-            OriginalScopes = originalScopes,
-            EffectiveScopes = effectiveScopes,
-            Resources = tokenRequest.Resources,
-            SubjectAuthentication = payload.SubjectAuthentication,
-        };
-
-        {
-            var securityToken = await TokenService.CreateAccessTokenAsync(
-                openIdContext,
-                openIdClient,
-                securityTokenRequest,
-                cancellationToken
-            );
-
-            tokenResponse.AccessToken = securityToken.TokenValue;
-            tokenResponse.ExpiresIn = securityToken.TokenLifetime.Duration;
-            tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer;
-        }
-
-        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
-        {
-            var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
-
-            var securityToken = await TokenService.CreateIdTokenAsync(
-                openIdContext,
-                openIdClient,
-                newRequest,
-                cancellationToken
-            );
-
-            tokenResponse.IdToken = securityToken.TokenValue;
-        }
-
-        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
-        {
-            var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
-
-            var securityToken = await TokenService.CreateRefreshTokenAsync(
-                openIdContext,
-                openIdClient,
-                newRequest,
-                cancellationToken
-            );
-
-            tokenResponse.RefreshToken = securityToken.TokenValue;
-        }
-
-        return tokenResponse;
     }
 
     private static IOpenIdError Error(

@@ -114,11 +114,20 @@ internal class DefaultBackchannelAuthenticationEndpointHandler(
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
         var request = BackchannelAuthenticationRequest.Load(openIdEnvironment, formData);
 
+        // A signed request object, when present, supersedes the form parameters (CIBA §7.1.1).
+        var effectiveRequest = await mediator.SendAsync<
+            LoadBackchannelAuthenticationRequestCommand,
+            IBackchannelAuthenticationRequest
+        >(
+            new LoadBackchannelAuthenticationRequestCommand(openIdContext, openIdClient, request),
+            cancellationToken
+        );
+
         await mediator.SendAsync(
             new ValidateBackchannelAuthenticationRequestCommand(
                 openIdContext,
                 openIdClient,
-                request
+                effectiveRequest
             ),
             cancellationToken
         );
@@ -127,7 +136,11 @@ internal class DefaultBackchannelAuthenticationEndpointHandler(
             AuthenticateBackchannelRequestCommand,
             AuthenticateSubjectDisposition
         >(
-            new AuthenticateBackchannelRequestCommand(openIdContext, openIdClient, request),
+            new AuthenticateBackchannelRequestCommand(
+                openIdContext,
+                openIdClient,
+                effectiveRequest
+            ),
             cancellationToken
         );
 
@@ -154,7 +167,7 @@ internal class DefaultBackchannelAuthenticationEndpointHandler(
             new CreateBackchannelAuthenticationRequestCommand(
                 openIdContext,
                 openIdClient,
-                request,
+                effectiveRequest,
                 disposition.Ticket.Value
             ),
             cancellationToken

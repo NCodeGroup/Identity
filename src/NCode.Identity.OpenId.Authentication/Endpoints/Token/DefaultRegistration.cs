@@ -108,6 +108,11 @@ internal static class DefaultRegistration
 
             // CIBA (Client-Initiated Backchannel Authentication)
 
+            serviceCollection.TryAddSingleton<
+                ICibaTokenResponseService,
+                DefaultCibaTokenResponseService
+            >();
+
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ITokenGrantHandler, DefaultCibaGrantHandler>()
             );

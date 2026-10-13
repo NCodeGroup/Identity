@@ -27,17 +27,17 @@ namespace NCode.Identity.Models;
 public readonly record struct TimePeriod
 {
     /// <summary>
-    /// Gets or sets the start time of the period.
+    /// Gets the start time of the period.
     /// </summary>
     public DateTimeOffset StartTime { get; init; }
 
     /// <summary>
-    /// Gets or sets the optional end time of the period.
+    /// Gets the optional end time of the period.
     /// </summary>
     public DateTimeOffset? EndTime { get; init; }
 
     /// <summary>
-    /// Gets duration (i.e. end time minus start time) of the time period.
+    /// Gets the duration (i.e. end time minus start time) of the time period.
     /// </summary>
     public TimeSpan? Duration => EndTime - StartTime;
 }

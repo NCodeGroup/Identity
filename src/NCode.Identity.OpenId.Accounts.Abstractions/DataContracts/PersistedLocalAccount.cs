@@ -36,13 +36,13 @@ namespace NCode.Identity.OpenId.Accounts.DataContracts;
 public sealed class PersistedLocalAccount : ISupportTenantId, ISupportConcurrencyToken
 {
     /// <summary>
-    /// Gets or sets the identifier of the tenant that owns this account.
+    /// Gets the identifier of the tenant that owns this account.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the server-generated opaque public identifier of this local account, used as the subject of its
+    /// Gets the server-generated opaque public identifier of this local account, used as the subject of its
     /// self-issued federated identity.
     /// </summary>
     [MaxLength(MaxLengths.ResourceId)]

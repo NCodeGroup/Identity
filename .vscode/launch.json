@@ -11,11 +11,19 @@
       // (WaitFor + /health), deterministically eliminating the old UI-before-API race, and the Aspire dashboard is the
       // single place for ordered startup, logs, and traces. Prerequisite: run `pnpm install` once under src/frontend
       // (Node via NVS — `nvs add 22`). The dashboard URL is printed on startup.
+      //
+      // DEBUGGER GOTCHA: keep "User-Unhandled Exceptions" OFF in the Run and Debug > BREAKPOINTS panel. Benign
+      // request-abort cancellations (e.g. a SPA cancelling an in-flight discovery fetch under React StrictMode) throw
+      // OperationCanceledException; pausing on them freezes the process long enough for the Npgsql connection to time
+      // out, which cascades into a dead connection pool where every subsequent request fails. This breakpoint setting
+      // is separate from "justMyCode" below.
       "name": "Aspire: Full stack (F5)",
       "type": "dotnet",
       "request": "launch",
       "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.Playground.AppHost/NCode.Identity.OpenId.Playground.AppHost.csproj",
       "launchSettingsProfile": "https",
+      // Step into framework code when debugging.
+      "justMyCode": false,
       "presentation": {
         "group": "0-fullstack",
         "order": 1
@@ -28,7 +36,8 @@
       "request": "launch",
       "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj",
       "launchSettingsProfile": "NCode.Identity.OpenId.Playground",
-      "justMyCode": true,
+      // Step into framework code when debugging.
+      "justMyCode": false,
       "logging": {
         "moduleLoad": false
       }

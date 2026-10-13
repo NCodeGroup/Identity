@@ -54,6 +54,31 @@ describe('buildAuthorizeUrl', () => {
     );
     expect(withNonce.searchParams.get('nonce')).toBe('n-123');
   });
+
+  it('emits the prompt only when present', () => {
+    const without = new URL(
+      buildAuthorizeUrl('https://op.test/authorize', {
+        clientId: 'spa',
+        redirectUri: 'https://ui.test/callback',
+        scopes: ['openid'],
+        state: 'xyz',
+        codeChallenge: 'chal',
+      }),
+    );
+    expect(without.searchParams.has('prompt')).toBe(false);
+
+    const withPrompt = new URL(
+      buildAuthorizeUrl('https://op.test/authorize', {
+        clientId: 'spa',
+        redirectUri: 'https://ui.test/callback',
+        scopes: ['openid'],
+        state: 'xyz',
+        codeChallenge: 'chal',
+        prompt: 'consent',
+      }),
+    );
+    expect(withPrompt.searchParams.get('prompt')).toBe('consent');
+  });
 });
 
 describe('buildEndSessionUrl', () => {

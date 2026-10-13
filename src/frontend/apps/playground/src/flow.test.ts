@@ -90,6 +90,26 @@ describe('beginFlow', () => {
 
     expect(loadTransaction(deps)).toEqual(transaction);
   });
+
+  it('emits prompt=consent when requested and omits it otherwise', async () => {
+    const deps = createDeps(vi.fn<FetchLike>());
+
+    const forced = await beginFlow(
+      runtime,
+      { clientId: 'playground-spa', scopes: ['openid'], prompt: 'consent' },
+      'https://ui.test',
+      deps,
+    );
+    expect(new URL(forced.authorizeUrl).searchParams.get('prompt')).toBe('consent');
+
+    const plain = await beginFlow(
+      runtime,
+      { clientId: 'playground-spa', scopes: ['openid'] },
+      'https://ui.test',
+      deps,
+    );
+    expect(new URL(plain.authorizeUrl).searchParams.has('prompt')).toBe(false);
+  });
 });
 
 describe('isCallback', () => {

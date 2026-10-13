@@ -34,8 +34,9 @@ export function App() {
       <Container maxWidth="md" sx={{ py: 3 }}>
         <Typography color="text.secondary" sx={{ mb: 2 }}>
           A security-posture and OpenID Foundation conformance readiness dashboard. It audits the
-          provider&rsquo;s published discovery metadata against modern OAuth 2.1 / OIDC guidance and
-          reports Basic/Config OP readiness.
+          provider&rsquo;s published discovery metadata against modern OAuth 2.1 / OIDC guidance,
+          reports Basic/Config OP readiness, and measures coverage of the full published
+          OAuth/OIDC/CIBA/FAPI spec surface to surface gaps and regressions.
         </Typography>
         <ConformanceDashboard runtime={runtime} />
       </Container>

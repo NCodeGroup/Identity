@@ -156,6 +156,24 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   in-process `TestServer`; the suite needs a real HTTPS origin (Windows/Docker: `host.docker.internal`)
   whose discovery `issuer` byte-matches that origin (pin via the `tenant_issuer` setting). Detailed plan:
   [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
+- **`T6` — Spec-coverage conformance harness (in-house gap & regression dashboard).** Evolve `apps/conformance` from a
+  discovery _security audit_ into a _spec-coverage matrix_ that measures the OP against the **full published
+  OAuth/OIDC/CIBA/FAPI catalog**, independent of what is implemented, so missing functionality (CIBA `F3`, DPoP/mTLS
+  `F7`, PAR `F8`, token exchange, pairwise `F9`, `acr` `F11`, the FAPI profile `F16`) surfaces as explicit, attributable
+  gap rows. Because every row is classified from **live discovery metadata**, the same matrix is a **regression**
+  detector: a capability that silently stops being advertised (or flips to non-conformant) flips its row, so the harness
+  guards *shipped* features as well as tracking *missing* ones. Design and
+  rationale, including the `browser` / `probe-runner` / `external-suite` exercise boundary, are in
+  [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). Phases: **(1 — done)** the data-first spec catalog
+  (`coverage.ts`) + coverage-matrix UI, classified from live discovery metadata (semantics: _advertised_, per the
+  secure-by-default subset [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)); **(2)** browser-drivable
+  active probes (PAR construction, response-mode matrix, `prompt`/`max_age`/`acr`/`claims` behavior, negative/error
+  paths) that refine _advertised_ into _verified_; **(3)** a headless Node/backend **probe runner** for the confidential
+  and server-initiated legs a browser cannot drive (`client_credentials`, introspection/revocation with client auth,
+  `private_key_jwt`, device-code polling, back-channel logout receipt, DPoP/mTLS, CIBA poll/ping once `F3` lands);
+  **(4)** wire the external OpenID Foundation Conformance Suite (`T1`) as the certified oracle with this matrix as the
+  fast pre-flight. The harness is a **measurement** surface — it tracks the backend gaps above, it does not implement
+  them. Touch point: [`src/frontend/apps/conformance`](src/frontend/apps/conformance).
 
 ## Frontend presentation platform (group `U`)
 

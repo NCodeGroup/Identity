@@ -30,9 +30,10 @@ namespace NCode.Identity.OpenId.Principals;
 /// store, not a per-node cache (an authorization-relevant <c>SystemMetadata</c> edit therefore takes effect on the next
 /// issuance across every node, matching Auth0). A host that wants to trade freshness for fewer reads replaces this
 /// provider with a decorator over a <em>distributed</em> cache; a per-node in-memory cache would make the same
-/// principal's metadata inconsistent across the cluster (ADR-0055). Registered as a singleton; it opens a store manager
+/// principal's metadata inconsistent across the cluster. Registered as a singleton; it opens a store manager
 /// per resolve via <see cref="IStoreManagerFactory"/>, so it holds no scoped state.
 /// </summary>
+// See ADR-0055.
 internal sealed class DefaultPrincipalMetadataProvider(IStoreManagerFactory storeManagerFactory)
     : IPrincipalMetadataProvider
 {

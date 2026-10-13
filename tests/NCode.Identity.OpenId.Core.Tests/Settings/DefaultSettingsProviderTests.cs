@@ -59,7 +59,8 @@ public class DefaultSettingsProviderTests : BaseTests
             mockSettings,
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
             OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+            OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            OpenIdConstants.BackchannelTokenDeliveryModes.Push
         );
         SetupBaseline(
             mockSettings,

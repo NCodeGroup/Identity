@@ -44,12 +44,14 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
             ]
         );
 
-        // CIBA token delivery: poll and ping complete through the token endpoint; push is not yet implemented.
+        // CIBA token delivery: poll and ping complete through the token endpoint; push delivers tokens inside the
+        // client notification.
         settings.Set(
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
             [
                 OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
                 OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
             ]
         );
 

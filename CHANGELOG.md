@@ -20,8 +20,8 @@ change to the public API is a **major** version bump.
   New public surface across `NCode.Identity.OpenId.Authentication(.Abstractions)`: the `IDeviceAuthorizationRequest` /
   `DeviceAuthorizationRequest` messages and the two mediator commands.
 
-- **CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication) — completes backlog `F3`.** The OP gains a
-  decoupled backchannel-authentication flow (poll and ping delivery) that reuses the device flow's
+- **CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication) — completes backlog `F3` and `F17`.** The
+  OP gains a decoupled backchannel-authentication flow (**poll, ping, and push** delivery) that reuses the device flow's
   pending-authorization-as-persisted-grant pattern with **no new table or EF migration**
   ([ADR-0085](docs/adr/0085-ciba-grant.md)). A new `backchannel_authentication_endpoint` (`/oauth2/bc-authorize`) accepts
   a strongly-typed `BackchannelAuthenticationRequest` and — like the token and end-session endpoints — is a thin
@@ -33,14 +33,22 @@ change to the public API is a **major** version bump.
   resolution is an injectable mediator seam whose default reports `unknown_user_id` (a deployment registers a CIBA
   authentication capability that replaces it); the authentication-device notification (`ICibaNotificationService`) and
   the out-of-band approval (`ICibaRequestService`) are injectable services with safe defaults, mirroring
-  `IBackChannelLogoutNotifier`. New settings `backchannel_token_delivery_modes_supported` (default `poll` / `ping`) and
-  `backchannel_user_code_parameter_supported`, plus `ciba_request_lifetime` / `ciba_polling_interval`, are advertised in
-  discovery along with the endpoint and grant — which flips the spec-coverage harness's CIBA rows to _implemented_
-  ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)). **Push** delivery and signed backchannel request
-  objects remain backlog `F17`. New public surface across `NCode.Identity.OpenId.Abstractions`,
+  `IBackChannelLogoutNotifier`. New settings `backchannel_token_delivery_modes_supported` (default `poll` / `ping` /
+  `push`) and `backchannel_user_code_parameter_supported`, plus `ciba_request_lifetime` / `ciba_polling_interval`, are
+  advertised in discovery along with the endpoint and grant — which flips the spec-coverage harness's CIBA rows to
+  _implemented_ ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)). **Push** delivery issues the tokens
+  when the user approves on their authentication device and delivers them to the client's registered
+  `client_notification_endpoint` (the default `ICibaNotificationService` performs the ping and push `POST`s; the
+  authentication-device transport stays a deployment seam), and the token endpoint rejects a push-mode poll. A client
+  may also send its parameters as a signed (and optionally encrypted) `request` JWT, validated against the client's keys
+  and advertised via `backchannel_authentication_request_signing_alg_values_supported`. New public surface across
+  `NCode.Identity.OpenId.Abstractions`,
   `.Messages.Abstractions`, and `.Authentication(.Abstractions)` (grant type, persisted-grant type, endpoint name/path,
-  CIBA parameters, `unknown_user_id`, `BackchannelTokenDeliveryModes`, the settings, the request/result messages, the
-  mediator commands, and the `ICibaNotificationService` / `ICibaRequestService` seams).
+  CIBA parameters, `unknown_user_id`, `BackchannelTokenDeliveryModes`, the settings — including
+  `client_notification_endpoint` and `backchannel_authentication_request_signing_alg_values_supported` — the
+  request/result messages with the `request` parameter, the mediator commands including
+  `LoadBackchannelAuthenticationRequestCommand`, and the `ICibaNotificationService` (with push token delivery) /
+  `ICibaRequestService` seams).
 
 - **Spec-coverage conformance harness + exercisable consent — advances backlog `T6`.** The conformance surface
   (`apps/conformance`) gained a **spec-coverage matrix** that measures the OP against the full published

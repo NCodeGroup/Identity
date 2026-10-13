@@ -66,4 +66,10 @@ public interface IBackchannelAuthenticationRequest : IOpenIdRequest
     /// Gets or sets the <c>requested_expiry</c> (seconds) the client requests for the <c>auth_req_id</c>.
     /// </summary>
     string? RequestedExpiry { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <c>request</c> parameter: a signed (and optionally encrypted) JWT carrying the request
+    /// parameters as claims (OpenID Connect CIBA §7.1.1, a FAPI-CIBA requirement).
+    /// </summary>
+    string? RequestJwt { get; set; }
 }

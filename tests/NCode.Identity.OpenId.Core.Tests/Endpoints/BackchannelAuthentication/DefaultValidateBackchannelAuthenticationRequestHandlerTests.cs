@@ -49,7 +49,8 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         string? loginHint = "user@localhost",
         string? loginHintToken = null,
         string? idTokenHint = null,
-        string? clientNotificationToken = null
+        string? clientNotificationToken = null,
+        string? clientNotificationEndpoint = null
     )
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
@@ -85,6 +86,9 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
                         OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
                     ]
             );
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.ClientNotificationEndpoint))
+            .Returns(clientNotificationEndpoint ?? string.Empty);
 
         mockRequest.SetupGet(x => x.LoginHint).Returns(loginHint);
         mockRequest.SetupGet(x => x.LoginHintToken).Returns(loginHintToken);
@@ -179,5 +183,50 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
             InvokeAsync(context, client, request).AsTask()
         );
         Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenPingWithoutNotificationEndpoint_ThrowsInvalidRequest()
+    {
+        var (context, client, _, request) = CreateScaffold(
+            deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            clientNotificationToken: "notify-token",
+            clientNotificationEndpoint: null
+        );
+
+        await Assert.ThrowsAsync<OpenIdException>(() =>
+            InvokeAsync(context, client, request).AsTask()
+        );
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenValidPing_DoesNotThrow()
+    {
+        var (context, client, _, request) = CreateScaffold(
+            deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            clientNotificationToken: "notify-token",
+            clientNotificationEndpoint: "https://client.test/ciba"
+        );
+
+        await InvokeAsync(context, client, request);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenValidPush_DoesNotThrow()
+    {
+        var (context, client, _, request) = CreateScaffold(
+            deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            deliveryModesSupported:
+            [
+                OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            ],
+            clientNotificationToken: "notify-token",
+            clientNotificationEndpoint: "https://client.test/ciba"
+        );
+
+        await InvokeAsync(context, client, request);
     }
 }

@@ -99,5 +99,12 @@ public sealed class BackchannelAuthenticationRequest
     }
 
     /// <inheritdoc />
+    public string? RequestJwt
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.RequestJwt);
+        set => SetKnownParameter(OpenIdCommonParameters.RequestJwt, value);
+    }
+
+    /// <inheritdoc />
     public override BackchannelAuthenticationRequest Clone() => new(this);
 }

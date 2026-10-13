@@ -282,6 +282,11 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported,
             signingAlgValuesSupported
         );
+        // Signed CIBA backchannel request objects, like request objects, may be symmetric (client_secret_jwt).
+        settings.Set(
+            OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported,
+            signingAlgValuesSupported
+        );
 
         settings.Set(
             OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported,

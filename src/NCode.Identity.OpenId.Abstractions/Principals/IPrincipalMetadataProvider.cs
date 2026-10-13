@@ -24,10 +24,11 @@ namespace NCode.Identity.OpenId.Principals;
 /// <summary>
 /// Resolves a principal's server-owned <see cref="PrincipalMetadata"/> by principal id, applying the tenant's freshness
 /// policy (the <c>subject_metadata_cache_duration</c> setting). This is the single read seam the subject-claims
-/// projection handlers consume at issuance, so metadata flows identically for every grant flow and connection kind
-/// (ADR-0055). The underlying store is the pluggable persistence seam; a host may replace this provider to source
+/// projection handlers consume at issuance, so metadata flows identically for every grant flow and connection kind.
+/// The underlying store is the pluggable persistence seam; a host may replace this provider to source
 /// metadata from anywhere.
 /// </summary>
+// See ADR-0055.
 [PublicAPI]
 public interface IPrincipalMetadataProvider
 {

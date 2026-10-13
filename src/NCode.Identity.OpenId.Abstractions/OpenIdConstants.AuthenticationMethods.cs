@@ -71,14 +71,14 @@ public static partial class OpenIdConstants
         public const string MultiFactorAuthentication = "mfa";
 
         /// <summary>
-        /// One-time password [RFC4949].  One-time password specifications that this authentication method applies to include
+        /// One-time password [RFC4949]. One-time password specifications that this authentication method applies to include
         /// [RFC4226] and [RFC6238].
         /// </summary>
         public const string OneTimePassword = "otp";
 
         /// <summary>
         /// Personal Identification Number (PIN) [RFC4949] or pattern (not restricted to containing only numbers) that a user
-        /// enters to unlock a key on the device.  This mechanism should have a way to deter an attacker from obtaining the PIN
+        /// enters to unlock a key on the device. This mechanism should have a way to deter an attacker from obtaining the PIN
         /// by trying repeated guesses.
         /// </summary>
         public const string PersonalIdentificationOrPattern = "pin";

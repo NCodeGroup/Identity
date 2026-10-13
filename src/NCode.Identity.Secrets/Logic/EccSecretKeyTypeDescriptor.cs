@@ -25,8 +25,9 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// The built-in <see cref="ISecretKeyTypeDescriptor"/> for <see cref="SecretKeyTypes.Ecc"/> keys. The supported
 /// curves come from the injected <see cref="IEccCurveCatalog"/> (the single, extensible source of truth), so a
-/// caller may request a specific curve by name or let one be selected by key size (ADR-0068).
+/// caller may request a specific curve by name or let one be selected by key size.
 /// </summary>
+// See ADR-0068.
 internal sealed class EccSecretKeyTypeDescriptor(IEccCurveCatalog eccCurveCatalog)
     : SecretKeyTypeDescriptor
 {

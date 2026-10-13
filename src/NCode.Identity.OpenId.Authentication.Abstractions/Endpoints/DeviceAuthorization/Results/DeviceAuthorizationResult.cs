@@ -28,38 +28,38 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Res
 public sealed class DeviceAuthorizationResult
 {
     /// <summary>
-    /// Gets or sets the device verification code.
+    /// Gets the device verification code.
     /// </summary>
     [JsonPropertyName(OpenIdConstants.Parameters.DeviceCode)]
     public required string DeviceCode { get; init; }
 
     /// <summary>
-    /// Gets or sets the end-user verification code.
+    /// Gets the end-user verification code.
     /// </summary>
     [JsonPropertyName(OpenIdConstants.Parameters.UserCode)]
     public required string UserCode { get; init; }
 
     /// <summary>
-    /// Gets or sets the end-user verification URI on the authorization server.
+    /// Gets the end-user verification URI on the authorization server.
     /// </summary>
     [JsonPropertyName(OpenIdConstants.Parameters.VerificationUri)]
     public required string VerificationUri { get; init; }
 
     /// <summary>
-    /// Gets or sets the verification URI that includes the <c>user_code</c>, designed for non-textual transmission.
+    /// Gets the verification URI that includes the <c>user_code</c>, designed for non-textual transmission.
     /// </summary>
     [JsonPropertyName(OpenIdConstants.Parameters.VerificationUriComplete)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? VerificationUriComplete { get; init; }
 
     /// <summary>
-    /// Gets or sets the lifetime in seconds of the <c>device_code</c> and <c>user_code</c>.
+    /// Gets the lifetime in seconds of the <c>device_code</c> and <c>user_code</c>.
     /// </summary>
     [JsonPropertyName(OpenIdConstants.Parameters.ExpiresIn)]
     public required int ExpiresIn { get; init; }
 
     /// <summary>
-    /// Gets or sets the minimum amount of time in seconds that the client should wait between polling requests to the
+    /// Gets the minimum amount of time in seconds that the client should wait between polling requests to the
     /// token endpoint.
     /// </summary>
     [JsonPropertyName(OpenIdConstants.Parameters.Interval)]

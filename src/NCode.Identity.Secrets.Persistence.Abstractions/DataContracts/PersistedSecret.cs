@@ -56,7 +56,7 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     //
 
     /// <summary>
-    /// Gets or sets the intended use for this secret. This property is optional and may be <c>null</c> to
+    /// Gets the intended use for this secret. This property is optional and may be <c>null</c> to
     /// indicate that this secret is intended for use with any compatible algorithm.
     /// See <see cref="SecretKeyUses"/> for possible values.
     /// </summary>
@@ -64,38 +64,38 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     public required string? Use { get; init; }
 
     /// <summary>
-    /// Gets or sets the intended algorithm for use with this secret. This property is optional and may be
+    /// Gets the intended algorithm for use with this secret. This property is optional and may be
     /// <c>null</c> to indicate that this secret is intended for use with any compatible algorithm.
     /// </summary>
     [MaxLength(SecretMaxLengths.Algorithm)]
     public required string? Algorithm { get; init; }
 
     /// <summary>
-    /// Gets or sets the <see cref="DateTimeOffset"/> when this secret was created.
+    /// Gets the <see cref="DateTimeOffset"/> when this secret was created.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }
 
     /// <summary>
-    /// Gets or sets the <see cref="DateTimeOffset"/> when this secret expires and is no longer valid.
+    /// Gets the <see cref="DateTimeOffset"/> when this secret expires and is no longer valid.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
 
     /// <summary>
-    /// Gets or sets a value that specifies the type of secret.
+    /// Gets a value that specifies the type of secret.
     /// See <see cref="SecretTypes"/> for possible values.
     /// </summary>
     [MaxLength(SecretMaxLengths.SecretType)]
     public required string SecretType { get; init; }
 
     /// <summary>
-    /// Gets or sets the size, in bits, of the key material.
+    /// Gets the size, in bits, of the key material.
     /// For asymmetric keys, this is the size of the modulus.
     /// For symmetric keys, this is the size of the actual key material.
     /// </summary>
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets or sets the base64url encoded value of the key material.
+    /// Gets the base64url encoded value of the key material.
     /// </summary>
     [MaxLength(SecretMaxLengths.EncodedValue)]
     public required string EncodedValue { get; init; }

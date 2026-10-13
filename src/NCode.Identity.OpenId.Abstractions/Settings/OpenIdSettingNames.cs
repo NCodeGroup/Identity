@@ -469,6 +469,21 @@ public static class OpenIdSettingNames
     public const string RequireRequestUriRegistration = "require_request_uri_registration";
 
     /// <summary>
+    /// Contains the name of <c>require_pushed_authorization_requests</c> setting (RFC 9126): whether the client must
+    /// push its authorization request to the pushed authorization request endpoint before invoking the authorization
+    /// endpoint.
+    /// </summary>
+    public const string RequirePushedAuthorizationRequests =
+        "require_pushed_authorization_requests";
+
+    /// <summary>
+    /// Contains the name of <c>pushed_authorization_request_lifetime</c> setting (RFC 9126): the validity window of a
+    /// pushed authorization request, after which its <c>request_uri</c> can no longer be used.
+    /// </summary>
+    public const string PushedAuthorizationRequestLifetime =
+        "pushed_authorization_request_lifetime";
+
+    /// <summary>
     /// Contains the name of <c>response_modes_supported</c> setting.
     /// </summary>
     public const string ResponseModesSupported = "response_modes_supported";

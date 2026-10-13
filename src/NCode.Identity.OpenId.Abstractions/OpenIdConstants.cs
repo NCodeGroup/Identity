@@ -44,6 +44,13 @@ public static partial class OpenIdConstants
     public const string ContentType = "application/x-www-form-urlencoded";
 
     /// <summary>
+    /// Contains the URN prefix for a <c>request_uri</c> value issued by the pushed authorization request endpoint
+    /// (<see href="https://datatracker.ietf.org/doc/html/rfc9126#section-2.2">RFC 9126</see>). The full value is this
+    /// prefix followed by a high-entropy, single-use reference to the stored request.
+    /// </summary>
+    public const string PushedAuthorizationRequestUriPrefix = "urn:ietf:params:oauth:request_uri:";
+
+    /// <summary>
     /// Contains the names for various <c>OAuth</c> and <c>OpenID Connect</c> endpoints and routes.
     /// </summary>
     public static class EndpointNames
@@ -80,6 +87,12 @@ public static partial class OpenIdConstants
         /// This value is also used as the <c>backchannel_authentication_endpoint</c> key in the discovery metadata.
         /// </summary>
         public const string BackchannelAuthentication = "backchannel_authentication_endpoint";
+
+        /// <summary>
+        /// Contains the name for the <c>pushed authorization request</c> endpoint (RFC 9126).
+        /// This value is also used as the <c>pushed_authorization_request_endpoint</c> key in the discovery metadata.
+        /// </summary>
+        public const string PushedAuthorizationRequest = "pushed_authorization_request_endpoint";
 
         /// <summary>
         /// Contains the name for the <c>JSON Web Key Set (JWKS)</c> endpoint.
@@ -172,6 +185,11 @@ public static partial class OpenIdConstants
         /// Contains the relative path for the <c>backchannel authentication</c> endpoint (OpenID Connect CIBA).
         /// </summary>
         public const string BackchannelAuthentication = $"{Prefix}/bc-authorize";
+
+        /// <summary>
+        /// Contains the relative path for the <c>pushed authorization request</c> endpoint (RFC 9126).
+        /// </summary>
+        public const string PushedAuthorizationRequest = $"{Prefix}/par";
 
         /// <summary>
         /// Contains the relative path for the <c>JSON Web Key Set (JWKS)</c> endpoint.
@@ -361,6 +379,13 @@ public static partial class OpenIdConstants
         /// session has issued tokens to. It backs the <c>sid</c> claim and the logout pipeline.
         /// </summary>
         public const string Session = "session";
+
+        /// <summary>
+        /// Identifies a persisted grant for a <c>pushed authorization request</c> (RFC 9126), keyed by the opaque
+        /// reference embedded in the issued <c>request_uri</c>, whose payload carries the authorization request
+        /// parameters the client pushed. The authorization endpoint consumes it once to replay the request.
+        /// </summary>
+        public const string PushedAuthorizationRequest = "pushed_authorization_request";
     }
 
     /// <summary>

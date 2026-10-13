@@ -39,7 +39,7 @@ public static class ValidateJwtParametersExtensions
         /// Sets the <see cref="ValidateJwtParameters.ResolveValidationKeysAsync"/> property on <see cref="ValidateJwtParameters"/>
         /// to a delegate that returns the specified <paramref name="secretKeys"/>.
         /// </summary>
-        /// <param name="secretKeys">The collection of <see cref="SecretKey"/> instances to use for Json Web Token (JWT) validation.</param>
+        /// <param name="secretKeys">The collection of <see cref="SecretKey"/> instances to use for JSON Web Token (JWT) validation.</param>
         /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
         public ValidateJwtParameters UseValidationKeys(IEnumerable<SecretKey> secretKeys)
         {
@@ -61,7 +61,7 @@ public static class ValidateJwtParametersExtensions
         }
 
         /// <summary>
-        /// Adds a validator that asserts the specified <paramref name="claimName"/> exists in the Json Web Token (JWT) with any
+        /// Adds a validator that asserts the specified <paramref name="claimName"/> exists in the JSON Web Token (JWT) with any
         /// value specified from <paramref name="validValues"/>. If the claim does not exist or the value is not one of the valid
         /// values, then an exception is thrown.
         /// </summary>

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -24,7 +24,7 @@ using NCode.Buffers;
 namespace NCode.Identity.Jose;
 
 /// <summary>
-/// Represents a Json Web Token (JWT) in compact form with support for either JWS or JWE protection.
+/// Represents a JSON Web Token (JWT) in compact form with support for either JWS or JWE protection.
 /// </summary>
 /// <param name="protectionType">Contains a value indicating how the JWT is protected, either 'JWS' or 'JWE'.</param>
 /// <param name="segments">Contains the substrings from the JWT separated by the '.' (dot) character.</param>
@@ -58,7 +58,7 @@ public readonly struct CompactJwt(
     public JsonElement DeserializedHeader { get; } = deserializedHeader;
 
     /// <summary>
-    /// Returns the original Json Web Token (JWT) in compact form.
+    /// Returns the original JSON Web Token (JWT) in compact form.
     /// </summary>
     public override string ToString() => Segments.Original.ToString();
 }

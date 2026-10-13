@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -23,7 +23,7 @@ using NCode.Identity.Jose.Exceptions;
 namespace NCode.Identity.JsonWebTokens.Exceptions;
 
 /// <summary>
-/// Represents errors that occur during <c>Json Web Token (JWT)</c> validation.
+/// Represents errors that occur during <c>JSON Web Token (JWT)</c> validation.
 /// </summary>
 [PublicAPI]
 [Serializable]

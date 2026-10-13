@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -21,7 +21,7 @@ using JetBrains.Annotations;
 namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
-/// Provides the ability to create and validate a Json Web Token (JWT).
+/// Provides the ability to create and validate a JSON Web Token (JWT).
 /// See the following RFCs for more information:
 /// https://datatracker.ietf.org/doc/html/rfc7519
 /// https://datatracker.ietf.org/doc/html/rfc7515
@@ -30,16 +30,16 @@ namespace NCode.Identity.JsonWebTokens;
 public interface IJsonWebTokenService
 {
     /// <summary>
-    /// Encodes a Json Web Token (JWT) using JWS or JWE compact serialization format.
+    /// Encodes a JSON Web Token (JWT) using JWS or JWE compact serialization format.
     /// </summary>
     /// <param name="parameters">The <see cref="EncodeJwtParameters"/> instance that specifies how to encode the token.</param>
     /// <returns>The encoded JWT in compact serialization format.</returns>
     string EncodeJwt(EncodeJwtParameters parameters);
 
     /// <summary>
-    /// Validates a Json Web Token (JWT) that is encoded using JWS or JWE compact serialization format.
+    /// Validates a JSON Web Token (JWT) that is encoded using JWS or JWE compact serialization format.
     /// </summary>
-    /// <param name="token">The Json Web Token (JWT) to validate.</param>
+    /// <param name="token">The JSON Web Token (JWT) to validate.</param>
     /// <param name="parameters">An <see cref="ValidateJwtParameters"/> instance that specifies how to perform the validation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>

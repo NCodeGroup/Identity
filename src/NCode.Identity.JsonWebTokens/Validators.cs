@@ -30,7 +30,7 @@ using NCode.Json;
 namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
-/// Provides the ability to configure various Json Web Token (JWT) validators.
+/// Provides the ability to configure various JSON Web Token (JWT) validators.
 /// </summary>
 [PublicAPI]
 public static class Validators
@@ -39,7 +39,7 @@ public static class Validators
     extension(ValidateJwtParameters parameters)
     {
         /// <summary>
-        /// Adds a validator that asserts the <c>iss</c> claim exists in the Json Web Token (JWT) payload with any of the
+        /// Adds a validator that asserts the <c>iss</c> claim exists in the JSON Web Token (JWT) payload with any of the
         /// specified <paramref name="validIssuers"/>.
         /// </summary>
         /// <param name="validIssuers">The collection of allowable values for the <c>iss></c> claim.</param>
@@ -53,7 +53,7 @@ public static class Validators
             );
 
         /// <summary>
-        /// Adds a validator that asserts the <c>aud</c> claim exists in the Json Web Token (JWT) payload with any of the
+        /// Adds a validator that asserts the <c>aud</c> claim exists in the JSON Web Token (JWT) payload with any of the
         /// specified <paramref name="validAudiences"/>.
         /// </summary>
         /// <param name="validAudiences">The collection of allowable values for the <c>aud></c> claim.</param>
@@ -113,14 +113,14 @@ public static class Validators
         }
 
         /// <summary>
-        /// Adds a validator that asserts the <c>nbf</c> and <c>exp</c> claims in the Json Web Token (JWT) payload are valid.
+        /// Adds a validator that asserts the <c>nbf</c> and <c>exp</c> claims in the JSON Web Token (JWT) payload are valid.
         /// </summary>
         /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
         public ValidateJwtParameters ValidateTokenLifeTime() =>
             ValidateTokenLifeTime(parameters, _ => { });
 
         /// <summary>
-        /// Adds a validator that asserts the <c>nbf</c> and <c>exp</c> claims in the Json Web Token (JWT) payload are valid.
+        /// Adds a validator that asserts the <c>nbf</c> and <c>exp</c> claims in the JSON Web Token (JWT) payload are valid.
         /// </summary>
         /// <param name="configureOptions">A callback to configure validation options.</param>
         /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>

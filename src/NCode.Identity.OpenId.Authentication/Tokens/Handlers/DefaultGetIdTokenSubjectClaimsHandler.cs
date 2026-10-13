@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 
 /// <summary>
 /// Provides a default implementation for a <see cref="GetIdTokenSubjectClaimsCommand"/> handler that generates the subject
-/// claims for an id token. Custom claims are added by additional handlers provided by the application.
+/// claims for an ID token. Custom claims are added by additional handlers provided by the application.
 /// </summary>
 internal class DefaultGetIdTokenSubjectClaimsHandler(IClaimsService claimsService)
     : ICommandHandler<GetIdTokenSubjectClaimsCommand>,

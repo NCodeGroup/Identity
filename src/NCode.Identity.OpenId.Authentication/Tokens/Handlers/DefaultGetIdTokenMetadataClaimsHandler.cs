@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 
 /// <summary>
 /// Provides a default <see cref="GetIdTokenSubjectClaimsCommand"/> handler that projects the principal's metadata bags
-/// into the id token, gated by the <c>send_profile_metadata_in_id_token</c> and <c>send_system_metadata_in_id_token</c>
+/// into the ID token, gated by the <c>send_profile_metadata_in_id_token</c> and <c>send_system_metadata_in_id_token</c>
 /// settings. The bags are resolved fresh from the <see cref="IPrincipalMetadataProvider"/> by principal id at issuance,
 /// so they flow identically for every grant flow and connection kind. This is only the built-in default projection;
 /// applications register their own pipeline handlers to shape metadata into bespoke claims.

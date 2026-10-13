@@ -33,6 +33,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Mediator;
@@ -335,6 +336,109 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         Assert.Equal(OpenIdConstants.TokenTypes.Bearer, response.TokenType);
         Assert.Equal(TimeSpan.FromHours(1), response.ExpiresIn);
         Assert.Equal(["api"], response.Scopes);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenRevokedAndReusePolicyRevokeAll_RevokesTokenFamily()
+    {
+        var (mockContext, mockClient, _, mockTokenRequest, mockSettings, mockError) =
+            CreateScaffold();
+
+        var revokedGrant = new PersistedGrant<RefreshTokenGrant>
+        {
+            Status = PersistedGrantStatus.Revoked,
+            TenantId = TenantId,
+            ClientId = "client-1",
+            SubjectId = "subject-1",
+            SessionId = null,
+            RefreshTokenLineageId = "lineage-1",
+            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null),
+        };
+        SetupLookup(mockTokenRequest, revokedGrant);
+
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenReusePolicy))
+            .Returns(OpenIdConstants.RefreshTokenReusePolicy.RevokeAll)
+            .Verifiable();
+
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordRefreshTokenReplayAsync(
+                    mockContext.Object,
+                    mockClient.Object,
+                    null,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeByRefreshTokenLineageAsync(
+                    mockContext.Object,
+                    "lineage-1",
+                    CreatedWhen,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<long>(2L))
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenRevokedAndReusePolicyNone_DoesNotRevokeTokenFamily()
+    {
+        var (mockContext, mockClient, _, mockTokenRequest, mockSettings, mockError) =
+            CreateScaffold();
+
+        var revokedGrant = new PersistedGrant<RefreshTokenGrant>
+        {
+            Status = PersistedGrantStatus.Revoked,
+            TenantId = TenantId,
+            ClientId = "client-1",
+            SubjectId = "subject-1",
+            SessionId = null,
+            RefreshTokenLineageId = "lineage-1",
+            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null),
+        };
+        SetupLookup(mockTokenRequest, revokedGrant);
+
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenReusePolicy))
+            .Returns(OpenIdConstants.RefreshTokenReusePolicy.None)
+            .Verifiable();
+
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordRefreshTokenReplayAsync(
+                    mockContext.Object,
+                    mockClient.Object,
+                    null,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        // The strict grant-service mock has no setup for lineage revocation: policy 'none' must not revoke the family.
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
     }
 
     #endregion

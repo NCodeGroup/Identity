@@ -97,6 +97,7 @@ internal class DefaultPersistedGrantService(
             ClientId = grant.ClientId,
             SubjectId = grant.SubjectId,
             SessionId = grant.SessionId,
+            RefreshTokenLineageId = grant.RefreshTokenLineageId,
             CreatedWhen = createdWhen,
             ExpiresWhen = expiresWhen,
             RevokedWhen = null,
@@ -163,6 +164,7 @@ internal class DefaultPersistedGrantService(
             ClientId = envelope.ClientId,
             SubjectId = envelope.SubjectId,
             SessionId = envelope.SessionId,
+            RefreshTokenLineageId = envelope.RefreshTokenLineageId,
             Payload = payload,
         };
 
@@ -217,6 +219,7 @@ internal class DefaultPersistedGrantService(
             ClientId = envelope.ClientId,
             SubjectId = envelope.SubjectId,
             SessionId = envelope.SessionId,
+            RefreshTokenLineageId = envelope.RefreshTokenLineageId,
             Payload = payload,
         };
 
@@ -252,6 +255,28 @@ internal class DefaultPersistedGrantService(
         await store.UpdateAsync(envelope, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<long> RevokeByRefreshTokenLineageAsync(
+        OpenIdContext openIdContext,
+        string refreshTokenLineageId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IGrantStore>();
+
+        var count = await store.RevokeByRefreshTokenLineageAsync(
+            refreshTokenLineageId,
+            revokedWhen,
+            cancellationToken
+        );
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return count;
     }
 
     /// <inheritdoc />

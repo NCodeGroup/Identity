@@ -96,7 +96,8 @@ public sealed class GrantStoreTests : IDisposable
         string hashedKey = HashedKey,
         string grantId = "grant-1",
         string? subjectId = "subject-1",
-        string? sessionId = null
+        string? sessionId = null,
+        string? refreshTokenLineageId = null
     ) =>
         new()
         {
@@ -108,6 +109,7 @@ public sealed class GrantStoreTests : IDisposable
             ClientId = null,
             SubjectId = subjectId,
             SessionId = sessionId,
+            RefreshTokenLineageId = refreshTokenLineageId,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddHours(1),
             RevokedWhen = null,
@@ -372,6 +374,82 @@ public sealed class GrantStoreTests : IDisposable
         Assert.NotNull(session2);
         Assert.Equal(revokedWhen, session1.RevokedWhen);
         Assert.Null(session2.RevokedWhen);
+    }
+
+    #endregion
+
+    #region RevokeByRefreshTokenLineageAsync Tests
+
+    [Fact]
+    public async Task RevokeByRefreshTokenLineageAsync_RevokesOnlyActiveFamilyMembers()
+    {
+        await _store.AddAsync(
+            CreateGrant(hashedKey: "hk-f1", grantId: "grant-f1", refreshTokenLineageId: "fam-1"),
+            CancellationToken.None
+        );
+        await _store.AddAsync(
+            CreateGrant(hashedKey: "hk-f2", grantId: "grant-f2", refreshTokenLineageId: "fam-1"),
+            CancellationToken.None
+        );
+        await _store.AddAsync(
+            CreateGrant(
+                hashedKey: "hk-other",
+                grantId: "grant-other",
+                refreshTokenLineageId: "fam-2"
+            ),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var revokedWhen = DateTimeOffset.UnixEpoch.AddMinutes(10);
+        var count = await _store.RevokeByRefreshTokenLineageAsync(
+            "fam-1",
+            revokedWhen,
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(2, count);
+
+        var family1 = await _store.GetOrDefaultAsync("grant-f1", CancellationToken.None);
+        var family2 = await _store.GetOrDefaultAsync("grant-f2", CancellationToken.None);
+        var other = await _store.GetOrDefaultAsync("grant-other", CancellationToken.None);
+        Assert.NotNull(family1);
+        Assert.NotNull(family2);
+        Assert.NotNull(other);
+        Assert.Equal(revokedWhen, family1.RevokedWhen);
+        Assert.Equal(revokedWhen, family2.RevokedWhen);
+        Assert.Null(other.RevokedWhen);
+    }
+
+    [Fact]
+    public async Task RevokeByRefreshTokenLineageAsync_IsIdempotentForAlreadyRevoked()
+    {
+        await _store.AddAsync(
+            CreateGrant(hashedKey: "hk-f", grantId: "grant-f", refreshTokenLineageId: "fam-1"),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var first = await _store.RevokeByRefreshTokenLineageAsync(
+            "fam-1",
+            DateTimeOffset.UnixEpoch.AddMinutes(10),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var second = await _store.RevokeByRefreshTokenLineageAsync(
+            "fam-1",
+            DateTimeOffset.UnixEpoch.AddMinutes(20),
+            CancellationToken.None
+        );
+
+        Assert.Equal(1, first);
+        Assert.Equal(0, second);
     }
 
     #endregion

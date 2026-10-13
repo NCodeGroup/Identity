@@ -73,6 +73,22 @@ public interface IGrantStore : IStore<PersistedGrant>
     );
 
     /// <summary>
+    /// Soft-revokes every active grant belonging to the specified refresh-token rotation family by setting its
+    /// <c>RevokedWhen</c> timestamp; already-revoked grants are left unchanged. Used by refresh-token reuse detection
+    /// to revoke the whole family when a replayed token is presented.
+    /// </summary>
+    /// <param name="refreshTokenLineageId">The opaque identifier of the refresh-token rotation family to revoke.</param>
+    /// <param name="revokedWhen">The timestamp to record as the revocation time.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
+    /// grants that were revoked.</returns>
+    ValueTask<long> RevokeByRefreshTokenLineageAsync(
+        string refreshTokenLineageId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Attempts to retrieve a persisted grant from the store by its opaque <c>GrantId</c>.
     /// </summary>
     /// <param name="grantId">The opaque identifier of the grant.</param>

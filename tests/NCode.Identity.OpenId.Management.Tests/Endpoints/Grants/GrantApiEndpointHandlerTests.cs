@@ -138,6 +138,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             ClientId = "client-1",
             SubjectId = "subject-1",
             SessionId = null,
+            RefreshTokenLineageId = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddHours(1),
             RevokedWhen = revokedWhen,

@@ -535,6 +535,11 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("RefreshTokenLineageId")
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<DateTimeOffset?>("RevokedWhen")
                         .HasColumnType("timestamp with time zone");
 
@@ -566,6 +571,8 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
                     b.HasIndex("TenantId", "ClientId");
 
                     b.HasIndex("TenantId", "NormalizedSubjectId");
+
+                    b.HasIndex("TenantId", "RefreshTokenLineageId");
 
                     b.HasIndex("TenantId", "SessionId");
 

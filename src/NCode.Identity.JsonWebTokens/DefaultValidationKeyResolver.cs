@@ -32,16 +32,16 @@ namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
 /// Provides a default implementation for resolving the <see cref="SecretKey"/> instances that are to be used
-/// to validate a Json Web Token (JWT).
+/// to validate a JSON Web Token (JWT).
 /// </summary>
 internal static class DefaultValidationKeyResolver
 {
     /// <summary>
     /// Provides a default implementation for resolving the <see cref="SecretKey"/> instances that are to be used
-    /// to validate a Json Web Token (JWT).
+    /// to validate a JSON Web Token (JWT).
     /// </summary>
     /// <param name="protectionType">A value indicating how the JWT is protected, either 'JWS' or 'JWE'.</param>
-    /// <param name="header">A <see cref="JsonElement"/> instance that contains the Json Web Token (JWT) header.</param>
+    /// <param name="header">A <see cref="JsonElement"/> instance that contains the JSON Web Token (JWT) header.</param>
     /// <param name="secretKeys">A <see cref="ISecretKeyCollection"/> instance that contains the candidate <see cref="SecretKey"/> instances.</param>
     /// <returns>A collection of <see cref="SecretKey"/> instances.</returns>
     public static IEnumerable<SecretKey> ResolveValidationKeys(

@@ -22,7 +22,7 @@ using JetBrains.Annotations;
 namespace NCode.Identity.JsonWebTokens.Exceptions;
 
 /// <summary>
-/// Represents errors that occur when decoding <c>Json Web Token (JWT)</c> fails.
+/// Represents errors that occur when decoding <c>JSON Web Token (JWT)</c> fails.
 /// </summary>
 [PublicAPI]
 [Serializable]

@@ -28,7 +28,7 @@ using NCode.PropertyBag;
 namespace NCode.Identity.JsonWebTokens;
 
 /// <summary>
-/// Provides the signature for a delegate to validate the claims in a Json Web Token (JWT).
+/// Provides the signature for a delegate to validate the claims in a JSON Web Token (JWT).
 /// </summary>
 [PublicAPI]
 public delegate ValueTask ValidateJwtAsync(
@@ -38,7 +38,7 @@ public delegate ValueTask ValidateJwtAsync(
 
 /// <summary>
 /// Provides the signature for a delegate that is used to return a collection of <see cref="SecretKey"/> instances
-/// that are to be used to validate a Json Web Token (JWT).
+/// that are to be used to validate a JSON Web Token (JWT).
 /// </summary>
 [PublicAPI]
 public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
@@ -50,7 +50,7 @@ public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
 
 /// <summary>
 /// Contains the signature for a delegate that is used to create a <see cref="ClaimsIdentity"/> instance
-/// from a decoded Json Web Token (JWT).
+/// from a decoded JSON Web Token (JWT).
 /// </summary>
 [PublicAPI]
 public delegate ValueTask<ClaimsIdentity> CreateClaimsIdentityAsync(
@@ -63,7 +63,7 @@ public delegate ValueTask<ClaimsIdentity> CreateClaimsIdentityAsync(
 );
 
 /// <summary>
-/// Contains a set of parameters that are used to validate a Json Web Token (JWT).
+/// Contains a set of parameters that are used to validate a JSON Web Token (JWT).
 /// </summary>
 [PublicAPI]
 public class ValidateJwtParameters
@@ -93,13 +93,13 @@ public class ValidateJwtParameters
     public string RoleClaimType { get; set; } = ClaimsIdentity.DefaultRoleClaimType;
 
     /// <summary>
-    /// Gets a collection of <see cref="ValidateJwtAsync"/> delegates that are used to validate the claims in a Json Web Token (JWT).
+    /// Gets a collection of <see cref="ValidateJwtAsync"/> delegates that are used to validate the claims in a JSON Web Token (JWT).
     /// </summary>
     public List<ValidateJwtAsync> Validators { get; } = [];
 
     /// <summary>
     /// Gets or sets a delegate that is used to return a collection of <see cref="SecretKey"/> instances that are to be used
-    /// to validate a Json Web Token (JWT).
+    /// to validate a JSON Web Token (JWT).
     /// </summary>
     public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; } =
         static (compactJwt, _, secretKeyProvider, _) =>
@@ -112,7 +112,7 @@ public class ValidateJwtParameters
             );
 
     /// <summary>
-    /// Gets or sets a delegate that is used to create a <see cref="ClaimsIdentity"/> instance from a Json Web Token (JWT).
+    /// Gets or sets a delegate that is used to create a <see cref="ClaimsIdentity"/> instance from a JSON Web Token (JWT).
     /// </summary>
     public CreateClaimsIdentityAsync CreateClaimsIdentityAsync { get; set; } =
         static (decodedJwt, _, authenticationType, nameClaimType, roleClaimType, _) =>

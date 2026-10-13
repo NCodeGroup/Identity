@@ -31,13 +31,13 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results;
 public sealed record RegisterClientResponse
 {
     /// <summary>
-    /// Gets or sets the unique client identifier assigned by the authorization server.
+    /// Gets the unique client identifier assigned by the authorization server.
     /// </summary>
     [JsonPropertyName("client_id")]
     public required string ClientId { get; init; }
 
     /// <summary>
-    /// Gets or sets the client secret assigned by the authorization server, when the client is confidential. The
+    /// Gets the client secret assigned by the authorization server, when the client is confidential. The
     /// secret is revealed only in the registration response and is never returned again.
     /// </summary>
     [JsonPropertyName("client_secret")]
@@ -45,14 +45,14 @@ public sealed record RegisterClientResponse
     public string? ClientSecret { get; init; }
 
     /// <summary>
-    /// Gets or sets the time at which the client identifier was issued, as the number of seconds since the Unix epoch.
+    /// Gets the time at which the client identifier was issued, as the number of seconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("client_id_issued_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? ClientIdIssuedAt { get; init; }
 
     /// <summary>
-    /// Gets or sets the time at which the client secret expires, as the number of seconds since the Unix epoch, or
+    /// Gets the time at which the client secret expires, as the number of seconds since the Unix epoch, or
     /// <c>0</c> if the secret does not expire. Present only when a client secret was issued.
     /// </summary>
     [JsonPropertyName("client_secret_expires_at")]
@@ -60,7 +60,7 @@ public sealed record RegisterClientResponse
     public long? ClientSecretExpiresAt { get; init; }
 
     /// <summary>
-    /// Gets or sets the access token the client uses to read, update, or delete its own registration at the
+    /// Gets the access token the client uses to read, update, or delete its own registration at the
     /// registration management endpoint (RFC 7592). Revealed only in the registration response.
     /// </summary>
     [JsonPropertyName("registration_access_token")]
@@ -68,112 +68,112 @@ public sealed record RegisterClientResponse
     public string? RegistrationAccessToken { get; init; }
 
     /// <summary>
-    /// Gets or sets the fully qualified URL of the client's registration management endpoint (RFC 7592).
+    /// Gets the fully qualified URL of the client's registration management endpoint (RFC 7592).
     /// </summary>
     [JsonPropertyName("registration_client_uri")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? RegistrationClientUri { get; init; }
 
     /// <summary>
-    /// Gets or sets the array of redirection URI strings the client may use in authorization requests.
+    /// Gets the array of redirection URI strings the client may use in authorization requests.
     /// </summary>
     [JsonPropertyName("redirect_uris")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<string>? RedirectUris { get; init; }
 
     /// <summary>
-    /// Gets or sets the client authentication method registered for the token endpoint.
+    /// Gets the client authentication method registered for the token endpoint.
     /// </summary>
     [JsonPropertyName("token_endpoint_auth_method")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TokenEndpointAuthMethod { get; init; }
 
     /// <summary>
-    /// Gets or sets the array of OAuth 2.0 grant types registered for the client.
+    /// Gets the array of OAuth 2.0 grant types registered for the client.
     /// </summary>
     [JsonPropertyName("grant_types")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<string>? GrantTypes { get; init; }
 
     /// <summary>
-    /// Gets or sets the array of OAuth 2.0 response types registered for the client.
+    /// Gets the array of OAuth 2.0 response types registered for the client.
     /// </summary>
     [JsonPropertyName("response_types")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<string>? ResponseTypes { get; init; }
 
     /// <summary>
-    /// Gets or sets the human-readable name of the client to be presented to the end user.
+    /// Gets the human-readable name of the client to be presented to the end user.
     /// </summary>
     [JsonPropertyName("client_name")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ClientName { get; init; }
 
     /// <summary>
-    /// Gets or sets the URL of the home page of the client.
+    /// Gets the URL of the home page of the client.
     /// </summary>
     [JsonPropertyName("client_uri")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ClientUri { get; init; }
 
     /// <summary>
-    /// Gets or sets the URL that references a logo for the client.
+    /// Gets the URL that references a logo for the client.
     /// </summary>
     [JsonPropertyName("logo_uri")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? LogoUri { get; init; }
 
     /// <summary>
-    /// Gets or sets the space-separated list of scope values registered for the client.
+    /// Gets the space-separated list of scope values registered for the client.
     /// </summary>
     [JsonPropertyName("scope")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Scope { get; init; }
 
     /// <summary>
-    /// Gets or sets the array of ways to contact people responsible for the client, typically email addresses.
+    /// Gets the array of ways to contact people responsible for the client, typically email addresses.
     /// </summary>
     [JsonPropertyName("contacts")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<string>? Contacts { get; init; }
 
     /// <summary>
-    /// Gets or sets the URL that points to a human-readable terms of service document for the client.
+    /// Gets the URL that points to a human-readable terms of service document for the client.
     /// </summary>
     [JsonPropertyName("tos_uri")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TosUri { get; init; }
 
     /// <summary>
-    /// Gets or sets the URL that points to a human-readable privacy policy document for the client.
+    /// Gets the URL that points to a human-readable privacy policy document for the client.
     /// </summary>
     [JsonPropertyName("policy_uri")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PolicyUri { get; init; }
 
     /// <summary>
-    /// Gets or sets the URL referencing the client's JSON Web Key Set document, which contains the client's public keys.
+    /// Gets the URL referencing the client's JSON Web Key Set document, which contains the client's public keys.
     /// </summary>
     [JsonPropertyName("jwks_uri")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? JwksUri { get; init; }
 
     /// <summary>
-    /// Gets or sets the client's JSON Web Key Set document value, which contains the client's public keys.
+    /// Gets the client's JSON Web Key Set document value, which contains the client's public keys.
     /// </summary>
     [JsonPropertyName("jwks")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public JsonElement? Jwks { get; init; }
 
     /// <summary>
-    /// Gets or sets the unique identifier string assigned by the client developer or software publisher.
+    /// Gets the unique identifier string assigned by the client developer or software publisher.
     /// </summary>
     [JsonPropertyName("software_id")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SoftwareId { get; init; }
 
     /// <summary>
-    /// Gets or sets the version identifier string for the client software identified by <see cref="SoftwareId"/>.
+    /// Gets the version identifier string for the client software identified by <see cref="SoftwareId"/>.
     /// </summary>
     [JsonPropertyName("software_version")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

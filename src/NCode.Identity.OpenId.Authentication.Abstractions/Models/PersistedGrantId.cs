@@ -27,17 +27,17 @@ namespace NCode.Identity.OpenId.Authentication.Models;
 public readonly record struct PersistedGrantId
 {
     /// <summary>
-    /// Gets or sets the tenant identifier that scopes the grant.
+    /// Gets the tenant identifier that scopes the grant.
     /// </summary>
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the type of the grant.
+    /// Gets the type of the grant.
     /// </summary>
     public required string GrantType { get; init; }
 
     /// <summary>
-    /// Gets or sets the unique identifier of the grant.
+    /// Gets the unique identifier of the grant.
     /// This value is never persisted to storage as-is, instead it's hash is used as the key.
     /// </summary>
     public required string GrantKey { get; init; }

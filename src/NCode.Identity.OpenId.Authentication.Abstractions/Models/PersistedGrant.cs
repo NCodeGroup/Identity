@@ -28,22 +28,22 @@ namespace NCode.Identity.OpenId.Authentication.Models;
 public readonly record struct PersistedGrant<TPayload>
 {
     /// <summary>
-    /// Gets or sets the status of the grant.
+    /// Gets the status of the grant.
     /// </summary>
     public PersistedGrantStatus Status { get; init; }
 
     /// <summary>
-    /// Gets or sets the identifier of the tenant that is associated with the grant.
+    /// Gets the identifier of the tenant that is associated with the grant.
     /// </summary>
     public required string TenantId { get; init; }
 
     /// <summary>
-    /// Gets or sets the identifier of the client that is associated with the grant.
+    /// Gets the identifier of the client that is associated with the grant.
     /// </summary>
     public required string? ClientId { get; init; }
 
     /// <summary>
-    /// Gets or sets the identifier of the subject that is associated with the grant.
+    /// Gets the identifier of the subject that is associated with the grant.
     /// </summary>
     public required string? SubjectId { get; init; }
 
@@ -61,7 +61,7 @@ public readonly record struct PersistedGrant<TPayload>
     public string? RefreshTokenLineageId { get; init; }
 
     /// <summary>
-    /// Gets or sets the payload of the grant.
+    /// Gets the payload of the grant.
     /// </summary>
     public required TPayload Payload { get; init; }
 }

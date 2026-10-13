@@ -25,10 +25,11 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 /// <summary>
 /// A mediator command that composes the management capabilities discovery document. Each registered
 /// <see cref="ICommandHandler{TCommand}"/> contributes a named capability section to <see cref="Capabilities"/>,
-/// so new capabilities are exposed by registering a handler rather than by changing the endpoint (ADR-0067).
+/// so new capabilities are exposed by registering a handler rather than by changing the endpoint.
 /// </summary>
 /// <param name="OpenIdContext">The ambient OpenID context for the request.</param>
 /// <param name="Capabilities">The mutable capability document each provider contributes a section to.</param>
+// See ADR-0067.
 [PublicAPI]
 public readonly record struct DiscoverManagementCapabilitiesCommand(
     OpenIdContext OpenIdContext,

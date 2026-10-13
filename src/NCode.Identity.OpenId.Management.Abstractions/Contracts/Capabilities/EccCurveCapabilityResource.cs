@@ -23,8 +23,9 @@ namespace NCode.Identity.OpenId.Management.Contracts.Capabilities;
 
 /// <summary>
 /// Describes an elliptic curve the server supports for generating <c>ecc</c> secrets, so management clients can
-/// offer a curve picker driven by server discovery (ADR-0068).
+/// offer a curve picker driven by server discovery.
 /// </summary>
+// See ADR-0068.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class EccCurveCapabilityResource

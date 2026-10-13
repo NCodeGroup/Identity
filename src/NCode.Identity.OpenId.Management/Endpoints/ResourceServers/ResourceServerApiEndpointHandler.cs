@@ -1055,7 +1055,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Creates a secret for a resource server. The generated key material is returned exactly once (ADR-0050).
+    /// Creates a secret for a resource server. The generated key material is returned exactly once.
     /// </summary>
     /// <response code="201">The created secret, including its one-time key material.</response>
     [EndpointName("api/resource-servers/secrets/create")]

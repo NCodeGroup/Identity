@@ -24,8 +24,9 @@ namespace NCode.Identity.OpenId.Management.Contracts.Capabilities;
 /// <summary>
 /// Describes a single signature or key-management algorithm the server supports, so management clients can drive
 /// the create-secret form's algorithm, use, and key-size inputs from server discovery rather than hard-coded
-/// defaults (ADR-0067).
+/// defaults.
 /// </summary>
+// See ADR-0067.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class AlgorithmCapabilityResource

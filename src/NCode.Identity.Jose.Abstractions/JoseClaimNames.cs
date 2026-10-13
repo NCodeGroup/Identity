@@ -36,41 +36,135 @@ public static class JoseClaimNames
     [PublicAPI]
     public static class Header
     {
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
+        /// <summary>
+        /// The <c>alg</c> header parameter, identifying the cryptographic algorithm used to secure the JWS or JWE.
+        /// </summary>
         public const string Alg = "alg";
+
+        /// <summary>
+        /// The <c>enc</c> header parameter, identifying the content-encryption algorithm used to encrypt the JWE payload.
+        /// </summary>
         public const string Enc = "enc";
+
+        /// <summary>
+        /// The <c>zip</c> header parameter, identifying the compression algorithm applied to the plaintext before encryption.
+        /// </summary>
         public const string Zip = "zip";
+
+        /// <summary>
+        /// The <c>b64</c> header parameter, indicating whether the JWS payload is base64url-encoded (unencoded-payload option).
+        /// </summary>
         public const string B64 = "b64";
 
+        /// <summary>
+        /// The <c>iv</c> header parameter, carrying the base64url-encoded initialization vector used for content encryption.
+        /// </summary>
         public const string Iv = "iv";
+
+        /// <summary>
+        /// The <c>tag</c> header parameter, carrying the base64url-encoded authentication tag produced by content encryption.
+        /// </summary>
         public const string Tag = "tag";
 
+        /// <summary>
+        /// The <c>epk</c> header parameter, carrying the ephemeral public key used by ECDH key-agreement algorithms.
+        /// </summary>
         public const string Epk = "epk";
+
+        /// <summary>
+        /// The <c>kty</c> header parameter, identifying the cryptographic family of the key (for example <c>EC</c> or <c>RSA</c>).
+        /// </summary>
         public const string Kty = "kty";
+
+        /// <summary>
+        /// The <c>crv</c> header parameter, identifying the elliptic curve used with an <c>EC</c> or <c>OKP</c> key.
+        /// </summary>
         public const string Crv = "crv";
+
+        /// <summary>
+        /// The <c>apu</c> header parameter, carrying the base64url-encoded Agreement PartyUInfo for ECDH key agreement.
+        /// </summary>
         public const string Apu = "apu";
+
+        /// <summary>
+        /// The <c>apv</c> header parameter, carrying the base64url-encoded Agreement PartyVInfo for ECDH key agreement.
+        /// </summary>
         public const string Apv = "apv";
+
+        /// <summary>
+        /// The <c>x</c> header parameter, carrying the base64url-encoded x-coordinate of an elliptic-curve public key.
+        /// </summary>
         public const string X = "x";
+
+        /// <summary>
+        /// The <c>y</c> header parameter, carrying the base64url-encoded y-coordinate of an elliptic-curve public key.
+        /// </summary>
         public const string Y = "y";
+
+        /// <summary>
+        /// The <c>d</c> header parameter, carrying the base64url-encoded private key value of an elliptic-curve key.
+        /// </summary>
         public const string D = "d";
 
+        /// <summary>
+        /// The <c>p2c</c> header parameter, carrying the PBKDF2 iteration count used by the PBES2 key-management algorithms.
+        /// </summary>
         public const string P2c = "p2c";
+
+        /// <summary>
+        /// The <c>p2s</c> header parameter, carrying the base64url-encoded PBKDF2 salt input used by the PBES2 key-management algorithms.
+        /// </summary>
         public const string P2s = "p2s";
 
+        /// <summary>
+        /// The <c>kid</c> header parameter, the hint identifying which key was used to secure the JWS or JWE.
+        /// </summary>
         public const string Kid = "kid";
+
+        /// <summary>
+        /// The <c>jku</c> header parameter, the URL of a JWK Set containing the key used to secure the token.
+        /// </summary>
         public const string Jku = "jku";
+
+        /// <summary>
+        /// The <c>jwk</c> header parameter, carrying the public key, as a JSON Web Key, used to secure the token.
+        /// </summary>
         public const string Jwk = "jwk";
+
+        /// <summary>
+        /// The <c>x5u</c> header parameter, the URL of an X.509 certificate chain for the key used to secure the token.
+        /// </summary>
         public const string X5u = "x5u";
+
+        /// <summary>
+        /// The <c>x5c</c> header parameter, carrying the X.509 certificate chain, as base64-encoded DER values, for the key.
+        /// </summary>
         public const string X5c = "x5c";
+
+        /// <summary>
+        /// The <c>x5t</c> header parameter, carrying the base64url-encoded SHA-1 thumbprint of the X.509 certificate for the key.
+        /// </summary>
         public const string X5t = "x5t";
+
+        /// <summary>
+        /// The <c>x5t#S256</c> header parameter, carrying the base64url-encoded SHA-256 thumbprint of the X.509 certificate for the key.
+        /// </summary>
         public const string X5tS256 = "x5t#S256";
 
+        /// <summary>
+        /// The <c>typ</c> header parameter, declaring the media type of the complete JWS or JWE.
+        /// </summary>
         public const string Typ = "typ";
-        public const string Cty = "cty";
-        public const string Crit = "crit";
 
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+        /// <summary>
+        /// The <c>cty</c> header parameter, declaring the media type of the secured content (the payload).
+        /// </summary>
+        public const string Cty = "cty";
+
+        /// <summary>
+        /// The <c>crit</c> header parameter, listing the header parameters a recipient must understand and process.
+        /// </summary>
+        public const string Crit = "crit";
     }
 
     /// <summary>

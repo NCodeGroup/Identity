@@ -104,6 +104,20 @@ internal class DefaultValidateBackchannelAuthenticationRequestHandler
                 .AsException();
         }
 
+        // Ping and push delivery POST to the client's registered client_notification_endpoint (CIBA §7.3/§10).
+        if (
+            !isPoll
+            && string.IsNullOrEmpty(settings.GetValue(OpenIdSettingKeys.ClientNotificationEndpoint))
+        )
+        {
+            throw errorFactory
+                .InvalidRequest(
+                    "A client_notification_endpoint must be registered for ping and push delivery."
+                )
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+        }
+
         return ValueTask.CompletedTask;
     }
 }

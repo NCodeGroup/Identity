@@ -66,19 +66,18 @@ one option is merely more work.
   `ResourceServerEntity.IsDisabled`; measure before adding, since the extra write cost may not pay off for small sets.
   Touch points: `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Entities/ScopeEntity.cs`,
   `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Entities/ResourceServerEntity.cs`.
+- **`D4` — CIBA push delivery durability and request-object encryption advertisement.** CIBA **push** delivery
+  ([ADR-0085](docs/adr/0085-ciba-grant.md)) issues and `POST`s the tokens to the client's `client_notification_endpoint`
+  on a best-effort basis — a failed delivery is logged, not retried or queued, and the client cannot fall back to
+  polling. A deployment that needs at-least-once push should replace `ICibaNotificationService` with a durable
+  (store-and-retry) transport; a built-in retry/outbox is deferred until a concrete need. Separately, signed backchannel
+  request objects are validated and advertised via `backchannel_authentication_request_signing_alg_values_supported`,
+  but the matching **encryption** alg/enc advertisement (`backchannel_authentication_request_encryption_*`) is not yet
+  surfaced — encrypted request objects still decrypt through the shared JWT path, but the capability is not advertised.
+  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/`.
 
 ## Feature gaps — not yet implemented (group `F`)
 
-- **`F17` — CIBA push delivery and signed backchannel request objects.** CIBA **poll** and **ping** delivery are
-  implemented ([ADR-0085](docs/adr/0085-ciba-grant.md)): the `backchannel_authentication_endpoint`, the
-  `urn:openid:params:grant-type:ciba` token grant, the pending-request persistence model, and the injectable
-  subject-resolution (`AuthenticateBackchannelRequestCommand`) + notification (`ICibaNotificationService`) + approval
-  (`ICibaRequestService`) seams all exist, and `backchannel_token_delivery_modes_supported` advertises `poll`/`ping`.
-  **Push** delivery (`mode=push`, where the OP delivers the tokens inside the notification) is **not** implemented — it
-  needs the notification channel to carry and secure a full token response; it layers onto the existing
-  `ICibaNotificationService` seam. Signed/encrypted backchannel request objects
-  (`backchannel_authentication_request_signing_alg_values_supported`, a FAPI-CIBA concern) are likewise a follow-up.
-  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/`.
 - **`F4` — `refresh_token_reuse_policy` (none / revoke_all).** Refresh-token replay is _detected and audited_
   (`token.refresh.replay`), but there is no configurable response that revokes the whole token family
   on reuse. See `// TODO: refresh_token_reuse_policy` in

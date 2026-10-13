@@ -218,6 +218,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.BackchannelTokenDeliveryMode);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'client_notification_endpoint' setting.
+    /// </summary>
+    public static SettingKey<string> ClientNotificationEndpoint =>
+        new(OpenIdSettingNames.ClientNotificationEndpoint);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'backchannel_token_delivery_modes_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> BackchannelTokenDeliveryModesSupported =>
@@ -228,6 +234,15 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<bool> BackchannelUserCodeParameterSupported =>
         new(OpenIdSettingNames.BackchannelUserCodeParameterSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the
+    /// 'backchannel_authentication_request_signing_alg_values_supported' setting.
+    /// </summary>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > BackchannelAuthenticationRequestSigningAlgValuesSupported =>
+        new(OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'ciba_request_lifetime' setting.

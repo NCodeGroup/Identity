@@ -203,6 +203,12 @@ public static class OpenIdSettingNames
     public const string BackchannelTokenDeliveryMode = "backchannel_token_delivery_mode";
 
     /// <summary>
+    /// Contains the name of the per-client <c>client_notification_endpoint</c> setting (OpenID Connect CIBA): the
+    /// client endpoint the OP <c>POST</c>s to for <c>ping</c> and <c>push</c> delivery.
+    /// </summary>
+    public const string ClientNotificationEndpoint = "client_notification_endpoint";
+
+    /// <summary>
     /// Contains the name of the server <c>backchannel_token_delivery_modes_supported</c> discovery setting (OpenID
     /// Connect CIBA).
     /// </summary>
@@ -215,6 +221,13 @@ public static class OpenIdSettingNames
     /// </summary>
     public const string BackchannelUserCodeParameterSupported =
         "backchannel_user_code_parameter_supported";
+
+    /// <summary>
+    /// Contains the name of the server <c>backchannel_authentication_request_signing_alg_values_supported</c> discovery
+    /// setting (OpenID Connect CIBA / FAPI-CIBA): the permitted <c>alg</c> values for a signed backchannel request object.
+    /// </summary>
+    public const string BackchannelAuthenticationRequestSigningAlgValuesSupported =
+        "backchannel_authentication_request_signing_alg_values_supported";
 
     /// <summary>
     /// Contains the name of <c>ciba_request_lifetime</c> setting (the validity window of a pending CIBA backchannel

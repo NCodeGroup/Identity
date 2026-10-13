@@ -41,6 +41,11 @@ public readonly record struct CibaGrant
     public required IReadOnlyList<string> Scopes { get; init; }
 
     /// <summary>
+    /// Gets the resource indicators (RFC 8707) requested by the client, or <c>null</c> when none were requested.
+    /// </summary>
+    public IReadOnlyList<string>? Resources { get; init; }
+
+    /// <summary>
     /// Gets the approval status of the request. See <see cref="DeviceAuthorizationStatus"/>.
     /// </summary>
     public required string Status { get; init; }

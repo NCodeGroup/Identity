@@ -20,7 +20,6 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Moq;
-using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Ciba;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
@@ -28,10 +27,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Subject;
-using NCode.Identity.OpenId.Authentication.Tokens;
-using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
@@ -53,7 +49,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
 
     private Mock<TimeProvider> MockTimeProvider { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
-    private Mock<ITokenService> MockTokenService { get; }
+    private Mock<ICibaTokenResponseService> MockTokenResponseService { get; }
     private DefaultCibaGrantHandler Handler { get; }
 
     private string? CapturedErrorCode { get; set; }
@@ -62,11 +58,11 @@ public class DefaultCibaGrantHandlerTests : BaseTests
     {
         MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
-        MockTokenService = CreateStrictMock<ITokenService>();
+        MockTokenResponseService = CreateStrictMock<ICibaTokenResponseService>();
         Handler = new DefaultCibaGrantHandler(
             MockTimeProvider.Object,
             MockPersistedGrantService.Object,
-            MockTokenService.Object
+            MockTokenResponseService.Object
         );
     }
 
@@ -83,18 +79,11 @@ public class DefaultCibaGrantHandlerTests : BaseTests
     private static SubjectAuthentication CreateSubjectAuthentication() =>
         new("scheme", new AuthenticationProperties(), new ClaimsPrincipal(), "subject-id");
 
-    private static SecurityToken CreateSecurityToken(string tokenValue) =>
-        new()
-        {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
-            TokenValue = tokenValue,
-            TokenLifetime = new TimePeriod { StartTime = UtcNow, EndTime = UtcNow.AddHours(1) },
-        };
-
     private static PersistedGrant<CibaGrant> CreateGrant(
         string status,
         DateTimeOffset? lastPolledWhen = null,
-        SubjectAuthentication? subjectAuthentication = null
+        SubjectAuthentication? subjectAuthentication = null,
+        string? deliveryMode = null
     ) =>
         new()
         {
@@ -108,7 +97,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
                 ClientId = "client-1",
                 Scopes = ["api"],
                 Status = status,
-                DeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+                DeliveryMode = deliveryMode ?? OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
                 SubjectAuthentication = subjectAuthentication,
                 LastPolledWhen = lastPolledWhen,
             },
@@ -351,30 +340,17 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             )
             .Verifiable();
 
-        mockContext
-            .SetupGet(x => x.Environment)
-            .Returns(CreateStrictMock<OpenIdEnvironment>().Object)
-            .Verifiable();
-
-        mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
-        mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
-        mockTokenRequest
-            .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.Ciba)
-            .Verifiable();
-
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
-
-        MockTokenService
+        var mockTokenResponse = CreateStrictMock<ITokenResponse>();
+        MockTokenResponseService
             .Setup(x =>
-                x.CreateAccessTokenAsync(
+                x.CreateTokenResponseAsync(
                     mockContext.Object,
                     mockClient.Object,
-                    It.IsAny<CreateSecurityTokenRequest>(),
+                    It.IsAny<CibaGrant>(),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<SecurityToken>(CreateSecurityToken("access-token-value")))
+            .Returns(new ValueTask<ITokenResponse>(mockTokenResponse.Object))
             .Verifiable();
 
         var result = await Handler.HandleAsync(
@@ -384,10 +360,30 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             CancellationToken.None
         );
 
-        var response = Assert.IsType<TokenResponse>(result);
-        Assert.Equal("access-token-value", response.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, response.TokenType);
-        Assert.Equal(["api"], response.Scopes);
+        Assert.Same(mockTokenResponse.Object, result);
+        MockTokenResponseService.Verify();
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenPushDelivery_ReturnsUnauthorizedClientError()
+    {
+        var (mockContext, mockClient, _, mockTokenRequest, mockError) = CreateScaffold();
+        SetupLookup(
+            CreateGrant(
+                DeviceAuthorizationStatus.Approved,
+                deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Push
+            )
+        );
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
     }
 
     #endregion

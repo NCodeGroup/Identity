@@ -48,6 +48,14 @@ internal static class DefaultRegistration
 
             var serviceCollection = builder.ServiceCollection;
 
+            serviceCollection.TryAddSingleton<
+                ICommandResponseHandler<
+                    LoadBackchannelAuthenticationRequestCommand,
+                    IBackchannelAuthenticationRequest
+                >,
+                DefaultLoadBackchannelAuthenticationRequestHandler
+            >();
+
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<ValidateBackchannelAuthenticationRequestCommand>,

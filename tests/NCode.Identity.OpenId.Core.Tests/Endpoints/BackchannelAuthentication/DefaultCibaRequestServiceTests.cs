@@ -21,7 +21,9 @@ using Microsoft.AspNetCore.Authentication;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token.Ciba;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Subject;
@@ -38,15 +40,18 @@ public class DefaultCibaRequestServiceTests : BaseTests
 
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private Mock<ICibaNotificationService> MockNotificationService { get; }
+    private Mock<ICibaTokenResponseService> MockTokenResponseService { get; }
     private DefaultCibaRequestService Service { get; }
 
     public DefaultCibaRequestServiceTests()
     {
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockNotificationService = CreateStrictMock<ICibaNotificationService>();
+        MockTokenResponseService = CreateStrictMock<ICibaTokenResponseService>();
         Service = new DefaultCibaRequestService(
             MockPersistedGrantService.Object,
-            MockNotificationService.Object
+            MockNotificationService.Object,
+            MockTokenResponseService.Object
         );
     }
 
@@ -197,6 +202,70 @@ public class DefaultCibaRequestServiceTests : BaseTests
         );
 
         Assert.True(result);
+        MockNotificationService.Verify();
+    }
+
+    [Fact]
+    public async Task ApproveAsync_WhenPendingPush_IssuesAndDeliversTokens()
+    {
+        var (mockContext, mockClient) = CreateScaffold();
+        SetupLookup(
+            CreateGrant(
+                DeviceAuthorizationStatus.Pending,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Push
+            )
+        );
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.UpdatePayloadAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<PersistedGrantId>(),
+                    It.IsAny<CibaGrant>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<bool>(true))
+            .Verifiable();
+
+        var mockTokenResponse = CreateStrictMock<ITokenResponse>();
+
+        MockTokenResponseService
+            .Setup(x =>
+                x.CreateTokenResponseAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<CibaGrant>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<ITokenResponse>(mockTokenResponse.Object))
+            .Verifiable();
+
+        MockNotificationService
+            .Setup(x =>
+                x.DeliverTokensAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    AuthReqId,
+                    It.IsAny<CibaGrant>(),
+                    mockTokenResponse.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.ApproveAsync(
+            mockContext.Object,
+            mockClient.Object,
+            AuthReqId,
+            CreateSubject(),
+            CancellationToken.None
+        );
+
+        Assert.True(result);
+        MockTokenResponseService.Verify();
         MockNotificationService.Verify();
     }
 

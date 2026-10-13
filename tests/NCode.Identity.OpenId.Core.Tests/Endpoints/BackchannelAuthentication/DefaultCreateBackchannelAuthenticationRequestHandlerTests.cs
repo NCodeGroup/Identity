@@ -97,6 +97,7 @@ public class DefaultCreateBackchannelAuthenticationRequestHandlerTests : BaseTes
 
         mockRequest.SetupGet(x => x.RequestedExpiry).Returns((string?)null);
         mockRequest.SetupGet(x => x.Scopes).Returns(["api"]);
+        mockRequest.SetupGet(x => x.Resources).Returns((List<string>?)null);
         mockRequest.SetupGet(x => x.ClientNotificationToken).Returns((string?)null);
         mockRequest.SetupGet(x => x.BindingMessage).Returns((string?)null);
 

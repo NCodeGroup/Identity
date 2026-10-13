@@ -18,6 +18,7 @@
 
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token.Ciba;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
@@ -28,15 +29,18 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthenticati
 
 /// <summary>
 /// Provides a default implementation of <see cref="ICibaRequestService"/> that records the out-of-band approve/deny
-/// decision on the pending CIBA grant and, for ping delivery, notifies the client that the request completed.
+/// decision on the pending CIBA grant and, for ping delivery, notifies the client that the request completed, or, for
+/// push delivery, issues the tokens and delivers them to the client's notification endpoint.
 /// </summary>
 internal sealed class DefaultCibaRequestService(
     IPersistedGrantService persistedGrantService,
-    ICibaNotificationService notificationService
+    ICibaNotificationService notificationService,
+    ICibaTokenResponseService tokenResponseService
 ) : ICibaRequestService
 {
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ICibaNotificationService NotificationService { get; } = notificationService;
+    private ICibaTokenResponseService TokenResponseService { get; } = tokenResponseService;
 
     /// <inheritdoc />
     public async ValueTask<bool> ApproveAsync(
@@ -87,6 +91,32 @@ internal sealed class DefaultCibaRequestService(
                 openIdClient,
                 authReqId,
                 payload,
+                cancellationToken
+            );
+        }
+        // Push delivery: issue the tokens now and deliver them to the client's notification endpoint; the client does
+        // not poll the token endpoint for a push-mode request (CIBA §10.3).
+        else if (
+            string.Equals(
+                payload.DeliveryMode,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            var tokenResponse = await TokenResponseService.CreateTokenResponseAsync(
+                openIdContext,
+                openIdClient,
+                payload,
+                cancellationToken
+            );
+
+            await NotificationService.DeliverTokensAsync(
+                openIdContext,
+                openIdClient,
+                authReqId,
+                payload,
+                tokenResponse,
                 cancellationToken
             );
         }

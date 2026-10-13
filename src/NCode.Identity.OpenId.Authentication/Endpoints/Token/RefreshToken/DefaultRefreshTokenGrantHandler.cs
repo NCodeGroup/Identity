@@ -99,7 +99,6 @@ internal class DefaultRefreshTokenGrantHandler(
         {
             // A revoked grant presented again is a reuse/replay signal (likely rotated away or
             // revoked on suspicion), distinct from a benign expiry.
-            // TODO: refresh_token_reuse_policy (none, revoke_all)
             if (persistedGrant.Status == PersistedGrantStatus.Revoked)
             {
                 await AuditEventRecorder.RecordRefreshTokenReplayAsync(
@@ -108,6 +107,23 @@ internal class DefaultRefreshTokenGrantHandler(
                     persistedGrant.Payload.SubjectAuthentication?.SubjectId,
                     cancellationToken
                 );
+
+                var reusePolicy = settings.GetValue(OpenIdSettingKeys.RefreshTokenReusePolicy);
+                var lineageId = persistedGrant.RefreshTokenLineageId;
+                if (
+                    reusePolicy == OpenIdConstants.RefreshTokenReusePolicy.RevokeAll
+                    && !string.IsNullOrEmpty(lineageId)
+                )
+                {
+                    // Reuse detection: revoke the whole rotation family so a stolen token cannot be
+                    // exchanged even if the attacker raced ahead of the legitimate client (RFC 9700).
+                    await PersistedGrantService.RevokeByRefreshTokenLineageAsync(
+                        openIdContext,
+                        lineageId,
+                        utcNow,
+                        cancellationToken
+                    );
+                }
             }
 
             return errorFactory
@@ -143,6 +159,7 @@ internal class DefaultRefreshTokenGrantHandler(
             openIdClient,
             tokenRequest,
             refreshTokenGrant,
+            persistedGrant.RefreshTokenLineageId,
             cancellationToken
         );
 
@@ -170,6 +187,7 @@ internal class DefaultRefreshTokenGrantHandler(
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
         RefreshTokenGrant refreshTokenGrant,
+        string? refreshTokenLineageId,
         CancellationToken cancellationToken
     )
     {
@@ -190,6 +208,7 @@ internal class DefaultRefreshTokenGrantHandler(
             EffectiveScopes = effectiveScopes,
             Resources = tokenRequest.Resources,
             RefreshToken = tokenRequest.RefreshToken,
+            RefreshTokenLineageId = refreshTokenLineageId,
             SubjectAuthentication = subjectAuthentication,
         };
 

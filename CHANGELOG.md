@@ -10,6 +10,20 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Refresh-token reuse detection with family revocation — completes backlog `F4`.** A revoked refresh token presented
+  again is a replay signal; the OP already detected and audited it (`token.refresh.replay`), and now responds per the
+  new per-client `refresh_token_reuse_policy` setting: `revoke_all` (the secure default) revokes the entire **rotation
+  family** — every refresh token descended from the same authorization grant — so a stolen token cannot be exchanged
+  even if the attacker races ahead of the legitimate client, per the OAuth 2.0 Security BCP
+  ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700)); `none` preserves audit-only behavior
+  ([ADR-0087](docs/adr/0087-refresh-token-reuse-detection-and-family-revocation.md)). Rotated refresh tokens are now
+  linked by a server-generated **lineage id** persisted on the grant (new nullable `RefreshTokenLineageId` column on the
+  grants table, with an EF migration); a fresh issuance starts a new family and each rotation inherits its parent's
+  lineage. New public surface: `OpenIdConstants.RefreshTokenReusePolicy`, the `refresh_token_reuse_policy` setting
+  (`OpenIdSettingNames`/`OpenIdSettingKeys`), `IGrantStore.RevokeByRefreshTokenLineageAsync`,
+  `IPersistedGrantService.RevokeByRefreshTokenLineageAsync`, and the `RefreshTokenLineageId` members on `PersistedGrant`,
+  `PersistedGrant<TPayload>`, `CreateSecurityTokenRequest`, and `GrantEntity`.
+
 - **Device-authorization endpoint migrated to the canonical endpoint shape — completes backlog `F18`.** The
   `/oauth2/device_authorization` endpoint (`DefaultDeviceAuthorizationEndpointHandler`) is now a thin orchestrator over
   a strongly-typed `DeviceAuthorizationRequest : OpenIdMessage<…>` and mediator commands

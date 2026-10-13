@@ -80,6 +80,13 @@ public readonly record struct CreateSecurityTokenRequest
     public string? RefreshToken { get; init; }
 
     /// <summary>
+    /// Gets the opaque identifier of the refresh-token rotation family to issue this refresh token into, or
+    /// <see langword="null"/> to begin a new family. On rotation, the refresh-token grant handler passes the prior
+    /// token's lineage id so the whole family shares one identifier for reuse-detection revocation.
+    /// </summary>
+    public string? RefreshTokenLineageId { get; init; }
+
+    /// <summary>
     /// Gets the claims requested via the OpenID Connect <c>claims</c> request parameter, or <see langword="null"/>
     /// when none were requested. Honored additively on top of the scope-driven claims.
     /// </summary>

@@ -83,6 +83,14 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
     public required string? SessionId { get; init; }
 
     /// <summary>
+    /// Gets the opaque identifier shared by every refresh token in a single rotation family (the chain of tokens
+    /// descended from one authorization grant), or <c>null</c> for a grant that is not part of a refresh-token
+    /// lineage. Refresh-token reuse detection revokes the whole family by this value.
+    /// </summary>
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string? RefreshTokenLineageId { get; init; }
+
+    /// <summary>
     /// Gets or sets when this entity was created.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }

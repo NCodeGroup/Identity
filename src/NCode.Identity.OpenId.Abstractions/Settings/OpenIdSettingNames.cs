@@ -345,6 +345,11 @@ public static class OpenIdSettingNames
     public const string RefreshTokenExpirationPolicy = "refresh_token_expiration_policy";
 
     /// <summary>
+    /// Contains the name of <c>refresh_token_reuse_policy</c> setting.
+    /// </summary>
+    public const string RefreshTokenReusePolicy = "refresh_token_reuse_policy";
+
+    /// <summary>
     /// Contains the name of <c>refresh_token_lifetime</c> setting.
     /// </summary>
     public const string RefreshTokenLifetime = "refresh_token_lifetime";

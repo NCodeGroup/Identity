@@ -785,6 +785,7 @@ NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.ConsumeOnceOrD
 NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.CreateGrantId(string! tenantId, string! grantType, string! grantKey) -> NCode.Identity.OpenId.Authentication.Models.PersistedGrantId
 NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.GetOrDefaultAsync<TPayload>(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Models.PersistedGrantId grantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>?>
 NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.SetRevokedOnceAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Models.PersistedGrantId grantId, System.DateTimeOffset revokedWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.RevokeByRefreshTokenLineageAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! refreshTokenLineageId, System.DateTimeOffset revokedWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
 NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.UpdateExpirationAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Models.PersistedGrantId grantId, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Logic.IPersistedGrantService.UpdatePayloadAsync<TPayload>(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Models.PersistedGrantId grantId, TPayload payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Authentication.Logic.IResourceServerCredentialResolver
@@ -812,6 +813,8 @@ NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.Status.get 
 NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.Status.init -> void
 NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.SessionId.get -> string?
 NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.SessionId.init -> void
+NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.RefreshTokenLineageId.get -> string?
+NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.RefreshTokenLineageId.init -> void
 NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.SubjectId.get -> string?
 NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.SubjectId.init -> void
 NCode.Identity.OpenId.Authentication.Models.PersistedGrant<TPayload>.TenantId.get -> string!
@@ -1063,6 +1066,8 @@ NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.Or
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.OriginalScopes.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RefreshToken.get -> string?
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RefreshToken.init -> void
+NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RefreshTokenLineageId.get -> string?
+NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RefreshTokenLineageId.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RequestClaims.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims?
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RequestClaims.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.State.get -> string?

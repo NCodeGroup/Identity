@@ -22,11 +22,12 @@ namespace NCode.Identity.Server.Frontend;
 
 /// <summary>
 /// Configures the runtime bootstrap document the OpenID Provider host publishes for the tier-agnostic frontend
-/// bundles (ADR-0064). A single bundle is built once and discovers its deployment coordinates at boot by fetching
+/// bundles. A single bundle is built once and discovers its deployment coordinates at boot by fetching
 /// this document from the serving host, so every value here is per-deployment and none is baked at build time.
 /// When <see cref="ApiBaseUrl"/> or <see cref="Issuer"/> is left unset, the serving request's own origin
 /// (<c>scheme://host</c>) is used, so a single-origin host needs no configuration at all.
 /// </summary>
+// See ADR-0064.
 [PublicAPI]
 public sealed class FrontendBootstrapOptions
 {

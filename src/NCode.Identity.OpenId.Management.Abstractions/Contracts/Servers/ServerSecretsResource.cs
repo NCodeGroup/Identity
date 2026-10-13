@@ -39,7 +39,7 @@ public sealed class ServerSecretsResource : ISupportServerId, ISupportConcurrenc
     public required string ConcurrencyToken { get; init; }
 
     /// <summary>
-    /// Gets or sets the collection of secrets only known to an OpenID Server instance.
+    /// Gets the collection of secrets only known to an OpenID Server instance.
     /// </summary>
     public required IReadOnlyCollection<SecretResource> Secrets { get; init; }
 }

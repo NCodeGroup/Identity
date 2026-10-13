@@ -33,12 +33,12 @@ public static class SecretKeyTypes
     public const string Symmetric = "symmetric";
 
     /// <summary>
-    /// Contains the constant value for a <c>RSA</c> cryptographic key.
+    /// Contains the constant value for an <c>RSA</c> cryptographic key.
     /// </summary>
     public const string Rsa = "rsa";
 
     /// <summary>
-    /// Contains the constant value for a <c>Elliptic-Curve</c> cryptographic key.
+    /// Contains the constant value for an <c>Elliptic-Curve</c> cryptographic key.
     /// </summary>
     public const string Ecc = "ecc";
 }

@@ -370,6 +370,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RefreshTokenExpirationPolicy);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_reuse_policy' setting.
+    /// </summary>
+    public static SettingKey<string> RefreshTokenReusePolicy =>
+        new(OpenIdSettingNames.RefreshTokenReusePolicy);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_lifetime' setting.
     /// </summary>
     public static SettingKey<TimeSpan> RefreshTokenLifetime =>

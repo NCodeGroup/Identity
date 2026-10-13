@@ -103,6 +103,23 @@ public interface IPersistedGrantService
     );
 
     /// <summary>
+    /// Revokes every active grant belonging to the specified refresh-token rotation family. Used by refresh-token
+    /// reuse detection to revoke the whole family when a replayed token is presented.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="refreshTokenLineageId">The opaque identifier of the refresh-token rotation family to revoke.</param>
+    /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
+    /// grants that were revoked.</returns>
+    ValueTask<long> RevokeByRefreshTokenLineageAsync(
+        OpenIdContext openIdContext,
+        string refreshTokenLineageId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Updates the expiration of a grant if it is still active.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>

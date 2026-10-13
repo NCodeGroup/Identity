@@ -54,6 +54,13 @@ public readonly record struct PersistedGrant<TPayload>
     public required string? SessionId { get; init; }
 
     /// <summary>
+    /// Gets the opaque identifier shared by every refresh token in a single rotation family (the chain of tokens
+    /// descended from one authorization grant), or <c>null</c> for a grant that is not part of a refresh-token
+    /// lineage. Refresh-token reuse detection revokes the whole family by this value.
+    /// </summary>
+    public string? RefreshTokenLineageId { get; init; }
+
+    /// <summary>
     /// Gets or sets the payload of the grant.
     /// </summary>
     public required TPayload Payload { get; init; }

@@ -36,6 +36,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 [Index(nameof(TenantId), nameof(ClientId), IsUnique = false)]
 [Index(nameof(TenantId), nameof(NormalizedSubjectId), IsUnique = false)]
 [Index(nameof(TenantId), nameof(SessionId), IsUnique = false)]
+[Index(nameof(TenantId), nameof(RefreshTokenLineageId), IsUnique = false)]
 [Index(nameof(ExpiresWhen), IsUnique = false)]
 public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
@@ -127,6 +128,16 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.SessionId)]
     public required string? SessionId { get; init; }
+
+    /// <summary>
+    /// Gets the opaque identifier shared by every refresh token in a single rotation family (the chain of tokens
+    /// descended from one authorization grant), or <c>null</c> for a grant that is not part of a refresh-token
+    /// lineage. It is a server-generated resource id matched verbatim, so it is indexed directly with no normalized
+    /// companion column. Refresh-token reuse detection revokes the whole family by this value.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string? RefreshTokenLineageId { get; init; }
 
     /// <summary>
     /// Gets or sets when this entity was created.

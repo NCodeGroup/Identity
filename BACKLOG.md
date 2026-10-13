@@ -78,10 +78,6 @@ one option is merely more work.
 
 ## Feature gaps — not yet implemented (group `F`)
 
-- **`F4` — `refresh_token_reuse_policy` (none / revoke_all).** Refresh-token replay is _detected and audited_
-  (`token.refresh.replay`), but there is no configurable response that revokes the whole token family
-  on reuse. See `// TODO: refresh_token_reuse_policy` in
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/RefreshToken/DefaultRefreshTokenGrantHandler.cs`.
 - **`F5` — First-class claim-shaping pipeline (Auth0-Actions-equivalent).** Custom claim shaping is already possible
   today by registering an `ICommandHandler` on the subject-claims / UserInfo commands (the mediator pipeline is the
   extension seam, per [ADR-0054](docs/adr/0054-local-account-metadata-projection.md)), but there is no first-class

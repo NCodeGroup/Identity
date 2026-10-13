@@ -505,6 +505,10 @@ internal class DefaultTokenService(
 
         var refreshToken = CryptoService.GenerateUrlSafeKey(); // 256 bits of entropy
 
+        // A rotation inherits the prior token's lineage; a fresh issuance starts a new family.
+        var refreshTokenLineageId =
+            tokenRequest.RefreshTokenLineageId ?? CryptoService.GenerateResourceId();
+
         var persistedGrantId = PersistedGrantService.CreateGrantId(
             tenantId,
             OpenIdConstants.PersistedGrantTypes.RefreshToken,
@@ -524,6 +528,7 @@ internal class DefaultTokenService(
             ClientId = clientId,
             SubjectId = subjectId,
             SessionId = subjectAuthentication?.SessionId,
+            RefreshTokenLineageId = refreshTokenLineageId,
             Payload = refreshTokenGrant,
         };
 

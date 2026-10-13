@@ -421,6 +421,23 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
+    /// Contains constants for how the server responds when a revoked refresh token is replayed (reuse detection).
+    /// </summary>
+    public static class RefreshTokenReusePolicy
+    {
+        /// <summary>
+        /// Indicates that a replayed refresh token is rejected and audited, but no further tokens are revoked.
+        /// </summary>
+        public const string None = "none";
+
+        /// <summary>
+        /// Indicates that a replayed refresh token revokes its entire rotation family (every token descended from
+        /// the same authorization grant), per the OAuth 2.0 Security BCP (RFC 9700).
+        /// </summary>
+        public const string RevokeAll = "revoke_all";
+    }
+
+    /// <summary>
     /// Contains constants for various types of client authentication methods.
     /// These values are used in the <c>token_endpoint_auth_methods_supported</c> metadata.
     /// </summary>

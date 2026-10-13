@@ -61,6 +61,7 @@ internal class GrantStore(
                 ClientId = entity.Client?.ClientId,
                 SubjectId = entity.SubjectId,
                 SessionId = entity.SessionId,
+                RefreshTokenLineageId = entity.RefreshTokenLineageId,
                 CreatedWhen = entity.CreatedWhen,
                 ExpiresWhen = entity.ExpiresWhen,
                 RevokedWhen = entity.RevokedWhen,
@@ -207,6 +208,30 @@ internal class GrantStore(
         return entities.Count;
     }
 
+    /// <inheritdoc />
+    public async ValueTask<long> RevokeByRefreshTokenLineageAsync(
+        string refreshTokenLineageId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    )
+    {
+        // Only active grants are touched so the operation is idempotent and the interceptor bumps the row token
+        // (ADR-0012) on exactly the rows it changes. The lineage id is an opaque resource id matched verbatim.
+        var entities = await DbContext
+            .Grants.Where(entity =>
+                entity.RevokedWhen == null && entity.RefreshTokenLineageId == refreshTokenLineageId
+            )
+            .ToListAsync(cancellationToken);
+
+        var utcRevokedWhen = revokedWhen.ToUniversalTime();
+        foreach (var entity in entities)
+        {
+            entity.RevokedWhen = utcRevokedWhen;
+        }
+
+        return entities.Count;
+    }
+
     private static IQueryable<GrantEntity> ApplyGrantFilters(
         IQueryable<GrantEntity> query,
         string? subjectId,
@@ -281,6 +306,7 @@ internal class GrantStore(
             SubjectId = persistedGrant.SubjectId,
             NormalizedSubjectId = Normalize(persistedGrant.SubjectId),
             SessionId = persistedGrant.SessionId,
+            RefreshTokenLineageId = persistedGrant.RefreshTokenLineageId,
             CreatedWhen = persistedGrant.CreatedWhen.ToUniversalTime(),
             ExpiresWhen = persistedGrant.ExpiresWhen?.ToUniversalTime(),
             RevokedWhen = persistedGrant.RevokedWhen?.ToUniversalTime(),

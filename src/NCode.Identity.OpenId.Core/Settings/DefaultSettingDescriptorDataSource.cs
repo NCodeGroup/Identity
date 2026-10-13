@@ -656,6 +656,19 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // refresh_token_reuse_policy: how the server responds when a revoked refresh token is replayed —
+            // none (reject + audit only) or revoke_all (revoke the whole rotation family), per RFC 9700. Secure by
+            // default: revoke_all.
+            // Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.RefreshTokenReusePolicy,
+                Default = OpenIdConstants.RefreshTokenReusePolicy.RevokeAll,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // refresh_token_lifetime: validity window for issued refresh tokens (default 30 days).
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>

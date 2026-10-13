@@ -51,7 +51,7 @@ public sealed class ValidateJwtResult
     /// <param name="parameters">A <see cref="ValidateJwtParameters"/> instance that was used to validate the Json Web Token (JWT).</param>
     /// <param name="propertyBag">An <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.</param>
     /// <param name="decodedJwt">A <see cref="DecodedJwt"/> that contains the decoded Json Web Token (JWT).</param>
-    /// <returns></returns>
+    /// <returns>A <see cref="ValidateJwtResult"/> instance that represents a successful JWT validation result.</returns>
     public static ValidateJwtResult Success(
         ValidateJwtParameters parameters,
         IPropertyBag propertyBag,

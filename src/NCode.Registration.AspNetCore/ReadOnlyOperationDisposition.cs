@@ -28,7 +28,7 @@ namespace NCode.Registration.AspNetCore;
 public readonly record struct ReadOnlyOperationDisposition<TError>
 {
     /// <summary>
-    /// Gets or sets the error that occurred during the operation.
+    /// Gets the error that occurred during the operation.
     /// </summary>
     public TError? Error { get; init; }
 

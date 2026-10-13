@@ -585,6 +585,14 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
 
 ### Changed
 
+- **Comprehensive XML-documentation quality pass across the published packages.** The `///` doc comments that reach
+  consumers through IntelliSense and the generated OpenAPI descriptions were swept for correctness and consistency:
+  property summaries follow the Microsoft convention (an `init`-only property opens with "Gets", not "Gets or sets");
+  mediator-command types carry substantive, purpose-first summaries with complete `<param>` documentation; ADR numbers
+  and other internal citations were moved out of `///` comments into `//` code comments; and a batch of grammar/typo
+  defects was corrected (including a copy-paste error where the access-token payload-claims handler's summary described
+  an ID token). No API or behavior change.
+
 - **Discovery metadata is now secure-by-default, operator-overridable — completes backlog `T5`.** The OpenID Provider
   no longer advertises deprecated/insecure flows out of the box
   ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)). `response_types_supported` defaults to

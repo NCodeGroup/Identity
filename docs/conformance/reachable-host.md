@@ -1,8 +1,8 @@
 # T3 — Reachable HTTPS Playground host for the external harness
 
-Status: **planned, not yet implemented.** Detailed plan for backlog item `T3`. Parent design:
-[`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #1, #5, and the "Windows
-developer notes"). Catalog entry: [`BACKLOG.md`](../../BACKLOG.md) group `T`.
+Status: **implemented** (the `Conformance` launch profile). Detailed plan for backlog item `T3`. Parent
+design: [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #1, #5, and the "Windows
+developer notes"). Catalog entry: [`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md) group `T`.
 
 ## Goal
 
@@ -10,16 +10,35 @@ Run the Playground OP as a **real, externally reachable HTTPS process** whose di
 `issuer` **byte-matches** the origin the conformance suite uses to reach it — so the suite's nginx/Selenium
 front end and its direct token/userinfo/jwks/discovery calls all target one consistent origin.
 
+## What was implemented
+
+The [`Conformance` launch profile](../../src/NCode.Identity.OpenId.Playground/Properties/launchSettings.json)
+is the single "run the OP for the external suite" entry point:
+
+- **Binds all interfaces on the stable port.** `applicationUrl = https://0.0.0.0:5001;http://0.0.0.0:5000`,
+  so the suite's Docker containers reach it via `host.docker.internal:5001` (a process bound only to
+  `localhost` is **not** reachable through `host.docker.internal`, which maps to the host's network
+  interface, not loopback).
+- **Pins the issuer to the reached origin.** `OpenId__Server__Settings__tenant_issuer =
+https://host.docker.internal:5001` makes the discovery `issuer` byte-match the origin in the Appendix D
+  `server.discoveryUrl`, deterministically and independent of request host / proxy headers. The pin lives
+  in the launch profile (not `appsettings.Conformance.json`) because the shared `Conformance` environment
+  overlay is also loaded by the Aspire-orchestrated `ConformanceAspire` dashboard instance on `:5003`,
+  which must keep its own request-derived issuer.
+- **Reuses the conformance tenant/seed (`T4`) and the interactive UI (`T2`).** `ASPNETCORE_ENVIRONMENT =
+Conformance` loads `appsettings.Conformance.json` (the `ConformanceSeed` section → `AddConformanceSeed`),
+  and `InteractiveAuthentication__BundleRootPath` serves the `apps/auth` login/consent bundle under
+  `/account/*`.
+
+Run it with `dotnet run --project src/NCode.Identity.OpenId.Playground --launch-profile Conformance` (the
+full orchestration script that also brings the suite up/down is `T1` Phase D, not T3).
+
 ## Current state (verified)
 
 - **The integration-test host is in-process only.**
   [`PlaygroundApplicationFactory`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/PlaygroundApplicationFactory.cs)
   boots the Playground through `WebApplicationFactory`/`TestServer` — not a socket the suite's containers
-  can reach.
-- **A launchable process already exists.**
-  [`launchSettings.json`](../../src/NCode.Identity.OpenId.Playground/Properties/launchSettings.json) has a
-  `Project` profile with `applicationUrl = https://localhost:5001;http://localhost:5000` and a `Docker`
-  profile. `Program.cs` calls `app.UseHttpsRedirection()`.
+  can reach. The `Conformance` launch profile is the reachable-host answer to that gap.
 - **Issuer is request-derived, with a pin available.** In
   [`DefaultOpenIdTenantFactory`](../../src/NCode.Identity.OpenId.Core/Tenants/DefaultOpenIdTenantFactory.cs):
     - `GetTenantBaseAddressAsync` builds the base address from `httpRequest.Scheme` + `httpRequest.Host`.
@@ -45,14 +64,17 @@ Expose the Playground on a single origin the suite containers can reach — on W
 - Add the suite hostname to the hosts file where required (`127.0.0.1 localhost.emobix.co.uk`), per the
   parent doc's Windows notes; port-proxy only if a profile needs `443`.
 
-### Issuer byte-match (pick one, document it)
+### Issuer byte-match (chosen: pin)
 
-- **Pin the issuer (recommended, explicit):** set `tenant_issuer` to the exact reached origin (e.g.
-  `https://host.docker.internal:5001`) via configuration for the conformance run. Deterministic and
-  independent of proxy headers.
-- **Follow the request host:** ensure the request `Host`/`Scheme` the OP sees equals the reached origin —
-  which means configuring forwarded-headers handling if anything terminates TLS or rewrites the host in
-  front of Kestrel. More moving parts; prefer the pin.
+- **Pin the issuer (chosen, explicit):** `tenant_issuer` is set to the exact reached origin
+  (`https://host.docker.internal:5001`) via the `Conformance` launch profile's
+  `OpenId__Server__Settings__tenant_issuer` environment variable. `tenant_issuer` is a parent-owned
+  (`Keep`) setting ([ADR-0038](../adr/0038-setting-merge-lattice-duals.md)), so the server-level value
+  flows down to the single static tenant and cannot be overridden. Deterministic and independent of proxy
+  headers.
+- **Follow the request host (not chosen):** ensure the request `Host`/`Scheme` the OP sees equals the
+  reached origin — which means configuring forwarded-headers handling if anything terminates TLS or
+  rewrites the host in front of Kestrel. More moving parts; the pin is preferred.
 
 ### TLS trust
 
@@ -61,29 +83,30 @@ Expose the Playground on a single origin the suite containers can reach — on W
 
 ### Packaging
 
-- Add a dedicated **`Conformance` launch profile** (or a documented env overlay) that fixes the port,
-  pins `tenant_issuer`, selects the conformance tenant/seeding (`T4`), and enables the interactive dev UI
-  (`T2`). This profile is the single "run the OP for conformance" entry point; the full orchestration
-  script (launch → compose up → run-test-plan → teardown) is part of `T1` Phase D, not T3.
+- The dedicated **`Conformance` launch profile** fixes the port, pins `tenant_issuer`, selects the
+  conformance tenant/seeding (`T4`), and enables the interactive dev UI (`T2`). This profile is the single
+  "run the OP for conformance" entry point; the full orchestration script (launch → compose up →
+  run-test-plan → teardown) is part of `T1` Phase D, not T3.
 
 ## Work breakdown
 
-1. Define the `Conformance` launch profile / env overlay: stable HTTPS port, `tenant_issuer` pin,
-   conformance tenant selection, dev-UI + seeding toggles.
-2. Verify the running OP is reachable from a container at `host.docker.internal:<port>` and serves
-   `/.well-known/openid-configuration` + `/oauth2/jwks`.
+1. ✅ Define the `Conformance` launch profile: stable HTTPS port, all-interfaces bind, `tenant_issuer`
+   pin, conformance tenant selection, dev-UI + seeding toggles.
+2. Verify the running OP is reachable from a container at `host.docker.internal:5001` and serves
+   `/.well-known/openid-configuration` + `/oauth2/jwks` — a `T1` Phase C step (needs the suite stack up).
 3. Assert `issuer` in the discovery document byte-matches the origin in the Appendix D
-   `server.discoveryUrl`.
-4. Confirm the dev cert path works with the suite's dev-mode SSL relaxation.
-5. Record the exact run recipe in the config templates / orchestration notes consumed by `T1`.
+   `server.discoveryUrl` — guaranteed by the `tenant_issuer` pin above; re-confirm live in `T1` Phase C.
+4. Confirm the dev cert path works with the suite's dev-mode SSL relaxation — a `T1` Phase C step.
+5. Record the exact run recipe (above) in the orchestration notes consumed by `T1`.
 
 ## Acceptance criteria
 
+- ✅ The reachable origin is produced by a single documented profile/recipe (`Conformance`), not ad-hoc
+  flags.
+- ✅ The discovery `issuer` equals the origin the suite uses (`server.discoveryUrl` origin) — pinned to an
+  exact byte match via `tenant_issuer`.
 - The suite (in Docker) can fetch `/.well-known/openid-configuration` and `/oauth2/jwks` from the
-  Playground over HTTPS.
-- The discovery `issuer` equals the origin the suite uses (`server.discoveryUrl` origin) — exact byte
-  match.
-- The reachable origin is produced by a single documented profile/recipe, not ad-hoc flags.
+  Playground over HTTPS — exercised end-to-end when the suite stack lands in `T1` Phase C.
 
 ## Dependencies & links
 

@@ -277,11 +277,31 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   `consent-allow`, `consent-deny`). Decision record:
   [ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md). Detailed plan:
   [`docs/conformance/login-consent-ui.md`](docs/conformance/login-consent-ui.md). **Remaining for conformance:** the
-  reachable HTTPS host to drive it headlessly end-to-end (`T3`); the seeded conformance identity is **done** (`T4`);
-  independent of `F6`.
+  reachable HTTPS host to drive it headlessly end-to-end is **done** (`T3`); the seeded conformance identity is **done**
+  (`T4`); independent of `F6`.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md),
   [ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md)._
+- **`T3` — Reachable HTTPS Playground host for the external harness.** _Done._ The only launchable host used to be
+  the in-process `TestServer`; the external OpenID Foundation suite needs a real HTTPS origin whose discovery
+  `issuer` byte-matches that origin. Delivered as the dedicated **`Conformance` launch profile**
+  ([`launchSettings.json`](src/NCode.Identity.OpenId.Playground/Properties/launchSettings.json)): it binds all
+  interfaces on the stable port (`applicationUrl = https://0.0.0.0:5001;http://0.0.0.0:5000`) so the suite's Docker
+  containers reach it via `host.docker.internal:5001` (a `localhost`-only bind is not reachable through
+  `host.docker.internal`, which maps to the host network, not loopback), and pins the discovery `issuer` to the reached
+  origin via `OpenId__Server__Settings__tenant_issuer = https://host.docker.internal:5001`. The pin rides the
+  parent-owned (`Keep`) `tenant_issuer` setting ([ADR-0038](docs/adr/0038-setting-merge-lattice-duals.md)), so the
+  server-level value flows down to the single static tenant deterministically, independent of request host / proxy
+  headers. It lives in the launch profile rather than `appsettings.Conformance.json` because the shared `Conformance`
+  environment overlay is also loaded by the Aspire-orchestrated `ConformanceAspire` dashboard instance on `:5003`, which
+  must keep its own request-derived issuer. The profile reuses the conformance tenant/seed (`T4` — `AddConformanceSeed`,
+  via `ASPNETCORE_ENVIRONMENT=Conformance` → `appsettings.Conformance.json`) and the interactive login/consent UI (`T2`
+  — the `apps/auth` bundle served under `/account/*`). Run recipe:
+  `dotnet run --project src/NCode.Identity.OpenId.Playground --launch-profile Conformance`. The live
+  container-reachability + discovery byte-match re-confirmation and the launch→compose-up→run-test-plan→teardown
+  orchestration script are `T1` Phase C/D, not this item. Detailed plan:
+  [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]._
 - **`T4` — Deterministic conformance tenant, clients, and test user seeding.** Seeding exists only in test
   infrastructure; a launched host seeds only the bootstrap-admin client. Add an idempotent, config-driven
   startup seeder (bootstrap-admin-style) for the conformance tenant, the three Basic-OP clients, and a

@@ -114,8 +114,11 @@ Concretely:
   notifies RPs over a channel browsers cannot break; no new table or migration; the model reuses the audited grant
   revocation path (`RevokeWhereAsync`).
 - **Harder / follow-ups:** The OP must track participating clients on the session as tokens are issued (a write on the
-  issuance path). Back-channel delivery is best-effort over HTTP; durable delivery (retry/outbox, cf.
-  [ADR-0048](0048-durable-audit-delivery-outbox.md)) is a later hardening. `max_age` / re-authentication semantics and
+  issuance path). Back-channel delivery is now **retried out of band** via the generic job-dispatch port
+  ([ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md)) \u2014 the default notifier builds the signed
+  `logout_token` and dispatches a `BackChannelLogoutDeliveryJob` rather than `POST`ing inline, so a failed delivery is
+  retried (and becomes crash-durable under a durable dispatcher adapter, cf.
+  [ADR-0048](0048-durable-audit-delivery-outbox.md)). `max_age` / re-authentication semantics and
   the `auth_time` conditionality ([`BACKLOG.md`](../../BACKLOG.md) `F11`, `F13`) interact with the session's recorded
   `auth_time`. Front-Channel Logout / Session Management remain unavailable **by default** (now implementable as an
   opt-in capability via [ADR-0088](0088-opt-in-front-channel-logout-and-session-management.md)); a deployment that

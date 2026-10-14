@@ -438,6 +438,39 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
+            // backchannel_authentication_request_encryption_alg_values_supported: permitted key-management "alg" values for an encrypted CIBA request object.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name =
+                    OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionAlgValuesSupported,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // backchannel_authentication_request_encryption_enc_values_supported: permitted content-encryption "enc" values for an encrypted CIBA request object.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name =
+                    OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionEncValuesSupported,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // backchannel_authentication_request_encryption_zip_values_supported: permitted "zip" compression values for an encrypted CIBA request object.
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name =
+                    OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionZipValuesSupported,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
             // ciba_request_lifetime: validity window for a pending CIBA request (default 10 minutes).
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>

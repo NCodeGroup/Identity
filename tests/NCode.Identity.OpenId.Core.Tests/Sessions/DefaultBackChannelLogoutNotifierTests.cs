@@ -17,10 +17,9 @@
 #endregion
 
 using System.Globalization;
-using System.Net;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Identity;
+using NCode.Identity.Dispatch;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -57,9 +56,10 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
     private Mock<IAlgorithmCollectionProvider> MockAlgorithmCollectionProvider { get; }
     private Mock<ICredentialSelector> MockCredentialSelector { get; }
     private Mock<IJsonWebTokenService> MockJsonWebTokenService { get; }
-    private Mock<IHttpClientFactory> MockHttpClientFactory { get; }
-    private RecordingHttpMessageHandler Handler { get; }
+    private Mock<IJobDispatcher> MockJobDispatcher { get; }
     private DefaultBackChannelLogoutNotifier Notifier { get; }
+
+    private BackChannelLogoutDeliveryJob? CapturedJob { get; set; }
 
     public DefaultBackChannelLogoutNotifierTests()
     {
@@ -68,8 +68,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         MockAlgorithmCollectionProvider = CreateStrictMock<IAlgorithmCollectionProvider>();
         MockCredentialSelector = CreateStrictMock<ICredentialSelector>();
         MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
-        MockHttpClientFactory = CreateStrictMock<IHttpClientFactory>();
-        Handler = new RecordingHttpMessageHandler();
+        MockJobDispatcher = CreateStrictMock<IJobDispatcher>();
 
         Notifier = new DefaultBackChannelLogoutNotifier(
             MockTimeProvider.Object,
@@ -77,36 +76,11 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             MockAlgorithmCollectionProvider.Object,
             MockCredentialSelector.Object,
             MockJsonWebTokenService.Object,
-            MockHttpClientFactory.Object,
-            NullLogger<DefaultBackChannelLogoutNotifier>.Instance
+            MockJobDispatcher.Object
         );
     }
 
     #region Scaffolding
-
-    private sealed class RecordingHttpMessageHandler : HttpMessageHandler
-    {
-        public Uri? RequestUri { get; private set; }
-        public string? RequestBody { get; private set; }
-        public bool Throw { get; set; }
-
-        protected override async Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken
-        )
-        {
-            if (Throw)
-            {
-                throw new HttpRequestException("unreachable");
-            }
-
-            RequestUri = request.RequestUri;
-            RequestBody = request.Content is null
-                ? null
-                : await request.Content.ReadAsStringAsync(cancellationToken);
-            return new HttpResponseMessage(HttpStatusCode.OK);
-        }
-    }
 
     private Mock<OpenIdContext> CreateContext()
     {
@@ -192,10 +166,20 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             .Verifiable();
     }
 
-    private void SetupHttpClient() =>
-        MockHttpClientFactory
-            .Setup(x => x.CreateClient(It.IsAny<string>()))
-            .Returns(new HttpClient(Handler))
+    private void SetupDispatch() =>
+        MockJobDispatcher
+            .Setup(x =>
+                x.DispatchAsync(
+                    It.IsAny<BackChannelLogoutDeliveryJob>(),
+                    It.IsAny<DispatchOptions?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (BackChannelLogoutDeliveryJob job, DispatchOptions? _, CancellationToken _) =>
+                    CapturedJob = job
+            )
+            .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
     #endregion
@@ -203,7 +187,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
     #region NotifyAsync Tests
 
     [Fact]
-    public async Task NotifyAsync_WhenConfigured_PostsSignedLogoutTokenToBackChannelUri()
+    public async Task NotifyAsync_WhenConfigured_DispatchesSignedLogoutTokenDeliveryJob()
     {
         var mockContext = CreateContext();
         var mockClient = CreateClient(LogoutUri);
@@ -211,7 +195,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         SetupSigningCredentials(mockClient, found: true);
         var captured = new EncodeJwtParameters[1];
         SetupTokenGeneration(captured);
-        SetupHttpClient();
+        SetupDispatch();
 
         await Notifier.NotifyAsync(
             mockContext.Object,
@@ -221,9 +205,10 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.Equal(new Uri(LogoutUri), Handler.RequestUri);
-        Assert.NotNull(Handler.RequestBody);
-        Assert.Contains(OpenIdConstants.Parameters.LogoutToken, Handler.RequestBody);
+        MockJobDispatcher.Verify();
+        Assert.Equal(LogoutUri, CapturedJob?.LogoutUri);
+        Assert.Equal(ClientId, CapturedJob?.ClientId);
+        Assert.Equal(LogoutToken, CapturedJob?.LogoutToken);
 
         var parameters = captured[0];
         Assert.Equal(OpenIdConstants.SecurityTokenTypes.LogoutToken, parameters.TokenType);
@@ -253,7 +238,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.Null(Handler.RequestUri);
+        Assert.Null(CapturedJob);
     }
 
     [Fact]
@@ -270,7 +255,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.Null(Handler.RequestUri);
+        Assert.Null(CapturedJob);
     }
 
     [Fact]
@@ -288,28 +273,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.Null(Handler.RequestUri);
-    }
-
-    [Fact]
-    public async Task NotifyAsync_WhenDeliveryFails_SwallowsException()
-    {
-        var mockContext = CreateContext();
-        var mockClient = CreateClient(LogoutUri);
-        SetupClientId(mockClient);
-        SetupSigningCredentials(mockClient, found: true);
-        var captured = new EncodeJwtParameters[1];
-        SetupTokenGeneration(captured);
-        SetupHttpClient();
-        Handler.Throw = true;
-
-        await Notifier.NotifyAsync(
-            mockContext.Object,
-            mockClient.Object,
-            SubjectId,
-            SessionId,
-            CancellationToken.None
-        );
+        Assert.Null(CapturedJob);
     }
 
     #endregion

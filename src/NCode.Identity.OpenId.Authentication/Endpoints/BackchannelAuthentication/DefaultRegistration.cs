@@ -18,7 +18,9 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Dispatch;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands;
+using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Delivery;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages;
@@ -87,6 +89,14 @@ internal static class DefaultRegistration
                 DefaultCibaNotificationService
             >();
             serviceCollection.TryAddSingleton<ICibaRequestService, DefaultCibaRequestService>();
+
+            // Client ping/push delivery runs as a durable, retryable dispatch job; the handler performs the HTTP POST.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Scoped<
+                    IDispatchJobHandler<CibaDeliveryJob>,
+                    CibaDeliveryJobHandler
+                >()
+            );
         }
     }
 }

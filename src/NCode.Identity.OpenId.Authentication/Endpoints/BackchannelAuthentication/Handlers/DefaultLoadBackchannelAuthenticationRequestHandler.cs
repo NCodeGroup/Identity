@@ -21,6 +21,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
@@ -64,7 +65,7 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
         const string errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
 
         JsonElement jwtPayload;
-        string? algorithm;
+        JsonElement jwtHeader;
         try
         {
             var parameters = new ValidateJwtParameters()
@@ -86,12 +87,7 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
             }
 
             jwtPayload = result.DecodedJwt.Payload;
-            algorithm = result.DecodedJwt.Header.TryGetProperty(
-                JoseClaimNames.Header.Alg,
-                out var algElement
-            )
-                ? algElement.GetString()
-                : null;
+            jwtHeader = result.DecodedJwt.Header;
         }
         catch (Exception exception)
         {
@@ -99,22 +95,7 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
             throw errorFactory.FailedToDecodeJwt(errorCode).WithException(exception).AsException();
         }
 
-        // The request object must be signed with an advertised algorithm; a narrowed set rejects everything else.
-        var signingAlgValuesSupported = openIdClient.Settings.GetValue(
-            OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported
-        );
-        if (
-            signingAlgValuesSupported.Count > 0
-            && (string.IsNullOrEmpty(algorithm) || !signingAlgValuesSupported.Contains(algorithm))
-        )
-        {
-            throw errorFactory
-                .InvalidRequest(
-                    "The backchannel authentication request object is signed with an unsupported algorithm.",
-                    errorCode
-                )
-                .AsException();
-        }
+        ValidateRequestObjectAlgorithms(openIdClient, jwtHeader, errorFactory, errorCode);
 
         BackchannelAuthenticationRequest requestObject;
         try
@@ -145,5 +126,97 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
         }
 
         return requestObject;
+    }
+
+    // Enforces the request object's algorithms against the advertised sets: the key-management/content-encryption/zip
+    // values for an encrypted (JWE) request object, or the signing value for a signed (JWS) one. A narrowed set rejects
+    // everything outside it; an unset (empty) set is unrestricted (ADR-0010).
+    private static void ValidateRequestObjectAlgorithms(
+        OpenIdClient openIdClient,
+        JsonElement jwtHeader,
+        IOpenIdErrorFactory errorFactory,
+        string errorCode
+    )
+    {
+        var settings = openIdClient.Settings;
+
+        var algorithm = jwtHeader.TryGetProperty(JoseClaimNames.Header.Alg, out var algElement)
+            ? algElement.GetString()
+            : null;
+
+        // The presence of an "enc" header identifies an encrypted (JWE) request object.
+        if (jwtHeader.TryGetProperty(JoseClaimNames.Header.Enc, out var encElement))
+        {
+            EnforceAdvertised(
+                settings.GetValue(
+                    OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionAlgValuesSupported
+                ),
+                algorithm,
+                "encrypted with an unsupported key-management algorithm",
+                errorFactory,
+                errorCode
+            );
+
+            EnforceAdvertised(
+                settings.GetValue(
+                    OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionEncValuesSupported
+                ),
+                encElement.GetString(),
+                "encrypted with an unsupported content-encryption algorithm",
+                errorFactory,
+                errorCode
+            );
+
+            if (
+                jwtHeader.TryGetProperty(JoseClaimNames.Header.Zip, out var zipElement)
+                && zipElement.GetString() is { Length: > 0 } zip
+            )
+            {
+                EnforceAdvertised(
+                    settings.GetValue(
+                        OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionZipValuesSupported
+                    ),
+                    zip,
+                    "compressed with an unsupported compression algorithm",
+                    errorFactory,
+                    errorCode
+                );
+            }
+
+            return;
+        }
+
+        // Otherwise it is a signed (JWS) request object.
+        EnforceAdvertised(
+            settings.GetValue(
+                OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported
+            ),
+            algorithm,
+            "signed with an unsupported algorithm",
+            errorFactory,
+            errorCode
+        );
+    }
+
+    private static void EnforceAdvertised(
+        IReadOnlyCollection<string> advertised,
+        string? value,
+        string reason,
+        IOpenIdErrorFactory errorFactory,
+        string errorCode
+    )
+    {
+        if (advertised.Count == 0)
+            return;
+
+        if (!string.IsNullOrEmpty(value) && advertised.Contains(value))
+            return;
+
+        throw errorFactory
+            .InvalidRequest(
+                $"The backchannel authentication request object is {reason}.",
+                errorCode
+            )
+            .AsException();
     }
 }

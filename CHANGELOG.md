@@ -10,6 +10,33 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Generic background job-dispatch subsystem with a BYO-orchestration adapter port — and durable CIBA push/ping
+  delivery (completes backlog `D4`).** New packages `NCode.Identity.Dispatch(.Abstractions)` provide a small, reusable
+  way to run deferred, at-least-once work: a serializable `IDispatchJob`, an `IDispatchJobHandler<TJob>` (throw to
+  retry), and the adapter port `IJobDispatcher` (`DispatchAsync<TJob>(job, DispatchOptions?, …)`). The default,
+  registered via `AddDispatchServices().AddInProcessJobDispatcher()`, is an **in-process, self-scheduling** adapter: a
+  bounded in-memory queue drained by a hosted worker that retries with exponential back-off. A deployment swaps in a
+  **durable or distributed** backend (a transactional outbox, a message broker such as RabbitMQ, or a scheduling cluster
+  such as Quartz) by registering its own `IJobDispatcher` — the producers and handlers are unchanged. **CIBA ping/push
+  delivery now rides this port:** `ICibaRequestService` composes a `CibaDeliveryJob` on approval and dispatches it, and
+  `CibaDeliveryJobHandler` performs the HTTP `POST` and throws on failure so the dispatcher retries — turning the former
+  best-effort single attempt into at-least-once delivery. `ICibaNotificationService` is narrowed to just the
+  authentication-device seam (`NotifyAuthenticationDeviceAsync`); its `NotifyClientAsync` / `DeliverTokensAsync` HTTP
+  methods are **removed**. **Back-channel logout ([ADR-0074](docs/adr/0074-session-management-and-logout.md)) also rides
+  the port:** the default `IBackChannelLogoutNotifier` now builds the signed `logout_token` and dispatches a delivery
+  job rather than `POST`ing inline, so a failed `logout_token` delivery is retried. The concrete delivery jobs are
+  internal (the dispatcher is generic over `IDispatchJob`). The proposed durable-audit outbox
+  ([ADR-0048](docs/adr/0048-durable-audit-delivery-outbox.md))
+  is now framed as one adapter of this port ([ADR-0090](docs/adr/0090-durable-outbound-delivery-dispatch-adapter.md)).
+
+- **CIBA request-object encryption advertisement and enforcement (completes backlog `D4`).** New server settings
+  `backchannel_authentication_request_encryption_alg_values_supported` / `…_enc_values_supported` /
+  `…_zip_values_supported` are advertised in discovery alongside the existing signing-alg setting. The backchannel
+  request-object loader now enforces them: an encrypted (JWE) request object must use an advertised key-management
+  `alg`, content-encryption `enc`, and (if present) `zip`; a signed (JWS) one must use an advertised signing `alg`
+  (also fixing a latent case where a JWE's key-management `alg` was checked against the signing set)
+  ([ADR-0090](docs/adr/0090-durable-outbound-delivery-dispatch-adapter.md)).
+
 - **Pushed Authorization Requests (PAR, RFC 9126) — completes backlog `F8`.** The OP now exposes a
   `pushed_authorization_request_endpoint` (`/oauth2/par`) where a client authenticates (identically to the token
   endpoint) and POSTs its authorization request parameters as `application/x-www-form-urlencoded`; the request is

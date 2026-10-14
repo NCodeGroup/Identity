@@ -19,6 +19,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Dispatch;
 using NCode.Identity.Events;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
@@ -78,6 +79,10 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
     {
         serviceCollection.AddPropertyBag();
         serviceCollection.AddEventServices();
+
+        // The in-process, self-scheduling job dispatcher is the default adapter; a host swaps in a durable or
+        // distributed backend (outbox, broker, scheduler cluster) by registering its own IJobDispatcher first.
+        serviceCollection.AddDispatchServices().AddInProcessJobDispatcher();
 
         DataProtectionBuilder = serviceCollection.AddDataProtection();
         SecretsLibraryBuilder = serviceCollection.AddSecretsLibrary();

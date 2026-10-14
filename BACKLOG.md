@@ -24,6 +24,10 @@ done, delete the entry; when it is **partially** done, rewrite the entry so its 
 describe only the **remaining** work (the completed portion is stated as already-existing context, not
 as a "done" status).
 
+**Allocating an ID:** take the next free number for the group from the [ID ledger](#backlog-id-ledger--never-reuse-a-number)
+below and bump that group's high-water mark — **never reuse or backfill a number**, because ADRs, the changelog, and
+code comments reference it long after the entry is gone.
+
 ---
 
 ## Standing design posture (read first)
@@ -41,6 +45,26 @@ one option is merely more work.
 
 ---
 
+## Backlog ID ledger — never reuse a number
+
+Backlog IDs outlive their entries: ADRs, the [`CHANGELOG.md`](CHANGELOG.md), and code comments reference a number long
+after the item is completed and deleted from this file. So **a number is never reused or backfilled.** Allocate the next
+ID for a group strictly **above** its high-water mark, then bump the mark here. Every number at or below a mark is
+**allocated** — whether still active in the body below, or retired (completed and deleted, or absorbed into another
+item) — even when it no longer appears here. A retired item's record lives in the `CHANGELOG.md` entry that closed it
+(and any ADR); preserving the full completed-item **text** in a dedicated archive is tracked as `X2`.
+
+| Group                                   | Next free | High-water |
+| --------------------------------------- | --------- | ---------- |
+| `D` — Deferred, intentionally not-yet   | `D6`      | `D5`       |
+| `F` — Feature gaps                      | `F19`     | `F18`      |
+| `T` — Conformance & interop testing     | `T7`      | `T6`       |
+| `U` — Frontend presentation platform    | `U13`     | `U12`      |
+| `S` — Secrets management                | `S7`      | `S6`       |
+| `X` — Tooling & agent customization     | `X3`      | `X2`       |
+
+---
+
 ## Deferred — evaluated, intentionally not-yet (group `D`)
 
 - **`D1` — UserInfo access auditing.** The UserInfo endpoint returns end-user PII but is not audited. A
@@ -49,15 +73,19 @@ one option is merely more work.
   an opt-in; revisit if a compliance requirement needs per-access PII records.
   Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/`,
   `IAuditEventRecorder`.
-- **`D4` — CIBA push delivery durability and request-object encryption advertisement.** CIBA **push** delivery
-  ([ADR-0085](docs/adr/0085-ciba-grant.md)) issues and `POST`s the tokens to the client's `client_notification_endpoint`
-  on a best-effort basis — a failed delivery is logged, not retried or queued, and the client cannot fall back to
-  polling. A deployment that needs at-least-once push should replace `ICibaNotificationService` with a durable
-  (store-and-retry) transport; a built-in retry/outbox is deferred until a concrete need. Separately, signed backchannel
-  request objects are validated and advertised via `backchannel_authentication_request_signing_alg_values_supported`,
-  but the matching **encryption** alg/enc advertisement (`backchannel_authentication_request_encryption_*`) is not yet
-  surfaced — encrypted request objects still decrypt through the shared JWT path, but the capability is not advertised.
-  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/`.
+- **`D5` — Durable / distributed `IJobDispatcher` adapter (transactional outbox, Quartz, or message broker).** The
+  generic background job-dispatch port and its in-process, self-scheduling default shipped with
+  [ADR-0090](docs/adr/0090-durable-outbound-delivery-dispatch-adapter.md); the in-process adapter retries transient
+  failures but loses in-flight jobs on a process crash and does not coordinate across nodes. A deployment that needs
+  **crash-durable, at-least-once, cluster-safe** delivery (guaranteed CIBA push or back-channel logout) must register
+  its own `IJobDispatcher`. Ship a reference durable adapter — a **transactional outbox** (which also realizes the
+  deferred durable-audit outbox of [ADR-0048](docs/adr/0048-durable-audit-delivery-outbox.md) as one adapter of this
+  port), a **Quartz** scheduling-cluster adapter (persist jobs in its job store, honoring `DispatchOptions.Delay`
+  natively), and/or a **message-broker** adapter (RabbitMQ/SQS/Kafka). A durable adapter that persists a job must
+  protect payloads at rest — CIBA push jobs carry issued tokens and logout jobs carry a signed `logout_token`. Deferred
+  until a concrete need justifies the persistence/migration (or broker/scheduler) operational cost. Touch points:
+  implement `NCode.Identity.Dispatch.IJobDispatcher` in a new adapter package and register it before
+  `AddInProcessJobDispatcher` (or omit that call).
 
 ## Feature gaps — not yet implemented (group `F`)
 
@@ -203,3 +231,12 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   both for now — the prompt still serves VS Code chat via its `agent:` frontmatter, and `disable-model-invocation: true`
   is intended to return once github/copilot-cli#4438 is fixed (restoring explicit-only semantics). If kept, edits must be
   mirrored across both files to avoid drift.
+- **`X2` — Archive completed backlog items (full text) for reference.** Completed entries are **deleted** from this
+  file when their work lands, so their original wording survives only in git history and in the terse `CHANGELOG.md`
+  line that closed them. Mine the history — `git log --follow -p -- BACKLOG.md` — to recover every removed entry, and
+  collect the full text into a dedicated, read-only archive (a `BACKLOG-COMPLETED.md`, or a "retired items" appendix),
+  keyed by backlog ID, each cross-referenced to the `CHANGELOG.md` entry and/or ADR that closed it. Going forward, when
+  an entry is completed and removed, copy its text into the archive in the same change (and the ID stays recorded in the
+  [ID ledger](#backlog-id-ledger--never-reuse-a-number) above). This preserves the richer problem/design context the
+  changelog omits, and makes the retired IDs' rationale discoverable without archaeology.
+  Touch points: [`BACKLOG.md`](BACKLOG.md), [`CHANGELOG.md`](CHANGELOG.md), a new `BACKLOG-COMPLETED.md`.

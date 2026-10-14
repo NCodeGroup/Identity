@@ -89,8 +89,9 @@ Concretely:
   an additive JSON property).
 - **Harder / follow-ups:** The default resolver omits `acr` for a plain single-factor password login unless a
   `default_acr` baseline is configured (honest, but a deployment that wants an always-present `acr` must configure it or
-  replace the resolver). **Enforcement** of a requested essential `acr` (denying or re-authenticating when the satisfied
-  `acr` is not among the requested essential values) is **not** implemented here — the satisfied `acr` is now available
-  on the principal to enforce against, and that enforcement is recorded as a deferred item in
-  [`BACKLOG.md`](../../BACKLOG.md). MFA-driven `acr` will become meaningful once a multi-factor authentication subsystem
-  exists; the seam is ready for it today.
+  replace the resolver). **Enforcement** of a requested essential `acr` (denying when the satisfied `acr` is not among
+  the requested essential values) was deferred at the time of this decision and is now **implemented** in
+  `DefaultValidateSubjectAuthenticationHandler` (backlog `F19`): an essential `id_token.acr` request with specific
+  `values` (OpenID Connect Core 1.0 §5.5.1.1) that the principal-stamped `acr` does not satisfy now yields
+  `access_denied`, while voluntary requests (including the entire `acr_values` parameter) remain best-effort. MFA-driven
+  `acr` will become meaningful once a multi-factor authentication subsystem exists; the seam is ready for it today.

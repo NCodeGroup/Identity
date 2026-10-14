@@ -184,6 +184,16 @@ group heading in ID order, preserve the original wording verbatim, and add a tra
   `CreateDeviceAuthorizationRequestCommand` so the endpoint family is uniform. Touch point:
   `src/NCode.Identity.OpenId.Authentication/Endpoints/DeviceAuthorization/`.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0086](docs/adr/0086-canonical-openid-endpoint-shape.md)._
+- **`F19` — Essential `acr` enforcement.** `acr` is now emitted (recorded at authentication, resolved through the
+  replaceable `IAuthenticationContextReferenceResolver`, and copied into tokens — [ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md)),
+  and the satisfied `acr` is available on the subject principal. What is **not** yet implemented is _enforcement_ of a
+  requested essential `acr`: when the `claims` request parameter asks for `id_token.acr` as an essential claim with
+  specific `values`, and the satisfied `acr` is not among them, the OP should deny (or trigger re-authentication) rather
+  than silently issue a token whose `acr` does not match. The existing `idp:`-prefixed `acr_values` matching in
+  `DefaultValidateSubjectAuthenticationHandler` is the natural home; the satisfied `acr` claim is now present to
+  enforce against. Touch point:
+  `src/NCode.Identity.OpenId.Authentication/Subject/DefaultValidateSubjectAuthenticationHandler.cs`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md)._
 
 ## Conformance & interop testing (group `T`)
 

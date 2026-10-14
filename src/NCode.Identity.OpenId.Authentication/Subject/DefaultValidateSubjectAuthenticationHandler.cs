@@ -21,7 +21,9 @@ using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.Messages.Parameters;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -145,7 +147,73 @@ internal class DefaultValidateSubjectAuthenticationHandler(
             return ValueTask.CompletedTask;
         }
 
+        // enforce a requested essential acr
+        if (!IsRequestedAcrSatisfied(subjectAuthentication.Subject, openIdRequest))
+        {
+            const string message =
+                "The end-user's acr does not satisfy the requested essential acr values.";
+            operationDisposition.Error ??= errorFactory.AccessDenied(message);
+            Logger.SubjectValidationFailed(message);
+            return ValueTask.CompletedTask;
+        }
+
         return ValueTask.CompletedTask;
+    }
+
+    private static bool IsRequestedAcrSatisfied(
+        ClaimsPrincipal subject,
+        IOpenIdRequest openIdRequest
+    )
+    {
+        // Per OpenID Connect Core 1.0 §5.5.1.1, acr is only a hard requirement when it is requested as an *essential*
+        // id_token.acr claim with specific values; the issued acr MUST then match one of them. A voluntary request
+        // (including the entire `acr_values` parameter, which the spec defines as voluntary) is best-effort and imposes
+        // no constraint here.
+        var requestClaims = openIdRequest.Parameters.GetValueOrDefault(
+            OpenIdAuthenticationParameters.Claims
+        );
+        if (
+            requestClaims?.IdToken is not { } idTokenClaims
+            || !idTokenClaims.TryGetValue(JoseClaimNames.Payload.Acr, out var acrRequest)
+            || acrRequest is not { Essential: true }
+        )
+        {
+            return true;
+        }
+
+        var requestedValues = GetRequestedAcrValues(acrRequest);
+        if (requestedValues.Count == 0)
+        {
+            // An essential acr request without specific values only asks that acr be returned, not a particular value;
+            // emission is handled by the token pipeline, so there is nothing to enforce.
+            return true;
+        }
+
+        var satisfiedAcr = subject.FindFirstValue(JoseClaimNames.Payload.Acr);
+        return satisfiedAcr is not null && requestedValues.Contains(satisfiedAcr);
+    }
+
+    private static HashSet<string> GetRequestedAcrValues(IRequestClaim acrRequest)
+    {
+        var values = new HashSet<string>(StringComparer.Ordinal);
+
+        if (!string.IsNullOrEmpty(acrRequest.Value))
+        {
+            values.Add(acrRequest.Value);
+        }
+
+        if (acrRequest.Values is not null)
+        {
+            foreach (var value in acrRequest.Values)
+            {
+                if (!string.IsNullOrEmpty(value))
+                {
+                    values.Add(value);
+                }
+            }
+        }
+
+        return values;
     }
 
     private static bool IsReceivedIdpAllowed(

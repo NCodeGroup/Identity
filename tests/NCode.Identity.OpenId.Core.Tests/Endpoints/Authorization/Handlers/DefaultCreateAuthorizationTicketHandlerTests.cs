@@ -120,6 +120,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
             .Verifiable();
         mockAuthRequest.SetupGet(x => x.Nonce).Returns("nonce-value").Verifiable();
         mockAuthRequest.SetupGet(x => x.Claims).Returns((IRequestClaims?)null).Verifiable();
+        mockAuthRequest.SetupGet(x => x.MaxAge).Returns((TimeSpan?)null).Verifiable();
         IReadOnlyList<string> scopes = ["openid"];
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(scopes).Verifiable();
         mockAuthRequest.SetupGet(x => x.Resources).Returns([]).Verifiable();

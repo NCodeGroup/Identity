@@ -41,6 +41,11 @@ internal static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddSingleton<
+                IAuthenticationContextReferenceResolver,
+                DefaultAuthenticationContextReferenceResolver
+            >();
+
+            serviceCollection.TryAddSingleton<
                 ICommandHandler<ValidateSubjectAuthenticationCommand>,
                 DefaultValidateSubjectAuthenticationHandler
             >();

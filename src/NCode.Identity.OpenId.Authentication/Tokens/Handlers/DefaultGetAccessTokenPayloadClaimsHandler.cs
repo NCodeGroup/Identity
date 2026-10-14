@@ -82,7 +82,6 @@ internal class DefaultGetAccessTokenPayloadClaimsHandler(ICryptoService cryptoSe
         // TODO: the following protocol claims require foundational subsystems that do not yet exist:
         // - sid: requires a session-management subsystem
         // - cnf: requires a proof-of-possession (e.g. DPoP/mTLS) subsystem
-        // - acr: requires authentication-context-class tracking
 
         return ValueTask.CompletedTask;
     }

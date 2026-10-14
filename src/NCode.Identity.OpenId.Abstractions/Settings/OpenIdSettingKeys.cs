@@ -112,6 +112,17 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.AcrValuesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'default_acr' setting.
+    /// </summary>
+    public static SettingKey<string> DefaultAcr => new(OpenIdSettingNames.DefaultAcr);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'always_include_auth_time' setting.
+    /// </summary>
+    public static SettingKey<bool> AlwaysIncludeAuthTime =>
+        new(OpenIdSettingNames.AlwaysIncludeAuthTime);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'allowed_identity_providers' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> AllowedIdentityProviders =>

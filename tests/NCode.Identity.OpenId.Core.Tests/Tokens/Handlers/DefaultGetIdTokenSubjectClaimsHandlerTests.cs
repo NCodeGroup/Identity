@@ -21,6 +21,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Moq;
 using NCode.Identity.Claims;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Subject;
@@ -28,6 +29,8 @@ using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Tokens.Handlers;
@@ -53,7 +56,9 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     private GetIdTokenSubjectClaimsCommand CreateCommand(
         SubjectAuthentication? subjectAuthentication,
         IReadOnlyList<string> effectiveScopes,
-        IRequestClaims? requestClaims = null
+        IRequestClaims? requestClaims = null,
+        bool alwaysIncludeAuthTime = true,
+        bool authTimeRequired = false
     )
     {
         var tokenRequest = new CreateSecurityTokenRequest
@@ -64,6 +69,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             EffectiveScopes = effectiveScopes,
             SubjectAuthentication = subjectAuthentication,
             RequestClaims = requestClaims,
+            AuthTimeRequired = authTimeRequired,
         };
 
         var tokenContext = new SecurityTokenContext(
@@ -73,12 +79,54 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             TokenType: OpenIdConstants.TokenTypes.IdToken
         );
 
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.AlwaysIncludeAuthTime))
+            .Returns(alwaysIncludeAuthTime);
+
+        var mockClient = CreateStrictMock<OpenIdClient>();
+        mockClient.Setup(x => x.Settings).Returns(mockSettings.Object);
+
         return new GetIdTokenSubjectClaimsCommand(
             CreateStrictMock<OpenIdContext>().Object,
-            CreateStrictMock<OpenIdClient>().Object,
+            mockClient.Object,
             tokenContext,
             new List<Claim>()
         );
+    }
+
+    private List<string> CaptureCopiedClaimTypes(GetIdTokenSubjectClaimsCommand command)
+    {
+        List<string>? capturedClaimTypes = null;
+        MockClaimsService
+            .Setup(x =>
+                x.CopyClaims(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<ICollection<Claim>>(),
+                    true,
+                    It.IsAny<IEnumerable<string>>()
+                )
+            )
+            .Callback(
+                (ClaimsPrincipal _, ICollection<Claim> _, bool _, IEnumerable<string> claimTypes) =>
+                    capturedClaimTypes = claimTypes.ToList()
+            )
+            .Verifiable();
+        MockClaimsService
+            .Setup(x =>
+                x.CopyClaims(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<ICollection<Claim>>(),
+                    false,
+                    It.IsAny<IEnumerable<string>>()
+                )
+            )
+            .Verifiable();
+
+        Handler.HandleAsync(command, CancellationToken.None).AsTask().GetAwaiter().GetResult();
+
+        Assert.NotNull(capturedClaimTypes);
+        return capturedClaimTypes;
     }
 
     private static SubjectAuthentication CreateSubjectAuthentication() =>
@@ -184,6 +232,81 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             .Verifiable();
 
         await Handler.HandleAsync(command, CancellationToken.None);
+    }
+
+    [Fact]
+    public void HandleAsync_AlwaysCopiesAcrClaimType()
+    {
+        var command = CreateCommand(CreateSubjectAuthentication(), ["openid"]);
+
+        var claimTypes = CaptureCopiedClaimTypes(command);
+
+        Assert.Contains(JoseClaimNames.Payload.Acr, claimTypes);
+    }
+
+    [Fact]
+    public void HandleAsync_WhenAlwaysIncludeAuthTime_CopiesAuthTimeClaimType()
+    {
+        var command = CreateCommand(
+            CreateSubjectAuthentication(),
+            ["openid"],
+            alwaysIncludeAuthTime: true
+        );
+
+        var claimTypes = CaptureCopiedClaimTypes(command);
+
+        Assert.Contains(JoseClaimNames.Payload.AuthTime, claimTypes);
+    }
+
+    [Fact]
+    public void HandleAsync_WhenNotAlwaysIncludeAndNotRequired_OmitsAuthTimeClaimType()
+    {
+        var command = CreateCommand(
+            CreateSubjectAuthentication(),
+            ["openid"],
+            alwaysIncludeAuthTime: false
+        );
+
+        var claimTypes = CaptureCopiedClaimTypes(command);
+
+        Assert.DoesNotContain(JoseClaimNames.Payload.AuthTime, claimTypes);
+    }
+
+    [Fact]
+    public void HandleAsync_WhenAuthTimeRequired_CopiesAuthTimeClaimType()
+    {
+        var command = CreateCommand(
+            CreateSubjectAuthentication(),
+            ["openid"],
+            alwaysIncludeAuthTime: false,
+            authTimeRequired: true
+        );
+
+        var claimTypes = CaptureCopiedClaimTypes(command);
+
+        Assert.Contains(JoseClaimNames.Payload.AuthTime, claimTypes);
+    }
+
+    [Fact]
+    public void HandleAsync_WhenEssentialAuthTimeRequested_CopiesAuthTimeClaimType()
+    {
+        var requestClaims = new RequestClaims
+        {
+            IdToken = new RequestClaimDictionary
+            {
+                [JoseClaimNames.Payload.AuthTime] = new RequestClaim { Essential = true },
+            },
+        };
+        var command = CreateCommand(
+            CreateSubjectAuthentication(),
+            ["openid"],
+            requestClaims,
+            alwaysIncludeAuthTime: false
+        );
+
+        var claimTypes = CaptureCopiedClaimTypes(command);
+
+        Assert.Contains(JoseClaimNames.Payload.AuthTime, claimTypes);
     }
 
     #endregion

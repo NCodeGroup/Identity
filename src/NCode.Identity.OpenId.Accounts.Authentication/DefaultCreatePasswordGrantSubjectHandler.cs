@@ -19,6 +19,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 
@@ -32,13 +33,17 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// they are a principal-level concept resolved fresh at issuance by the subject-claims projection handlers.
 /// </summary>
 // See ADR-0035, ADR-0051, ADR-0055.
-internal class DefaultCreatePasswordGrantSubjectHandler(TimeProvider timeProvider)
-    : ICommandResponseHandler<CreatePasswordGrantSubjectCommand, ClaimsPrincipal>
+internal class DefaultCreatePasswordGrantSubjectHandler(
+    IAuthenticationContextReferenceResolver authenticationContextReferenceResolver,
+    TimeProvider timeProvider
+) : ICommandResponseHandler<CreatePasswordGrantSubjectCommand, ClaimsPrincipal>
 {
+    private IAuthenticationContextReferenceResolver AuthenticationContextReferenceResolver { get; } =
+        authenticationContextReferenceResolver;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
-    public ValueTask<ClaimsPrincipal> HandleAsync(
+    public async ValueTask<ClaimsPrincipal> HandleAsync(
         CreatePasswordGrantSubjectCommand command,
         CancellationToken cancellationToken
     )
@@ -53,7 +58,7 @@ internal class DefaultCreatePasswordGrantSubjectHandler(TimeProvider timeProvide
         // auth properties, so both are stamped as claims for DefaultValidateSubjectAuthenticationHandler. The password
         // was just verified, so the authentication time is now.
         var authTime = TimeProvider.GetUtcNow().ToUnixTimeSeconds();
-        var claims = new List<Claim>(account.Claims.Count + 4)
+        var claims = new List<Claim>(account.Claims.Count + 6)
         {
             // The subject is stamped under the tenant's primary subject claim type so principal resolution reads it
             // back through the same tenant-aware GetSubjectId seam (ADR-0053).
@@ -68,11 +73,31 @@ internal class DefaultCreatePasswordGrantSubjectHandler(TimeProvider timeProvide
         };
         claims.AddRange(account.Claims.Select(claim => new Claim(claim.Type, claim.Value)));
 
+        // The password was just verified, so record 'pwd' (RFC 8176) and resolve the authentication context class
+        // reference (acr) from it, letting the deployment's policy assert a stronger value when applicable.
+        claims.Add(
+            new Claim(JoseClaimNames.Payload.Amr, OpenIdConstants.AuthenticationMethods.Password)
+        );
+
+        var acr = await AuthenticationContextReferenceResolver.ResolveAsync(
+            new AuthenticationContextReferenceRequest
+            {
+                AuthenticationMethods = [OpenIdConstants.AuthenticationMethods.Password],
+                IdentityProvider = null,
+                Settings = settings,
+            },
+            cancellationToken
+        );
+        if (!string.IsNullOrEmpty(acr))
+        {
+            claims.Add(new Claim(JoseClaimNames.Payload.Acr, acr));
+        }
+
         var identity = new ClaimsIdentity(
             claims,
             authenticationType: OpenIdConstants.GrantTypes.Password
         );
 
-        return ValueTask.FromResult(new ClaimsPrincipal(identity));
+        return new ClaimsPrincipal(identity);
     }
 }

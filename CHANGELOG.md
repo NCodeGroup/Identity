@@ -689,6 +689,17 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **RP-initiated logout now resolves the stable subject from server-owned state instead of a pairwise `id_token_hint`
+  `sub` (completes backlog `F21`).** With pairwise subject identifiers ([ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md)),
+  the `sub` in an `id_token_hint` is a per-sector pseudonym produced by a one-way projection the OP cannot reverse. The
+  end-session handler previously consumed that pseudonym as if it were the stable principal, so for a pairwise client it
+  silently matched no grants during subject-keyed revocation and double-projected the back-channel `logout_token` `sub`
+  (which no relying party could then match). `DefaultResolveEndSessionSubjectHandler` now reads only `sid` and
+  `client_id` from the hint and recovers the stable subject **forward** from the persisted session grant (falling back
+  to the OP login cookie), never reading the hint's `sub` — so no reverse map is introduced (a reversible
+  pseudonym→principal mapping was rejected as a correlation liability), mirroring the one-way-hashed grant-key model
+  where a presented value is matched forward, never reversed. See
+  [ADR-0096](docs/adr/0096-end-session-subject-from-server-state.md).
 - **Client-aborted requests at the OpenID endpoint pipeline are no longer rendered as `server_error` or audited.**
   When a client disconnects mid-request (for example a browser/SPA cancelling an in-flight discovery fetch), the
   resulting `OperationCanceledException` whose token is `HttpContext.RequestAborted` is a normal disconnect, not a

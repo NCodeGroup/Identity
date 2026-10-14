@@ -49,6 +49,15 @@ public sealed class OpenIdResult<T>(T response) : IResult, IOpenIdResult
             ? supportStatusCode.StatusCode
             : null;
 
+        if (Response is ISupportResponseHeaders { ResponseHeaders: { } responseHeaders })
+        {
+            var headers = httpContext.Response.Headers;
+            foreach (var (name, value) in responseHeaders)
+            {
+                headers[name] = value;
+            }
+        }
+
         var jsonResult = CreateJsonResult(Response, jsonSerializerOptions, statusCode);
 
         await jsonResult.ExecuteAsync(httpContext);

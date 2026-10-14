@@ -413,6 +413,7 @@ NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.Open
 NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithCode(string! code) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithDescription(string? description) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithException(System.Exception? exception) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithResponseHeader(string! name, Microsoft.Extensions.Primitives.StringValues value) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithState(string? state) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithStatusCode(int? statusCode) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorExtensions.extension(NCode.Identity.OpenId.Messages.IOpenIdError!).WithUri(System.Uri? uri) -> NCode.Identity.OpenId.Messages.IOpenIdError!

@@ -10,6 +10,19 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Token-endpoint `401` + `WWW-Authenticate` challenge on failed `Authorization`-header client authentication (completes
+  backlog `F10`).** A failed `client_secret_basic` authentication now answers with `401 Unauthorized` and a
+  `WWW-Authenticate: Basic realm="<issuer>"` challenge, as [RFC 6749 §5.2](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2)
+  requires when the client authenticated via the HTTP `Authorization` header; body-based (`client_secret_post`) and
+  assertion-based methods stay `400`. The challenge rides a new general response-header seam — `ISupportResponseHeaders`
+  (sibling of `ISupportStatusCode`) that `IOpenIdError` now implements and `OpenIdResult<T>` renders — so the fix covers
+  the token endpoint and every other client-authenticating endpoint (introspection, revocation, device-authorization,
+  CIBA, PAR) through the shared `IClientAuthenticationService` funnel, and the same seam will carry the
+  `WWW-Authenticate: Bearer` challenge for sender-constrained tokens (backlog `F7`). Extension grants
+  ([RFC 6749 §4.5](https://datatracker.ietf.org/doc/html/rfc6749#section-4.5)) need no endpoint change: registering an
+  `ITokenGrantHandler` whose `GrantTypes` includes the extension grant's absolute-URI identifier is the seam. See
+  [ADR-0092](docs/adr/0092-token-endpoint-401-www-authenticate-challenge.md).
+
 - **Conformance server unlocks the implemented-but-off-by-default capabilities (discovery coverage).** The spec-coverage
   dashboard ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)) is discovery-driven, so it flagged
   Session Management (`check_session_iframe`), Front-Channel Logout, and the `client_credentials` grant as **missing** —

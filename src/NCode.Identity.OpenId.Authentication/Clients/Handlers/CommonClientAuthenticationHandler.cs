@@ -70,6 +70,24 @@ internal abstract class CommonClientAuthenticationHandler(
     );
 
     /// <summary>
+    /// Creates the <see cref="ClientAuthenticationResult"/> returned when client authentication fails with the
+    /// <c>invalid_client</c> error. The base implementation responds with <c>400 Bad Request</c>; handlers whose
+    /// credentials arrive in the HTTP <c>Authorization</c> request header override this to respond with
+    /// <c>401 Unauthorized</c> and a matching <c>WWW-Authenticate</c> challenge, as required by
+    /// <see href="https://datatracker.ietf.org/doc/html/rfc6749#section-5.2">RFC 6749 §5.2</see>.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <returns>The <see cref="ClientAuthenticationResult"/> representing the <c>invalid_client</c> failure.</returns>
+    protected virtual ClientAuthenticationResult CreateInvalidClientResult(
+        OpenIdContext openIdContext
+    ) =>
+        new(
+            openIdContext
+                .ErrorFactory.InvalidClient()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+        );
+
+    /// <summary>
     /// Authenticates the client using the specified <paramref name="clientId"/> and <paramref name="clientSecret"/>.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
@@ -113,11 +131,7 @@ internal abstract class CommonClientAuthenticationHandler(
                 "credential_deserialization_failed",
                 cancellationToken
             );
-            return new ClientAuthenticationResult(
-                openIdContext
-                    .ErrorFactory.InvalidClient()
-                    .WithStatusCode(StatusCodes.Status400BadRequest)
-            );
+            return CreateInvalidClientResult(openIdContext);
         }
 
         if (publicClient is null)
@@ -129,11 +143,7 @@ internal abstract class CommonClientAuthenticationHandler(
                 "client_not_found",
                 cancellationToken
             );
-            return new ClientAuthenticationResult(
-                openIdContext
-                    .ErrorFactory.InvalidClient()
-                    .WithStatusCode(StatusCodes.Status400BadRequest)
-            );
+            return CreateInvalidClientResult(openIdContext);
         }
 
         if (!hasClientSecret)
@@ -202,11 +212,7 @@ internal abstract class CommonClientAuthenticationHandler(
             "invalid_client_secret",
             cancellationToken
         );
-        return new ClientAuthenticationResult(
-            openIdContext
-                .ErrorFactory.InvalidClient()
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-        );
+        return CreateInvalidClientResult(openIdContext);
     }
 
     /// <summary>

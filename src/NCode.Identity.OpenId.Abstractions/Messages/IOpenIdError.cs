@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Messages;
 /// Contains the details for an <c>OAuth</c> or <c>OpenID Connect</c> error response.
 /// </summary>
 [PublicAPI]
-public interface IOpenIdError : IOpenIdMessageResponse, ISupportStatusCode
+public interface IOpenIdError : IOpenIdMessageResponse, ISupportStatusCode, ISupportResponseHeaders
 {
     /// <summary>
     /// Gets or sets the <see cref="Exception"/> that triggered the <c>OAuth</c> or <c>OpenID Connect</c> error.

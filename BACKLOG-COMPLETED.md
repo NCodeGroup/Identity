@@ -211,6 +211,17 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   enforce against. Touch point:
   `src/NCode.Identity.OpenId.Authentication/Subject/DefaultValidateSubjectAuthenticationHandler.cs`.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md)._
+- **`F20` — `sector_identifier_uri` remote fetch + validation at registration.** Pairwise subjects (`F9`,
+  [ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md)) honor the `sector_identifier_uri` client setting by using
+  its **host** as the sector identifier, but the OpenID Connect Core 1.0 §8.1 registration-time step — fetching the
+  JSON document at that URI and verifying it lists every one of the client's `redirect_uris` — is not performed. Add it
+  as a Dynamic Client Registration (`F6`) validation, with the fetch guarded against SSRF (allow-list / timeout /
+  size cap). Touch point: `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0095](docs/adr/0095-sector-identifier-uri-fetch-and-ssrf-guard.md).
+  Added `subject_type` / `sector_identifier_uri` as first-class DCR metadata and the replaceable
+  `ISectorIdentifierValidator` seam, whose default implementation performs the §8.1 fetch-and-validate behind an
+  SSRF-guarded named `HttpClient` (always-on private-address block + no-redirect, plus an optional host allow-list, a
+  fetch timeout, and a response size cap)._
 
 ## Conformance & interop testing (group `T`)
 

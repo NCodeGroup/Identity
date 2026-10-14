@@ -43,4 +43,15 @@ internal readonly record struct ResolvedMetadata
     /// Gets the resolved redirection URIs.
     /// </summary>
     public required IReadOnlyList<string> RedirectUris { get; init; }
+
+    /// <summary>
+    /// Gets the resolved subject identifier type (<c>public</c> or <c>pairwise</c>), or <see langword="null"/> when the
+    /// client did not specify one and therefore inherits the resolved default.
+    /// </summary>
+    public string? SubjectType { get; init; }
+
+    /// <summary>
+    /// Gets the resolved sector identifier URI, or <see langword="null"/> when the client did not specify one.
+    /// </summary>
+    public string? SectorIdentifierUri { get; init; }
 }

@@ -32,6 +32,10 @@ abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SecretsProvider.get -> NCode
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.TenantId.get -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferencePrefixes.IdentityProvider = "idp:" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferences.MultiFactor = "http://schemas.openid.net/pape/policies/2007/06/multi-factor" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferences.MultiFactorPhysical = "http://schemas.openid.net/pape/policies/2007/06/multi-factor-physical" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferences.NoAssurance = "0" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferences.PhishingResistant = "http://schemas.openid.net/pape/policies/2007/06/phishing-resistant" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ConfirmationBySms = "sms" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ConfirmationByTelephone = "tel" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.FacialRecognition = "face" -> string!
@@ -271,6 +275,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenSigningAlgVal
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenType = "access_token_type" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AcrValuesSupported = "acr_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowedIdentityProviders = "allowed_identity_providers" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AlwaysIncludeAuthTime = "always_include_auth_time" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowLoopbackRedirect = "allow_loopback_redirect" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowUnsafeTokenResponse = "allow_unsafe_token_response" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationAuthenticateScheme = "authorization_authenticate_scheme" -> string!
@@ -284,6 +289,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimTypesSupported = "c
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClockSkew = "clock_skew" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.CodeChallengeMethodsSupported = "code_challenge_methods_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ContinueAuthorizationLifetime = "continue_authorization_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DefaultAcr = "default_acr" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DeviceCodeLifetime = "device_code_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DeviceCodePollingInterval = "device_code_polling_interval" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DisplayValuesSupported = "display_values_supported" -> string!
@@ -551,6 +557,7 @@ NCode.Identity.OpenId.Messages.SerializationFormat.Json = 0 -> NCode.Identity.Op
 NCode.Identity.OpenId.Messages.SerializationFormat.OpenId = 1 -> NCode.Identity.OpenId.Messages.SerializationFormat
 NCode.Identity.OpenId.OpenIdConstants
 NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferencePrefixes
+NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferences
 NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods
 NCode.Identity.OpenId.OpenIdConstants.AuthenticationPropertyItems
 NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope
@@ -708,6 +715,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenSigningAlgVal
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AccessTokenType.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AcrValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowedIdentityProviders.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AlwaysIncludeAuthTime.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowLoopbackRedirect.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowUnsafeTokenResponse.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationAuthenticateScheme.get -> NCode.Identity.Settings.SettingKey<string!>
@@ -721,6 +729,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimTypesSupported.get 
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClockSkew.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.CodeChallengeMethodsSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ContinueAuthorizationLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DefaultAcr.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeviceCodeLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeviceCodePollingInterval.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DisplayValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>

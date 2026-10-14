@@ -23,6 +23,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Interactive;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 using NCode.Persistence.Stores;
@@ -38,10 +39,13 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// </summary>
 internal sealed class LocalAccountInteractiveCredentialVerifier(
     IStoreManagerFactory storeManagerFactory,
+    IAuthenticationContextReferenceResolver authenticationContextReferenceResolver,
     TimeProvider timeProvider
 ) : IInteractiveCredentialVerifier
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IAuthenticationContextReferenceResolver AuthenticationContextReferenceResolver { get; } =
+        authenticationContextReferenceResolver;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
@@ -58,7 +62,7 @@ internal sealed class LocalAccountInteractiveCredentialVerifier(
             return null;
         }
 
-        return BuildCookiePrincipal(openIdContext, account);
+        return await BuildCookiePrincipalAsync(openIdContext, account, cancellationToken);
     }
 
     private async ValueTask<PersistedLocalAccount?> VerifyCredentialsAsync(
@@ -89,9 +93,10 @@ internal sealed class LocalAccountInteractiveCredentialVerifier(
         return account;
     }
 
-    private ClaimsPrincipal BuildCookiePrincipal(
+    private async ValueTask<ClaimsPrincipal> BuildCookiePrincipalAsync(
         OpenIdContext openIdContext,
-        PersistedLocalAccount account
+        PersistedLocalAccount account,
+        CancellationToken cancellationToken
     )
     {
         var settings = openIdContext.Tenant.SettingsProvider.Collection;
@@ -99,7 +104,7 @@ internal sealed class LocalAccountInteractiveCredentialVerifier(
         var issuerClaimType = settings.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim);
 
         var authTime = TimeProvider.GetUtcNow().ToUnixTimeSeconds();
-        var claims = new List<Claim>(account.Claims.Count + 4)
+        var claims = new List<Claim>(account.Claims.Count + 6)
         {
             new(subjectClaimType, account.LocalAccountId),
             new(issuerClaimType, AccountConstants.SelfIssuer),
@@ -111,6 +116,26 @@ internal sealed class LocalAccountInteractiveCredentialVerifier(
             ),
         };
         claims.AddRange(account.Claims.Select(claim => new Claim(claim.Type, claim.Value)));
+
+        // The local account verified a password, so record 'pwd' (RFC 8176) and resolve the authentication context
+        // class reference (acr) from it, letting the deployment's policy assert a stronger value when applicable.
+        claims.Add(
+            new Claim(JoseClaimNames.Payload.Amr, OpenIdConstants.AuthenticationMethods.Password)
+        );
+
+        var acr = await AuthenticationContextReferenceResolver.ResolveAsync(
+            new AuthenticationContextReferenceRequest
+            {
+                AuthenticationMethods = [OpenIdConstants.AuthenticationMethods.Password],
+                IdentityProvider = null,
+                Settings = settings,
+            },
+            cancellationToken
+        );
+        if (!string.IsNullOrEmpty(acr))
+        {
+            claims.Add(new Claim(JoseClaimNames.Payload.Acr, acr));
+        }
 
         var identity = new ClaimsIdentity(
             claims,

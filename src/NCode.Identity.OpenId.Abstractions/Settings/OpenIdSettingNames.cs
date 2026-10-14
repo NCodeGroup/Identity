@@ -108,6 +108,20 @@ public static class OpenIdSettingNames
     public const string AcrValuesSupported = "acr_values_supported";
 
     /// <summary>
+    /// Contains the name of the <c>default_acr</c> setting: the baseline <c>acr</c> value the authorization server
+    /// asserts for a single-factor authentication event when no stronger authentication context applies. Unset means
+    /// no baseline (the <c>acr</c> claim is omitted unless a stronger context — such as multi-factor — is resolved).
+    /// </summary>
+    public const string DefaultAcr = "default_acr";
+
+    /// <summary>
+    /// Contains the name of the <c>always_include_auth_time</c> setting: whether the ID token always includes the
+    /// <c>auth_time</c> claim when the end-user's authentication time is known, versus only when it is required (a
+    /// <c>max_age</c> request or an essential <c>auth_time</c> claim request). Defaults to <see langword="true"/>.
+    /// </summary>
+    public const string AlwaysIncludeAuthTime = "always_include_auth_time";
+
+    /// <summary>
     /// Contains the name of <c>allowed_identity_providers</c> setting.
     /// </summary>
     public const string AllowedIdentityProviders = "allowed_identity_providers";

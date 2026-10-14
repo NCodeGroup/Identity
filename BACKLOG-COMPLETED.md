@@ -109,6 +109,15 @@ group heading in ID order, preserve the original wording verbatim, and add a tra
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`.
   Touch points: a new `Endpoints/PushedAuthorization/` family plus discovery-metadata advertisement.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0089](docs/adr/0089-pushed-authorization-requests.md)._
+- **`F11` — `acr` claim emission and conditional `auth_time` (blocked on / pending foundational subsystems).** The
+  `sid` claim **is** now emitted into ID tokens from the session-management subsystem
+  ([ADR-0074](docs/adr/0074-session-management-and-logout.md)). The `acr` claim still needs authentication-context-class
+  tracking, which does not exist, so it is never emitted. `DefaultTokenService` additionally always emits `auth_time`
+  unconditionally (`// TODO: … should we do this conditionally?`). Touch points (all
+  `src/NCode.Identity.OpenId.Authentication/Tokens/`): `Handlers/DefaultGetIdTokenPayloadClaimsHandler.cs`,
+  `DefaultTokenService.cs`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md).
+  Essential-`acr` enforcement was carved out as the follow-up item `F19`._
 - **`F12` — Token-request validation hardening.** The authorization-code grant validator does not yet validate the
   requested `resource`, does not validate the actual `scope` values against the grant, and hardcodes the supported PKCE
   `code_challenge_method` set with no extensibility seam. See the `// TODO: validate resource`,

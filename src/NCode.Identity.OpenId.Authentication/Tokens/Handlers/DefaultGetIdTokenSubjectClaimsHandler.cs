@@ -18,7 +18,9 @@
 
 using NCode.Identity.Claims;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
+using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
@@ -42,7 +44,7 @@ internal class DefaultGetIdTokenSubjectClaimsHandler(IClaimsService claimsServic
         CancellationToken cancellationToken
     )
     {
-        var (_, _, tokenContext, targetClaims) = command;
+        var (_, openIdClient, tokenContext, targetClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
 
         if (!tokenRequest.SubjectAuthentication.HasValue)
@@ -56,8 +58,19 @@ internal class DefaultGetIdTokenSubjectClaimsHandler(IClaimsService claimsServic
         {
             JoseClaimNames.Payload.Idp,
             JoseClaimNames.Payload.Sub,
-            JoseClaimNames.Payload.AuthTime,
+            JoseClaimNames.Payload.Acr,
         };
+
+        // auth_time is included when it is required by the request (a max_age request or an essential auth_time claim
+        // request, OpenID Connect Core 1.0 §2 and §5.5.1.1) or when the client opts to always include it.
+        if (
+            openIdClient.Settings.GetValue(OpenIdSettingKeys.AlwaysIncludeAuthTime)
+            || tokenRequest.AuthTimeRequired
+            || IsEssential(tokenRequest.RequestClaims?.IdToken, JoseClaimNames.Payload.AuthTime)
+        )
+        {
+            claimTypes.Add(JoseClaimNames.Payload.AuthTime);
+        }
 
         // add standard claims requested by the client via the scope parameter
         // https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
@@ -103,4 +116,12 @@ internal class DefaultGetIdTokenSubjectClaimsHandler(IClaimsService claimsServic
 
         return ValueTask.CompletedTask;
     }
+
+    private static bool IsEssential(
+        IReadOnlyDictionary<string, IRequestClaim?>? requestedClaims,
+        string claimType
+    ) =>
+        requestedClaims is not null
+        && requestedClaims.TryGetValue(claimType, out var requestClaim)
+        && requestClaim?.Essential == true;
 }

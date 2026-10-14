@@ -44,6 +44,12 @@ public readonly record struct CreateSessionRequest
     public IReadOnlyList<string>? AuthenticationMethods { get; init; }
 
     /// <summary>
+    /// Gets the authentication context class reference (the <c>acr</c> claim value) that the authentication satisfied,
+    /// or <c>null</c> when no authentication context class applies.
+    /// </summary>
+    public string? AuthenticationContextClassReference { get; init; }
+
+    /// <summary>
     /// Gets the identifier of the identity provider (the <c>idp</c> claim value) that authenticated the end-user, or
     /// <c>null</c> when the OP itself authenticated the end-user.
     /// </summary>

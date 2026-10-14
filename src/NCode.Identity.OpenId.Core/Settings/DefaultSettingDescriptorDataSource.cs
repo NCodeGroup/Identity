@@ -194,6 +194,28 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
+            // default_acr: the baseline acr value asserted for a single-factor authentication event (OP behavior, not
+            // advertised). Replace: a child's value overrides the parent's.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.DefaultAcr,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // always_include_auth_time: whether the ID token always includes auth_time when known, versus only when
+            // required (max_age or an essential auth_time claim request). Default true (OP behavior, not advertised).
+            // Ceiling (And): once a parent turns it off, a child cannot re-enable it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.AlwaysIncludeAuthTime,
+                Default = true,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = And,
+            };
+
             // allow_loopback_redirect: permit loopback IP redirect URIs for native clients (default true).
             // Ceiling (And): once a parent forbids it, a child cannot re-allow it.
             yield return new SettingDescriptor<bool>

@@ -58,7 +58,8 @@ internal class DefaultGetAccessTokenSubjectClaimsHandler(IClaimsService claimsSe
             preventDuplicates: true,
             JoseClaimNames.Payload.Idp,
             JoseClaimNames.Payload.Sub,
-            JoseClaimNames.Payload.AuthTime
+            JoseClaimNames.Payload.AuthTime,
+            JoseClaimNames.Payload.Acr
         );
 
         ClaimsService.CopyClaims(

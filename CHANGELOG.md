@@ -10,6 +10,26 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Conformance server unlocks the implemented-but-off-by-default capabilities (discovery coverage).** The spec-coverage
+  dashboard ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)) is discovery-driven, so it flagged
+  Session Management (`check_session_iframe`), Front-Channel Logout, and the `client_credentials` grant as **missing** —
+  not because they are unimplemented, but because they are **available-but-disabled by default** (the first two are
+  third-party-cookie-dependent per
+  [ADR-0088](docs/adr/0088-opt-in-front-channel-logout-and-session-management.md); `client_credentials` is excluded from
+  the secure-default `grant_types_supported`). Rather than weaken the stock secure defaults, the local-dev Aspire graph
+  ([ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)) now runs a **second, dedicated conformance OP instance**
+  (`conformanceapi`) — the same Playground project launched under the Conformance environment on its own ports
+  (`https://localhost:5003`), sharing the one Postgres — and the conformance dashboard reads **its** discovery instead of
+  the locked-down `api`. That instance's `appsettings.Conformance.json` defines its own `OpenId:Server:Settings` root
+  ceiling (the operator ceiling that widens what downstream tenant/client scopes inherit) enabling
+  `session_management_supported`, `frontchannel_logout_supported`, `frontchannel_logout_session_supported`, and adding
+  `client_credentials` to `grant_types_supported` (this grant must be widened at the **root** level because
+  `grant_types_supported` merges by intersect — a child can only narrow), plus an explicit `Cors:AllowedOrigins` for the
+  dashboard (the Development CORS default does not apply outside Development). A seeded confidential client also gains the
+  `client_credentials` grant so the capability is exercisable, not merely advertised. The default/production server stays
+  locked down; only the dedicated conformance instance opts in. Development/conformance convenience only
+  ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
 - **`acr` claim emission via a replaceable resolver, `amr` recording, and conditional `auth_time` (completes backlog
   `F11`).** The authorization server now tracks the authentication context at the two authentication entry points (local
   interactive sign-in and the ROPC subject handler): it records `amr=["pwd"]` (RFC 8176) — previously wired through the

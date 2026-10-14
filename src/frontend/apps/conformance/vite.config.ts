@@ -2,13 +2,16 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Origin of the Playground OP host (`api`) that publishes the runtime bootstrap document (ADR-0064, backlog U3).
-// Under the Aspire local-dev orchestrator (ADR-0071) the `conformance` resource is `WithReference(api)`, so Aspire
-// injects this service-discovery variable; fall back to the pinned dev origin when running the dev server outside Aspire.
+// Origin of the dedicated conformance OP host (`conformanceapi`) that publishes the runtime bootstrap document
+// (ADR-0064, backlog U3). It is a SECOND Playground instance launched under the Conformance environment that advertises
+// the available-but-off-by-default capabilities (Session Management, Front-Channel Logout, client_credentials — ADR-0088),
+// so the dashboard measures those as implemented while the default `api` stays locked down. Under the Aspire local-dev
+// orchestrator (ADR-0071) the `conformance` resource is `WithReference(conformanceapi)`, so Aspire injects this
+// service-discovery variable; fall back to the pinned conformance dev origin when running the dev server outside Aspire.
 const apiOrigin =
-  process.env['services__api__https__0'] ??
-  process.env['services__api__http__0'] ??
-  'https://localhost:5001';
+  process.env['services__conformanceapi__https__0'] ??
+  process.env['services__conformanceapi__http__0'] ??
+  'https://localhost:5003';
 
 export default defineConfig({
   base: '/',

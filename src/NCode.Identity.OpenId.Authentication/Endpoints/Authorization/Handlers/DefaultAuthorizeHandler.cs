@@ -111,7 +111,7 @@ internal class DefaultAuthorizeHandler(
                 await AuditEventRecorder.RecordAuthorizationDeniedAsync(
                     openIdContext,
                     openIdClient,
-                    authenticationTicket.SubjectId,
+                    authenticationTicket.PrincipalId,
                     subjectDisposition.Error.Code,
                     cancellationToken
                 );
@@ -136,7 +136,7 @@ internal class DefaultAuthorizeHandler(
         await AuditEventRecorder.RecordAuthorizationGrantedAsync(
             openIdContext,
             openIdClient,
-            authenticationTicket.SubjectId,
+            authenticationTicket.PrincipalId,
             cancellationToken
         );
         return Authorized();
@@ -169,7 +169,7 @@ internal class DefaultAuthorizeHandler(
         var resolution = await ConsentService.ResolveConsentAsync(
             openIdContext,
             openIdClient.ClientId,
-            authenticationTicket.SubjectId,
+            authenticationTicket.PrincipalId,
             authorizationRequest.Scopes,
             cancellationToken
         );
@@ -188,7 +188,7 @@ internal class DefaultAuthorizeHandler(
                 await AuditEventRecorder.RecordAuthorizationDeniedAsync(
                     openIdContext,
                     openIdClient,
-                    authenticationTicket.SubjectId,
+                    authenticationTicket.PrincipalId,
                     OpenIdConstants.ErrorCodes.ConsentRequired,
                     cancellationToken
                 );

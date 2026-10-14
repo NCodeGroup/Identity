@@ -100,6 +100,7 @@ public sealed class DefaultPrincipalResolverTests
             .Verifiable();
 
         var resolver = new DefaultPrincipalResolver(
+            mocks.Create<IStoreManagerFactory>().Object,
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );
@@ -141,6 +142,7 @@ public sealed class DefaultPrincipalResolverTests
             .Verifiable();
 
         var resolver = new DefaultPrincipalResolver(
+            mocks.Create<IStoreManagerFactory>().Object,
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );
@@ -163,6 +165,7 @@ public sealed class DefaultPrincipalResolverTests
         var manager = mocks.Create<IStoreManager>();
 
         var resolver = new DefaultPrincipalResolver(
+            mocks.Create<IStoreManagerFactory>().Object,
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );
@@ -194,6 +197,7 @@ public sealed class DefaultPrincipalResolverTests
             .Verifiable();
 
         var resolver = new DefaultPrincipalResolver(
+            mocks.Create<IStoreManagerFactory>().Object,
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );
@@ -226,6 +230,7 @@ public sealed class DefaultPrincipalResolverTests
             .Verifiable();
 
         var resolver = new DefaultPrincipalResolver(
+            mocks.Create<IStoreManagerFactory>().Object,
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );
@@ -292,7 +297,11 @@ public sealed class DefaultPrincipalResolverTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var resolver = new DefaultPrincipalResolver(crypto.Object, linkingPolicy.Object);
+        var resolver = new DefaultPrincipalResolver(
+            mocks.Create<IStoreManagerFactory>().Object,
+            crypto.Object,
+            linkingPolicy.Object
+        );
 
         var result = await resolver.ResolvePrincipalIdAsync(
             CreateOpenIdContext(mocks),
@@ -364,7 +373,11 @@ public sealed class DefaultPrincipalResolverTests
             )
             .Returns(ValueTask.CompletedTask);
 
-        var resolver = new DefaultPrincipalResolver(crypto.Object, linkingPolicy.Object);
+        var resolver = new DefaultPrincipalResolver(
+            mocks.Create<IStoreManagerFactory>().Object,
+            crypto.Object,
+            linkingPolicy.Object
+        );
 
         var result = await resolver.ResolvePrincipalIdAsync(
             CreateOpenIdContext(mocks),
@@ -397,6 +410,7 @@ public sealed class DefaultPrincipalResolverTests
             .ReturnsAsync((PersistedFederatedPrincipal?)null);
 
         var resolver = new DefaultPrincipalResolver(
+            mocks.Create<IStoreManagerFactory>().Object,
             mocks.Create<ICryptoService>().Object,
             mocks.Create<IFederatedIdentityLinkingPolicy>().Object
         );

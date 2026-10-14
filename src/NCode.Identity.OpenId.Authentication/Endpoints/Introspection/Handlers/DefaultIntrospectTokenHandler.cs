@@ -18,11 +18,13 @@
 
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Mediator;
 
@@ -35,10 +37,14 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
 /// </summary>
 internal class DefaultIntrospectTokenHandler(
     IJsonWebTokenService jsonWebTokenService,
+    IOpenIdClientResolver openIdClientResolver,
+    ISubjectIdentifierService subjectIdentifierService,
     IPersistedGrantService persistedGrantService
 ) : ICommandHandler<IntrospectTokenCommand>, ISupportMediatorPriority
 {
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IOpenIdClientResolver OpenIdClientResolver { get; } = openIdClientResolver;
+    private ISubjectIdentifierService SubjectIdentifierService { get; } = subjectIdentifierService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
     /// <inheritdoc />
@@ -154,7 +160,18 @@ internal class DefaultIntrospectTokenHandler(
 
         if (grant.Value.SubjectId is { Length: > 0 } subjectId)
         {
-            result.Claims[JoseClaimNames.Payload.Sub] = subjectId;
+            // Project to the owning client's per-sector pseudonym so a pairwise client never recovers the stable
+            // principal identifier through introspection (OpenID Connect Core 1.0 §8). The access-token path needs no
+            // such projection: the token already carries the projected `sub`.
+            var openIdClient = await OpenIdClientResolver.ResolveClientOrDefaultAsync(
+                openIdContext,
+                payload.ClientId,
+                cancellationToken
+            );
+
+            result.Claims[JoseClaimNames.Payload.Sub] = openIdClient is null
+                ? subjectId
+                : SubjectIdentifierService.ProjectSubjectId(openIdContext, openIdClient, subjectId);
         }
     }
 }

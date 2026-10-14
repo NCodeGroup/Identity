@@ -316,7 +316,7 @@ internal class DefaultTokenService(
             TokenValue = jwt,
             TokenLifetime = tokenLifetime,
         };
-        var subjectId = tokenRequest.SubjectAuthentication?.SubjectId;
+        var subjectId = tokenRequest.SubjectAuthentication?.PrincipalId;
 
         await AuditEventRecorder.RecordTokenIssuedAsync(
             openIdContext,
@@ -369,7 +369,7 @@ internal class DefaultTokenService(
         {
             TenantId = tenantId,
             ClientId = openIdClient.ClientId,
-            SubjectId = tokenRequest.SubjectAuthentication?.SubjectId,
+            SubjectId = tokenRequest.SubjectAuthentication?.PrincipalId,
             SessionId = tokenRequest.SubjectAuthentication?.SessionId,
             Payload = requestClaims,
         };
@@ -486,7 +486,7 @@ internal class DefaultTokenService(
             TokenLifetime = tokenLifetime,
         };
 
-        var subjectId = tokenRequest.SubjectAuthentication?.SubjectId;
+        var subjectId = tokenRequest.SubjectAuthentication?.PrincipalId;
 
         await AuditEventRecorder.RecordTokenIssuedAsync(
             openIdContext,
@@ -513,7 +513,7 @@ internal class DefaultTokenService(
 
         var tenantId = openIdContext.Tenant.TenantId;
         var clientId = openIdClient.ClientId;
-        var subjectId = subjectAuthentication?.SubjectId;
+        var subjectId = subjectAuthentication?.PrincipalId;
 
         var refreshToken = CryptoService.GenerateUrlSafeKey(); // 256 bits of entropy
 

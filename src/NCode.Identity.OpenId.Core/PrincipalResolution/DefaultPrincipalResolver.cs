@@ -34,10 +34,12 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// </summary>
 // See ADR-0053.
 internal class DefaultPrincipalResolver(
+    IStoreManagerFactory storeManagerFactory,
     ICryptoService cryptoService,
     IFederatedIdentityLinkingPolicy linkingPolicy
 ) : IPrincipalResolver
 {
+    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IFederatedIdentityLinkingPolicy LinkingPolicy { get; } = linkingPolicy;
 
@@ -155,5 +157,28 @@ internal class DefaultPrincipalResolver(
         );
 
         return principalId;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<string> ResolvePrincipalIdAsync(
+        OpenIdContext openIdContext,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var principalId = await ResolvePrincipalIdAsync(
+            openIdContext,
+            user,
+            storeManager,
+            cancellationToken
+        );
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        // A caller with no resolvable upstream identity has no provisioned principal; its raw subject is already the
+        // reference (ADR-0035), so fall back to it rather than returning an empty subject.
+        return string.IsNullOrEmpty(principalId)
+            ? openIdContext.GetSubjectId(user) ?? string.Empty
+            : principalId;
     }
 }

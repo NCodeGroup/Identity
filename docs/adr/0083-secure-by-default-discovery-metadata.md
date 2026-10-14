@@ -45,8 +45,8 @@ mechanism is introduced.
   `unsupported_response_type` — and an operator re-enables them only by widening the settings.
 - **PKCE `S256` only by default.** The `code_challenge_methods_supported` default drops `plain`
   ([ADR-0079](0079-extensible-pkce-code-challenge-methods.md) made this a discoverable, narrowable set).
-- **`subject_types_supported = ["public"]`** is now a default so the required discovery field is present;
-  `pairwise` is added only when that capability is implemented.
+- **`subject_types_supported = ["public", "pairwise"]`** is now a default so the required discovery field is present;
+  both subject types are implemented ([ADR-0093](0093-pairwise-subject-identifiers.md)).
 - **Cross-boundary token signing is asymmetric-only.** `LoadSupportedAlgorithms` partitions registered signature
   algorithms and advertises **only** asymmetric ones (those whose `KeyType` derives from `AsymmetricSecretKey`)
   for `id_token`, `userinfo`, and `access_token` signing. `request_object_signing_alg_values_supported` and

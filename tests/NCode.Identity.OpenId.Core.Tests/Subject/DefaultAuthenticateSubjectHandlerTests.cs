@@ -214,7 +214,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsAuthenticated);
-        Assert.Equal("subject-id", result.Ticket.Value.SubjectId);
+        Assert.Equal("subject-id", result.Ticket.Value.PrincipalId);
         MockAuditEventRecorder.Verify(
             x =>
                 x.RecordSubjectAuthenticatedAsync(
@@ -237,7 +237,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             .HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsAuthenticated);
-        Assert.Equal("principal-99", result.Ticket.Value.SubjectId);
+        Assert.Equal("principal-99", result.Ticket.Value.PrincipalId);
     }
 
     #endregion
@@ -285,7 +285,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsAuthenticated);
-        Assert.Equal("subject-id", result.Ticket.Value.SubjectId);
+        Assert.Equal("subject-id", result.Ticket.Value.PrincipalId);
         // The bearer token is validated via the in-environment self-issued access-token command, not AuthenticateAsync.
         mockMediator.Verify();
         MockAuditEventRecorder.Verify(

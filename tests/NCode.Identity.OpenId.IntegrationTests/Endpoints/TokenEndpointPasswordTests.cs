@@ -53,22 +53,25 @@ public class TokenEndpointPasswordTests
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        using var content = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["grant_type"] = OpenIdConstants.GrantTypes.Password,
-                ["client_id"] = ClientId,
-                ["client_secret"] = ClientSecret,
-                ["username"] = UserName,
-                ["password"] = Password,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
-            }
-        );
+        async Task<(HttpStatusCode Status, string Body)> RequestTokenAsync()
+        {
+            using var content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                    ["client_id"] = ClientId,
+                    ["client_secret"] = ClientSecret,
+                    ["username"] = UserName,
+                    ["password"] = Password,
+                    ["scope"] = TestServerSettingsProvider.ApiScope,
+                }
+            );
+            using var response = await client.PostAsync("/oauth2/token", content);
+            return (response.StatusCode, await response.Content.ReadAsStringAsync());
+        }
 
-        using var response = await client.PostAsync("/oauth2/token", content);
-
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        var (status, body) = await RequestTokenAsync();
+        Assert.True(status == HttpStatusCode.OK, body);
 
         using var document = JsonDocument.Parse(body);
         var root = document.RootElement;
@@ -77,9 +80,22 @@ public class TokenEndpointPasswordTests
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
         Assert.Equal(OpenIdConstants.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
 
-        // The access token's subject resolves from the authenticated local account.
+        // The access token's subject is the stable, server-owned principal id resolved for the authenticated account —
+        // never the raw local-account id or username (ADR-0035).
         using var payload = DecodeJwtPayload(accessToken.GetString()!);
-        Assert.Equal(localAccountId, payload.RootElement.GetProperty("sub").GetString());
+        var subject = payload.RootElement.GetProperty("sub").GetString();
+        Assert.False(string.IsNullOrEmpty(subject));
+        Assert.NotEqual(localAccountId, subject);
+        Assert.NotEqual(UserName, subject);
+
+        // Re-authenticating the same account resolves to the same principal, so the subject is stable across grants.
+        var (secondStatus, secondBody) = await RequestTokenAsync();
+        Assert.True(secondStatus == HttpStatusCode.OK, secondBody);
+        using var secondDocument = JsonDocument.Parse(secondBody);
+        using var secondPayload = DecodeJwtPayload(
+            secondDocument.RootElement.GetProperty("access_token").GetString()!
+        );
+        Assert.Equal(subject, secondPayload.RootElement.GetProperty("sub").GetString());
     }
 
     [Fact]

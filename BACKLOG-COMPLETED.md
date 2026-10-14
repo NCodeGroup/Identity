@@ -109,6 +109,15 @@ group heading in ID order, preserve the original wording verbatim, and add a tra
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`.
   Touch points: a new `Endpoints/PushedAuthorization/` family plus discovery-metadata advertisement.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0089](docs/adr/0089-pushed-authorization-requests.md)._
+- **`F9` — Pairwise subject identifiers (PPID) via the `subject_type` setting.** The subject identifier emitted into
+  tokens is always the raw public subject; the `subject_type` (`public`/`pairwise`) setting is not honored, so there is
+  no per-client/RP pseudonymous `sub`. See `// TODO: use the subject_type setting to support PPID` in
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultAuthenticateHandler.cs`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md).
+  Implemented as a stateless, deterministic projection (`ISubjectIdentifierService`) applied at the outbound `sub`
+  seams, keeping the stable principal identifier as the single internal subject; no persistence/migration. Two
+  second-order follow-ups were split out as new items: `F20` (sector_identifier_uri remote fetch + validation) and
+  `F21` (end-session reverse-map for a pairwise `id_token_hint`)._
 - **`F10` — Extension grant + token-endpoint `401`/`WWW-Authenticate`.** The token endpoint has no extension-grant seam
   (`// TODO: Extension Grant` in `DefaultTokenEndpointProvider.cs`) and collapses client-authentication failures to
   `400` instead of emitting `401` with a `WWW-Authenticate` challenge (`// TODO: add support for 401 with

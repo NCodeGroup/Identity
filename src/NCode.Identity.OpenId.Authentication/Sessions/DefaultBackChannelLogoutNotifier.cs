@@ -24,6 +24,7 @@ using NCode.Identity.Jose.Extensions;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 
@@ -42,6 +43,7 @@ internal class DefaultBackChannelLogoutNotifier(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,
     IJsonWebTokenService jsonWebTokenService,
+    ISubjectIdentifierService subjectIdentifierService,
     IJobDispatcher jobDispatcher
 ) : IBackChannelLogoutNotifier
 {
@@ -54,6 +56,7 @@ internal class DefaultBackChannelLogoutNotifier(
         algorithmCollectionProvider;
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private ISubjectIdentifierService SubjectIdentifierService { get; } = subjectIdentifierService;
     private IJobDispatcher JobDispatcher { get; } = jobDispatcher;
 
     /// <inheritdoc />
@@ -110,7 +113,13 @@ internal class DefaultBackChannelLogoutNotifier(
 
         if (!string.IsNullOrEmpty(subjectId))
         {
-            payloadClaims[JoseClaimNames.Payload.Sub] = subjectId;
+            // Project to the client's per-sector pseudonym so a pairwise client's logout_token carries the same `sub`
+            // it saw in its id_token (OpenID Connect Core 1.0 §8).
+            payloadClaims[JoseClaimNames.Payload.Sub] = SubjectIdentifierService.ProjectSubjectId(
+                openIdContext,
+                openIdClient,
+                subjectId
+            );
         }
 
         if (!string.IsNullOrEmpty(sessionId))

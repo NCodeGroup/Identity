@@ -129,13 +129,7 @@ entry and/or ADR that closed it.
   [ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md) already satisfies the algorithm rule; a
   FAPI **profile** would additionally constrain the advertised `*_signing_alg_values_supported` settings to that set.
   This item is the tracking anchor; the concrete deliverables are `F7`, `S3`, and a new JAR/JARM work item.
-- **`F21` — End-session reverse-map for a pairwise `id_token_hint`.** Because the pairwise projection is one-way and
-  unstored (`F9`), an `id_token_hint` presented at the end-session endpoint carries a pairwise `sub` the OP cannot map
-  back to the stable principal. End-session resolves the session by `sid` (which our ID tokens always carry), so the
-  practical RP-initiated-logout path is covered, but a hint that carries only a pairwise `sub` (no `sid`, no cookie
-  session) cannot revoke by subject. If a stored/rotatable pairwise mapping is ever introduced (a replacement
-  `ISubjectIdentifierService`), wire its reverse lookup into `DefaultResolveEndSessionSubjectHandler`. Touch point:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/Handlers/DefaultResolveEndSessionSubjectHandler.cs`.- **`F22` — Enforce the `Subject.sub == PrincipalId` invariant at every ticket-construction site.** The principal is now
+- **`F22` — Enforce the `Subject.sub == PrincipalId` invariant at every ticket-construction site.** The principal is now
   resolved uniformly and `SubjectAuthentication.PrincipalId` is the single authoritative subject
   ([ADR-0094](docs/adr/0094-resolve-principal-at-every-authentication-entry-point.md)), and the interactive login path
   re-stamps the cookie's `sub` claim to the resolved id. The ROPC and bearer/UserInfo paths, however, still leave the

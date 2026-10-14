@@ -44,6 +44,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     private const string TenantId = "tenant-1";
     private const string Issuer = "https://op.example";
     private const string SubjectId = "subject-1";
+    private const string PairwisePseudonym = "ppid-opaque-pseudonym";
     private const string SessionId = "sid-1";
     private const string ClientId = "client-1";
 
@@ -195,13 +196,15 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_WhenValidIdTokenHint_ResolvesSubjectSessionAndParticipants()
+    public async Task HandleAsync_WhenValidIdTokenHint_ResolvesSubjectFromSessionGrantNotHint()
     {
         var mockContext = CreateContext(new DefaultHttpContext());
         SetupTenant(mockContext);
+        // The hint carries a pairwise pseudonym as `sub`; it must be ignored and the stable subject taken from the
+        // persisted session grant (the OP never reverses a one-way pairwise projection).
         SetupValidHint(
             CreatePayload(
-                $$"""{"sub":"{{SubjectId}}","sid":"{{SessionId}}","azp":"{{ClientId}}"}"""
+                $$"""{"sub":"{{PairwisePseudonym}}","sid":"{{SessionId}}","azp":"{{ClientId}}"}"""
             )
         );
         SetupSession(mockContext.Object, SessionId, [ClientId, "client-2"]);
@@ -214,9 +217,37 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         );
 
         Assert.Equal(SubjectId, result.SubjectId);
+        Assert.NotEqual(PairwisePseudonym, result.SubjectId);
         Assert.Equal(SessionId, result.SessionId);
         Assert.Equal(ClientId, result.ClientId);
         Assert.Equal(new[] { ClientId, "client-2" }, result.ParticipatingClientIds);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenPairwiseHintSubButSessionNotFound_LeavesSubjectUnresolved()
+    {
+        var mockContext = CreateContext(new DefaultHttpContext());
+        SetupTenant(mockContext);
+        // A hint that carries only a pairwise `sub` (plus sid) whose session has already lapsed cannot be mapped back
+        // to the stable subject without reversing the one-way projection, which the OP refuses to do.
+        SetupValidHint(
+            CreatePayload(
+                $$"""{"sub":"{{PairwisePseudonym}}","sid":"{{SessionId}}","azp":"{{ClientId}}"}"""
+            )
+        );
+        SetupSessionNotFound(mockContext.Object, SessionId);
+
+        var request = CreateRequest(idTokenHint: "aaa.bbb.ccc", clientId: null);
+
+        var result = await Handler.HandleAsync(
+            new ResolveEndSessionSubjectCommand(mockContext.Object, request.Object),
+            CancellationToken.None
+        );
+
+        Assert.Null(result.SubjectId);
+        Assert.Equal(SessionId, result.SessionId);
+        Assert.Equal(ClientId, result.ClientId);
+        Assert.Empty(result.ParticipatingClientIds);
     }
 
     [Fact]

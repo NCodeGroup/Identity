@@ -222,6 +222,17 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   `ISectorIdentifierValidator` seam, whose default implementation performs the §8.1 fetch-and-validate behind an
   SSRF-guarded named `HttpClient` (always-on private-address block + no-redirect, plus an optional host allow-list, a
   fetch timeout, and a response size cap)._
+- **`F21` — End-session subject resolution for a pairwise `id_token_hint`.** Because the pairwise projection is one-way
+  and unstored (`F9`, [ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md)), an `id_token_hint` presented at the
+  end-session endpoint carries a pairwise `sub` the OP cannot map back to the stable principal. The original handler
+  consumed that pseudonym as if it were the stable subject, silently no-op'ing subject-keyed revocation and
+  double-projecting the back-channel `logout_token` `sub` for pairwise clients. Touch point:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/Handlers/DefaultResolveEndSessionSubjectHandler.cs`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0096](docs/adr/0096-end-session-subject-from-server-state.md).
+  Resolved **without** a reverse map (rejected as a correlation liability): the handler now reads only `sid` and
+  `client_id` from the hint, recovers the stable subject forward from the persisted session grant (falling back to the
+  OP login cookie), and never reads the hint's `sub` — mirroring the one-way-hashed grant-key model where a presented
+  value is matched forward, never reversed._
 
 ## Conformance & interop testing (group `T`)
 

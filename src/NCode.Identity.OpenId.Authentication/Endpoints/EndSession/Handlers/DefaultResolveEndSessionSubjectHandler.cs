@@ -32,9 +32,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="ResolveEndSessionSubjectCommand"/> handler that identifies the
-/// subject and session being logged out from the request's <c>id_token_hint</c> (whose signature and issuer are
-/// validated, but not its lifetime), falling back to the current OP login cookie, and resolves the participating
-/// relying parties for back-channel notification.
+/// session being logged out from the request's <c>id_token_hint</c> (whose signature and issuer are validated, but not
+/// its lifetime) or the current OP login cookie, and resolves the participating relying parties for back-channel
+/// notification. The stable subject (the internal <c>PrincipalId</c> used to key grants and re-projected per-client for
+/// back-channel logout) is recovered from server-owned state — the persisted session grant, falling back to the login
+/// cookie. The <c>sub</c> carried by the <c>id_token_hint</c> is deliberately never used as the subject identifier:
+/// for a <c>pairwise</c> client it is a per-sector pseudonym produced by a one-way projection
+/// (<see cref="NCode.Identity.OpenId.Authentication.Subject.ISubjectIdentifierService"/>, ADR-0093) the OP cannot and
+/// must not reverse. Resolving the subject forward from the <c>sid</c> mirrors the one-way-hashed grant-key model where
+/// a presented value is matched forward, never reversed (ADR-0096).
 /// </summary>
 internal class DefaultResolveEndSessionSubjectHandler(
     IJsonWebTokenService jsonWebTokenService,
@@ -46,7 +52,7 @@ internal class DefaultResolveEndSessionSubjectHandler(
     private ISessionService SessionService { get; } = sessionService;
     private ILogger<DefaultResolveEndSessionSubjectHandler> Logger { get; } = logger;
 
-    private readonly record struct HintClaims(string? Subject, string? SessionId, string? ClientId);
+    private readonly record struct HintClaims(string? SessionId, string? ClientId);
 
     /// <inheritdoc />
     public async ValueTask<EndSessionSubject> HandleAsync(
@@ -62,7 +68,8 @@ internal class DefaultResolveEndSessionSubjectHandler(
         string? sessionId = null;
         var clientId = request.ClientId;
 
-        // The id_token_hint identifies the subject/session and the requesting client.
+        // The id_token_hint identifies the session (sid) and the requesting client (azp/aud). Its `sub` is intentionally
+        // not read: for a pairwise client it is a per-sector pseudonym the OP cannot reverse to the stable subject.
         if (!string.IsNullOrEmpty(request.IdTokenHint))
         {
             var hint = await TryReadIdTokenHintAsync(
@@ -72,7 +79,6 @@ internal class DefaultResolveEndSessionSubjectHandler(
             );
             if (hint is { } claims)
             {
-                subjectId = claims.Subject;
                 sessionId = claims.SessionId;
                 clientId ??= claims.ClientId;
             }
@@ -82,24 +88,22 @@ internal class DefaultResolveEndSessionSubjectHandler(
             }
         }
 
-        // Fall back to the current cookie session when no usable id_token_hint was supplied.
-        if (string.IsNullOrEmpty(subjectId) || string.IsNullOrEmpty(sessionId))
+        // Fall back to the current OP login cookie for the session (and a provisional subject) when the hint did not
+        // supply a sid. The cookie's `sub` is the stable PrincipalId (ADR-0094).
+        if (string.IsNullOrEmpty(sessionId))
         {
             var authenticateResult = await httpContext.AuthenticateAsync();
             if (authenticateResult.Succeeded)
             {
                 var principal = authenticateResult.Principal;
-                subjectId ??= openIdContext.GetSubjectId(principal);
-                sessionId ??= principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+                subjectId = openIdContext.GetSubjectId(principal);
+                sessionId = principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
             }
         }
 
-        if (string.IsNullOrEmpty(subjectId) && string.IsNullOrEmpty(sessionId))
-        {
-            Logger.EndSessionSubjectUnresolved();
-        }
-
-        // Resolve the participating relying parties (back-channel recipients) before the session is revoked.
+        // The persisted session grant is the authoritative source of the stable subject (PrincipalId) and of the
+        // participating relying parties. Resolving it forward from the sid (never reversing a pairwise `sub`) recovers
+        // the stable subject that keys grants and is re-projected per-client for back-channel logout.
         IReadOnlyList<string> participatingClientIds = [];
         if (!string.IsNullOrEmpty(sessionId))
         {
@@ -110,8 +114,14 @@ internal class DefaultResolveEndSessionSubjectHandler(
             );
             if (session is { } persistedSession)
             {
+                subjectId = persistedSession.SubjectId ?? subjectId;
                 participatingClientIds = persistedSession.Payload.ClientIds;
             }
+        }
+
+        if (string.IsNullOrEmpty(subjectId) && string.IsNullOrEmpty(sessionId))
+        {
+            Logger.EndSessionSubjectUnresolved();
         }
 
         return new EndSessionSubject(subjectId, sessionId, clientId, participatingClientIds);
@@ -146,7 +156,6 @@ internal class DefaultResolveEndSessionSubjectHandler(
 
             var payload = result.DecodedJwt.Payload;
             return new HintClaims(
-                GetString(payload, JoseClaimNames.Payload.Sub),
                 GetString(payload, JoseClaimNames.Payload.Sid),
                 GetString(payload, JoseClaimNames.Payload.Azp)
                     ?? GetString(payload, JoseClaimNames.Payload.ClientId)

@@ -45,8 +45,10 @@ during a task into the instruction files or an ADR as part of the same change. S
 [ADR-0008](../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md).
 
 Documented pending work (deferred decisions, feature gaps, follow-ups) is cataloged in
-[`BACKLOG.md`](../BACKLOG.md) — the single source of truth for known pending work. Record pending items
-there, not in chat history or volatile memory.
+[`BACKLOG.md`](../BACKLOG.md) — the single source of truth for known pending work, and the primary, default view of the
+backlog (pending items only). Record pending items there, not in chat history or volatile memory. When an item is fully
+done, **move** its text to the completed-items archive [`BACKLOG-COMPLETED.md`](../BACKLOG-COMPLETED.md) (don't just
+delete it) so completed work stays discoverable.
 
 ## Push protocol
 
@@ -54,7 +56,8 @@ When the user authorizes a push (says "push"), run these gates **before** pushin
 
 1. **Persist lessons.** Promote every lesson learned in the session into durable repository content — a convention
    into the scoped instruction files, a non-obvious decision into an ADR under [`docs/adr/`](../docs/adr/), a
-   consumer-visible change into [`CHANGELOG.md`](../CHANGELOG.md), and pending work into [`BACKLOG.md`](../BACKLOG.md).
+   consumer-visible change into [`CHANGELOG.md`](../CHANGELOG.md), and pending work into [`BACKLOG.md`](../BACKLOG.md)
+   (moving any item completed this session into [`BACKLOG-COMPLETED.md`](../BACKLOG-COMPLETED.md)).
 2. **Drain volatile memory.** No durable knowledge may remain only in agent memory (`/memories/…`) or chat history:
    migrate anything durable into the repository and clear the memory so nothing survives solely as a volatile note.
 3. **Pass the local pre-push gate.** Run `./build/dod.ps1 -Fast` — the local-development pre-push gate — and confirm

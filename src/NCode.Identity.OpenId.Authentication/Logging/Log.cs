@@ -240,37 +240,4 @@ internal static partial class Log
         Message = "RP-initiated logout completed; notified {ClientCount} participating client(s) via back-channel logout."
     )]
     internal static partial void EndSessionCompleted(this ILogger logger, int clientCount);
-
-    [LoggerMessage(
-        EventId = EventIds.BackChannelLogoutDeliveryFailed,
-        Level = LogLevel.Warning,
-        Message = "Back-channel logout delivery to client '{ClientId}' failed."
-    )]
-    internal static partial void BackChannelLogoutDeliveryFailed(
-        this ILogger logger,
-        string clientId,
-        Exception exception
-    );
-
-    [LoggerMessage(
-        EventId = EventIds.CibaClientNotificationFailed,
-        Level = LogLevel.Warning,
-        Message = "CIBA ping notification to client '{ClientId}' failed."
-    )]
-    internal static partial void CibaClientNotificationFailed(
-        this ILogger logger,
-        string clientId,
-        Exception exception
-    );
-
-    [LoggerMessage(
-        EventId = EventIds.CibaTokenDeliveryFailed,
-        Level = LogLevel.Warning,
-        Message = "CIBA push token delivery to client '{ClientId}' failed."
-    )]
-    internal static partial void CibaTokenDeliveryFailed(
-        this ILogger logger,
-        string clientId,
-        Exception exception
-    );
 }

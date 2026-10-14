@@ -36,6 +36,12 @@ _This ADR is a stub placeholder capturing the decision to pursue durable deliver
 the detailed mechanism (outbox schema, dispatcher, retry/back-off, de-duplication contract, and
 ordering guarantees) is to be elaborated before it moves to Accepted._
 
+> **Reconciliation ([ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md)).** The generic job-dispatch port
+> `IJobDispatcher` ([ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md)) is the seam this outbox plugs into:
+> the transactional outbox described here is one **durable `IJobDispatcher` adapter** (write the serialized job in the
+> state-changing transaction, drain and run its handler after commit), not a parallel mechanism. When this ADR is
+> elaborated to Accepted, it should be specified as that adapter.
+
 Intended shape:
 
 - **Durability is opt-in per event**, selected by the audit contract, not forced on every event. A plain
@@ -73,3 +79,5 @@ best-effort seam stays unchanged for everything else._
   and composition wiring.
 - [ADR-0041](./0041-host-owned-ef-migrations-deliberate-outside-development.md) — the host owns schema, so
   the outbox table is a host-owned migration.
+- [ADR-0090](./0090-durable-outbound-delivery-dispatch-adapter.md) — the generic job-dispatch port this outbox is a
+  durable adapter of.

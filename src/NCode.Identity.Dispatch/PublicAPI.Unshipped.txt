@@ -1,0 +1,14 @@
+#nullable enable
+NCode.Identity.Dispatch.DefaultRegistration
+NCode.Identity.Dispatch.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Dispatch.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDispatchServices() -> NCode.Registration.IServiceBuilder<NCode.Identity.Dispatch.DispatchLibrary>!
+NCode.Identity.Dispatch.DispatchLibraryRegistration
+NCode.Identity.Dispatch.DispatchLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Dispatch.DispatchLibrary>!)
+NCode.Identity.Dispatch.DispatchLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Dispatch.DispatchLibrary>!).AddDispatchJobHandler<TJob, THandler>() -> NCode.Registration.IServiceBuilder<NCode.Identity.Dispatch.DispatchLibrary>!
+NCode.Identity.Dispatch.DispatchLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Dispatch.DispatchLibrary>!).AddInProcessJobDispatcher(System.Action<NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions!>? configureOptions = null) -> NCode.Registration.IServiceBuilder<NCode.Identity.Dispatch.DispatchLibrary>!
+NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions
+NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.FullMode.get -> System.Threading.Channels.BoundedChannelFullMode
+NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.FullMode.set -> void
+NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.InProcessJobDispatcherOptions() -> void
+NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.QueueCapacity.get -> int
+NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.QueueCapacity.set -> void

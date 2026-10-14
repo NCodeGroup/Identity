@@ -191,9 +191,15 @@ rationale.
   events, developer-facing models, extension-method classes, and internal infrastructure so a reader can find "the
   serializers" or "the endpoints" by folder. Public headline entry points a consumer uses by name live at the package
   root. A single-purpose package (all abstractions) stays flat with no subfolders.
-- ✅ **Namespaces are organized independently of folders and stay flat per package** — the public namespace is a
-  stable contract; folders are organization only. `IDE0130` / namespace-match-folder is opted out in
-  [`.editorconfig`](../../.editorconfig). Use `RootNamespace` to pin a package's namespace.
+- ✅ **The _public_ namespace is a stable contract and does not have to mirror folders.** `IDE0130` /
+  namespace-match-folder is opted out in [`.editorconfig`](../../.editorconfig), and `RootNamespace` pins a package's
+  base namespace, so you can reorganize public types across folders **without churning their namespace** — the public
+  surface stays flat under the package root (public options are the established exception: an `Options/` folder carries a
+  `.Options` sub-namespace). **Internal implementation types, by contrast, carry no contract, so prefer traditional
+  folder-matching organization for them** — when you group internals into a folder, give them the matching
+  sub-namespace (e.g. `…Logging` for `Logging/`, `…InProcess` for a built-in strategy's `InProcess/` folder) so the
+  namespace reflects the structure. Reserve the flat-namespace rule for the public surface, where stability matters;
+  do not flatten internal helpers that live in a dedicated folder.
 - 👁 **Interface names state the role; the namespace supplies the brand.** Name an interface for its role
   (`ITokenGrantHandler`, `IEndpointProvider`, `IClaimsService`) and add a qualifier only when the bare role noun would
   collide with a well-known BCL/framework type or be too generic to stand alone.

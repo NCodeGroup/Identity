@@ -245,6 +245,33 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the
+    /// 'backchannel_authentication_request_encryption_alg_values_supported' setting.
+    /// </summary>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > BackchannelAuthenticationRequestEncryptionAlgValuesSupported =>
+        new(OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionAlgValuesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the
+    /// 'backchannel_authentication_request_encryption_enc_values_supported' setting.
+    /// </summary>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > BackchannelAuthenticationRequestEncryptionEncValuesSupported =>
+        new(OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionEncValuesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the
+    /// 'backchannel_authentication_request_encryption_zip_values_supported' setting.
+    /// </summary>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > BackchannelAuthenticationRequestEncryptionZipValuesSupported =>
+        new(OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionZipValuesSupported);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'ciba_request_lifetime' setting.
     /// </summary>
     public static SettingKey<TimeSpan> CibaRequestLifetime =>

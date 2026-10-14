@@ -72,6 +72,21 @@ Steps:
 Pre-1.0, `Shipped.txt` stays empty and the entire surface lives in `Unshipped.txt` — the surface is diff-visible while
 we remain free to break it before the first stable release. At `1.0.0` the surface moves into `Shipped.txt`.
 
+### Hand-editing entries
+
+Prefer the code fix above; when editing the `.txt` by hand, the non-obvious cases are:
+
+- **Interface variance is not written:** list `IFoo<TJob>`, never `IFoo<in TJob>` (otherwise `RS0016` for the real
+  symbol **and** `RS0017` for the annotated line).
+- **`record class` (non-positional):** list the type and each `.Prop.get` / `.Prop.init`; do **not** list a
+  `Type.Type() -> void` constructor line (the analyzer excludes the implicit parameterless ctor — `RS0017` if present).
+- **`readonly record struct` (non-positional):** **do** list `Type.Type() -> void`, plus the properties. Compiler-synthesized
+  record members (`Equals`/`GetHashCode`/`ToString`/`Deconstruct`/`PrintMembers`/`with`/operators) are never listed.
+- **Extension blocks** (C# `extension(Receiver)` members) need three lines: the class, the block marker
+  `Ns.Class.extension(Receiver!)` (easy to forget → `RS0016`), then the member line.
+- **Fastest reliable path:** write the best guess, build, and let `RS0016` (missing) / `RS0017` (extra or wrong)
+  dictate the exact text.
+
 ## Review checklist
 
 - [ ] Does the change add surface rather than alter it? (new overload over changed signature)

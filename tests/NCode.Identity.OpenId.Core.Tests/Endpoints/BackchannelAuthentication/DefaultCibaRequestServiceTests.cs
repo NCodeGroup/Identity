@@ -19,7 +19,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Moq;
+using NCode.Identity.Dispatch;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Delivery;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Ciba;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
@@ -28,7 +30,9 @@ using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.BackchannelAuthentication;
@@ -37,20 +41,21 @@ public class DefaultCibaRequestServiceTests : BaseTests
 {
     private const string TenantId = "tenant-1";
     private const string AuthReqId = "auth-req-id";
+    private const string Endpoint = "https://client.test/ciba";
 
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
-    private Mock<ICibaNotificationService> MockNotificationService { get; }
+    private Mock<IJobDispatcher> MockJobDispatcher { get; }
     private Mock<ICibaTokenResponseService> MockTokenResponseService { get; }
     private DefaultCibaRequestService Service { get; }
 
     public DefaultCibaRequestServiceTests()
     {
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
-        MockNotificationService = CreateStrictMock<ICibaNotificationService>();
+        MockJobDispatcher = CreateStrictMock<IJobDispatcher>();
         MockTokenResponseService = CreateStrictMock<ICibaTokenResponseService>();
         Service = new DefaultCibaRequestService(
             MockPersistedGrantService.Object,
-            MockNotificationService.Object,
+            MockJobDispatcher.Object,
             MockTokenResponseService.Object
         );
     }
@@ -116,6 +121,36 @@ public class DefaultCibaRequestServiceTests : BaseTests
             .Verifiable();
     }
 
+    private void SetupClientEndpoint(Mock<OpenIdClient> mockClient, string? endpoint)
+    {
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockClient.SetupGet(x => x.ClientId).Returns("client-1").Verifiable();
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.ClientNotificationEndpoint))
+            .Returns(endpoint ?? string.Empty)
+            .Verifiable();
+    }
+
+    private CibaDeliveryJob? CapturedJob { get; set; }
+
+    private void SetupDispatch()
+    {
+        MockJobDispatcher
+            .Setup(x =>
+                x.DispatchAsync(
+                    It.IsAny<CibaDeliveryJob>(),
+                    It.IsAny<DispatchOptions?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (CibaDeliveryJob job, DispatchOptions? _, CancellationToken _) => CapturedJob = job
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+    }
+
     [Fact]
     public async Task ApproveAsync_WhenPendingPoll_UpdatesToApprovedAndReturnsTrue()
     {
@@ -161,6 +196,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
     public async Task ApproveAsync_WhenPendingPing_NotifiesClient()
     {
         var (mockContext, mockClient) = CreateScaffold();
+        SetupClientEndpoint(mockClient, Endpoint);
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
@@ -180,18 +216,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
             .Returns(new ValueTask<bool>(true))
             .Verifiable();
 
-        MockNotificationService
-            .Setup(x =>
-                x.NotifyClientAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<OpenIdClient>(),
-                    AuthReqId,
-                    It.IsAny<CibaGrant>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+        SetupDispatch();
 
         var result = await Service.ApproveAsync(
             mockContext.Object,
@@ -202,13 +227,18 @@ public class DefaultCibaRequestServiceTests : BaseTests
         );
 
         Assert.True(result);
-        MockNotificationService.Verify();
+        MockJobDispatcher.Verify();
+        Assert.Equal(OpenIdConstants.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
+        Assert.Equal(Endpoint, CapturedJob?.EndpointUrl);
+        Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
+        Assert.Null(CapturedJob?.AccessToken);
     }
 
     [Fact]
     public async Task ApproveAsync_WhenPendingPush_IssuesAndDeliversTokens()
     {
         var (mockContext, mockClient) = CreateScaffold();
+        SetupClientEndpoint(mockClient, Endpoint);
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
@@ -229,6 +259,12 @@ public class DefaultCibaRequestServiceTests : BaseTests
             .Verifiable();
 
         var mockTokenResponse = CreateStrictMock<ITokenResponse>();
+        mockTokenResponse.SetupGet(x => x.AccessToken).Returns("access-token-value");
+        mockTokenResponse.SetupGet(x => x.TokenType).Returns(OpenIdConstants.TokenTypes.Bearer);
+        mockTokenResponse.SetupGet(x => x.ExpiresIn).Returns(TimeSpan.FromHours(1));
+        mockTokenResponse.SetupGet(x => x.RefreshToken).Returns((string?)null);
+        mockTokenResponse.SetupGet(x => x.IdToken).Returns("id-token-value");
+        mockTokenResponse.SetupGet(x => x.Scopes).Returns(["openid", "api"]);
 
         MockTokenResponseService
             .Setup(x =>
@@ -242,19 +278,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
             .Returns(new ValueTask<ITokenResponse>(mockTokenResponse.Object))
             .Verifiable();
 
-        MockNotificationService
-            .Setup(x =>
-                x.DeliverTokensAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<OpenIdClient>(),
-                    AuthReqId,
-                    It.IsAny<CibaGrant>(),
-                    mockTokenResponse.Object,
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+        SetupDispatch();
 
         var result = await Service.ApproveAsync(
             mockContext.Object,
@@ -266,7 +290,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
 
         Assert.True(result);
         MockTokenResponseService.Verify();
-        MockNotificationService.Verify();
+        MockJobDispatcher.Verify();
+        Assert.Equal(OpenIdConstants.BackchannelTokenDeliveryModes.Push, CapturedJob?.DeliveryMode);
+        Assert.Equal("access-token-value", CapturedJob?.AccessToken);
+        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, CapturedJob?.TokenType);
+        Assert.Equal(3600, CapturedJob?.ExpiresInSeconds);
+        Assert.Null(CapturedJob?.RefreshToken);
+        Assert.Equal("id-token-value", CapturedJob?.IdToken);
+        Assert.Equal("openid api", CapturedJob?.Scope);
     }
 
     [Fact]

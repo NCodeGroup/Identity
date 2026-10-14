@@ -304,6 +304,11 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             OpenIdSettingKeys.RequestObjectEncryptionAlgValuesSupported,
             encryptionAlgValuesSupported
         );
+        // Encrypted CIBA backchannel request objects, like request objects, advertise the asymmetric encryption set.
+        settings.Set(
+            OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionAlgValuesSupported,
+            encryptionAlgValuesSupported
+        );
 
         settings.Set(
             OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported,
@@ -321,6 +326,10 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             OpenIdSettingKeys.RequestObjectEncryptionEncValuesSupported,
             encryptionEncValuesSupported
         );
+        settings.Set(
+            OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionEncValuesSupported,
+            encryptionEncValuesSupported
+        );
 
         settings.Set(
             OpenIdSettingKeys.IdTokenEncryptionZipValuesSupported,
@@ -336,6 +345,10 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         );
         settings.Set(
             OpenIdSettingKeys.RequestObjectEncryptionZipValuesSupported,
+            encryptionZipValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionZipValuesSupported,
             encryptionZipValuesSupported
         );
 

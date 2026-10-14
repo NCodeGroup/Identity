@@ -95,6 +95,14 @@ internal static class DefaultRegistration
                 Sessions.DefaultBackChannelLogoutNotifier
             >();
 
+            // Back-channel logout delivery runs as a durable, retryable dispatch job; the handler performs the POST.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Scoped<
+                    Dispatch.IDispatchJobHandler<Sessions.BackChannelLogoutDeliveryJob>,
+                    Sessions.BackChannelLogoutDeliveryJobHandler
+                >()
+            );
+
             return builder;
         }
     }

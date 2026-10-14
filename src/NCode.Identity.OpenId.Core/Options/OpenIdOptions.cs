@@ -65,6 +65,15 @@ public sealed class OpenIdOptions
         DefaultClaimsPrincipalLogic.GetSubjectId;
 
     /// <summary>
+    /// Gets or sets a delegate that rewrites the subject claims of a <see cref="ClaimsPrincipal"/> so its authoritative
+    /// subject identifier becomes the supplied value. This is the inverse of <see cref="GetSubjectId"/>; the default
+    /// implementation strips every subject-type claim and stamps a single claim of the primary subject claim type. The
+    /// claim types are supplied per request (per-tenant for the end-user, or the server default for app-level callers).
+    /// </summary>
+    public NormalizeSubjectIdDelegate NormalizeSubjectId { get; set; } =
+        DefaultClaimsPrincipalLogic.NormalizeSubjectId;
+
+    /// <summary>
     /// Gets a list of delegates that can configure the <see cref="JsonSerializerOptions"/> used by OpenID.
     /// </summary>
     public List<Action<JsonSerializerOptions>> JsonOptionsConfigurators { get; } = [];

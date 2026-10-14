@@ -33,7 +33,6 @@ using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.PrincipalResolution;
-using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 using NCode.Registration.AspNetCore;
 
@@ -215,7 +214,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         // it, so the session, every subsequent authorize request, and the grants they issue all key on the single
         // principal regardless of how the user authenticates (ADR-0035). Without this the interactive path would carry
         // the raw local-account id while ROPC/bearer carry the resolved principal, keying the same user's grants
-        // inconsistently.
+        // inconsistently. The same tenant-aware normalization seam enforces the Subject.sub == PrincipalId invariant at
+        // every ticket-construction site (ADR-0094).
         principal = await NormalizeSubjectToPrincipalAsync(
             openIdContext,
             principal,
@@ -293,31 +293,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             return principal;
         }
 
-        var subjectClaimTypes = openIdContext.Tenant.SettingsProvider.Collection.TryGetValue(
-            OpenIdSettingKeys.SubjectClaimTypes,
-            out var configured
-        )
-            ? configured
-            : OpenIdConstants.DefaultSubjectClaimTypes;
-        var primaryClaimType = subjectClaimTypes.First();
-
-        var identity =
-            principal.Identities.FirstOrDefault(candidate => candidate.IsAuthenticated)
-            ?? principal.Identities.First();
-
-        var claims = identity
-            .Claims.Where(claim => !subjectClaimTypes.Contains(claim.Type))
-            .Append(new Claim(primaryClaimType, principalId))
-            .ToList();
-
-        var normalizedIdentity = new ClaimsIdentity(
-            claims,
-            identity.AuthenticationType,
-            identity.NameClaimType,
-            identity.RoleClaimType
-        );
-
-        return new ClaimsPrincipal(normalizedIdentity);
+        return openIdContext.NormalizeSubjectId(principal, principalId);
     }
 
     private DateTimeOffset ReadAuthTime(ClaimsPrincipal principal)

@@ -93,7 +93,8 @@ internal class DefaultAuthenticatePasswordGrantHandler(
             cancellationToken
         );
 
-        var ticket = new SubjectAuthentication(
+        var ticket = SubjectAuthentication.Create(
+            openIdContext,
             OpenIdConstants.GrantTypes.Password,
             new AuthenticationProperties(), // TODO: shouldn't this be provided earlier in this flow/command/handler?
             subject,

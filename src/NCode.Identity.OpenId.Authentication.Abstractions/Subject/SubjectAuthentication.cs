@@ -20,6 +20,7 @@ using System.Security.Claims;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Contexts;
 
 namespace NCode.Identity.OpenId.Authentication.Subject;
 
@@ -48,4 +49,36 @@ public readonly record struct SubjectAuthentication(
     /// server-side session.
     /// </summary>
     public string? SessionId => Subject.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+
+    /// <summary>
+    /// Creates a <see cref="SubjectAuthentication"/>, normalizing the <paramref name="subject"/>'s subject claims to
+    /// <paramref name="principalId"/> so the <c>Subject.sub == PrincipalId</c> invariant holds by construction. This is
+    /// the single sanctioned way every authentication entry point builds a ticket, so the raw credential's subject
+    /// claim can never diverge from the resolved, server-owned principal id
+    /// (<see href="https://github.com/NCodeGroup/Identity/blob/main/docs/adr/0094-resolve-principal-at-every-authentication-entry-point.md">ADR-0094</see>).
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> whose tenant-aware
+    /// <see cref="OpenIdContext.NormalizeSubjectId"/> seam rewrites the subject claims.</param>
+    /// <param name="authenticationScheme">The authentication scheme that authenticated the subject.</param>
+    /// <param name="authenticationProperties">The <see cref="AuthenticationProperties"/> from the authentication.</param>
+    /// <param name="subject">The raw authenticated <see cref="ClaimsPrincipal"/> produced by the credential.</param>
+    /// <param name="principalId">The stable, server-owned principal identifier resolved for the subject.</param>
+    /// <returns>A <see cref="SubjectAuthentication"/> whose <see cref="Subject"/> carries <paramref name="principalId"/>
+    /// as its subject claim.</returns>
+    public static SubjectAuthentication Create(
+        OpenIdContext openIdContext,
+        string authenticationScheme,
+        AuthenticationProperties authenticationProperties,
+        ClaimsPrincipal subject,
+        string principalId
+    )
+    {
+        var normalizedSubject = openIdContext.NormalizeSubjectId(subject, principalId);
+        return new SubjectAuthentication(
+            authenticationScheme,
+            authenticationProperties,
+            normalizedSubject,
+            principalId
+        );
+    }
 }

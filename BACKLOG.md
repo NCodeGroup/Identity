@@ -65,7 +65,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D6`      | `D5`       |
-| `F` — Feature gaps                    | `F24`     | `F23`      |
+| `F` — Feature gaps                    | `F25`     | `F24`      |
 | `T` — Conformance & interop testing   | `T7`      | `T6`       |
 | `U` — Frontend presentation platform  | `U13`     | `U12`      |
 | `S` — Secrets management              | `S7`      | `S6`       |
@@ -129,16 +129,6 @@ entry and/or ADR that closed it.
   [ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md) already satisfies the algorithm rule; a
   FAPI **profile** would additionally constrain the advertised `*_signing_alg_values_supported` settings to that set.
   This item is the tracking anchor; the concrete deliverables are `F7`, `S3`, and a new JAR/JARM work item.
-- **`F22` — Enforce the `Subject.sub == PrincipalId` invariant at every ticket-construction site.** The principal is now
-  resolved uniformly and `SubjectAuthentication.PrincipalId` is the single authoritative subject
-  ([ADR-0094](docs/adr/0094-resolve-principal-at-every-authentication-entry-point.md)), and the interactive login path
-  re-stamps the cookie's `sub` claim to the resolved id. The ROPC and bearer/UserInfo paths, however, still leave the
-  principal's raw `sub` claim (`LocalAccountId` / the token's `sub`) on `SubjectAuthentication.Subject` while
-  `PrincipalId` holds the resolved id — harmless today because emission reads `PrincipalId`, not the claim, but a
-  latent divergence. Normalize the principal's subject claim to `PrincipalId` at those construction sites too (a shared
-  ticket factory), so `Subject.sub` and `PrincipalId` can never disagree and the two-sources-of-truth trap cannot
-  return. Touch points: `src/NCode.Identity.OpenId.Accounts.Authentication/DefaultAuthenticatePasswordGrantHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Subject/DefaultAuthenticateSubjectHandler.cs`.
 - **`F23` — OAuth 2.0 Token Exchange (RFC 8693).** Implement the token-exchange grant
   (`urn:ietf:params:oauth:grant-type:token-exchange`) so the token endpoint can mint delegation/impersonation tokens
   from a presented `subject_token` (and optional `actor_token`). The routing seam already exists — register an
@@ -152,6 +142,15 @@ entry and/or ADR that closed it.
   `grant-token-exchange` probe (`src/frontend/apps/conformance/src/coverage.ts`). Touch point: a new
   `DefaultTokenExchangeGrantHandler` under
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/`.
+- **`F24` — Flow the resource-owner-password ticket's `AuthenticationProperties` from the request, not a fresh empty
+  instance.** `DefaultAuthenticatePasswordGrantHandler` builds its `SubjectAuthentication` with a freshly-constructed
+  empty `new AuthenticationProperties()`, so any properties the surrounding token-request flow could carry (issued/
+  expiry timestamps, `amr`/`acr`-adjacent items, redirect state) are dropped on the ROPC path — unlike the interactive
+  and bearer paths, which propagate the authentication's own `AuthenticationProperties`. Thread the properties in
+  through the `AuthenticatePasswordGrantCommand` (or resolve them at the point the grant is authenticated) so the ROPC
+  ticket carries the same authentication metadata as the other entry points. Touch point:
+  `src/NCode.Identity.OpenId.Accounts.Authentication/DefaultAuthenticatePasswordGrantHandler.cs` (the `// TODO`
+  on the `new AuthenticationProperties()` argument).
 
 ## Conformance & interop testing (group `T`)
 

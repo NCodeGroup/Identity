@@ -41,7 +41,8 @@ internal class DefaultOpenIdEnvironment(
     IOpenIdMessageFactorySelector openIdMessageFactorySelector,
     IEnumerable<IOpenIdJsonConverterProvider> jsonConverterProviders,
     GetSubjectIdDelegate getSubjectId,
-    GetSubjectIdentityDelegate getSubjectIdentity
+    GetSubjectIdentityDelegate getSubjectIdentity,
+    NormalizeSubjectIdDelegate normalizeSubjectId
 ) : OpenIdEnvironment, IOpenIdErrorFactory
 {
     private IOpenIdMessageFactorySelector OpenIdMessageFactorySelector { get; } =
@@ -50,6 +51,7 @@ internal class DefaultOpenIdEnvironment(
     [.. jsonConverterProviders];
     private GetSubjectIdDelegate GetSubjectIdDelegate { get; } = getSubjectId;
     private GetSubjectIdentityDelegate GetSubjectIdentityDelegate { get; } = getSubjectIdentity;
+    private NormalizeSubjectIdDelegate NormalizeSubjectIdDelegate { get; } = normalizeSubjectId;
 
     private JsonSerializerOptions? JsonSerializerOptionsOrNull { get; set; }
 
@@ -82,6 +84,13 @@ internal class DefaultOpenIdEnvironment(
     /// <inheritdoc />
     public override ClaimsIdentity GetSubjectIdentity(ClaimsPrincipal subject) =>
         GetSubjectIdentityDelegate(subject);
+
+    /// <inheritdoc />
+    public override ClaimsPrincipal NormalizeSubjectId(
+        ClaimsPrincipal subject,
+        string subjectId,
+        IReadOnlyCollection<string> subjectClaimTypes
+    ) => NormalizeSubjectIdDelegate(subject, subjectId, subjectClaimTypes);
 
     /// <inheritdoc />
     public override ParameterDescriptor GetParameterDescriptor(string parameterName)

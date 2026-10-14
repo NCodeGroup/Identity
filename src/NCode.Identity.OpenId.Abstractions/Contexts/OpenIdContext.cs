@@ -101,6 +101,29 @@ public abstract class OpenIdContext : IAsyncDisposable
         return Environment.GetSubjectId(subject, subjectClaimTypes);
     }
 
+    /// <summary>
+    /// Rewrites the subject claims of a <see cref="ClaimsPrincipal"/> so its authoritative subject identifier becomes
+    /// <paramref name="subjectId"/>, using the resolved tenant's <c>subject_claim_types</c> setting (falling back to
+    /// <see cref="OpenIdConstants.DefaultSubjectClaimTypes"/>). This is the inverse of <see cref="GetSubjectId"/> and the
+    /// single seam that stamps the resolved principal id back onto a subject so that
+    /// <c>GetSubjectId(result) == subjectId</c> — the <c>Subject.sub == PrincipalId</c> invariant every
+    /// ticket-construction site relies on.
+    /// </summary>
+    /// <param name="subject">The <see cref="ClaimsPrincipal"/> whose subject claims are rewritten.</param>
+    /// <param name="subjectId">The authoritative subject identifier to stamp onto the principal.</param>
+    /// <returns>A <see cref="ClaimsPrincipal"/> whose subject identifier is <paramref name="subjectId"/>.</returns>
+    public virtual ClaimsPrincipal NormalizeSubjectId(ClaimsPrincipal subject, string subjectId)
+    {
+        var subjectClaimTypes = Tenant.SettingsProvider.Collection.TryGetValue(
+            OpenIdSettingKeys.SubjectClaimTypes,
+            out var configured
+        )
+            ? configured
+            : OpenIdConstants.DefaultSubjectClaimTypes;
+
+        return Environment.NormalizeSubjectId(subject, subjectId, subjectClaimTypes);
+    }
+
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {

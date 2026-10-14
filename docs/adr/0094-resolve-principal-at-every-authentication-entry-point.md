@@ -74,6 +74,11 @@ migration for no behavioral gain. The boundary reads self-documentingly — `Sub
   tests assert the stable-and-opaque property instead of the raw id.
 - `IPrincipalResolver` and `SubjectAuthentication` are public API; the overload addition and the `SubjectId` →
   `PrincipalId` rename are expected `PublicAPI.Unshipped.txt` churn.
-- The `Subject.sub` == `PrincipalId` invariant is enforced for the interactive path (re-stamp) but the ROPC/bearer
-  principals still carry their raw `sub` claim on the (unread-for-emission) `Subject`; fully enforcing the invariant at
-  every construction site is a tracked follow-up, not required for correctness since emission reads `PrincipalId`.
+- The `Subject.sub` == `PrincipalId` invariant is enforced at **every** ticket-construction site: all authentication
+  entry points build their `SubjectAuthentication` through the shared `SubjectAuthentication.Create` factory, which
+  normalizes the raw credential principal's subject claim to the resolved `PrincipalId` before constructing the ticket.
+  The normalization is the inverse of subject extraction and is a tenant-aware, host-replaceable seam symmetric with
+  `GetSubjectId` — `OpenIdContext.NormalizeSubjectId(ClaimsPrincipal, string)` →
+  `OpenIdEnvironment.NormalizeSubjectId(...)`, configured by the `OpenIdOptions.NormalizeSubjectId` delegate. The
+  interactive login cookie re-stamp routes through the same seam, so the raw subject claim can never diverge from the
+  resolved principal and the two-sources-of-truth trap cannot return.

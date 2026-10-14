@@ -234,6 +234,24 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   OP login cookie), and never reads the hint's `sub` — mirroring the one-way-hashed grant-key model where a presented
   value is matched forward, never reversed._
 
+- **`F22` — Enforce the `Subject.sub == PrincipalId` invariant at every ticket-construction site.** The principal is now
+  resolved uniformly and `SubjectAuthentication.PrincipalId` is the single authoritative subject
+  ([ADR-0094](docs/adr/0094-resolve-principal-at-every-authentication-entry-point.md)), and the interactive login path
+  re-stamps the cookie's `sub` claim to the resolved id. The ROPC and bearer/UserInfo paths, however, still leave the
+  principal's raw `sub` claim (`LocalAccountId` / the token's `sub`) on `SubjectAuthentication.Subject` while
+  `PrincipalId` holds the resolved id — harmless today because emission reads `PrincipalId`, not the claim, but a
+  latent divergence. Normalize the principal's subject claim to `PrincipalId` at those construction sites too (a shared
+  ticket factory), so `Subject.sub` and `PrincipalId` can never disagree and the two-sources-of-truth trap cannot
+  return. Touch points: `src/NCode.Identity.OpenId.Accounts.Authentication/DefaultAuthenticatePasswordGrantHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Subject/DefaultAuthenticateSubjectHandler.cs`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0094](docs/adr/0094-resolve-principal-at-every-authentication-entry-point.md). Added the shared
+  `SubjectAuthentication.Create` factory, which normalizes the raw principal's subject claim to the resolved
+  `PrincipalId` through a new tenant-aware, host-replaceable `OpenIdContext.NormalizeSubjectId` seam (the inverse of
+  `GetSubjectId`, configurable via `OpenIdOptions.NormalizeSubjectId`); every entry point — ROPC, bearer/UserInfo,
+  interactive authorize, and the interactive login cookie re-stamp — routes through it, so the invariant holds by
+  construction._
+
 ## Conformance & interop testing (group `T`)
 
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface

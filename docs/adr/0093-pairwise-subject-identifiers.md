@@ -78,8 +78,8 @@ Concretely:
   tracked in [`BACKLOG.md`](../../BACKLOG.md): a `sector_identifier_uri` whose JSON document is **fetched and validated**
   at registration (now done — [ADR-0095](0095-sector-identifier-uri-fetch-and-ssrf-guard.md) performs the §8.1
   fetch-and-validate behind an SSRF-guarded client), and RP-initiated end-session when an `id_token_hint` carries a
-  pairwise `sub` with no `sid` (end-session resolves by `sid`, which our ID tokens always carry, so the practical path
-  is covered).
+  pairwise `sub` (now done — [ADR-0096](0096-end-session-subject-from-server-state.md) recovers the stable subject from
+  the persisted session grant / login cookie and never reads the hint's `sub`, so no reverse map is introduced).
 - A `sector_identifier_uri` or `redirect_uris` host change moves a pairwise client to a new sector and therefore changes
   its users' `sub` — the standard §8.1 trade-off; a stable `sector_identifier_uri` is the mitigation.
 - The pairwise derivation is a replaceable service, so a deployment that needs a stored/rotatable mapping can supply its

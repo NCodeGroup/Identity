@@ -10,6 +10,23 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Registration-time `sector_identifier_uri` fetch + validation with an SSRF-guarded client (completes backlog
+  `F20`).** Dynamic Client Registration (RFC 7591/7592) now accepts, validates, persists, and round-trips `subject_type`
+  and `sector_identifier_uri` client metadata, and performs the OpenID Connect Core 1.0 §8.1 remote step that
+  [ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md) deferred: it **fetches** the JSON document the
+  `sector_identifier_uri` references and **verifies** it lists every one of the client's `redirect_uris`, so a pairwise
+  client can only share a sector when a party controlling that document vouches for its redirect URIs. The fetch is the
+  work of a replaceable `ISectorIdentifierValidator` seam (sibling of `IInitialAccessTokenValidator`, `TryAddSingleton`,
+  DI-overridable) whose default implementation is hardened against server-side request forgery by four layered controls:
+  an **always-on private-address block** (a dedicated `NCode.Identity.OpenId.SectorIdentifier` named `HttpClient` whose
+  `SocketsHttpHandler.ConnectCallback` pins the socket to the resolved IP and refuses loopback/private/CGNAT/link-local/
+  unique-local/multicast/reserved ranges — defeating DNS-rebinding — with redirects disabled), an optional host
+  allow-list (`sector_identifier_uri_allowed_hosts`), a timeout (`sector_identifier_uri_fetch_timeout`, default 10s),
+  and a response size cap (`sector_identifier_uri_max_size_bytes`, default 100 KB). The `https`-only requirement and the
+  §8.1 rule that a pairwise client whose `redirect_uris` span multiple hosts must supply a `sector_identifier_uri` are
+  enforced at registration (stricter than the runtime sector fallback, which remains for clients created outside DCR).
+  See [ADR-0095](docs/adr/0095-sector-identifier-uri-fetch-and-ssrf-guard.md).
+
 - **Uniform principal resolution at every authentication entry point + `SubjectAuthentication.PrincipalId`.** The
   interactive login path now resolves the verified credential to its stable, server-owned principal id and normalizes
   the cookie subject to it (after the pluggable `IInteractiveCredentialVerifier`, before the session is established) —

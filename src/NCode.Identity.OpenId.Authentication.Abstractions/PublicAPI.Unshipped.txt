@@ -514,6 +514,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationA
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationAccessTokenGrant.RegistrationAccessTokenGrant() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic.IInitialAccessTokenValidator
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic.IInitialAccessTokenValidator.ValidateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! initialAccessToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic.ISectorIdentifierValidator
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic.ISectorIdentifierValidator.ValidateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! sectorIdentifierUri, System.Collections.Generic.IReadOnlyCollection<string!>! redirectUris, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Messages.IOpenIdError?>
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.ClientName.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.ClientName.init -> void
@@ -540,10 +542,14 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterCli
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.ResponseTypes.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.Scope.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.Scope.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SectorIdentifierUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SectorIdentifierUri.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SoftwareId.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SoftwareId.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SoftwareVersion.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SoftwareVersion.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SubjectType.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.SubjectType.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TokenEndpointAuthMethod.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TokenEndpointAuthMethod.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TosUri.get -> string?
@@ -583,10 +589,14 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClie
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ResponseTypes.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.Scope.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.Scope.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SectorIdentifierUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SectorIdentifierUri.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SoftwareId.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SoftwareId.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SoftwareVersion.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SoftwareVersion.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SubjectType.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.SubjectType.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TokenEndpointAuthMethod.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TokenEndpointAuthMethod.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TosUri.get -> string?

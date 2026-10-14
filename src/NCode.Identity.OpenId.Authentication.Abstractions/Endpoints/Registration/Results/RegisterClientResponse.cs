@@ -103,6 +103,22 @@ public sealed record RegisterClientResponse
     public IReadOnlyList<string>? ResponseTypes { get; init; }
 
     /// <summary>
+    /// Gets the subject identifier type (<c>public</c> or <c>pairwise</c>) registered for the client
+    /// (OpenID Connect Core 1.0 §8).
+    /// </summary>
+    [JsonPropertyName("subject_type")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SubjectType { get; init; }
+
+    /// <summary>
+    /// Gets the URL referencing the client's sector identifier document registered for the client
+    /// (OpenID Connect Core 1.0 §8.1).
+    /// </summary>
+    [JsonPropertyName("sector_identifier_uri")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SectorIdentifierUri { get; init; }
+
+    /// <summary>
     /// Gets the human-readable name of the client to be presented to the end user.
     /// </summary>
     [JsonPropertyName("client_name")]

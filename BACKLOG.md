@@ -121,11 +121,6 @@ entry and/or ADR that closed it.
   tokens is always the raw public subject; the `subject_type` (`public`/`pairwise`) setting is not honored, so there is
   no per-client/RP pseudonymous `sub`. See `// TODO: use the subject_type setting to support PPID` in
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultAuthenticateHandler.cs`.
-- **`F10` — Extension grant + token-endpoint `401`/`WWW-Authenticate`.** The token endpoint has no extension-grant seam
-  (`// TODO: Extension Grant` in `DefaultTokenEndpointProvider.cs`) and collapses client-authentication failures to
-  `400` instead of emitting `401` with a `WWW-Authenticate` challenge (`// TODO: add support for 401 with
-WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/DefaultTokenEndpointProvider.cs`.
 - **`F16` — FAPI (Financial-grade API) readiness epic.** An umbrella tracking the work to make the OP certifiable
   against the OpenID Foundation **FAPI** security profiles ([FAPI 1.0 Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html),
   [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)). FAPI mandates **sender-constrained access

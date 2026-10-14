@@ -36,11 +36,15 @@ using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 
-// TODO: Extension Grant
-
 /// <summary>
 /// Provides a default implementation of the required services and handlers used by the token endpoint.
 /// </summary>
+/// <remarks>
+/// Extension grants (<see href="https://datatracker.ietf.org/doc/html/rfc6749#section-4.5">RFC 6749 §4.5</see>) are
+/// supported without modifying this endpoint: register an <see cref="ITokenGrantHandler"/> whose
+/// <see cref="ITokenGrantHandler.GrantTypes"/> includes the extension grant's absolute-URI identifier, and the
+/// grant-selection pipeline routes matching requests to it.
+/// </remarks>
 internal class DefaultTokenEndpointProvider(
     IClientAuthenticationService clientAuthenticationService,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
@@ -65,6 +69,7 @@ internal class DefaultTokenEndpointProvider(
             )
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
 
@@ -84,6 +89,7 @@ internal class DefaultTokenEndpointProvider(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The issued tokens: access_token, token_type, and expires_in, plus id_token, refresh_token, and scope when applicable.</response>
     /// <response code="400">An OAuth 2.0 error response carrying an error code and an optional error_description.</response>
+    /// <response code="401">An invalid_client error when the client authenticated via the Authorization header and failed; carries a WWW-Authenticate challenge.</response>
     internal async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
@@ -113,7 +119,8 @@ internal class DefaultTokenEndpointProvider(
 
         if (authResult.IsError)
         {
-            // TODO: add support for 401 with WWW-Authenticate header
+            // Client-authentication handlers set the status code and any WWW-Authenticate challenge (RFC 6749 §5.2);
+            // default to 400 only when the handler left it unspecified.
             var error = authResult.Error;
             error.StatusCode ??= StatusCodes.Status400BadRequest;
             return error.AsHttpResult();

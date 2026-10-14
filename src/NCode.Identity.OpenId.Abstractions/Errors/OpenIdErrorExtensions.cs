@@ -18,6 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 
@@ -59,6 +60,19 @@ public static class OpenIdErrorExtensions
         public IOpenIdError WithStatusCode(int? statusCode)
         {
             error.StatusCode = statusCode;
+            return error;
+        }
+
+        /// <summary>
+        /// Adds or replaces an HTTP response header (for example a <c>WWW-Authenticate</c> challenge) to be written
+        /// when rendering the error response.
+        /// </summary>
+        /// <param name="name">The name of the HTTP response header.</param>
+        /// <param name="value">The value of the HTTP response header.</param>
+        /// <returns>The <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError WithResponseHeader(string name, StringValues value)
+        {
+            error.SetResponseHeader(name, value);
             return error;
         }
 

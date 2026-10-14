@@ -2,7 +2,11 @@
 
 This file is the **single source of truth for documented known pending work** in NCode.Identity:
 deferred decisions, feature gaps, and action items. It is durable, versioned repository content — not
-an agent's volatile memory or a chat transcript.
+an agent's volatile memory or a chat transcript. This file is the **primary, default view of the backlog** — it
+lists **only pending work**, so scanning it is the fastest way to see what is still open. The companion archive
+[`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md) preserves the full original text of every **completed or retired**
+item (keyed by ID, cross-referenced to the [`CHANGELOG.md`](CHANGELOG.md) entry and/or ADR that closed it), so
+completed work is just as discoverable without reading git history.
 
 **This catalog is not exhaustive.** It lists only work that has already been _identified_ and
 deliberately written down — primarily durable storage for AI chat sessions and items a human asked to
@@ -17,16 +21,19 @@ leaving it only in chat history or agent memory. This follows
 and recurring work live in the repository. Code-local reminders may also use `// TODO:` comments; this
 file is the catalog that makes those discoverable in one place.
 
-Entry convention: a short title, one-line context, and (where useful) the touch points. Remove an
-entry when the work lands (and note it in [`CHANGELOG.md`](CHANGELOG.md) if user-facing). Because this
-file tracks **pending** work only, never mark an entry "Done" and leave it here — when work is fully
-done, delete the entry; when it is **partially** done, rewrite the entry so its title and context
-describe only the **remaining** work (the completed portion is stated as already-existing context, not
-as a "done" status).
+Entry convention: a short title, one-line context, and (where useful) the touch points. Because this file tracks
+**pending** work only, never mark an entry "Done" and leave it here. When work is fully done, **move** the entry's
+full text to [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md) in the same change — do not just delete it — appending a
+trailing `_Closed:_` line that points at the [`CHANGELOG.md`](CHANGELOG.md) entry and/or ADR that closed it (and note
+the change in [`CHANGELOG.md`](CHANGELOG.md) if user-facing). When an entry is only **partially** done, keep it here but
+rewrite it so its title and context describe only the **remaining** work (the completed portion is stated as
+already-existing context, not as a "done" status).
 
 **Allocating an ID:** take the next free number for the group from the [ID ledger](#backlog-id-ledger--never-reuse-a-number)
 below and bump that group's high-water mark — **never reuse or backfill a number**, because ADRs, the changelog, and
-code comments reference it long after the entry is gone.
+code comments reference it long after the entry is gone. The ledger is the quick reference; the authoritative upper
+bound for a group is the **maximum** of its high-water mark, the highest pending ID here, and the highest archived ID
+in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md) — allocate strictly above that.
 
 ---
 
@@ -48,20 +55,21 @@ one option is merely more work.
 ## Backlog ID ledger — never reuse a number
 
 Backlog IDs outlive their entries: ADRs, the [`CHANGELOG.md`](CHANGELOG.md), and code comments reference a number long
-after the item is completed and deleted from this file. So **a number is never reused or backfilled.** Allocate the next
+after the item is completed and moved out of this file. So **a number is never reused or backfilled.** Allocate the next
 ID for a group strictly **above** its high-water mark, then bump the mark here. Every number at or below a mark is
-**allocated** — whether still active in the body below, or retired (completed and deleted, or absorbed into another
-item) — even when it no longer appears here. A retired item's record lives in the `CHANGELOG.md` entry that closed it
-(and any ADR); preserving the full completed-item **text** in a dedicated archive is tracked as `X2`.
+**allocated** — whether still active in the body below, archived in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)
+(completed or retired), or retired without a surviving entry (absorbed into another item). A completed item's full text
+is preserved in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md), cross-referenced to the [`CHANGELOG.md`](CHANGELOG.md)
+entry and/or ADR that closed it.
 
-| Group                                   | Next free | High-water |
-| --------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet   | `D6`      | `D5`       |
-| `F` — Feature gaps                      | `F19`     | `F18`      |
-| `T` — Conformance & interop testing     | `T7`      | `T6`       |
-| `U` — Frontend presentation platform    | `U13`     | `U12`      |
-| `S` — Secrets management                | `S7`      | `S6`       |
-| `X` — Tooling & agent customization     | `X3`      | `X2`       |
+| Group                                 | Next free | High-water |
+| ------------------------------------- | --------- | ---------- |
+| `D` — Deferred, intentionally not-yet | `D6`      | `D5`       |
+| `F` — Feature gaps                    | `F19`     | `F18`      |
+| `T` — Conformance & interop testing   | `T7`      | `T6`       |
+| `U` — Frontend presentation platform  | `U13`     | `U12`      |
+| `S` — Secrets management              | `S7`      | `S6`       |
+| `X` — Tooling & agent customization   | `X3`      | `X2`       |
 
 ---
 
@@ -231,12 +239,3 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   both for now — the prompt still serves VS Code chat via its `agent:` frontmatter, and `disable-model-invocation: true`
   is intended to return once github/copilot-cli#4438 is fixed (restoring explicit-only semantics). If kept, edits must be
   mirrored across both files to avoid drift.
-- **`X2` — Archive completed backlog items (full text) for reference.** Completed entries are **deleted** from this
-  file when their work lands, so their original wording survives only in git history and in the terse `CHANGELOG.md`
-  line that closed them. Mine the history — `git log --follow -p -- BACKLOG.md` — to recover every removed entry, and
-  collect the full text into a dedicated, read-only archive (a `BACKLOG-COMPLETED.md`, or a "retired items" appendix),
-  keyed by backlog ID, each cross-referenced to the `CHANGELOG.md` entry and/or ADR that closed it. Going forward, when
-  an entry is completed and removed, copy its text into the archive in the same change (and the ID stays recorded in the
-  [ID ledger](#backlog-id-ledger--never-reuse-a-number) above). This preserves the richer problem/design context the
-  changelog omits, and makes the retired IDs' rationale discoverable without archaeology.
-  Touch points: [`BACKLOG.md`](BACKLOG.md), [`CHANGELOG.md`](CHANGELOG.md), a new `BACKLOG-COMPLETED.md`.

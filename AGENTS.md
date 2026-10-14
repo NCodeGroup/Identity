@@ -33,7 +33,9 @@ non-obvious decisions lives in [`docs/adr/`](docs/adr/).
 
 [`BACKLOG.md`](BACKLOG.md) is the single source of truth for documented pending work — deferred decisions, feature
 gaps, and follow-ups. Record pending/deferred items **there** (and a non-obvious decision in an ADR), not in chat
-history or volatile agent memory ([ADR-0008](docs/adr/0008-conventions-and-lessons-live-in-the-repository.md)).
+history or volatile agent memory ([ADR-0008](docs/adr/0008-conventions-and-lessons-live-in-the-repository.md)). When an
+item is fully done, **move** its text to the completed-items archive [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)
+(don't just delete it) so completed work stays discoverable without git archaeology.
 
 ## Build, test & contributing
 

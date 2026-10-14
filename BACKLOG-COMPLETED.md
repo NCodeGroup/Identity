@@ -109,6 +109,14 @@ group heading in ID order, preserve the original wording verbatim, and add a tra
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`.
   Touch points: a new `Endpoints/PushedAuthorization/` family plus discovery-metadata advertisement.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0089](docs/adr/0089-pushed-authorization-requests.md)._
+- **`F10` — Extension grant + token-endpoint `401`/`WWW-Authenticate`.** The token endpoint has no extension-grant seam
+  (`// TODO: Extension Grant` in `DefaultTokenEndpointProvider.cs`) and collapses client-authentication failures to
+  `400` instead of emitting `401` with a `WWW-Authenticate` challenge (`// TODO: add support for 401 with
+WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/DefaultTokenEndpointProvider.cs`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0092](docs/adr/0092-token-endpoint-401-www-authenticate-challenge.md).
+  The extension-grant seam already existed via `ITokenGrantHandler` grant-type routing (now documented); the challenge
+  work added the `ISupportResponseHeaders` seam and corrected the `client_secret_basic` standard-Base64 decoder._
 - **`F11` — `acr` claim emission and conditional `auth_time` (blocked on / pending foundational subsystems).** The
   `sid` claim **is** now emitted into ID tokens from the session-management subsystem
   ([ADR-0074](docs/adr/0074-session-management-and-logout.md)). The `acr` claim still needs authentication-context-class

@@ -21,6 +21,9 @@ NCode.Identity.Results.IResultExecutor<TResult>
 NCode.Identity.Results.IResultExecutor<TResult>.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, TResult result, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Results.IResultProvider
 NCode.Identity.Results.IResultProvider.AsHttpResult() -> Microsoft.AspNetCore.Http.IResult!
+NCode.Identity.Results.ISupportResponseHeaders
+NCode.Identity.Results.ISupportResponseHeaders.ResponseHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Microsoft.Extensions.Primitives.StringValues>?
+NCode.Identity.Results.ISupportResponseHeaders.SetResponseHeader(string! name, Microsoft.Extensions.Primitives.StringValues value) -> void
 NCode.Identity.Results.ISupportStatusCode
 NCode.Identity.Results.ISupportStatusCode.StatusCode.get -> int?
 NCode.Identity.Results.ISupportStatusCode.StatusCode.set -> void

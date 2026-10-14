@@ -17,6 +17,7 @@
 
 #endregion
 
+using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -61,6 +62,19 @@ internal sealed class DefaultOpenIdError
 
     /// <inheritdoc />
     public int? StatusCode { get; set; }
+
+    private Dictionary<string, StringValues>? ResponseHeadersOrNull { get; set; }
+
+    /// <inheritdoc />
+    public IReadOnlyDictionary<string, StringValues>? ResponseHeaders => ResponseHeadersOrNull;
+
+    /// <inheritdoc />
+    public void SetResponseHeader(string name, StringValues value) =>
+        (
+            ResponseHeadersOrNull ??= new Dictionary<string, StringValues>(
+                StringComparer.OrdinalIgnoreCase
+            )
+        )[name] = value;
 
     /// <inheritdoc />
     public Exception? Exception { get; set; }

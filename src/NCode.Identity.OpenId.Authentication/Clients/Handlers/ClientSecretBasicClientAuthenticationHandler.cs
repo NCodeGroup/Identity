@@ -19,9 +19,9 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 using NCode.Buffers;
 using NCode.Disposables;
-using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -40,10 +40,6 @@ internal class ClientSecretBasicClientAuthenticationHandler(
     : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger),
         IClientAuthenticationHandler
 {
-    // TODO: move comment
-    // RE: 400 vs 401
-    // https://stackoverflow.com/questions/22586825/oauth-2-0-why-does-the-authorization-server-return-400-instead-of-401-when-the
-
     private static string UriDecode(Span<char> source)
     {
         source.Replace('+', ' ');
@@ -91,13 +87,28 @@ internal class ClientSecretBasicClientAuthenticationHandler(
         OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
 
     /// <inheritdoc />
+    protected override ClientAuthenticationResult CreateInvalidClientResult(
+        OpenIdContext openIdContext
+    ) =>
+        // The client authenticated via the HTTP Authorization header, so RFC 6749 §5.2 requires a 401 response
+        // with a WWW-Authenticate challenge matching the scheme the client used.
+        new(
+            openIdContext
+                .ErrorFactory.InvalidClient()
+                .WithStatusCode(StatusCodes.Status401Unauthorized)
+                .WithResponseHeader(
+                    HeaderNames.WWWAuthenticate,
+                    WwwAuthenticateChallenge.Basic(openIdContext.Tenant.Issuer)
+                )
+        );
+
+    /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
         CancellationToken cancellationToken
     )
     {
         var httpContext = openIdContext.Http;
-        var errorFactory = openIdContext.ErrorFactory;
 
         var authorizationHeader = httpContext.Request.Headers.Authorization;
         if (authorizationHeader.Count != 1)
@@ -116,11 +127,9 @@ internal class ClientSecretBasicClientAuthenticationHandler(
 
         var encodedCredentials = authorizationValue[prefix.Length..].Trim();
         if (encodedCredentials.IsEmpty)
-            return new ClientAuthenticationResult(
-                errorFactory
-                    .InvalidRequest("An invalid or malformed authorization header was provided.")
-                    .WithStatusCode(StatusCodes.Status400BadRequest)
-            );
+            // The client attempted Basic authentication but supplied no credentials; this is a failed
+            // authentication (invalid_client), which RFC 6749 §5.2 requires be answered with a 401 challenge.
+            return CreateInvalidClientResult(openIdContext);
 
         return await AuthenticateCredentialsAsync(
             openIdContext,
@@ -135,19 +144,29 @@ internal class ClientSecretBasicClientAuthenticationHandler(
         CancellationToken cancellationToken
     )
     {
-        var base64ByteCount = Base64Url.GetByteCountForDecode(encodedCredentials.Length);
+        // RFC 7617 encodes the user-id/password with standard Base64 (padded), not Base64Url. An upper bound of
+        // length*3/4 is always large enough for the decoded bytes regardless of padding.
+        var maxByteCount = encodedCredentials.Length * 3 / 4;
         using var base64Lease = BufferFactory.Rent(
-            base64ByteCount,
+            maxByteCount,
             isSensitive: true,
-            out Span<byte> base64Bytes
+            out Span<byte> base64Buffer
         );
 
-        var base64Result = Convert.TryFromBase64Chars(
-            encodedCredentials.Span,
-            base64Bytes,
-            out var base64BytesWritten
-        );
-        Debug.Assert(base64Result && base64BytesWritten == base64ByteCount);
+        // The credentials are untrusted input, so a decode failure must be handled explicitly (never asserted, which
+        // is compiled out in Release); a malformed header is a failed authentication per RFC 6749 §5.2.
+        if (
+            !Convert.TryFromBase64Chars(
+                encodedCredentials.Span,
+                base64Buffer,
+                out var base64BytesWritten
+            )
+        )
+        {
+            return CreateInvalidClientResult(openIdContext);
+        }
+
+        var base64Bytes = base64Buffer[..base64BytesWritten];
 
         var decodeCharCount = SecureEncoding.UTF8.GetCharCount(base64Bytes);
         using var decodeLease = SecureMemoryPool<char>.Shared.Rent(decodeCharCount);

@@ -27,6 +27,13 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 /// <summary>
 /// Implemented by various handlers to process token requests for a specific grant type.
 /// </summary>
+/// <remarks>
+/// This is also the extension-grant seam
+/// (<see href="https://datatracker.ietf.org/doc/html/rfc6749#section-4.5">RFC 6749 §4.5</see>): register an
+/// implementation whose <see cref="GrantTypes"/> includes an extension grant's absolute-URI identifier (for example
+/// <c>urn:ietf:params:oauth:grant-type:token-exchange</c>) and the token endpoint routes matching requests to it
+/// without any further endpoint changes.
+/// </remarks>
 [PublicAPI]
 public interface ITokenGrantHandler
 {

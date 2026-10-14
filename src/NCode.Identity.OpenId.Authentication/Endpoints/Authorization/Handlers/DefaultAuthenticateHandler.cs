@@ -91,8 +91,9 @@ internal class DefaultAuthenticateHandler(ILogger<DefaultAuthenticateHandler> lo
         var authenticationProperties = baseTicket.Properties;
         var subject = baseTicket.Principal;
 
-        // TODO: use the subject_type setting to support PPID (Pairwise Pseudonymous Identifier), aka unique user ID per client/RP
-
+        // The stable public subject is carried through the grant unchanged; the per-client pairwise projection (for a
+        // client whose subject_type is pairwise) is applied where the `sub` is emitted toward the client, so grants,
+        // consent, sessions, and revocation keep referencing the stable principal (ISubjectIdentifierService).
         var subjectId = openIdContext.GetSubjectId(subject);
         if (string.IsNullOrEmpty(subjectId))
         {

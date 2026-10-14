@@ -59,7 +59,7 @@ internal class DefaultGetUserInfoMetadataClaimsHandler(IPrincipalMetadataProvide
 
         var metadata = await MetadataProvider.GetMetadataAsync(
             openIdContext,
-            subjectAuthentication.SubjectId,
+            subjectAuthentication.PrincipalId,
             cancellationToken
         );
 

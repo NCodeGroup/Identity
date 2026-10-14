@@ -176,7 +176,7 @@ public class DefaultCreateBackchannelAuthenticationRequestHandlerTests : BaseTes
         Assert.Equal(600, result.ExpiresIn);
         Assert.Equal(5, result.Interval);
         Assert.Equal(DeviceAuthorizationStatus.Pending, captured?.Status);
-        Assert.Equal("subject-id", captured?.SubjectAuthentication?.SubjectId);
+        Assert.Equal("subject-id", captured?.SubjectAuthentication?.PrincipalId);
         MockNotificationService.Verify();
     }
 }

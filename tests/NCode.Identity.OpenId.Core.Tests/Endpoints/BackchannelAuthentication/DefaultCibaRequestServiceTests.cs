@@ -189,7 +189,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
 
         Assert.True(result);
         Assert.Equal(DeviceAuthorizationStatus.Approved, captured?.Status);
-        Assert.Equal("subject-id", captured?.SubjectAuthentication?.SubjectId);
+        Assert.Equal("subject-id", captured?.SubjectAuthentication?.PrincipalId);
     }
 
     [Fact]

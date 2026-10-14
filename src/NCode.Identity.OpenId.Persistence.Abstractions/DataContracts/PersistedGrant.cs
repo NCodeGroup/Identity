@@ -69,7 +69,9 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
     public required string? ClientId { get; init; }
 
     /// <summary>
-    /// Gets the <c>SubjectId</c> associated with this entity.
+    /// Gets the subject identifier this grant belongs to: the stable, server-owned principal identifier resolved for
+    /// the end-user (ADR-0035), not the raw upstream/local subject. This is the single value grant enumeration and
+    /// subject-wide revocation key on, so a user's grants are findable regardless of how they authenticated.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string? SubjectId { get; init; }

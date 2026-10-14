@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Logic;
@@ -42,15 +43,21 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
     private const string Token = "token-value";
 
     private Mock<IJsonWebTokenService> MockJsonWebTokenService { get; }
+    private Mock<IOpenIdClientResolver> MockOpenIdClientResolver { get; }
+    private Mock<ISubjectIdentifierService> MockSubjectIdentifierService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private DefaultIntrospectTokenHandler Handler { get; }
 
     public DefaultIntrospectTokenHandlerTests()
     {
         MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
+        MockOpenIdClientResolver = CreateStrictMock<IOpenIdClientResolver>();
+        MockSubjectIdentifierService = CreateStrictMock<ISubjectIdentifierService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         Handler = new DefaultIntrospectTokenHandler(
             MockJsonWebTokenService.Object,
+            MockOpenIdClientResolver.Object,
+            MockSubjectIdentifierService.Object,
             MockPersistedGrantService.Object
         );
     }
@@ -215,11 +222,57 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
             CreateGrant(PersistedGrantStatus.Active, subjectId: "subject-1", ["api", "profile"])
         );
 
+        // the owning client is resolved and the subject is projected to its per-sector pseudonym
+        var mockOwningClient = CreateStrictMock<OpenIdClient>();
+        MockOpenIdClientResolver
+            .Setup(x =>
+                x.ResolveClientOrDefaultAsync(
+                    command.OpenIdContext,
+                    ClientId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(mockOwningClient.Object)
+            .Verifiable();
+        MockSubjectIdentifierService
+            .Setup(x =>
+                x.ProjectSubjectId(command.OpenIdContext, mockOwningClient.Object, "subject-1")
+            )
+            .Returns("pairwise-1")
+            .Verifiable();
+
         await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.Active);
         Assert.Equal(ClientId, result.Claims["client_id"]);
         Assert.Equal("api profile", result.Claims["scope"]);
+        Assert.Equal("pairwise-1", result.Claims["sub"]);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenActiveRefreshTokenAndClientUnresolved_FallsBackToRawSubject()
+    {
+        var result = new IntrospectionResult { Active = false };
+        var command = CreateCommand(Token, result);
+        SetupTenantForJwtValidation(command.OpenIdContext);
+        SetupInvalidJwt();
+        SetupCreateGrantId();
+        SetupGetGrant(CreateGrant(PersistedGrantStatus.Active, subjectId: "subject-1", ["api"]));
+
+        MockOpenIdClientResolver
+            .Setup(x =>
+                x.ResolveClientOrDefaultAsync(
+                    command.OpenIdContext,
+                    ClientId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((OpenIdClient?)null)
+            .Verifiable();
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.Active);
         Assert.Equal("subject-1", result.Claims["sub"]);
     }
 }

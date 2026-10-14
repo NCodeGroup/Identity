@@ -532,8 +532,8 @@ public static partial class OpenIdConstants
         /// </summary>
         public const string Public = "public";
 
-        // https://docs.safewhere.com/identify/concepts/connections/oauth/advanced-topics/oauth-ppid.html
-        // example: base64urlencode(HS256Signature(sectorIdentifier + client_id + salt, key))
+        // The pairwise sub is derived deterministically as base64url(SHA-256(sectorIdentifier + principalId +
+        // tenantId + salt)), per the OpenID Connect Core 1.0 §8.1 non-normative example.
 
         /// <summary>
         /// Indicates that a different subject (<c>sub</c>) value is returned to each client or sector (<c>pairwise</c>).

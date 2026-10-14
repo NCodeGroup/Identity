@@ -44,7 +44,7 @@ internal class DefaultGetUserInfoClaimsHandler
         var (_, subjectAuthentication, claims) = command;
 
         // The 'sub' claim is authoritative and always sourced from the authenticated subject.
-        claims[JoseClaimNames.Payload.Sub] = subjectAuthentication.SubjectId;
+        claims[JoseClaimNames.Payload.Sub] = subjectAuthentication.PrincipalId;
 
         return ValueTask.CompletedTask;
     }

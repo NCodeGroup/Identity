@@ -968,6 +968,8 @@ NCode.Identity.OpenId.Authentication.Subject.AuthenticationContextReferenceReque
 NCode.Identity.OpenId.Authentication.Subject.AuthenticationContextReferenceRequest.Settings.init -> void
 NCode.Identity.OpenId.Authentication.Subject.IAuthenticationContextReferenceResolver
 NCode.Identity.OpenId.Authentication.Subject.IAuthenticationContextReferenceResolver.ResolveAsync(NCode.Identity.OpenId.Authentication.Subject.AuthenticationContextReferenceRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
+NCode.Identity.OpenId.Authentication.Subject.ISubjectIdentifierService
+NCode.Identity.OpenId.Authentication.Subject.ISubjectIdentifierService.ProjectSubjectId(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string! principalId) -> string!
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.AuthenticationProperties.get -> Microsoft.AspNetCore.Authentication.AuthenticationProperties!
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.AuthenticationProperties.init -> void
@@ -976,10 +978,10 @@ NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.Authenticatio
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.Subject.get -> System.Security.Claims.ClaimsPrincipal!
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.Subject.init -> void
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.SubjectAuthentication() -> void
-NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.SubjectAuthentication(string! AuthenticationScheme, Microsoft.AspNetCore.Authentication.AuthenticationProperties! AuthenticationProperties, System.Security.Claims.ClaimsPrincipal! Subject, string! SubjectId) -> void
+NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.SubjectAuthentication(string! AuthenticationScheme, Microsoft.AspNetCore.Authentication.AuthenticationProperties! AuthenticationProperties, System.Security.Claims.ClaimsPrincipal! Subject, string! PrincipalId) -> void
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.SessionId.get -> string?
-NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.SubjectId.get -> string!
-NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.SubjectId.init -> void
+NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.PrincipalId.get -> string!
+NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.PrincipalId.init -> void
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.OpenIdClient.init -> void

@@ -21,13 +21,17 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Authentication.Sessions;
 
 /// <summary>
-/// Contains the details used to create a new end-user session.
+/// Contains the details used to create a new server-side end-user session: the subject the session belongs to plus the
+/// authentication context (<c>auth_time</c>, <c>amr</c>, <c>acr</c>, <c>idp</c>) captured when the session was
+/// established and later projected into the tokens issued under it.
 /// </summary>
 [PublicAPI]
 public readonly record struct CreateSessionRequest
 {
     /// <summary>
-    /// Gets the identifier of the authenticated subject (end-user) that the session belongs to.
+    /// Gets the subject the session belongs to: the stable, server-owned principal identifier resolved for the
+    /// end-user (ADR-0035), not the raw upstream/local subject. The session, and every grant issued under it, key on
+    /// this single value so the same user is referenced consistently regardless of how they authenticated.
     /// </summary>
     public required string SubjectId { get; init; }
 

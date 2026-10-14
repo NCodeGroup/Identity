@@ -10,6 +10,36 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Uniform principal resolution at every authentication entry point + `SubjectAuthentication.PrincipalId`.** The
+  interactive login path now resolves the verified credential to its stable, server-owned principal id and normalizes
+  the cookie subject to it (after the pluggable `IInteractiveCredentialVerifier`, before the session is established) —
+  closing a gap where interactive logins keyed grants/consent/sessions by the raw `LocalAccountId` while ROPC and bearer
+  re-auth keyed them by the resolved principal, so "revoke everything for this subject" and consent reuse now span a
+  user's activity regardless of how they authenticated, and the internal `LocalAccountId` is never emitted as `sub`
+  (ADR-0035). `IPrincipalResolver` gains a self-contained-unit-of-work overload
+  `ResolvePrincipalIdAsync(OpenIdContext, ClaimsPrincipal, CancellationToken)` (no persistence types in its signature,
+  so the interactive leaf package resolves without a persistence dependency), and `SubjectAuthentication.SubjectId` is
+  renamed **`PrincipalId`** to name the single authoritative subject (the `Subject` `ClaimsPrincipal` is raw
+  authentication material; `PrincipalId` is what grants, consent, sessions, revocation, and token `sub` projection key
+  on). The resource-owner-password/interactive `sub` is now the resolved opaque principal id rather than the raw
+  `LocalAccountId` (a privacy improvement; greenfield, no shim). The persistence/request `SubjectId` names are retained
+  and documented as holding the resolved principal id. See
+  [ADR-0094](docs/adr/0094-resolve-principal-at-every-authentication-entry-point.md).
+
+- **Pairwise subject identifiers (PPID) via the `subject_type` setting (completes backlog `F9`).** A client registered
+  with `subject_type = pairwise` now receives a per-sector Pairwise Pseudonymous Identifier as its `sub` instead of the
+  stable public subject, so colluding relying parties in different sectors cannot correlate the same end-user (OpenID
+  Connect Core 1.0 §8). The projection is a **stateless, deterministic** derivation —
+  `base64url(SHA-256(sectorIdentifier ∥ principalId ∥ tenantId ∥ pairwise_salt))` — exposed through the replaceable
+  `ISubjectIdentifierService` (`TryAddSingleton`, DI-overridable), so there is **no new table, store, or migration**.
+  The stable principal identifier remains the single internal subject behind grants, consent, sessions, and revocation;
+  pairwise only changes the emitted `sub` at the outbound seams (ID token, access token, back-channel `logout_token`,
+  and refresh-token introspection — UserInfo echoes the access token's already-projected `sub`). The sector follows
+  §8.1: the host of the new `sector_identifier_uri` client setting when present, else the common host of the client's
+  `redirect_uris`, else the `client_id`. A new optional secret `pairwise_salt` tenant setting hardens the derivation.
+  `subject_types_supported` now advertises `["public", "pairwise"]` (was `["public"]`) and `subject_type` defaults to
+  `public`. See [ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md).
+
 - **Token-endpoint `401` + `WWW-Authenticate` challenge on failed `Authorization`-header client authentication (completes
   backlog `F10`).** A failed `client_secret_basic` authentication now answers with `401 Unauthorized` and a
   `WWW-Authenticate: Basic realm="<issuer>"` challenge, as [RFC 6749 §5.2](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2)

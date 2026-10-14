@@ -181,7 +181,7 @@ and the backing settings in
 | `userinfo_endpoint`                     | `<issuer>/oauth2/userinfo`                     | Required by Basic OP                                          |
 | `response_types_supported`              | `["code"]`                                     | Add `id_token`/`code id_token` only when those flows verified |
 | `grant_types_supported`                 | `["authorization_code","refresh_token"]`       | Match the seeded client's allowed grants                      |
-| `subject_types_supported`               | `["public"]`                                   | `pairwise` only if implemented                                |
+| `subject_types_supported`               | `["public","pairwise"]`                        | Both implemented (ADR-0093)                                   |
 | `id_token_signing_alg_values_supported` | `["RS256"]`                                    | Must match the key the suite fetches from `jwks_uri`          |
 | `scopes_supported`                      | incl. `openid`, `profile`, `email`             | Suite requests these in standard claims tests                 |
 | `claims_supported`                      | the claims actually returned                   | Over-advertising triggers warnings                            |

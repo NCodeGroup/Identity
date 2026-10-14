@@ -611,6 +611,17 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.ServiceDocumentation);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'pairwise_salt' setting.
+    /// </summary>
+    public static SettingKey<string> PairwiseSalt => new(OpenIdSettingNames.PairwiseSalt);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'sector_identifier_uri' setting.
+    /// </summary>
+    public static SettingKey<string> SectorIdentifierUri =>
+        new(OpenIdSettingNames.SectorIdentifierUri);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'subject_max_age' setting.
     /// </summary>
     public static SettingKey<TimeSpan> SubjectMaxAge => new(OpenIdSettingNames.SubjectMaxAge);

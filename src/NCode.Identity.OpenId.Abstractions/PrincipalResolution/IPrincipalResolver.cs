@@ -66,4 +66,23 @@ public interface IPrincipalResolver
         IStoreManager storeManager,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Resolves the stable principal identifier for a caller, provisioning a principal (and its connection identity)
+    /// on first sight, managing its own store unit of work. This is the entry-point convenience used where an
+    /// authentication is first established (interactive login, the resource-owner password grant, bearer re-auth) to
+    /// obtain the single server-owned subject every downstream grant, session, and token references. Falls back to the
+    /// raw extracted subject when the caller has no resolvable upstream identity.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request, whose tenant settings
+    /// configure how the caller is resolved.</param>
+    /// <param name="user">The authenticated caller.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the resolved
+    /// principal identifier.</returns>
+    ValueTask<string> ResolvePrincipalIdAsync(
+        OpenIdContext openIdContext,
+        ClaimsPrincipal user,
+        CancellationToken cancellationToken
+    );
 }

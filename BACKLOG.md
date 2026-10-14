@@ -65,7 +65,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D6`      | `D5`       |
-| `F` — Feature gaps                    | `F20`     | `F19`      |
+| `F` — Feature gaps                    | `F23`     | `F22`      |
 | `T` — Conformance & interop testing   | `T7`      | `T6`       |
 | `U` — Frontend presentation platform  | `U13`     | `U12`      |
 | `S` — Secrets management              | `S7`      | `S6`       |
@@ -117,10 +117,6 @@ entry and/or ADR that closed it.
   `Endpoints/Token/RefreshToken/DefaultRefreshTokenGrantHandler.cs`,
   `Tokens/Handlers/DefaultGetAccessTokenPayloadClaimsHandler.cs` /
   `Tokens/Handlers/DefaultGetIdTokenPayloadClaimsHandler.cs` (the `cnf` claim).
-- **`F9` — Pairwise subject identifiers (PPID) via the `subject_type` setting.** The subject identifier emitted into
-  tokens is always the raw public subject; the `subject_type` (`public`/`pairwise`) setting is not honored, so there is
-  no per-client/RP pseudonymous `sub`. See `// TODO: use the subject_type setting to support PPID` in
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultAuthenticateHandler.cs`.
 - **`F16` — FAPI (Financial-grade API) readiness epic.** An umbrella tracking the work to make the OP certifiable
   against the OpenID Foundation **FAPI** security profiles ([FAPI 1.0 Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html),
   [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)). FAPI mandates **sender-constrained access
@@ -133,7 +129,28 @@ entry and/or ADR that closed it.
   [ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md) already satisfies the algorithm rule; a
   FAPI **profile** would additionally constrain the advertised `*_signing_alg_values_supported` settings to that set.
   This item is the tracking anchor; the concrete deliverables are `F7`, `S3`, and a new JAR/JARM work item.
-
+- **`F20` — `sector_identifier_uri` remote fetch + validation at registration.** Pairwise subjects (`F9`,
+  [ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md)) honor the `sector_identifier_uri` client setting by using
+  its **host** as the sector identifier, but the OpenID Connect Core 1.0 §8.1 registration-time step — fetching the
+  JSON document at that URI and verifying it lists every one of the client's `redirect_uris` — is not performed. Add it
+  as a Dynamic Client Registration (`F6`) validation, with the fetch guarded against SSRF (allow-list / timeout /
+  size cap). Touch point: `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/`.
+- **`F21` — End-session reverse-map for a pairwise `id_token_hint`.** Because the pairwise projection is one-way and
+  unstored (`F9`), an `id_token_hint` presented at the end-session endpoint carries a pairwise `sub` the OP cannot map
+  back to the stable principal. End-session resolves the session by `sid` (which our ID tokens always carry), so the
+  practical RP-initiated-logout path is covered, but a hint that carries only a pairwise `sub` (no `sid`, no cookie
+  session) cannot revoke by subject. If a stored/rotatable pairwise mapping is ever introduced (a replacement
+  `ISubjectIdentifierService`), wire its reverse lookup into `DefaultResolveEndSessionSubjectHandler`. Touch point:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/Handlers/DefaultResolveEndSessionSubjectHandler.cs`.- **`F22` — Enforce the `Subject.sub == PrincipalId` invariant at every ticket-construction site.** The principal is now
+  resolved uniformly and `SubjectAuthentication.PrincipalId` is the single authoritative subject
+  ([ADR-0094](docs/adr/0094-resolve-principal-at-every-authentication-entry-point.md)), and the interactive login path
+  re-stamps the cookie's `sub` claim to the resolved id. The ROPC and bearer/UserInfo paths, however, still leave the
+  principal's raw `sub` claim (`LocalAccountId` / the token's `sub`) on `SubjectAuthentication.Subject` while
+  `PrincipalId` holds the resolved id — harmless today because emission reads `PrincipalId`, not the claim, but a
+  latent divergence. Normalize the principal's subject claim to `PrincipalId` at those construction sites too (a shared
+  ticket factory), so `Subject.sub` and `PrincipalId` can never disagree and the two-sources-of-truth trap cannot
+  return. Touch points: `src/NCode.Identity.OpenId.Accounts.Authentication/DefaultAuthenticatePasswordGrantHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Subject/DefaultAuthenticateSubjectHandler.cs`.
 ## Conformance & interop testing (group `T`)
 
 - **`T1` — Independent OIDC/OAuth conformance validation (OpenID Foundation Conformance Suite).** Our own
@@ -157,7 +174,7 @@ entry and/or ADR that closed it.
 - **`T6` — Spec-coverage conformance harness (in-house gap & regression dashboard).** Evolve `apps/conformance` from a
   discovery _security audit_ into a _spec-coverage matrix_ that measures the OP against the **full published
   OAuth/OIDC/CIBA/FAPI catalog**, independent of what is implemented, so missing functionality (CIBA `F3`, DPoP/mTLS
-  `F7`, token exchange, pairwise `F9`, the FAPI profile `F16`; PAR, `acr`/`amr`
+  `F7`, token exchange, the FAPI profile `F16`; PAR, pairwise `F9`, `acr`/`amr`
   emission, and essential-`acr` enforcement `F19` are implemented) surfaces as explicit,
   attributable gap rows. Because every row is classified from **live discovery metadata**, the same matrix is a **regression**
   detector: a capability that silently stops being advertised (or flips to non-conformant) flips its row, so the harness

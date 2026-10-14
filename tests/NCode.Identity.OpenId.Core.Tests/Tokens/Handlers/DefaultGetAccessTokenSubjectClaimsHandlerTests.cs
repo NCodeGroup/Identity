@@ -21,6 +21,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Moq;
 using NCode.Identity.Claims;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
@@ -34,12 +35,26 @@ namespace NCode.Identity.OpenId.Core.Tests.Tokens.Handlers;
 public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
 {
     private Mock<IClaimsService> MockClaimsService { get; }
+    private Mock<ISubjectIdentifierService> MockSubjectIdentifierService { get; }
     private DefaultGetAccessTokenSubjectClaimsHandler Handler { get; }
 
     public DefaultGetAccessTokenSubjectClaimsHandlerTests()
     {
         MockClaimsService = CreateStrictMock<IClaimsService>();
-        Handler = new DefaultGetAccessTokenSubjectClaimsHandler(MockClaimsService.Object);
+        MockSubjectIdentifierService = CreateStrictMock<ISubjectIdentifierService>();
+        MockSubjectIdentifierService
+            .Setup(x =>
+                x.ProjectSubjectId(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>()
+                )
+            )
+            .Returns((OpenIdContext _, OpenIdClient _, string principalId) => principalId);
+        Handler = new DefaultGetAccessTokenSubjectClaimsHandler(
+            MockClaimsService.Object,
+            MockSubjectIdentifierService.Object
+        );
     }
 
     #region Scaffolding
@@ -110,6 +125,41 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
             .Verifiable();
 
         await Handler.HandleAsync(command, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_EmitsProjectedSubjectIdAsSubClaim()
+    {
+        MockSubjectIdentifierService
+            .Setup(x =>
+                x.ProjectSubjectId(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    "subject-id"
+                )
+            )
+            .Returns("pairwise-pseudonym")
+            .Verifiable();
+        MockClaimsService
+            .Setup(x =>
+                x.CopyClaims(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<ICollection<Claim>>(),
+                    It.IsAny<bool>(),
+                    It.IsAny<IEnumerable<string>>()
+                )
+            )
+            .Verifiable();
+
+        var command = CreateCommand(CreateSubjectAuthentication());
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        var subClaim = Assert.Single(
+            command.SubjectClaims,
+            claim => claim.Type == JoseClaimNames.Payload.Sub
+        );
+        Assert.Equal("pairwise-pseudonym", subClaim.Value);
     }
 
     #endregion

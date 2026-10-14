@@ -703,4 +703,33 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> UserInfoSigningAlgValuesSupported =>
         new(OpenIdSettingNames.UserInfoSigningAlgValuesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'dpop_signing_alg_values_supported' setting (RFC 9449).
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> DPoPSigningAlgValuesSupported =>
+        new(OpenIdSettingNames.DPoPSigningAlgValuesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'dpop_proof_lifetime' setting (RFC 9449).
+    /// </summary>
+    public static SettingKey<TimeSpan> DPoPProofLifetime =>
+        new(OpenIdSettingNames.DPoPProofLifetime);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'dpop_nonce_required' setting (RFC 9449 §8).
+    /// </summary>
+    public static SettingKey<bool> DPoPNonceRequired => new(OpenIdSettingNames.DPoPNonceRequired);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_dpop' setting (RFC 9449).
+    /// </summary>
+    public static SettingKey<bool> RequireDPoP => new(OpenIdSettingNames.RequireDPoP);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_certificate_bound_access_tokens' setting
+    /// (RFC 8705 §3.3).
+    /// </summary>
+    public static SettingKey<bool> TlsClientCertificateBoundAccessTokens =>
+        new(OpenIdSettingNames.TlsClientCertificateBoundAccessTokens);
 }

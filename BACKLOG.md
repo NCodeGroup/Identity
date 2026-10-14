@@ -65,7 +65,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D6`      | `D5`       |
-| `F` — Feature gaps                    | `F25`     | `F24`      |
+| `F` — Feature gaps                    | `F26`     | `F25`      |
 | `T` — Conformance & interop testing   | `T7`      | `T6`       |
 | `U` — Frontend presentation platform  | `U13`     | `U12`      |
 | `S` — Secrets management              | `S7`      | `S6`       |
@@ -105,18 +105,27 @@ entry and/or ADR that closed it.
   [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md).)
   Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/Handlers/`.
-- **`F7` — DPoP / sender-constrained tokens (RFC 9449 + mTLS, `cnf` claim).** Every token-issuance path hardcodes
-  `TokenType = Bearer` with a `// TODO: add support for DPoP` marker, the token-request validators never inspect a
-  DPoP proof, and the emitted-claims handlers cannot populate the `cnf` confirmation claim because no
-  proof-of-possession subsystem exists. This is the single most recurring code-local TODO theme. Touch points (all
-  `src/NCode.Identity.OpenId.Authentication/`): `Endpoints/Authorization/Handlers/DefaultCreateAuthorizationTicketHandler.cs`,
-  `Endpoints/Token/AuthorizationCode/DefaultAuthorizationCodeGrantHandler.cs`,
-  `Endpoints/Token/AuthorizationCode/DefaultValidateAuthorizationCodeGrantHandler.cs` (`// TODO: validate DPoP`),
-  `Endpoints/Token/ClientCredentials/DefaultClientCredentialsGrantHandler.cs`,
-  `Endpoints/Token/Password/DefaultPasswordGrantHandler.cs`,
-  `Endpoints/Token/RefreshToken/DefaultRefreshTokenGrantHandler.cs`,
-  `Tokens/Handlers/DefaultGetAccessTokenPayloadClaimsHandler.cs` /
-  `Tokens/Handlers/DefaultGetIdTokenPayloadClaimsHandler.cs` (the `cnf` claim).
+- **`F7` — DPoP / sender-constrained tokens (RFC 9449 + mTLS, `cnf` claim).** The **issuance side is implemented**
+  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)): a single `IProofOfPossessionService`
+  evaluates a DPoP proof and/or a mutual-TLS client certificate per token request, binds the issued access token's
+  `token_type` (`DPoP`/`Bearer`) and `cnf` claim (`jkt` / `x5t#S256`) uniformly across every grant (passed first-class
+  to `ITokenGrantHandler.HandleAsync` and carried on `CreateSecurityTokenRequest.Confirmation`),
+  advertises `dpop_signing_alg_values_supported`
+  and `tls_client_certificate_bound_access_tokens` in discovery, and enforces the `require_dpop` /
+  `tls_client_certificate_bound_access_tokens` client policies. Certificate ingestion lives in the default
+  `IClientCertificateResolver`, which reads the connection cert or a configured **trusted** forwarded header
+  (`OpenId:MutualTls`) for any reverse-proxy topology; the DPoP replay/nonce stores run over `IDistributedCache`
+  (in-memory by default, cross-node by registering a shared provider).
+  **Remaining follow-ups (ride the same foundation):** (a) **resource-server-side** validation — verifying a presented
+  DPoP proof and its `ath` (and the `x5t#S256` match) when a bound token is used at a protected resource; (b) **DPoP at
+  the authorization endpoint** via the `dpop_jkt` parameter (RFC 9449 §10) to bind the authorization code; (c)
+  **refresh-token binding continuity** — persist the `jkt`/`x5t#S256` with the grant so a rotated token stays bound to
+  the same key and the refresh request's proof is re-checked; (d) `mtls_endpoint_aliases` (RFC 8705 §5) for deployments
+  that expose separate mTLS hostnames. (Multi-instance DPoP replay/nonce needs only a shared `IDistributedCache`
+  provider registered in DI — no extra wiring.) Touch points for (a):
+  `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultAuthenticateAccessTokenHandler.cs`; for (b)/(c):
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultCreateAuthorizationTicketHandler.cs`
+  and `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/RefreshToken/`.
 - **`F16` — FAPI (Financial-grade API) readiness epic.** An umbrella tracking the work to make the OP certifiable
   against the OpenID Foundation **FAPI** security profiles ([FAPI 1.0 Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html),
   [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)). FAPI mandates **sender-constrained access
@@ -142,6 +151,28 @@ entry and/or ADR that closed it.
   `grant-token-exchange` probe (`src/frontend/apps/conformance/src/coverage.ts`). Touch point: a new
   `DefaultTokenExchangeGrantHandler` under
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/`.
+- **`F25` — Session claims & lifecycle enhancements (build on the existing session subsystem).** The end-user session
+  subsystem already exists — `ISessionService`, `SessionGrant`, the `sid` claim in the ID token, RP-Initiated /
+  Back-Channel / (opt-in) Front-Channel Logout, and session-scoped grant revocation
+  ([ADR-0074](docs/adr/0074-session-management-and-logout.md),
+  [ADR-0077](docs/adr/0077-session-scoped-grant-revocation-on-logout.md),
+  [ADR-0088](docs/adr/0088-opt-in-front-channel-logout-and-session-management.md),
+  [ADR-0096](docs/adr/0096-end-session-subject-from-server-state.md)). These are additive follow-ups that ride it, not a
+  new subsystem:
+    - **`sid` in the access token (RFC 9068 §2.2.1), setting-gated.** The access-token payload-claims handler still
+      omits `sid` (a stale `// TODO` from before the subsystem existed); the session id is already available as
+      `SubjectAuthentication.SessionId`. Emit it as an optional, setting-gated claim (off by default — it correlates the
+      session to resource servers) so a resource server can honor session-scoped revocation. Touch point:
+      `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultGetAccessTokenPayloadClaimsHandler.cs`.
+    - **Active-session listing + global sign-out.** `ISessionService` resolves a single session by `sid` and tracks its
+      relying parties, but cannot enumerate a subject's active sessions or revoke them all ("sign out everywhere"). Add a
+      subject-scoped session query and a bulk-revocation path, plus a management-API/user-facing surface to view and
+      terminate individual or all sessions.
+    - **Idle (inactivity) session timeout.** Only an absolute `SessionLifetime` exists
+      (`InteractiveAuthenticationOptions`); add a sliding idle-timeout policy that expires a session after a period of
+      inactivity.
+    - **Concurrent-session limits per subject.** Optionally cap the number of simultaneous sessions a subject may hold,
+      evicting the oldest (or rejecting the newest) when the limit is exceeded.
 
 ## Conformance & interop testing (group `T`)
 

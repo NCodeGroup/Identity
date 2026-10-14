@@ -965,6 +965,63 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Min,
             };
 
+            // dpop_signing_alg_values_supported: JWS algorithms accepted in a DPoP proof JWT (RFC 9449). The baseline
+            // is the server's asymmetric signing set (supplied by the algorithm pipeline); symmetric algorithms are
+            // never acceptable for a DPoP proof. Ceiling (Intersect): a child narrows the parent's set.
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.DPoPSigningAlgValuesSupported,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // dpop_proof_lifetime: acceptable age window of a DPoP proof's iat (RFC 9449 §4.3), default 60 seconds.
+            // Ceiling (Min): a child may only tighten it.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.DPoPProofLifetime,
+                Default = TimeSpan.FromSeconds(60),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // dpop_nonce_required: whether the server demands a server-provided nonce in a DPoP proof (RFC 9449 §8),
+            // default false. Floor (Or): once a parent requires it, a child cannot un-require it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.DPoPNonceRequired,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Or,
+            };
+
+            // require_dpop: whether the client must present a valid DPoP proof at the token endpoint (RFC 9449),
+            // default false. Floor (Or): once a parent requires it, a child cannot un-require it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.RequireDPoP,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Or,
+            };
+
+            // tls_client_certificate_bound_access_tokens: at server scope, whether the OP supports/advertises
+            // mutual-TLS client-certificate-bound access tokens; at client scope, whether the client's access tokens
+            // must be bound to its certificate (RFC 8705 §3.3). Secure-by-default false (only advertise once the
+            // deployment has wired certificate forwarding). Floor (Or).
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.TlsClientCertificateBoundAccessTokens,
+                Default = false,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Or,
+            };
+
             // response_modes_supported: OAuth response modes the server supports (default supplied by the baseline provider).
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>

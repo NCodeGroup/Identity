@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -56,6 +57,7 @@ internal class DefaultCibaGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -143,6 +145,7 @@ internal class DefaultCibaGrantHandler(
                     openIdClient,
                     errorFactory,
                     grantId,
+                    proofOfPossessionBinding,
                     cancellationToken
                 );
 
@@ -196,6 +199,7 @@ internal class DefaultCibaGrantHandler(
         OpenIdClient openIdClient,
         IOpenIdErrorFactory errorFactory,
         PersistedGrantId grantId,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -217,6 +221,7 @@ internal class DefaultCibaGrantHandler(
             openIdContext,
             openIdClient,
             payload,
+            proofOfPossessionBinding,
             cancellationToken
         );
     }

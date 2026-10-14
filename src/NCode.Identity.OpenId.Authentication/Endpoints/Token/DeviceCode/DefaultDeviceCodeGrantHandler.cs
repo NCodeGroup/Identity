@@ -57,6 +57,7 @@ internal class DefaultDeviceCodeGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -129,6 +130,7 @@ internal class DefaultDeviceCodeGrantHandler(
                     errorFactory,
                     tokenRequest,
                     deviceCodeGrantId,
+                    proofOfPossessionBinding,
                     cancellationToken
                 );
 
@@ -183,6 +185,7 @@ internal class DefaultDeviceCodeGrantHandler(
         IOpenIdErrorFactory errorFactory,
         ITokenRequest tokenRequest,
         PersistedGrantId deviceCodeGrantId,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -205,6 +208,7 @@ internal class DefaultDeviceCodeGrantHandler(
             openIdClient,
             tokenRequest,
             payload,
+            proofOfPossessionBinding,
             cancellationToken
         );
     }
@@ -214,6 +218,7 @@ internal class DefaultDeviceCodeGrantHandler(
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
         DeviceCodeGrant payload,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -233,6 +238,7 @@ internal class DefaultDeviceCodeGrantHandler(
             EffectiveScopes = effectiveScopes,
             Resources = tokenRequest.Resources,
             SubjectAuthentication = payload.SubjectAuthentication,
+            Confirmation = proofOfPossessionBinding.Confirmation,
         };
 
         {
@@ -245,7 +251,7 @@ internal class DefaultDeviceCodeGrantHandler(
 
             tokenResponse.AccessToken = securityToken.TokenValue;
             tokenResponse.ExpiresIn = securityToken.TokenLifetime.Duration;
-            tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer;
+            tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
         }
 
         if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))

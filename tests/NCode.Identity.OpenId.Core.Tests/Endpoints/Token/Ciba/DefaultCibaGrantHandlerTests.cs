@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Subject;
+using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -178,6 +179,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -194,6 +196,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -211,6 +214,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -246,6 +250,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -281,6 +286,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -309,6 +315,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -347,6 +354,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
                     mockContext.Object,
                     mockClient.Object,
                     It.IsAny<CibaGrant>(),
+                    It.IsAny<ProofOfPossessionBinding>(),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -357,6 +365,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -379,6 +388,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 

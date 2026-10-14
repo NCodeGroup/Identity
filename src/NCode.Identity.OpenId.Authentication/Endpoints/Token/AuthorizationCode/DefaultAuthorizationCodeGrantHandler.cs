@@ -60,6 +60,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -111,6 +112,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
             openIdClient,
             tokenRequest,
             authorizationGrant,
+            proofOfPossessionBinding,
             cancellationToken
         );
 
@@ -122,6 +124,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
         AuthorizationGrant authorizationGrant,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -151,6 +154,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
             AuthorizationCode = tokenRequest.AuthorizationCode,
             SubjectAuthentication = subjectAuthentication,
             RequestClaims = authorizationRequest.Claims,
+            Confirmation = proofOfPossessionBinding.Confirmation,
         };
 
         {
@@ -163,7 +167,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
 
             tokenResponse.AccessToken = securityToken.TokenValue;
             tokenResponse.ExpiresIn = securityToken.TokenLifetime.Duration;
-            tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
+            tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
         }
 
         if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))

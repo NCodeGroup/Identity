@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
+using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
 
@@ -48,12 +49,15 @@ public interface ITokenGrantHandler
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
     /// <param name="tokenRequest">The <see cref="ITokenRequest"/> that represents the current request.</param>
+    /// <param name="proofOfPossessionBinding">The <see cref="ProofOfPossessionBinding"/> evaluated for the request,
+    /// governing the issued access token's <c>token_type</c> and <c>cnf</c> confirmation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="IOpenIdResponse"/>.</returns>
     ValueTask<IOpenIdResponse> HandleAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     );
 }

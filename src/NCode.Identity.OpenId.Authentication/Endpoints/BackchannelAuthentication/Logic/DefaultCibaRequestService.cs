@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Subject;
+using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 
@@ -128,11 +129,13 @@ internal sealed class DefaultCibaRequestService(
 
         if (isPush)
         {
-            // Issue the tokens now; a push-mode client never polls the token endpoint (CIBA §10.3).
+            // Issue the tokens now; a push-mode client never polls the token endpoint (CIBA §10.3). Push delivery has
+            // no token-endpoint request, so there is no proof of possession to bind — the tokens are plain bearer.
             var tokenResponse = await TokenResponseService.CreateTokenResponseAsync(
                 openIdContext,
                 openIdClient,
                 payload,
+                ProofOfPossessionBinding.Unbound,
                 cancellationToken
             );
 

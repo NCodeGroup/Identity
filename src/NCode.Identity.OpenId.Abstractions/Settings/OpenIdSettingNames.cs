@@ -659,4 +659,37 @@ public static class OpenIdSettingNames
     /// Contains the name of <c>userinfo_signing_alg_values_supported</c> setting.
     /// </summary>
     public const string UserInfoSigningAlgValuesSupported = "userinfo_signing_alg_values_supported";
+
+    /// <summary>
+    /// Contains the name of <c>dpop_signing_alg_values_supported</c> setting (RFC 9449): the JWS signing algorithms
+    /// the server accepts in a DPoP proof JWT. Advertised in discovery metadata and used to reject proofs signed with
+    /// a non-permitted (or symmetric) algorithm.
+    /// </summary>
+    public const string DPoPSigningAlgValuesSupported = "dpop_signing_alg_values_supported";
+
+    /// <summary>
+    /// Contains the name of <c>dpop_proof_lifetime</c> setting (RFC 9449): the acceptable age window of a DPoP
+    /// proof's <c>iat</c>, outside of which the proof is rejected as stale.
+    /// </summary>
+    public const string DPoPProofLifetime = "dpop_proof_lifetime";
+
+    /// <summary>
+    /// Contains the name of <c>dpop_nonce_required</c> setting (RFC 9449 §8): whether the server requires a DPoP
+    /// proof to carry a server-provided <c>nonce</c>, challenging the client with <c>use_dpop_nonce</c> otherwise.
+    /// </summary>
+    public const string DPoPNonceRequired = "dpop_nonce_required";
+
+    /// <summary>
+    /// Contains the name of <c>require_dpop</c> setting: whether the client must present a valid DPoP proof at the
+    /// token endpoint, with the issued access token bound to the proof key (RFC 9449).
+    /// </summary>
+    public const string RequireDPoP = "require_dpop";
+
+    /// <summary>
+    /// Contains the name of <c>tls_client_certificate_bound_access_tokens</c> setting (RFC 8705 §3.3): at server
+    /// scope, whether the OP supports and advertises mutual-TLS client-certificate-bound access tokens; at client
+    /// scope, whether the client's access tokens must be bound to its presented certificate.
+    /// </summary>
+    public const string TlsClientCertificateBoundAccessTokens =
+        "tls_client_certificate_bound_access_tokens";
 }

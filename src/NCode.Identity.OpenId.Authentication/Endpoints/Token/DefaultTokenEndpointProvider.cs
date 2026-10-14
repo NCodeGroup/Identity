@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -48,6 +49,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token;
 internal class DefaultTokenEndpointProvider(
     IClientAuthenticationService clientAuthenticationService,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
+    IProofOfPossessionService proofOfPossessionService,
     ILogger<DefaultTokenEndpointProvider> logger
 ) : IEndpointProvider
 {
@@ -55,6 +57,7 @@ internal class DefaultTokenEndpointProvider(
         clientAuthenticationService;
     private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
         knownParameterCollectionProvider;
+    private IProofOfPossessionService ProofOfPossessionService { get; } = proofOfPossessionService;
     private ILogger<DefaultTokenEndpointProvider> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -140,6 +143,14 @@ internal class DefaultTokenEndpointProvider(
 
         var openIdClient = authResult.Client;
 
+        // Evaluate sender-constraining proof of possession (DPoP / mutual-TLS) once for the request; the binding
+        // flows to the selected grant handler so token issuance applies the token_type and cnf confirmation uniformly.
+        var proofOfPossessionBinding = await ProofOfPossessionService.EvaluateTokenRequestAsync(
+            openIdContext,
+            openIdClient,
+            cancellationToken
+        );
+
         // for simple validations before selecting the handler and materializing any grants
         await mediator.SendAsync(
             new ValidateTokenRequestCommand(openIdContext, openIdClient, tokenRequest),
@@ -156,6 +167,7 @@ internal class DefaultTokenEndpointProvider(
             openIdContext,
             openIdClient,
             tokenRequest,
+            proofOfPossessionBinding,
             cancellationToken
         );
 

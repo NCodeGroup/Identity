@@ -182,5 +182,22 @@ public static partial class OpenIdConstants
         /// (<see href="https://datatracker.ietf.org/doc/html/rfc7591#section-3.2.2">RFC 7591</see>).
         /// </summary>
         public const string InvalidClientMetadata = "invalid_client_metadata";
+
+        // OAuth 2.0 Demonstrating Proof of Possession (DPoP) Error Responses
+        // https://datatracker.ietf.org/doc/html/rfc9449#section-5
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_dpop_proof</c>, returned when a required DPoP proof JWT is missing,
+        /// malformed, has an invalid signature, or fails one of the proof validations
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc9449#section-5">RFC 9449</see>).
+        /// </summary>
+        public const string InvalidDPoPProof = "invalid_dpop_proof";
+
+        /// <summary>
+        /// Contains the error code for <c>use_dpop_nonce</c>, returned when the server requires the DPoP proof to
+        /// include a server-provided <c>nonce</c>; the response carries the value in a <c>DPoP-Nonce</c> header
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc9449#section-8">RFC 9449</see>).
+        /// </summary>
+        public const string UseDPoPNonce = "use_dpop_nonce";
     }
 }

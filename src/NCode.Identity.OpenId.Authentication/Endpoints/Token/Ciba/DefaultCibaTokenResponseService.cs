@@ -42,6 +42,7 @@ internal sealed class DefaultCibaTokenResponseService(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         CibaGrant payload,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -61,6 +62,7 @@ internal sealed class DefaultCibaTokenResponseService(
             EffectiveScopes = scopes,
             Resources = payload.Resources,
             SubjectAuthentication = payload.SubjectAuthentication,
+            Confirmation = proofOfPossessionBinding.Confirmation,
         };
 
         {
@@ -73,7 +75,7 @@ internal sealed class DefaultCibaTokenResponseService(
 
             tokenResponse.AccessToken = securityToken.TokenValue;
             tokenResponse.ExpiresIn = securityToken.TokenLifetime.Duration;
-            tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer;
+            tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
         }
 
         if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))

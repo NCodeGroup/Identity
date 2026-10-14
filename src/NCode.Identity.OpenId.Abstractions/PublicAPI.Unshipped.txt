@@ -68,12 +68,20 @@ const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.None = "
 const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt = "private_key_jwt" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods.Plain = "plain" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods.S256 = "S256" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ConfirmationMethods.JwkThumbprint = "jkt" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint = "x5t#S256" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ContentType = "application/x-www-form-urlencoded" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ContinueCodes.Authorization = "continue_authorization" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Page = "page" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Popup = "popup" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Touch = "touch" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Wap = "wap" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.DPoP.AccessTokenHashClaim = "ath" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.DPoP.HeaderName = "DPoP" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.DPoP.HttpMethodClaim = "htm" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.DPoP.HttpUriClaim = "htu" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.DPoP.NonceHeaderName = "DPoP-Nonce" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.DPoP.ProofJwtType = "dpop+jwt" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Authorization = "authorization_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Continue = "continue_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.DeviceAuthorization = "device_authorization_endpoint" -> string!
@@ -115,6 +123,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Tenants = "Tenants" -> 
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccessDenied = "access_denied" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AuthorizationPending = "authorization_pending" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.ExpiredToken = "expired_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidDPoPProof = "invalid_dpop_proof" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.SlowDown = "slow_down" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccountSelectionRequired = "account_selection_required" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.ConsentRequired = "consent_required" -> string!
@@ -138,6 +147,7 @@ const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.TemporarilyUnavailable = 
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UnauthorizedClient = "unauthorized_client" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UnsupportedGrantType = "unsupported_grant_type" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UnsupportedResponseType = "unsupported_response_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UseDPoPNonce = "use_dpop_nonce" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.AuthorizationCode = "authorization_code" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.ClientCredentials = "client_credentials" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.DeviceCode = "urn:ietf:params:oauth:grant-type:device_code" -> string!
@@ -253,6 +263,12 @@ const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.AuthorizationCode
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.LogoutToken = "logout+jwt" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.BackChannelLogout.EventName = "http://schemas.openid.net/event/backchannel-logout" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.BackChannelLogout.EventsClaimName = "events" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.DPoP = "DPoP" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DPoPNonceRequired = "dpop_nonce_required" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DPoPProofLifetime = "dpop_proof_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DPoPSigningAlgValuesSupported = "dpop_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireDPoP = "require_dpop" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientCertificateBoundAccessTokens = "tls_client_certificate_bound_access_tokens" -> string!
 NCode.Identity.OpenId.OpenIdConstants.BackChannelLogout
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.IdToken = "id_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.RefreshToken = "refresh_token" -> string!
@@ -377,6 +393,8 @@ NCode.Identity.OpenId.Contexts.OpenIdContextHttpContextExtensions
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.InvokeAsync(Microsoft.AspNetCore.Http.EndpointFilterInvocationContext! context, Microsoft.AspNetCore.Http.EndpointFilterDelegate! next) -> System.Threading.Tasks.ValueTask<object?>
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.OpenIdEnvironmentEndpointFilter(NCode.Identity.OpenId.Contexts.IOpenIdContextFactory! openIdContextFactory, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor! ambientTenantAccessor) -> void
+NCode.Identity.OpenId.OpenIdConstants.ConfirmationMethods
+NCode.Identity.OpenId.OpenIdConstants.DPoP
 NCode.Identity.OpenId.Results.IOpenIdResult
 NCode.Identity.OpenId.Results.IOpenIdResult.Response.get -> NCode.Identity.OpenId.Messages.IOpenIdResponse!
 NCode.Identity.OpenId.Tenants.ITenantProvisioner
@@ -741,7 +759,12 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DefaultAcr.get -> NCode.
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeviceCodeLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeviceCodePollingInterval.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DisplayValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DPoPNonceRequired.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DPoPProofLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DPoPSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.GrantTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireDPoP.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserCodeLength.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>

@@ -59,6 +59,7 @@ internal class DefaultRefreshTokenGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -160,6 +161,7 @@ internal class DefaultRefreshTokenGrantHandler(
             tokenRequest,
             refreshTokenGrant,
             persistedGrant.RefreshTokenLineageId,
+            proofOfPossessionBinding,
             cancellationToken
         );
 
@@ -188,6 +190,7 @@ internal class DefaultRefreshTokenGrantHandler(
         ITokenRequest tokenRequest,
         RefreshTokenGrant refreshTokenGrant,
         string? refreshTokenLineageId,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -210,6 +213,7 @@ internal class DefaultRefreshTokenGrantHandler(
             RefreshToken = tokenRequest.RefreshToken,
             RefreshTokenLineageId = refreshTokenLineageId,
             SubjectAuthentication = subjectAuthentication,
+            Confirmation = proofOfPossessionBinding.Confirmation,
         };
 
         {
@@ -222,7 +226,7 @@ internal class DefaultRefreshTokenGrantHandler(
 
             tokenResponse.AccessToken = securityToken.TokenValue;
             tokenResponse.ExpiresIn = securityToken.TokenLifetime.Duration;
-            tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
+            tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
         }
 
         if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))

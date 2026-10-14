@@ -220,6 +220,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -237,6 +238,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -276,6 +278,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -303,6 +306,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -328,6 +332,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -389,6 +394,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -435,6 +441,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 

@@ -188,6 +188,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -204,6 +205,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -221,6 +223,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -256,6 +259,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -291,6 +295,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -323,6 +328,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -384,6 +390,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 

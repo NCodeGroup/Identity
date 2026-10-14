@@ -59,6 +59,24 @@ var api = builder
     .WaitForCompletion(migrations)
     .WithExternalHttpEndpoints();
 
+// A SECOND, conformance-only OP instance: the same Playground project launched under the Conformance environment
+// (the ConformanceAspire launch profile, ASPNETCORE_ENVIRONMENT=Conformance) on its own ports
+// (https://localhost:5003, http://localhost:5002), sharing the one Postgres. Its appsettings.Conformance.json overlay
+// defines its own OpenId:Server:Settings root ceiling that advertises the available-but-off-by-default capabilities
+// (Session Management, Front-Channel Logout, the client_credentials grant — ADR-0088) so the conformance dashboard
+// reports them, while the `api` above stays the locked-down secure default. The same overlay sets Cors:AllowedOrigins
+// (the Development CORS default does not apply outside Development) so the 5175 dashboard can read its discovery
+// cross-origin. WaitForCompletion(migrations) holds it until the shared schema is applied.
+var conformanceApi = builder
+    .AddProject<Projects.NCode_Identity_OpenId_Playground>(
+        "conformanceapi",
+        launchProfileName: "ConformanceAspire"
+    )
+    .WithHttpHealthCheck("/health")
+    .WithReference(openIdDb)
+    .WaitForCompletion(migrations)
+    .WithExternalHttpEndpoints();
+
 // The interactive login/consent surface (apps/auth) is a BACKEND-SERVED bundle: its `dev` script is `vite build
 // --watch`, which continuously rebuilds `dist` for the Playground to serve under /account/* (ADR-0065). It is a
 // build-watcher with no HTTP endpoint of its own, so it is modeled as a plain JavaScript app resource, not a Vite dev
@@ -117,8 +135,9 @@ builder
 
 // The conformance posture dashboard (apps/conformance) is a STANDALONE, read-only Vite dev server pinned to
 // http://localhost:5175. It only audits the OP's published discovery metadata, so it needs no OAuth client; it proxies
-// /config/bootstrap.json to the api to learn the issuer, then reads discovery cross-origin (allowlisted by
-// AddDeveloperCors). WaitFor holds startup until the API is healthy so the first discovery read cannot race it.
+// /config/bootstrap.json to the dedicated conformance OP (`conformanceapi`, which advertises the opt-in capabilities)
+// to learn its issuer, then reads that issuer's discovery cross-origin (allowlisted by the Conformance overlay's
+// Cors:AllowedOrigins). WaitFor holds startup until that OP is healthy so the first discovery read cannot race it.
 builder
     .AddViteApp("conformance", "../frontend/apps/conformance")
     .WithPnpm(install: false)
@@ -132,8 +151,8 @@ builder
         },
         createIfNotExists: false
     )
-    .WithReference(api)
-    .WaitFor(api)
+    .WithReference(conformanceApi)
+    .WaitFor(conformanceApi)
     .WithExternalHttpEndpoints();
 
 builder.Build().Run();

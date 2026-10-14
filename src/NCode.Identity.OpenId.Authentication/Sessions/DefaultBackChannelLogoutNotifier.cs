@@ -16,7 +16,7 @@
 
 #endregion
 
-using Microsoft.Extensions.Logging;
+using NCode.Identity.Dispatch;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -24,7 +24,6 @@ using NCode.Identity.Jose.Extensions;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 
@@ -32,9 +31,10 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 
 /// <summary>
 /// Provides a default implementation of <see cref="IBackChannelLogoutNotifier"/> that builds a signed
-/// <c>logout_token</c> (OpenID Connect Back-Channel Logout 1.0) and sends it as an
-/// <c>application/x-www-form-urlencoded</c> <c>POST</c> to the relying party's registered <c>backchannel_logout_uri</c>.
-/// Delivery is best-effort: a client without a configured endpoint, or an unreachable endpoint, does not fail logout.
+/// <c>logout_token</c> (OpenID Connect Back-Channel Logout 1.0) and dispatches a retryable
+/// <see cref="BackChannelLogoutDeliveryJob"/> that <c>POST</c>s it to the relying party's registered
+/// <c>backchannel_logout_uri</c>. A client without a configured endpoint, or without a resolvable subject/session or
+/// signing credentials, is skipped and does not fail logout; a reachable-but-failing endpoint is retried out of band.
 /// </summary>
 internal class DefaultBackChannelLogoutNotifier(
     TimeProvider timeProvider,
@@ -42,8 +42,7 @@ internal class DefaultBackChannelLogoutNotifier(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,
     IJsonWebTokenService jsonWebTokenService,
-    IHttpClientFactory httpClientFactory,
-    ILogger<DefaultBackChannelLogoutNotifier> logger
+    IJobDispatcher jobDispatcher
 ) : IBackChannelLogoutNotifier
 {
     // https://openid.net/specs/openid-connect-backchannel-1_0.html#LogoutToken
@@ -55,8 +54,7 @@ internal class DefaultBackChannelLogoutNotifier(
         algorithmCollectionProvider;
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
-    private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
-    private ILogger<DefaultBackChannelLogoutNotifier> Logger { get; } = logger;
+    private IJobDispatcher JobDispatcher { get; } = jobDispatcher;
 
     /// <inheritdoc />
     public async ValueTask NotifyAsync(
@@ -134,21 +132,16 @@ internal class DefaultBackChannelLogoutNotifier(
 
         var logoutToken = JsonWebTokenService.EncodeJwt(parameters);
 
-        KeyValuePair<string, string?>[] formValues =
-        [
-            new(OpenIdConstants.Parameters.LogoutToken, logoutToken),
-        ];
-        using var content = new FormUrlEncodedContent(formValues);
-
-        try
-        {
-            var httpClient = HttpClientFactory.CreateClient();
-            using var response = await httpClient.PostAsync(logoutUri, content, cancellationToken);
-        }
-        catch (HttpRequestException exception)
-        {
-            // Best-effort: a relying party whose back-channel endpoint is unreachable does not fail the logout.
-            Logger.BackChannelLogoutDeliveryFailed(openIdClient.ClientId, exception);
-        }
+        // Delivery runs as a durable, retryable dispatch job so a failed POST is retried out of band (and can run on a
+        // durable dispatcher adapter); it never fails the logout request.
+        await JobDispatcher.DispatchAsync(
+            new BackChannelLogoutDeliveryJob
+            {
+                ClientId = openIdClient.ClientId,
+                LogoutUri = logoutUri,
+                LogoutToken = logoutToken,
+            },
+            cancellationToken: cancellationToken
+        );
     }
 }

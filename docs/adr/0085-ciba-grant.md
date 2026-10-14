@@ -130,14 +130,17 @@ The two deferrals above are now implemented, completing backlog `F17`:
   `client_notification_endpoint` with the `client_notification_token` as a bearer credential — a real HTTP transport
   mirroring `IBackChannelLogoutNotifier` (the same change gives ping's `NotifyClientAsync` a real `POST` too; only the
   authentication-device transport stays an inert seam). The `urn:openid:params:grant-type:ciba` token endpoint rejects a
-  push-mode poll with `unauthorized_client`, since push clients never poll. Delivery is best-effort (no built-in retry;
-  see backlog `D4`). The grant payload gained `Resources` so push honors the originally requested resource indicators.
+  push-mode poll with `unauthorized_client`, since push clients never poll. Delivery was initially best-effort; it is
+  now **durable and retryable** via the generic job-dispatch adapter in [ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md)
+  (a `CibaDeliveryJob` routed through `IJobDispatcher`), which closed backlog `D4`. The grant payload gained `Resources`
+  so push honors the originally requested resource indicators.
 - **Signed backchannel request objects.** The request message gained a `request` parameter; a new
   `LoadBackchannelAuthenticationRequestCommand` (default handler) validates the signed/encrypted JWT against the
   client's keys (issuer = client id, audience = issuer, lifetime), enforces its `alg` against
   `backchannel_authentication_request_signing_alg_values_supported` (advertised in discovery), and uses the JWT claims
   as the authoritative request — reusing the JAR validation shape from the authorization endpoint. Encryption-alg
-  advertisement (`backchannel_authentication_request_encryption_*`) remains a follow-up (backlog `D4`).
+  advertisement (`backchannel_authentication_request_encryption_*`) and enforcement were since added in
+  [ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md), completing backlog `D4`.
 
 ## References
 

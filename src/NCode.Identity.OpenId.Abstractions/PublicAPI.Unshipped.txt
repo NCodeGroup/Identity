@@ -811,6 +811,9 @@ const NCode.Identity.OpenId.OpenIdConstants.BackchannelTokenDeliveryModes.Push =
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelTokenDeliveryMode = "backchannel_token_delivery_mode" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelTokenDeliveryModesSupported = "backchannel_token_delivery_modes_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported = "backchannel_authentication_request_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionAlgValuesSupported = "backchannel_authentication_request_encryption_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionEncValuesSupported = "backchannel_authentication_request_encryption_enc_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionZipValuesSupported = "backchannel_authentication_request_encryption_zip_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientNotificationEndpoint = "client_notification_endpoint" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelUserCodeParameterSupported = "backchannel_user_code_parameter_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.CibaRequestLifetime = "ciba_request_lifetime" -> string!
@@ -818,6 +821,9 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.CibaPollingInterval = "c
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackchannelTokenDeliveryMode.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionZipValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientNotificationEndpoint.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackchannelUserCodeParameterSupported.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.CibaRequestLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>

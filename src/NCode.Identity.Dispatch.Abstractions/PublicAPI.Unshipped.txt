@@ -1,0 +1,28 @@
+#nullable enable
+NCode.Identity.Dispatch.DispatchContext
+NCode.Identity.Dispatch.DispatchContext.Attempt.get -> int
+NCode.Identity.Dispatch.DispatchContext.Attempt.init -> void
+NCode.Identity.Dispatch.DispatchContext.DispatchContext() -> void
+NCode.Identity.Dispatch.DispatchContext.DispatchId.get -> System.Guid
+NCode.Identity.Dispatch.DispatchContext.DispatchId.init -> void
+NCode.Identity.Dispatch.DispatchContext.MaxAttempts.get -> int
+NCode.Identity.Dispatch.DispatchContext.MaxAttempts.init -> void
+NCode.Identity.Dispatch.DispatchLibrary
+NCode.Identity.Dispatch.DispatchLibrary.DispatchLibrary() -> void
+NCode.Identity.Dispatch.DispatchOptions
+NCode.Identity.Dispatch.DispatchOptions.BackoffFactor.get -> double
+NCode.Identity.Dispatch.DispatchOptions.BackoffFactor.init -> void
+NCode.Identity.Dispatch.DispatchOptions.Delay.get -> System.TimeSpan?
+NCode.Identity.Dispatch.DispatchOptions.Delay.init -> void
+NCode.Identity.Dispatch.DispatchOptions.InitialBackoff.get -> System.TimeSpan
+NCode.Identity.Dispatch.DispatchOptions.InitialBackoff.init -> void
+NCode.Identity.Dispatch.DispatchOptions.MaxAttempts.get -> int
+NCode.Identity.Dispatch.DispatchOptions.MaxAttempts.init -> void
+NCode.Identity.Dispatch.DispatchOptions.MaxBackoff.get -> System.TimeSpan
+NCode.Identity.Dispatch.DispatchOptions.MaxBackoff.init -> void
+NCode.Identity.Dispatch.IDispatchJob
+NCode.Identity.Dispatch.IDispatchJobHandler<TJob>
+NCode.Identity.Dispatch.IDispatchJobHandler<TJob>.HandleAsync(TJob! job, NCode.Identity.Dispatch.DispatchContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Dispatch.IJobDispatcher
+NCode.Identity.Dispatch.IJobDispatcher.DispatchAsync<TJob>(TJob! job, NCode.Identity.Dispatch.DispatchOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+static NCode.Identity.Dispatch.DispatchOptions.Default.get -> NCode.Identity.Dispatch.DispatchOptions!

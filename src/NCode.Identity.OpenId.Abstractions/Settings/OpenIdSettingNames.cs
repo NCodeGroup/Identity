@@ -230,6 +230,30 @@ public static class OpenIdSettingNames
         "backchannel_authentication_request_signing_alg_values_supported";
 
     /// <summary>
+    /// Contains the name of the server <c>backchannel_authentication_request_encryption_alg_values_supported</c>
+    /// discovery setting (OpenID Connect CIBA / FAPI-CIBA): the permitted key-management <c>alg</c> values for an
+    /// encrypted backchannel request object.
+    /// </summary>
+    public const string BackchannelAuthenticationRequestEncryptionAlgValuesSupported =
+        "backchannel_authentication_request_encryption_alg_values_supported";
+
+    /// <summary>
+    /// Contains the name of the server <c>backchannel_authentication_request_encryption_enc_values_supported</c>
+    /// discovery setting (OpenID Connect CIBA / FAPI-CIBA): the permitted content-encryption <c>enc</c> values for an
+    /// encrypted backchannel request object.
+    /// </summary>
+    public const string BackchannelAuthenticationRequestEncryptionEncValuesSupported =
+        "backchannel_authentication_request_encryption_enc_values_supported";
+
+    /// <summary>
+    /// Contains the name of the server <c>backchannel_authentication_request_encryption_zip_values_supported</c>
+    /// discovery setting (OpenID Connect CIBA): the permitted <c>zip</c> compression values for an encrypted
+    /// backchannel request object.
+    /// </summary>
+    public const string BackchannelAuthenticationRequestEncryptionZipValuesSupported =
+        "backchannel_authentication_request_encryption_zip_values_supported";
+
+    /// <summary>
     /// Contains the name of <c>ciba_request_lifetime</c> setting (the validity window of a pending CIBA backchannel
     /// authentication request).
     /// </summary>

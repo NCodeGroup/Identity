@@ -252,6 +252,21 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   interactive authorize, and the interactive login cookie re-stamp — routes through it, so the invariant holds by
   construction._
 
+- **`F24` — Flow the resource-owner-password ticket's `AuthenticationProperties` from the request, not a fresh empty
+  instance.** `DefaultAuthenticatePasswordGrantHandler` builds its `SubjectAuthentication` with a freshly-constructed
+  empty `new AuthenticationProperties()`, so any properties the surrounding token-request flow could carry (issued/
+  expiry timestamps, `amr`/`acr`-adjacent items, redirect state) are dropped on the ROPC path — unlike the interactive
+  and bearer paths, which propagate the authentication's own `AuthenticationProperties`. Thread the properties in
+  through the `AuthenticatePasswordGrantCommand` (or resolve them at the point the grant is authenticated) so the ROPC
+  ticket carries the same authentication metadata as the other entry points. Touch point:
+  `src/NCode.Identity.OpenId.Accounts.Authentication/DefaultAuthenticatePasswordGrantHandler.cs` (the `// TODO`
+  on the `new AuthenticationProperties()` argument).
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. `DefaultPasswordGrantHandler` now captures the authentication
+  instant once at the start of the token-request flow, carries it as `AuthenticationProperties.IssuedUtc` through a new
+  required `AuthenticatePasswordGrantCommand.AuthenticationProperties` parameter, and reuses the same timestamp for the
+  issued token's `CreatedWhen`, so the ROPC ticket's `auth_time` and the token's `iat` are coherent and the leaf
+  `DefaultAuthenticatePasswordGrantHandler` no longer materializes an empty `new AuthenticationProperties()`._
+
 ## Conformance & interop testing (group `T`)
 
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface

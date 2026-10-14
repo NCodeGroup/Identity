@@ -17,7 +17,6 @@
 #endregion
 
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
@@ -60,7 +59,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
         CancellationToken cancellationToken
     )
     {
-        var (openIdContext, _, tokenRequest) = command;
+        var (openIdContext, _, tokenRequest, authenticationProperties) = command;
 
         var username = tokenRequest.Username;
         var password = tokenRequest.Password;
@@ -96,7 +95,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
         var ticket = SubjectAuthentication.Create(
             openIdContext,
             OpenIdConstants.GrantTypes.Password,
-            new AuthenticationProperties(), // TODO: shouldn't this be provided earlier in this flow/command/handler?
+            authenticationProperties,
             subject,
             principalId
         );

@@ -10,6 +10,20 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Reachable HTTPS Playground host for the external conformance suite (completes backlog `T3`).** A dedicated
+  `Conformance` launch profile turns the Playground OP into a real, externally reachable HTTPS process for the OpenID
+  Foundation Conformance Suite. It binds all interfaces on the stable port (`https://0.0.0.0:5001;http://0.0.0.0:5000`)
+  so the suite's Docker containers reach it via `host.docker.internal:5001` (a `localhost`-only bind is unreachable
+  through `host.docker.internal`), and pins the discovery `issuer` to that exact origin
+  (`OpenId__Server__Settings__tenant_issuer = https://host.docker.internal:5001`) so it byte-matches the suite's
+  `server.discoveryUrl`. The pin rides the parent-owned (`Keep`) `tenant_issuer` setting, so the server-level value
+  flows down to the single static tenant deterministically; it lives in the launch profile (not
+  `appsettings.Conformance.json`) so the Aspire-orchestrated `ConformanceAspire` dashboard instance on `:5003` keeps its
+  own request-derived issuer. The profile reuses the conformance tenant/seed (`T4` — `AddConformanceSeed`) and the
+  interactive login/consent UI (`T2`). Run with
+  `dotnet run --project src/NCode.Identity.OpenId.Playground --launch-profile Conformance`. Detailed plan:
+  [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
+
 - **Registration-time `sector_identifier_uri` fetch + validation with an SSRF-guarded client (completes backlog
   `F20`).** Dynamic Client Registration (RFC 7591/7592) now accepts, validates, persists, and round-trips `subject_type`
   and `sector_identifier_uri` client metadata, and performs the OpenID Connect Core 1.0 §8.1 remote step that

@@ -17,7 +17,6 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens;
@@ -25,9 +24,8 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// <summary>
 /// Provides issuance and validation of server-provided DPoP nonces
 /// (<see href="https://datatracker.ietf.org/doc/html/rfc9449#section-8">RFC 9449 §8</see>). A nonce lets the server
-/// contribute entropy to a DPoP proof. The default implementation is stateless and per-instance; a multi-instance
-/// deployment that enables <c>dpop_nonce_required</c> should register an implementation whose nonces validate across
-/// nodes.
+/// contribute entropy to a DPoP proof. The default implementation stores nonces in <c>IDistributedCache</c>; a
+/// single-node host uses the in-memory provider registered by default and a cluster swaps in a shared provider.
 /// </summary>
 [PublicAPI]
 public interface IDPoPNonceService
@@ -36,12 +34,10 @@ public interface IDPoPNonceService
     /// Issues a fresh nonce the client must echo in its next DPoP proof.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
-    /// <param name="openIdClient">The authenticated <see cref="OpenIdClient"/> making the request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The issued nonce value.</returns>
     ValueTask<string> IssueNonceAsync(
         OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
         CancellationToken cancellationToken
     );
 
@@ -49,13 +45,11 @@ public interface IDPoPNonceService
     /// Validates a nonce presented in a DPoP proof.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
-    /// <param name="openIdClient">The authenticated <see cref="OpenIdClient"/> making the request.</param>
     /// <param name="nonce">The nonce value carried by the DPoP proof.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns><see langword="true"/> when the nonce is recognized and still fresh; otherwise, <see langword="false"/>.</returns>
     ValueTask<bool> ValidateNonceAsync(
         OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
         string nonce,
         CancellationToken cancellationToken
     );

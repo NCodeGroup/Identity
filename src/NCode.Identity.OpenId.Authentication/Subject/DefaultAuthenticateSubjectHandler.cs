@@ -53,6 +53,7 @@ internal class DefaultAuthenticateSubjectHandler(
 
     private const string BearerPrefix = "Bearer ";
     private const string BearerScheme = "Bearer";
+    private const string DPoPPrefix = "DPoP ";
 
     // A UserInfo access token binds the OpenID identity resource server, which owns the openid/profile/email scopes
     // (ADR-0027); require that audience so a token minted for a different resource server is rejected.
@@ -219,10 +220,16 @@ internal class DefaultAuthenticateSubjectHandler(
     private static bool TryGetBearerToken(HttpContext httpContext, out string token)
     {
         var authorization = httpContext.Request.Headers.Authorization.ToString();
-        if (authorization.StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase))
+
+        // Accept both the Bearer scheme and the DPoP scheme (RFC 9449 §7.1); the DPoP proof itself is validated when
+        // the sender-constrained token's cnf claim is checked.
+        foreach (var prefix in (ReadOnlySpan<string>)[BearerPrefix, DPoPPrefix])
         {
-            token = authorization[BearerPrefix.Length..].Trim();
-            return token.Length > 0;
+            if (authorization.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                token = authorization[prefix.Length..].Trim();
+                return token.Length > 0;
+            }
         }
 
         token = string.Empty;

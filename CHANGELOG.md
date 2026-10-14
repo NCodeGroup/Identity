@@ -32,9 +32,15 @@ change to the public API is a **major** version bump.
   `NCode.Identity.OpenId.Abstractions` (constants, error codes, settings), `…Authentication.Abstractions` (the service
   and resolver seams, `TokenConfirmation`, `ProofOfPossessionBinding`, `CreateSecurityTokenRequest.Confirmation`, the
   `ITokenGrantHandler.HandleAsync` binding parameter, `MutualTlsForwardingOptions` / `MutualTlsClientCertificateFormat`).
-  Resource-server-side proof
-  validation, `dpop_jkt` at the authorization endpoint, refresh-token binding continuity, and `mtls_endpoint_aliases`
-  remain tracked follow-ups under `F7`. Design and rationale:
+  **Resource-server validation** re-checks a bound token's `cnf` against the presented proof/certificate (including the
+  DPoP `ath` access-token hash) at the UserInfo and management-API endpoints, which now accept both the `Bearer` and
+  `DPoP` authorization schemes (`IProofOfPossessionService.ValidateResourceAccessAsync`). **DPoP at the authorization
+  endpoint** is supported via the `dpop_jkt` request parameter (RFC 9449 §10): its format is validated, the token
+  endpoint requires the redeeming proof's key to match, and the hybrid front-channel access token is bound to it.
+  **Refresh-token binding continuity** (RFC 9449 §5) persists the `cnf` on the refresh-token grant
+  (`RefreshTokenGrant.Confirmation`) so rotated tokens stay bound to the original key and a bound refresh token
+  presented without a matching proof is rejected. **mTLS endpoint aliases** (RFC 8705 §5) are advertised via the new
+  `mtls_endpoint_alias_authority` setting. Design and rationale:
   [ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md).
 
 - **Reachable HTTPS Playground host for the external conformance suite (completes backlog `T3`).** A dedicated

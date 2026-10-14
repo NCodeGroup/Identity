@@ -63,6 +63,11 @@ public interface IBaseAuthorizationRequestValues : IBaseAuthorizationRequest
     string? CodeVerifier { get; set; }
 
     /// <summary>
+    /// Gets or sets the <c>dpop_jkt</c> parameter (RFC 9449 §10).
+    /// </summary>
+    string? DPoPJwkThumbprint { get; set; }
+
+    /// <summary>
     /// Gets or sets the <c>display</c> parameter.
     /// </summary>
     string? DisplayType { get; set; }

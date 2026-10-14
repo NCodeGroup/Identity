@@ -107,6 +107,26 @@ internal class DefaultAuthorizationCodeGrantHandler(
             cancellationToken
         );
 
+        // RFC 9449 §10: when the authorization request pre-registered a DPoP key via dpop_jkt, the proof presented at
+        // the token endpoint must be bound to that exact key.
+        var dpopJkt = authorizationGrant.AuthorizationRequest.DPoPJwkThumbprint;
+        if (
+            !string.IsNullOrEmpty(dpopJkt)
+            && !string.Equals(
+                dpopJkt,
+                proofOfPossessionBinding.Confirmation.JwkThumbprint,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            return errorFactory
+                .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                .WithDescription(
+                    "The DPoP proof key does not match the 'dpop_jkt' value from the authorization request."
+                )
+                .WithStatusCode(StatusCodes.Status400BadRequest);
+        }
+
         var tokenResponse = await CreateTokenResponseAsync(
             openIdContext,
             openIdClient,

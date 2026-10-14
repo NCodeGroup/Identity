@@ -732,4 +732,10 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<bool> TlsClientCertificateBoundAccessTokens =>
         new(OpenIdSettingNames.TlsClientCertificateBoundAccessTokens);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'mtls_endpoint_alias_authority' setting (RFC 8705 §5).
+    /// </summary>
+    public static SettingKey<string> MtlsEndpointAliasAuthority =>
+        new(OpenIdSettingNames.MtlsEndpointAliasAuthority);
 }

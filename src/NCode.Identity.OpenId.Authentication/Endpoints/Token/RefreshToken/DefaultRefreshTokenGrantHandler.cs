@@ -134,6 +134,49 @@ internal class DefaultRefreshTokenGrantHandler(
 
         var refreshTokenGrant = persistedGrant.Payload;
 
+        // DPoP/mTLS binding continuity (RFC 9449 §5, RFC 8705 §7.1): a sender-constrained grant stays bound to its
+        // original key across every rotation, and the presented proof must match that key.
+        var storedConfirmation = refreshTokenGrant.Confirmation;
+        ProofOfPossessionBinding effectiveBinding;
+        if (storedConfirmation.HasValue)
+        {
+            var presented = proofOfPossessionBinding.Confirmation;
+            var matches = !string.IsNullOrEmpty(storedConfirmation.JwkThumbprint)
+                ? string.Equals(
+                    presented.JwkThumbprint,
+                    storedConfirmation.JwkThumbprint,
+                    StringComparison.Ordinal
+                )
+                : string.Equals(
+                    presented.X509CertificateSha256Thumbprint,
+                    storedConfirmation.X509CertificateSha256Thumbprint,
+                    StringComparison.Ordinal
+                );
+
+            if (!matches)
+            {
+                var errorCode = !string.IsNullOrEmpty(storedConfirmation.JwkThumbprint)
+                    ? OpenIdConstants.ErrorCodes.InvalidDPoPProof
+                    : OpenIdConstants.ErrorCodes.InvalidGrant;
+                return errorFactory
+                    .Create(errorCode)
+                    .WithDescription(
+                        "The presented proof-of-possession does not match the refresh token's bound key."
+                    )
+                    .WithStatusCode(StatusCodes.Status400BadRequest);
+            }
+
+            // Rotate against the stored confirmation (authoritative), not the freshly computed one.
+            effectiveBinding = proofOfPossessionBinding with
+            {
+                Confirmation = storedConfirmation,
+            };
+        }
+        else
+        {
+            effectiveBinding = proofOfPossessionBinding;
+        }
+
         await mediator.SendAsync(
             new ValidateTokenGrantCommand<RefreshTokenGrant>(
                 openIdContext,
@@ -161,7 +204,7 @@ internal class DefaultRefreshTokenGrantHandler(
             tokenRequest,
             refreshTokenGrant,
             persistedGrant.RefreshTokenLineageId,
-            proofOfPossessionBinding,
+            effectiveBinding,
             cancellationToken
         );
 
@@ -195,7 +238,7 @@ internal class DefaultRefreshTokenGrantHandler(
     )
     {
         var openIdEnvironment = openIdContext.Environment;
-        var (_, originalScopes, _, subjectAuthentication) = refreshTokenGrant;
+        var (_, originalScopes, _, subjectAuthentication, _) = refreshTokenGrant;
 
         var effectiveScopes = tokenRequest.Scopes ?? originalScopes;
 

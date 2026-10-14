@@ -59,6 +59,53 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         );
     }
 
+    private void InvokeValidateConfiguredConstraints(
+        Mock<IReadOnlySettingCollection> mockSettings,
+        Mock<IAuthorizationRequest> mockRequest
+    )
+    {
+        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+        var mockError = CreateLooseMock<IOpenIdError>();
+        mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
+
+        IReadOnlyList<string> responseTypes = [];
+        mockRequest.SetupGet(x => x.ResponseTypes).Returns(responseTypes);
+
+        DefaultValidateAuthorizationRequestHandler.ValidateConfiguredConstraints(
+            mockErrorFactory.Object,
+            mockSettings.Object,
+            mockRequest.Object
+        );
+    }
+
+    #endregion
+
+    #region dpop_jkt
+
+    [Fact]
+    public void ValidateConfiguredConstraints_WhenDPoPJwkThumbprintMalformed_Throws()
+    {
+        var (mockSettings, mockRequest) = CreateScaffold();
+        mockRequest.SetupGet(x => x.DPoPJwkThumbprint).Returns("not-a-valid-thumbprint");
+
+        Assert.Throws<OpenIdException>(() =>
+            InvokeValidateConfiguredConstraints(mockSettings, mockRequest)
+        );
+    }
+
+    [Fact]
+    public void ValidateConfiguredConstraints_WhenDPoPJwkThumbprintValid_DoesNotThrow()
+    {
+        var (mockSettings, mockRequest) = CreateScaffold();
+        var thumbprint = NCode.Encoders.Base64Url.Encode(new byte[32]);
+        mockRequest.SetupGet(x => x.DPoPJwkThumbprint).Returns(thumbprint);
+
+        var exception = Record.Exception(() =>
+            InvokeValidateConfiguredConstraints(mockSettings, mockRequest)
+        );
+        Assert.Null(exception);
+    }
+
     #endregion
 
     #region acr_values_supported

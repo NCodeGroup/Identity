@@ -531,7 +531,8 @@ internal class DefaultTokenService(
             clientId,
             tokenRequest.OriginalScopes,
             tokenRequest.EffectiveScopes,
-            subjectAuthentication
+            subjectAuthentication,
+            tokenRequest.Confirmation
         );
 
         var persistedGrant = new PersistedGrant<RefreshTokenGrant>

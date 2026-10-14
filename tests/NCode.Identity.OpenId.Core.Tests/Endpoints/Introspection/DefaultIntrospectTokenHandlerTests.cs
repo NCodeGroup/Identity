@@ -152,7 +152,7 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
             ClientId = ClientId,
             SubjectId = subjectId,
             SessionId = null,
-            Payload = new RefreshTokenGrant(ClientId, [], effectiveScopes, null),
+            Payload = new RefreshTokenGrant(ClientId, [], effectiveScopes, null, default),
         };
 
     #endregion

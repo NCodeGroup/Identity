@@ -19,6 +19,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Identity.JsonWebTokens;
+using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 using NCode.Identity.OpenId.Contexts;
@@ -38,14 +39,17 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
     private const string ManagementAudience = "urn:ncode:management";
 
     private Mock<IJsonWebTokenService> MockJsonWebTokenService { get; }
+    private Mock<IProofOfPossessionService> MockProofOfPossessionService { get; }
     private DefaultAuthenticateAccessTokenHandler Handler { get; }
 
     public DefaultAuthenticateAccessTokenHandlerTests()
     {
         MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
+        MockProofOfPossessionService = CreateStrictMock<IProofOfPossessionService>();
         Handler = new DefaultAuthenticateAccessTokenHandler(
             NullLogger<DefaultAuthenticateAccessTokenHandler>.Instance,
-            MockJsonWebTokenService.Object
+            MockJsonWebTokenService.Object,
+            MockProofOfPossessionService.Object
         );
     }
 

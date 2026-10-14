@@ -113,6 +113,13 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
         set => SetKnownParameter(OpenIdCommonParameters.CodeVerifier, value);
     }
 
+    /// <inheritdoc cref="IBaseAuthorizationRequestValues.DPoPJwkThumbprint" />
+    public string? DPoPJwkThumbprint
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.DPoPJwkThumbprint);
+        set => SetKnownParameter(OpenIdCommonParameters.DPoPJwkThumbprint, value);
+    }
+
     /// <inheritdoc cref="IBaseAuthorizationRequestValues.DisplayType" />
     public string? DisplayType
     {

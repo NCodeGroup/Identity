@@ -15,6 +15,7 @@ abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.ErrorFactory.get -
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.GetParameterDescriptor(string! parameterName) -> NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.GetSubjectId(System.Security.Claims.ClaimsPrincipal! subject, System.Collections.Generic.IReadOnlyCollection<string!>! subjectClaimTypes) -> string?
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.GetSubjectIdentity(System.Security.Claims.ClaimsPrincipal! subject) -> System.Security.Claims.ClaimsIdentity!
+abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.NormalizeSubjectId(System.Security.Claims.ClaimsPrincipal! subject, string! subjectId, System.Collections.Generic.IReadOnlyCollection<string!>! subjectClaimTypes) -> System.Security.Claims.ClaimsPrincipal!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.JsonSerializerOptions.get -> System.Text.Json.JsonSerializerOptions!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.KnownParameters.get -> NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollection!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
@@ -810,6 +811,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoEncryptionZipVal
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserInfoSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 virtual NCode.Identity.OpenId.Contexts.OpenIdContext.ErrorFactory.get -> NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!
 virtual NCode.Identity.OpenId.Contexts.OpenIdContext.GetSubjectId(System.Security.Claims.ClaimsPrincipal! subject) -> string?
+virtual NCode.Identity.OpenId.Contexts.OpenIdContext.NormalizeSubjectId(System.Security.Claims.ClaimsPrincipal! subject, string! subjectId) -> System.Security.Claims.ClaimsPrincipal!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PrincipalIssuerClaim = "principal_issuer_claim" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectClaimTypes = "subject_claim_types" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityJoinClaim = "federated_identity_join_claim" -> string!

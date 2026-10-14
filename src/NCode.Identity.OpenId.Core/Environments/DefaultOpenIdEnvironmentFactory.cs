@@ -64,7 +64,8 @@ internal class DefaultOpenIdEnvironmentFactory(
             OpenIdMessageFactorySelector,
             JsonConverterProviders,
             Options.GetSubjectId,
-            Options.GetSubjectIdentity
+            Options.GetSubjectIdentity,
+            Options.NormalizeSubjectId
         );
 
         return openIdEnvironment;

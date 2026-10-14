@@ -56,4 +56,39 @@ internal static class DefaultClaimsPrincipalLogic
 
             return null;
         };
+
+    /// <summary>
+    /// The default <see cref="NormalizeSubjectIdDelegate"/>: strips every subject-type claim from the principal and
+    /// stamps a single claim of the primary subject claim type (the first of the supplied claim types) holding
+    /// <c>subjectId</c> onto the primary identity, preserving its authentication type and name/role claim types and all
+    /// of its other claims. The result round-trips through <see cref="GetSubjectId"/> to <c>subjectId</c>, which is the
+    /// <c>Subject.sub == PrincipalId</c> invariant every ticket-construction site relies on.
+    /// </summary>
+    public static NormalizeSubjectIdDelegate NormalizeSubjectId { get; } =
+        static (subject, subjectId, subjectClaimTypes) =>
+        {
+            var primaryClaimType = subjectClaimTypes.First();
+            var primaryIdentity = subject.GetSubjectIdentity();
+
+            var identities = subject.Identities.Select(identity =>
+            {
+                var claims = identity.Claims.Where(claim =>
+                    !subjectClaimTypes.Contains(claim.Type)
+                );
+
+                if (ReferenceEquals(identity, primaryIdentity))
+                {
+                    claims = claims.Append(new Claim(primaryClaimType, subjectId));
+                }
+
+                return new ClaimsIdentity(
+                    claims,
+                    identity.AuthenticationType,
+                    identity.NameClaimType,
+                    identity.RoleClaimType
+                );
+            });
+
+            return new ClaimsPrincipal(identities);
+        };
 }

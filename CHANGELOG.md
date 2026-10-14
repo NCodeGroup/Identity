@@ -43,6 +43,18 @@ change to the public API is a **major** version bump.
   and documented as holding the resolved principal id. See
   [ADR-0094](docs/adr/0094-resolve-principal-at-every-authentication-entry-point.md).
 
+- **`Subject.sub == PrincipalId` enforced by construction at every ticket site (completes backlog `F22`).** Every
+  authentication entry point now builds its `SubjectAuthentication` through the shared `SubjectAuthentication.Create`
+  factory, which normalizes the raw credential principal's subject claim to the resolved `PrincipalId` before
+  constructing the ticket — so the ROPC and bearer/UserInfo paths can no longer leave the raw `sub` claim
+  (`LocalAccountId` / the presented token's `sub`) on `SubjectAuthentication.Subject` while `PrincipalId` holds the
+  resolved id. The normalization is the inverse of subject extraction and is exposed as a tenant-aware, host-replaceable
+  seam symmetric with `GetSubjectId`: `OpenIdContext.NormalizeSubjectId(ClaimsPrincipal, string)` →
+  `OpenIdEnvironment.NormalizeSubjectId(...)`, configurable via the new `OpenIdOptions.NormalizeSubjectId` delegate. The
+  interactive login path's cookie re-stamp now routes through the same seam (dropping its duplicated inline rewrite), so
+  the two-sources-of-truth trap cannot return. See
+  [ADR-0094](docs/adr/0094-resolve-principal-at-every-authentication-entry-point.md).
+
 - **Pairwise subject identifiers (PPID) via the `subject_type` setting (completes backlog `F9`).** A client registered
   with `subject_type = pairwise` now receives a per-sector Pairwise Pseudonymous Identifier as its `sub` instead of the
   stable public subject, so colluding relying parties in different sectors cannot correlate the same end-user (OpenID

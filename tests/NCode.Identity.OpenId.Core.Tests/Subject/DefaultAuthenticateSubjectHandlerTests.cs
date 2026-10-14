@@ -73,6 +73,9 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         MockAuditEventRecorder = CreateLooseMock<IAuditEventRecorder>();
 
         MockContext.Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>())).Returns(subjectId);
+        MockContext
+            .Setup(x => x.NormalizeSubjectId(It.IsAny<ClaimsPrincipal>(), It.IsAny<string>()))
+            .Returns((ClaimsPrincipal subject, string _) => subject);
 
         return new DefaultAuthenticateSubjectHandler(
             mockFactory.Object,

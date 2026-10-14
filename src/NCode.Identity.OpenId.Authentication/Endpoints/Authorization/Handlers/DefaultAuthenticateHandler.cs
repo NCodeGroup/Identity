@@ -102,7 +102,8 @@ internal class DefaultAuthenticateHandler(ILogger<DefaultAuthenticateHandler> lo
             );
         }
 
-        var ticket = new SubjectAuthentication(
+        var ticket = SubjectAuthentication.Create(
+            openIdContext,
             authenticationScheme,
             authenticationProperties,
             subject,

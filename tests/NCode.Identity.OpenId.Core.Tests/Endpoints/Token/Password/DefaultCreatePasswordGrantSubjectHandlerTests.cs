@@ -18,9 +18,11 @@
 
 using System.Security.Claims;
 using Moq;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.DataContracts;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Principals;
 using NCode.Identity.OpenId.Settings;
@@ -34,7 +36,27 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
 {
     private const string TenantId = "tenant-1";
 
-    private DefaultCreatePasswordGrantSubjectHandler Handler { get; } = new(TimeProvider.System);
+    private Mock<IAuthenticationContextReferenceResolver> MockResolver { get; }
+    private string? ResolvedAcr { get; set; }
+    private DefaultCreatePasswordGrantSubjectHandler Handler { get; }
+
+    public DefaultCreatePasswordGrantSubjectHandlerTests()
+    {
+        MockResolver = CreateStrictMock<IAuthenticationContextReferenceResolver>();
+        MockResolver
+            .Setup(x =>
+                x.ResolveAsync(
+                    It.IsAny<AuthenticationContextReferenceRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(() => ValueTask.FromResult(ResolvedAcr));
+
+        Handler = new DefaultCreatePasswordGrantSubjectHandler(
+            MockResolver.Object,
+            TimeProvider.System
+        );
+    }
 
     #region Scaffolding
 
@@ -98,6 +120,44 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
         // Metadata is a principal-level concept resolved at issuance, never stamped on the ROPC subject (ADR-0055).
         Assert.Null(principal.FindFirst(SubjectMetadataClaimTypes.ProfileMetadata));
         Assert.Null(principal.FindFirst(SubjectMetadataClaimTypes.SystemMetadata));
+    }
+
+    [Fact]
+    public async Task HandleAsync_RecordsPasswordAuthenticationMethod()
+    {
+        var command = CreateCommand(CreateAccount());
+
+        var principal = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.Equal(
+            OpenIdConstants.AuthenticationMethods.Password,
+            principal.FindFirstValue(JoseClaimNames.Payload.Amr)
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenResolverReturnsAcr_StampsAcr()
+    {
+        ResolvedAcr = OpenIdConstants.AuthenticationContextClassReferences.MultiFactor;
+        var command = CreateCommand(CreateAccount());
+
+        var principal = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.Equal(
+            OpenIdConstants.AuthenticationContextClassReferences.MultiFactor,
+            principal.FindFirstValue(JoseClaimNames.Payload.Acr)
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenResolverReturnsNull_OmitsAcr()
+    {
+        ResolvedAcr = null;
+        var command = CreateCommand(CreateAccount());
+
+        var principal = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.Null(principal.FindFirst(JoseClaimNames.Payload.Acr));
     }
 
     #endregion

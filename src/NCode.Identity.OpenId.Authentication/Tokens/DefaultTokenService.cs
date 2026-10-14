@@ -98,7 +98,14 @@ internal class DefaultTokenService(
         return filtered;
     }
 
-    // TODO: we always emit the 'auth_time' claim, but should we do this conditionally?
+    private static bool IsEssentialAuthTime(IRequestClaims? requestClaims) =>
+        requestClaims?.IdToken is { } idTokenClaims
+        && idTokenClaims.TryGetValue(JoseClaimNames.Payload.AuthTime, out var requestClaim)
+        && requestClaim?.Essential == true;
+
+    // Guarantees the 'auth_time' claim is present in the ID token for the cases where OpenID Connect makes it
+    // mandatory (a max_age request or an essential auth_time claim request), synthesizing it from the authentication
+    // properties when the subject principal did not already carry one.
     private static IEnumerable<Claim> EnsureAuthTime(
         OpenIdContext openIdContext,
         SubjectAuthentication ticket,
@@ -270,10 +277,9 @@ internal class DefaultTokenService(
             cancellationToken
         );
 
-        var filteredClaims = FilterClaims(settings, subjectClaims);
-        var effectiveClaims = ticket.HasValue
-            ? EnsureAuthTime(openIdContext, ticket.Value, tokenRequest, filteredClaims)
-            : filteredClaims;
+        // auth_time, when known, flows into the access token via the subject-claims handler (RFC 9068 includes it
+        // when available); it is not synthesized here.
+        var effectiveClaims = FilterClaims(settings, subjectClaims);
 
         // Bind the access token audience to the resource servers resolved above (ADR-0027); fall back to the client
         // when no resource-server audience applies (for example, a scopeless token).
@@ -443,9 +449,15 @@ internal class DefaultTokenService(
         var tokenLifetime = new TimePeriod { StartTime = createdWhen, EndTime = expiresWhen };
 
         var filteredClaims = FilterClaims(settings, subjectClaims);
-        var effectiveClaims = ticket.HasValue
-            ? EnsureAuthTime(openIdContext, ticket.Value, tokenRequest, filteredClaims)
-            : filteredClaims;
+
+        // When auth_time is required (a max_age request or an essential auth_time claim request) guarantee it even if
+        // the subject principal did not carry one; otherwise it flows (or not) via the subject-claims handler per the
+        // always_include_auth_time setting.
+        var effectiveClaims =
+            ticket.HasValue
+            && (tokenRequest.AuthTimeRequired || IsEssentialAuthTime(tokenRequest.RequestClaims))
+                ? EnsureAuthTime(openIdContext, ticket.Value, tokenRequest, filteredClaims)
+                : filteredClaims;
 
         var parameters = new EncodeJwtParameters
         {

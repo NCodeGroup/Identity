@@ -93,6 +93,14 @@ public readonly record struct CreateSecurityTokenRequest
     public IRequestClaims? RequestClaims { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the <c>auth_time</c> claim is required in the ID token because the request made
+    /// it mandatory (a <c>max_age</c> request or an essential <c>auth_time</c> claim request, OpenID Connect Core 1.0
+    /// §2 and §5.5.1.1). When <see langword="true"/>, the ID token includes <c>auth_time</c> regardless of the
+    /// <c>always_include_auth_time</c> setting.
+    /// </summary>
+    public bool AuthTimeRequired { get; init; }
+
+    /// <summary>
     /// Gets the <see cref="SubjectAuthentication"/> that contains the information about the authenticated end-user.
     /// </summary>
     public SubjectAuthentication? SubjectAuthentication { get; init; }

@@ -65,7 +65,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D6`      | `D5`       |
-| `F` — Feature gaps                    | `F19`     | `F18`      |
+| `F` — Feature gaps                    | `F20`     | `F19`      |
 | `T` — Conformance & interop testing   | `T7`      | `T6`       |
 | `U` — Frontend presentation platform  | `U13`     | `U12`      |
 | `S` — Secrets management              | `S7`      | `S6`       |
@@ -126,13 +126,15 @@ entry and/or ADR that closed it.
   `400` instead of emitting `401` with a `WWW-Authenticate` challenge (`// TODO: add support for 401 with
 WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch points:
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/DefaultTokenEndpointProvider.cs`.
-- **`F11` — `acr` claim emission and conditional `auth_time` (blocked on / pending foundational subsystems).** The
-  `sid` claim **is** now emitted into ID tokens from the session-management subsystem
-  ([ADR-0074](docs/adr/0074-session-management-and-logout.md)). The `acr` claim still needs authentication-context-class
-  tracking, which does not exist, so it is never emitted. `DefaultTokenService` additionally always emits `auth_time`
-  unconditionally (`// TODO: … should we do this conditionally?`). Touch points (all
-  `src/NCode.Identity.OpenId.Authentication/Tokens/`): `Handlers/DefaultGetIdTokenPayloadClaimsHandler.cs`,
-  `DefaultTokenService.cs`.
+- **`F19` — Essential `acr` enforcement.** `acr` is now emitted (recorded at authentication, resolved through the
+  replaceable `IAuthenticationContextReferenceResolver`, and copied into tokens — [ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md)),
+  and the satisfied `acr` is available on the subject principal. What is **not** yet implemented is _enforcement_ of a
+  requested essential `acr`: when the `claims` request parameter asks for `id_token.acr` as an essential claim with
+  specific `values`, and the satisfied `acr` is not among them, the OP should deny (or trigger re-authentication) rather
+  than silently issue a token whose `acr` does not match. The existing `idp:`-prefixed `acr_values` matching in
+  `DefaultValidateSubjectAuthenticationHandler` is the natural home; the satisfied `acr` claim is now present to
+  enforce against. Touch point:
+  `src/NCode.Identity.OpenId.Authentication/Subject/DefaultValidateSubjectAuthenticationHandler.cs`.
 - **`F16` — FAPI (Financial-grade API) readiness epic.** An umbrella tracking the work to make the OP certifiable
   against the OpenID Foundation **FAPI** security profiles ([FAPI 1.0 Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html),
   [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)). FAPI mandates **sender-constrained access
@@ -169,7 +171,8 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
 - **`T6` — Spec-coverage conformance harness (in-house gap & regression dashboard).** Evolve `apps/conformance` from a
   discovery _security audit_ into a _spec-coverage matrix_ that measures the OP against the **full published
   OAuth/OIDC/CIBA/FAPI catalog**, independent of what is implemented, so missing functionality (CIBA `F3`, DPoP/mTLS
-  `F7`, token exchange, pairwise `F9`, `acr` `F11`, the FAPI profile `F16`; PAR is implemented) surfaces as explicit,
+  `F7`, token exchange, pairwise `F9`, essential-`acr` enforcement `F19`, the FAPI profile `F16`; PAR and `acr`/`amr`
+  emission are implemented) surfaces as explicit,
   attributable gap rows. Because every row is classified from **live discovery metadata**, the same matrix is a **regression**
   detector: a capability that silently stops being advertised (or flips to non-conformant) flips its row, so the harness
   guards _shipped_ features as well as tracking _missing_ ones. Design and

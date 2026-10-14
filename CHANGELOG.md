@@ -10,6 +10,22 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **`acr` claim emission via a replaceable resolver, `amr` recording, and conditional `auth_time` (completes backlog
+  `F11`).** The authorization server now tracks the authentication context at the two authentication entry points (local
+  interactive sign-in and the ROPC subject handler): it records `amr=["pwd"]` (RFC 8176) — previously wired through the
+  token pipeline but never actually recorded — and resolves an `acr` (Authentication Context Class Reference) value
+  through a new **async, DI-overridable** seam `IAuthenticationContextReferenceResolver`. OpenID Connect defers the
+  meaning of `acr` to the deployment, so the default resolver asserts the PAPE multi-factor URN
+  (`OpenIdConstants.AuthenticationContextClassReferences.MultiFactor`) when multiple factors were used and otherwise the
+  configured `default_acr` **setting** baseline (unset ⇒ the claim is omitted); a deployment overrides it by setting,
+  by registering its own resolver, or by a custom verifier. The resolved `acr` is stamped on the principal and captured
+  on the session (`SessionGrant.AuthenticationContextClassReference`), and the ID-token and access-token subject-claims
+  handlers now emit `acr`, replacing the standing `// TODO: acr` markers. `auth_time` emission is now **conditional**:
+  the new `always_include_auth_time` setting (default `true`) governs whether the ID token always includes it, while it
+  is always included when **required** (a `max_age` request or an essential `auth_time` claim request); the access token
+  no longer force-synthesizes `auth_time` (RFC 9068 includes it only when available). See
+  [ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md).
+
 - **Generic background job-dispatch subsystem with a BYO-orchestration adapter port — and durable CIBA push/ping
   delivery (completes backlog `D4`).** New packages `NCode.Identity.Dispatch(.Abstractions)` provide a small, reusable
   way to run deferred, at-least-once work: a serializable `IDispatchJob`, an `IDispatchJobHandler<TJob>` (throw to

@@ -98,6 +98,8 @@ internal class DefaultCreateAuthorizationTicketHandler(
             AuthorizationCode = ticket.AuthorizationCode,
             SubjectAuthentication = subjectAuthentication,
             RequestClaims = authorizationRequest.Claims,
+            // A max_age request makes auth_time mandatory in the ID token (OpenID Connect Core 1.0 §3.1.2.1).
+            AuthTimeRequired = authorizationRequest.MaxAge.HasValue,
         };
 
         if (responseTypes.Contains(OpenIdConstants.ResponseTypes.Token))

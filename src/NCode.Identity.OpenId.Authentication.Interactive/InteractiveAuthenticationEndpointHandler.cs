@@ -246,6 +246,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             SubjectId = subjectId,
             AuthTime = ReadAuthTime(principal),
             AuthenticationMethods = amr.Count > 0 ? amr : null,
+            AuthenticationContextClassReference = principal
+                .FindFirst(JoseClaimNames.Payload.Acr)
+                ?.Value,
             IdentityProvider = principal.FindFirst(JoseClaimNames.Payload.Idp)?.Value,
             Lifetime = Options.SessionLifetime,
         };

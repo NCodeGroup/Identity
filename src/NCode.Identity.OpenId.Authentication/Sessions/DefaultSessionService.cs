@@ -59,6 +59,7 @@ internal class DefaultSessionService(
         {
             AuthTime = request.AuthTime,
             AuthenticationMethods = request.AuthenticationMethods,
+            AuthenticationContextClassReference = request.AuthenticationContextClassReference,
             IdentityProvider = request.IdentityProvider,
             ClientIds = [],
         };

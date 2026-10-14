@@ -1022,6 +1022,18 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Or,
             };
 
+            // mtls_endpoint_alias_authority: scheme-and-authority that the discovery handler uses to synthesize the
+            // mtls_endpoint_aliases object (RFC 8705 §5). Not itself advertised (the handler emits the derived object);
+            // Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.MtlsEndpointAliasAuthority,
+                Default = string.Empty,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // response_modes_supported: OAuth response modes the server supports (default supplied by the baseline provider).
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
@@ -1238,7 +1250,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             {
                 Name = OpenIdSettingNames.TenantIssuer,
 
-                IsDiscoverable = false,
+                IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Keep,
             };
 

@@ -147,6 +147,10 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
         OriginalRequestObject?.CodeVerifier ?? OriginalRequestMessage.CodeVerifier;
 
     /// <inheritdoc />
+    public string? DPoPJwkThumbprint =>
+        OriginalRequestObject?.DPoPJwkThumbprint ?? OriginalRequestMessage.DPoPJwkThumbprint;
+
+    /// <inheritdoc />
     public string DisplayType =>
         OriginalRequestObject?.DisplayType
         ?? OriginalRequestMessage.DisplayType

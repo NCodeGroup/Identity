@@ -86,19 +86,34 @@ Concretely:
   `dpop_signing_alg_values_supported` advertises the asymmetric signing set; `tls_client_certificate_bound_access_tokens`
   defaults to `false` and is advertised `true` only once a deployment has wired certificate forwarding and opted in.
 
+- **Resource-server validation (RFC 9449 §7.1, RFC 8705 §3).** When a bound access token reaches a protected resource
+  (the UserInfo endpoint, the management API), `IProofOfPossessionService.ValidateResourceAccessAsync` re-checks the
+  presented proof against the token's `cnf` claim: for a `jkt` binding it requires the `DPoP` authentication scheme, a
+  single DPoP proof whose `ath` equals the base64url SHA-256 of the access token, and whose key thumbprint matches
+  `cnf.jkt`; for an `x5t#S256` binding it re-resolves the client certificate and compares its thumbprint. The resource
+  endpoints accept both the `Bearer` and `DPoP` authorization schemes.
+
+- **DPoP at the authorization endpoint (RFC 9449 §10).** The `dpop_jkt` authorization-request parameter pre-registers
+  the client's DPoP key with the authorization code; its format (a base64url SHA-256 thumbprint) is validated at the
+  authorization endpoint, the token endpoint requires the redeeming proof's `jkt` to match it, and the hybrid
+  front-channel access token is bound to it.
+
+- **Refresh-token binding continuity (RFC 9449 §5).** The issuance `cnf` is persisted with the refresh-token grant, so
+  a rotated access/refresh token stays bound to the original key and a bound refresh token presented without a matching
+  proof is rejected.
+
+- **mTLS endpoint aliases (RFC 8705 §5).** When `mtls_endpoint_alias_authority` is configured, the discovery document
+  advertises an `mtls_endpoint_aliases` object whose endpoint URLs are rewritten to the mutual-TLS authority.
+
 ## Consequences
 
-- Access tokens can now be DPoP- or certificate-bound end to end, satisfying a core FAPI (`F16`) prerequisite and
-  removing the single most-recurring code-local TODO theme.
-- New public surface: the `IProofOfPossessionService` / `IClientCertificateResolver` / `IDPoPProofReplayCache` /
-  `IDPoPNonceService` seams, the `TokenConfirmation` / `ProofOfPossessionBinding` models, the
-  `CreateSecurityTokenRequest.Confirmation` input, the `ProofOfPossessionBinding` parameter on
-  `ITokenGrantHandler.HandleAsync`, the `MutualTlsForwardingOptions` / `MutualTlsClientCertificateFormat` configuration
+- Access tokens are DPoP- or certificate-bound end to end — from issuance (grant handlers), through persistence
+  (refresh-token continuity), to resource-server validation — satisfying a core FAPI (`F16`) prerequisite and removing
+  the single most-recurring code-local TODO theme.
+- New public surface: the `IProofOfPossessionService` (including `ValidateResourceAccessAsync`) /
+  `IClientCertificateResolver` / `IDPoPProofReplayCache` / `IDPoPNonceService` seams, the `TokenConfirmation` /
+  `ProofOfPossessionBinding` models, the `CreateSecurityTokenRequest.Confirmation` input, the `ProofOfPossessionBinding`
+  parameter on `ITokenGrantHandler.HandleAsync`, the `RefreshTokenGrant.Confirmation` field, the `dpop_jkt`
+  authorization-request parameter, the `MutualTlsForwardingOptions` / `MutualTlsClientCertificateFormat` configuration
   types, the `DPoP` / `ConfirmationMethods` constants, the `invalid_dpop_proof` / `use_dpop_nonce` error codes, and the
-  DPoP/mTLS settings.
-- **Deliberately scoped as issuance-side.** The following ride this foundation and are tracked as follow-ups in
-  [`BACKLOG.md`](../../BACKLOG.md) under `F7`, not implemented here: **resource-server-side** proof/`ath` validation when
-  a bound token is presented to a protected resource; **DPoP at the authorization endpoint** via the `dpop_jkt`
-  parameter (RFC 9449 §10) for the code-bound case; **refresh-token binding continuity** (persisting `jkt`/`x5t#S256`
-  with the grant so a rotated token stays bound to the same key); and `mtls_endpoint_aliases` (RFC 8705 §5) for
-  deployments that expose separate mTLS hostnames.
+  DPoP/mTLS settings (including `mtls_endpoint_alias_authority`).

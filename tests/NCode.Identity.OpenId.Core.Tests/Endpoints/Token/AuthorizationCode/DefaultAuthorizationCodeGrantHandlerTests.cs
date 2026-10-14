@@ -198,6 +198,51 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_WhenDPoPJktDoesNotMatchProof_ReturnsError()
+    {
+        // RFC 9449 §10: a code bound via dpop_jkt must be redeemed with a proof for that same key.
+        var (mockContext, mockClient, mockMediator, mockTokenRequest, mockError) = CreateScaffold();
+
+        var mockAuthRequest = CreateStrictMock<IAuthorizationRequest>();
+        mockAuthRequest.SetupGet(x => x.DPoPJwkThumbprint).Returns("jkt-1").Verifiable();
+
+        var authorizationGrant = new AuthorizationGrant(
+            mockAuthRequest.Object,
+            CreateSubjectAuthentication()
+        );
+        var persistedGrant = new PersistedGrant<AuthorizationGrant>
+        {
+            Status = PersistedGrantStatus.Active,
+            TenantId = TenantId,
+            ClientId = "client-1",
+            SubjectId = "subject-1",
+            SessionId = null,
+            Payload = authorizationGrant,
+        };
+        SetupConsume(mockTokenRequest, persistedGrant);
+
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.IsAny<ValidateTokenGrantCommand<AuthorizationGrant>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenGrantActive_ReturnsTokenResponseWithAccessToken()
     {
         var (mockContext, mockClient, mockMediator, mockTokenRequest, _) = CreateScaffold();
@@ -208,6 +253,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
         mockAuthRequest.SetupGet(x => x.State).Returns((string?)null).Verifiable();
         mockAuthRequest.SetupGet(x => x.Claims).Returns((IRequestClaims?)null).Verifiable();
         mockAuthRequest.SetupGet(x => x.Resources).Returns([]).Verifiable();
+        mockAuthRequest.SetupGet(x => x.DPoPJwkThumbprint).Returns((string?)null).Verifiable();
 
         var authorizationGrant = new AuthorizationGrant(
             mockAuthRequest.Object,

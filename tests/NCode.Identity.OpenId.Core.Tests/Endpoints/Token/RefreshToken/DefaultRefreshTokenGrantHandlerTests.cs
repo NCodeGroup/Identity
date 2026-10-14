@@ -103,7 +103,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             ClientId = "client-1",
             SubjectId = "subject-1",
             SessionId = null,
-            Payload = new RefreshTokenGrant("client-1", scopes, scopes, null),
+            Payload = new RefreshTokenGrant("client-1", scopes, scopes, null, default),
         };
 
     private (
@@ -246,6 +246,40 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_WhenBoundGrantAndProofMismatch_ReturnsError()
+    {
+        // RFC 9449 §5: a DPoP-bound refresh token presented without a matching proof is rejected.
+        var (mockContext, mockClient, _, mockTokenRequest, _, mockError) = CreateScaffold();
+
+        var boundGrant = new PersistedGrant<RefreshTokenGrant>
+        {
+            Status = PersistedGrantStatus.Active,
+            TenantId = TenantId,
+            ClientId = "client-1",
+            SubjectId = "subject-1",
+            SessionId = null,
+            Payload = new RefreshTokenGrant(
+                "client-1",
+                ["api"],
+                ["api"],
+                null,
+                new TokenConfirmation { JwkThumbprint = "jkt-1" }
+            ),
+        };
+        SetupLookup(mockTokenRequest, boundGrant);
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenGrantNotActive_ReturnsInvalidGrantError()
     {
         var (mockContext, mockClient, _, mockTokenRequest, _, mockError) = CreateScaffold();
@@ -257,7 +291,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             ClientId = "client-1",
             SubjectId = "subject-1",
             SessionId = null,
-            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null),
+            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null, default),
         };
         SetupLookup(mockTokenRequest, revokedGrant);
 
@@ -297,7 +331,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             ClientId = "client-1",
             SubjectId = "subject-1",
             SessionId = null,
-            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null),
+            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null, default),
         };
         SetupLookup(mockTokenRequest, expiredGrant);
 
@@ -357,7 +391,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             SubjectId = "subject-1",
             SessionId = null,
             RefreshTokenLineageId = "lineage-1",
-            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null),
+            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null, default),
         };
         SetupLookup(mockTokenRequest, revokedGrant);
 
@@ -415,7 +449,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             SubjectId = "subject-1",
             SessionId = null,
             RefreshTokenLineageId = "lineage-1",
-            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null),
+            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null, default),
         };
         SetupLookup(mockTokenRequest, revokedGrant);
 

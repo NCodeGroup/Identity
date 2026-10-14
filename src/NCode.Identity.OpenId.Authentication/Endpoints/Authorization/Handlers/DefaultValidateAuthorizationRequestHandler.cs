@@ -18,6 +18,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
+using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
@@ -266,7 +267,7 @@ internal class DefaultValidateAuthorizationRequestHandler(IClientScopeService cl
     }
 
     [AssertionMethod]
-    private static void ValidateConfiguredConstraints(
+    internal static void ValidateConfiguredConstraints(
         IOpenIdErrorFactory errorFactory,
         IReadOnlySettingCollection settings,
         IAuthorizationRequest request
@@ -300,6 +301,19 @@ internal class DefaultValidateAuthorizationRequestHandler(IClientScopeService cl
             throw errorFactory
                 .UnauthorizedClient("The configuration requires the use of PKCE parameters.")
                 .AsException();
+
+        // dpop_jkt (RFC 9449 §10): a base64url-encoded SHA-256 JWK thumbprint (RFC 7638), i.e. exactly 32 bytes.
+        var dpopJkt = request.DPoPJwkThumbprint;
+        if (!string.IsNullOrEmpty(dpopJkt))
+        {
+            Span<byte> buffer = stackalloc byte[Base64Url.GetByteCountForDecode(dpopJkt.Length)];
+            if (!Base64Url.TryDecode(dpopJkt, buffer, out var bytesWritten) || bytesWritten != 32)
+                throw errorFactory
+                    .InvalidRequest(
+                        "The 'dpop_jkt' parameter is not a valid base64url-encoded SHA-256 thumbprint."
+                    )
+                    .AsException();
+        }
     }
 
     [AssertionMethod]

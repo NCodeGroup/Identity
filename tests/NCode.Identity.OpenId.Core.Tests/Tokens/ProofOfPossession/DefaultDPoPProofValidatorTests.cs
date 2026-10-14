@@ -153,6 +153,19 @@ public class DefaultDPoPProofValidatorTests : BaseTests
 
     #region ValidateAsync Tests
 
+    private ValueTask<string> InvokeValidateAsync(string proof) =>
+        Validator.ValidateAsync(
+            MockContext.Object,
+            new DPoPProofValidationRequest
+            {
+                ProofJwt = proof,
+                HttpMethod = HttpMethod,
+                HttpUri = HttpUri,
+                Settings = MockClient.Object.Settings,
+            },
+            CancellationToken.None
+        );
+
     [Fact]
     public async Task ValidateAsync_WhenValidEs256Proof_ReturnsJwkThumbprint()
     {
@@ -172,14 +185,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
 
         var proof = BuildProof(ecdsa);
 
-        var thumbprint = await Validator.ValidateAsync(
-            MockContext.Object,
-            MockClient.Object,
-            proof,
-            HttpMethod,
-            HttpUri,
-            CancellationToken.None
-        );
+        var thumbprint = await InvokeValidateAsync(proof);
 
         Assert.Equal(ComputeExpectedThumbprint(ecdsa), thumbprint);
     }
@@ -190,18 +196,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var proof = BuildProof(ecdsa, typ: "jwt");
 
-        await Assert.ThrowsAsync<OpenIdException>(() =>
-            Validator
-                .ValidateAsync(
-                    MockContext.Object,
-                    MockClient.Object,
-                    proof,
-                    HttpMethod,
-                    HttpUri,
-                    CancellationToken.None
-                )
-                .AsTask()
-        );
+        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
     }
 
     [Fact]
@@ -210,18 +205,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var proof = BuildProof(ecdsa, alg: "HS256");
 
-        await Assert.ThrowsAsync<OpenIdException>(() =>
-            Validator
-                .ValidateAsync(
-                    MockContext.Object,
-                    MockClient.Object,
-                    proof,
-                    HttpMethod,
-                    HttpUri,
-                    CancellationToken.None
-                )
-                .AsTask()
-        );
+        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
     }
 
     [Fact]
@@ -231,18 +215,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         SetupCurveCatalog(ecdsa);
         var proof = BuildProof(ecdsa, htu: "https://op.test/other");
 
-        await Assert.ThrowsAsync<OpenIdException>(() =>
-            Validator
-                .ValidateAsync(
-                    MockContext.Object,
-                    MockClient.Object,
-                    proof,
-                    HttpMethod,
-                    HttpUri,
-                    CancellationToken.None
-                )
-                .AsTask()
-        );
+        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
     }
 
     [Fact]
@@ -252,18 +225,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         SetupCurveCatalog(ecdsa);
         var proof = BuildProof(ecdsa, iat: DateTimeOffset.UtcNow.AddMinutes(-10));
 
-        await Assert.ThrowsAsync<OpenIdException>(() =>
-            Validator
-                .ValidateAsync(
-                    MockContext.Object,
-                    MockClient.Object,
-                    proof,
-                    HttpMethod,
-                    HttpUri,
-                    CancellationToken.None
-                )
-                .AsTask()
-        );
+        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
     }
 
     [Fact]
@@ -285,18 +247,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
 
         var proof = BuildProof(ecdsa);
 
-        await Assert.ThrowsAsync<OpenIdException>(() =>
-            Validator
-                .ValidateAsync(
-                    MockContext.Object,
-                    MockClient.Object,
-                    proof,
-                    HttpMethod,
-                    HttpUri,
-                    CancellationToken.None
-                )
-                .AsTask()
-        );
+        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
     }
 
     [Fact]
@@ -310,18 +261,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         var flipped = (signature[0] == 'A' ? 'B' : 'A') + signature[1..];
         var tampered = proof[..(lastDot + 1)] + flipped;
 
-        await Assert.ThrowsAsync<OpenIdException>(() =>
-            Validator
-                .ValidateAsync(
-                    MockContext.Object,
-                    MockClient.Object,
-                    tampered,
-                    HttpMethod,
-                    HttpUri,
-                    CancellationToken.None
-                )
-                .AsTask()
-        );
+        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(tampered).AsTask());
     }
 
     #endregion

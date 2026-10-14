@@ -104,19 +104,30 @@ internal class DefaultCreateAuthorizationTicketHandler(
 
         if (responseTypes.Contains(OpenIdConstants.ResponseTypes.Token))
         {
+            // A front-channel (hybrid) access token is bound to the pre-registered DPoP key when the authorization
+            // request carried dpop_jkt (RFC 9449 §10); otherwise it is a plain Bearer token. Hybrid response types are
+            // not advertised by default (secure-by-default; RFC 9700 / OAuth 2.1).
+            var dpopJkt = authorizationRequest.DPoPJwkThumbprint;
+            var isDPoPBound = !string.IsNullOrEmpty(dpopJkt);
+            var frontChannelRequest = isDPoPBound
+                ? securityTokenRequest with
+                {
+                    Confirmation = new TokenConfirmation { JwkThumbprint = dpopJkt },
+                }
+                : securityTokenRequest;
+
             var securityToken = await TokenService.CreateAccessTokenAsync(
                 openIdContext,
                 openIdClient,
-                securityTokenRequest,
+                frontChannelRequest,
                 cancellationToken
             );
 
             ticket.AccessToken = securityToken.TokenValue;
             ticket.ExpiresIn = securityToken.TokenLifetime.Duration;
-            // The front-channel (hybrid) access token is always Bearer: DPoP binding at the authorization endpoint
-            // uses the dpop_jkt request parameter (RFC 9449 §10), tracked separately in the backlog. Hybrid
-            // response types are not advertised by default (secure-by-default; RFC 9700 / OAuth 2.1).
-            ticket.TokenType = OpenIdConstants.TokenTypes.Bearer;
+            ticket.TokenType = isDPoPBound
+                ? OpenIdConstants.TokenTypes.DPoP
+                : OpenIdConstants.TokenTypes.Bearer;
         }
 
         // ReSharper disable once InvertIf

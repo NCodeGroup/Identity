@@ -105,31 +105,10 @@ entry and/or ADR that closed it.
   [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md).)
   Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/Handlers/`.
-- **`F7` — DPoP / sender-constrained tokens (RFC 9449 + mTLS, `cnf` claim).** The **issuance side is implemented**
-  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)): a single `IProofOfPossessionService`
-  evaluates a DPoP proof and/or a mutual-TLS client certificate per token request, binds the issued access token's
-  `token_type` (`DPoP`/`Bearer`) and `cnf` claim (`jkt` / `x5t#S256`) uniformly across every grant (passed first-class
-  to `ITokenGrantHandler.HandleAsync` and carried on `CreateSecurityTokenRequest.Confirmation`),
-  advertises `dpop_signing_alg_values_supported`
-  and `tls_client_certificate_bound_access_tokens` in discovery, and enforces the `require_dpop` /
-  `tls_client_certificate_bound_access_tokens` client policies. Certificate ingestion lives in the default
-  `IClientCertificateResolver`, which reads the connection cert or a configured **trusted** forwarded header
-  (`OpenId:MutualTls`) for any reverse-proxy topology; the DPoP replay/nonce stores run over `IDistributedCache`
-  (in-memory by default, cross-node by registering a shared provider).
-  **Remaining follow-ups (ride the same foundation):** (a) **resource-server-side** validation — verifying a presented
-  DPoP proof and its `ath` (and the `x5t#S256` match) when a bound token is used at a protected resource; (b) **DPoP at
-  the authorization endpoint** via the `dpop_jkt` parameter (RFC 9449 §10) to bind the authorization code; (c)
-  **refresh-token binding continuity** — persist the `jkt`/`x5t#S256` with the grant so a rotated token stays bound to
-  the same key and the refresh request's proof is re-checked; (d) `mtls_endpoint_aliases` (RFC 8705 §5) for deployments
-  that expose separate mTLS hostnames. (Multi-instance DPoP replay/nonce needs only a shared `IDistributedCache`
-  provider registered in DI — no extra wiring.) Touch points for (a):
-  `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultAuthenticateAccessTokenHandler.cs`; for (b)/(c):
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultCreateAuthorizationTicketHandler.cs`
-  and `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/RefreshToken/`.
 - **`F16` — FAPI (Financial-grade API) readiness epic.** An umbrella tracking the work to make the OP certifiable
   against the OpenID Foundation **FAPI** security profiles ([FAPI 1.0 Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html),
   [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)). FAPI mandates **sender-constrained access
-  tokens** (DPoP / mTLS — `F7`), **Pushed Authorization Requests** (implemented — the
+  tokens** (DPoP / mTLS — implemented, `F7`), **Pushed Authorization Requests** (implemented — the
   `pushed_authorization_request_endpoint` plus the `require_pushed_authorization_requests` policy), **signed request
   objects and responses** (JAR / JARM — not yet tracked separately), and **strong client authentication**
   (`private_key_jwt` or mTLS — the
@@ -137,7 +116,7 @@ entry and/or ADR that closed it.
   signing — the always-tenant-asymmetric access-token signing from
   [ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md) already satisfies the algorithm rule; a
   FAPI **profile** would additionally constrain the advertised `*_signing_alg_values_supported` settings to that set.
-  This item is the tracking anchor; the concrete deliverables are `F7`, `S3`, and a new JAR/JARM work item.
+  This item is the tracking anchor; the concrete deliverables are `F7` (done), `S3`, and a new JAR/JARM work item.
 - **`F23` — OAuth 2.0 Token Exchange (RFC 8693).** Implement the token-exchange grant
   (`urn:ietf:params:oauth:grant-type:token-exchange`) so the token endpoint can mint delegation/impersonation tokens
   from a presented `subject_token` (and optional `actor_token`). The routing seam already exists — register an
@@ -193,8 +172,8 @@ entry and/or ADR that closed it.
   ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
 - **`T6` — Spec-coverage conformance harness (in-house gap & regression dashboard).** Evolve `apps/conformance` from a
   discovery _security audit_ into a _spec-coverage matrix_ that measures the OP against the **full published
-  OAuth/OIDC/CIBA/FAPI catalog**, independent of what is implemented, so missing functionality (CIBA `F3`, DPoP/mTLS
-  `F7`, token exchange, the FAPI profile `F16`; PAR, pairwise `F9`, `acr`/`amr`
+  OAuth/OIDC/CIBA/FAPI catalog**, independent of what is implemented, so missing functionality (CIBA `F3`,
+  token exchange, the FAPI profile `F16`; PAR, pairwise `F9`, DPoP/mTLS `F7`, `acr`/`amr`
   emission, and essential-`acr` enforcement `F19` are implemented) surfaces as explicit,
   attributable gap rows. Because every row is classified from **live discovery metadata**, the same matrix is a **regression**
   detector: a capability that silently stops being advertised (or flips to non-conformant) flips its row, so the harness

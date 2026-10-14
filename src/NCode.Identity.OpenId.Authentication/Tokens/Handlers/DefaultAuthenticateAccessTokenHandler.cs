@@ -17,11 +17,13 @@
 #endregion
 
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
+using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
 
@@ -30,15 +32,18 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthenticateAccessTokenCommand"/> message. It
 /// validates a self-issued JWT access token against the resolved tenant's signing keys, issuer, lifetime, and the
-/// required audience, returning the authenticated principal on success.
+/// required audience, then — for a sender-constrained token — verifies the presented DPoP proof (RFC 9449) or
+/// client certificate (RFC 8705) matches the token's <c>cnf</c> claim, returning the authenticated principal on success.
 /// </summary>
 internal class DefaultAuthenticateAccessTokenHandler(
     ILogger<DefaultAuthenticateAccessTokenHandler> logger,
-    IJsonWebTokenService jsonWebTokenService
+    IJsonWebTokenService jsonWebTokenService,
+    IProofOfPossessionService proofOfPossessionService
 ) : ICommandResponseHandler<AuthenticateAccessTokenCommand, AuthenticateAccessTokenDisposition>
 {
     private ILogger<DefaultAuthenticateAccessTokenHandler> Logger { get; } = logger;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IProofOfPossessionService ProofOfPossessionService { get; } = proofOfPossessionService;
 
     /// <inheritdoc />
     public async ValueTask<AuthenticateAccessTokenDisposition> HandleAsync(
@@ -96,6 +101,57 @@ internal class DefaultAuthenticateAccessTokenHandler(
         }
 
         var claimsIdentity = await validateResult.GetClaimsIdentityAsync(cancellationToken);
+
+        // For a sender-constrained token, verify the presented DPoP proof / client certificate matches the token's
+        // cnf claim before the principal is trusted (RFC 9449 §7.1, RFC 8705 §3).
+        var confirmation = ReadConfirmation(claimsIdentity);
+        if (confirmation.HasValue)
+        {
+            var error = await ProofOfPossessionService.ValidateResourceAccessAsync(
+                openIdContext,
+                accessToken,
+                confirmation,
+                cancellationToken
+            );
+            if (error is not null)
+            {
+                return new AuthenticateAccessTokenDisposition(error);
+            }
+        }
+
         return new AuthenticateAccessTokenDisposition(new ClaimsPrincipal(claimsIdentity));
     }
+
+    private static TokenConfirmation ReadConfirmation(ClaimsIdentity claimsIdentity)
+    {
+        var value = claimsIdentity.FindFirst(JoseClaimNames.Payload.Cnf)?.Value;
+        if (string.IsNullOrEmpty(value))
+            return TokenConfirmation.None;
+
+        try
+        {
+            var root = JsonElement.Parse(value);
+            if (root.ValueKind != JsonValueKind.Object)
+                return TokenConfirmation.None;
+
+            return new TokenConfirmation
+            {
+                JwkThumbprint = GetString(root, OpenIdConstants.ConfirmationMethods.JwkThumbprint),
+                X509CertificateSha256Thumbprint = GetString(
+                    root,
+                    OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint
+                ),
+            };
+        }
+        catch (JsonException)
+        {
+            return TokenConfirmation.None;
+        }
+    }
+
+    private static string? GetString(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var property)
+        && property.ValueKind == JsonValueKind.String
+            ? property.GetString()
+            : null;
 }

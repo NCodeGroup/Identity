@@ -146,6 +146,7 @@ static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CodeVerifier -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.CreatedWhen -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.DateTimeOffset>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.DisplayType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.DPoPJwkThumbprint -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorCode -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorDescription -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!

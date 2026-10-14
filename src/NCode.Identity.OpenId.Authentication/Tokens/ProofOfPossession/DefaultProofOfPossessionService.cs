@@ -23,6 +23,8 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Exceptions;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
@@ -79,6 +81,131 @@ internal class DefaultProofOfPossessionService(
         return new ProofOfPossessionBinding { TokenType = tokenType, Confirmation = confirmation };
     }
 
+    /// <inheritdoc />
+    public async ValueTask<IOpenIdError?> ValidateResourceAccessAsync(
+        OpenIdContext openIdContext,
+        string accessToken,
+        TokenConfirmation confirmation,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!confirmation.HasValue)
+            return null;
+
+        var errorFactory = openIdContext.ErrorFactory;
+        var httpContext = openIdContext.Http;
+        var request = httpContext.Request;
+
+        if (!string.IsNullOrEmpty(confirmation.JwkThumbprint))
+        {
+            // A DPoP-bound token MUST be presented with the DPoP authentication scheme (RFC 9449 §7.1).
+            var authorization = request.Headers.Authorization.ToString();
+            if (
+                !authorization.StartsWith(
+                    $"{OpenIdConstants.TokenTypes.DPoP} ",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return InvalidToken(
+                    errorFactory,
+                    "A DPoP-bound access token must be presented with the 'DPoP' authentication scheme."
+                );
+            }
+
+            var proofs = request.Headers[OpenIdConstants.DPoP.HeaderName];
+            var proofJwt = proofs.Count == 1 ? proofs[0] : null;
+            if (string.IsNullOrEmpty(proofJwt))
+            {
+                return errorFactory
+                    .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                    .WithDescription(
+                        "A DPoP proof is required to present a DPoP-bound access token."
+                    )
+                    .WithStatusCode(StatusCodes.Status401Unauthorized);
+            }
+
+            var httpUri = $"{request.Scheme}://{request.Host}{request.PathBase}{request.Path}";
+            string proofJwkThumbprint;
+            try
+            {
+                proofJwkThumbprint = await DPoPProofValidator.ValidateAsync(
+                    openIdContext,
+                    new DPoPProofValidationRequest
+                    {
+                        ProofJwt = proofJwt,
+                        HttpMethod = request.Method,
+                        HttpUri = httpUri,
+                        Settings = openIdContext.Tenant.SettingsProvider.Collection,
+                        AccessToken = accessToken,
+                    },
+                    cancellationToken
+                );
+            }
+            catch (OpenIdException exception)
+            {
+                return exception.Error;
+            }
+
+            if (
+                !string.Equals(
+                    proofJwkThumbprint,
+                    confirmation.JwkThumbprint,
+                    StringComparison.Ordinal
+                )
+            )
+            {
+                return errorFactory
+                    .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                    .WithDescription(
+                        "The DPoP proof key does not match the access token's confirmation."
+                    )
+                    .WithStatusCode(StatusCodes.Status401Unauthorized);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(confirmation.X509CertificateSha256Thumbprint))
+        {
+            var certificate = await ClientCertificateResolver.ResolveCertificateAsync(
+                httpContext,
+                cancellationToken
+            );
+            if (certificate is null)
+            {
+                return InvalidToken(
+                    errorFactory,
+                    "A client certificate is required to present a certificate-bound access token."
+                );
+            }
+
+            var thumbprint = Base64Url.Encode(SHA256.HashData(certificate.RawData));
+            if (
+                !string.Equals(
+                    thumbprint,
+                    confirmation.X509CertificateSha256Thumbprint,
+                    StringComparison.Ordinal
+                )
+            )
+            {
+                return InvalidToken(
+                    errorFactory,
+                    "The client certificate does not match the access token's confirmation."
+                );
+            }
+        }
+
+        return null;
+    }
+
+    private static IOpenIdError InvalidToken(
+        IOpenIdErrorFactory errorFactory,
+        string description
+    ) =>
+        errorFactory
+            .InvalidToken()
+            .WithDescription(description)
+            .WithStatusCode(StatusCodes.Status401Unauthorized);
+
     private async ValueTask<string?> EvaluateDPoPAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
@@ -121,10 +248,13 @@ internal class DefaultProofOfPossessionService(
 
         return await DPoPProofValidator.ValidateAsync(
             openIdContext,
-            openIdClient,
-            proofJwt,
-            request.Method,
-            httpUri,
+            new DPoPProofValidationRequest
+            {
+                ProofJwt = proofJwt,
+                HttpMethod = request.Method,
+                HttpUri = httpUri,
+                Settings = openIdClient.Settings,
+            },
             cancellationToken
         );
     }

@@ -103,6 +103,25 @@ group heading in ID order, preserve the original wording verbatim, and add a tra
   profile — see [`docs/conformance-testing.md`](docs/conformance-testing.md). Touch points: a new
   `Endpoints/Registration/` family and discovery-metadata advertisement.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0063](docs/adr/0063-dynamic-client-registration.md)._
+- **`F7` — DPoP / sender-constrained tokens (RFC 9449 + mTLS, `cnf` claim).** A single `IProofOfPossessionService`
+  evaluates a DPoP proof and/or a mutual-TLS client certificate per token request, binds the issued access token's
+  `token_type` (`DPoP`/`Bearer`) and `cnf` claim (`jkt` / `x5t#S256`) uniformly across every grant (passed first-class
+  to `ITokenGrantHandler.HandleAsync` and carried on `CreateSecurityTokenRequest.Confirmation`), advertises
+  `dpop_signing_alg_values_supported` and `tls_client_certificate_bound_access_tokens` in discovery, and enforces the
+  `require_dpop` / `tls_client_certificate_bound_access_tokens` client policies. Certificate ingestion lives in the
+  default `IClientCertificateResolver`, which reads the connection cert or a configured **trusted** forwarded header
+  (`OpenId:MutualTls`) for any reverse-proxy topology; the DPoP replay/nonce stores run over `IDistributedCache`
+  (in-memory by default, cross-node by registering a shared provider). The follow-ups that rode the same foundation are
+  all implemented: (a) **resource-server-side** validation — `IProofOfPossessionService.ValidateResourceAccessAsync`
+  verifies a presented DPoP proof and its `ath` (and the `x5t#S256` match) when a bound token is used at a protected
+  resource, and the UserInfo / management-API endpoints accept both the `Bearer` and `DPoP` schemes; (b) **DPoP at the
+  authorization endpoint** via the `dpop_jkt` parameter (RFC 9449 §10) that binds the authorization code (format
+  validated at the authorization endpoint, matched at the token endpoint, and applied to the hybrid front-channel
+  token); (c) **refresh-token binding continuity** — the `cnf` is persisted on `RefreshTokenGrant.Confirmation` so a
+  rotated token stays bound to the same key and a bound refresh token presented without a matching proof is rejected;
+  (d) `mtls_endpoint_aliases` (RFC 8705 §5) advertised via the `mtls_endpoint_alias_authority` setting.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)._
 - **`F8` — Pushed Authorization Requests (PAR, RFC 9126).** There is no `pushed_authorization_request_endpoint`; the
   authorize endpoint only accepts inline request parameters. See
   `// TODO: add support for OAuth 2.0 Pushed Authorization Requests (PAR)` in

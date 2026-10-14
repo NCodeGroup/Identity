@@ -20,14 +20,15 @@ using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Messages;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens;
 
 /// <summary>
-/// Provides the ability to evaluate sender-constraining proof of possession for a token request — validating a DPoP
-/// proof (<see href="https://datatracker.ietf.org/doc/html/rfc9449">RFC 9449</see>) and/or a mutual-TLS client
-/// certificate (<see href="https://datatracker.ietf.org/doc/html/rfc8705">RFC 8705</see>) — and producing the
-/// <see cref="ProofOfPossessionBinding"/> that governs the issued access token's <c>token_type</c> and <c>cnf</c> claim.
+/// Provides the ability to evaluate sender-constraining proof of possession — validating a DPoP proof
+/// (<see href="https://datatracker.ietf.org/doc/html/rfc9449">RFC 9449</see>) and/or a mutual-TLS client certificate
+/// (<see href="https://datatracker.ietf.org/doc/html/rfc8705">RFC 8705</see>) — both when issuing a token and when a
+/// bound token is presented to a protected resource.
 /// </summary>
 [PublicAPI]
 public interface IProofOfPossessionService
@@ -45,6 +46,25 @@ public interface IProofOfPossessionService
     ValueTask<ProofOfPossessionBinding> EvaluateTokenRequestAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Verifies that the current request legitimately presents a sender-constrained access token: a DPoP-bound token
+    /// (<c>cnf.jkt</c>) requires a valid DPoP proof whose key, <c>htm</c>/<c>htu</c>, and <c>ath</c> match
+    /// (RFC 9449 §7.1); a certificate-bound token (<c>cnf.x5t#S256</c>) requires the matching client certificate
+    /// (RFC 8705 §3). Returns the <see cref="IOpenIdError"/> describing the failure, or <see langword="null"/> when the
+    /// presentation is valid (including for an unbound bearer token).
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="accessToken">The access token being presented (used to verify the proof's <c>ath</c> claim).</param>
+    /// <param name="confirmation">The <see cref="TokenConfirmation"/> read from the access token's <c>cnf</c> claim.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IOpenIdError"/> when the proof of possession is missing or invalid; otherwise <see langword="null"/>.</returns>
+    ValueTask<IOpenIdError?> ValidateResourceAccessAsync(
+        OpenIdContext openIdContext,
+        string accessToken,
+        TokenConfirmation confirmation,
         CancellationToken cancellationToken
     );
 }

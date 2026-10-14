@@ -23,12 +23,14 @@ using Moq;
 using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens;
+using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using Xunit;
 
@@ -59,13 +61,13 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
         HttpContext.Request.Path = "/token";
         HttpContext.Request.Method = "POST";
 
-        MockContext.SetupGet(x => x.Http).Returns(HttpContext).Verifiable();
-        MockClient.SetupGet(x => x.Settings).Returns(MockSettings.Object).Verifiable();
+        MockContext.SetupGet(x => x.Http).Returns(HttpContext);
+        MockClient.SetupGet(x => x.Settings).Returns(MockSettings.Object);
 
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
-        MockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+        MockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
 
         Service = new DefaultProofOfPossessionService(
             MockValidator.Object,
@@ -111,10 +113,12 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
             .Setup(x =>
                 x.ValidateAsync(
                     MockContext.Object,
-                    MockClient.Object,
-                    "proof-jwt",
-                    "POST",
-                    "https://op.test/token",
+                    It.Is<DPoPProofValidationRequest>(r =>
+                        r.ProofJwt == "proof-jwt"
+                        && r.HttpMethod == "POST"
+                        && r.HttpUri == "https://op.test/token"
+                        && r.Settings == MockSettings.Object
+                    ),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -186,6 +190,153 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
                 )
                 .AsTask()
         );
+    }
+
+    #endregion
+
+    #region ValidateResourceAccessAsync Tests
+
+    private void SetupTenantSettings()
+    {
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
+        var mockSettingsProvider = CreateLooseMock<IReadOnlySettingCollectionProvider>();
+        MockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
+        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
+        mockSettingsProvider.SetupGet(x => x.Collection).Returns(MockSettings.Object);
+    }
+
+    [Fact]
+    public async Task ValidateResourceAccessAsync_WhenUnbound_ReturnsNull()
+    {
+        var error = await Service.ValidateResourceAccessAsync(
+            MockContext.Object,
+            "access-token",
+            default,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task ValidateResourceAccessAsync_WhenDPoPSchemeMissing_ReturnsError()
+    {
+        var confirmation = new TokenConfirmation { JwkThumbprint = "jkt-1" };
+
+        var error = await Service.ValidateResourceAccessAsync(
+            MockContext.Object,
+            "access-token",
+            confirmation,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public async Task ValidateResourceAccessAsync_WhenDPoPJktMatches_ReturnsNull()
+    {
+        SetupTenantSettings();
+        HttpContext.Request.Headers.Authorization = "DPoP access-token";
+        HttpContext.Request.Headers[OpenIdConstants.DPoP.HeaderName] = "proof-jwt";
+        MockValidator
+            .Setup(x =>
+                x.ValidateAsync(
+                    MockContext.Object,
+                    It.Is<DPoPProofValidationRequest>(r =>
+                        r.ProofJwt == "proof-jwt" && r.AccessToken == "access-token"
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync("jkt-1")
+            .Verifiable();
+
+        var confirmation = new TokenConfirmation { JwkThumbprint = "jkt-1" };
+
+        var error = await Service.ValidateResourceAccessAsync(
+            MockContext.Object,
+            "access-token",
+            confirmation,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task ValidateResourceAccessAsync_WhenDPoPJktMismatch_ReturnsError()
+    {
+        SetupTenantSettings();
+        HttpContext.Request.Headers.Authorization = "DPoP access-token";
+        HttpContext.Request.Headers[OpenIdConstants.DPoP.HeaderName] = "proof-jwt";
+        MockValidator
+            .Setup(x =>
+                x.ValidateAsync(
+                    MockContext.Object,
+                    It.IsAny<DPoPProofValidationRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync("jkt-other")
+            .Verifiable();
+
+        var confirmation = new TokenConfirmation { JwkThumbprint = "jkt-1" };
+
+        var error = await Service.ValidateResourceAccessAsync(
+            MockContext.Object,
+            "access-token",
+            confirmation,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public async Task ValidateResourceAccessAsync_WhenCertificateMatches_ReturnsNull()
+    {
+        using var certificate = CreateSelfSignedCertificate();
+        var thumbprint = Base64Url.Encode(SHA256.HashData(certificate.RawData));
+        MockCertificateResolver
+            .Setup(x => x.ResolveCertificateAsync(HttpContext, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(certificate)
+            .Verifiable();
+
+        var confirmation = new TokenConfirmation { X509CertificateSha256Thumbprint = thumbprint };
+
+        var error = await Service.ValidateResourceAccessAsync(
+            MockContext.Object,
+            "access-token",
+            confirmation,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task ValidateResourceAccessAsync_WhenCertificateMismatch_ReturnsError()
+    {
+        using var certificate = CreateSelfSignedCertificate();
+        MockCertificateResolver
+            .Setup(x => x.ResolveCertificateAsync(HttpContext, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(certificate)
+            .Verifiable();
+
+        var confirmation = new TokenConfirmation
+        {
+            X509CertificateSha256Thumbprint = "different-thumbprint",
+        };
+
+        var error = await Service.ValidateResourceAccessAsync(
+            MockContext.Object,
+            "access-token",
+            confirmation,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
     }
 
     #endregion

@@ -16,15 +16,14 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 
 /// <summary>
-/// Provides the ability to validate a DPoP proof JWT presented at the token endpoint
-/// (<see href="https://datatracker.ietf.org/doc/html/rfc9449#section-4.3">RFC 9449 §4.3</see>) and compute the JWK
-/// thumbprint (<c>jkt</c>) the issued access token is bound to.
+/// Provides the ability to validate a DPoP proof JWT
+/// (<see href="https://datatracker.ietf.org/doc/html/rfc9449#section-4.3">RFC 9449 §4.3</see>) — presented at the token
+/// endpoint or at a protected resource — and compute the JWK thumbprint (<c>jkt</c>) the token is bound to.
 /// </summary>
 internal interface IDPoPProofValidator
 {
@@ -33,18 +32,12 @@ internal interface IDPoPProofValidator
     /// <c>use_dpop_nonce</c> error on any violation, and returns the base64url SHA-256 JWK thumbprint of the proof key.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
-    /// <param name="openIdClient">The authenticated <see cref="OpenIdClient"/> making the request.</param>
-    /// <param name="proofJwt">The compact DPoP proof JWT from the <c>DPoP</c> request header.</param>
-    /// <param name="httpMethod">The HTTP method of the request the proof is bound to (the <c>htm</c> claim).</param>
-    /// <param name="httpUri">The HTTP target URI of the request the proof is bound to (the <c>htu</c> claim), without query or fragment.</param>
+    /// <param name="request">The <see cref="DPoPProofValidationRequest"/> describing the proof and what it must bind to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The base64url-encoded SHA-256 JWK thumbprint (RFC 7638) of the proof's public key.</returns>
     ValueTask<string> ValidateAsync(
         OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
-        string proofJwt,
-        string httpMethod,
-        string httpUri,
+        DPoPProofValidationRequest request,
         CancellationToken cancellationToken
     );
 }

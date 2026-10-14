@@ -152,6 +152,17 @@ public static class OpenIdCommonParameters
     };
 
     /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>dpop_jkt</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string> DPoPJwkThumbprint = new(
+        OpenIdConstants.Parameters.DPoPJwkThumbprint,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>display</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> DisplayType = new(

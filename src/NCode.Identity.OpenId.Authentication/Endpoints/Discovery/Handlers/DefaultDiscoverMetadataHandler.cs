@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Handlers;
@@ -32,6 +33,8 @@ internal class DefaultDiscoverMetadataHandler(
     LinkGenerator linkGenerator
 ) : ICommandHandler<DiscoverMetadataCommand>, ISupportMediatorPriority
 {
+    private const string MtlsEndpointAliasesKey = "mtls_endpoint_aliases";
+
     private EndpointDataSource EndpointDataSource { get; } = endpointDataSource;
     private LinkGenerator LinkGenerator { get; } = linkGenerator;
 
@@ -48,7 +51,7 @@ internal class DefaultDiscoverMetadataHandler(
 
         DiscoverSettings(openIdContext, metadata);
 
-        DiscoverEndpoints(metadata, openIdContext.Http);
+        DiscoverEndpoints(openIdContext, metadata);
 
         return ValueTask.CompletedTask;
     }
@@ -70,9 +73,22 @@ internal class DefaultDiscoverMetadataHandler(
         }
     }
 
-    private void DiscoverEndpoints(IDictionary<string, object> metadata, HttpContext httpContext)
+    private void DiscoverEndpoints(
+        OpenIdContext openIdContext,
+        IDictionary<string, object> metadata
+    )
     {
+        var httpContext = openIdContext.Http;
         var routeValues = new { };
+
+        // RFC 8705 §5: when a mutual-TLS alias authority is configured, discoverable endpoints are mirrored under an
+        // mtls_endpoint_aliases object with their authority rewritten, so mTLS clients target the separate host.
+        var mtlsAuthority = openIdContext.Tenant.SettingsProvider.Collection.GetValue(
+            OpenIdSettingKeys.MtlsEndpointAliasAuthority
+        );
+        var mtlsAliases = string.IsNullOrEmpty(mtlsAuthority)
+            ? null
+            : new Dictionary<string, object>(StringComparer.Ordinal);
 
         foreach (var endpoint in EndpointDataSource.Endpoints)
         {
@@ -99,6 +115,32 @@ internal class DefaultDiscoverMetadataHandler(
                 continue;
 
             metadata.TryAdd(endpointName, endpointUrl);
+
+            if (
+                mtlsAliases is not null
+                && TryRewriteAuthority(endpointUrl, mtlsAuthority) is { } aliasUrl
+            )
+                mtlsAliases[endpointName] = aliasUrl;
         }
+
+        if (mtlsAliases is { Count: > 0 })
+            metadata.TryAdd(MtlsEndpointAliasesKey, mtlsAliases);
+    }
+
+    private static string? TryRewriteAuthority(string endpointUrl, string authority)
+    {
+        if (
+            !Uri.TryCreate(endpointUrl, UriKind.Absolute, out var endpointUri)
+            || !Uri.TryCreate(authority, UriKind.Absolute, out var authorityUri)
+        )
+            return null;
+
+        var builder = new UriBuilder(endpointUri)
+        {
+            Scheme = authorityUri.Scheme,
+            Host = authorityUri.Host,
+            Port = authorityUri.IsDefaultPort ? -1 : authorityUri.Port,
+        };
+        return builder.Uri.AbsoluteUri;
     }
 }

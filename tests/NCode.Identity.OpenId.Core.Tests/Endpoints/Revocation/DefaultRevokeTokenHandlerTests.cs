@@ -120,7 +120,7 @@ public class DefaultRevokeTokenHandlerTests : BaseTests
             ClientId = clientId,
             SubjectId = null,
             SessionId = null,
-            Payload = new RefreshTokenGrant(clientId, [], [], null),
+            Payload = new RefreshTokenGrant(clientId, [], [], null, default),
         };
 
     #endregion

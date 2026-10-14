@@ -33,6 +33,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 internal sealed class ManagementAuthenticationEndpointFilter : IEndpointFilter
 {
     private const string BearerPrefix = "Bearer ";
+    private const string DPoPPrefix = "DPoP ";
 
     private static readonly string[] ManagementAudiences =
     [
@@ -70,10 +71,15 @@ internal sealed class ManagementAuthenticationEndpointFilter : IEndpointFilter
     private static bool TryGetBearerToken(HttpContext httpContext, out string token)
     {
         var authorization = httpContext.Request.Headers.Authorization.ToString();
-        if (authorization.StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase))
+
+        // Accept both the Bearer scheme and the DPoP scheme (RFC 9449 §7.1).
+        foreach (var prefix in (ReadOnlySpan<string>)[BearerPrefix, DPoPPrefix])
         {
-            token = authorization[BearerPrefix.Length..].Trim();
-            return token.Length > 0;
+            if (authorization.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                token = authorization[prefix.Length..].Trim();
+                return token.Length > 0;
+            }
         }
 
         token = string.Empty;

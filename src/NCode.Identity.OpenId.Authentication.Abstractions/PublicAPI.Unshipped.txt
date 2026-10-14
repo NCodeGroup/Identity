@@ -617,7 +617,9 @@ NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.ITokenRevocat
 NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Messages.ITokenRevocationRequest.TokenTypeHint.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.AuthenticatePasswordGrantCommand() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.AuthenticatePasswordGrantCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest! TokenRequest) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.AuthenticatePasswordGrantCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest! TokenRequest, Microsoft.AspNetCore.Authentication.AuthenticationProperties! AuthenticationProperties) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.AuthenticationProperties.get -> Microsoft.AspNetCore.Authentication.AuthenticationProperties!
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.AuthenticationProperties.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.OpenIdClient.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands.AuthenticatePasswordGrantCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!

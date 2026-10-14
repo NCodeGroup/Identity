@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -66,11 +67,25 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
+        // Capture the authentication instant once at the start of the flow and carry it forward as the ticket's
+        // IssuedUtc (which drives the subject's `auth_time`) and the issued token's `iat`, so the ROPC path records the
+        // same authentication metadata as the interactive and bearer entry points instead of dropping it.
+        var authenticatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+        var authenticationProperties = new AuthenticationProperties
+        {
+            IssuedUtc = authenticatedWhen,
+        };
+
         var disposition = await mediator.SendAsync<
             AuthenticatePasswordGrantCommand,
             AuthenticateSubjectDisposition
         >(
-            new AuthenticatePasswordGrantCommand(openIdContext, openIdClient, tokenRequest),
+            new AuthenticatePasswordGrantCommand(
+                openIdContext,
+                openIdClient,
+                tokenRequest,
+                authenticationProperties
+            ),
             cancellationToken
         );
 
@@ -101,6 +116,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
             openIdClient,
             tokenRequest,
             passwordGrant,
+            authenticatedWhen,
             cancellationToken
         );
 
@@ -112,6 +128,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
         PasswordGrant passwordGrant,
+        DateTimeOffset createdWhen,
         CancellationToken cancellationToken
     )
     {
@@ -125,7 +142,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
 
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
-            CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
+            CreatedWhen = createdWhen,
             GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.Password,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,

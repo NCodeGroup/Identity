@@ -195,6 +195,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
         var mockDispositionError = CreateLooseMock<IOpenIdError>();
 
         mockTokenRequest.SetupGet(x => x.Username).Returns("username").Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
         SetupAuthenticate(
             mockMediator,
             new AuthenticateSubjectDisposition(mockDispositionError.Object)
@@ -216,6 +217,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
         var (mockContext, mockClient, mockMediator, mockTokenRequest, mockError) = CreateScaffold();
 
         mockTokenRequest.SetupGet(x => x.Username).Returns("username").Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
         SetupAuthenticate(
             mockMediator,
             new AuthenticateSubjectDisposition(Error: null, Ticket: null)
@@ -333,6 +335,44 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
 
         var response = Assert.IsType<TokenResponse>(result);
         Assert.Equal("refresh-token-value", response.RefreshToken);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAuthenticating_FlowsAuthenticationPropertiesWithIssuedInstant()
+    {
+        var (mockContext, mockClient, mockMediator, mockTokenRequest, _) = CreateScaffold();
+
+        List<string> scopes = ["api"];
+
+        AuthenticatePasswordGrantCommand? capturedCommand = null;
+        mockTokenRequest.SetupGet(x => x.Username).Returns("username").Verifiable();
+        mockMediator
+            .Setup(x =>
+                x.SendAsync<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>(
+                    It.IsAny<AuthenticatePasswordGrantCommand>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<AuthenticatePasswordGrantCommand, CancellationToken>(
+                (command, _) => capturedCommand = command
+            )
+            .Returns(
+                new ValueTask<AuthenticateSubjectDisposition>(
+                    new AuthenticateSubjectDisposition(CreateSubjectAuthentication())
+                )
+            )
+            .Verifiable();
+        SetupTokenResponse(mockContext, mockClient, mockMediator, mockTokenRequest, scopes);
+
+        await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(capturedCommand);
+        Assert.Equal(CreatedWhen, capturedCommand.Value.AuthenticationProperties.IssuedUtc);
     }
 
     #endregion

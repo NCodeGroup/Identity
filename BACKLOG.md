@@ -142,15 +142,6 @@ entry and/or ADR that closed it.
   `grant-token-exchange` probe (`src/frontend/apps/conformance/src/coverage.ts`). Touch point: a new
   `DefaultTokenExchangeGrantHandler` under
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/`.
-- **`F24` — Flow the resource-owner-password ticket's `AuthenticationProperties` from the request, not a fresh empty
-  instance.** `DefaultAuthenticatePasswordGrantHandler` builds its `SubjectAuthentication` with a freshly-constructed
-  empty `new AuthenticationProperties()`, so any properties the surrounding token-request flow could carry (issued/
-  expiry timestamps, `amr`/`acr`-adjacent items, redirect state) are dropped on the ROPC path — unlike the interactive
-  and bearer paths, which propagate the authentication's own `AuthenticationProperties`. Thread the properties in
-  through the `AuthenticatePasswordGrantCommand` (or resolve them at the point the grant is authenticated) so the ROPC
-  ticket carries the same authentication metadata as the other entry points. Touch point:
-  `src/NCode.Identity.OpenId.Accounts.Authentication/DefaultAuthenticatePasswordGrantHandler.cs` (the `// TODO`
-  on the `new AuthenticationProperties()` argument).
 
 ## Conformance & interop testing (group `T`)
 

@@ -152,17 +152,14 @@ entry and/or ADR that closed it.
   automatable-login / discovery-alignment prerequisites, and the nightly (not `dod.ps1`) CI wiring — lives
   in its dedicated doc: [`docs/conformance-testing.md`](docs/conformance-testing.md). The Dynamic OP profile
   prerequisite (Dynamic Client Registration) is implemented ([ADR-0063](docs/adr/0063-dynamic-client-registration.md));
-  the harness enables anonymous registration (`registration_endpoint_allow_anonymous`). Depends on the prerequisite
-  work item `T3` below (the reachable HTTPS host the harness drives). The browser-automatable login/consent surface
+  the harness enables anonymous registration (`registration_endpoint_allow_anonymous`). The reachable HTTPS host the
+  harness drives is **done** (`T3` — the `Conformance` launch profile binds all interfaces on `:5001` and pins the
+  discovery `issuer` to `https://host.docker.internal:5001`). The browser-automatable login/consent surface
   prerequisite is **done** (`T2` — the OP-hosted `apps/auth` interactive login/consent surface,
   [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md)). The deterministic conformance tenant,
   clients, and test-user seeding prerequisite is **done** (`T4` — `AddConformanceSeed`). The discovery-metadata
   alignment prerequisite is **done**: the OP advertises secure-by-default, verified capabilities
   ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
-- **`T3` — Reachable HTTPS Playground host for the external harness.** The only launchable host is the
-  in-process `TestServer`; the suite needs a real HTTPS origin (Windows/Docker: `host.docker.internal`)
-  whose discovery `issuer` byte-matches that origin (pin via the `tenant_issuer` setting). Detailed plan:
-  [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
 - **`T6` — Spec-coverage conformance harness (in-house gap & regression dashboard).** Evolve `apps/conformance` from a
   discovery _security audit_ into a _spec-coverage matrix_ that measures the OP against the **full published
   OAuth/OIDC/CIBA/FAPI catalog**, independent of what is implemented, so missing functionality (CIBA `F3`, DPoP/mTLS

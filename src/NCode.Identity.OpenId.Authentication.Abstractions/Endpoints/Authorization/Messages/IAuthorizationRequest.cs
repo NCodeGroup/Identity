@@ -109,6 +109,12 @@ public interface IAuthorizationRequest
     string? CodeVerifier { get; }
 
     /// <summary>
+    /// Gets the <c>dpop_jkt</c> parameter (RFC 9449 §10): the JWK SHA-256 thumbprint the issued authorization code
+    /// (and the tokens exchanged from it) must be bound to.
+    /// </summary>
+    string? DPoPJwkThumbprint { get; }
+
+    /// <summary>
     /// Gets the <c>display</c> parameter.
     /// </summary>
     string DisplayType { get; }

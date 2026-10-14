@@ -692,4 +692,11 @@ public static class OpenIdSettingNames
     /// </summary>
     public const string TlsClientCertificateBoundAccessTokens =
         "tls_client_certificate_bound_access_tokens";
+
+    /// <summary>
+    /// Contains the name of <c>mtls_endpoint_alias_authority</c> setting (RFC 8705 §5): when set to a
+    /// scheme-and-authority (for example <c>https://mtls.op.example</c>), the discovery document advertises an
+    /// <c>mtls_endpoint_aliases</c> object whose endpoint URLs are rewritten to that mutual-TLS authority.
+    /// </summary>
+    public const string MtlsEndpointAliasAuthority = "mtls_endpoint_alias_authority";
 }

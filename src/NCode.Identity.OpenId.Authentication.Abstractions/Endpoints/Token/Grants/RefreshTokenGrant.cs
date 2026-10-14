@@ -18,6 +18,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Subject;
+using NCode.Identity.OpenId.Authentication.Tokens.Models;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 
@@ -29,5 +30,6 @@ public readonly record struct RefreshTokenGrant(
     string ClientId,
     IReadOnlyList<string> OriginalScopes,
     IReadOnlyList<string> EffectiveScopes,
-    SubjectAuthentication? SubjectAuthentication
+    SubjectAuthentication? SubjectAuthentication,
+    TokenConfirmation Confirmation
 );

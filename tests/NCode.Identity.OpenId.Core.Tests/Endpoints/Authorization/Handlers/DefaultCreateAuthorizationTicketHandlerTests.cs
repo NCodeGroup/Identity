@@ -125,6 +125,9 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(scopes).Verifiable();
         mockAuthRequest.SetupGet(x => x.Resources).Returns([]).Verifiable();
 
+        // Only read on the front-channel (token) response-type path; left non-verifiable for the id_token-only cases.
+        mockAuthRequest.SetupGet(x => x.DPoPJwkThumbprint).Returns((string?)null);
+
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
 
         var command = new CreateAuthorizationTicketCommand(

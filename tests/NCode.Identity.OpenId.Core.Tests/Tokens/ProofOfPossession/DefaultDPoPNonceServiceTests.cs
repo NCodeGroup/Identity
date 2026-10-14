@@ -18,7 +18,6 @@
 
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 using NCode.Identity.OpenId.Contexts;
 using Xunit;
@@ -36,7 +35,6 @@ public sealed class DefaultDPoPNonceServiceTests : BaseTests
     private DefaultDPoPNonceService Service => new(DistributedCache);
 
     private OpenIdContext Context => CreateStrictMock<OpenIdContext>().Object;
-    private OpenIdClient Client => CreateStrictMock<OpenIdClient>().Object;
 
     #region ValidateNonceAsync Tests
 
@@ -45,15 +43,9 @@ public sealed class DefaultDPoPNonceServiceTests : BaseTests
     {
         var service = Service;
         var context = Context;
-        var client = Client;
 
-        var nonce = await service.IssueNonceAsync(context, client, CancellationToken.None);
-        var valid = await service.ValidateNonceAsync(
-            context,
-            client,
-            nonce,
-            CancellationToken.None
-        );
+        var nonce = await service.IssueNonceAsync(context, CancellationToken.None);
+        var valid = await service.ValidateNonceAsync(context, nonce, CancellationToken.None);
 
         Assert.True(valid);
     }
@@ -63,7 +55,6 @@ public sealed class DefaultDPoPNonceServiceTests : BaseTests
     {
         var valid = await Service.ValidateNonceAsync(
             Context,
-            Client,
             "unknown-nonce",
             CancellationToken.None
         );
@@ -74,12 +65,7 @@ public sealed class DefaultDPoPNonceServiceTests : BaseTests
     [Fact]
     public async Task ValidateNonceAsync_WhenEmpty_ReturnsFalse()
     {
-        var valid = await Service.ValidateNonceAsync(
-            Context,
-            Client,
-            string.Empty,
-            CancellationToken.None
-        );
+        var valid = await Service.ValidateNonceAsync(Context, string.Empty, CancellationToken.None);
 
         Assert.False(valid);
     }

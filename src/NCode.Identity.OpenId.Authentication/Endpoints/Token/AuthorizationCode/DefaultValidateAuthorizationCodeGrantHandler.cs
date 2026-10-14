@@ -155,7 +155,8 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
 
-        // TODO: validate DPoP
+        // DPoP binding continuity (dpop_jkt, RFC 9449 §10) is enforced in DefaultAuthorizationCodeGrantHandler, where
+        // the presented proof-of-possession binding is available.
 
         // PKCE: code_verifier, code_challenge, code_challenge_method
         ValidatePkce(

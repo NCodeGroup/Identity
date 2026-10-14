@@ -18,7 +18,6 @@
 
 using System.Security.Cryptography;
 using Microsoft.Extensions.Caching.Distributed;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
 
@@ -43,7 +42,6 @@ internal sealed class DefaultDPoPNonceService(IDistributedCache distributedCache
     /// <inheritdoc />
     public async ValueTask<string> IssueNonceAsync(
         OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
         CancellationToken cancellationToken
     )
     {
@@ -62,7 +60,6 @@ internal sealed class DefaultDPoPNonceService(IDistributedCache distributedCache
     /// <inheritdoc />
     public async ValueTask<bool> ValidateNonceAsync(
         OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
         string nonce,
         CancellationToken cancellationToken
     )

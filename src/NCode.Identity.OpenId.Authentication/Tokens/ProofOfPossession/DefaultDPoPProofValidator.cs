@@ -22,7 +22,6 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using NCode.Encoders;
 using NCode.Identity.Jose;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
@@ -52,15 +51,13 @@ internal class DefaultDPoPProofValidator(
     /// <inheritdoc />
     public async ValueTask<string> ValidateAsync(
         OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
-        string proofJwt,
-        string httpMethod,
-        string httpUri,
+        DPoPProofValidationRequest request,
         CancellationToken cancellationToken
     )
     {
         var errorFactory = openIdContext.ErrorFactory;
-        var settings = openIdClient.Settings;
+        var settings = request.Settings;
+        var proofJwt = request.ProofJwt;
 
         OpenIdException Invalid(string description) =>
             errorFactory
@@ -143,7 +140,7 @@ internal class DefaultDPoPProofValidator(
         // htm MUST equal the request method (RFC 9449 §4.3).
         if (
             !TryGetString(payload, OpenIdConstants.DPoP.HttpMethodClaim, out var htm)
-            || !string.Equals(htm, httpMethod, StringComparison.Ordinal)
+            || !string.Equals(htm, request.HttpMethod, StringComparison.Ordinal)
         )
         {
             throw Invalid("The DPoP proof 'htm' claim does not match the request method.");
@@ -152,10 +149,26 @@ internal class DefaultDPoPProofValidator(
         // htu MUST equal the request URI with any query and fragment removed (RFC 9449 §4.3).
         if (
             !TryGetString(payload, OpenIdConstants.DPoP.HttpUriClaim, out var htu)
-            || !IsSameHttpUri(htu, httpUri)
+            || !IsSameHttpUri(htu, request.HttpUri)
         )
         {
             throw Invalid("The DPoP proof 'htu' claim does not match the request URI.");
+        }
+
+        // ath, when the proof accompanies an access token at a protected resource, MUST equal the base64url SHA-256
+        // hash of that access token (RFC 9449 §4.3, §7.1).
+        if (!string.IsNullOrEmpty(request.AccessToken))
+        {
+            var expectedAth = Base64Url.Encode(
+                SHA256.HashData(Encoding.ASCII.GetBytes(request.AccessToken))
+            );
+            if (
+                !TryGetString(payload, OpenIdConstants.DPoP.AccessTokenHashClaim, out var ath)
+                || !string.Equals(ath, expectedAth, StringComparison.Ordinal)
+            )
+            {
+                throw Invalid("The DPoP proof 'ath' claim does not match the access token.");
+            }
         }
 
         // jti MUST be present so the proof can be tracked for replay (RFC 9449 §4.3).
@@ -189,18 +202,12 @@ internal class DefaultDPoPProofValidator(
             var nonceValid =
                 hasNonce
                 && !string.IsNullOrEmpty(nonce)
-                && await NonceService.ValidateNonceAsync(
-                    openIdContext,
-                    openIdClient,
-                    nonce,
-                    cancellationToken
-                );
+                && await NonceService.ValidateNonceAsync(openIdContext, nonce, cancellationToken);
 
             if (!nonceValid)
             {
                 var freshNonce = await NonceService.IssueNonceAsync(
                     openIdContext,
-                    openIdClient,
                     cancellationToken
                 );
                 openIdContext.Http.Response.Headers[OpenIdConstants.DPoP.NonceHeaderName] =

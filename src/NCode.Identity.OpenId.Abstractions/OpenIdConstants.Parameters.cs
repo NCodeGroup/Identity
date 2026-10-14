@@ -117,6 +117,11 @@ public static partial class OpenIdConstants
         public const string CodeVerifier = "code_verifier";
 
         /// <summary>
+        /// Contains the name of <c>dpop_jkt</c> parameter (RFC 9449 §10).
+        /// </summary>
+        public const string DPoPJwkThumbprint = "dpop_jkt";
+
+        /// <summary>
         /// Contains the name of <c>$created_when</c> parameter.
         /// </summary>
         public const string CreatedWhen = "$created_when";

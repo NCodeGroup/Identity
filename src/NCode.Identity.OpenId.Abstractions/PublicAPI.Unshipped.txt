@@ -176,6 +176,7 @@ const NCode.Identity.OpenId.OpenIdConstants.Parameters.CodeVerifier = "code_veri
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.CreatedWhen = "$created_when" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.DeviceCode = "device_code" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.Display = "display" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.DPoPJwkThumbprint = "dpop_jkt" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.ErrorCode = "error" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.ErrorDescription = "error_description" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.Parameters.ErrorUri = "error_uri" -> string!
@@ -267,6 +268,7 @@ const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.DPoP = "DPoP" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DPoPNonceRequired = "dpop_nonce_required" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DPoPProofLifetime = "dpop_proof_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DPoPSigningAlgValuesSupported = "dpop_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MtlsEndpointAliasAuthority = "mtls_endpoint_alias_authority" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireDPoP = "require_dpop" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientCertificateBoundAccessTokens = "tls_client_certificate_bound_access_tokens" -> string!
 NCode.Identity.OpenId.OpenIdConstants.BackChannelLogout
@@ -763,6 +765,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DPoPNonceRequired.get ->
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DPoPProofLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DPoPSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.GrantTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.MtlsEndpointAliasAuthority.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireDPoP.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserCodeLength.get -> NCode.Identity.Settings.SettingKey<int>

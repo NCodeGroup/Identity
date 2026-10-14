@@ -199,7 +199,8 @@ internal class DefaultAuthenticateSubjectHandler(
             cancellationToken
         );
 
-        var ticket = new SubjectAuthentication(
+        var ticket = SubjectAuthentication.Create(
+            openIdContext,
             authenticationScheme,
             authenticationProperties,
             subject,

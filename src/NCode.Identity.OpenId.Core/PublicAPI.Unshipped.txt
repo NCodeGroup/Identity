@@ -7,12 +7,15 @@ NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Registration.IServiceB
 NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdCoreLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!
 NCode.Identity.OpenId.Logic.GetSubjectIdDelegate
 NCode.Identity.OpenId.Logic.GetSubjectIdentityDelegate
+NCode.Identity.OpenId.Logic.NormalizeSubjectIdDelegate
 NCode.Identity.OpenId.OpenIdOptions
 NCode.Identity.OpenId.OpenIdOptions.GetSubjectId.get -> NCode.Identity.OpenId.Logic.GetSubjectIdDelegate!
 NCode.Identity.OpenId.OpenIdOptions.GetSubjectId.set -> void
 NCode.Identity.OpenId.OpenIdOptions.GetSubjectIdentity.get -> NCode.Identity.OpenId.Logic.GetSubjectIdentityDelegate!
 NCode.Identity.OpenId.OpenIdOptions.GetSubjectIdentity.set -> void
 NCode.Identity.OpenId.OpenIdOptions.JsonOptionsConfigurators.get -> System.Collections.Generic.List<System.Action<System.Text.Json.JsonSerializerOptions!>!>!
+NCode.Identity.OpenId.OpenIdOptions.NormalizeSubjectId.get -> NCode.Identity.OpenId.Logic.NormalizeSubjectIdDelegate!
+NCode.Identity.OpenId.OpenIdOptions.NormalizeSubjectId.set -> void
 NCode.Identity.OpenId.OpenIdOptions.OpenIdOptions() -> void
 NCode.Identity.OpenId.OpenIdOptions.SectionName.get -> string!
 NCode.Identity.OpenId.OpenIdOptions.SectionName.set -> void

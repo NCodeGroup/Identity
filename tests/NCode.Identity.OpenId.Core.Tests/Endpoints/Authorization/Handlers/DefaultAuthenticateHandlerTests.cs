@@ -44,6 +44,9 @@ public class DefaultAuthenticateHandlerTests : BaseTests
     private DefaultAuthenticateHandler CreateHandler(string? subjectId)
     {
         MockContext.Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>())).Returns(subjectId);
+        MockContext
+            .Setup(x => x.NormalizeSubjectId(It.IsAny<ClaimsPrincipal>(), It.IsAny<string>()))
+            .Returns((ClaimsPrincipal subject, string _) => subject);
         return new DefaultAuthenticateHandler(NullLogger<DefaultAuthenticateHandler>.Instance);
     }
 

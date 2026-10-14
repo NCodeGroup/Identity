@@ -79,6 +79,24 @@ public abstract class OpenIdEnvironment
     );
 
     /// <summary>
+    /// Rewrites the subject claims of a <see cref="ClaimsPrincipal"/> so its authoritative subject identifier becomes
+    /// <paramref name="subjectId"/>. This is the host-replaceable inverse of <see cref="GetSubjectId"/>: the returned
+    /// principal satisfies <c>GetSubjectId(result, subjectClaimTypes) == subjectId</c>. The claim types are supplied
+    /// per request (per-tenant for the end-user via
+    /// <see cref="NCode.Identity.OpenId.Contexts.OpenIdContext.NormalizeSubjectId"/>, or the server default for
+    /// app-level callers).
+    /// </summary>
+    /// <param name="subject">The <see cref="ClaimsPrincipal"/> whose subject claims are rewritten.</param>
+    /// <param name="subjectId">The authoritative subject identifier to stamp onto the principal.</param>
+    /// <param name="subjectClaimTypes">The ordered claim types that identify the subject, in priority order.</param>
+    /// <returns>A <see cref="ClaimsPrincipal"/> whose subject identifier is <paramref name="subjectId"/>.</returns>
+    public abstract ClaimsPrincipal NormalizeSubjectId(
+        ClaimsPrincipal subject,
+        string subjectId,
+        IReadOnlyCollection<string> subjectClaimTypes
+    );
+
+    /// <summary>
     /// Extracts the primary <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/> using the host-configured
     /// extraction logic.
     /// </summary>

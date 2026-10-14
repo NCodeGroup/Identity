@@ -992,6 +992,7 @@ NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.SubjectAuthen
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.SessionId.get -> string?
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.PrincipalId.get -> string!
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.PrincipalId.init -> void
+static NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.Create(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! authenticationScheme, Microsoft.AspNetCore.Authentication.AuthenticationProperties! authenticationProperties, System.Security.Claims.ClaimsPrincipal! subject, string! principalId) -> NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.OpenIdClient.init -> void

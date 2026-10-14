@@ -587,6 +587,21 @@ public static class OpenIdSettingNames
     public const string SectorIdentifierUri = "sector_identifier_uri";
 
     /// <summary>
+    /// Contains the name of <c>sector_identifier_uri_allowed_hosts</c> setting.
+    /// </summary>
+    public const string SectorIdentifierUriAllowedHosts = "sector_identifier_uri_allowed_hosts";
+
+    /// <summary>
+    /// Contains the name of <c>sector_identifier_uri_fetch_timeout</c> setting.
+    /// </summary>
+    public const string SectorIdentifierUriFetchTimeout = "sector_identifier_uri_fetch_timeout";
+
+    /// <summary>
+    /// Contains the name of <c>sector_identifier_uri_max_size_bytes</c> setting.
+    /// </summary>
+    public const string SectorIdentifierUriMaxSizeBytes = "sector_identifier_uri_max_size_bytes";
+
+    /// <summary>
     /// Contains the name of <c>subject_max_age</c> setting.
     /// </summary>
     public const string SubjectMaxAge = "subject_max_age";

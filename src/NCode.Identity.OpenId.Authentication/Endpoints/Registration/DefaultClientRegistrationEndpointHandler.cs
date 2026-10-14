@@ -55,7 +55,8 @@ internal class DefaultClientRegistrationEndpointHandler(
     ISecretGenerator secretGenerator,
     IStoreManagerFactory storeManagerFactory,
     IPersistedGrantService persistedGrantService,
-    IInitialAccessTokenValidator initialAccessTokenValidator
+    IInitialAccessTokenValidator initialAccessTokenValidator,
+    ISectorIdentifierValidator sectorIdentifierValidator
 ) : IEndpointProvider
 {
     private const int ClientSecretKeySizeBits = 256;
@@ -73,6 +74,12 @@ internal class DefaultClientRegistrationEndpointHandler(
         OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
     ];
 
+    private static readonly string[] SupportedSubjectTypes =
+    [
+        OpenIdConstants.SubjectTypes.Public,
+        OpenIdConstants.SubjectTypes.Pairwise,
+    ];
+
     private TimeProvider TimeProvider { get; } = timeProvider;
     private LinkGenerator LinkGenerator { get; } = linkGenerator;
     private ICryptoService CryptoService { get; } = cryptoService;
@@ -81,6 +88,8 @@ internal class DefaultClientRegistrationEndpointHandler(
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private IInitialAccessTokenValidator InitialAccessTokenValidator { get; } =
         initialAccessTokenValidator;
+    private ISectorIdentifierValidator SectorIdentifierValidator { get; } =
+        sectorIdentifierValidator;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -202,6 +211,16 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (validationError is not null)
         {
             return validationError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
+        }
+
+        var sectorError = await ValidateSectorIdentifierAsync(
+            openIdContext,
+            resolved,
+            cancellationToken
+        );
+        if (sectorError is not null)
+        {
+            return sectorError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
         }
 
         var clientId = CryptoService.GenerateResourceId();
@@ -447,6 +466,16 @@ internal class DefaultClientRegistrationEndpointHandler(
             return validationError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
         }
 
+        var sectorError = await ValidateSectorIdentifierAsync(
+            openIdContext,
+            resolved,
+            cancellationToken
+        );
+        if (sectorError is not null)
+        {
+            return sectorError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -617,15 +646,86 @@ internal class DefaultClientRegistrationEndpointHandler(
             }
         }
 
+        var subjectType = request.SubjectType;
+        if (!string.IsNullOrEmpty(subjectType) && !SupportedSubjectTypes.Contains(subjectType))
+        {
+            return errorFactory.InvalidRequest(
+                $"The 'subject_type' value '{subjectType}' is not supported.",
+                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+            );
+        }
+
+        var sectorIdentifierUri = request.SectorIdentifierUri;
+
+        // OpenID Connect Core 1.0 §8.1 requires a sector_identifier_uri for a pairwise client whose redirect_uris span
+        // more than one host; without it the sector would be ambiguous. The remote document fetch + membership check is
+        // performed separately (ISectorIdentifierValidator), because it is an asynchronous, SSRF-guarded network call.
+        if (
+            string.IsNullOrEmpty(sectorIdentifierUri)
+            && string.Equals(
+                subjectType,
+                OpenIdConstants.SubjectTypes.Pairwise,
+                StringComparison.Ordinal
+            )
+            && HasMultipleDistinctHosts(redirectUris)
+        )
+        {
+            return errorFactory.InvalidRequest(
+                "A 'sector_identifier_uri' is required for a pairwise client whose 'redirect_uris' span multiple hosts.",
+                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+            );
+        }
+
         resolved = new ResolvedMetadata
         {
             TokenEndpointAuthMethod = tokenEndpointAuthMethod,
             GrantTypes = grantTypes,
             ResponseTypes = responseTypes,
             RedirectUris = redirectUris,
+            SubjectType = subjectType,
+            SectorIdentifierUri = sectorIdentifierUri,
         };
 
         return null;
+    }
+
+    private static bool HasMultipleDistinctHosts(IReadOnlyCollection<string> redirectUris)
+    {
+        string? firstHost = null;
+        foreach (var redirectUri in redirectUris)
+        {
+            if (!Uri.TryCreate(redirectUri, UriKind.Absolute, out var uri))
+                continue;
+
+            if (firstHost is null)
+                firstHost = uri.Host;
+            else if (!string.Equals(firstHost, uri.Host, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Performs the OpenID Connect Core 1.0 §8.1 remote validation of the resolved <c>sector_identifier_uri</c> (fetch
+    /// the document and verify it lists every redirect URI), returning the resulting error, or <see langword="null"/>
+    /// when there is no <c>sector_identifier_uri</c> to validate or it is valid.
+    /// </summary>
+    private async ValueTask<IOpenIdError?> ValidateSectorIdentifierAsync(
+        OpenIdContext openIdContext,
+        ResolvedMetadata resolved,
+        CancellationToken cancellationToken
+    )
+    {
+        if (string.IsNullOrEmpty(resolved.SectorIdentifierUri))
+            return null;
+
+        return await SectorIdentifierValidator.ValidateAsync(
+            openIdContext,
+            resolved.SectorIdentifierUri,
+            resolved.RedirectUris,
+            cancellationToken
+        );
     }
 
     /// <summary>
@@ -643,6 +743,13 @@ internal class DefaultClientRegistrationEndpointHandler(
             [OpenIdSettingNames.ResponseTypesSupported] = ToJsonArray(resolved.ResponseTypes),
             [RegistrationMetadataKeys.TokenEndpointAuthMethod] = resolved.TokenEndpointAuthMethod,
         };
+
+        SetIfPresent(settings, OpenIdSettingNames.SubjectType, resolved.SubjectType);
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.SectorIdentifierUri,
+            resolved.SectorIdentifierUri
+        );
 
         if (!string.IsNullOrEmpty(request.Scope))
         {
@@ -690,6 +797,8 @@ internal class DefaultClientRegistrationEndpointHandler(
                 settings,
                 RegistrationMetadataKeys.TokenEndpointAuthMethod
             ),
+            SubjectType = ReadString(settings, OpenIdSettingNames.SubjectType),
+            SectorIdentifierUri = ReadString(settings, OpenIdSettingNames.SectorIdentifierUri),
             Scope = scopes is null
                 ? null
                 : string.Join(OpenIdConstants.ParameterSeparatorString, scopes),

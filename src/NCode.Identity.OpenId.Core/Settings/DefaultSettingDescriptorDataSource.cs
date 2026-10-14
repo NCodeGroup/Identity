@@ -1113,6 +1113,41 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // sector_identifier_uri_allowed_hosts: SSRF allow-list for the registration-time sector_identifier_uri
+            // fetch (OpenID Connect Core 1.0 §8.1). When set, the sector_identifier_uri host must appear in this list;
+            // unset = no host allow-list (ADR-0010), though the always-on private/loopback/link-local address block
+            // still applies. Not advertised. Ceiling (Intersect): a child narrows the parent's set.
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.SectorIdentifierUriAllowedHosts,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // sector_identifier_uri_fetch_timeout: wall-clock cap on the registration-time sector_identifier_uri fetch.
+            // Not advertised. Ceiling (Min): a child may only shorten it.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.SectorIdentifierUriFetchTimeout,
+                Default = TimeSpan.FromSeconds(10),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // sector_identifier_uri_max_size_bytes: cap on the response body size accepted from the registration-time
+            // sector_identifier_uri fetch, defending against an oversized-response resource-exhaustion vector.
+            // Not advertised. Ceiling (Min): a child may only shrink it.
+            yield return new SettingDescriptor<int>
+            {
+                Name = OpenIdSettingNames.SectorIdentifierUriMaxSizeBytes,
+                Default = 100 * 1024,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
             // pairwise_salt: a stable, secret per-tenant salt mixed into the pairwise subject derivation to harden it
             // against a guessed-principal preimage attack (OpenID Connect Core 1.0 §8.1). Derivation stays deterministic
             // without it (the tenant id already isolates tenants), but configuring it is recommended. Not advertised.

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
@@ -44,6 +45,25 @@ internal static class DefaultRegistration
                 IInitialAccessTokenValidator,
                 DefaultInitialAccessTokenValidator
             >();
+
+            serviceCollection.TryAddSingleton<
+                ISectorIdentifierValidator,
+                DefaultSectorIdentifierValidator
+            >();
+
+            // The sector_identifier_uri fetch (OpenID Connect Core 1.0 §8.1) uses a dedicated HTTP client whose
+            // connections are pinned away from private/loopback/link-local addresses (SSRF floor) and which never
+            // follows redirects, so a redirect cannot bounce the fetch to an internal host.
+            serviceCollection
+                .AddHttpClient(DefaultSectorIdentifierValidator.HttpClientName)
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                    new SocketsHttpHandler
+                    {
+                        AllowAutoRedirect = false,
+                        ConnectCallback = SectorIdentifierHttpGuard.ConnectAsync,
+                        AutomaticDecompression = DecompressionMethods.All,
+                    }
+                );
         }
     }
 }

@@ -46,7 +46,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             CreateStrictMock<ISecretGenerator>().Object,
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<IPersistedGrantService>().Object,
-            CreateStrictMock<IInitialAccessTokenValidator>().Object
+            CreateStrictMock<IInitialAccessTokenValidator>().Object,
+            CreateStrictMock<ISectorIdentifierValidator>().Object
         );
 
     private (IOpenIdErrorFactory factory, Func<string?> capturedCode) CreateErrorFactory()
@@ -155,6 +156,75 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.Empty(resolved.RedirectUris);
     }
 
+    [Fact]
+    public void ValidateMetadata_UnsupportedSubjectType_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            SubjectType = "bogus",
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateMetadata_PairwiseMultipleHostsWithoutSectorUri_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://a.example.com/callback", "https://b.example.com/callback"],
+            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateMetadata_PairwiseSingleHostWithoutSectorUri_IsValid()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/one", "https://example.com/two"],
+            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out var resolved);
+
+        Assert.Null(error);
+        Assert.Equal(OpenIdConstants.SubjectTypes.Pairwise, resolved.SubjectType);
+    }
+
+    [Fact]
+    public void ValidateMetadata_PairwiseWithSectorUri_ResolvesSectorUri()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://a.example.com/callback", "https://b.example.com/callback"],
+            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SectorIdentifierUri = "https://sector.example.com/uris.json",
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out var resolved);
+
+        Assert.Null(error);
+        Assert.Equal("https://sector.example.com/uris.json", resolved.SectorIdentifierUri);
+    }
+
     #endregion
 
     #region BuildSettingsObject
@@ -191,6 +261,38 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.NotNull(settings[OpenIdSettingNames.ScopesSupported]);
         Assert.NotNull(settings[OpenIdSettingNames.RedirectUris]);
         Assert.NotNull(settings[RegistrationMetadataKeys.Contacts]);
+    }
+
+    [Fact]
+    public void BuildSettingsObject_MapsSubjectTypeAndSectorIdentifierUri()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SectorIdentifierUri = "https://sector.example.com/uris.json",
+        };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            RedirectUris = ["https://example.com/callback"],
+            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SectorIdentifierUri = "https://sector.example.com/uris.json",
+        };
+
+        var settings = handler.BuildSettingsObject(request, resolved);
+
+        Assert.Equal(
+            OpenIdConstants.SubjectTypes.Pairwise,
+            settings[OpenIdSettingNames.SubjectType]!.GetValue<string>()
+        );
+        Assert.Equal(
+            "https://sector.example.com/uris.json",
+            settings[OpenIdSettingNames.SectorIdentifierUri]!.GetValue<string>()
+        );
     }
 
     #endregion

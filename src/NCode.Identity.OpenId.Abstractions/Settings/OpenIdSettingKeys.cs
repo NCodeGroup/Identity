@@ -622,6 +622,24 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.SectorIdentifierUri);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'sector_identifier_uri_allowed_hosts' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> SectorIdentifierUriAllowedHosts =>
+        new(OpenIdSettingNames.SectorIdentifierUriAllowedHosts);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'sector_identifier_uri_fetch_timeout' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> SectorIdentifierUriFetchTimeout =>
+        new(OpenIdSettingNames.SectorIdentifierUriFetchTimeout);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'sector_identifier_uri_max_size_bytes' setting.
+    /// </summary>
+    public static SettingKey<int> SectorIdentifierUriMaxSizeBytes =>
+        new(OpenIdSettingNames.SectorIdentifierUriMaxSizeBytes);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'subject_max_age' setting.
     /// </summary>
     public static SettingKey<TimeSpan> SubjectMaxAge => new(OpenIdSettingNames.SubjectMaxAge);

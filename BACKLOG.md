@@ -65,7 +65,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D6`      | `D5`       |
-| `F` — Feature gaps                    | `F23`     | `F22`      |
+| `F` — Feature gaps                    | `F24`     | `F23`      |
 | `T` — Conformance & interop testing   | `T7`      | `T6`       |
 | `U` — Frontend presentation platform  | `U13`     | `U12`      |
 | `S` — Secrets management              | `S7`      | `S6`       |
@@ -129,12 +129,6 @@ entry and/or ADR that closed it.
   [ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md) already satisfies the algorithm rule; a
   FAPI **profile** would additionally constrain the advertised `*_signing_alg_values_supported` settings to that set.
   This item is the tracking anchor; the concrete deliverables are `F7`, `S3`, and a new JAR/JARM work item.
-- **`F20` — `sector_identifier_uri` remote fetch + validation at registration.** Pairwise subjects (`F9`,
-  [ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md)) honor the `sector_identifier_uri` client setting by using
-  its **host** as the sector identifier, but the OpenID Connect Core 1.0 §8.1 registration-time step — fetching the
-  JSON document at that URI and verifying it lists every one of the client's `redirect_uris` — is not performed. Add it
-  as a Dynamic Client Registration (`F6`) validation, with the fetch guarded against SSRF (allow-list / timeout /
-  size cap). Touch point: `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/`.
 - **`F21` — End-session reverse-map for a pairwise `id_token_hint`.** Because the pairwise projection is one-way and
   unstored (`F9`), an `id_token_hint` presented at the end-session endpoint carries a pairwise `sub` the OP cannot map
   back to the stable principal. End-session resolves the session by `sid` (which our ID tokens always carry), so the
@@ -151,6 +145,20 @@ entry and/or ADR that closed it.
   ticket factory), so `Subject.sub` and `PrincipalId` can never disagree and the two-sources-of-truth trap cannot
   return. Touch points: `src/NCode.Identity.OpenId.Accounts.Authentication/DefaultAuthenticatePasswordGrantHandler.cs`,
   `src/NCode.Identity.OpenId.Authentication/Subject/DefaultAuthenticateSubjectHandler.cs`.
+- **`F23` — OAuth 2.0 Token Exchange (RFC 8693).** Implement the token-exchange grant
+  (`urn:ietf:params:oauth:grant-type:token-exchange`) so the token endpoint can mint delegation/impersonation tokens
+  from a presented `subject_token` (and optional `actor_token`). The routing seam already exists — register an
+  `ITokenGrantHandler` whose `GrantTypes` includes the grant URI and the token endpoint dispatches to it with no
+  endpoint changes (see `ITokenGrantHandler` remarks). Deliverables: a token-exchange request model binding the
+  RFC 8693 parameters (`subject_token`, `subject_token_type`, `actor_token`, `actor_token_type`,
+  `requested_token_type`, `resource`, `audience`, `scope`), validation of the presented token types
+  (`urn:ietf:params:oauth:token-type:*`), an authorization policy governing which clients may exchange and which
+  delegation/impersonation targets are permitted, `act`/`may_act` claim handling for delegation chains, and the
+  `issued_token_type` response field. Surfaces in the conformance coverage report as the currently-missing
+  `grant-token-exchange` probe (`src/frontend/apps/conformance/src/coverage.ts`). Touch point: a new
+  `DefaultTokenExchangeGrantHandler` under
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/`.
+
 ## Conformance & interop testing (group `T`)
 
 - **`T1` — Independent OIDC/OAuth conformance validation (OpenID Foundation Conformance Suite).** Our own

@@ -30,6 +30,14 @@ change to the public API is a **major** version bump.
   locked down; only the dedicated conformance instance opts in. Development/conformance convenience only
   ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
+- **Essential `acr` enforcement (completes backlog `F19`).** When an authorization request asks for `id_token.acr` as
+  an **essential** claim with specific `values` (OpenID Connect Core 1.0 §5.5.1.1), the subject-authentication
+  validator (`DefaultValidateSubjectAuthenticationHandler`) now denies with `access_denied` unless the satisfied `acr`
+  on the subject principal is among the requested values — previously such a mismatch silently issued a token whose
+  `acr` did not match. Voluntary `acr` requests, including the entire `acr_values` parameter (which the spec defines as
+  voluntary), remain best-effort and impose no constraint. This builds directly on the emitted, principal-stamped `acr`
+  from [ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md).
+
 - **`acr` claim emission via a replaceable resolver, `amr` recording, and conditional `auth_time` (completes backlog
   `F11`).** The authorization server now tracks the authentication context at the two authentication entry points (local
   interactive sign-in and the ROPC subject handler): it records `amr=["pwd"]` (RFC 8176) — previously wired through the

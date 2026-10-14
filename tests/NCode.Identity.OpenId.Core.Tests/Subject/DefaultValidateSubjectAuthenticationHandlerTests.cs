@@ -20,11 +20,16 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Moq;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Messages.Parameters;
+using NCode.Identity.OpenId.Authentication.Messages.Parsers;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Registration.AspNetCore;
@@ -63,12 +68,55 @@ public class DefaultValidateSubjectAuthenticationHandlerTests : BaseTests
         return new SubjectAuthentication("scheme", properties, subject, "subject-id");
     }
 
+    private static ClaimsPrincipal CreateAuthenticatedSubject(string? acr)
+    {
+        var identity = new ClaimsIdentity(authenticationType: "pwd");
+        if (acr is not null)
+        {
+            identity.AddClaim(new Claim(JoseClaimNames.Payload.Acr, acr));
+        }
+
+        return new ClaimsPrincipal(identity);
+    }
+
+    private static IParameterCollection CreateClaimsParameters(RequestClaims requestClaims)
+    {
+        var parameter = new Parameter<IRequestClaims>(
+            new ParameterDescriptor(OpenIdAuthenticationParameters.Claims),
+            AuthenticationParameterParsers.RequestClaims,
+            requestClaims
+        );
+        return new ParameterCollection([parameter], cloneParameters: false);
+    }
+
+    private static RequestClaims CreateEssentialAcrRequest(
+        bool? essential,
+        string? value = null,
+        IEnumerable<string>? values = null
+    ) =>
+        new()
+        {
+            IdToken = new RequestClaimDictionary
+            {
+                [JoseClaimNames.Payload.Acr] = new RequestClaim
+                {
+                    Essential = essential,
+                    Value = value,
+                    Values = values,
+                },
+            },
+        };
+
     private (
         ValidateSubjectAuthenticationCommand command,
         OperationDisposition<IOpenIdError> disposition,
         Mock<OpenIdContext> context,
         Mock<OpenIdTenant> tenant
-    ) CreateCommand(SubjectAuthentication subjectAuthentication, IOpenIdError? initialError)
+    ) CreateCommand(
+        SubjectAuthentication subjectAuthentication,
+        IOpenIdError? initialError,
+        IParameterCollection? requestParameters = null
+    )
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
@@ -83,6 +131,13 @@ public class DefaultValidateSubjectAuthenticationHandlerTests : BaseTests
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
+
+        // Parameters are read only once a request reaches the max_age/acr checks past the early
+        // short-circuits, so only those tests supply a collection.
+        if (requestParameters is not null)
+        {
+            mockRequest.SetupGet(x => x.Parameters).Returns(requestParameters).Verifiable();
+        }
 
         var disposition = new OperationDisposition<IOpenIdError> { Error = initialError };
         var command = new ValidateSubjectAuthenticationCommand(
@@ -149,6 +204,122 @@ public class DefaultValidateSubjectAuthenticationHandlerTests : BaseTests
         await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(disposition.HasError);
+    }
+
+    #endregion
+
+    #region Essential acr Enforcement Tests
+
+    [Fact]
+    public async Task HandleAsync_WhenEssentialAcrSatisfiedViaValues_Succeeds()
+    {
+        var subject = CreateSubjectAuthentication(TenantId, CreateAuthenticatedSubject("acr-1"));
+        var parameters = CreateClaimsParameters(
+            CreateEssentialAcrRequest(essential: true, values: ["acr-1", "acr-2"])
+        );
+        var (command, disposition, mockContext, mockTenant) = CreateCommand(
+            subject,
+            initialError: null,
+            parameters
+        );
+        SetupTenant(mockContext, mockTenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(disposition.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenEssentialAcrSatisfiedViaSingleValue_Succeeds()
+    {
+        var subject = CreateSubjectAuthentication(TenantId, CreateAuthenticatedSubject("acr-1"));
+        var parameters = CreateClaimsParameters(
+            CreateEssentialAcrRequest(essential: true, value: "acr-1")
+        );
+        var (command, disposition, mockContext, mockTenant) = CreateCommand(
+            subject,
+            initialError: null,
+            parameters
+        );
+        SetupTenant(mockContext, mockTenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(disposition.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenEssentialAcrNotSatisfied_SetsAccessDeniedError()
+    {
+        var subject = CreateSubjectAuthentication(TenantId, CreateAuthenticatedSubject("acr-3"));
+        var parameters = CreateClaimsParameters(
+            CreateEssentialAcrRequest(essential: true, values: ["acr-1", "acr-2"])
+        );
+        var (command, disposition, mockContext, mockTenant) = CreateCommand(
+            subject,
+            initialError: null,
+            parameters
+        );
+        SetupTenant(mockContext, mockTenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(disposition.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenEssentialAcrRequestedButSubjectHasNone_SetsAccessDeniedError()
+    {
+        var subject = CreateSubjectAuthentication(TenantId, CreateAuthenticatedSubject(acr: null));
+        var parameters = CreateClaimsParameters(
+            CreateEssentialAcrRequest(essential: true, values: ["acr-1"])
+        );
+        var (command, disposition, mockContext, mockTenant) = CreateCommand(
+            subject,
+            initialError: null,
+            parameters
+        );
+        SetupTenant(mockContext, mockTenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(disposition.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAcrRequestedButNotEssential_Succeeds()
+    {
+        var subject = CreateSubjectAuthentication(TenantId, CreateAuthenticatedSubject("acr-3"));
+        var parameters = CreateClaimsParameters(
+            CreateEssentialAcrRequest(essential: false, values: ["acr-1", "acr-2"])
+        );
+        var (command, disposition, mockContext, mockTenant) = CreateCommand(
+            subject,
+            initialError: null,
+            parameters
+        );
+        SetupTenant(mockContext, mockTenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(disposition.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenEssentialAcrWithoutSpecificValues_Succeeds()
+    {
+        var subject = CreateSubjectAuthentication(TenantId, CreateAuthenticatedSubject(acr: null));
+        var parameters = CreateClaimsParameters(CreateEssentialAcrRequest(essential: true));
+        var (command, disposition, mockContext, mockTenant) = CreateCommand(
+            subject,
+            initialError: null,
+            parameters
+        );
+        SetupTenant(mockContext, mockTenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(disposition.HasError);
     }
 
     #endregion

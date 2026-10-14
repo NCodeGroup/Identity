@@ -701,8 +701,16 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
-- **RP-initiated logout now resolves the stable subject from server-owned state instead of a pairwise `id_token_hint`
-  `sub` (completes backlog `F21`).** With pairwise subject identifiers ([ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md)),
+- **Resource-owner-password tickets now carry the authentication's `AuthenticationProperties` from the start of the
+  token-request flow instead of a fresh empty instance (completes backlog `F24`).** `DefaultAuthenticatePasswordGrantHandler`
+  previously built its `SubjectAuthentication` with a freshly-constructed empty `new AuthenticationProperties()`, so the
+  issued-authentication metadata the other entry points propagate (notably `IssuedUtc`, which drives the subject's
+  `auth_time`) was dropped on the ROPC path. `DefaultPasswordGrantHandler` now captures the authentication instant once
+  at the start of the flow, carries it as `AuthenticationProperties.IssuedUtc` through the new required
+  `AuthenticatePasswordGrantCommand.AuthenticationProperties` parameter, and reuses the same timestamp for the issued
+  token's `CreatedWhen`, so the ROPC ticket's `auth_time` and the token's `iat` are coherent and the leaf handler no
+  longer materializes an empty `AuthenticationProperties`.
+ With pairwise subject identifiers ([ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md)),
   the `sub` in an `id_token_hint` is a per-sector pseudonym produced by a one-way projection the OP cannot reverse. The
   end-session handler previously consumed that pseudonym as if it were the stable principal, so for a pairwise client it
   silently matched no grants during subject-keyed revocation and double-projected the back-channel `logout_token` `sub`

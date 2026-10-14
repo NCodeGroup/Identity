@@ -181,6 +181,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -205,6 +206,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -227,6 +229,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -251,6 +254,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -293,6 +297,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -330,6 +335,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -368,6 +374,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 

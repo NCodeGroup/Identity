@@ -53,6 +53,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -117,6 +118,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
             tokenRequest,
             passwordGrant,
             authenticatedWhen,
+            proofOfPossessionBinding,
             cancellationToken
         );
 
@@ -129,6 +131,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
         ITokenRequest tokenRequest,
         PasswordGrant passwordGrant,
         DateTimeOffset createdWhen,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -148,6 +151,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
             EffectiveScopes = scopes,
             Resources = tokenRequest.Resources,
             SubjectAuthentication = passwordGrant.SubjectAuthentication,
+            Confirmation = proofOfPossessionBinding.Confirmation,
         };
 
         {
@@ -160,7 +164,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
 
             tokenResponse.AccessToken = securityToken.TokenValue;
             tokenResponse.ExpiresIn = securityToken.TokenLifetime.Duration;
-            tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
+            tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
         }
 
         if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))

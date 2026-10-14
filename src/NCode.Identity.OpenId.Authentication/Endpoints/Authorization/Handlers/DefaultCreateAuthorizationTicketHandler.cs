@@ -113,7 +113,10 @@ internal class DefaultCreateAuthorizationTicketHandler(
 
             ticket.AccessToken = securityToken.TokenValue;
             ticket.ExpiresIn = securityToken.TokenLifetime.Duration;
-            ticket.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
+            // The front-channel (hybrid) access token is always Bearer: DPoP binding at the authorization endpoint
+            // uses the dpop_jkt request parameter (RFC 9449 §10), tracked separately in the backlog. Hybrid
+            // response types are not advertised by default (secure-by-default; RFC 9700 / OAuth 2.1).
+            ticket.TokenType = OpenIdConstants.TokenTypes.Bearer;
         }
 
         // ReSharper disable once InvertIf

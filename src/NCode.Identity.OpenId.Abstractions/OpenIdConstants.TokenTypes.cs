@@ -32,6 +32,13 @@ public static partial class OpenIdConstants
         public const string Bearer = "Bearer";
 
         /// <summary>
+        /// Contains the <c>DPoP</c> constant value, the OAuth 2.0 access-token type of a DPoP sender-constrained
+        /// token (<see href="https://datatracker.ietf.org/doc/html/rfc9449">RFC 9449</see>). A resource server must
+        /// receive such a token in an <c>Authorization: DPoP</c> header accompanied by a matching DPoP proof.
+        /// </summary>
+        public const string DPoP = "DPoP";
+
+        /// <summary>
         /// Contains the <c>id_token</c> constant value.
         /// </summary>
         public const string IdToken = "id_token";

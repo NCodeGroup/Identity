@@ -106,6 +106,13 @@ public readonly record struct CreateSecurityTokenRequest
     public SubjectAuthentication? SubjectAuthentication { get; init; }
 
     /// <summary>
+    /// Gets the sender-constraining <see cref="TokenConfirmation"/> (DPoP <c>jkt</c> / mutual-TLS <c>x5t#S256</c>) to
+    /// embed as the access token's <c>cnf</c> claim, or <see cref="TokenConfirmation.None"/> when the token is a plain
+    /// bearer token.
+    /// </summary>
+    public TokenConfirmation Confirmation { get; init; }
+
+    /// <summary>
     /// Gets additional claims that will be included in the generated token.
     /// </summary>
     public IReadOnlyDictionary<string, object>? ExtraPayloadClaims { get; init; }

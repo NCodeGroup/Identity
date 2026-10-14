@@ -79,9 +79,19 @@ internal class DefaultGetAccessTokenPayloadClaimsHandler(ICryptoService cryptoSe
             payloadClaims[JoseClaimNames.Payload.Scope] = scopeValue;
         }
 
-        // TODO: the following protocol claims require foundational subsystems that do not yet exist:
-        // - sid: requires a session-management subsystem
-        // - cnf: requires a proof-of-possession (e.g. DPoP/mTLS) subsystem
+        // cnf: bind the access token to the request's proof-of-possession key (DPoP jkt / mutual-TLS x5t#S256)
+        // when one was established for the request (RFC 9449 §6, RFC 8705 §3.1).
+        if (!payloadClaims.ContainsKey(JoseClaimNames.Payload.Cnf))
+        {
+            var confirmation = tokenRequest.Confirmation.ToClaimValueOrNull();
+            if (confirmation is not null)
+            {
+                payloadClaims[JoseClaimNames.Payload.Cnf] = confirmation;
+            }
+        }
+
+        // The optional 'sid' session claim (RFC 9068 §2.2.1) is a setting-gated follow-up tracked by backlog F25;
+        // the session id is available as tokenRequest.SubjectAuthentication.SessionId.
 
         return ValueTask.CompletedTask;
     }

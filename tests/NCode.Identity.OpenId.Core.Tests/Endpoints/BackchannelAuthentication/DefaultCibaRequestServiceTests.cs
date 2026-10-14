@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Subject;
+using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
@@ -272,6 +273,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<OpenIdClient>(),
                     It.IsAny<CibaGrant>(),
+                    It.IsAny<ProofOfPossessionBinding>(),
                     It.IsAny<CancellationToken>()
                 )
             )

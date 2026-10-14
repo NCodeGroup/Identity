@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
+using NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 using NCode.Mediator;
 using NCode.Registration;
 
@@ -47,6 +48,26 @@ internal static class DefaultRegistration
             serviceCollection.TryAddSingleton<ITokenService, DefaultTokenService>();
 
             serviceCollection.TryAddSingleton<IAuditEventRecorder, DefaultAuditEventRecorder>();
+
+            // Sender-constrained tokens (DPoP — RFC 9449, mutual-TLS — RFC 8705). The replay and nonce stores run over
+            // IDistributedCache; an in-memory provider is registered by default (single node) and a cluster swaps in a
+            // shared provider (e.g. Redis) by registering its own IDistributedCache. The mutual-TLS forwarded-header
+            // settings bind from the OpenId:MutualTls configuration section.
+            serviceCollection.AddDistributedMemoryCache();
+            serviceCollection
+                .AddOptions<MutualTlsForwardingOptions>()
+                .BindConfiguration(MutualTlsForwardingOptions.ConfigurationSectionKey);
+            serviceCollection.TryAddSingleton<
+                IProofOfPossessionService,
+                DefaultProofOfPossessionService
+            >();
+            serviceCollection.TryAddSingleton<IDPoPProofValidator, DefaultDPoPProofValidator>();
+            serviceCollection.TryAddSingleton<
+                IClientCertificateResolver,
+                DefaultClientCertificateResolver
+            >();
+            serviceCollection.TryAddSingleton<IDPoPProofReplayCache, DefaultDPoPProofReplayCache>();
+            serviceCollection.TryAddSingleton<IDPoPNonceService, DefaultDPoPNonceService>();
 
             serviceCollection.TryAddSingleton<
                 ICommandResponseHandler<

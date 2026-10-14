@@ -113,6 +113,7 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
             context.Object,
             client.Object,
             CreateGrant("api"),
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 
@@ -160,6 +161,7 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
                 OpenIdConstants.ScopeTypes.OpenId,
                 OpenIdConstants.ScopeTypes.OfflineAccess
             ),
+            ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );
 

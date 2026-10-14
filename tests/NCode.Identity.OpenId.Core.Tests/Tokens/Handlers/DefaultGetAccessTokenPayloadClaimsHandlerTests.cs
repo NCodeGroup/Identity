@@ -60,7 +60,11 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
     private (
         GetAccessTokenPayloadClaimsCommand command,
         Dictionary<string, object> payloadClaims
-    ) CreateCommand(SubjectAuthentication? subjectAuthentication, IReadOnlyList<string> scopes)
+    ) CreateCommand(
+        SubjectAuthentication? subjectAuthentication,
+        IReadOnlyList<string> scopes,
+        TokenConfirmation confirmation = default
+    )
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
@@ -77,6 +81,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             SubjectAuthentication = subjectAuthentication,
+            Confirmation = confirmation,
         };
 
         var tokenContext = new SecurityTokenContext(
@@ -149,6 +154,24 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
         await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Equal("existing-id", payloadClaims[JoseClaimNames.Payload.Jti]);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenProofOfPossessionBound_AddsCnfClaim()
+    {
+        var (command, payloadClaims) = CreateCommand(
+            CreateSubjectAuthentication(),
+            ["openid"],
+            new TokenConfirmation { JwkThumbprint = "jkt-value" }
+        );
+        payloadClaims[JoseClaimNames.Payload.Jti] = "existing-id";
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        var cnf = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(
+            payloadClaims[JoseClaimNames.Payload.Cnf]
+        );
+        Assert.Equal("jkt-value", cnf[OpenIdConstants.ConfirmationMethods.JwkThumbprint]);
     }
 
     #endregion

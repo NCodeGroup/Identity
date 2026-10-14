@@ -55,6 +55,7 @@ internal class DefaultClientCredentialsGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         ITokenRequest tokenRequest,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -81,6 +82,7 @@ internal class DefaultClientCredentialsGrantHandler(
             openIdContext,
             confidentialClient,
             tokenRequest,
+            proofOfPossessionBinding,
             cancellationToken
         );
 
@@ -91,6 +93,7 @@ internal class DefaultClientCredentialsGrantHandler(
         OpenIdContext openIdContext,
         OpenIdConfidentialClient openIdClient,
         ITokenRequest tokenRequest,
+        ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
@@ -109,6 +112,7 @@ internal class DefaultClientCredentialsGrantHandler(
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             Resources = tokenRequest.Resources,
+            Confirmation = proofOfPossessionBinding.Confirmation,
         };
 
         var securityToken = await TokenService.CreateAccessTokenAsync(
@@ -120,7 +124,7 @@ internal class DefaultClientCredentialsGrantHandler(
 
         tokenResponse.AccessToken = securityToken.TokenValue;
         tokenResponse.ExpiresIn = securityToken.TokenLifetime.Duration;
-        tokenResponse.TokenType = OpenIdConstants.TokenTypes.Bearer; // TODO: add support for DPoP
+        tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
 
         Debug.Assert(!scopes.Contains(OpenIdConstants.ScopeTypes.OpenId));
         Debug.Assert(!scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess));

@@ -277,6 +277,11 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported,
             asymmetricSigningAlgValuesSupported
         );
+        // DPoP proofs must be signed with an asymmetric algorithm (RFC 9449); never symmetric HS*.
+        settings.Set(
+            OpenIdSettingKeys.DPoPSigningAlgValuesSupported,
+            asymmetricSigningAlgValuesSupported
+        );
         // request_object signing may legitimately be symmetric (client_secret_jwt), so it keeps the full set.
         settings.Set(
             OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported,

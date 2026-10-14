@@ -10,6 +10,33 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Sender-constrained access tokens — DPoP (RFC 9449) + mutual-TLS (RFC 8705), issuance side (advances backlog
+  `F7`).** Access tokens can now be bound to a proof-of-possession key instead of being plain bearer tokens. A single
+  `IProofOfPossessionService` evaluates, once per token request, an optional **DPoP proof** (the `DPoP` header — a JWS
+  with `typ: dpop+jwt` and an embedded public JWK, validated for signature, `htm`/`htu`/`iat`/`jti` and replay against
+  the asymmetric `dpop_signing_alg_values_supported` set) and/or a **mutual-TLS client certificate**, then binds the
+  issued access token's `token_type` (`DPoP`/`Bearer`) and `cnf` confirmation claim (`jkt` / `x5t#S256`) uniformly
+  across every grant: the evaluated `ProofOfPossessionBinding` is passed first-class to `ITokenGrantHandler.HandleAsync`
+  and carried on `CreateSecurityTokenRequest.Confirmation`, which the access-token payload-claims handler reads to emit
+  `cnf`. New
+  per-client/tenant settings: `require_dpop`, `dpop_nonce_required`, `dpop_proof_lifetime`, and
+  `tls_client_certificate_bound_access_tokens`; discovery advertises `dpop_signing_alg_values_supported` and
+  `tls_client_certificate_bound_access_tokens` (secure-by-default, the latter off until opted in). New error codes
+  `invalid_dpop_proof` and `use_dpop_nonce` (with a `DPoP-Nonce` response header). Certificate ingestion lives in the
+  default `IClientCertificateResolver`, which reads the connection certificate directly or, when
+  `MutualTlsForwardingOptions.CertificateHeaderName` is configured (from the `OpenId:MutualTls` section), a **trusted**
+  forwarded header for any reverse-proxy / load-balancer / service-mesh topology (Base64-DER, PEM, URL-encoded PEM, or
+  Envoy XFCC) — no host code. The DPoP replay cache (`IDPoPProofReplayCache`) and nonce service (`IDPoPNonceService`)
+  run over the standard `IDistributedCache`: an in-memory provider is registered by default (single node) and a cluster
+  makes them cross-node by registering a shared provider (e.g. `AddStackExchangeRedisCache`). New public surface across
+  `NCode.Identity.OpenId.Abstractions` (constants, error codes, settings), `…Authentication.Abstractions` (the service
+  and resolver seams, `TokenConfirmation`, `ProofOfPossessionBinding`, `CreateSecurityTokenRequest.Confirmation`, the
+  `ITokenGrantHandler.HandleAsync` binding parameter, `MutualTlsForwardingOptions` / `MutualTlsClientCertificateFormat`).
+  Resource-server-side proof
+  validation, `dpop_jkt` at the authorization endpoint, refresh-token binding continuity, and `mtls_endpoint_aliases`
+  remain tracked follow-ups under `F7`. Design and rationale:
+  [ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md).
+
 - **Reachable HTTPS Playground host for the external conformance suite (completes backlog `T3`).** A dedicated
   `Conformance` launch profile turns the Playground OP into a real, externally reachable HTTPS process for the OpenID
   Foundation Conformance Suite. It binds all interfaces on the stable port (`https://0.0.0.0:5001;http://0.0.0.0:5000`)
@@ -724,7 +751,7 @@ change to the public API is a **major** version bump.
   `AuthenticatePasswordGrantCommand.AuthenticationProperties` parameter, and reuses the same timestamp for the issued
   token's `CreatedWhen`, so the ROPC ticket's `auth_time` and the token's `iat` are coherent and the leaf handler no
   longer materializes an empty `AuthenticationProperties`.
- With pairwise subject identifiers ([ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md)),
+  With pairwise subject identifiers ([ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md)),
   the `sub` in an `id_token_hint` is a per-sector pseudonym produced by a one-way projection the OP cannot reverse. The
   end-session handler previously consumed that pseudonym as if it were the stable principal, so for a pairwise client it
   silently matched no grants during subject-keyed revocation and double-projected the back-channel `logout_token` `sub`

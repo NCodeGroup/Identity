@@ -127,9 +127,9 @@ public class DiscoveryEndpointTests(PlaygroundApplicationFactory factory)
         var codeChallengeMethods = GetStringArray(root, "code_challenge_methods_supported");
         Assert.Equal(["S256"], codeChallengeMethods);
 
-        // subject_types_supported is required by OIDC Discovery; the default advertises 'public'.
+        // subject_types_supported is required by OIDC Discovery; the default advertises both 'public' and 'pairwise'.
         var subjectTypes = GetStringArray(root, "subject_types_supported");
-        Assert.Equal(["public"], subjectTypes);
+        Assert.Equal(["public", "pairwise"], subjectTypes);
 
         // id_token signing crosses a trust boundary, so no symmetric (HS*) algorithm is advertised.
         var idTokenSigningAlgs = GetStringArray(root, "id_token_signing_alg_values_supported");

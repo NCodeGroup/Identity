@@ -1090,22 +1090,51 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             };
 
             // subject_type: the subject identifier type a client uses — public or pairwise.
+            // Default (public): a client with no explicit value sees the stable public subject.
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.SubjectType,
+                Default = OpenIdConstants.SubjectTypes.Public,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
             };
 
-            // subject_types_supported: subject identifier types the server supports (public, pairwise).
-            // Default advertises "public" (OIDC Discovery expects this field); "pairwise" is added only if
-            // implemented (F9). Ceiling (Intersect): a child narrows the parent's set.
+            // sector_identifier_uri: groups clients into a single pairwise sector (OpenID Connect Core 1.0 §8.1); the
+            // host of this URI is the pairwise sector identifier. When unset the sector falls back to the common host
+            // of the client's redirect_uris (or the client_id when that is ambiguous). Not advertised in discovery.
+            // Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.SectorIdentifierUri,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // pairwise_salt: a stable, secret per-tenant salt mixed into the pairwise subject derivation to harden it
+            // against a guessed-principal preimage attack (OpenID Connect Core 1.0 §8.1). Derivation stays deterministic
+            // without it (the tenant id already isolates tenants), but configuring it is recommended. Not advertised.
+            // Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.PairwiseSalt,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // subject_types_supported: subject identifier types the server supports (public, pairwise). Both are
+            // implemented (F9), so both are advertised by default. Ceiling (Intersect): a child narrows the parent's set.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SubjectTypesSupported,
-                Default = [OpenIdConstants.SubjectTypes.Public],
+                Default =
+                [
+                    OpenIdConstants.SubjectTypes.Public,
+                    OpenIdConstants.SubjectTypes.Pairwise,
+                ],
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,

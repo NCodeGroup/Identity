@@ -18,6 +18,7 @@
 
 using NCode.Identity.Claims;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Mediator;
 
@@ -27,11 +28,13 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// Provides a default implementation for a <see cref="GetAccessTokenSubjectClaimsCommand"/> handler that generates the
 /// subject claims for an access token. Custom claims are added by additional handlers provided by the application.
 /// </summary>
-internal class DefaultGetAccessTokenSubjectClaimsHandler(IClaimsService claimsService)
-    : ICommandHandler<GetAccessTokenSubjectClaimsCommand>,
-        ISupportMediatorPriority
+internal class DefaultGetAccessTokenSubjectClaimsHandler(
+    IClaimsService claimsService,
+    ISubjectIdentifierService subjectIdentifierService
+) : ICommandHandler<GetAccessTokenSubjectClaimsCommand>, ISupportMediatorPriority
 {
     private IClaimsService ClaimsService { get; } = claimsService;
+    private ISubjectIdentifierService SubjectIdentifierService { get; } = subjectIdentifierService;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.Low;
@@ -42,7 +45,7 @@ internal class DefaultGetAccessTokenSubjectClaimsHandler(IClaimsService claimsSe
         CancellationToken cancellationToken
     )
     {
-        var (_, _, tokenContext, targetClaims) = command;
+        var (openIdContext, openIdClient, tokenContext, targetClaims) = command;
         var (tokenRequest, _, _, _) = tokenContext;
 
         if (!tokenRequest.SubjectAuthentication.HasValue)
@@ -50,14 +53,23 @@ internal class DefaultGetAccessTokenSubjectClaimsHandler(IClaimsService claimsSe
             return ValueTask.CompletedTask;
         }
 
-        var (_, _, sourceClaims, _) = tokenRequest.SubjectAuthentication.Value;
+        var subjectAuthentication = tokenRequest.SubjectAuthentication.Value;
+        var sourceClaims = subjectAuthentication.Subject;
+
+        // 'sub' is emitted explicitly (projected to the client's public/pairwise identifier), never copied from the
+        // source principal, so a pairwise client never sees the stable principal identifier.
+        SubjectIdentifierService.AddProjectedSubjectClaim(
+            openIdContext,
+            openIdClient,
+            subjectAuthentication,
+            targetClaims
+        );
 
         ClaimsService.CopyClaims(
             sourceClaims,
             targetClaims,
             preventDuplicates: true,
             JoseClaimNames.Payload.Idp,
-            JoseClaimNames.Payload.Sub,
             JoseClaimNames.Payload.AuthTime,
             JoseClaimNames.Payload.Acr
         );

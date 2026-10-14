@@ -26,11 +26,14 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.PrincipalResolution;
+using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 using NCode.Registration.AspNetCore;
 
@@ -45,6 +48,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// </summary>
 internal sealed class InteractiveAuthenticationEndpointHandler(
     IInteractiveCredentialVerifier credentialVerifier,
+    IPrincipalResolver principalResolver,
     IConsentService consentService,
     ISessionService sessionService,
     TimeProvider timeProvider,
@@ -53,6 +57,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 ) : IEndpointProvider
 {
     private IInteractiveCredentialVerifier CredentialVerifier { get; } = credentialVerifier;
+    private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IConsentService ConsentService { get; } = consentService;
     private ISessionService SessionService { get; } = sessionService;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -206,6 +211,17 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             return TypedResults.Redirect(BuildLoginRedirect(safeReturnUrl, "invalid_credentials"));
         }
 
+        // Resolve the verified credential to the stable, server-owned principal id and normalize the cookie subject to
+        // it, so the session, every subsequent authorize request, and the grants they issue all key on the single
+        // principal regardless of how the user authenticates (ADR-0035). Without this the interactive path would carry
+        // the raw local-account id while ROPC/bearer carry the resolved principal, keying the same user's grants
+        // inconsistently.
+        principal = await NormalizeSubjectToPrincipalAsync(
+            openIdContext,
+            principal,
+            httpContext.RequestAborted
+        );
+
         // Establish a server-side session and mint its opaque `sid` onto the cookie principal so every subsequent
         // authorize request resolves the same session and the `sid` claim can be emitted into issued tokens.
         await EstablishSessionAsync(openIdContext, principal, httpContext.RequestAborted);
@@ -255,6 +271,53 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
         var sessionId = await SessionService.CreateAsync(openIdContext, request, cancellationToken);
         identity.AddClaim(new Claim(JoseClaimNames.Payload.Sid, sessionId));
+    }
+
+    /// <summary>
+    /// Resolves the verified credential to the stable, server-owned principal id and returns a principal whose subject
+    /// claim is that principal id, so the cookie, session, and every grant key on one subject (ADR-0035).
+    /// </summary>
+    private async ValueTask<ClaimsPrincipal> NormalizeSubjectToPrincipalAsync(
+        OpenIdContext openIdContext,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken
+    )
+    {
+        var principalId = await PrincipalResolver.ResolvePrincipalIdAsync(
+            openIdContext,
+            principal,
+            cancellationToken
+        );
+        if (string.IsNullOrEmpty(principalId))
+        {
+            return principal;
+        }
+
+        var subjectClaimTypes = openIdContext.Tenant.SettingsProvider.Collection.TryGetValue(
+            OpenIdSettingKeys.SubjectClaimTypes,
+            out var configured
+        )
+            ? configured
+            : OpenIdConstants.DefaultSubjectClaimTypes;
+        var primaryClaimType = subjectClaimTypes.First();
+
+        var identity =
+            principal.Identities.FirstOrDefault(candidate => candidate.IsAuthenticated)
+            ?? principal.Identities.First();
+
+        var claims = identity
+            .Claims.Where(claim => !subjectClaimTypes.Contains(claim.Type))
+            .Append(new Claim(primaryClaimType, principalId))
+            .ToList();
+
+        var normalizedIdentity = new ClaimsIdentity(
+            claims,
+            identity.AuthenticationType,
+            identity.NameClaimType,
+            identity.RoleClaimType
+        );
+
+        return new ClaimsPrincipal(normalizedIdentity);
     }
 
     private DateTimeOffset ReadAuthTime(ClaimsPrincipal principal)

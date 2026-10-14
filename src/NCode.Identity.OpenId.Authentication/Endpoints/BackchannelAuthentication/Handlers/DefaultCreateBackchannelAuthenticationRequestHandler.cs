@@ -89,7 +89,7 @@ internal class DefaultCreateBackchannelAuthenticationRequestHandler(
             Status = PersistedGrantStatus.Active,
             TenantId = tenantId,
             ClientId = openIdClient.ClientId,
-            SubjectId = subjectAuthentication.SubjectId,
+            SubjectId = subjectAuthentication.PrincipalId,
             SessionId = null,
             Payload = payload,
         };

@@ -577,6 +577,16 @@ public static class OpenIdSettingNames
     public const string ServiceDocumentation = "service_documentation";
 
     /// <summary>
+    /// Contains the name of <c>pairwise_salt</c> setting.
+    /// </summary>
+    public const string PairwiseSalt = "pairwise_salt";
+
+    /// <summary>
+    /// Contains the name of <c>sector_identifier_uri</c> setting.
+    /// </summary>
+    public const string SectorIdentifierUri = "sector_identifier_uri";
+
+    /// <summary>
     /// Contains the name of <c>subject_max_age</c> setting.
     /// </summary>
     public const string SubjectMaxAge = "subject_max_age";

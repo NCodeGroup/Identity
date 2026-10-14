@@ -104,7 +104,7 @@ internal class DefaultRefreshTokenGrantHandler(
                 await AuditEventRecorder.RecordRefreshTokenReplayAsync(
                     openIdContext,
                     openIdClient,
-                    persistedGrant.Payload.SubjectAuthentication?.SubjectId,
+                    persistedGrant.Payload.SubjectAuthentication?.PrincipalId,
                     cancellationToken
                 );
 

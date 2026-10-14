@@ -27,6 +27,7 @@ using NCode.Identity.JsonWebTokens;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
@@ -56,6 +57,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
     private Mock<IAlgorithmCollectionProvider> MockAlgorithmCollectionProvider { get; }
     private Mock<ICredentialSelector> MockCredentialSelector { get; }
     private Mock<IJsonWebTokenService> MockJsonWebTokenService { get; }
+    private Mock<ISubjectIdentifierService> MockSubjectIdentifierService { get; }
     private Mock<IJobDispatcher> MockJobDispatcher { get; }
     private DefaultBackChannelLogoutNotifier Notifier { get; }
 
@@ -68,6 +70,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         MockAlgorithmCollectionProvider = CreateStrictMock<IAlgorithmCollectionProvider>();
         MockCredentialSelector = CreateStrictMock<ICredentialSelector>();
         MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
+        MockSubjectIdentifierService = CreateStrictMock<ISubjectIdentifierService>();
         MockJobDispatcher = CreateStrictMock<IJobDispatcher>();
 
         Notifier = new DefaultBackChannelLogoutNotifier(
@@ -76,6 +79,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             MockAlgorithmCollectionProvider.Object,
             MockCredentialSelector.Object,
             MockJsonWebTokenService.Object,
+            MockSubjectIdentifierService.Object,
             MockJobDispatcher.Object
         );
     }
@@ -193,6 +197,10 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         var mockClient = CreateClient(LogoutUri);
         SetupClientId(mockClient);
         SetupSigningCredentials(mockClient, found: true);
+        MockSubjectIdentifierService
+            .Setup(x => x.ProjectSubjectId(mockContext.Object, mockClient.Object, SubjectId))
+            .Returns("pairwise-sub")
+            .Verifiable();
         var captured = new EncodeJwtParameters[1];
         SetupTokenGeneration(captured);
         SetupDispatch();
@@ -215,7 +223,8 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         Assert.Equal(Issuer, parameters.Issuer);
         Assert.Equal(ClientId, parameters.Audience);
         Assert.NotNull(parameters.ExtraPayloadClaims);
-        Assert.Equal(SubjectId, parameters.ExtraPayloadClaims[JoseClaimNames.Payload.Sub]);
+        // the logout_token carries the projected (pairwise) subject, not the raw principal id
+        Assert.Equal("pairwise-sub", parameters.ExtraPayloadClaims[JoseClaimNames.Payload.Sub]);
         Assert.Equal(SessionId, parameters.ExtraPayloadClaims[JoseClaimNames.Payload.Sid]);
         Assert.True(
             parameters.ExtraPayloadClaims.ContainsKey(

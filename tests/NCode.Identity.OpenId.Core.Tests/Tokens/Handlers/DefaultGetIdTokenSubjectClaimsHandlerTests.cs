@@ -38,12 +38,26 @@ namespace NCode.Identity.OpenId.Core.Tests.Tokens.Handlers;
 public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
 {
     private Mock<IClaimsService> MockClaimsService { get; }
+    private Mock<ISubjectIdentifierService> MockSubjectIdentifierService { get; }
     private DefaultGetIdTokenSubjectClaimsHandler Handler { get; }
 
     public DefaultGetIdTokenSubjectClaimsHandlerTests()
     {
         MockClaimsService = CreateStrictMock<IClaimsService>();
-        Handler = new DefaultGetIdTokenSubjectClaimsHandler(MockClaimsService.Object);
+        MockSubjectIdentifierService = CreateStrictMock<ISubjectIdentifierService>();
+        MockSubjectIdentifierService
+            .Setup(x =>
+                x.ProjectSubjectId(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>()
+                )
+            )
+            .Returns((OpenIdContext _, OpenIdClient _, string principalId) => principalId);
+        Handler = new DefaultGetIdTokenSubjectClaimsHandler(
+            MockClaimsService.Object,
+            MockSubjectIdentifierService.Object
+        );
     }
 
     #region Scaffolding
@@ -307,6 +321,46 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
         var claimTypes = CaptureCopiedClaimTypes(command);
 
         Assert.Contains(JoseClaimNames.Payload.AuthTime, claimTypes);
+    }
+
+    [Fact]
+    public async Task HandleAsync_EmitsProjectedSubjectId_AndNeverCopiesSub()
+    {
+        // the service projects the stable principal id to a per-client pseudonym
+        MockSubjectIdentifierService
+            .Setup(x =>
+                x.ProjectSubjectId(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    "subject-id"
+                )
+            )
+            .Returns("pairwise-pseudonym")
+            .Verifiable();
+
+        var requestClaims = new RequestClaims
+        {
+            // a client that explicitly requests 'sub' must still never receive the raw principal id
+            IdToken = new RequestClaimDictionary
+            {
+                [JoseClaimNames.Payload.Sub] = new RequestClaim { Essential = true },
+            },
+        };
+        var command = CreateCommand(
+            CreateSubjectAuthentication(),
+            ["openid"],
+            requestClaims,
+            alwaysIncludeAuthTime: false
+        );
+
+        var claimTypes = CaptureCopiedClaimTypes(command);
+
+        Assert.DoesNotContain(JoseClaimNames.Payload.Sub, claimTypes);
+        var subClaim = Assert.Single(
+            command.SubjectClaims,
+            claim => claim.Type == JoseClaimNames.Payload.Sub
+        );
+        Assert.Equal("pairwise-pseudonym", subClaim.Value);
     }
 
     #endregion

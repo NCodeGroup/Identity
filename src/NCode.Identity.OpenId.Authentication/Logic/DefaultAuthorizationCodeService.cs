@@ -58,7 +58,7 @@ internal class DefaultAuthorizationCodeService(
     {
         var tenantId = openIdContext.Tenant.TenantId;
         var clientId = openIdClient.ClientId;
-        var subjectId = subjectAuthentication.SubjectId;
+        var subjectId = subjectAuthentication.PrincipalId;
 
         var authorizationCode = CryptoService.GenerateUrlSafeKey();
 

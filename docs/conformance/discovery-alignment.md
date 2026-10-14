@@ -9,7 +9,7 @@ retained as the field-by-field reference and rationale. Parent design:
 
 - `response_types_supported` defaults to `["code"]` (no implicit/hybrid combinations); `grant_types_supported` drops
   `implicit`; `code_challenge_methods_supported` defaults to `["S256"]`; `subject_types_supported` defaults to
-  `["public"]`.
+  `["public", "pairwise"]`.
 - The cross-trust-boundary token-signing fields (`id_token`/`userinfo`/`access_token`) advertise asymmetric algorithms
   only (never symmetric `HS256`); `request_object` / `token_endpoint_auth` signing keep the full set for
   `client_secret_jwt`.
@@ -57,7 +57,7 @@ Verify each discoverable field against actual support for the Basic/Config profi
 | `authorization_endpoint`/`token_endpoint`/`jwks_uri`/`userinfo_endpoint` | origin-relative, present                       | Emitted from `EndpointDataSource`                     |
 | `response_types_supported`                                               | `["code"]`                                     | **Drop `implicit`/hybrid** until those flows verified |
 | `grant_types_supported`                                                  | `["authorization_code","refresh_token"]`       | **Drop `implicit`**; match the seeded client's grants |
-| `subject_types_supported`                                                | `["public"]`                                   | `pairwise` only if implemented (`F9`)                 |
+| `subject_types_supported`                                                | `["public","pairwise"]`                        | Both implemented (`F9`, ADR-0093)                     |
 | `id_token_signing_alg_values_supported`                                  | `["RS256"]`                                    | Must match the key served at `jwks_uri`               |
 | `scopes_supported`                                                       | incl. `openid`, `profile`, `email`             | Suite requests these in standard-claims tests         |
 | `claims_supported`                                                       | the claims actually returned                   | Over-advertising triggers warnings                    |

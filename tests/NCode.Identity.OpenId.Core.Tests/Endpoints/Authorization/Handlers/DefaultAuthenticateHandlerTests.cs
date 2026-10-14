@@ -149,7 +149,7 @@ public class DefaultAuthenticateHandlerTests : BaseTests
         var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsAuthenticated);
-        Assert.Equal("subject-id", result.Ticket.Value.SubjectId);
+        Assert.Equal("subject-id", result.Ticket.Value.PrincipalId);
     }
 
     #endregion

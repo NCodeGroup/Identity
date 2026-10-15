@@ -365,9 +365,23 @@ entry and/or ADR that closed it.
       `oidcc-alternate-happy-flow`, `oidcc-ensure-request-with-acr-values-succeeds`, `oidcc-codereuse-30seconds`,
       `oidcc-claims-essential` — not yet inspected; likely minor (extra/absent claims, header expectations) but each needs
       a look to confirm it is not masking a real gap.
-    - **`SKIPPED` (4):** `oidcc-idtoken-unsigned`, `oidcc-{request-uri,unsigned-request-object}-supported-correctly-or-rejected-as-unsupported`,
-      `oidcc-ensure-request-object-with-redirect-uri` — expected (the OP does not advertise unsigned-id_token / JAR
-      request-object support); confirm each skip is intentional and record it in `expected-skips.json`.
+    - **`SKIPPED` (4) — spec-conformant optional-feature skips (plus one behavior the skip leaves unverified).**
+      Conformance is adherence to the spec, not a judgment about secure defaults — and the relevant spec fact is that
+      **`alg=none` support is OPTIONAL**: OIDC Discovery §3 says the `none` value for
+      `request_object_signing_alg_values_supported` _MAY_ be used, and an unsigned (`alg:none`) `id_token` is permitted
+      only for flows that return no `id_token` from the authorization endpoint (the code flow) and only when the client
+      registers it. The OP advertises signing algs without `none` (both `id_token_signing_alg_values_supported` and
+      `request_object_signing_alg_values_supported` are `RS*/PS*/ES*`), so the suite skips the optional-feature tests
+      (`oidcc-idtoken-unsigned` and the three request-object tests
+      `oidcc-{request-uri-unsigned,unsigned-request-object}-supported-correctly-or-rejected-as-unsupported`,
+      `oidcc-ensure-request-object-with-redirect-uri`, each per its own `testSummary`). The skips therefore do **not**
+      indicate non-conformance and do not block Basic OP certification. The OP **does** implement and advertise JAR
+      itself (`request_parameter_supported`/`request_uri_parameter_supported` are `true`;
+      `DefaultLoadAuthorizationRequestHandler` processes `request` and `request_uri`). **Residual item the skip hides:**
+      OIDC Core §6.1 still requires an OP that receives an unsigned request object it does not support to either process
+      it or return `request_not_supported` — verify the OP returns exactly `request_not_supported` (not a generic error
+      or 500) for an `alg:none` request object, since the skipped test would otherwise have covered it. Then codify the
+      skips in `expected-skips.json` so a future run that stops skipping them is flagged.
       Touch points: [`build/conformance`](build/conformance), the authorization/token endpoint handlers under
       [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication).
 

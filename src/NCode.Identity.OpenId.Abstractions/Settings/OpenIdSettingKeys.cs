@@ -342,6 +342,35 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.IdTokenSigningAlgValuesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'jwks_uri' setting.
+    /// </summary>
+    public static SettingKey<string> JwksUri => new(OpenIdSettingNames.JwksUri);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'jwks_uri_allowed_hosts' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> JwksUriAllowedHosts =>
+        new(OpenIdSettingNames.JwksUriAllowedHosts);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'jwks_uri_fetch_timeout' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> JwksUriFetchTimeout =>
+        new(OpenIdSettingNames.JwksUriFetchTimeout);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'jwks_uri_max_size_bytes' setting.
+    /// </summary>
+    public static SettingKey<int> JwksUriMaxSizeBytes =>
+        new(OpenIdSettingNames.JwksUriMaxSizeBytes);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'jwks_uri_cache_duration' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> JwksUriCacheDuration =>
+        new(OpenIdSettingNames.JwksUriCacheDuration);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'op_policy_uri' setting.
     /// </summary>
     public static SettingKey<string> OpenIdProviderPolicyUri =>

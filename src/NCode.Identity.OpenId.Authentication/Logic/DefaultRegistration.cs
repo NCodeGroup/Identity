@@ -118,6 +118,10 @@ internal static class DefaultRegistration
 
             serviceCollection.AddHttpClient();
             serviceCollection.TryAddSingleton<
+                IOutboundHttpForgeryGuard,
+                OutboundHttpForgeryGuard
+            >();
+            serviceCollection.TryAddSingleton<
                 Sessions.IBackChannelLogoutNotifier,
                 Sessions.DefaultBackChannelLogoutNotifier
             >();

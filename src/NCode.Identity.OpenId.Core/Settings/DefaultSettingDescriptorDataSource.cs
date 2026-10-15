@@ -1245,6 +1245,63 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // jwks_uri: the per-client URI of the client's JSON Web Key Set, resolved at runtime to obtain the client's
+            // public verification keys for private_key_jwt client authentication and signed request objects (JAR). Not
+            // advertised in discovery (it is a per-client value). Override (Replace): a child fully replaces the parent.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.JwksUri,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // jwks_uri_allowed_hosts: SSRF allow-list for the runtime client jwks_uri fetch. When set, the jwks_uri
+            // host must appear in this list; unset = no host allow-list, though the always-on private/loopback/
+            // link-local address block still applies. Not advertised. Ceiling (Intersect): a child narrows the parent.
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.JwksUriAllowedHosts,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // jwks_uri_fetch_timeout: wall-clock cap on the runtime client jwks_uri fetch. Not advertised.
+            // Ceiling (Min): a child may only shorten it.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.JwksUriFetchTimeout,
+                Default = TimeSpan.FromSeconds(10),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // jwks_uri_max_size_bytes: cap on the response body size accepted from the runtime client jwks_uri fetch,
+            // defending against an oversized-response resource-exhaustion vector. Not advertised. Ceiling (Min): a
+            // child may only shrink it.
+            yield return new SettingDescriptor<int>
+            {
+                Name = OpenIdSettingNames.JwksUriMaxSizeBytes,
+                Default = 100 * 1024,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // jwks_uri_cache_duration: how long a successfully fetched client JWKS is cached before re-fetch, bounding
+            // both key-rotation propagation delay and fetch load. Not advertised. Ceiling (Min): a child may only
+            // shorten it.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.JwksUriCacheDuration,
+                Default = TimeSpan.FromMinutes(15),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
             // sector_identifier_uri_allowed_hosts: SSRF allow-list for the registration-time sector_identifier_uri
             // fetch (OpenID Connect Core 1.0 §8.1). When set, the sector_identifier_uri host must appear in this list;
             // unset = no host allow-list (ADR-0010), though the always-on private/loopback/link-local address block

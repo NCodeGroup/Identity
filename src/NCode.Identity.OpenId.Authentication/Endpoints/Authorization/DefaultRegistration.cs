@@ -56,8 +56,21 @@ internal static class DefaultRegistration
 
             var serviceCollection = builder.ServiceCollection;
 
-            // DefaultLoadAuthorizationRequestHandler fetches request_uri payloads via IHttpClientFactory (from AddHttpClient).
-            serviceCollection.AddHttpClient();
+            // The JAR request_uri fetch (RFC 9101) targets a client-supplied URL, so it uses a dedicated HTTP client
+            // whose connections are pinned away from private/loopback/link-local addresses (SSRF floor) and which never
+            // follows redirects, so a redirect cannot bounce the fetch to an internal host.
+            serviceCollection
+                .AddHttpClient(DefaultLoadAuthorizationRequestHandler.HttpClientName)
+                .ConfigurePrimaryHttpMessageHandler(
+                    serviceProvider => new System.Net.Http.SocketsHttpHandler
+                    {
+                        AllowAutoRedirect = false,
+                        ConnectCallback = serviceProvider
+                            .GetRequiredService<Logic.IOutboundHttpForgeryGuard>()
+                            .ConnectAsync,
+                        AutomaticDecompression = System.Net.DecompressionMethods.All,
+                    }
+                );
 
             // Logic
             serviceCollection.TryAddSingleton<

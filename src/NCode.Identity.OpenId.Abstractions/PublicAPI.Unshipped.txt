@@ -321,6 +321,11 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenEncryptionRequire
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenEncryptionZipValuesSupported = "id_token_encryption_zip_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenLifetime = "id_token_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.JwksUri = "jwks_uri" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.JwksUriAllowedHosts = "jwks_uri_allowed_hosts" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.JwksUriCacheDuration = "jwks_uri_cache_duration" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.JwksUriFetchTimeout = "jwks_uri_fetch_timeout" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.JwksUriMaxSizeBytes = "jwks_uri_max_size_bytes" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.OpenIdProviderPolicyUri = "op_policy_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.OpenIdProviderTermsOfServiceUri = "op_tos_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PromptValuesSupported = "prompt_values_supported" -> string!
@@ -784,6 +789,11 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionRequire
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionZipValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.JwksUri.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.JwksUriAllowedHosts.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.JwksUriCacheDuration.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.JwksUriFetchTimeout.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.JwksUriMaxSizeBytes.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.OpenIdProviderPolicyUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.OpenIdProviderTermsOfServiceUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PromptValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>

@@ -132,19 +132,14 @@ entry and/or ADR that closed it.
     authentication `private_key_jwt` + `client_secret_jwt`** is **done**
     ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)), and the **verify-only public-key `SecretKey`
     primitive** that `private_key_jwt` needs is **done** ([ADR-0103](docs/adr/0103-public-only-asymmetric-secret-keys.md)).
+    **Client public-key onboarding** is **done**: inline JWK Set import at registration
+    ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md)) and **runtime `jwks_uri` resolution** via the
+    `IClientKeyResolver` seam, consumed by the `client_assertion` handlers and the JAR loader, with the
+    `sector_identifier_uri` SSRF floor generalized into a shared, injectable, additive-deny-extensible
+    `IOutboundHttpForgeryGuard` now applied to every outbound client-URL fetch (including the previously-unguarded JAR
+    `request_uri` fetch) ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).
 
     **Remaining work, in order.**
-    - **Phase 0 — client public-key onboarding (continues).** The verify-only key primitive (ADR-0103) is done. Still to
-      do: **(a)** a JWK-JSON → verify-only `SecretKey` parser (RSA `n`/`e`, EC `crv`/`x`/`y` imported via `RSAParameters`
-      / `ECParameters` into `ISecretKeyFactory.CreateRsaPublicKey` / `CreateEccPublicKey`); **(b)** an SSRF-guarded
-      `jwks_uri` fetch + cache — generalize the existing `SectorIdentifierHttpGuard.ConnectAsync` SSRF floor
-      ([ADR-0095](docs/adr/0095-sector-identifier-uri-fetch-and-ssrf-guard.md)) into a shared outbound guard and add a
-      named HTTP client + fetch settings (timeout / max-size / allowed-hosts / cache-TTL) mirroring the
-      `sector_identifier_uri_*` settings; **(c)** an `IClientKeyResolver` that merges the client's stored `SecretKeys`
-      with keys resolved from its `jwks_uri` setting (currently **stored but never consumed** —
-      `RegisterClientRequest.JwksUri` → setting, but `DefaultOpenIdClientFactory` builds `SecretKeys` from stored secrets
-      only), wired into `ClientAssertionClientAuthenticationHandler` and the JAR loader; then **(d)** a
-      `private_key_jwt`-via-`jwks_uri` end-to-end test. Needs its own ADR for the `jwks_uri` resolution + SSRF control.
     - **Phase 1 — mTLS client authentication.** `tls_client_auth` + `self_signed_tls_client_auth` (RFC 8705 §2), distinct
       from the already-implemented cert-bound **tokens**. Reuse `IClientCertificateResolver` (exists, under
       `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/`). `self_signed_tls_client_auth` matches the
@@ -172,6 +167,17 @@ entry and/or ADR that closed it.
     **Spun-out items (record when starting):** a **JARM + authorization response-mode extensibility seam** work item (the
     response modes are a hardcoded switch in `DefaultAuthorizationResultExecutor` today); **FAPI 1.0 Advanced**; and **S3**
     BYOK static public-key import (secondary to `jwks_uri`).
+
+- **`F28` — Complete outbound-fetch SSRF coverage and bound the `request_uri` fetch.** The shared
+  `IOutboundHttpForgeryGuard` ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md))
+  now guards the `sector_identifier_uri`, `jwks_uri`, and JAR `request_uri` fetches, but two gaps remain. **(a)** The JAR
+  `request_uri` fetch (`DefaultLoadAuthorizationRequestHandler.FetchRequestUriAsync`) reads the response body with **no
+  size cap** (a DoS vector) and has no fetch-timeout/allowed-hosts settings — add a `request_uri_*` settings family
+  mirroring `jwks_uri_*` and a capped reader. **(b)** The **server→client deliveries** that POST to client-registered
+  URLs — back-channel logout (`DefaultBackChannelLogoutNotifier`, `backchannel_logout_uri`) and CIBA push notification
+  (`ICibaNotificationService`, `client_notification_endpoint`) — use plain `IHttpClientFactory` clients with **no** SSRF
+  guard; route them through the shared guard's named-client pattern (guard + no auto-redirect) so a registered internal
+  URL cannot turn the OP into a confused deputy.
 
 - **`F27` — JARM (JWT Secured Authorization Response Mode) + response-mode extensibility seam.** Signed/encrypted
   authorization responses (`query.jwt`, `fragment.jwt`, `form_post.jwt`, `jwt`). **Not required by FAPI 2.0** (which

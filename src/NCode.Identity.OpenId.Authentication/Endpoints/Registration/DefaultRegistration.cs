@@ -20,6 +20,7 @@ using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
+using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Registration;
@@ -56,14 +57,14 @@ internal static class DefaultRegistration
             // follows redirects, so a redirect cannot bounce the fetch to an internal host.
             serviceCollection
                 .AddHttpClient(DefaultSectorIdentifierValidator.HttpClientName)
-                .ConfigurePrimaryHttpMessageHandler(() =>
-                    new SocketsHttpHandler
-                    {
-                        AllowAutoRedirect = false,
-                        ConnectCallback = SectorIdentifierHttpGuard.ConnectAsync,
-                        AutomaticDecompression = DecompressionMethods.All,
-                    }
-                );
+                .ConfigurePrimaryHttpMessageHandler(serviceProvider => new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false,
+                    ConnectCallback = serviceProvider
+                        .GetRequiredService<IOutboundHttpForgeryGuard>()
+                        .ConnectAsync,
+                    AutomaticDecompression = DecompressionMethods.All,
+                });
         }
     }
 }

@@ -37,12 +37,19 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 internal class DefaultLoadAuthorizationRequestHandler(
     ILogger<DefaultLoadAuthorizationRequestHandler> logger,
     IJsonWebTokenService jsonWebTokenService,
-    IHttpClientFactory httpClientFactory
+    IHttpClientFactory httpClientFactory,
+    IClientKeyResolver clientKeyResolver
 ) : ICommandResponseHandler<LoadAuthorizationRequestCommand, IAuthorizationRequest>
 {
     private ILogger<DefaultLoadAuthorizationRequestHandler> Logger { get; } = logger;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
+    private IClientKeyResolver ClientKeyResolver { get; } = clientKeyResolver;
+
+    /// <summary>
+    /// The name of the SSRF-guarded HTTP client used to fetch a JAR <c>request_uri</c> payload (RFC 9101).
+    /// </summary>
+    internal const string HttpClientName = "NCode.Identity.OpenId.RequestUri";
 
     /// <inheritdoc />
     public async ValueTask<IAuthorizationRequest> HandleAsync(
@@ -132,8 +139,13 @@ internal class DefaultLoadAuthorizationRequestHandler(
         JsonElement jwtPayload;
         try
         {
+            var validationKeys = await ClientKeyResolver.ResolveSecretKeysAsync(
+                openIdClient,
+                cancellationToken
+            );
+
             var parameters = new ValidateJwtParameters()
-                .UseValidationKeys(openIdClient.SecretKeys)
+                .UseValidationKeys(validationKeys)
                 .ValidateIssuer(openIdClient.ClientId)
                 .ValidateCertificateLifeTime()
                 .ValidateTokenLifeTime();
@@ -200,7 +212,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
 
         request.Options.Set(new HttpRequestOptionsKey<OpenIdClient>("OpenIdClient"), openIdClient);
 
-        using var httpClient = HttpClientFactory.CreateClient();
+        using var httpClient = HttpClientFactory.CreateClient(HttpClientName);
 
         try
         {

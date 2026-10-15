@@ -31,8 +31,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
 /// URIs (OpenID Connect Core 1.0 §8.1). The fetch is guarded against server-side request forgery: the URI must be
 /// <c>https</c>, its host must satisfy the optional <c>sector_identifier_uri_allowed_hosts</c> allow-list, the
 /// connection is pinned away from private/loopback/link-local addresses by
-/// <see cref="SectorIdentifierHttpGuard"/>, redirects are not followed, and both a wall-clock timeout and a response
-/// size cap bound the request.
+/// <see cref="NCode.Identity.OpenId.Authentication.Logic.OutboundHttpForgeryGuard"/>, redirects are not followed, and
+/// both a wall-clock timeout and a response size cap bound the request.
 /// </summary>
 internal class DefaultSectorIdentifierValidator(IHttpClientFactory httpClientFactory)
     : ISectorIdentifierValidator
@@ -68,7 +68,7 @@ internal class DefaultSectorIdentifierValidator(IHttpClientFactory httpClientFac
         }
 
         // Optional SSRF allow-list: when configured, the host must be listed (the always-on private-address block in
-        // SectorIdentifierHttpGuard applies regardless).
+        // OutboundHttpForgeryGuard applies regardless).
         if (
             settings.TryGetValue(
                 OpenIdSettingKeys.SectorIdentifierUriAllowedHosts,

@@ -50,7 +50,8 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
     ILogger logger,
     IJsonWebTokenService jsonWebTokenService,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
-    IClientAssertionReplayCache replayCache
+    IClientAssertionReplayCache replayCache,
+    IClientKeyResolver clientKeyResolver
 ) : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger)
 {
     // The replay record is retained until the assertion can no longer be accepted (its 'exp' plus a clock-skew margin).
@@ -60,6 +61,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
     private IClientAssertionReplayCache ReplayCache { get; } = replayCache;
+    private IClientKeyResolver ClientKeyResolver { get; } = clientKeyResolver;
 
     /// <summary>
     /// When the assertion's signing <paramref name="algorithm"/> belongs to this handler's key family, returns
@@ -230,11 +232,17 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
 
         var validAudiences = GetValidAudiences(openIdContext);
 
+        // The effective key set includes keys resolved at runtime from the client's jwks_uri (when configured).
+        var validationKeys = await ClientKeyResolver.ResolveSecretKeysAsync(
+            publicClient,
+            cancellationToken
+        );
+
         ValidateJwtResult result;
         try
         {
             var parameters = new ValidateJwtParameters()
-                .UseValidationKeys(publicClient.SecretKeys)
+                .UseValidationKeys(validationKeys)
                 .ValidateIssuer(clientId)
                 .ValidateClaim(
                     JoseClaimNames.Payload.Sub,

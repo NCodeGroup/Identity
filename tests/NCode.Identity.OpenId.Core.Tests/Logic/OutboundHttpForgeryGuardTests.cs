@@ -17,19 +17,23 @@
 #endregion
 
 using System.Net;
-using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
+using NCode.Identity.OpenId.Authentication.Logic;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Registration;
+namespace NCode.Identity.OpenId.Core.Tests.Logic;
 
-public class SectorIdentifierHttpGuardTests
+public class OutboundHttpForgeryGuardTests
 {
+    private static OutboundHttpForgeryGuard CreateGuard(params IOutboundAddressFilter[] filters) =>
+        new(filters);
+
     [Theory]
     [InlineData("127.0.0.1")] // loopback
     [InlineData("0.0.0.0")] // "this" network
     [InlineData("10.1.2.3")] // private
     [InlineData("100.64.0.1")] // CGNAT
     [InlineData("169.254.1.1")] // link-local
+    [InlineData("169.254.169.254")] // cloud instance metadata
     [InlineData("172.16.0.1")] // private
     [InlineData("172.31.255.255")] // private
     [InlineData("192.168.1.1")] // private
@@ -48,7 +52,8 @@ public class SectorIdentifierHttpGuardTests
     [InlineData("::ffff:10.0.0.1")] // IPv4-mapped private
     public void IsDisallowedAddress_PrivateOrReserved_ReturnsTrue(string address)
     {
-        Assert.True(SectorIdentifierHttpGuard.IsDisallowedAddress(IPAddress.Parse(address)));
+        var guard = CreateGuard();
+        Assert.True(guard.IsDisallowedAddress(IPAddress.Parse(address)));
     }
 
     [Theory]
@@ -58,6 +63,37 @@ public class SectorIdentifierHttpGuardTests
     [InlineData("2606:2800:220:1:248:1893:25c8:1946")] // public IPv6
     public void IsDisallowedAddress_PublicUnicast_ReturnsFalse(string address)
     {
-        Assert.False(SectorIdentifierHttpGuard.IsDisallowedAddress(IPAddress.Parse(address)));
+        var guard = CreateGuard();
+        Assert.False(guard.IsDisallowedAddress(IPAddress.Parse(address)));
+    }
+
+    [Fact]
+    public void IsDisallowedAddress_AdditionalFilterBlocksPublicAddress_ReturnsTrue()
+    {
+        var blocked = IPAddress.Parse("8.8.8.8");
+        var guard = CreateGuard(new DenyAddressFilter(blocked));
+
+        Assert.True(guard.IsDisallowedAddress(blocked));
+        Assert.False(guard.IsDisallowedAddress(IPAddress.Parse("1.1.1.1")));
+    }
+
+    [Fact]
+    public void IsDisallowedAddress_FilterCannotRePermitFloorAddress_StaysBlocked()
+    {
+        // A filter that never blocks anything cannot re-permit a floor-blocked address.
+        var guard = CreateGuard(new AllowAllAddressFilter());
+
+        Assert.True(guard.IsDisallowedAddress(IPAddress.Parse("127.0.0.1")));
+        Assert.True(guard.IsDisallowedAddress(IPAddress.Parse("10.0.0.1")));
+    }
+
+    private sealed class DenyAddressFilter(IPAddress blocked) : IOutboundAddressFilter
+    {
+        public bool IsDisallowed(IPAddress address) => address.Equals(blocked);
+    }
+
+    private sealed class AllowAllAddressFilter : IOutboundAddressFilter
+    {
+        public bool IsDisallowed(IPAddress address) => false;
     }
 }

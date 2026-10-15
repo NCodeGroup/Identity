@@ -20,22 +20,23 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
+namespace NCode.Identity.OpenId.Authentication.Logic;
 
 /// <summary>
-/// Provides the server-side request forgery (SSRF) network floor for the registration-time <c>sector_identifier_uri</c>
-/// fetch. It is wired as the <see cref="SocketsHttpHandler.ConnectCallback"/> of the named HTTP client the
-/// <see cref="DefaultSectorIdentifierValidator"/> uses, so every connection attempt — including one reached through a
-/// DNS answer or a redirect — is pinned to a resolved IP address and rejected when that address is not a public,
-/// globally-routable unicast address. This block is always on and is independent of the optional host allow-list.
+/// Provides the default implementation of <see cref="IOutboundHttpForgeryGuard"/>. The disallowed-address decision is
+/// the union of a hardcoded, non-weakenable floor (the IANA special-use address registry — loopback, RFC 1918 private,
+/// CGNAT, link-local including the cloud instance-metadata address, unique-local, multicast, reserved, and the various
+/// documentation/benchmark blocks) and every registered <see cref="IOutboundAddressFilter"/>. The floor is always
+/// applied first, so a filter can only further restrict reachability; no configuration or filter can re-permit an
+/// address the floor blocks.
 /// </summary>
-internal static class SectorIdentifierHttpGuard
+internal sealed class OutboundHttpForgeryGuard(IEnumerable<IOutboundAddressFilter> addressFilters)
+    : IOutboundHttpForgeryGuard
 {
-    /// <summary>
-    /// Connects to the requested host only when it resolves to a permitted public address, defeating SSRF attempts
-    /// (literal private IPs, DNS rebinding, and redirect-to-internal) by pinning the socket to the vetted address.
-    /// </summary>
-    public static async ValueTask<Stream> ConnectAsync(
+    private IOutboundAddressFilter[] AddressFilters { get; } = addressFilters.ToArray();
+
+    /// <inheritdoc />
+    public async ValueTask<Stream> ConnectAsync(
         SocketsHttpConnectionContext context,
         CancellationToken cancellationToken
     )
@@ -83,20 +84,30 @@ internal static class SectorIdentifierHttpGuard
         }
 
         throw anyAllowed
-            ? new HttpRequestException(
-                "Failed to connect to the sector_identifier_uri host.",
-                lastError
-            )
+            ? new HttpRequestException("Failed to connect to the requested host.", lastError)
             : new HttpRequestException(
-                "The sector_identifier_uri host did not resolve to a permitted public network address."
+                "The requested host did not resolve to a permitted public network address."
             );
     }
 
-    /// <summary>
-    /// Determines whether the supplied address is one the fetch must refuse to connect to: a loopback, private,
-    /// link-local, unique-local, multicast, reserved, or otherwise non-public-unicast address.
-    /// </summary>
-    internal static bool IsDisallowedAddress(IPAddress address)
+    /// <inheritdoc />
+    public bool IsDisallowedAddress(IPAddress address)
+    {
+        if (IsFloorDisallowedAddress(address))
+            return true;
+
+        foreach (var filter in AddressFilters)
+        {
+            if (filter.IsDisallowed(address))
+                return true;
+        }
+
+        return false;
+    }
+
+    // The always-on floor: the IANA special-use address registry (RFC 6890 and friends). This is deliberately not
+    // configurable to be weaker — re-permitting any of these would be an SSRF footgun.
+    private static bool IsFloorDisallowedAddress(IPAddress address)
     {
         if (address.IsIPv4MappedToIPv6)
             address = address.MapToIPv4();
@@ -117,7 +128,7 @@ internal static class SectorIdentifierHttpGuard
         b[0] == 0 // 0.0.0.0/8 "this" network
         || b[0] == 10 // 10.0.0.0/8 private
         || (b[0] == 100 && b[1] is >= 64 and <= 127) // 100.64.0.0/10 CGNAT
-        || (b[0] == 169 && b[1] == 254) // 169.254.0.0/16 link-local
+        || (b[0] == 169 && b[1] == 254) // 169.254.0.0/16 link-local (incl. cloud metadata)
         || (b[0] == 172 && b[1] is >= 16 and <= 31) // 172.16.0.0/12 private
         || (b[0] == 192 && b[1] == 0 && b[2] is 0 or 2) // 192.0.0.0/24, 192.0.2.0/24 TEST-NET-1
         || (b[0] == 192 && b[1] == 168) // 192.168.0.0/16 private

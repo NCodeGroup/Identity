@@ -37,7 +37,8 @@ internal sealed class PrivateKeyJwtClientAuthenticationHandler(
     ILogger<PrivateKeyJwtClientAuthenticationHandler> logger,
     IJsonWebTokenService jsonWebTokenService,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
-    IClientAssertionReplayCache replayCache
+    IClientAssertionReplayCache replayCache,
+    IClientKeyResolver clientKeyResolver
 )
     : ClientAssertionClientAuthenticationHandler(
         clientResolver,
@@ -46,7 +47,8 @@ internal sealed class PrivateKeyJwtClientAuthenticationHandler(
         logger,
         jsonWebTokenService,
         algorithmCollectionProvider,
-        replayCache
+        replayCache,
+        clientKeyResolver
     )
 {
     /// <inheritdoc />

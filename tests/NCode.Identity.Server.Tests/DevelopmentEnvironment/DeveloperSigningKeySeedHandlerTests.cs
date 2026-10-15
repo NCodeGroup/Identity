@@ -251,6 +251,7 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = "rsa",
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Pkcs8,
             KeySizeBits = 2048,
             EncodedValue = "AA",
         };

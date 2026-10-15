@@ -16,12 +16,8 @@
 
 #endregion
 
-using System.Collections.Immutable;
 using System.Text.Json;
-using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
-using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
-using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -29,71 +25,45 @@ using NCode.Identity.Secrets.Persistence.Logic;
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
 /// <summary>
-/// Provides the default implementation of <see cref="ISecretPublicKeyConverter"/>. Whether a secret exposes a
-/// public key is decided by the deserialized key's runtime type against the <see cref="ISecretKeyTypeCatalog"/>
-/// (the single source of truth) — so a certificate secret, which resolves to an RSA or ECC key, is
-/// handled uniformly. For an exportable key it projects the public half into a <c>JWK</c> (reusing the registered
-/// <see cref="IJsonWebKeyConverter"/> pipeline, the same source of truth the JWKS endpoint uses) and a
-/// <c>SubjectPublicKeyInfo</c> <c>PEM</c>. Secrets without a public key yield <c>null</c>.
+/// Provides the default implementation of <see cref="ISecretPublicKeyConverter"/>. It deserializes the secret and
+/// asks the key's <see cref="ISecretKeyTypeDescriptor"/> (the single extensibility seam, ADR-0104) to export its
+/// public material as a <c>JWK</c> and a <c>SubjectPublicKeyInfo</c> <c>PEM</c>. Secrets without exportable public
+/// material (for example symmetric keys) yield <c>null</c>.
 /// </summary>
-// See ADR-0067.
+// See ADR-0104.
 internal class DefaultSecretPublicKeyConverter(
     ISecretSerializer secretSerializer,
-    ISecretKeyTypeCatalog secretKeyTypeCatalog,
-    IEnumerable<IJsonWebKeyConverter> jsonWebKeyConverters
+    ISecretKeyTypeCatalog secretKeyTypeCatalog
 ) : ISecretPublicKeyConverter
 {
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
-    private ImmutableArray<IJsonWebKeyConverter> JsonWebKeyConverters { get; } =
-    [.. jsonWebKeyConverters];
-
     /// <inheritdoc />
     public PublicKeyResource? Convert(PersistedSecret secret)
     {
         var secretKey = SecretSerializer.DeserializeSecret(secret);
 
-        // Export capability is keyed off the runtime key type (a certificate resolves to an RSA or ECC key).
-        if (
-            secretKey is not AsymmetricSecretKey asymmetricSecretKey
-            || !SecretKeyTypeCatalog.TryGet(secretKey.KeyType, out var descriptor)
-            || !descriptor.SupportsPublicKeyExport
-        )
+        if (!SecretKeyTypeCatalog.TryGet(secretKey.KeyType, out var descriptor))
         {
             return null;
         }
 
-        var jsonWebKey =
-            ConvertToJsonWebKey(secretKey)
-            ?? throw new InvalidOperationException(
-                $"No JSON Web Key converter is registered for the '{secretKey.KeyType}' key type."
-            );
+        var exported = descriptor.ExportPublicKey(secretKey);
+        if (exported is null)
+        {
+            return null;
+        }
 
-        var jwk = JsonSerializer.SerializeToElement(jsonWebKey, JsonSerializerOptions.Web);
-        var pem = asymmetricSecretKey.ExportSubjectPublicKeyInfoPem();
+        var jwk = JsonSerializer.SerializeToElement(exported.Jwk, JsonSerializerOptions.Web);
 
         return new PublicKeyResource
         {
             SecretId = secret.SecretId,
             SecretType = secret.SecretType,
             Jwk = jwk,
-            Pem = pem,
+            Pem = exported.Pem,
         };
-    }
-
-    private JsonWebKey? ConvertToJsonWebKey(SecretKey secretKey)
-    {
-        // The first registered converter that handles the key wins, matching the JWKS endpoint's resolution.
-        foreach (var converter in JsonWebKeyConverters)
-        {
-            if (converter.TryConvert(secretKey, out var jsonWebKey))
-            {
-                return jsonWebKey;
-            }
-        }
-
-        return null;
     }
 }

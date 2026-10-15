@@ -44,6 +44,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             CreateStrictMock<LinkGenerator>().Object,
             CreateStrictMock<ICryptoService>().Object,
             CreateStrictMock<ISecretGenerator>().Object,
+            CreateStrictMock<ISecretImporter>().Object,
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<IPersistedGrantService>().Object,
             CreateStrictMock<IInitialAccessTokenValidator>().Object,

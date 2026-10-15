@@ -69,6 +69,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
             KeySizeBits = 256,
             EncodedValue = "encoded-value",
         };
@@ -271,6 +272,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
             CreatedWhen = current.CreatedWhen,
             ExpiresWhen = current.ExpiresWhen.AddYears(1),
             SecretType = current.SecretType,
+            SecretEncoding = current.SecretEncoding,
             KeySizeBits = current.KeySizeBits,
             EncodedValue = current.EncodedValue,
         };

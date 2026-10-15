@@ -325,6 +325,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Sec
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.SecretId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.SecretType.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.SecretType.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.SecretEncoding.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.SecretEncoding.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Use.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Use.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity

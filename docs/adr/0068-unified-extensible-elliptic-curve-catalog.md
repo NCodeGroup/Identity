@@ -34,8 +34,9 @@ Unify elliptic curves into one extensible core catalog and select curves by **id
   non-ECC descriptors reject a curve. A `curve` field is threaded end-to-end through
   `CreateSecretRequest` → `GenerateSecretRequest` → the descriptor.
 - The authentication-layer `IEccCurveSpecificationRegistry`/`EccCurveSpecification`/
-  `DefaultEccCurveSpecificationRegistry` are **removed**; the JWKS `EccJsonWebKeyConverter` consumes the
-  core catalog, resolving `crv` by the key's actual curve (falling back to size). There is now one curve
+  `DefaultEccCurveSpecificationRegistry` are **removed**; the ECC secret-key-type descriptor's JWK export
+  (`ISecretKeyTypeDescriptor.ExportPublicKey`, [ADR-0105](0105-secret-key-type-descriptor-first-class-seam.md))
+  consumes the core catalog, resolving `crv` by the key's actual curve (falling back to size). There is now one curve
   registry, shared by generation and publication.
 - The capabilities document ([ADR-0067](0067-secret-type-capability-catalog-and-capabilities-discovery.md))
   gains an `eccCurves` section (its own provider), and the management console offers a server-driven

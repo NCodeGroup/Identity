@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 
@@ -26,17 +27,16 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 /// <c>RFC 7517</c>.
 /// </summary>
 /// <remarks>
-/// This type is <b>serialize-only</b> (one-way): it is intended to produce (write) JWKS responses.
-/// Its <see cref="JsonWebKey"/> members use discriminator-less polymorphic serialization and therefore
-/// cannot be polymorphically deserialized. See <see cref="JsonWebKey"/> for details.
+/// This type is <b>serialize-only</b> (one-way): it is intended to produce (write) JWKS responses. Each key is a
+/// <c>JSON Web Key</c> object produced by the key's <c>ISecretKeyTypeDescriptor</c> (ADR-0104).
 /// </remarks>
 /// <seealso href="https://datatracker.ietf.org/doc/html/rfc7517#section-5">RFC 7517 Section 5</seealso>
 [PublicAPI]
 public sealed class JsonWebKeySetResult
 {
     /// <summary>
-    /// Gets the collection of <see cref="JsonWebKey"/> instances that make up the key set.
+    /// Gets the collection of <c>JSON Web Key</c> objects that make up the key set.
     /// </summary>
     [JsonPropertyName("keys")]
-    public IReadOnlyCollection<JsonWebKey> Keys { get; init; } = [];
+    public IReadOnlyCollection<JsonObject> Keys { get; init; } = [];
 }

@@ -16,9 +16,7 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 
 namespace NCode.Identity.Secrets.Keys;
 
@@ -33,43 +31,9 @@ internal sealed class PublicEccSecretKey(
     int curveSizeBits,
     ReadOnlyMemory<byte> subjectPublicKeyInfo,
     ReadOnlyMemory<byte>? certificateRawData
-) : EccSecretKey
+) : EccSecretKey(metadata, curveSizeBits, certificateRawData)
 {
     private ReadOnlyMemory<byte> SubjectPublicKeyInfo { get; } = subjectPublicKeyInfo;
-    private ReadOnlyMemory<byte>? CertificateRawData { get; } = certificateRawData;
-
-    /// <inheritdoc />
-    public override KeyMetadata Metadata { get; } = metadata;
-
-    /// <inheritdoc />
-    public override int KeySizeBits { get; } = curveSizeBits;
-
-    /// <inheritdoc />
-    [MemberNotNullWhen(true, nameof(CertificateRawData))]
-    public override bool HasCertificate => CertificateRawData.HasValue;
-
-    /// <inheritdoc />
-    public override X509Certificate2? ExportCertificate() =>
-        HasCertificate
-            ? X509CertificateLoader.LoadCertificate(CertificateRawData.Value.Span)
-            : null;
-
-    /// <inheritdoc />
-    public override ECCurve GetECCurve() =>
-        KeySizeBits switch
-        {
-            256 => ECCurve.NamedCurves.nistP256,
-            384 => ECCurve.NamedCurves.nistP384,
-            521 => ECCurve.NamedCurves.nistP521,
-            _ => GetECCurveSlow(),
-        };
-
-    private ECCurve GetECCurveSlow()
-    {
-        using var key = ExportECDsa();
-        var parameters = key.ExportParameters(includePrivateParameters: false);
-        return parameters.Curve;
-    }
 
     /// <inheritdoc />
     public override ECDsa ExportECDsa()
@@ -102,7 +66,4 @@ internal sealed class PublicEccSecretKey(
             throw;
         }
     }
-
-    /// <inheritdoc />
-    public override AsymmetricAlgorithm ExportAsymmetricAlgorithm() => ExportECDsa();
 }

@@ -27,6 +27,7 @@ using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -191,6 +192,7 @@ internal sealed class BootstrapAdminSeedHandler(
             CreatedWhen = now,
             ExpiresWhen = now.AddYears(100),
             SecretType = SecretTypes.Symmetric,
+            SecretEncoding = SecretEncodings.SymmetricRaw,
             KeySizeBits = clientSecret.Length * 8,
             EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
         };

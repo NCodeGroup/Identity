@@ -269,17 +269,6 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   the same one-time reveal. A `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate`
   returning `CreatedSecretResource` is the natural next increment.
   Touch points: `src/NCode.Identity.OpenId.Management/Endpoints/Clients/ClientApiEndpointHandler.cs`.
-- **`S3` — Key import / BYOK (needs its own ADR).** Secret creation is server-generation-only; there is no way
-  to onboard a `private_key_jwt` client (client generates its keypair and registers the **public** half)
-  or to import an `x509` certificate — `SecretTypes.Certificate` is defined but `DefaultSecretGenerator`
-  refuses it. ADR-0011 explicitly defers import; the `GenerateSecretRequest` `// Future:` note reserves
-  room. Import needs its own validation + threat-model ADR before implementation. The **key-model** half of
-  this gap is now resolved — a verify-only public key is representable and a public-only certificate
-  deserializes to one ([ADR-0103](docs/adr/0103-public-only-asymmetric-secret-keys.md)) — so `S3` is now the
-  **import/validation API surface** (management + DCR) over that primitive, and the FAPI-preferred alternative is
-  the runtime `jwks_uri` resolver tracked under `F16` Phase 0.
-  Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/Logic/GenerateSecretRequest.cs`,
-  `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`.
 - **`S5` — Client-secret storage: hash-at-rest vs reversible protection (needs its own ADR).** A client secret
   is reveal-once and never returned again, so the server only needs to _verify_ a presented value — a
   one-way hash (OWASP-preferred) is safer than today's reversible data-protected `EncodedValue`. But

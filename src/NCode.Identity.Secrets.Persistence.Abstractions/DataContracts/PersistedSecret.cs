@@ -88,6 +88,15 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     public required string SecretType { get; init; }
 
     /// <summary>
+    /// Gets a value that specifies how the stored key material is encoded — an axis orthogonal to
+    /// <see cref="SecretType"/> that distinguishes private (<c>PKCS#8</c>) from public (SPKI) asymmetric material.
+    /// See <see cref="SecretEncodings"/> for possible values.
+    /// </summary>
+    // See ADR-0104.
+    [MaxLength(SecretMaxLengths.SecretEncoding)]
+    public required string SecretEncoding { get; init; }
+
+    /// <summary>
     /// Gets the size, in bits, of the key material.
     /// For asymmetric keys, this is the size of the modulus.
     /// For symmetric keys, this is the size of the actual key material.

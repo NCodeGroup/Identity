@@ -255,6 +255,19 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
         return CreateRsa(metadata, key, certificate);
     }
 
+    /// <inheritdoc />
+    public RsaSecretKey CreateRsaSpki(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> bytes,
+        X509Certificate2? certificate = null
+    )
+    {
+        using var key = RSA.Create();
+        key.ImportSubjectPublicKeyInfo(bytes, out var bytesRead);
+        Debug.Assert(bytesRead == bytes.Length);
+        return CreateRsaPublicKey(metadata, key, certificate);
+    }
+
     #endregion
 
     #region ECC
@@ -302,6 +315,19 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
         key.ImportPkcs8PrivateKey(bytes, out var bytesRead);
         Debug.Assert(bytesRead == bytes.Length);
         return CreateEcc(metadata, key, certificate);
+    }
+
+    /// <inheritdoc />
+    public EccSecretKey CreateEccSpki(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> bytes,
+        X509Certificate2? certificate = null
+    )
+    {
+        using var key = ECDsa.Create();
+        key.ImportSubjectPublicKeyInfo(bytes, out var bytesRead);
+        Debug.Assert(bytesRead == bytes.Length);
+        return CreateEccPublicKey(metadata, key, certificate);
     }
 
     #endregion

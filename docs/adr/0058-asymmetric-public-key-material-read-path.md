@@ -32,8 +32,10 @@ The forces in tension:
   and JWT tooling accept directly.
 - A **symmetric** secret has no public half at all; a public-key read against one is meaningless.
 - The server already has a **single source of truth** for turning a `SecretKey` into a public JWK — the
-  `IJsonWebKeyConverter` strategy collection the JWKS endpoint resolves. A second, bespoke JWK
-  serializer would drift from it (curve names, member encoding).
+  per-key-type descriptor's export (originally the `IJsonWebKeyConverter` strategy collection the JWKS
+  endpoint resolved; collapsed into `ISecretKeyTypeDescriptor.ExportPublicKey` by
+  [ADR-0105](0105-secret-key-type-descriptor-first-class-seam.md)). A second, bespoke JWK serializer
+  would drift from it (curve names, member encoding).
 
 ## Decision
 
@@ -57,10 +59,12 @@ Concretely:
   (SubjectPublicKeyInfo, `-----BEGIN PUBLIC KEY-----`). JWK aligns a management read with the JWKS
   discovery document; PEM is the copy-paste format an operator UI needs.
 
-- **The JWK comes from the existing converter pipeline; only PEM is added.** The implementation resolves
-  the registered `IJsonWebKeyConverter` strategy collection — the same one the JWKS endpoint uses — to
-  produce the JWK, so the two surfaces cannot drift. PEM is derived from the deserialized
-  `AsymmetricSecretKey`'s exported public key (`ExportSubjectPublicKeyInfoPem`). The private key is
+- **The JWK comes from the per-key-type descriptor; only PEM is added.** The implementation resolves the
+  key's `ISecretKeyTypeDescriptor` and calls `ExportPublicKey` — the same seam the JWKS endpoint uses
+  (originally a shared `IJsonWebKeyConverter`; unified by
+  [ADR-0105](0105-secret-key-type-descriptor-first-class-seam.md)) — so the two surfaces cannot drift. PEM
+  is derived from the deserialized `AsymmetricSecretKey`'s exported public key
+  (`ExportSubjectPublicKeyInfoPem`). The private key is
   unprotected only transiently in memory, **after** authorization succeeds, and only its public half is
   emitted.
 

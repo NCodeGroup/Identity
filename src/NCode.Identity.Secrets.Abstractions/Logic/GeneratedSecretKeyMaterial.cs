@@ -41,6 +41,12 @@ public sealed class GeneratedSecretKeyMaterial
     public required int KeySizeBits { get; init; }
 
     /// <summary>
+    /// Gets the encoding of the stored material. See <see cref="SecretEncodings"/> for possible values.
+    /// </summary>
+    // See ADR-0104.
+    public required string SecretEncoding { get; init; }
+
+    /// <summary>
     /// Gets the one-time unprotected key material, base64url-encoded, or <c>null</c> when the key has no
     /// externally-held material to reveal. Populated only for symmetric keys; asymmetric private keys are never
     /// surfaced.

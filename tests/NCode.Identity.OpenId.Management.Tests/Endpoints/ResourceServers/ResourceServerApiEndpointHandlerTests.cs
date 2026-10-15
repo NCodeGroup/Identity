@@ -58,6 +58,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private Mock<IResourceServerValidator> MockValidator { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
+    private Mock<ISecretImporter> MockSecretImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
@@ -76,6 +77,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockValidator = MockRepository.Create<IResourceServerValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
+        MockSecretImporter = MockRepository.Create<ISecretImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
@@ -141,6 +143,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             MockValidator.Object,
             MockSecretValidator.Object,
             MockSecretGenerator.Object,
+            MockSecretImporter.Object,
             MockSecretPublicKeyConverter.Object,
             TimeProvider.System,
             MockCryptoService.Object,
@@ -388,6 +391,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CreatedWhen = DateTimeOffset.UtcNow,
             ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
             SecretType = "rsa",
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Pkcs8,
             KeySizeBits = 2048,
             EncodedValue = "encoded",
         };

@@ -36,8 +36,7 @@ public sealed class GenerateSecretRequest
     public required string SecretId { get; init; }
 
     /// <summary>
-    /// Gets the type of secret to generate. See <see cref="SecretTypes"/> for the supported values;
-    /// <see cref="SecretTypes.Certificate"/> cannot be generated.
+    /// Gets the type of secret to generate. See <see cref="SecretTypes"/> for the supported values.
     /// </summary>
     public required string SecretType { get; init; }
 
@@ -74,7 +73,4 @@ public sealed class GenerateSecretRequest
     /// Gets the <see cref="DateTimeOffset"/> when the generated secret expires and is no longer valid.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
-
-    // Future: an optional caller-supplied key-material field (import / BYOK) may be added here as an
-    // additive change once its validation and threat model are reviewed. See ADR-0011.
 }

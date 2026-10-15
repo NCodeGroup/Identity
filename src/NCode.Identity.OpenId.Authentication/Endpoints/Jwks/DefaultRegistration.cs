@@ -16,9 +16,6 @@
 
 #endregion
 
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
@@ -35,21 +32,10 @@ internal static class DefaultRegistration
         /// </summary>
         public void AddJwksEndpoint()
         {
+            // The endpoint publishes each key via its ISecretKeyTypeDescriptor (the single extensibility seam,
+            // ADR-0104), resolved from the ISecretKeyTypeCatalog registered by AddSecretsLibrary. Applications add
+            // support for additional secret key types by registering a descriptor — no JWKS-specific wiring.
             builder.AddEndpoint<DefaultJwksEndpointHandler>();
-
-            var serviceCollection = builder.ServiceCollection;
-
-            // The supported EC curves live in the shared IEccCurveCatalog registered by AddSecretsLibrary (ADR-0068).
-
-            // Register the built-in converters. Applications can register additional IJsonWebKeyConverter
-            // implementations to publish other secret key types without modifying the endpoint handler.
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IJsonWebKeyConverter, RsaJsonWebKeyConverter>()
-            );
-
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IJsonWebKeyConverter, EccJsonWebKeyConverter>()
-            );
         }
     }
 }

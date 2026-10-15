@@ -16,9 +16,7 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 
 namespace NCode.Identity.Secrets.Keys;
 
@@ -33,26 +31,9 @@ internal sealed class PublicRsaSecretKey(
     int modulusSizeBits,
     ReadOnlyMemory<byte> subjectPublicKeyInfo,
     ReadOnlyMemory<byte>? certificateRawData
-) : RsaSecretKey
+) : RsaSecretKey(metadata, modulusSizeBits, certificateRawData)
 {
     private ReadOnlyMemory<byte> SubjectPublicKeyInfo { get; } = subjectPublicKeyInfo;
-    private ReadOnlyMemory<byte>? CertificateRawData { get; } = certificateRawData;
-
-    /// <inheritdoc />
-    public override KeyMetadata Metadata { get; } = metadata;
-
-    /// <inheritdoc />
-    public override int KeySizeBits { get; } = modulusSizeBits;
-
-    /// <inheritdoc />
-    [MemberNotNullWhen(true, nameof(CertificateRawData))]
-    public override bool HasCertificate => CertificateRawData.HasValue;
-
-    /// <inheritdoc />
-    public override X509Certificate2? ExportCertificate() =>
-        HasCertificate
-            ? X509CertificateLoader.LoadCertificate(CertificateRawData.Value.Span)
-            : null;
 
     /// <inheritdoc />
     public override RSA ExportRSA()
@@ -69,7 +50,4 @@ internal sealed class PublicRsaSecretKey(
             throw;
         }
     }
-
-    /// <inheritdoc />
-    public override AsymmetricAlgorithm ExportAsymmetricAlgorithm() => ExportRSA();
 }

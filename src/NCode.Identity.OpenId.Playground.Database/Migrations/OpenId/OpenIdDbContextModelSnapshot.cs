@@ -881,6 +881,12 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<string>("SecretEncoding")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("SecretId")
                         .IsRequired()
                         .HasMaxLength(300)

@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Diagnostics;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Buffers;
 using NCode.Encoders;
@@ -31,14 +30,16 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 namespace NCode.Identity.Secrets.Persistence.Logic;
 
 /// <summary>
-/// Provides a default implementation for the <see cref="ISecretSerializer"/> abstraction.
+/// Provides a default implementation for the <see cref="ISecretSerializer"/> abstraction: a thin persistence wrapper
+/// that unprotects the stored key material and delegates decoding to the <see cref="ISecretKeyTypeDescriptor"/> for
+/// the secret's type (the single extensibility seam).
 /// </summary>
 internal class DefaultSecretSerializer(
-    ISecretKeyFactory secretKeyFactory,
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
     IDataProtectorFactory<PersistedSecret> dataProtectorFactory
 ) : ISecretSerializer
 {
-    private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
     private IDataProtector DataProtector { get; } = dataProtectorFactory.CreateDataProtector();
 
     /// <inheritdoc />
@@ -57,56 +58,15 @@ internal class DefaultSecretSerializer(
     }
 
     /// <inheritdoc />
-    public SecretKey DeserializeSecret(PersistedSecret persistedSecret) =>
-        persistedSecret.SecretType switch
+    public SecretKey DeserializeSecret(PersistedSecret persistedSecret)
+    {
+        if (!SecretKeyTypeCatalog.TryGet(persistedSecret.SecretType, out var descriptor))
         {
-            SecretTypes.Certificate => DeserializeCertificate(persistedSecret),
-            SecretTypes.Symmetric => DeserializeSymmetric(persistedSecret),
-            SecretTypes.Rsa => DeserializeRsa(persistedSecret),
-            SecretTypes.Ecc => DeserializeEcc(persistedSecret),
-            _ => throw new InvalidOperationException(
+            throw new InvalidOperationException(
                 $"The '{persistedSecret.SecretType}' secret type is not supported."
-            ),
-        };
+            );
+        }
 
-    private AsymmetricSecretKey DeserializeCertificate(PersistedSecret persistedSecret) =>
-        CreateSecretKey(persistedSecret, CreateUsingCertificate);
-
-    private AsymmetricSecretKey CreateUsingCertificate(
-        KeyMetadata metadata,
-        ReadOnlySpan<byte> privateKeyBytes
-    )
-    {
-        using var certificate = X509CertificateLoader.LoadCertificate(privateKeyBytes);
-        return SecretKeyFactory.Create(metadata, certificate);
-    }
-
-    private SymmetricSecretKey DeserializeSymmetric(PersistedSecret persistedSecret) =>
-        CreateSecretKey(persistedSecret, CreateUsingSymmetric);
-
-    private SymmetricSecretKey CreateUsingSymmetric(
-        KeyMetadata metadata,
-        ReadOnlySpan<byte> privateKeyBytes
-    ) => SecretKeyFactory.CreateSymmetric(metadata, privateKeyBytes);
-
-    private RsaSecretKey DeserializeRsa(PersistedSecret persistedSecret) =>
-        CreateSecretKey(persistedSecret, CreateUsingRsa);
-
-    private RsaSecretKey CreateUsingRsa(KeyMetadata metadata, ReadOnlySpan<byte> privateKeyBytes) =>
-        SecretKeyFactory.CreateRsaPkcs8(metadata, privateKeyBytes);
-
-    private EccSecretKey DeserializeEcc(PersistedSecret persistedSecret) =>
-        CreateSecretKey(persistedSecret, CreateUsingEcc);
-
-    private EccSecretKey CreateUsingEcc(KeyMetadata metadata, ReadOnlySpan<byte> privateKeyBytes) =>
-        SecretKeyFactory.CreateEccPkcs8(metadata, privateKeyBytes);
-
-    private T CreateSecretKey<T>(
-        PersistedSecret persistedSecret,
-        Func<KeyMetadata, ReadOnlySpan<byte>, T> factory
-    )
-        where T : SecretKey
-    {
         var metadata = new KeyMetadata
         {
             KeyId = persistedSecret.SecretId,
@@ -116,7 +76,7 @@ internal class DefaultSecretSerializer(
         };
 
         const bool base64UrlIsSensitive = false;
-        const bool privateKeyIsSensitive = true;
+        const bool keyMaterialIsSensitive = true;
 
         using var protectedDataWriter = BufferFactory.CreatePooledBufferWriter(
             base64UrlIsSensitive
@@ -127,17 +87,21 @@ internal class DefaultSecretSerializer(
         using var protectedDataSpanLease = protectedDataWriter.GetSpanLease(base64UrlIsSensitive);
 
         var keySizeBytes = persistedSecret.KeySizeBits >> 3;
-        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
-            privateKeyIsSensitive,
+        using var keyMaterialBuffer = BufferFactory.CreatePooledBufferWriter(
+            keyMaterialIsSensitive,
             keySizeBytes
         );
-        IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
+        IBufferWriter<byte> keyMaterialWriter = keyMaterialBuffer;
 
-        DataProtector.UnprotectSpan(protectedDataSpanLease.Span, ref privateKeyWriter);
+        DataProtector.UnprotectSpan(protectedDataSpanLease.Span, ref keyMaterialWriter);
 
-        using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(privateKeyIsSensitive);
+        using var keyMaterialSpanLease = keyMaterialBuffer.GetSpanLease(keyMaterialIsSensitive);
 
-        var secretKey = factory(metadata, privateKeySpanLease.Span);
+        var secretKey = descriptor.DeserializeKeyMaterial(
+            metadata,
+            persistedSecret.SecretEncoding,
+            keyMaterialSpanLease.Span
+        );
 
         Debug.Assert(secretKey.KeySizeBits == persistedSecret.KeySizeBits);
 

@@ -1,0 +1,363 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Runtime.ExceptionServices;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using NCode.Encoders;
+using NCode.Identity.Jose;
+using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.JsonWebTokens;
+using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.Keys;
+
+namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
+
+/// <summary>
+/// Provides a common base for the JWT-bearer client-authentication handlers (<c>private_key_jwt</c> and
+/// <c>client_secret_jwt</c>) defined by OpenID Connect Core §9 and
+/// <see href="https://datatracker.ietf.org/doc/html/rfc7523">RFC 7523</see>. The client presents a signed JWT
+/// (<c>client_assertion</c>) whose <c>iss</c> and <c>sub</c> both equal the <c>client_id</c>; the handler verifies the
+/// signature against the client's registered keys, enforces the audience/lifetime/single-use rules, and promotes the
+/// client to a confidential client on success. The two concrete handlers differ only in the signing-key family they
+/// own (asymmetric for <c>private_key_jwt</c>, symmetric for <c>client_secret_jwt</c>), selected from the assertion's
+/// <c>alg</c> header so each assertion is handled exactly once.
+/// </summary>
+internal abstract class ClientAssertionClientAuthenticationHandler(
+    IOpenIdClientResolver clientResolver,
+    IOpenIdClientFactory clientFactory,
+    IAuditEventRecorder auditEventRecorder,
+    ILogger logger,
+    IJsonWebTokenService jsonWebTokenService,
+    IAlgorithmCollectionProvider algorithmCollectionProvider,
+    IClientAssertionReplayCache replayCache
+) : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger)
+{
+    // The replay record is retained until the assertion can no longer be accepted (its 'exp' plus a clock-skew margin).
+    private static readonly TimeSpan ReplayRetentionSkew = TimeSpan.FromMinutes(5.0);
+
+    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
+        algorithmCollectionProvider;
+    private IClientAssertionReplayCache ReplayCache { get; } = replayCache;
+
+    /// <summary>
+    /// When the assertion's signing <paramref name="algorithm"/> belongs to this handler's key family, returns
+    /// <see langword="true"/> so this handler owns the assertion; otherwise <see langword="false"/> to defer to the
+    /// sibling handler.
+    /// </summary>
+    protected abstract bool OwnsAlgorithm(SignatureAlgorithm algorithm);
+
+    /// <inheritdoc />
+    public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
+        OpenIdContext openIdContext,
+        CancellationToken cancellationToken
+    )
+    {
+        var httpRequest = openIdContext.Http.Request;
+
+        if (!HttpMethods.IsPost(httpRequest.Method) || !httpRequest.HasFormContentType)
+            return ClientAuthenticationResult.Undefined;
+
+        var form = await httpRequest.ReadFormAsync(cancellationToken);
+
+        if (
+            !form.TryGetValue(OpenIdConstants.Parameters.ClientAssertion, out var assertionValues)
+            || string.IsNullOrEmpty(assertionValues.ToString())
+        )
+        {
+            // No client_assertion present; this handler does not apply.
+            return ClientAuthenticationResult.Undefined;
+        }
+
+        var assertionType = form.TryGetValue(
+            OpenIdConstants.Parameters.ClientAssertionType,
+            out var assertionTypeValues
+        )
+            ? assertionTypeValues.ToString()
+            : string.Empty;
+
+        if (
+            !string.Equals(
+                assertionType,
+                OpenIdConstants.ClientAssertionTypes.JwtBearer,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            // The assertion is not a JWT-bearer assertion; this handler does not apply.
+            return ClientAuthenticationResult.Undefined;
+        }
+
+        var assertion = assertionValues.ToString();
+
+        // A client assertion is a compact JWS: header.payload.signature (RFC 7515 §7.1).
+        var parts = assertion.Split('.');
+        if (parts.Length != 3)
+            return ClientAuthenticationResult.Undefined;
+
+        JsonElement header;
+        JsonElement payload;
+        try
+        {
+            using var headerDoc = JsonDocument.Parse(DecodeBase64Url(parts[0]));
+            using var payloadDoc = JsonDocument.Parse(DecodeBase64Url(parts[1]));
+            header = headerDoc.RootElement.Clone();
+            payload = payloadDoc.RootElement.Clone();
+        }
+        catch (Exception exception) when (exception is FormatException or JsonException)
+        {
+            return ClientAuthenticationResult.Undefined;
+        }
+
+        // The 'alg' header selects which handler owns the assertion and is never 'none' (RFC 7518 §3.6).
+        if (
+            !TryGetString(header, JoseClaimNames.Header.Alg, out var alg)
+            || string.IsNullOrEmpty(alg)
+            || string.Equals(alg, AlgorithmCodes.DigitalSignature.None, StringComparison.Ordinal)
+            || !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
+                alg,
+                out var signatureAlgorithm
+            )
+            || !OwnsAlgorithm(signatureAlgorithm)
+        )
+        {
+            // Unknown, 'none', or a different key family; let the sibling handler (or none) own it.
+            return ClientAuthenticationResult.Undefined;
+        }
+
+        // From here the assertion is owned by this handler: any failure is a conclusive invalid_client.
+        return await AuthenticateAssertionAsync(
+            openIdContext,
+            assertion,
+            alg,
+            payload,
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<ClientAuthenticationResult> AuthenticateAssertionAsync(
+        OpenIdContext openIdContext,
+        string assertion,
+        string alg,
+        JsonElement unverifiedPayload,
+        CancellationToken cancellationToken
+    )
+    {
+        // OpenID Connect Core §9 requires iss == sub == client_id. The client id is read from the (as-yet-unverified)
+        // payload only to locate the client's keys; the signature is verified against those keys below.
+        if (
+            !TryGetString(unverifiedPayload, JoseClaimNames.Payload.Iss, out var iss)
+            || !TryGetString(unverifiedPayload, JoseClaimNames.Payload.Sub, out var sub)
+            || string.IsNullOrEmpty(iss)
+            || string.IsNullOrEmpty(sub)
+            || !string.Equals(iss, sub, StringComparison.Ordinal)
+        )
+        {
+            return await FailAsync(
+                openIdContext,
+                "unknown",
+                "assertion_iss_sub_mismatch",
+                cancellationToken
+            );
+        }
+
+        var clientId = sub;
+
+        var allowedAlgorithms = openIdContext.Tenant.SettingsProvider.Collection.GetValue(
+            OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported
+        );
+        if (allowedAlgorithms.Count > 0 && !allowedAlgorithms.Contains(alg, StringComparer.Ordinal))
+        {
+            return await FailAsync(
+                openIdContext,
+                clientId,
+                "assertion_alg_not_supported",
+                cancellationToken
+            );
+        }
+
+        OpenIdClient? publicClient;
+        try
+        {
+            publicClient = await ClientResolver.ResolveClientOrDefaultAsync(
+                openIdContext,
+                clientId,
+                cancellationToken
+            );
+        }
+        catch (Exception exception)
+            when (exception
+                    is System.Security.Cryptography.CryptographicException
+                        or FormatException
+                        or InvalidOperationException
+            )
+        {
+            Logger.ClientAuthenticationCredentialDeserializationFailed(clientId, exception);
+            return await FailAsync(
+                openIdContext,
+                clientId,
+                "credential_deserialization_failed",
+                cancellationToken
+            );
+        }
+
+        if (publicClient is null)
+        {
+            Logger.ClientAuthenticationClientNotFound(clientId, openIdContext.Tenant.TenantId);
+            return await FailAsync(openIdContext, clientId, "client_not_found", cancellationToken);
+        }
+
+        var validAudiences = GetValidAudiences(openIdContext);
+
+        ValidateJwtResult result;
+        try
+        {
+            var parameters = new ValidateJwtParameters()
+                .UseValidationKeys(publicClient.SecretKeys)
+                .ValidateIssuer(clientId)
+                .ValidateClaim(
+                    JoseClaimNames.Payload.Sub,
+                    usePayload: true,
+                    allowCollection: false,
+                    [clientId]
+                )
+                .ValidateAudience(validAudiences)
+                .ValidateCertificateLifeTime()
+                .ValidateTokenLifeTime(options => options.RequireExpirationTime = true);
+
+            result = await JsonWebTokenService.ValidateJwtAsync(
+                assertion,
+                parameters,
+                cancellationToken
+            );
+
+            if (!result.IsValid)
+                ExceptionDispatchInfo.Throw(result.Exception);
+        }
+        catch (Exception exception)
+        {
+            Logger.ClientAssertionInvalid(clientId, exception);
+            return await FailAsync(openIdContext, clientId, "assertion_invalid", cancellationToken);
+        }
+
+        var validatedPayload = result.DecodedJwt.Payload;
+
+        // A 'jti' plus an 'exp' are required so the assertion can be rejected on replay (RFC 7523 §3).
+        if (
+            !TryGetString(validatedPayload, JoseClaimNames.Payload.Jti, out var jti)
+            || string.IsNullOrEmpty(jti)
+            || !validatedPayload.TryGetProperty(JoseClaimNames.Payload.Exp, out var expElement)
+            || !expElement.TryGetInt64(out var expSeconds)
+        )
+        {
+            return await FailAsync(
+                openIdContext,
+                clientId,
+                "assertion_missing_jti_or_exp",
+                cancellationToken
+            );
+        }
+
+        var expiresWhen = DateTimeOffset.FromUnixTimeSeconds(expSeconds) + ReplayRetentionSkew;
+
+        var recorded = await ReplayCache.TryRecordAsync(
+            clientId,
+            jti,
+            expiresWhen,
+            cancellationToken
+        );
+        if (!recorded)
+        {
+            Logger.ClientAssertionReplayed(clientId);
+            return await FailAsync(
+                openIdContext,
+                clientId,
+                "assertion_replayed",
+                cancellationToken
+            );
+        }
+
+        var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
+            openIdContext,
+            publicClient,
+            AuthenticationMethod,
+            result.DecodedJwt.SecretKey,
+            confirmation: null,
+            cancellationToken
+        );
+
+        return new ClientAuthenticationResult(confidentialClient);
+    }
+
+    private async ValueTask<ClientAuthenticationResult> FailAsync(
+        OpenIdContext openIdContext,
+        string clientId,
+        string reason,
+        CancellationToken cancellationToken
+    )
+    {
+        await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+            openIdContext,
+            clientId,
+            reason,
+            cancellationToken
+        );
+        return CreateInvalidClientResult(openIdContext);
+    }
+
+    private static IReadOnlyCollection<string> GetValidAudiences(OpenIdContext openIdContext)
+    {
+        var request = openIdContext.Http.Request;
+
+        // FAPI 2.0 §5.3.2.1 requires the issuer identifier as the audience; OpenID Connect Core §9 also allows the
+        // URL of the endpoint receiving the request. Both are accepted so standard and FAPI clients interoperate.
+        var endpointUrl = $"{request.Scheme}://{request.Host}{request.PathBase}{request.Path}";
+
+        return [openIdContext.Tenant.Issuer, endpointUrl];
+    }
+
+    private static bool TryGetString(JsonElement element, string propertyName, out string? value)
+    {
+        if (
+            element.TryGetProperty(propertyName, out var property)
+            && property.ValueKind == JsonValueKind.String
+        )
+        {
+            value = property.GetString();
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    private static byte[] DecodeBase64Url(string value)
+    {
+        var byteCount = Base64Url.GetByteCountForDecode(value.Length);
+        var buffer = new byte[byteCount];
+        if (!Base64Url.TryDecode(value, buffer, out var bytesWritten))
+            throw new FormatException("The value is not valid base64url.");
+        return bytesWritten == byteCount ? buffer : buffer[..bytesWritten];
+    }
+}

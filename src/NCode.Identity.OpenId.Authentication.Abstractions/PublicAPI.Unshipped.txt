@@ -79,6 +79,8 @@ NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.IsError.
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.IsPublic.get -> bool
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.IsUndefined.get -> bool
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.PublicClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient?
+NCode.Identity.OpenId.Authentication.Clients.IClientAssertionReplayCache
+NCode.Identity.OpenId.Authentication.Clients.IClientAssertionReplayCache.TryRecordAsync(string! clientId, string! jti, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationHandler
 NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationHandler.AuthenticateClientAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult>
 NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationHandler.AuthenticationMethod.get -> string!

@@ -18,6 +18,7 @@
 
 using System.Buffers;
 using System.Buffers.Text;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -147,6 +148,84 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
             SecretType = SecretTypes.Symmetric,
             KeySizeBits = secretBytes.Length * 8,
+            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+        };
+
+        var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
+            grantTypes.Length > 0
+                ? new Dictionary<string, object> { ["grant_types_supported"] = grantTypes }
+                : new Dictionary<string, object>()
+        );
+
+        var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var store = storeManager.GetStore<IClientStore>();
+
+        var persistedClient = new PersistedClient
+        {
+            TenantId = TenantId,
+            ClientId = clientId,
+            IsDisabled = false,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                Value = emptySettingsJson,
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                Value = [persistedSecret],
+            },
+        };
+
+        await store.AddAsync(persistedClient, CancellationToken.None);
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client whose registered secret is the public half of
+    /// <paramref name="certificate"/> (stored as an <c>x509</c> secret), so the client can authenticate via
+    /// <c>private_key_jwt</c> by signing a <c>client_assertion</c> with the certificate's private key.
+    /// </summary>
+    public async Task SeedConfidentialClientWithCertificateAsync(
+        string clientId,
+        X509Certificate2 certificate,
+        params string[] grantTypes
+    )
+    {
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        using var scope = Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        var protector = serviceProvider
+            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
+            .CreateDataProtector();
+
+        // Only the public certificate is registered; the server verifies assertions with it.
+        var certificateBytes = certificate.Export(X509ContentType.Cert);
+        var writer = new ArrayBufferWriter<byte>();
+        protector.ProtectSpan(certificateBytes, ref writer);
+
+        using var publicKey = certificate.GetRSAPublicKey();
+        var keySizeBits = publicKey!.KeySize;
+
+        var persistedSecret = new PersistedSecret
+        {
+            SecretId = $"{clientId}-cert",
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
+            SecretType = SecretTypes.Certificate,
+            KeySizeBits = keySizeBits,
             EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
         };
 

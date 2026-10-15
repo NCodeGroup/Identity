@@ -77,17 +77,16 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
     /// <inheritdoc />
     public AsymmetricSecretKey Create(KeyMetadata metadata, X509Certificate2 certificate)
     {
-        if (!certificate.HasPrivateKey)
-            throw new ArgumentException(
-                "The certificate does not contain a private key.",
-                nameof(certificate)
-            );
-
         var newMetadata = metadata with
         {
             KeyId = metadata.KeyId ?? certificate.Thumbprint,
             ExpiresWhen = metadata.ExpiresWhen ?? certificate.NotAfter,
         };
+
+        // A certificate without a private key (a relying party's registered public certificate) yields a
+        // verify-only public key rather than being rejected.
+        if (!certificate.HasPrivateKey)
+            return CreatePublicFromCertificate(newMetadata, certificate);
 
         using var ecDiffieHellman = certificate.GetECDiffieHellmanPrivateKey();
         if (ecDiffieHellman != null)
@@ -104,6 +103,59 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
         var algorithm = certificate.GetKeyAlgorithm();
         throw new NotSupportedException(
             $"The certificate uses a key algorithm '{algorithm}' that is not supported."
+        );
+    }
+
+    private AsymmetricSecretKey CreatePublicFromCertificate(
+        KeyMetadata metadata,
+        X509Certificate2 certificate
+    )
+    {
+        using var rsa = certificate.GetRSAPublicKey();
+        if (rsa != null)
+            return CreateRsaPublicKey(metadata, rsa, certificate);
+
+        using var ecDsa = certificate.GetECDsaPublicKey();
+        if (ecDsa != null)
+            return CreateEccPublicKey(metadata, ecDsa, certificate);
+
+        var algorithm = certificate.GetKeyAlgorithm();
+        throw new NotSupportedException(
+            $"The certificate uses a key algorithm '{algorithm}' that is not supported."
+        );
+    }
+
+    /// <inheritdoc />
+    public RsaSecretKey CreateRsaPublicKey(
+        KeyMetadata metadata,
+        RSA publicKey,
+        X509Certificate2? certificate = null
+    )
+    {
+        var subjectPublicKeyInfo = publicKey.ExportSubjectPublicKeyInfo();
+        var certificateRawData = certificate?.Export(X509ContentType.Cert);
+        return new PublicRsaSecretKey(
+            metadata,
+            publicKey.KeySize,
+            subjectPublicKeyInfo,
+            certificateRawData is null ? null : (ReadOnlyMemory<byte>?)certificateRawData
+        );
+    }
+
+    /// <inheritdoc />
+    public EccSecretKey CreateEccPublicKey(
+        KeyMetadata metadata,
+        ECAlgorithm publicKey,
+        X509Certificate2? certificate = null
+    )
+    {
+        var subjectPublicKeyInfo = publicKey.ExportSubjectPublicKeyInfo();
+        var certificateRawData = certificate?.Export(X509ContentType.Cert);
+        return new PublicEccSecretKey(
+            metadata,
+            publicKey.KeySize,
+            subjectPublicKeyInfo,
+            certificateRawData is null ? null : (ReadOnlyMemory<byte>?)certificateRawData
         );
     }
 

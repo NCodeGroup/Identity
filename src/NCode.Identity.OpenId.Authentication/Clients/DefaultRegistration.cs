@@ -50,6 +50,11 @@ internal static class DefaultRegistration
                 DefaultClientAuthenticationService
             >();
 
+            serviceCollection.TryAddSingleton<
+                IClientAssertionReplayCache,
+                DefaultClientAssertionReplayCache
+            >();
+
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IClientAuthenticationHandler,
@@ -61,6 +66,20 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<
                     IClientAuthenticationHandler,
                     ClientSecretPostClientAuthenticationHandler
+                >()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IClientAuthenticationHandler,
+                    PrivateKeyJwtClientAuthenticationHandler
+                >()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IClientAuthenticationHandler,
+                    ClientSecretJwtClientAuthenticationHandler
                 >()
             );
 

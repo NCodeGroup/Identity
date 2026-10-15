@@ -242,7 +242,7 @@ public class DefaultSecretKeyFactoryTests : BaseTests
     }
 
     [Fact]
-    public void Create_WhenCertificateHasNoPrivateKey_ThrowsArgumentException()
+    public void Create_WhenCertificateHasNoPrivateKey_ReturnsVerifyOnlyPublicKey()
     {
         var factory = CreateSecretKeyFactory();
         using var rsa = RSA.Create(2048);
@@ -260,11 +260,100 @@ public class DefaultSecretKeyFactoryTests : BaseTests
             withPrivateKey.Export(X509ContentType.Cert)
         );
 
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var key = Assert.IsAssignableFrom<RsaSecretKey>(
             factory.Create(new KeyMetadata(), publicOnly)
         );
 
-        Assert.Equal("certificate", exception.ParamName);
+        Assert.True(key.HasCertificate);
+        Assert.Equal(publicOnly.Thumbprint, key.KeyId);
+
+        byte[] data = [9, 8, 7, 6];
+        var signature = rsa.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+
+        using var exported = key.ExportRSA();
+        Assert.True(
+            exported.VerifyData(
+                data,
+                signature,
+                HashAlgorithmName.SHA256,
+                RSASignaturePadding.Pkcs1
+            )
+        );
+    }
+
+    #endregion
+
+    #region Public Key Tests
+
+    [Fact]
+    public void CreateRsaPublicKey_VerifiesSignatureButCannotSign()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var signingKey = RSA.Create(2048);
+        using var publicKey = RSA.Create();
+        publicKey.ImportParameters(signingKey.ExportParameters(includePrivateParameters: false));
+
+        var key = factory.CreateRsaPublicKey(new KeyMetadata { KeyId = "rsa-pub" }, publicKey);
+
+        Assert.Equal(2048, key.KeySizeBits);
+        Assert.False(key.HasCertificate);
+        Assert.Null(key.ExportCertificate());
+
+        byte[] data = [1, 2, 3, 4];
+        var signature = signingKey.SignData(
+            data,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+
+        using var exported = key.ExportRSA();
+        Assert.True(
+            exported.VerifyData(
+                data,
+                signature,
+                HashAlgorithmName.SHA256,
+                RSASignaturePadding.Pkcs1
+            )
+        );
+        Assert.Throws<CryptographicException>(() =>
+            exported.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
+        );
+    }
+
+    [Theory]
+    [InlineData(256)]
+    [InlineData(384)]
+    [InlineData(521)]
+    public void CreateEccPublicKey_VerifiesSignatureAndReportsCurve(int expectedSizeBits)
+    {
+        var factory = CreateSecretKeyFactory();
+        var curve = expectedSizeBits switch
+        {
+            256 => ECCurve.NamedCurves.nistP256,
+            384 => ECCurve.NamedCurves.nistP384,
+            _ => ECCurve.NamedCurves.nistP521,
+        };
+        using var signingKey = ECDsa.Create(curve);
+        using var publicKey = ECDsa.Create();
+        publicKey.ImportParameters(
+            new ECParameters
+            {
+                Curve = curve,
+                Q = signingKey.ExportParameters(includePrivateParameters: false).Q,
+            }
+        );
+
+        var key = factory.CreateEccPublicKey(new KeyMetadata { KeyId = "ecc-pub" }, publicKey);
+
+        Assert.Equal(expectedSizeBits, key.KeySizeBits);
+        Assert.Equal(curve.Oid.Value, key.GetECCurve().Oid.Value);
+        Assert.False(key.HasCertificate);
+
+        byte[] data = [5, 6, 7, 8];
+        var signature = signingKey.SignData(data, HashAlgorithmName.SHA256);
+
+        using var exported = key.ExportECDsa();
+        Assert.True(exported.VerifyData(data, signature, HashAlgorithmName.SHA256));
     }
 
     #endregion

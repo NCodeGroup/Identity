@@ -104,6 +104,20 @@ internal static class DefaultRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IClientAuthenticationHandler,
+                    TlsClientAuthClientAuthenticationHandler
+                >()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IClientAuthenticationHandler,
+                    SelfSignedTlsClientAuthClientAuthenticationHandler
+                >()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IClientAuthenticationHandler,
                     NoneClientAuthenticationHandler
                 >()
             );

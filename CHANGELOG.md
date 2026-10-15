@@ -10,6 +10,19 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Mutual-TLS client authentication (`tls_client_auth` / `self_signed_tls_client_auth`) — advances backlog `F16`
+  (Phase 1) ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)).** A confidential client can now authenticate
+  at the token endpoint with a mutual-TLS client certificate (RFC 8705 §2), the second FAPI-permitted strong
+  client-authentication mechanism alongside `private_key_jwt`. `self_signed_tls_client_auth` matches the presented
+  certificate against one the client registered by SHA-256 thumbprint; `tls_client_auth` matches its subject
+  distinguished name or a subject alternative name (`dns`/`uri`/`ip`/`email`) against the client's registered metadata.
+  The handlers reuse the existing `IClientCertificateResolver` (direct TLS or a trusted forwarded header) and are gated
+  by the client's registered `token_endpoint_auth_method`; both methods are auto-advertised in
+  `token_endpoint_auth_methods_supported`. New surface: the `tls_client_auth` / `self_signed_tls_client_auth` auth-method
+  constants, the per-client `token_endpoint_auth_method` and `tls_client_auth_subject_dn` / `tls_client_auth_san_*`
+  settings, and `AsymmetricSecretKey.CertificateRawData` (raw DER access that avoids materializing a certificate to
+  compute a thumbprint).
+
 - **Runtime `jwks_uri` client-key resolution and a shared, extensible outbound-fetch SSRF guard — advances backlog
   `F16` (Phase 0) ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).** A
   client's **public** verification keys can now be resolved at runtime from its `jwks_uri` setting (previously stored but

@@ -726,6 +726,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.TokenEndpointAuthMethodsSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'token_endpoint_auth_method' setting.
+    /// </summary>
+    public static SettingKey<string> TokenEndpointAuthMethod =>
+        new(OpenIdSettingNames.TokenEndpointAuthMethod);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'token_endpoint_auth_signing_alg_values_supported' setting.
     /// </summary>
     public static SettingKey<
@@ -791,6 +797,36 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<bool> TlsClientCertificateBoundAccessTokens =>
         new(OpenIdSettingNames.TlsClientCertificateBoundAccessTokens);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_auth_subject_dn' setting (RFC 8705 §2.1.2).
+    /// </summary>
+    public static SettingKey<string> TlsClientAuthSubjectDn =>
+        new(OpenIdSettingNames.TlsClientAuthSubjectDn);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_auth_san_dns' setting (RFC 8705 §2.1.2).
+    /// </summary>
+    public static SettingKey<string> TlsClientAuthSanDns =>
+        new(OpenIdSettingNames.TlsClientAuthSanDns);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_auth_san_uri' setting (RFC 8705 §2.1.2).
+    /// </summary>
+    public static SettingKey<string> TlsClientAuthSanUri =>
+        new(OpenIdSettingNames.TlsClientAuthSanUri);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_auth_san_ip' setting (RFC 8705 §2.1.2).
+    /// </summary>
+    public static SettingKey<string> TlsClientAuthSanIp =>
+        new(OpenIdSettingNames.TlsClientAuthSanIp);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_auth_san_email' setting (RFC 8705 §2.1.2).
+    /// </summary>
+    public static SettingKey<string> TlsClientAuthSanEmail =>
+        new(OpenIdSettingNames.TlsClientAuthSanEmail);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'mtls_endpoint_alias_authority' setting (RFC 8705 §5).

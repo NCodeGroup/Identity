@@ -138,16 +138,12 @@ entry and/or ADR that closed it.
     `sector_identifier_uri` SSRF floor generalized into a shared, injectable, additive-deny-extensible
     `IOutboundHttpForgeryGuard` now applied to every outbound client-URL fetch (including the previously-unguarded JAR
     `request_uri` fetch) ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).
+    **mTLS client authentication** is **done**: `tls_client_auth` (subject-DN / SAN match) + `self_signed_tls_client_auth`
+    (registered-certificate thumbprint match), gated by the client's `token_endpoint_auth_method`, reusing
+    `IClientCertificateResolver` and auto-advertised in `token_endpoint_auth_methods_supported`
+    ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)).
 
     **Remaining work, in order.**
-    - **Phase 1 — mTLS client authentication.** `tls_client_auth` + `self_signed_tls_client_auth` (RFC 8705 §2), distinct
-      from the already-implemented cert-bound **tokens**. Reuse `IClientCertificateResolver` (exists, under
-      `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/`). `self_signed_tls_client_auth` matches the
-      presented certificate against the client's registered certificate keys by thumbprint (now representable via the
-      public-cert path, ADR-0103); `tls_client_auth` matches the presented cert's subject DN / SAN against new per-client
-      metadata (`tls_client_auth_subject_dn` + SAN variants). New handler(s) under
-      `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/`; discovery auto-advertises via the handler-derived
-      `token_endpoint_auth_methods_supported`.
     - **Phase 2 — FAPI security-profile mechanism (own ADR).** A `security_profile` setting (e.g. `fapi2`) at tenant/
       client scope that **injects ceilings into the merge lattice** so discovery and enforcement share one source of truth:
       algorithms → `PS256`/`ES256`/`EdDSA`; require PAR; require PKCE `S256`; require sender-constrained; strong-client-
@@ -162,7 +158,11 @@ entry and/or ADR that closed it.
       endpoint (FAPI §5.2.3).
     - **Phase 4 — conformance & docs.** Flip the `apps/conformance` `coverage.ts` FAPI rows to `verified`; add a FAPI-2.0
       seed client (`security_profile=fapi2`, `private_key_jwt`) to `AddConformanceSeed`; wire the OpenID Foundation
-      FAPI 2.0 test plan into `T1` and the `T6` matrix.
+      FAPI 2.0 test plan into `T1` and the `T6` matrix. Also extend Dynamic Client Registration to **accept the
+      non-secret `token_endpoint_auth_method` values** (`private_key_jwt`, `client_secret_jwt`, `tls_client_auth`,
+      `self_signed_tls_client_auth`) — currently the DCR `SupportedTokenEndpointAuthMethods` allow-list only lists the
+      secret-based + `none` methods, so a client using an advertised strong-auth method must be provisioned through the
+      management API — and project the `tls_client_auth_*` metadata from the registration request.
 
     **Spun-out items (record when starting):** a **JARM + authorization response-mode extensibility seam** work item (the
     response modes are a hardcoded switch in `DefaultAuthorizationResultExecutor` today); **FAPI 1.0 Advanced**; and **S3**

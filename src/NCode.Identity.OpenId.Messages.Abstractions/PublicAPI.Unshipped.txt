@@ -194,3 +194,10 @@ virtual NCode.Identity.OpenId.Messages.OpenIdMessage.TypeDiscriminator.get -> st
 virtual NCode.Identity.OpenId.Messages.Parsers.ParameterLoader.Create<T>(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor descriptor, NCode.Identity.OpenId.Messages.Parsers.IParameterParser<T>! parser, T? parsedValue) -> NCode.Identity.OpenId.Messages.Parameters.IParameter<T>!
 virtual NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.Clone(T? value) -> T?
 virtual NCode.Identity.OpenId.Messages.Parsers.ParameterParser<T>.Deserialize<T1>(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions! options) -> T1?
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.Audience -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Collections.Generic.List<string!>!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.SubjectToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.SubjectTokenType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ActorToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ActorTokenType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RequestedTokenType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IssuedTokenType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!

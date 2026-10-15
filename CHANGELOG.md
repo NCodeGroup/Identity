@@ -10,6 +10,27 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **OAuth 2.0 Token Exchange (RFC 8693) — completes backlog `F23`
+  ([ADR-0101](docs/adr/0101-oauth-token-exchange-rfc8693.md)).** The token endpoint gains a
+  `DefaultTokenExchangeGrantHandler` for `urn:ietf:params:oauth:grant-type:token-exchange`, registered on the existing
+  `ITokenGrantHandler` extension-grant seam (no endpoint change). A client presents a `subject_token` (and, for
+  delegation, an `actor_token`) and receives an `access_token`, `refresh_token`, or `id_token` output (`requested_token_type`
+  in, `issued_token_type` out). Both **impersonation** and **delegation** are supported: a delegated exchange emits an
+  `act` claim identifying the actor and nests any pre-existing `act` to preserve the delegation chain, and requires the
+  subject token to pre-authorize the actor via a `may_act` claim (RFC 8693 §4). Presented tokens are validated through a
+  new replaceable `ISubjectTokenValidator` seam whose default (`DefaultSubjectTokenValidator`) accepts only
+  **self-issued** JWTs (validated against the tenant's own signing keys, issuer, and lifetime); the requesting client
+  must be **confidential** and be the client the token was issued to (or be named in its `aud`). The subject is resolved
+  forward through `IPrincipalResolver` (never by reversing a pairwise `sub`); effective scopes/audiences are downscoped
+  via the RFC 8707 `resource` and RFC 8693 `audience` parameters; and refresh-token issuance from an exchange is gated
+  per client by a new `token_exchange_allow_refresh_token` setting (off by default). The grant is **secure-by-default**
+  — it is not in the baseline `grant_types_supported`, so an operator opts in (the conformance tenant does, flipping the
+  `grant-token-exchange` coverage probe). New public surface: `OpenIdConstants.GrantTypes.TokenExchange`,
+  `OpenIdConstants.TokenTypeIdentifiers.*`, the RFC 8693 `OpenIdConstants.Parameters.*` and `TokenTypes.NotApplicable`,
+  `JoseClaimNames.Payload.MayAct`, `ITokenRequest` / `ITokenResponse` additions, `ISubjectTokenValidator` /
+  `SubjectTokenValidationResult`, and `TokenExchangeGrant`. External / enterprise-IdP federation is intentionally out of
+  scope and tracked as backlog `F26` (the `ISubjectTokenValidator` seam is its extension point).
+
 - **Session claims & lifecycle enhancements (advances backlog `F25`).** The end-user session subsystem
   ([ADR-0074](docs/adr/0074-session-management-and-logout.md)) gains server-authoritative lifecycle controls, modeled as
   **tenant settings** (a session spans every client, so its policy is tenant-scoped, not per-client):

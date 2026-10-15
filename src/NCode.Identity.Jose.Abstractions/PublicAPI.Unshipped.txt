@@ -100,6 +100,7 @@ const NCode.Identity.Jose.JoseClaimNames.Header.Zip = "zip" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Acr = "acr" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Act = "act" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Actort = "actort" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.MayAct = "may_act" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Address = "address" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Amr = "amr" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.AtHash = "at_hash" -> string!

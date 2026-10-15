@@ -371,6 +371,43 @@ public static partial class OpenIdConstants
         public const string TokenTypeHint = "token_type_hint";
 
         /// <summary>
+        /// Contains the name of <c>subject_token</c> parameter (RFC 8693 §2.1): the security token that represents the
+        /// identity of the party on behalf of whom the exchange is being made.
+        /// </summary>
+        public const string SubjectToken = "subject_token";
+
+        /// <summary>
+        /// Contains the name of <c>subject_token_type</c> parameter (RFC 8693 §2.1): the token type identifier of the
+        /// <c>subject_token</c> (see <see cref="TokenTypeIdentifiers"/>).
+        /// </summary>
+        public const string SubjectTokenType = "subject_token_type";
+
+        /// <summary>
+        /// Contains the name of <c>actor_token</c> parameter (RFC 8693 §2.1): the security token that represents the
+        /// identity of the acting party, present only for delegation.
+        /// </summary>
+        public const string ActorToken = "actor_token";
+
+        /// <summary>
+        /// Contains the name of <c>actor_token_type</c> parameter (RFC 8693 §2.1): the token type identifier of the
+        /// <c>actor_token</c> (see <see cref="TokenTypeIdentifiers"/>).
+        /// </summary>
+        public const string ActorTokenType = "actor_token_type";
+
+        /// <summary>
+        /// Contains the name of <c>requested_token_type</c> parameter (RFC 8693 §2.1): the token type identifier the
+        /// client is requesting for the issued token (see <see cref="TokenTypeIdentifiers"/>).
+        /// </summary>
+        public const string RequestedTokenType = "requested_token_type";
+
+        /// <summary>
+        /// Contains the name of <c>issued_token_type</c> response parameter (RFC 8693 §2.2.1): the token type
+        /// identifier of the token issued in the <c>access_token</c> response field (see
+        /// <see cref="TokenTypeIdentifiers"/>).
+        /// </summary>
+        public const string IssuedTokenType = "issued_token_type";
+
+        /// <summary>
         /// Contains the name of <c>ui_locales</c> parameter.
         /// </summary>
         public const string UiLocales = "ui_locales";

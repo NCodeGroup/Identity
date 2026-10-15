@@ -1116,6 +1116,19 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // token_exchange_allow_refresh_token: whether this client may obtain a refresh token from an OAuth 2.0
+            // Token Exchange (RFC 8693) by requesting requested_token_type=...:refresh_token (default false — issuing a
+            // long-lived refresh token from an exchange is opt-in per client). Override (Replace): a behavioral toggle;
+            // a child fully replaces the parent value.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.TokenExchangeAllowRefreshToken,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // send_profile_metadata_in_access_token: project the account's owner-updatable profile metadata bag into
             // the access token as a single JSON object claim (default false). Override (Replace): a child fully
             // replaces the parent value.

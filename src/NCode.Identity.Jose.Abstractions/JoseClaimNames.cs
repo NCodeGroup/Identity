@@ -190,6 +190,12 @@ public static class JoseClaimNames
         public const string Actort = "actort";
 
         /// <summary>
+        /// Contains a constant with the value: <c>may_act</c>
+        /// https://datatracker.ietf.org/doc/html/rfc8693#section-4.4
+        /// </summary>
+        public const string MayAct = "may_act";
+
+        /// <summary>
         /// Contains a constant with the value: <c>address</c>
         /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
         /// </summary>

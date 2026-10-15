@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
@@ -46,7 +45,7 @@ public sealed class AuthorizationResult : IResult, ISupportOpenIdError
     public AuthorizationResult(Uri redirectUri, string responseMode, IOpenIdError error)
         : this(redirectUri, responseMode, error, null)
     {
-        Debug.Assert(error.State is not null);
+        // 'state' is echoed back only when the client sent it (OAuth 2.0 §4.1.2.1); a null state is valid and omitted.
     }
 
     /// <summary>
@@ -59,7 +58,7 @@ public sealed class AuthorizationResult : IResult, ISupportOpenIdError
     public AuthorizationResult(Uri redirectUri, string responseMode, IAuthorizationTicket ticket)
         : this(redirectUri, responseMode, null, ticket)
     {
-        Debug.Assert(ticket.State is not null);
+        // 'state' is echoed back only when the client sent it (OAuth 2.0 §4.1.2.1); a null state is valid and omitted.
     }
 
     private AuthorizationResult(

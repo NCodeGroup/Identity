@@ -1,8 +1,11 @@
 # OIDC / OAuth conformance testing — plan
 
-Status: **planned, not yet implemented.** This document is the design and work plan for validating the
-NCode.Identity OpenID Provider (OP) against an **independent**, spec-author-maintained conformance
-harness, and for driving that harness **fully automated** in CI. It is linked from
+Status: **harness committed; nightly CI pipeline deferred.** The committed, runnable automation lives in
+[`build/conformance/`](../build/conformance) (orchestration `run-conformance.ps1` + config templates +
+baselines), summarized in [`docs/conformance/external-suite.md`](conformance/external-suite.md); the
+appendices below are the reference material it was lifted from. This document remains the design and work plan
+for validating the NCode.Identity OpenID Provider (OP) against an **independent**, spec-author-maintained
+conformance harness, and for driving that harness **fully automated** in CI. It is linked from
 [`BACKLOG.md`](../BACKLOG.md) (group `T`) so the backlog stays lean.
 
 ## Why an external harness (not just our own tests)
@@ -160,9 +163,10 @@ connectaddress=localhost connectport=8443` (reset with `netsh interface portprox
 
 # Appendices — copy-ready reference templates
 
-Everything below is **reference material to lift during the execution phase**. Nothing here is wired into
-the build; the JSON/PowerShell/YAML are templates to be copied into a working directory (not committed as
-runnable infrastructure until the execution phase). Placeholders are written as `<LIKE_THIS>`.
+Everything below is the **reference material** these artifacts were lifted from. The templates have now been
+realized as committed, runnable infrastructure under [`build/conformance/`](../build/conformance) (resolved
+against the real `AddConformanceSeed` values); the appendices are retained as the annotated source-of-record
+for why each config value is shaped the way it is. Placeholders are written as `<LIKE_THIS>`.
 
 ## Appendix A — Discovery metadata checklist
 

@@ -229,11 +229,12 @@ public static class OpenIdCommonParameters
     };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>expires_in</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>expires_in</c> message parameter, carried as an integer number
+    /// of seconds (a JSON number in the token response per OAuth 2.0 §5.1).
     /// </summary>
     public static readonly KnownParameter<TimeSpan?> ExpiresIn = new(
         OpenIdConstants.Parameters.ExpiresIn,
-        CommonParameterParsers.TimeSpan.AsNullableValue()
+        CommonParameterParsers.DurationSeconds
     )
     {
         AllowMissingStringValues = true,

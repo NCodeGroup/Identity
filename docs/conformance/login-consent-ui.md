@@ -21,7 +21,11 @@ implementation ([`LocalAccountInteractiveCredentialVerifier`](../../src/NCode.Id
 registered via `AddLocalAccountInteractiveAuthentication()`) reuses the resource-owner-password credential
 path. The render surface is the React + MUI `apps/auth` bundle ([`src/frontend/apps/auth`](../../src/frontend/apps/auth)),
 served same-origin under `/account/*`, exposing the Appendix B locators (`username`, `password`, `login`,
-`consent-allow`, `consent-deny`). The Playground opts in
+`consent-allow`, `consent-deny`). **The login and consent pages are served as a progressive-enhancement baseline**:
+`InteractiveAuthenticationEndpointHandler` server-renders a working no-JavaScript `<form>` (the same locators) via
+[`InteractiveAuthenticationPageRenderer`](../../src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs),
+injected into the bundle's `#root` so the SPA replaces it on mount — so the surface is driveable by the conformance
+suite's no-JS `HtmlUnitDriver` without user-agent sniffing. The Playground opts in
 ([`Program.cs`](../../src/NCode.Identity.OpenId.Playground/Program.cs)) and the endpoints are covered by
 integration and unit tests
 ([`InteractiveLoginAntiforgeryTests`](../../tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLoginAntiforgeryTests.cs),

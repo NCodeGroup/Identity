@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose.Extensions;
@@ -135,8 +134,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
         CancellationToken cancellationToken
     )
     {
-        var scopes = tokenRequest.Scopes;
-        Debug.Assert(scopes is not null);
+        var scopes = tokenRequest.Scopes ?? [];
 
         var openIdEnvironment = openIdContext.Environment;
         var tokenResponse = TokenResponse.Create(openIdEnvironment);

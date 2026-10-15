@@ -77,20 +77,26 @@ internal class DefaultAuthorizeHandler(
 
         var promptTypes = authorizationRequest.PromptTypes;
 
-        if (promptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
+        // prompt=create / login / select_account each force a one-time interactive step. A continuation is the
+        // resumption *after* that step completed (the upstream AuthenticateCommand has already established the fresh
+        // authentication for the resumed request), so re-challenging it would loop — the same !IsContinuation guard
+        // prompt=consent uses below (ADR-0081).
+        if (!authorizationRequest.IsContinuation)
         {
-            Logger.ClientRequestedAccountCreation();
-            return ChallengeRequired();
-        }
+            if (promptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
+            {
+                Logger.ClientRequestedAccountCreation();
+                return ChallengeRequired();
+            }
 
-        var reAuthenticate =
-            promptTypes.Contains(OpenIdConstants.PromptTypes.Login)
-            || promptTypes.Contains(OpenIdConstants.PromptTypes.SelectAccount);
-
-        if (reAuthenticate)
-        {
-            Logger.ClientRequestedReAuthentication();
-            return ChallengeRequired();
+            if (
+                promptTypes.Contains(OpenIdConstants.PromptTypes.Login)
+                || promptTypes.Contains(OpenIdConstants.PromptTypes.SelectAccount)
+            )
+            {
+                Logger.ClientRequestedReAuthentication();
+                return ChallengeRequired();
+            }
         }
 
         var noPrompt = promptTypes.Contains(OpenIdConstants.PromptTypes.None);

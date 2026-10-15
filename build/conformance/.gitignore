@@ -1,0 +1,5 @@
+# The OpenID Foundation Conformance Suite is cloned here on demand (large Java/Docker repo).
+.conformance-suite/
+
+# Per-run exported result zips from run-test-plan.py --export-dir.
+.results/

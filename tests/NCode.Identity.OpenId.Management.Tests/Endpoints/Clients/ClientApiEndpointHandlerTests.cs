@@ -309,6 +309,16 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
 
+    private static CreateSecretRequest CreateAsymmetricSecretRequest() =>
+        new()
+        {
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 2048,
+            Use = "sig",
+            Algorithm = "RS256",
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
     private static UpdateSecretRequest UpdateSecretRequest() =>
         new()
         {
@@ -771,7 +781,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var generated = CreatePersistedSecret();
         MockSecretGenerator
-            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSharedSecret(It.IsAny<GenerateSecretRequest>()))
             .Returns(
                 new GeneratedSecret { Secret = generated, SecretMaterial = "revealed-material" }
             )
@@ -832,7 +842,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             httpContext,
             TenantId,
             ClientId,
-            CreateSecretRequest(),
+            CreateAsymmetricSecretRequest(),
             CancellationToken.None
         );
 

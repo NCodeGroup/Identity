@@ -38,6 +38,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;
@@ -791,19 +792,26 @@ internal class ClientApiEndpointHandler(
         GeneratedSecret generatedSecret;
         try
         {
-            generatedSecret = SecretGenerator.GenerateSecret(
-                new GenerateSecretRequest
-                {
-                    SecretId = secretId,
-                    SecretType = request.SecretType,
-                    KeySizeBits = request.KeySizeBits,
-                    Curve = request.Curve,
-                    Use = request.Use,
-                    Algorithm = request.Algorithm,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
-                    ExpiresWhen = request.ExpiresWhen,
-                }
-            );
+            var generateRequest = new GenerateSecretRequest
+            {
+                SecretId = secretId,
+                SecretType = request.SecretType,
+                KeySizeBits = request.KeySizeBits,
+                Curve = request.Curve,
+                Use = request.Use,
+                Algorithm = request.Algorithm,
+                CreatedWhen = TimeProvider.GetUtcNow(),
+                ExpiresWhen = request.ExpiresWhen,
+            };
+
+            // A client's symmetric secret is its client_secret — presented verbatim for client_secret_basic/post and
+            // used as the HMAC key for client_secret_jwt — so it must be stored as the UTF-8 bytes of the opaque
+            // string (GenerateSharedSecret), not the raw-byte / base64url-reveal crypto-key material GenerateSecret
+            // produces for asymmetric JWKS keys (which never UTF-8 round-trips). See ADR-0110.
+            generatedSecret =
+                request.SecretType == SecretTypes.Symmetric
+                    ? SecretGenerator.GenerateSharedSecret(generateRequest)
+                    : SecretGenerator.GenerateSecret(generateRequest);
         }
         catch (Exception exception)
             when (exception is ArgumentException or InvalidOperationException)

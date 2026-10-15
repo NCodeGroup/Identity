@@ -183,6 +183,18 @@ entry and/or ADR that closed it.
     response modes are a hardcoded switch in `DefaultAuthorizationResultExecutor` today); **FAPI 1.0 Advanced**; and **S3**
     BYOK static public-key import (secondary to `jwks_uri`).
 
+- **`F30` — Centralize persistence of a _given_ shared-secret string.**
+  [ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md) added `ISecretGenerator.GenerateSharedSecret`
+  for _generating_ a presented secret (stored as the UTF-8 bytes of its opaque string). The complementary operation —
+  persisting a **caller-supplied** shared-secret string in that same shape — is still duplicated inline in three places
+  (`ConformanceSeedHandler.CreatePersistedSecret`, `BootstrapAdminSeedHandler.CreatePersistedSecret`, and the
+  integration-test `PlaygroundApplicationFactory`), each re-implementing the data-protect-and-wrap logic. Add a single
+  correct-by-default primitive (e.g. `ISecretGenerator.ImportSharedSecret(string value, …)` or an `ISecretImporter`
+  overload) and route those sites through it so the UTF-8 contract can't drift. Low priority (the current inline sites
+  are correct); it is a consolidation, not a bug fix. Touch points:
+  [`src/NCode.Identity.Secrets.Persistence`](src/NCode.Identity.Secrets.Persistence),
+  [`src/NCode.Identity.Server`](src/NCode.Identity.Server).
+
 - **`F28` — Complete outbound-fetch SSRF coverage and bound the `request_uri` fetch.** The shared
   `IOutboundHttpForgeryGuard` ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md))
   now guards the `sector_identifier_uri`, `jwks_uri`, and JAR `request_uri` fetches, but two gaps remain. **(a)** The JAR
@@ -303,15 +315,21 @@ entry and/or ADR that closed it.
   13+ interactive modules complete. Four more backend bugs it surfaced are **fixed**: an `AuthorizationResult` crash on
   an omitted `state`; `expires_in` serialized as a JSON string instead of a number (new `DurationSecondsParser`); and
   the `prompt=login` / `select_account` / `create` re-authentication **loop** (`DefaultAuthorizeHandler` now guards them
-  with `!IsContinuation` like `prompt=consent`, and the suite confirms the second id*token's `auth_time` advances).
-  **Remaining:** (a) the `prompt` tests now pass \_functionally* but get **INTERRUPTED** by the suite's
-  `Stopping test due to alias conflict` — the static `alias` forces serial execution and the long prompt flows overlap;
-  switch the Basic OP config to **Dynamic Client Registration** (drop the `alias` + static clients so the suite
-  registers per-test; the OP supports it, [ADR-0063](docs/adr/0063-dynamic-client-registration.md)), and triage the
-  `oidcc-response-type-missing` error-path flow. (b) a **nightly / opt-in CI pipeline** that invokes
+  with `!IsContinuation` like `prompt=consent`, and the suite confirms the second id\*token's `auth_time` advances). The
+  Basic OP plan now runs under **Dynamic Client Registration** (the config drops the static `alias` + static clients so
+  the suite registers a fresh client per module, eliminating the `Stopping test due to alias conflict` serialization —
+  [ADR-0063](docs/adr/0063-dynamic-client-registration.md)), which surfaced and **fixed** two further backend bugs: the
+  DCR deregistration `DELETE /oauth2/register/{client_id}` failing on a client that still owned a secret
+  (`ClientStore.RemoveAsync` guarded with a database query blind to the same-unit-of-work pending secret deletes), and
+  **server-generated `client_secret`s failing `invalid_client`** because a symmetric secret was stored as raw bytes
+  instead of the UTF-8 bytes client authentication compares against (new `ISecretGenerator.GenerateSharedSecret`,
+  [ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md)). **First full Basic OP (DCR) run:**
+  `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` across 38 modules with no mass-abort (up from every module interrupting).
+  **Remaining:** (a) triage the live-run dispositions (the 4 `FAILED`, 11 `WARNING`, and 4 `SKIPPED` modules) — tracked
+  as `T8`. (b) a **nightly / opt-in CI pipeline** that invokes
   `run-conformance.ps1` (Docker + Python 3, no local Java) and publishes the `.results/` zips — deferred until the
   repo's broader CI bootstrap lands (no `.github/workflows` exists yet). The browser-driven Basic OP plan is opt-in in
-  `run-conformance.ps1` via `-IncludeBrowserPlans` until the DCR switch and nightly CI land. Design, phases, and the
+  `run-conformance.ps1` via `-IncludeBrowserPlans`. Design, phases, and the
   `browser` / `probe-runner` / `external-suite` exercise boundary are in
   [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). The harness is a **measurement** surface — it tracks
   backend gaps, it does not implement them. Touch points:
@@ -329,6 +347,29 @@ entry and/or ADR that closed it.
   header), and feed it into the runner from new `--private-key` / `--dpop-key` options. Lands most usefully once the
   backend advertises `private_key_jwt` / DPoP (`S3`, `F7`, `F16`). Touch points:
   [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner).
+- **`T8` — Triage the Basic OP (DCR) live-run dispositions.** The first full browser-driven Basic OP certification run
+  under Dynamic Client Registration (`T6`) completed `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` (38 modules, no
+  mass-abort). Each non-pass needs investigation against the suite's per-module log
+  (`https://localhost.emobix.co.uk:8443/api/log/<id>`) to classify it as a **backend gap to fix**, a **harness/config
+  refinement**, or a **documented, intentional deviation** to codify in `build/conformance/expected-failures.json` /
+  `expected-skips.json` (with a link back here). Known starting points from the first run:
+    - **`FAILED` — `oidcc-refresh-token`:** the token response for the `refresh_token` grant omits an `id_token`, so
+      `ExtractIdTokenFromTokenResponse` fails. When the original authorization granted `openid`, a refresh should re-issue
+      an `id_token` (OpenID Connect Core §12.2). Likely a real backend gap in the refresh-token grant handler.
+    - **`FAILED` — `oidcc-prompt-none-not-logged-in` / `oidcc-max-age-1`:** the `prompt=none` (no session →
+      `login_required`) and `max_age` forced-re-authentication semantics need verification; may be backend or harness.
+    - **`FAILED` — `oidcc-ensure-registered-redirect-uri`:** _not_ a backend defect — the OP correctly refuses to redirect
+      to an unregistered `redirect_uri`, so there is no callback page for the suite's `Verify Complete` step to confirm and
+      it times out. Decide between a harness accommodation and an `expected-failures` baseline entry.
+    - **`WARNING` (11):** `oidcc-server`, `oidcc-userinfo-post-body`, `oidcc-scope-{profile,email,address,phone,all}`,
+      `oidcc-alternate-happy-flow`, `oidcc-ensure-request-with-acr-values-succeeds`, `oidcc-codereuse-30seconds`,
+      `oidcc-claims-essential` — not yet inspected; likely minor (extra/absent claims, header expectations) but each needs
+      a look to confirm it is not masking a real gap.
+    - **`SKIPPED` (4):** `oidcc-idtoken-unsigned`, `oidcc-{request-uri,unsigned-request-object}-supported-correctly-or-rejected-as-unsupported`,
+      `oidcc-ensure-request-object-with-redirect-uri` — expected (the OP does not advertise unsigned-id_token / JAR
+      request-object support); confirm each skip is intentional and record it in `expected-skips.json`.
+      Touch points: [`build/conformance`](build/conformance), the authorization/token endpoint handlers under
+      [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication).
 
 ## Frontend presentation platform (group `U`)
 

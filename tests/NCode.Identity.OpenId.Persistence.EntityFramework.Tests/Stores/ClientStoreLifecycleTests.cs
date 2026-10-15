@@ -167,6 +167,20 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     }
 
     [Fact]
+    public async Task RemoveAsync_WhenSecretsRemovedInSameUnitOfWork_RemovesAndReturnsTrue()
+    {
+        await SeedClientAsync(CreateSecret("secret-1"));
+
+        await _store.RemoveSecretAsync(ClientId, "secret-1", CancellationToken.None);
+        var removed = await _store.RemoveAsync(ClientId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+
+        Assert.True(removed);
+        var reloaded = await _store.GetOrDefaultAsync(ClientId, CancellationToken.None);
+        Assert.Null(reloaded);
+    }
+
+    [Fact]
     public async Task RemoveAsync_WhenMissing_ReturnsFalse()
     {
         var removed = await _store.RemoveAsync("missing", CancellationToken.None);

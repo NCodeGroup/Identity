@@ -66,7 +66,7 @@ entry and/or ADR that closed it.
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D7`      | `D6`       |
 | `F` — Feature gaps                    | `F26`     | `F25`      |
-| `T` — Conformance & interop testing   | `T7`      | `T6`       |
+| `T` — Conformance & interop testing   | `T8`      | `T7`       |
 | `U` — Frontend presentation platform  | `U13`     | `U12`      |
 | `S` — Secrets management              | `S7`      | `S6`       |
 | `X` — Tooling & agent customization   | `X3`      | `X2`       |
@@ -150,25 +150,32 @@ entry and/or ADR that closed it.
   clients, and test-user seeding prerequisite is **done** (`T4` — `AddConformanceSeed`). The discovery-metadata
   alignment prerequisite is **done**: the OP advertises secure-by-default, verified capabilities
   ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
-- **`T6` — Spec-coverage conformance harness (in-house gap & regression dashboard).** Evolve `apps/conformance` from a
-  discovery _security audit_ into a _spec-coverage matrix_ that measures the OP against the **full published
-  OAuth/OIDC/CIBA/FAPI catalog**, independent of what is implemented, so missing functionality (CIBA `F3`,
-  token exchange, the FAPI profile `F16`; PAR, pairwise `F9`, DPoP/mTLS `F7`, `acr`/`amr`
-  emission, and essential-`acr` enforcement `F19` are implemented) surfaces as explicit,
-  attributable gap rows. Because every row is classified from **live discovery metadata**, the same matrix is a **regression**
-  detector: a capability that silently stops being advertised (or flips to non-conformant) flips its row, so the harness
-  guards _shipped_ features as well as tracking _missing_ ones. Design and
-  rationale, including the `browser` / `probe-runner` / `external-suite` exercise boundary, are in
-  [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). Phases: **(1 — done)** the data-first spec catalog
-  (`coverage.ts`) + coverage-matrix UI, classified from live discovery metadata (semantics: _advertised_, per the
-  secure-by-default subset [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)); **(2)** browser-drivable
-  active probes (PAR construction, response-mode matrix, `prompt`/`max_age`/`acr`/`claims` behavior, negative/error
-  paths) that refine _advertised_ into _verified_; **(3)** a headless Node/backend **probe runner** for the confidential
-  and server-initiated legs a browser cannot drive (`client_credentials`, introspection/revocation with client auth,
-  `private_key_jwt`, device-code polling, back-channel logout receipt, DPoP/mTLS, CIBA poll/ping once `F3` lands);
-  **(4)** wire the external OpenID Foundation Conformance Suite (`T1`) as the certified oracle with this matrix as the
-  fast pre-flight. The harness is a **measurement** surface — it tracks the backend gaps above, it does not implement
-  them. Touch point: [`src/frontend/apps/conformance`](src/frontend/apps/conformance).
+- **`T6` — Spec-coverage conformance harness: wire the external certified suite as the oracle (remaining Phase 4).**
+  The in-house harness is built: the spec-coverage matrix measures the OP against the **full published
+  OAuth/OIDC/CIBA/FAPI catalog** classified from **live discovery metadata** (a gap finder _and_ a regression detector),
+  plus browser-drivable active probes (Phase 2) and a headless Node/backend **probe runner** (Phase 3,
+  `@ncode/app-conformance-runner`) for the confidential and server-initiated legs a browser cannot drive
+  (`client_credentials`, introspection/revocation with client auth, device-code polling, CIBA, `private_key_jwt`,
+  DPoP/mTLS, back-channel logout). The runner exits non-zero on any failed probe, so it is already a usable local
+  pre-flight. **Remaining:** wire the external **OpenID Foundation Conformance Suite** (`T1`) as the certified oracle in
+  CI, with this harness as the fast pre-flight that runs first and the external suite as the authoritative gate — the
+  work tracked by `T1` (reachable host, automatable login, nightly CI). Design, phases, and the
+  `browser` / `probe-runner` / `external-suite` exercise boundary are in
+  [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). The harness is a **measurement** surface — it tracks
+  backend gaps, it does not implement them. Touch points:
+  [`src/frontend/apps/conformance`](src/frontend/apps/conformance),
+  [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner),
+  [`src/frontend/packages/conformance-core`](src/frontend/packages/conformance-core),
+  [`docs/conformance-testing.md`](docs/conformance-testing.md).
+- **`T7` — Real Node-crypto signer for the probe runner's asymmetric legs.** The Phase-3 probe runner's `private_key_jwt`
+  and DPoP probes ([`src/frontend/apps/conformance-runner/src/probeRunner.ts`](src/frontend/apps/conformance-runner/src/probeRunner.ts))
+  accept an **injected** `ClientAssertionSigner` / `DpopProofFactory` (unit-tested with a fake), but the CLI entry does
+  not yet wire a real signer, so those legs **skip** with "no client key configured" even when the OP advertises them.
+  Add a Node-`crypto`-backed signer that loads a PEM/JWK private key (`ES256`/`PS256`/`RS256`), builds a compact JWS for
+  the `private_key_jwt` client assertion (OIDC Core §9) and the DPoP proof (RFC 9449 §4, embedding the public JWK in the
+  header), and feed it into the runner from new `--private-key` / `--dpop-key` options. Lands most usefully once the
+  backend advertises `private_key_jwt` / DPoP (`S3`, `F7`, `F16`). Touch points:
+  [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner).
 
 ## Frontend presentation platform (group `U`)
 

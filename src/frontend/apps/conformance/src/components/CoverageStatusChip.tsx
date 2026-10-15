@@ -1,5 +1,5 @@
 import Chip from '@mui/material/Chip';
-import type { CoverageStatus } from '../coverage.js';
+import type { CoverageStatus } from '@ncode/conformance-core';
 
 export type CoverageStatusChipProps = {
   readonly status: CoverageStatus;

@@ -63,6 +63,15 @@ classification to active probing without re-architecture.** Concretely:
   pre-flight. The harness is a measurement surface: it tracks backend gaps (`F3` CIBA, `F7` DPoP/mTLS, `F8` PAR, `F16`
   FAPI, token exchange) but does not itself implement them.
 
+  **Status:** Phase 1 (catalog + matrix), Phase 2 (browser-drivable probes), and Phase 3 (the headless probe runner)
+  are delivered. The framework-free conformance logic lives in the shared `@ncode/conformance-core` package; the
+  browser dashboard is `apps/conformance` and the Phase-3 runner is the `@ncode/app-conformance-runner` CLI, which
+  exercises `client_credentials`, introspection/revocation with client auth, device-code polling, CIBA, `private_key_jwt`,
+  DPoP/mTLS, and back-channel logout, exiting non-zero on any `failed` probe so it is a usable CI pre-flight. The
+  runner's asymmetric legs (`private_key_jwt`, DPoP) accept an injected signer; wiring a real Node-crypto signer from a
+  PEM/JWK is the `T7` follow-up. Phase 4 (wiring the external certified suite as the oracle behind this pre-flight)
+  remains, delegated to `T1`.
+
 ## Options considered
 
 - **Extend `apps/playground` to drive every flow.** Rejected: the Playground is the security-practice-default happy

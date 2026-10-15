@@ -1,6 +1,5 @@
 import { loadRuntimeConfig, type RuntimeConfig } from '@ncode/config';
-import { fetchRawDiscovery, type FetchLike } from './discovery.js';
-import type { RawDiscovery } from './audit.js';
+import { fetchRawDiscovery, type FetchLike, type RawDiscovery } from '@ncode/conformance-core';
 
 /** Resolves the origin that serves this bundle and its bootstrap document. */
 export function currentOrigin(): string {

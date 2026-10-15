@@ -46,11 +46,13 @@ src/frontend/
     api/      @ncode/api     — RTK Query client + management scope model (no UI)
     store/    @ncode/store   — Redux store assembly, slices, typed hooks
     ui/       @ncode/ui      — MUI design system + stateless components + Storybook
+    conformance-core/ @ncode/conformance-core — framework-free conformance logic (discovery, audit, spec-coverage, probes)
   apps/
     mgmt/     @ncode/app-mgmt — Management console (first surface)
     auth/     @ncode/app-auth — Interactive login/consent surface (OP-hosted under /account/*)
     playground/   @ncode/app-playground — OAuth 2.1 / OIDC authorization-code + PKCE flow explorer (dev server :5174)
     conformance/  @ncode/app-conformance — Security-posture & conformance-readiness dashboard (dev server :5175)
+    conformance-runner/ @ncode/app-conformance-runner — headless CLI probing the confidential/server-initiated legs (ADR-0084 Phase 3)
 ```
 
 ## Architectural invariants
@@ -251,3 +253,11 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   Prefer querying the control by role and accessible name instead —
   `getByRole('checkbox', { name: 'Disabled' })` (the `FormControlLabel` supplies the name) — which is both
   type-safe and closer to how a user finds it.
+- **A Node/backend CLI app (not a browser bundle) drops the DOM lib and runs via `vite-node`.** A headless
+  app such as [`apps/conformance-runner`](apps/conformance-runner) sets `lib: ["ES2022"]` + `types: ["node"]`
+  in its `tsconfig.json` (overriding the base, which adds `DOM`) so the global `fetch`/`Response`/`Buffer`/
+  `process` come from `@types/node`, not from two conflicting lib declarations. It has no Vite bundle; `build`
+  is type-check only (`tsc --noEmit`) like a package, and it runs from TypeScript source via **`vite-node`**
+  (`"start": "vite-node src/main.ts --"`), which resolves workspace `@ncode/*` packages as source — plain
+  `node` cannot, because those packages' `main` points at `./src/index.ts`. The trailing `--` in the `start`
+  script lets `vite-node` forward CLI args to the program; the arg parser ignores a stray `--`.

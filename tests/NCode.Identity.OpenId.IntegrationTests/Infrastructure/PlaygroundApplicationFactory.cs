@@ -59,6 +59,9 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
     /// <summary>The tenant id used by the Playground's static single-tenant provider.</summary>
     public const string TenantId = "default";
 
+    /// <summary>The header the test host reads a forwarded mutual-TLS client certificate (base64 DER) from.</summary>
+    public const string MutualTlsCertificateHeaderName = "X-Client-Cert";
+
     /// <summary>
     /// When set, overrides the SSRF-guarded client <c>jwks_uri</c> HTTP client with a stub that serves the JSON this
     /// responder returns, so a <c>jwks_uri</c> fetch can be exercised without a real network connection.
@@ -326,6 +329,137 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
     }
 
     /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client registered for <c>self_signed_tls_client_auth</c>
+    /// (RFC 8705 §2.2) whose registered certificate is the public half of <paramref name="certificate"/>, so the
+    /// client authenticates by presenting that certificate on the mutual-TLS connection.
+    /// </summary>
+    public async Task SeedSelfSignedTlsClientAsync(
+        string clientId,
+        X509Certificate2 certificate,
+        params string[] grantTypes
+    )
+    {
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        using var scope = Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        var protector = serviceProvider
+            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
+            .CreateDataProtector();
+
+        var certificateBytes = certificate.Export(X509ContentType.Cert);
+        var writer = new ArrayBufferWriter<byte>();
+        protector.ProtectSpan(certificateBytes, ref writer);
+
+        using var publicKey = certificate.GetRSAPublicKey();
+        var keySizeBits = publicKey!.KeySize;
+
+        var persistedSecret = new PersistedSecret
+        {
+            SecretId = $"{clientId}-cert",
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
+            SecretType = SecretTypes.Rsa,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
+            KeySizeBits = keySizeBits,
+            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+        };
+
+        var settings = new Dictionary<string, object>
+        {
+            ["token_endpoint_auth_method"] = OpenIdConstants
+                .ClientAuthenticationMethods
+                .SelfSignedTlsClientAuth,
+        };
+        if (grantTypes.Length > 0)
+            settings["grant_types_supported"] = grantTypes;
+
+        await AddClientAsync(
+            serviceProvider,
+            clientId,
+            System.Text.Json.JsonSerializer.SerializeToElement(settings),
+            [persistedSecret]
+        );
+    }
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client registered for <c>tls_client_auth</c>
+    /// (RFC 8705 §2.1) whose expected certificate subject distinguished name is <paramref name="subjectDn"/>, so the
+    /// client authenticates by presenting a PKI certificate with that subject on the mutual-TLS connection.
+    /// </summary>
+    public async Task SeedTlsClientAuthSubjectDnClientAsync(
+        string clientId,
+        string subjectDn,
+        params string[] grantTypes
+    )
+    {
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        var settings = new Dictionary<string, object>
+        {
+            ["token_endpoint_auth_method"] = OpenIdConstants
+                .ClientAuthenticationMethods
+                .TlsClientAuth,
+            ["tls_client_auth_subject_dn"] = subjectDn,
+        };
+        if (grantTypes.Length > 0)
+            settings["grant_types_supported"] = grantTypes;
+
+        using var scope = Services.CreateScope();
+        await AddClientAsync(
+            scope.ServiceProvider,
+            clientId,
+            System.Text.Json.JsonSerializer.SerializeToElement(settings),
+            []
+        );
+    }
+
+    private async Task AddClientAsync(
+        IServiceProvider serviceProvider,
+        string clientId,
+        System.Text.Json.JsonElement settingsJson,
+        IReadOnlyList<PersistedSecret> secrets
+    )
+    {
+        var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var store = storeManager.GetStore<IClientStore>();
+
+        var persistedClient = new PersistedClient
+        {
+            TenantId = TenantId,
+            ClientId = clientId,
+            IsDisabled = false,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                Value = settingsJson,
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                Value = [.. secrets],
+            },
+        };
+
+        await store.AddAsync(persistedClient, CancellationToken.None);
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
+    /// <summary>
     /// Seeds a resource server owning the given scopes and a client grant authorizing the client to all of them,
     /// so the client may request those scopes (replaces the retired <c>scopes_supported</c> setting).
     /// </summary>
@@ -583,6 +717,22 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
                         new StubJsonHttpMessageHandler(responder)
                     );
             }
+
+            // The TestServer terminates no TLS, so mutual-TLS client authentication is exercised by forwarding the
+            // client certificate in a header (the reverse-proxy path the default resolver already supports).
+            serviceCollection.Configure<NCode.Identity.OpenId.Authentication.Tokens.MutualTlsForwardingOptions>(
+                options =>
+                {
+                    options.CertificateHeaderName = MutualTlsCertificateHeaderName;
+                    options.Format = NCode
+                        .Identity
+                        .OpenId
+                        .Authentication
+                        .Tokens
+                        .MutualTlsClientCertificateFormat
+                        .Base64Der;
+                }
+            );
         });
     }
 }

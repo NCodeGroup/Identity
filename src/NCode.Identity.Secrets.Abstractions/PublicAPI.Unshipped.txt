@@ -8,6 +8,7 @@ NCode.Identity.Secrets.Logic.ExportedPublicKey.Pem.init -> void
 NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.Logic.ExportedPublicKey?
 abstract NCode.Identity.Secrets.Keys.AsymmetricSecretKey.ExportAsymmetricAlgorithm() -> System.Security.Cryptography.AsymmetricAlgorithm!
 NCode.Identity.Secrets.Keys.AsymmetricSecretKey.ExportCertificate() -> System.Security.Cryptography.X509Certificates.X509Certificate2?
+NCode.Identity.Secrets.Keys.AsymmetricSecretKey.CertificateRawData.get -> System.ReadOnlyMemory<byte>?
 NCode.Identity.Secrets.Keys.AsymmetricSecretKey.HasCertificate.get -> bool
 abstract NCode.Identity.Secrets.Keys.EccSecretKey.ExportECDiffieHellman() -> System.Security.Cryptography.ECDiffieHellman!
 abstract NCode.Identity.Secrets.Keys.EccSecretKey.ExportECDsa() -> System.Security.Cryptography.ECDsa!

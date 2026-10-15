@@ -36,7 +36,13 @@ public abstract class AsymmetricSecretKey(
     ReadOnlyMemory<byte>? certificateRawData
 ) : SecretKey
 {
-    private ReadOnlyMemory<byte>? CertificateRawData { get; } = certificateRawData;
+    /// <summary>
+    /// Gets the raw DER-encoded bytes of the optional public certificate, or <see langword="null"/> when this
+    /// asymmetric key has no associated certificate. Consuming the bytes directly (for example to compute a
+    /// certificate thumbprint) avoids materializing an <see cref="X509Certificate2"/> via
+    /// <see cref="ExportCertificate"/>.
+    /// </summary>
+    public ReadOnlyMemory<byte>? CertificateRawData { get; } = certificateRawData;
 
     /// <inheritdoc />
     public override KeyMetadata Metadata { get; } = metadata;

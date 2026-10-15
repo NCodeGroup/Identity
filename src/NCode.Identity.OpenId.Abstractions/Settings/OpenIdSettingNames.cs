@@ -697,6 +697,12 @@ public static class OpenIdSettingNames
     public const string TokenEndpointAuthMethodsSupported = "token_endpoint_auth_methods_supported";
 
     /// <summary>
+    /// Contains the name of the per-client <c>token_endpoint_auth_method</c> setting: the single client-authentication
+    /// method the client is registered to use at the token endpoint.
+    /// </summary>
+    public const string TokenEndpointAuthMethod = "token_endpoint_auth_method";
+
+    /// <summary>
     /// Contains the name of <c>token_endpoint_auth_signing_alg_values_supported</c> setting.
     /// </summary>
     public const string TokenEndpointAuthSigningAlgValuesSupported =
@@ -762,6 +768,36 @@ public static class OpenIdSettingNames
     /// </summary>
     public const string TlsClientCertificateBoundAccessTokens =
         "tls_client_certificate_bound_access_tokens";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>tls_client_auth_subject_dn</c> setting (RFC 8705 §2.1.2): the expected
+    /// subject distinguished name (RFC 4514) of the client's PKI-issued certificate for <c>tls_client_auth</c>.
+    /// </summary>
+    public const string TlsClientAuthSubjectDn = "tls_client_auth_subject_dn";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>tls_client_auth_san_dns</c> setting (RFC 8705 §2.1.2): the expected
+    /// dNSName subject alternative name of the client's certificate for <c>tls_client_auth</c>.
+    /// </summary>
+    public const string TlsClientAuthSanDns = "tls_client_auth_san_dns";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>tls_client_auth_san_uri</c> setting (RFC 8705 §2.1.2): the expected
+    /// uniformResourceIdentifier subject alternative name of the client's certificate for <c>tls_client_auth</c>.
+    /// </summary>
+    public const string TlsClientAuthSanUri = "tls_client_auth_san_uri";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>tls_client_auth_san_ip</c> setting (RFC 8705 §2.1.2): the expected
+    /// iPAddress subject alternative name of the client's certificate for <c>tls_client_auth</c>.
+    /// </summary>
+    public const string TlsClientAuthSanIp = "tls_client_auth_san_ip";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>tls_client_auth_san_email</c> setting (RFC 8705 §2.1.2): the expected
+    /// rfc822Name subject alternative name of the client's certificate for <c>tls_client_auth</c>.
+    /// </summary>
+    public const string TlsClientAuthSanEmail = "tls_client_auth_san_email";
 
     /// <summary>
     /// Contains the name of <c>mtls_endpoint_alias_authority</c> setting (RFC 8705 §5): when set to a

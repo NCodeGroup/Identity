@@ -1071,6 +1071,66 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // token_endpoint_auth_method: the single client-authentication method a client is registered to use at the
+            // token endpoint (per-client; selects which mutual-TLS handler, if any, owns the request). Not advertised.
+            // Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.TokenEndpointAuthMethod,
+                Default = string.Empty,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // tls_client_auth_subject_dn / _san_dns / _san_uri / _san_ip / _san_email: the expected certificate identity
+            // a PKI-validated tls_client_auth client must present (RFC 8705 §2.1.2); exactly one is configured per
+            // client. Not advertised. Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.TlsClientAuthSubjectDn,
+                Default = string.Empty,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.TlsClientAuthSanDns,
+                Default = string.Empty,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.TlsClientAuthSanUri,
+                Default = string.Empty,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.TlsClientAuthSanIp,
+                Default = string.Empty,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.TlsClientAuthSanEmail,
+                Default = string.Empty,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // response_modes_supported: OAuth response modes the server supports (default supplied by the baseline provider).
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>

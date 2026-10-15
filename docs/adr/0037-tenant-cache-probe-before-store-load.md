@@ -31,9 +31,9 @@ cache using the identity probe before it reads the store.**
     - **Dynamic-by-path** returns the route value.
     - **Dynamic-by-host** returns `false`: mapping a domain to a tenant inherently requires the store, so host-based
       tenancy still performs a full resolve.
-- `DefaultOpenIdTenantFactory.CreateTenantAsync` probes the cache with the identity returned by `TryGetTenantId`; only
-  on a cache miss (or when the probe declines) does it call `ResolveTenantAsync` to load the `PersistedTenant` and
-  materialize the tenant.
+- `DefaultOpenIdTenantFactory.CreateTenantForRequestAsync` probes the cache with the identity returned by
+  `TryGetTenantId`; only on a cache miss (or when the probe declines) does it call `ResolveTenantAsync` to load the
+  `PersistedTenant` and materialize the tenant.
 - A cache **hit** serves the cached tenant without re-reading the store. The store read — which also validates
   existence and the disabled flag with a `404` — runs only on the cache-miss path that first materializes the tenant,
   so a disabled tenant is never cached in the first place.

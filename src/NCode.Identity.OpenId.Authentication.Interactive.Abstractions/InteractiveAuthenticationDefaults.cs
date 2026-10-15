@@ -91,6 +91,29 @@ public static class InteractiveAuthenticationDefaults
     public const string ApplicationsRevokePath = "/account/applications/revoke";
 
     /// <summary>
+    /// The request path of the self-service "active sessions" page, where the end-user reviews their active sessions
+    /// and signs out of individual sessions, every other session, or everywhere.
+    /// </summary>
+    public const string SessionsPath = "/account/sessions";
+
+    /// <summary>
+    /// The request path of the JSON endpoint that returns the end-user's active sessions (each with the device/origin
+    /// captured at sign-in and its lifecycle timestamps) for the active-sessions page.
+    /// </summary>
+    public const string SessionsListPath = "/account/sessions/list";
+
+    /// <summary>
+    /// The request path the active-sessions page posts to in order to revoke a single session by its <c>sid</c>.
+    /// </summary>
+    public const string SessionsRevokePath = "/account/sessions/revoke";
+
+    /// <summary>
+    /// The request path the active-sessions page posts to in order to revoke every session (optionally retaining the
+    /// current one — "sign out everywhere else").
+    /// </summary>
+    public const string SessionsRevokeAllPath = "/account/sessions/revoke-all";
+
+    /// <summary>
     /// The name of the JavaScript-readable cookie the login/consent pages echo back as the antiforgery request token,
     /// so the single-page surface can submit an antiforgery-protected form without the server rendering the token.
     /// </summary>

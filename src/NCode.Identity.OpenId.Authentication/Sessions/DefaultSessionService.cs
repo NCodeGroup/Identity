@@ -97,6 +97,8 @@ internal class DefaultSessionService(
             ClientIds = [],
             LastActivityWhen = createdWhen,
             IdleTimeout = request.IdleTimeout,
+            UserAgent = request.UserAgent,
+            RemoteIpAddress = request.RemoteIpAddress,
         };
 
         var grant = new PersistedGrant<SessionGrant>
@@ -381,6 +383,7 @@ internal class DefaultSessionService(
     public async ValueTask RevokeAllAsync(
         OpenIdContext openIdContext,
         string subjectId,
+        SessionTerminationReason reason,
         CancellationToken cancellationToken
     )
     {
@@ -394,11 +397,39 @@ internal class DefaultSessionService(
         // A null session id denotes a subject-wide termination (revokes every grant the subject holds).
         await TerminateAsync(
             openIdContext,
-            SessionTerminationReason.GlobalSignOut,
+            reason,
             subjectId,
             sessionId: null,
             participatingClientIds,
             cancellationToken
         );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask RevokeAllExceptAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        string exceptSessionId,
+        SessionTerminationReason reason,
+        CancellationToken cancellationToken
+    )
+    {
+        // Terminate each other session individually (not subject-wide) so the retained session and the grants issued
+        // under it survive while every other session is revoked and its relying parties are notified.
+        var sessions = await GetSessionsAsync(openIdContext, subjectId, cancellationToken);
+        foreach (var session in sessions)
+        {
+            if (string.Equals(session.SessionId, exceptSessionId, StringComparison.Ordinal))
+                continue;
+
+            await TerminateAsync(
+                openIdContext,
+                reason,
+                session.SubjectId,
+                session.SessionId,
+                session.Grant.ClientIds,
+                cancellationToken
+            );
+        }
     }
 }

@@ -22,7 +22,10 @@ using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Collections.Providers;
 using NCode.Disposables;
+using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
@@ -38,7 +41,7 @@ namespace NCode.Identity.OpenId.Core.Tenants;
 public sealed class DefaultOpenIdTenantFactoryTests
 {
     [Fact]
-    public async Task CreateTenantAsync_WhenIdentityProbeHitsCache_DoesNotReadStore()
+    public async Task CreateTenantForRequestAsync_WhenIdentityProbeHitsCache_DoesNotReadStore()
     {
         var mocks = new MockRepository(MockBehavior.Strict);
 
@@ -85,7 +88,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
             collectionDataSourceFactory.Object
         );
 
-        await using var result = await factory.CreateTenantAsync(
+        await using var result = await factory.CreateTenantForRequestAsync(
             new DefaultHttpContext(),
             Mock.Of<OpenIdEnvironment>(),
             Mock.Of<OpenIdServer>(),
@@ -101,6 +104,66 @@ public sealed class DefaultOpenIdTenantFactoryTests
             x => x.ResolveTenantAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>()),
             Times.Never
         );
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task CreateTenantByIdAsync_WhenTenantNotFound_Throws()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        var tenantResolver = mocks.Create<ITenantResolver>();
+        var tenantCache = mocks.Create<IOpenIdTenantCache>();
+        var templateBinderFactory = mocks.Create<TemplateBinderFactory>();
+        var storeManagerFactory = mocks.Create<IStoreManagerFactory>();
+        var storeManager = mocks.Create<IStoreManager>();
+        var tenantStore = mocks.Create<ITenantStore>();
+        var settingCollectionProviderFactory =
+            mocks.Create<IReadOnlySettingCollectionProviderFactory>();
+        var settingSerializer = mocks.Create<ISettingSerializer>();
+        var secretSerializer = mocks.Create<ISecretSerializer>();
+        var secretKeyCollectionProviderFactory =
+            mocks.Create<ISecretKeyCollectionProviderFactory>();
+        var collectionDataSourceFactory = mocks.Create<ICollectionDataSourceFactory>();
+
+        storeManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(storeManager.Object)
+            .Verifiable();
+        storeManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(tenantStore.Object)
+            .Verifiable();
+        storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        tenantStore
+            .Setup(x => x.GetOrDefaultAsync("missing", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+
+        var factory = new DefaultOpenIdTenantFactory(
+            tenantResolver.Object,
+            templateBinderFactory.Object,
+            Options.Create(new OpenIdOptions()),
+            storeManagerFactory.Object,
+            tenantCache.Object,
+            settingCollectionProviderFactory.Object,
+            settingSerializer.Object,
+            secretSerializer.Object,
+            secretKeyCollectionProviderFactory.Object,
+            collectionDataSourceFactory.Object
+        );
+
+        await Assert.ThrowsAsync<HttpResultException>(async () =>
+            await factory.CreateTenantByIdAsync(
+                new DefaultHttpContext(),
+                Mock.Of<OpenIdEnvironment>(),
+                Mock.Of<OpenIdServer>(),
+                "missing",
+                Mock.Of<IPropertyBag>(),
+                CancellationToken.None
+            )
+        );
+
         mocks.Verify();
     }
 }

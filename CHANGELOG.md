@@ -28,8 +28,33 @@ change to the public API is a **major** version bump.
   back-channel logout notifications, and audit — so an idle/evicted/admin-revoked session now notifies its relying
   parties and audits exactly like an RP-initiated logout, closing a correctness gap. Applications extend termination by
   registering another `ICommandHandler<OnSessionTerminatedCommand>`.
+- **Self-service active-sessions surface (completes backlog `F25`).** The OP-hosted `apps/auth` account surface gains an
+  **active sessions** page: the end-user reviews every session they hold (device/browser and origin IP captured at
+  sign-in, plus last-active and sign-in times), with the request's own session marked, and can sign out of an individual
+  session, **everywhere else** (retaining the current session), or **everywhere**. New same-origin endpoints
+  (`GET /account/sessions/list`, `POST /account/sessions/revoke`, `POST /account/sessions/revoke-all`) delegate to
+  `ISessionService`, so each revocation runs the full termination seam. A per-session revoke is guarded to the
+  authenticated subject (a crafted `sid` cannot terminate another subject's session). To support the surface,
+  `SessionGrant` / `CreateSessionRequest` capture the sign-in `UserAgent` and `RemoteIpAddress`, a new
+  `SessionTerminationReason.UserInitiated` distinguishes self-service revocation in the audit trail, and
+  `ISessionService` gains `RevokeAllExceptAsync` (and `RevokeAllAsync` now takes the termination reason).
+- **Tenant-addressed admin sessions management endpoint (completes backlog `F25`,
+  [ADR-0100](docs/adr/0100-explicit-tenant-context-materialization.md)).** `/api/tenants/{tenantId}/sessions` lists a
+  subject's active sessions (`GET ?subjectId=…` → `SessionResource`) and revokes a single session (`DELETE /{sessionId}`)
+  or every session a subject holds (`DELETE ?subjectId=…`). Unlike bulk grant revocation, each revocation runs the full
+  session-termination seam (grant revocation, back-channel logout, and session auditing) in the addressed tenant's
+  security domain, and attributes the acting administrator (`session.revoked.admin`). This is enabled by a new
+  capability to **materialize an `OpenIdContext` for an explicit, route-addressed tenant**
+  (`IOpenIdContextFactory.CreateForTenantAsync`, `IOpenIdTenantFactory.CreateTenantByIdAsync`), decoupled from the
+  request's tenant-resolution strategy and derived from the tenant's own configured issuer.
 
 ### Changed
+
+- **Self-documenting tenant/context factory method pairs ([ADR-0100](docs/adr/0100-explicit-tenant-context-materialization.md)).**
+  `IOpenIdContextFactory.CreateAsync` is renamed to `CreateForRequestAsync` (paired with the new `CreateForTenantAsync`),
+  and `IOpenIdTenantFactory.CreateTenantAsync` is renamed to `CreateTenantForRequestAsync` (paired with the new
+  `CreateTenantByIdAsync`), so each request-driven method is distinguished by name from its explicit-tenant counterpart.
+  "Resolve" stays reserved for `ITenantResolver` selecting a `PersistedTenant`.
 
 - **Forward-compatible store filters ([ADR-0099](docs/adr/0099-forward-compatible-evolving-parameters.md)).**
   `IGrantStore.GetPageAsync` and `RevokeWhereAsync` now take a `GrantFilter` init-only record struct

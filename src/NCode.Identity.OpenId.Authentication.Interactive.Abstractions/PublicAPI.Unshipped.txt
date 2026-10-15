@@ -17,4 +17,8 @@ const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthentication
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.LoginPath = "/account/login" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.LogoutPath = "/account/logout" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.MePath = "/account/me" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionsPath = "/account/sessions" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionsListPath = "/account/sessions/list" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionsRevokePath = "/account/sessions/revoke" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionsRevokeAllPath = "/account/sessions/revoke-all" -> string!
 static readonly NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.CookieSchemeName -> string!

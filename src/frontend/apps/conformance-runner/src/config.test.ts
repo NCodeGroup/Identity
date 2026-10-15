@@ -60,6 +60,32 @@ describe('parseArgs', () => {
     const result = parseArgs(['--', '--issuer', 'https://op.test']);
     expect(result).toMatchObject({ kind: 'config', config: { issuer: 'https://op.test' } });
   });
+
+  it('parses the key paths and algorithm overrides', () => {
+    const result = parseArgs([
+      '--issuer',
+      'https://op.test',
+      '--private-key',
+      'client.pem',
+      '--private-key-alg',
+      'RS256',
+      '--dpop-key',
+      'dpop.jwk',
+    ]);
+    expect(result).toMatchObject({
+      kind: 'config',
+      config: {
+        privateKeyPath: 'client.pem',
+        privateKeyAlg: 'RS256',
+        dpopKeyPath: 'dpop.jwk',
+      },
+    });
+  });
+
+  it('errors on an unsupported signing algorithm', () => {
+    const result = parseArgs(['--issuer', 'https://op.test', '--private-key-alg', 'HS256']);
+    expect(result.kind).toBe('error');
+  });
 });
 
 describe('toProbeContext', () => {

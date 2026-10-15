@@ -338,15 +338,6 @@ entry and/or ADR that closed it.
   [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner),
   [`src/frontend/packages/conformance-core`](src/frontend/packages/conformance-core),
   [`docs/conformance-testing.md`](docs/conformance-testing.md).
-- **`T7` — Real Node-crypto signer for the probe runner's asymmetric legs.** The Phase-3 probe runner's `private_key_jwt`
-  and DPoP probes ([`src/frontend/apps/conformance-runner/src/probeRunner.ts`](src/frontend/apps/conformance-runner/src/probeRunner.ts))
-  accept an **injected** `ClientAssertionSigner` / `DpopProofFactory` (unit-tested with a fake), but the CLI entry does
-  not yet wire a real signer, so those legs **skip** with "no client key configured" even when the OP advertises them.
-  Add a Node-`crypto`-backed signer that loads a PEM/JWK private key (`ES256`/`PS256`/`RS256`), builds a compact JWS for
-  the `private_key_jwt` client assertion (OIDC Core §9) and the DPoP proof (RFC 9449 §4, embedding the public JWK in the
-  header), and feed it into the runner from new `--private-key` / `--dpop-key` options. Lands most usefully once the
-  backend advertises `private_key_jwt` / DPoP (`S3`, `F7`, `F16`). Touch points:
-  [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner).
 - **`T8` — Triage the Basic OP (DCR) live-run dispositions.** The first full browser-driven Basic OP certification run
   under Dynamic Client Registration (`T6`) completed `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` (38 modules, no
   mass-abort). Each non-pass needs investigation against the suite's per-module log

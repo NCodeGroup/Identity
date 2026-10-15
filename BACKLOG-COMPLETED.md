@@ -392,6 +392,23 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   Detailed plan: [`docs/conformance/discovery-alignment.md`](docs/conformance/discovery-alignment.md).
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)._
 
+- **`T7` — Real Node-crypto signer for the probe runner's asymmetric legs.** _Done._ The Phase-3 probe runner's
+  `private_key_jwt` and DPoP probes accepted an **injected** `ClientAssertionSigner` / `DpopProofFactory` (unit-tested
+  with a fake), but the CLI did not wire a real signer, so those legs **skipped** with "no client key configured" even
+  when the OP advertised them. Delivered a Node-`crypto`-backed signer
+  ([`src/frontend/apps/conformance-runner/src/signer.ts`](src/frontend/apps/conformance-runner/src/signer.ts)) that
+  loads a PEM- or JWK-encoded private key, resolves the JWA signature algorithm (inferred from the key — the curve for
+  EC `ES256`/`ES384`/`ES512`, `EdDSA` for Ed25519/Ed448, `PS256` for RSA — overridable to any `ES*`/`PS*`/`RS*`/`EdDSA`
+  via `--private-key-alg` / `--dpop-key-alg`), and builds the two compact JWS artifacts: the `private_key_jwt` client
+  assertion (OIDC Core §9, carrying the JWK `kid` when present) and the DPoP proof (RFC 9449 §4, embedding the public
+  JWK in the `dpop+jwt` header with a fresh `jti`/`iat`). ECDSA signatures use the JOSE raw `ieee-p1363` encoding and
+  RSA-PSS uses digest-length salt. New `--private-key` / `--dpop-key` options load the keys at the process boundary and
+  feed the signers into the runner. Unit-tested with freshly generated EC/RSA/Ed25519 keys (algorithm inference,
+  override validation, JWK loading, public-only JWK projection, and round-trip signature verification). Lands most
+  usefully once the backend advertises `private_key_jwt` / DPoP (`S3`, `F7`, `F16`). Touch points:
+  [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner).
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

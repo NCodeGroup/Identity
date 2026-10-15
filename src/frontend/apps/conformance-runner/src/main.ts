@@ -6,9 +6,32 @@
  */
 
 import type { ProbeFetch } from '@ncode/conformance-core';
-import { parseArgs, USAGE } from './config.js';
+import { readFile } from 'node:fs/promises';
+import { parseArgs, USAGE, type RunnerConfig } from './config.js';
 import { formatReport, exitCode, toJson } from './report.js';
-import { runConformanceRunner } from './runner.js';
+import { runConformanceRunner, type RunnerDeps } from './runner.js';
+import { createClientAssertionSigner, createDpopProofFactory, loadSigningKey } from './signer.js';
+
+/** Loads the configured PEM/JWK signing keys and assembles the runner dependencies (fetch + asymmetric signers). */
+async function buildDeps(config: RunnerConfig, fetchFn: ProbeFetch): Promise<RunnerDeps> {
+  let signClientAssertion: RunnerDeps['signClientAssertion'];
+  let createDpopProof: RunnerDeps['createDpopProof'];
+  if (config.privateKeyPath !== undefined) {
+    const material = await readFile(config.privateKeyPath, 'utf8');
+    const key = loadSigningKey(material, config.privateKeyAlg ? { alg: config.privateKeyAlg } : {});
+    signClientAssertion = createClientAssertionSigner(key);
+  }
+  if (config.dpopKeyPath !== undefined) {
+    const material = await readFile(config.dpopKeyPath, 'utf8');
+    const key = loadSigningKey(material, config.dpopKeyAlg ? { alg: config.dpopKeyAlg } : {});
+    createDpopProof = createDpopProofFactory(key);
+  }
+  return {
+    fetchFn,
+    ...(signClientAssertion ? { signClientAssertion } : {}),
+    ...(createDpopProof ? { createDpopProof } : {}),
+  };
+}
 
 async function main(): Promise<number> {
   const parsed = parseArgs(process.argv.slice(2), process.env);
@@ -25,7 +48,8 @@ async function main(): Promise<number> {
   const { config } = parsed;
   const fetchFn: ProbeFetch = (url, init) => fetch(url, init as RequestInit);
   try {
-    const report = await runConformanceRunner(config, { fetchFn });
+    const deps = await buildDeps(config, fetchFn);
+    const report = await runConformanceRunner(config, deps);
     console.log(config.json ? toJson(report, config.issuer) : formatReport(report, config.issuer));
     return exitCode(report);
   } catch (cause) {

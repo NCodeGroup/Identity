@@ -126,8 +126,8 @@ entry and/or ADR that closed it.
     request objects (inline `request` + remote `request_uri`); asymmetric-only token signing `PS256`/`ES256`
     ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)); PKCE `S256` enforcement and
     `response_type=code` secure default ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)); RFC 9207
-    `iss` authorization-response parameter **behavior** (the ticket carries `Issuer`; only the
-    `authorization_response_iss_parameter_supported` discovery flag is missing); resource indicators RFC 8707
+    `iss` authorization-response parameter (the ticket carries `Issuer` and the OP advertises
+    `authorization_response_iss_parameter_supported`); resource indicators RFC 8707
     ([ADR-0078](docs/adr/0078-resource-indicators-rfc-8707.md)); reused-authorization-code rejection. **Strong client
     authentication `private_key_jwt` + `client_secret_jwt`** is **done**
     ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)), and the **verify-only public-key `SecretKey`
@@ -159,14 +159,21 @@ entry and/or ADR that closed it.
     objects / client assertions, and enforces single-use authorization codes with an exact-matched, required
     `redirect_uri`.
 
-    **Remaining work, in order.**
-    - **Phase 4 — conformance & docs.** Flip the `apps/conformance` `coverage.ts` FAPI rows to `verified`; add a FAPI-2.0
-      seed client (`security_profile=fapi2`, `private_key_jwt`) to `AddConformanceSeed`; wire the OpenID Foundation
-      FAPI 2.0 test plan into `T1` and the `T6` matrix. Also extend Dynamic Client Registration to **accept the
-      non-secret `token_endpoint_auth_method` values** (`private_key_jwt`, `client_secret_jwt`, `tls_client_auth`,
-      `self_signed_tls_client_auth`) — currently the DCR `SupportedTokenEndpointAuthMethods` allow-list only lists the
-      secret-based + `none` methods, so a client using an advertised strong-auth method must be provisioned through the
-      management API — and project the `tls_client_auth_*` metadata from the registration request.
+    **Remaining work.** The OP-side FAPI 2.0 implementation is **complete** (the building blocks plus the security-profile
+    mechanism, behavioral rules, and discovery/validation details above); what is left is conformance wiring and one
+    independent registration feature.
+    - **Conformance wiring — handed to the conformance track (`T1` / `T6`).** The FAPI 2.0 conformance pieces are owned
+      by the conformance work-stream (the spec-coverage harness and headless probe runner), not this OP item: flip the
+      `apps/conformance` `coverage.ts` FAPI rows (today they already classify from discovery — `profile-fapi2` reports
+      `implemented` once PAR + a sender-constraining mechanism + PKCE `S256` are advertised, which the OP now does); add a
+      FAPI-2.0 seed client (`security_profile=fapi2`, `private_key_jwt`) to `AddConformanceSeed` (this first needs the
+      conformance seed model extended — `ConformanceClientSeed` is secret-only today, with no asymmetric-key /
+      `security_profile` fields); and wire the OpenID Foundation FAPI 2.0 test plan into `T1` and the `T6` matrix.
+    - **OP-side follow-up — accept non-secret `token_endpoint_auth_method` values at Dynamic Client Registration.**
+      Extend DCR so `private_key_jwt`, `client_secret_jwt`, `tls_client_auth`, and `self_signed_tls_client_auth` are
+      accepted — the DCR `SupportedTokenEndpointAuthMethods` allow-list currently lists only the secret-based + `none`
+      methods, so a client using an advertised strong-auth method must be provisioned through the management API — and
+      project the `tls_client_auth_*` metadata from the registration request.
     - **Deferred hardening — disable CORS on the authorization endpoint (FAPI §5.2.3).** No current exposure: the
       repository ships only a development-only, explicit-origin CORS policy that is not applied to the authorization
       endpoint in production. Add a defense-in-depth guard that asserts no CORS policy can ever attach to the

@@ -88,6 +88,13 @@ object — identified by the `enc` header — must use an advertised key-managem
 (if present) `zip`; a **signed (JWS)** one must use an advertised signing `alg`. This also fixes a latent bug where a
 JWE's key-management `alg` was previously checked against the _signing_ set.
 
+> **Correction (conformance triage, 2026-10-15).** The `alg` / `enc` variants are **no longer advertised in discovery**
+> (now marked non-discoverable, matching the already-non-discoverable `zip` variant): CIBA Core defines no encryption
+> metadata for the backchannel request, so advertising them is a non-standard parameter the OpenID Foundation
+> Conformance Suite flags (`CheckForUnexpectedParametersInServerMetadata`). The settings and their **enforcement** are
+> unchanged — the encrypted-CIBA-request capability still works; it is simply not advertised via a non-standard
+> parameter. See [`docs/conformance/external-suite.md`](../conformance/external-suite.md).
+
 ## Options considered
 
 - **Keep delivery inline and best-effort (status quo).** Rejected: it is lossy by construction (a failed push is

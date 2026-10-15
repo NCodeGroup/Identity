@@ -462,23 +462,26 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
 
             // backchannel_authentication_request_encryption_alg_values_supported: permitted key-management "alg" values for an encrypted CIBA request object.
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Non-discoverable: CIBA Core defines no encryption metadata for the backchannel request (only the signing
+            // alg variant), so advertising it is a non-standard parameter — the capability is still honored un-advertised.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name =
                     OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionAlgValuesSupported,
 
-                IsDiscoverable = IsStdDiscoverable,
+                IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
             };
 
             // backchannel_authentication_request_encryption_enc_values_supported: permitted content-encryption "enc" values for an encrypted CIBA request object.
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Non-discoverable: see the alg variant above — no standard CIBA discovery parameter exists for this.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name =
                     OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionEncValuesSupported,
 
-                IsDiscoverable = IsStdDiscoverable,
+                IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
             };
 

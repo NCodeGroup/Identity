@@ -68,7 +68,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         Mock<IAuthorizationRequest> authRequest,
         Mock<IMediator> mediator,
         Mock<IOpenIdError> error
-    ) CreateScaffold(IReadOnlyList<string> promptTypes)
+    ) CreateScaffold(IReadOnlyList<string> promptTypes, bool isContinuation = false)
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
@@ -78,9 +78,10 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
 
-        // ErrorFactory and PromptTypes are read at the top of every path.
+        // ErrorFactory, PromptTypes, and IsContinuation are read at the top of every path.
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
         mockAuthRequest.SetupGet(x => x.PromptTypes).Returns(promptTypes).Verifiable();
+        mockAuthRequest.SetupGet(x => x.IsContinuation).Returns(isContinuation).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
         // Consent is disabled by default; individual tests opt in.
@@ -153,6 +154,61 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         var result = await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.ChallengeRequired);
+        Assert.False(result.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenLoginPromptOnContinuation_DoesNotReChallenge()
+    {
+        var (command, mockContext, _, _, _, mockMediator, _) = CreateScaffold(
+            [OpenIdConstants.PromptTypes.Login],
+            isContinuation: true
+        );
+
+        // The resumed continuation already re-authenticated the subject; re-challenging it would loop.
+        SetupValidateSubject(mockContext, mockMediator, subjectError: null);
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordAuthorizationGrantedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(result.ChallengeRequired);
+        Assert.False(result.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenCreateAccountPromptOnContinuation_DoesNotReChallenge()
+    {
+        var (command, mockContext, _, _, _, mockMediator, _) = CreateScaffold(
+            [OpenIdConstants.PromptTypes.CreateAccount],
+            isContinuation: true
+        );
+
+        SetupValidateSubject(mockContext, mockMediator, subjectError: null);
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordAuthorizationGrantedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(result.ChallengeRequired);
         Assert.False(result.HasError);
     }
 
@@ -334,14 +390,14 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenPromptConsentOnContinuationAndDecided_DownScopesAndAuthorizes()
     {
-        var (command, mockContext, _, _, mockAuthRequest, mockMediator, _) = CreateScaffold([
-            OpenIdConstants.PromptTypes.Consent,
-        ]);
+        var (command, mockContext, _, _, mockAuthRequest, mockMediator, _) = CreateScaffold(
+            [OpenIdConstants.PromptTypes.Consent],
+            isContinuation: true
+        );
 
         SetupValidateSubject(mockContext, mockMediator, subjectError: null);
         // prompt=consent forces a fresh decision on the initial request, but on the resumed continuation (the subject
         // just completed the consent screen) it must NOT re-prompt — it down-scopes to the granted subset.
-        mockAuthRequest.SetupGet(x => x.IsContinuation).Returns(true).Verifiable();
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(["openid", "profile"]).Verifiable();
 
         IReadOnlyList<string>? downScoped = null;

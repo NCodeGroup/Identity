@@ -97,8 +97,7 @@ internal class DefaultClientCredentialsGrantHandler(
         CancellationToken cancellationToken
     )
     {
-        var scopes = tokenRequest.Scopes;
-        Debug.Assert(scopes is not null);
+        var scopes = tokenRequest.Scopes ?? [];
 
         var openIdEnvironment = openIdContext.Environment;
         var tokenResponse = TokenResponse.Create(openIdEnvironment);

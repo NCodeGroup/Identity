@@ -1,0 +1,7 @@
+{
+    "alias": "ncode-config",
+    "description": "NCode.Identity OP — Config OP certification (discovery-metadata only; no browser block or clients required).",
+    "server": {
+        "discoveryUrl": "https://host.docker.internal:5001/.well-known/openid-configuration"
+    }
+}

@@ -50,6 +50,9 @@ public class DiscoveryEndpointTests(PlaygroundApplicationFactory factory)
         // The JWKS endpoint is auto-advertised via its endpoint name ("jwks_uri").
         Assert.True(root.TryGetProperty("jwks_uri", out var jwksUri));
         Assert.False(string.IsNullOrEmpty(jwksUri.GetString()));
+
+        // 'discovery_endpoint' is not a standard metadata parameter; the document must not advertise itself.
+        Assert.False(root.TryGetProperty("discovery_endpoint", out _));
     }
 
     [Fact]

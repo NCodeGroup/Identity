@@ -94,14 +94,6 @@ entry and/or ADR that closed it.
   until a concrete need justifies the persistence/migration (or broker/scheduler) operational cost. Touch points:
   implement `NCode.Identity.Dispatch.IJobDispatcher` in a new adapter package and register it before
   `AddInProcessJobDispatcher` (or omit that call).
-- **`D6` — `PageRequest` pagination DTO across the store `GetPageAsync` family.** The evolving *filter* sets are now
-  DTOs ([ADR-0099](docs/adr/0099-forward-compatible-evolving-parameters.md), `GrantFilter`), but the stable
-  `(cursor, limit)` pagination pair is still positional on every `*Store.GetPageAsync` (`IGrantStore`, `IClientStore`,
-  `IClientGrantStore`, `IResourceServerStore`, `IServerStore`, `ITenantStore`, `ILocalAccountStore`) and the generic
-  `BaseStore`. Wrapping it in a shared `PageRequest { Cursor, Limit }` (in `NCode.Persistence.Abstractions`, beside
-  `PagedResult<T>`) would future-proof pagination evolution (e.g. a sort direction) non-breakingly and unify the
-  signatures. Deferred: the pair has not churned, so the value is low today and the change touches every store +
-  implementation + call site + test. Do it as one mechanical sweep before GA if pagination needs to grow.
 
 ## Feature gaps — not yet implemented (group `F`)
 

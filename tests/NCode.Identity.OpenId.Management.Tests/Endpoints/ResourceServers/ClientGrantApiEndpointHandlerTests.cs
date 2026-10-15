@@ -133,7 +133,7 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockStore
             .Setup(x =>
-                x.GetPageAsync(ClientId, null, It.IsAny<int>(), It.IsAny<CancellationToken>())
+                x.GetPageAsync(ClientId, It.IsAny<PageRequest>(), It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(
                 new PagedResult<PersistedClientGrant> { Items = [CreateGrant()], NextCursor = null }

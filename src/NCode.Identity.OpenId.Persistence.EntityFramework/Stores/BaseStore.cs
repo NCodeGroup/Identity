@@ -161,23 +161,21 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     /// <summary>
     /// Gets a single page of persisted items using keyset (cursor) pagination.
     /// </summary>
-    /// <param name="cursor">The opaque cursor returned by a previous call, or <c>null</c> to fetch the first page.</param>
-    /// <param name="limit">The maximum number of items to return on the page.</param>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page and the
     /// cursor for the next page.</returns>
     public async ValueTask<PagedResult<TItem>> GetPageAsync(
-        string? cursor,
-        int limit,
+        PageRequest page,
         CancellationToken cancellationToken
     )
     {
-        var afterId = DecodeCursor(cursor);
+        var afterId = DecodeCursor(page.Cursor);
 
         // Fetch one extra row so a full page signals that another page exists.
-        var entities = await GetEntityPageAsync(afterId, limit + 1, cancellationToken);
+        var entities = await GetEntityPageAsync(afterId, page.Limit + 1, cancellationToken);
 
-        return await BuildPageAsync(entities, limit, cancellationToken);
+        return await BuildPageAsync(entities, page.Limit, cancellationToken);
     }
 
     /// <summary>

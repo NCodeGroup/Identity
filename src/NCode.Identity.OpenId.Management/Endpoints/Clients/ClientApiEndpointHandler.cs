@@ -294,7 +294,10 @@ internal class ClientApiEndpointHandler(
                     cancellationToken
                 );
                 var store = storeManager.GetStore<IClientStore>();
-                return await store.GetPageAsync(cursor, effectiveLimit, cancellationToken);
+                return await store.GetPageAsync(
+                    new PageRequest { Cursor = cursor, Limit = effectiveLimit },
+                    cancellationToken
+                );
             },
             ToClientResource
         );

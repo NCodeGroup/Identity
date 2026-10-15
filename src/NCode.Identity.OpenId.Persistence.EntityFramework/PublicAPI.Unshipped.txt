@@ -26,7 +26,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntit
 NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.BaseStore() -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.BuildPageAsync(System.Collections.Generic.IReadOnlyList<TEntity!>! entities, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<TItem!>!>
 NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetLocalOrDefault(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate) -> TEntity?
-NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetPageAsync(string? cursor, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<TItem!>!>
+NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetPageAsync(NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<TItem!>!>
 NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.GetService(System.Type! serviceType) -> object?
 NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore<TItem, TEntity>.NextId(long? value = null) -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStoreWithResourceId<TItem, TEntity>

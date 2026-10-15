@@ -150,12 +150,11 @@ internal class GrantStore(
     /// <inheritdoc />
     public async ValueTask<PagedResult<PersistedGrant>> GetPageAsync(
         GrantFilter filter,
-        string? cursor,
-        int limit,
+        PageRequest page,
         CancellationToken cancellationToken
     )
     {
-        var afterId = DecodeCursor(cursor);
+        var afterId = DecodeCursor(page.Cursor);
 
         var query = DbContext
             .Grants.Include(entity => entity.Tenant)
@@ -172,10 +171,10 @@ internal class GrantStore(
         // Fetch one extra row so a full page signals that another page exists.
         var entities = await query
             .OrderBy(entity => entity.Id)
-            .Take(limit + 1)
+            .Take(page.Limit + 1)
             .ToListAsync(cancellationToken);
 
-        return await BuildPageAsync(entities, limit, cancellationToken);
+        return await BuildPageAsync(entities, page.Limit, cancellationToken);
     }
 
     /// <inheritdoc />

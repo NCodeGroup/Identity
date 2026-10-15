@@ -251,7 +251,10 @@ internal class TenantApiEndpointHandler(
                     cancellationToken
                 );
                 var store = storeManager.GetStore<ITenantStore>();
-                return await store.GetPageAsync(cursor, effectiveLimit, cancellationToken);
+                return await store.GetPageAsync(
+                    new PageRequest { Cursor = cursor, Limit = effectiveLimit },
+                    cancellationToken
+                );
             },
             ToTenantResource
         );

@@ -159,8 +159,7 @@ internal class GrantApiEndpointHandler(
                         SessionId = sessionId,
                         GrantType = grantType,
                     },
-                    cursor,
-                    effectiveLimit,
+                    new PageRequest { Cursor = cursor, Limit = effectiveLimit },
                     cancellationToken
                 );
             },

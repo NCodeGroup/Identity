@@ -205,8 +205,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
 
     /// <inheritdoc />
     public async ValueTask<PagedResult<PersistedLocalAccount>> GetPageAsync(
-        string? cursor,
-        int limit,
+        PageRequest page,
         CancellationToken cancellationToken
     )
     {
@@ -221,14 +220,17 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         }
 
         var query = userManager.Users;
-        if (!string.IsNullOrEmpty(cursor))
+        if (!string.IsNullOrEmpty(page.Cursor))
         {
+            var cursor = page.Cursor;
             // Keyset by id; the untyped comparison is translated to a SQL range predicate by the provider (the database
             // collation, not an in-memory ordinal comparison, orders the page), so CA1309 does not apply here.
 #pragma warning disable CA1309
             query = query.Where(user => string.Compare(user.Id, cursor) > 0);
 #pragma warning restore CA1309
         }
+
+        var limit = page.Limit;
 
         // Fetch one extra row to determine whether a further page exists.
         var users = query.OrderBy(user => user.Id).Take(limit + 1).ToList();

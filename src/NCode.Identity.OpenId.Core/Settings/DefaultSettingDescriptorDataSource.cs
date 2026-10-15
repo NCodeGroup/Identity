@@ -1409,6 +1409,18 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // security_profile: the named security baseline (e.g. fapi2) a scope selects to tighten the OP. Not
+            // advertised. Un-loosenable floor: once any scope in the cascade selects fapi2 a child cannot clear it (so
+            // a tenant can mandate the profile); otherwise the child's value wins.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.SecurityProfile,
+                Default = string.Empty,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = MergeSecurityProfile,
+            };
+
             // subject_types_supported: subject identifier types the server supports (public, pairwise). Both are
             // implemented (F9), so both are advertised by default. Ceiling (Intersect): a child narrows the parent's set.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
@@ -1499,6 +1511,17 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
     // The number of combinations grows as (2^n - 1) in the input size, so refuse an input large enough to risk a
     // combinatorial blow-up rather than emitting an unbounded (or truncated, and therefore wrong) document.
     private const int MaxCombinationInputCount = 10;
+
+    /// <summary>
+    /// Merges the <c>security_profile</c> setting as an un-loosenable floor: once any scope in the cascade selects
+    /// <c>fapi2</c>, a child scope cannot clear it (so a tenant can mandate the profile); otherwise the child's value
+    /// wins. Used as the <c>security_profile</c> descriptor's merge delegate.
+    /// </summary>
+    private static string MergeSecurityProfile(string current, string other) =>
+        string.Equals(current, OpenIdConstants.SecurityProfiles.Fapi2, StringComparison.Ordinal)
+        || string.Equals(other, OpenIdConstants.SecurityProfiles.Fapi2, StringComparison.Ordinal)
+            ? OpenIdConstants.SecurityProfiles.Fapi2
+            : other;
 
     /// <summary>
     /// Expands a setting's values into every non-empty combination (subset): each combination's members are ordered

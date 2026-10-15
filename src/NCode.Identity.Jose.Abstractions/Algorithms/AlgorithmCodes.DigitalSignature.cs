@@ -91,5 +91,12 @@ public partial class AlgorithmCodes
         /// RSASSA-PSS using SHA-512 and MGF1 with SHA-512
         /// </summary>
         public const string RsaSsaPssSha512 = "PS512";
+
+        /// <summary>
+        /// Edwards-curve Digital Signature Algorithm (EdDSA) — the JWA <c>alg</c> identifier for Ed25519 / Ed448
+        /// (RFC 8037). This is the registered algorithm code; the signing/verification implementation is tracked in the
+        /// backlog.
+        /// </summary>
+        public const string EdDsa = "EdDSA";
     }
 }

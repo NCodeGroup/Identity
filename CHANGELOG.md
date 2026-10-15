@@ -10,6 +10,21 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **FAPI 2.0 `security_profile` mechanism — advances backlog `F16` (Phase 2)
+  ([ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).** A tenant or client opts into
+  the OpenID Foundation FAPI 2.0 Security Profile with a single `security_profile=fapi2` setting. The profile expands
+  into concrete ceiling settings at the scope that declares it, and the existing floor/ceiling merge lattice carries
+  them down the `server → tenant → client` cascade un-loosenably, so **discovery and request-time enforcement read one
+  source of truth**: signing restricted to `PS256`/`ES256`/`EdDSA`, strong client authentication only
+  (`private_key_jwt` / `tls_client_auth` / `self_signed_tls_client_auth`), `response_type=code` + PKCE `S256` only,
+  required PKCE and PAR, and short authorization-code / PAR `request_uri` lifetimes. A tenant can mandate the profile
+  and a client cannot loosen it or clear the flag. The client-authentication service now also enforces that the method
+  used is within the client's effective `token_endpoint_auth_methods_supported` (a general control that, under `fapi2`,
+  rejects weak and public authentication at the token endpoint). New surface: the `security_profile` setting, the
+  `OpenIdConstants.SecurityProfiles.Fapi2` constant, `ISecurityProfileSettingsExpander`, and the
+  `AlgorithmCodes.DigitalSignature.EdDsa` algorithm code (the EdDSA signing implementation itself is tracked as backlog
+  `F29`).
+
 - **Mutual-TLS client authentication (`tls_client_auth` / `self_signed_tls_client_auth`) — advances backlog `F16`
   (Phase 1) ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)).** A confidential client can now authenticate
   at the token endpoint with a mutual-TLS client certificate (RFC 8705 §2), the second FAPI-permitted strong

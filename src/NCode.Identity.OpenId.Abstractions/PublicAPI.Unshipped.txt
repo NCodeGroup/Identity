@@ -387,6 +387,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SectorIdentifierUriAllow
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SectorIdentifierUriFetchTimeout = "sector_identifier_uri_fetch_timeout" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SectorIdentifierUriMaxSizeBytes = "sector_identifier_uri_max_size_bytes" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ServiceDocumentation = "service_documentation" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SecurityProfile = "security_profile" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectMaxAge = "subject_max_age" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectType = "subject_type" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.UserCodeLength = "user_code_length" -> string!
@@ -613,6 +614,11 @@ NCode.Identity.OpenId.OpenIdConstants.ClientAssertionTypes
 NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods
 NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods
 NCode.Identity.OpenId.OpenIdConstants.ContinueCodes
+NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles
+const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi2 = "fapi2" -> string!
+NCode.Identity.OpenId.Settings.ISecurityProfileSettingsExpander
+NCode.Identity.OpenId.Settings.ISecurityProfileSettingsExpander.Expand(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Settings.ISecurityProfileSettingsExpander.Expand(System.Text.Json.JsonElement settingsJson, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.OpenIdConstants.DisplayTypes
 NCode.Identity.OpenId.OpenIdConstants.EndpointNames
 NCode.Identity.OpenId.OpenIdConstants.EndpointPaths
@@ -860,6 +866,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInAcce
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInIdToken.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInUserInfo.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ServiceDocumentation.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SecurityProfile.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectMaxAge.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectType.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>

@@ -525,6 +525,20 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
+    /// Contains constants for the named <c>security_profile</c> values a tenant or client can select to tighten the OP
+    /// to a standardized security baseline.
+    /// </summary>
+    public static class SecurityProfiles
+    {
+        /// <summary>
+        /// The OpenID Foundation <c>FAPI 2.0</c> Security Profile: code-only responses, PAR, PKCE <c>S256</c>,
+        /// sender-constrained tokens, strong (asymmetric / mutual-TLS) client authentication, and asymmetric-only
+        /// signing (<c>PS256</c> / <c>ES256</c> / <c>EdDSA</c>).
+        /// </summary>
+        public const string Fapi2 = "fapi2";
+    }
+
+    /// <summary>
     /// Contains constants for the <c>client_assertion_type</c> values used with JWT client-authentication assertions.
     /// </summary>
     public static class ClientAssertionTypes

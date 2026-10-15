@@ -18,6 +18,7 @@
 
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
@@ -31,14 +32,15 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 internal class DefaultOpenIdClientResolver(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
-    ISettingSerializer settingSerializer,
-    ISecretSerializer secretSerializer
+    ISecretSerializer secretSerializer,
+    ISecurityProfileSettingsExpander securityProfileExpander
 ) : IOpenIdClientResolver
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IOpenIdClientFactory ClientFactory { get; } = clientFactory;
-    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private ISecurityProfileSettingsExpander SecurityProfileExpander { get; } =
+        securityProfileExpander;
 
     /// <inheritdoc />
     public async ValueTask<OpenIdClient?> ResolveClientOrDefaultAsync(
@@ -63,7 +65,7 @@ internal class DefaultOpenIdClientResolver(
         }
 
         var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var clientSettings = SettingSerializer.DeserializeSettings(
+        var clientSettings = SecurityProfileExpander.Expand(
             persistedClient.Settings.Value,
             jsonOptions
         );

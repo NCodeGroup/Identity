@@ -54,6 +54,11 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<IDefaultSettingsProvider, DefaultSettingsProvider>()
             );
 
+            serviceCollection.TryAddSingleton<
+                ISecurityProfileSettingsExpander,
+                DefaultSecurityProfileSettingsExpander
+            >();
+
             return builder;
         }
     }

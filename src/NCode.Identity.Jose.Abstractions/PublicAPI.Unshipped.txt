@@ -42,6 +42,7 @@ const NCode.Identity.Jose.Algorithms.AlgorithmCodes.Compression.None = "" -> str
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EcdsaSha256 = "ES256" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EcdsaSha384 = "ES384" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EcdsaSha512 = "ES512" -> string!
+const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EdDsa = "EdDSA" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.HmacSha256 = "HS256" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.HmacSha384 = "HS384" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.HmacSha512 = "HS512" -> string!

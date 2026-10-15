@@ -142,20 +142,21 @@ entry and/or ADR that closed it.
     (registered-certificate thumbprint match), gated by the client's `token_endpoint_auth_method`, reusing
     `IClientCertificateResolver` and auto-advertised in `token_endpoint_auth_methods_supported`
     ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)).
+    **The FAPI security-profile mechanism** is **done**: a `security_profile=fapi2` setting whose
+    `ISecurityProfileSettingsExpander` injects the FAPI 2.0 ceilings into the merge lattice (algorithms `PS256`/`ES256`/
+    `EdDSA`, strong-client-auth-only, `response_type=code`, PKCE `S256`, require PKCE + PAR, short code/PAR lifetimes),
+    plus permitted-`token_endpoint_auth_methods_supported` enforcement in the client-auth service (rejecting weak/public
+    auth under `fapi2`) ([ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
 
     **Remaining work, in order.**
-    - **Phase 2 — FAPI security-profile mechanism (own ADR).** A `security_profile` setting (e.g. `fapi2`) at tenant/
-      client scope that **injects ceilings into the merge lattice** so discovery and enforcement share one source of truth:
-      algorithms → `PS256`/`ES256`/`EdDSA`; require PAR; require PKCE `S256`; require sender-constrained; strong-client-
-      auth-only; confidential-only; `authorization_code_lifetime` ≤ 60s (default is 5 min today); PAR `request_uri`
-      lifetime < 600s; `response_type=code` only. Plus a thin request-time validator for the behavioral rules not
-      expressible as setting ceilings (confidential-client rejection, client-assertion `aud` = issuer string, non-PAR
-      rejection surface). Touch points: `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`,
-      `OpenIdSettingKeys` / `OpenIdSettingNames`, `DefaultDiscoverMetadataHandler`.
-    - **Phase 3 — remaining discovery/validation details.** Advertise `authorization_response_iss_parameter_supported`
-      (behavior already emitted); apply a ≤ 60s `iat`/`nbf` future tolerance in `ValidateJwtParameters`; verify
-      303-redirect / no-307 / auth-code single-use / `redirect_uri`-required-in-PAR; disable CORS on the authorization
-      endpoint (FAPI §5.2.3).
+    - **Phase 3 — remaining behavioral rules + discovery/validation details.** The FAPI behavioral rules not expressible
+      as setting ceilings: the client-assertion `aud` must equal the issuer string (not the token-endpoint URL) under
+      `fapi2`; **sender-constrained access tokens** must be required (DPoP **or** mTLS binding — not a single setting, so
+      a request-time check); and a **public client** must be rejected at the **authorization** endpoint under `fapi2`
+      (the token endpoint already rejects it via permitted-method enforcement). Plus: advertise
+      `authorization_response_iss_parameter_supported` (behavior already emitted); apply a ≤ 60s `iat`/`nbf` future
+      tolerance in `ValidateJwtParameters`; verify 303-redirect / no-307 / auth-code single-use /
+      `redirect_uri`-required-in-PAR; disable CORS on the authorization endpoint (FAPI §5.2.3).
     - **Phase 4 — conformance & docs.** Flip the `apps/conformance` `coverage.ts` FAPI rows to `verified`; add a FAPI-2.0
       seed client (`security_profile=fapi2`, `private_key_jwt`) to `AddConformanceSeed`; wire the OpenID Foundation
       FAPI 2.0 test plan into `T1` and the `T6` matrix. Also extend Dynamic Client Registration to **accept the
@@ -178,6 +179,17 @@ entry and/or ADR that closed it.
   (`ICibaNotificationService`, `client_notification_endpoint`) — use plain `IHttpClientFactory` clients with **no** SSRF
   guard; route them through the shared guard's named-client pattern (guard + no auto-redirect) so a registered internal
   URL cannot turn the OP into a confused deputy.
+
+- **`F29` — EdDSA (Ed25519 / Ed448) signing algorithm support.** The JOSE library implements RSA (`RS*`/`PS*`) and ECDSA
+  (`ES*`) signatures but not **EdDSA** (the JWA `alg` value `EdDSA`, RFC 8037), the modern Edwards-curve signature scheme
+  FAPI 2.0 permits. The algorithm code constant exists (`AlgorithmCodes.DigitalSignature.EdDsa`) and the FAPI security
+  profile already lists `EdDSA` in its signing-algorithm ceiling, so it is **advertised/permitted the moment the
+  implementation lands** (the ceiling intersects with the server's actually-supported set). Deliverables: an
+  `Ed25519`/`Ed448` `SignatureAlgorithm` (sign + verify) registered in `DefaultAlgorithmDataSource`, an `OKP`-family
+  `SecretKey` / key-type descriptor (`crv` = `Ed25519`/`Ed448`, the JWK `OKP` key type) with JWK/PEM import and export,
+  and coverage in the JOSE round-trip tests. Touch points: `src/NCode.Identity.Jose/Algorithms/`,
+  `src/NCode.Identity.Secrets/Logic/` (a new OKP descriptor alongside the RSA/ECC ones),
+  `src/NCode.Identity.Jose/Algorithms/DefaultAlgorithmDataSource.cs`.
 
 - **`F27` — JARM (JWT Secured Authorization Response Mode) + response-mode extensibility seam.** Signed/encrypted
   authorization responses (`query.jwt`, `fragment.jwt`, `form_post.jwt`, `jwt`). **Not required by FAPI 2.0** (which

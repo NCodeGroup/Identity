@@ -28,6 +28,7 @@ using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -61,6 +62,7 @@ public sealed class EphemeralOpenIdTenantFactory(
     ISecretSerializer secretSerializer,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
+    ISecurityProfileSettingsExpander securityProfileExpander,
     ISecretKeyFactory secretKeyFactory
 )
     : DefaultOpenIdTenantFactory(
@@ -73,7 +75,8 @@ public sealed class EphemeralOpenIdTenantFactory(
         settingSerializer,
         secretSerializer,
         secretKeyCollectionProviderFactory,
-        collectionDataSourceFactory
+        collectionDataSourceFactory,
+        securityProfileExpander
     )
 {
     private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;

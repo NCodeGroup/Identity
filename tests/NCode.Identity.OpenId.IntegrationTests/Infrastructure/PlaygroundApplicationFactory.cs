@@ -38,6 +38,7 @@ using NCode.Identity.OpenId.Playground;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
@@ -139,27 +140,21 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        // Protect the secret the same way DefaultSecretSerializer expects to unprotect it.
-        var protector = serviceProvider
-            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
-            .CreateDataProtector();
-
-        var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(secretBytes, ref writer);
-
-        var persistedSecret = new PersistedSecret
-        {
-            SecretId = $"{clientId}-secret",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
-            KeySizeBits = secretBytes.Length * 8,
-            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
-        };
+        // Persist the given client_secret through the same shared-secret primitive production uses (ADR-0110), so the
+        // stored UTF-8 shape is identical to a generated secret's and client authentication round-trips.
+        var persistedSecret = serviceProvider
+            .GetRequiredService<ISecretGenerator>()
+            .ImportSharedSecret(
+                new ImportSharedSecretRequest
+                {
+                    SecretId = $"{clientId}-secret",
+                    Use = null,
+                    Algorithm = null,
+                    CreatedWhen = DateTimeOffset.UnixEpoch,
+                    ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
+                },
+                Encoding.UTF8.GetBytes(clientSecret)
+            );
 
         var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
             grantTypes.Length > 0

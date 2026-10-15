@@ -16,21 +16,17 @@
 
 #endregion
 
-using System.Buffers;
 using System.Buffers.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
-using NCode.Extensions.DataProtection;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Logic;
-using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Server.Logging;
 using NCode.Mediator;
 
@@ -45,15 +41,14 @@ namespace NCode.Identity.Server;
 /// </summary>
 internal sealed class BootstrapAdminSeedHandler(
     IOptions<BootstrapAdminOptions> bootstrapOptionsAccessor,
-    IDataProtectorFactory<PersistedSecret> dataProtectorFactory,
+    ISecretGenerator secretGenerator,
     ICryptoService cryptoService,
     TimeProvider timeProvider,
     ILogger<BootstrapAdminSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
     private BootstrapAdminOptions Options { get; } = bootstrapOptionsAccessor.Value;
-    private IDataProtectorFactory<PersistedSecret> DataProtectorFactory { get; } =
-        dataProtectorFactory;
+    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<BootstrapAdminSeedHandler> Logger { get; } = logger;
@@ -176,25 +171,22 @@ internal sealed class BootstrapAdminSeedHandler(
 
     private PersistedSecret CreatePersistedSecret(ReadOnlyMemory<byte> clientSecret)
     {
-        var protector = DataProtectorFactory.CreateDataProtector();
-
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(clientSecret.Span, ref writer);
-
         var now = TimeProvider.GetUtcNow();
-        return new PersistedSecret
-        {
-            // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so a refresh (remove-then-add
-            // in one unit of work) never collides with the outgoing secret's id, and the id reveals nothing.
-            SecretId = CryptoService.GenerateResourceId(),
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = now,
-            ExpiresWhen = now.AddYears(100),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = SecretEncodings.SymmetricRaw,
-            KeySizeBits = clientSecret.Length * 8,
-            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
-        };
+
+        // Persist the configured client_secret through the single shared-secret primitive (ADR-0110) so its stored
+        // UTF-8 shape cannot drift from generated secrets.
+        return SecretGenerator.ImportSharedSecret(
+            new ImportSharedSecretRequest
+            {
+                // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so a refresh (remove-then-add
+                // in one unit of work) never collides with the outgoing secret's id, and the id reveals nothing.
+                SecretId = CryptoService.GenerateResourceId(),
+                Use = null,
+                Algorithm = null,
+                CreatedWhen = now,
+                ExpiresWhen = now.AddYears(100),
+            },
+            clientSecret.Span
+        );
     }
 }

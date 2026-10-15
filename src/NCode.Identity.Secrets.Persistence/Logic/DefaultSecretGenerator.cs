@@ -103,21 +103,66 @@ internal class DefaultSecretGenerator(
         RandomNumberGenerator.Fill(entropy);
         var secretMaterial = Base64Url.Encode(entropy);
 
-        var materialBytes = Encoding.UTF8.GetBytes(secretMaterial);
-        var secret = new PersistedSecret
-        {
-            SecretId = request.SecretId,
-            Use = request.Use,
-            Algorithm = request.Algorithm,
-            CreatedWhen = request.CreatedWhen,
-            ExpiresWhen = request.ExpiresWhen,
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = SecretEncodings.SymmetricRaw,
-            KeySizeBits = materialBytes.Length * 8,
-            EncodedValue = Protect(materialBytes),
-        };
+        var secret = CreateSharedSecret(
+            request.SecretId,
+            request.Use,
+            request.Algorithm,
+            request.CreatedWhen,
+            request.ExpiresWhen,
+            Encoding.UTF8.GetBytes(secretMaterial)
+        );
 
         return new GeneratedSecret { Secret = secret, SecretMaterial = secretMaterial };
+    }
+
+    /// <inheritdoc />
+    public PersistedSecret ImportSharedSecret(
+        ImportSharedSecretRequest request,
+        ReadOnlySpan<byte> secretValue
+    )
+    {
+        if (secretValue.IsEmpty)
+        {
+            throw new ArgumentException(
+                "The shared-secret value must not be empty.",
+                nameof(secretValue)
+            );
+        }
+
+        return CreateSharedSecret(
+            request.SecretId,
+            request.Use,
+            request.Algorithm,
+            request.CreatedWhen,
+            request.ExpiresWhen,
+            secretValue
+        );
+    }
+
+    // The single correct-by-default construction of a shared-secret PersistedSecret (ADR-0110): a symmetric_raw secret
+    // whose stored key material is exactly the supplied UTF-8 octets of the opaque string, shared by GenerateSharedSecret
+    // (random value) and ImportSharedSecret (caller-supplied value) so the stored shape cannot drift between them.
+    private PersistedSecret CreateSharedSecret(
+        string secretId,
+        string? use,
+        string? algorithm,
+        DateTimeOffset createdWhen,
+        DateTimeOffset expiresWhen,
+        ReadOnlySpan<byte> utf8SecretBytes
+    )
+    {
+        return new PersistedSecret
+        {
+            SecretId = secretId,
+            Use = use,
+            Algorithm = algorithm,
+            CreatedWhen = createdWhen,
+            ExpiresWhen = expiresWhen,
+            SecretType = SecretTypes.Symmetric,
+            SecretEncoding = SecretEncodings.SymmetricRaw,
+            KeySizeBits = utf8SecretBytes.Length * 8,
+            EncodedValue = Protect(utf8SecretBytes),
+        };
     }
 
     private string Protect(ReadOnlySpan<byte> privateKeyBytes)

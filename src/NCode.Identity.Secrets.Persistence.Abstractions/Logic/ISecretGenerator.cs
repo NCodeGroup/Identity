@@ -22,8 +22,11 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 namespace NCode.Identity.Secrets.Persistence.Logic;
 
 /// <summary>
-/// Provides the ability to generate a new <see cref="PersistedSecret"/> whose key material is created
-/// server-side and data-protected, so that private key material is never supplied by, or returned to, the caller.
+/// Provides the ability to produce a data-protected <see cref="PersistedSecret"/>. The <c>Generate…</c> methods
+/// create fresh key material server-side so that private key material is never supplied by the caller; the
+/// <see cref="ImportSharedSecret"/> method persists a <strong>caller-supplied</strong> shared-secret value in the
+/// same symmetric shape as <see cref="GenerateSharedSecret"/>, so the two share a single correct-by-default storage
+/// contract that cannot drift (see ADR-0110).
 /// </summary>
 [PublicAPI]
 public interface ISecretGenerator
@@ -51,4 +54,21 @@ public interface ISecretGenerator
     /// <returns>The <see cref="GeneratedSecret"/> with the data-protected UTF-8 key material and the one-time opaque
     /// secret string to reveal.</returns>
     GeneratedSecret GenerateSharedSecret(GenerateSecretRequest request);
+
+    /// <summary>
+    /// Persists a <strong>caller-supplied</strong> shared-secret value (for example an OAuth <c>client_secret</c> the
+    /// operator chose) as a data-protected <see cref="PersistedSecret"/> in the identical shape
+    /// <see cref="GenerateSharedSecret"/> produces: a <c>Symmetric</c> secret whose stored key material is exactly the
+    /// supplied UTF-8 octets, so a verifier's UTF-8 comparison of the presented secret matches. Because the caller
+    /// already holds the value, nothing is revealed — the method returns the ready-to-persist secret directly rather
+    /// than a <see cref="GeneratedSecret"/>. The secret's bit length is derived from <paramref name="secretValue"/>.
+    /// </summary>
+    /// <param name="request">The <see cref="ImportSharedSecretRequest"/> describing the secret's metadata.</param>
+    /// <param name="secretValue">The UTF-8 octets of the opaque shared-secret string. Must not be empty.</param>
+    /// <returns>The imported <see cref="PersistedSecret"/> with the data-protected UTF-8 key material.</returns>
+    /// <exception cref="System.ArgumentException"><paramref name="secretValue"/> is empty.</exception>
+    PersistedSecret ImportSharedSecret(
+        ImportSharedSecretRequest request,
+        ReadOnlySpan<byte> secretValue
+    );
 }

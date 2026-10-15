@@ -150,6 +150,95 @@ public class DefaultSecretGeneratorTests
 
     #endregion
 
+    #region ImportSharedSecret Tests
+
+    [Fact]
+    public void ImportSharedSecret_StoresTheGivenUtf8BytesVerbatim()
+    {
+        var request = new ImportSharedSecretRequest
+        {
+            SecretId = "import-1",
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+        var secretValue = Encoding.UTF8.GetBytes("my-chosen-client-secret");
+
+        var persisted = _generator.ImportSharedSecret(request, secretValue);
+
+        Assert.Equal("import-1", persisted.SecretId);
+        Assert.Equal(SecretTypes.Symmetric, persisted.SecretType);
+        Assert.Equal(SecretEncodings.SymmetricRaw, persisted.SecretEncoding);
+        Assert.Equal(secretValue.Length * 8, persisted.KeySizeBits);
+
+        var secretKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
+            _serializer.DeserializeSecret(persisted)
+        );
+
+        var writer = new ArrayBufferWriter<byte>();
+        secretKey.ExportPrivateKey(ref writer);
+
+        // The stored key material must be exactly the supplied UTF-8 bytes — the same contract GenerateSharedSecret
+        // guarantees — so client authentication (CommonClientAuthenticationHandler.IsSecretEqual) round-trips.
+        Assert.Equal(secretValue, writer.WrittenSpan.ToArray());
+    }
+
+    [Fact]
+    public void ImportSharedSecret_ProducesTheSameStoredShapeAsGenerateSharedSecret()
+    {
+        var generated = _generator.GenerateSharedSecret(CreateRequest(SecretTypes.Symmetric, 256));
+
+        var imported = _generator.ImportSharedSecret(
+            new ImportSharedSecretRequest
+            {
+                SecretId = "import-2",
+                Use = null,
+                Algorithm = null,
+                CreatedWhen = DateTimeOffset.UnixEpoch,
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            },
+            Encoding.UTF8.GetBytes(generated.SecretMaterial!)
+        );
+
+        Assert.Equal(generated.Secret.SecretType, imported.SecretType);
+        Assert.Equal(generated.Secret.SecretEncoding, imported.SecretEncoding);
+        Assert.Equal(generated.Secret.KeySizeBits, imported.KeySizeBits);
+
+        var generatedKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
+            _serializer.DeserializeSecret(generated.Secret)
+        );
+        var importedKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
+            _serializer.DeserializeSecret(imported)
+        );
+
+        var generatedWriter = new ArrayBufferWriter<byte>();
+        generatedKey.ExportPrivateKey(ref generatedWriter);
+        var importedWriter = new ArrayBufferWriter<byte>();
+        importedKey.ExportPrivateKey(ref importedWriter);
+
+        Assert.Equal(generatedWriter.WrittenSpan.ToArray(), importedWriter.WrittenSpan.ToArray());
+    }
+
+    [Fact]
+    public void ImportSharedSecret_WhenValueEmpty_Throws()
+    {
+        var request = new ImportSharedSecretRequest
+        {
+            SecretId = "import-3",
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+        Assert.Throws<ArgumentException>(() =>
+            _generator.ImportSharedSecret(request, ReadOnlySpan<byte>.Empty)
+        );
+    }
+
+    #endregion
+
     #region GenerateSecret Rsa Tests
 
     [Fact]

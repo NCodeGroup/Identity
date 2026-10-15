@@ -24,6 +24,11 @@ NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCou
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.RevokedCount.init -> void
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.SessionId.get -> string?
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.SessionId.init -> void
+NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent
+NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.RevokedCount.get -> long
+NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.RevokedCount.init -> void
+NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.SessionId.get -> string?
+NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.SessionId.init -> void
 NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.AlgorithmCapabilityResource() -> void
@@ -97,6 +102,7 @@ NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientC
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordGrantRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? clientId, string? grantType, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordGrantsRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? clientId, string? sessionId, long revokedCount, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordSessionsRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? sessionId, long revokedCount, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceChangeAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Events.Audit.ResourceChangeAuditEvent! auditEvent, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerScopeChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! scopeValue, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -227,6 +233,36 @@ NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.GrantRevocationResult() -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.Revoked.get -> long
 NCode.Identity.OpenId.Management.Contracts.Grants.GrantRevocationResult.Revoked.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.SessionResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.SessionId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.SessionId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.SubjectId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.SubjectId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.CreatedWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.LastActivityWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.LastActivityWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.ExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.AuthTime.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.AuthTime.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.AuthenticationMethods.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.AuthenticationMethods.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.AuthenticationContextClassReference.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.AuthenticationContextClassReference.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.IdentityProvider.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.IdentityProvider.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.ClientIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.ClientIds.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.UserAgent.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.UserAgent.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.RemoteIpAddress.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.RemoteIpAddress.init -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult.SessionRevocationResult() -> void
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult.Revoked.get -> long
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult.Revoked.init -> void
 NCode.Identity.OpenId.Management.Contracts.OwnerResource
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.AssignmentId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.AssignmentId.init -> void
@@ -510,6 +546,7 @@ override NCode.Identity.OpenId.Management.Auditing.ClientChangedAuditEvent.Resou
 override NCode.Identity.OpenId.Management.Auditing.ClientSecretChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.Action.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerScopeChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerSecretChangedAuditEvent.ResourceType.get -> string!

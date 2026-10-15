@@ -98,6 +98,33 @@ internal class DefaultManagementAuditRecorder(
     }
 
     /// <inheritdoc />
+    public ValueTask RecordSessionsRevokedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string? subjectId,
+        string? sessionId,
+        long revokedCount,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new SessionsRevokedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = GetCorrelationId(httpContext),
+            ActorId = GetActorId(httpContext),
+            Source = GetSource(httpContext),
+            TenantId = tenantId,
+            SubjectId = subjectId,
+            Outcome = AuditOutcome.Success,
+            SessionId = sessionId,
+            RevokedCount = revokedCount,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public ValueTask RecordClientChangedAsync(
         HttpContext httpContext,
         string tenantId,

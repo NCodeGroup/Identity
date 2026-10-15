@@ -157,6 +157,49 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
     #endregion
 
+    #region RecordSessionsRevokedAsync Tests
+
+    [Fact]
+    public async Task RecordSessionsRevokedAsync_PublishesAuditEventWithCount()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        SessionsRevokedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<SessionsRevokedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (SessionsRevokedAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = CreateRecorder(mockPublisher.Object);
+
+        var httpContext = CreateHttpContext("admin-1");
+
+        await recorder.RecordSessionsRevokedAsync(
+            httpContext,
+            "tenant-1",
+            "subject-1",
+            sessionId: "sid-1",
+            revokedCount: 1,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("session.revoked.admin", captured.Action);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Equal("sid-1", captured.SessionId);
+        Assert.Equal(1, captured.RevokedCount);
+        Assert.Equal("admin-1", captured.ActorId);
+    }
+
+    #endregion
+
     #region RecordClientChangedAsync Tests
 
     [Fact]

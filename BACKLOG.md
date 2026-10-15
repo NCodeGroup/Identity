@@ -130,27 +130,6 @@ entry and/or ADR that closed it.
   `grant-token-exchange` probe (`src/frontend/apps/conformance/src/coverage.ts`). Touch point: a new
   `DefaultTokenExchangeGrantHandler` under
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/`.
-- **`F25` — Session claims & lifecycle enhancements (build on the existing session subsystem).** The end-user session
-  subsystem already exists — `ISessionService`, `SessionGrant`, the `sid` claim in the ID token, RP-Initiated /
-  Back-Channel / (opt-in) Front-Channel Logout, and session-scoped grant revocation
-  ([ADR-0074](docs/adr/0074-session-management-and-logout.md),
-  [ADR-0077](docs/adr/0077-session-scoped-grant-revocation-on-logout.md),
-  [ADR-0088](docs/adr/0088-opt-in-front-channel-logout-and-session-management.md),
-  [ADR-0096](docs/adr/0096-end-session-subject-from-server-state.md)). **Mostly delivered** — see
-  [`CHANGELOG.md`](CHANGELOG.md) and [ADR-0098](docs/adr/0098-session-lifecycle-termination-seam.md): the setting-gated
-  `sid` in the access token, the server-authoritative idle (inactivity) timeout, the concurrent-session limit with a
-  swappable `ISessionEvictionPolicy`, the subject-scoped session query / bulk revocation (`ISessionService.GetSessionsAsync`
-  / `RevokeAsync` / `RevokeAllAsync`), and session auditing/logging are all done. **Remaining:**
-    - **A surface to view and terminate sessions.** The `ISessionService` query/revoke capability exists and is
-      tested, but there is no dedicated surface yet: (a) a **user-facing** "active sessions" + "sign out everywhere"
-      view on the OP-hosted account page (`apps/auth`), which runs in the ambient `OpenIdContext` and can call
-      `GetSessionsAsync` / `RevokeAllAsync` directly; and (b) a tenant-addressed **admin** endpoint
-      (`api/tenants/{tenantId}/sessions`). The admin endpoint is **blocked on a design decision**: management endpoints
-      are addressed by a route `{tenantId}` while `ISessionService` is bound to the ambient `OpenIdContext.Tenant`, so
-      it must first resolve a per-tenant context (or `ISessionService` must gain a tenant-parameterized overload). The
-      existing grants management surface (`GET`/`DELETE api/tenants/{tenantId}/grants?subjectId=…`) already provides
-      subject-filtered listing and bulk revoke in the interim (though it does not run the termination seam's
-      back-channel/audit side effects).
 
 ## Conformance & interop testing (group `T`)
 

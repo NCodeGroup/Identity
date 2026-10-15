@@ -64,11 +64,13 @@ seam (as `DefaultTokenService` drives the claims seam).
 - The server-authoritative idle check runs on the authorize path (`DefaultAuthenticateHandler` calls
   `ISessionService.ValidateAndTouchAsync`); an invalid/idle-expired session self-heals by prompting for login, exactly
   like a stale cookie, rather than dead-ending with `access_denied`.
-- A tenant-addressed **admin** management surface for sessions (`api/tenants/{tenantId}/sessions`) is deferred: the
-  management endpoints are addressed by a route `{tenantId}` while `ISessionService` is bound to the ambient
-  `OpenIdContext.Tenant`, so an admin surface must first resolve a per-tenant context (or gain a tenant-parameterized
-  overload). The existing grants management surface already provides subject-filtered listing and bulk revoke in the
-  interim. Tracked in [`BACKLOG.md`](../../BACKLOG.md).
+- A tenant-addressed **admin** management surface for sessions (`api/tenants/{tenantId}/sessions`) is **delivered**
+  ([ADR-0100](0100-explicit-tenant-context-materialization.md)): the management endpoints are addressed by a route
+  `{tenantId}` while `ISessionService` is bound to the ambient `OpenIdContext.Tenant`, so the admin surface materializes
+  a full context for the addressed tenant (`IOpenIdContextFactory.CreateForTenantAsync`) and delegates to
+  `ISessionService`, running the full termination seam (grant revocation, back-channel logout, auditing) in that
+  tenant's security domain. The existing grants management surface provides subject-filtered listing and bulk revoke but
+  bypasses the seam (no back-channel logout, no session audit); the sessions surface is the seam-running counterpart.
 
 ## References
 

@@ -12,6 +12,7 @@ import {
   LOGIN_ACTION,
   LOGOUT_ACTION,
   ME_ENDPOINT,
+  SESSIONS_PATH,
 } from './params.js';
 
 /** The current end-user session the account page renders (mirrors the OP's `/account/me` payload). */
@@ -148,6 +149,10 @@ export function AccountPage({
                 Sign out
               </Button>
             </Stack>
+
+            <Button href={SESSIONS_PATH} variant="text">
+              Manage active sessions
+            </Button>
           </Stack>
         </CardContent>
       </Card>

@@ -85,6 +85,31 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
+    /// Records that an administrator revoked end-user sessions — a single session by its <c>sid</c> or every session a
+    /// subject holds. The per-session termination side effects (grant revocation, back-channel logout, and the
+    /// <c>session.terminated</c> audit event) are raised independently by the session-termination seam.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the tenant the sessions belong to.</param>
+    /// <param name="subjectId">The subject whose sessions were revoked, if known.</param>
+    /// <param name="sessionId">The opaque <c>sid</c> of the single session revoked, or <c>null</c> for a subject-wide revocation.</param>
+    /// <param name="revokedCount">The number of sessions that were revoked.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordSessionsRevokedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string? subjectId,
+        string? sessionId,
+        long revokedCount,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Records that an administrator created, updated, or deleted an OpenID client, or updated its settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>

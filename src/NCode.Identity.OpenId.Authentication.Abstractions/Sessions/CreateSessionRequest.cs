@@ -77,4 +77,16 @@ public readonly record struct CreateSessionRequest
     /// When <c>null</c>, no concurrency limit is enforced.
     /// </summary>
     public int? MaxConcurrentSessions { get; init; }
+
+    /// <summary>
+    /// Gets the optional <c>User-Agent</c> header observed when the session is established, recorded so an
+    /// active-sessions surface can describe the session's device/browser. When <c>null</c>, none is recorded.
+    /// </summary>
+    public string? UserAgent { get; init; }
+
+    /// <summary>
+    /// Gets the optional remote IP address observed when the session is established, recorded so an active-sessions
+    /// surface can describe where the session originated. When <c>null</c>, none is recorded.
+    /// </summary>
+    public string? RemoteIpAddress { get; init; }
 }

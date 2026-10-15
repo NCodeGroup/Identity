@@ -56,6 +56,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     InteractiveAuthenticationOptions options
 ) : IEndpointProvider
 {
+    // The `scope` form value that selects "sign out everywhere else" (retain the current session); any other value is
+    // a full "sign out everywhere".
+    private const string SignOutOthersScope = "others";
+
     private IInteractiveCredentialVerifier CredentialVerifier { get; } = credentialVerifier;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IConsentService ConsentService { get; } = consentService;
@@ -89,6 +93,16 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         endpoints.MapPost(
             InteractiveAuthenticationDefaults.ApplicationsRevokePath,
             PostRevokeApplicationAsync
+        );
+        endpoints.MapGet(InteractiveAuthenticationDefaults.SessionsPath, GetSessionsPageAsync);
+        endpoints.MapGet(InteractiveAuthenticationDefaults.SessionsListPath, GetSessionsAsync);
+        endpoints.MapPost(
+            InteractiveAuthenticationDefaults.SessionsRevokePath,
+            PostRevokeSessionAsync
+        );
+        endpoints.MapPost(
+            InteractiveAuthenticationDefaults.SessionsRevokeAllPath,
+            PostRevokeAllSessionsAsync
         );
     }
 
@@ -265,6 +279,11 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var idleTimeout = settings.GetValue(OpenIdSettingKeys.SessionIdleTimeout);
         var maxConcurrentSessions = settings.GetValue(OpenIdSettingKeys.MaxConcurrentSessions);
 
+        // Capture the device/origin at sign-in so the self-service active-sessions surface can describe each session.
+        var httpRequest = openIdContext.Http.Request;
+        var userAgent = httpRequest.Headers.UserAgent.ToString();
+        var remoteIpAddress = openIdContext.Http.Connection.RemoteIpAddress?.ToString();
+
         var request = new CreateSessionRequest
         {
             SubjectId = subjectId,
@@ -277,6 +296,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             Lifetime = absoluteLifetime > TimeSpan.Zero ? absoluteLifetime : null,
             IdleTimeout = idleTimeout > TimeSpan.Zero ? idleTimeout : null,
             MaxConcurrentSessions = maxConcurrentSessions > 0 ? maxConcurrentSessions : null,
+            UserAgent = string.IsNullOrEmpty(userAgent) ? null : userAgent,
+            RemoteIpAddress = remoteIpAddress,
         };
 
         var sessionId = await SessionService.CreateAsync(openIdContext, request, cancellationToken);
@@ -568,6 +589,201 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         }
 
         return TypedResults.Redirect(InteractiveAuthenticationDefaults.ApplicationsPath);
+    }
+
+    /// <summary>
+    /// Serves the active-sessions page (the single-page bundle), establishing the antiforgery token the revoke forms
+    /// echo back. An anonymous request is redirected to the login page with the sessions page as its return URL.
+    /// </summary>
+    public async ValueTask<IResult> GetSessionsPageAsync(HttpContext httpContext)
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return TypedResults.Redirect(
+                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
+                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.SessionsPath)
+            );
+        }
+
+        return await ServeBundleAsync(httpContext);
+    }
+
+    /// <summary>
+    /// Returns the current end-user's active sessions as JSON for the active-sessions page, marking the request's own
+    /// session, or <c>401</c> when the request is not authenticated.
+    /// </summary>
+    public async ValueTask<IResult> GetSessionsAsync(HttpContext httpContext)
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var principal = authenticateResult.Principal;
+        var subjectId = openIdContext.GetSubjectId(principal);
+        if (string.IsNullOrEmpty(subjectId))
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var currentSessionId = principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+
+        var sessions = await SessionService.GetSessionsAsync(
+            openIdContext,
+            subjectId,
+            httpContext.RequestAborted
+        );
+
+        return TypedResults.Json(
+            new SessionsResponse(
+                sessions.Select(session => ToSummary(session, currentSessionId)).ToList()
+            )
+        );
+    }
+
+    // Projects a session into the active-sessions page's view model, marking the request's own session.
+    private static SessionSummaryResponse ToSummary(SessionInfo session, string? currentSessionId)
+    {
+        var grant = session.Grant;
+        return new SessionSummaryResponse(
+            session.SessionId,
+            string.Equals(session.SessionId, currentSessionId, StringComparison.Ordinal),
+            session.CreatedWhen.ToUnixTimeSeconds(),
+            grant.LastActivityWhen.ToUnixTimeSeconds(),
+            session.ExpiresWhen?.ToUnixTimeSeconds(),
+            grant.AuthenticationMethods ?? [],
+            grant.IdentityProvider,
+            grant.UserAgent,
+            grant.RemoteIpAddress
+        );
+    }
+
+    /// <summary>
+    /// Revokes a single one of the current end-user's sessions by its <c>sid</c> (self-service), then redirects back to
+    /// the active-sessions page. The session is revoked only when it belongs to the authenticated subject, so a user
+    /// cannot terminate another subject's session.
+    /// </summary>
+    public async ValueTask<IResult> PostRevokeSessionAsync(
+        HttpContext httpContext,
+        [FromForm(Name = "sid")] string? sessionId
+    )
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return TypedResults.Redirect(
+                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
+                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.SessionsPath)
+            );
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var subjectId = openIdContext.GetSubjectId(authenticateResult.Principal);
+        if (!string.IsNullOrEmpty(subjectId) && !string.IsNullOrEmpty(sessionId))
+        {
+            // Resolve the session and confirm it belongs to the authenticated subject before revoking, so a crafted
+            // sid cannot terminate a session the caller does not own.
+            var session = await SessionService.GetOrDefaultAsync(
+                openIdContext,
+                sessionId,
+                httpContext.RequestAborted
+            );
+            if (
+                session is { } found
+                && string.Equals(found.SubjectId, subjectId, StringComparison.Ordinal)
+            )
+            {
+                await SessionService.RevokeAsync(
+                    openIdContext,
+                    sessionId,
+                    SessionTerminationReason.UserInitiated,
+                    httpContext.RequestAborted
+                );
+
+                // Revoking the request's own session invalidates the login cookie; clear it so the next request
+                // re-authenticates instead of presenting a cookie whose session no longer exists.
+                var currentSessionId = authenticateResult
+                    .Principal.FindFirst(JoseClaimNames.Payload.Sid)
+                    ?.Value;
+                if (string.Equals(sessionId, currentSessionId, StringComparison.Ordinal))
+                {
+                    await httpContext.SignOutAsync(
+                        InteractiveAuthenticationDefaults.CookieSchemeName
+                    );
+                }
+            }
+        }
+
+        return TypedResults.Redirect(InteractiveAuthenticationDefaults.SessionsPath);
+    }
+
+    /// <summary>
+    /// Revokes the current end-user's sessions in bulk (self-service), then redirects back to the active-sessions page.
+    /// When <c>scope</c> is <c>others</c> ("sign out everywhere else") the request's own session is retained; otherwise
+    /// every session is revoked and the login cookie is cleared ("sign out everywhere").
+    /// </summary>
+    public async ValueTask<IResult> PostRevokeAllSessionsAsync(
+        HttpContext httpContext,
+        [FromForm(Name = "scope")] string? scope
+    )
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return TypedResults.Redirect(
+                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
+                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.SessionsPath)
+            );
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var principal = authenticateResult.Principal;
+        var subjectId = openIdContext.GetSubjectId(principal);
+        if (string.IsNullOrEmpty(subjectId))
+        {
+            return TypedResults.Redirect(InteractiveAuthenticationDefaults.SessionsPath);
+        }
+
+        var currentSessionId = principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+
+        // "Sign out everywhere else" retains the request's own session; it needs a known current sid to exclude.
+        if (
+            string.Equals(scope, SignOutOthersScope, StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrEmpty(currentSessionId)
+        )
+        {
+            await SessionService.RevokeAllExceptAsync(
+                openIdContext,
+                subjectId,
+                currentSessionId,
+                SessionTerminationReason.UserInitiated,
+                httpContext.RequestAborted
+            );
+
+            return TypedResults.Redirect(InteractiveAuthenticationDefaults.SessionsPath);
+        }
+
+        await SessionService.RevokeAllAsync(
+            openIdContext,
+            subjectId,
+            SessionTerminationReason.GlobalSignOut,
+            httpContext.RequestAborted
+        );
+
+        // A full sign-out revokes the request's own session too, so clear the login cookie and return to the login page.
+        await httpContext.SignOutAsync(InteractiveAuthenticationDefaults.CookieSchemeName);
+        return TypedResults.Redirect(InteractiveAuthenticationDefaults.LoginPath);
     }
 
     private async ValueTask<ContentHttpResult> ServeBundleAsync(HttpContext httpContext)

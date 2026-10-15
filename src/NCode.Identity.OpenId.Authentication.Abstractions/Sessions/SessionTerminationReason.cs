@@ -57,4 +57,10 @@ public enum SessionTerminationReason
     /// Every session the subject holds was terminated ("sign out everywhere").
     /// </summary>
     GlobalSignOut = 5,
+
+    /// <summary>
+    /// The end-user terminated the session themselves from a self-service active-sessions surface (for example,
+    /// signing out another device, or "sign out everywhere else").
+    /// </summary>
+    UserInitiated = 6,
 }

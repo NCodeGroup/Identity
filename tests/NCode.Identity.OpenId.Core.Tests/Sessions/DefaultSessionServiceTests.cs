@@ -692,7 +692,75 @@ public class DefaultSessionServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await Service.RevokeAllAsync(mockContext.Object, SubjectId, CancellationToken.None);
+        await Service.RevokeAllAsync(
+            mockContext.Object,
+            SubjectId,
+            SessionTerminationReason.GlobalSignOut,
+            CancellationToken.None
+        );
+    }
+
+    [Fact]
+    public async Task RevokeAllExceptAsync_TerminatesEachOtherSessionIndividually_RetainingCurrent()
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        var mockMediator = CreateStrictMock<IMediator>();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionEnumeration(
+            mockContext,
+            CreateEnvelope("s1", UtcNow.AddMinutes(-10)),
+            CreateEnvelope("s2", UtcNow.AddMinutes(-5)),
+            CreateEnvelope("s3", UtcNow.AddMinutes(-1))
+        );
+
+        // Each retained-exclusive session is terminated on its own (SessionId set, not a subject-wide null), with the
+        // self-service reason.
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c =>
+                        c.Termination.Reason == SessionTerminationReason.UserInitiated
+                        && c.Termination.SessionId != null
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Service.RevokeAllExceptAsync(
+            mockContext.Object,
+            SubjectId,
+            exceptSessionId: "s2",
+            SessionTerminationReason.UserInitiated,
+            CancellationToken.None
+        );
+
+        mockMediator.Verify(
+            x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c => c.Termination.SessionId == "s1"),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+        mockMediator.Verify(
+            x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c => c.Termination.SessionId == "s3"),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+        mockMediator.Verify(
+            x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c => c.Termination.SessionId == "s2"),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Never
+        );
     }
 
     #endregion

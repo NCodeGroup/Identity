@@ -127,15 +127,38 @@ public interface ISessionService
 
     /// <summary>
     /// Terminates every session the specified subject holds ("sign out everywhere"), dispatching the
-    /// session-termination side effects through the <see cref="OnSessionTerminatedCommand"/> seam.
+    /// session-termination side effects through the <see cref="OnSessionTerminatedCommand"/> seam as a single
+    /// subject-wide termination.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="subjectId">The stable, server-owned principal identifier whose sessions are terminated.</param>
+    /// <param name="reason">The reason the sessions are being terminated.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask RevokeAllAsync(
         OpenIdContext openIdContext,
         string subjectId,
+        SessionTerminationReason reason,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Terminates every session the specified subject holds <em>except</em> the one identified by
+    /// <paramref name="exceptSessionId"/> ("sign out everywhere else"), terminating each remaining session individually
+    /// through the <see cref="OnSessionTerminatedCommand"/> seam so the retained session and the grants issued under it
+    /// stay intact.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="subjectId">The stable, server-owned principal identifier whose sessions are terminated.</param>
+    /// <param name="exceptSessionId">The opaque session identifier (<c>sid</c>) to retain.</param>
+    /// <param name="reason">The reason the sessions are being terminated.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask RevokeAllExceptAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        string exceptSessionId,
+        SessionTerminationReason reason,
         CancellationToken cancellationToken
     );
 }

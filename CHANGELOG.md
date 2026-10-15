@@ -10,6 +10,22 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Runtime `jwks_uri` client-key resolution and a shared, extensible outbound-fetch SSRF guard — advances backlog
+  `F16` (Phase 0) ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).** A
+  client's **public** verification keys can now be resolved at runtime from its `jwks_uri` setting (previously stored but
+  never consumed), so a FAPI client can authenticate via `private_key_jwt` — or present a signed request object (JAR) —
+  with keys it rotates without re-registering. A new `IClientKeyResolver` seam merges the client's stored `SecretKeys`
+  with the keys fetched from its `jwks_uri`; the `client_assertion` handlers and the JAR loader verify against the merged
+  set. The fetch is SSRF-guarded, requires absolute `https`, and is bounded and cached by five new per-client settings
+  (`jwks_uri`, `jwks_uri_allowed_hosts`, `jwks_uri_fetch_timeout`, `jwks_uri_max_size_bytes`, `jwks_uri_cache_duration`,
+  mirroring the `sector_identifier_uri*` family); resolution **fails closed** to the client's stored keys, so an
+  unreachable or malformed key set never grants access. The `sector_identifier_uri` SSRF floor is generalized into a
+  shared, injectable `IOutboundHttpForgeryGuard` now applied to **every** server-initiated client-URL fetch —
+  `sector_identifier_uri`, `jwks_uri`, and the JAR `request_uri` fetch, which previously ran through an unguarded client
+  that followed redirects. The hardcoded private/reserved-address floor (the IANA special-use registry) is a
+  non-weakenable security control; deployments extend it **additive-deny only** by registering `IOutboundAddressFilter`
+  implementations. New public surface: `IClientKeyResolver`, `IOutboundAddressFilter`, and the five `jwks_uri*` settings.
+
 - **Public-key import / BYOK across the management API and Dynamic Client Registration — closes backlog `S3`, advances
   `F16` ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md)).** A relying party's **public**
   asymmetric key can now be imported — as a **JWK**, **PEM**, or **X.509 certificate** — and persisted as a first-class

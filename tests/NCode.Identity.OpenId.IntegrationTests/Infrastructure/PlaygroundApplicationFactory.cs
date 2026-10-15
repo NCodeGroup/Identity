@@ -59,6 +59,12 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
     /// <summary>The tenant id used by the Playground's static single-tenant provider.</summary>
     public const string TenantId = "default";
 
+    /// <summary>
+    /// When set, overrides the SSRF-guarded client <c>jwks_uri</c> HTTP client with a stub that serves the JSON this
+    /// responder returns, so a <c>jwks_uri</c> fetch can be exercised without a real network connection.
+    /// </summary>
+    public Func<HttpRequestMessage, string>? ClientJwksResponder { get; set; }
+
     private string DatabaseName { get; } = $"it-{Guid.NewGuid():N}";
 
     /// <summary>
@@ -260,6 +266,58 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
                 TenantId = TenantId,
                 ClientId = clientId,
                 Value = [persistedSecret],
+            },
+        };
+
+        await store.AddAsync(persistedClient, CancellationToken.None);
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client whose public verification keys are published at the
+    /// given <paramref name="jwksUri"/> (resolved at runtime), with no stored secrets, so the client can authenticate
+    /// via <c>private_key_jwt</c> by signing a <c>client_assertion</c> with the corresponding private key.
+    /// </summary>
+    public async Task SeedConfidentialClientWithJwksUriAsync(
+        string clientId,
+        string jwksUri,
+        params string[] grantTypes
+    )
+    {
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        var settings = new Dictionary<string, object> { ["jwks_uri"] = jwksUri };
+        if (grantTypes.Length > 0)
+            settings["grant_types_supported"] = grantTypes;
+
+        var settingsJson = System.Text.Json.JsonSerializer.SerializeToElement(settings);
+
+        using var scope = Services.CreateScope();
+        var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var store = storeManager.GetStore<IClientStore>();
+
+        var persistedClient = new PersistedClient
+        {
+            TenantId = TenantId,
+            ClientId = clientId,
+            IsDisabled = false,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                Value = settingsJson,
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                Value = [],
             },
         };
 
@@ -514,6 +572,17 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
             // enables the client_credentials and resource-owner password grants plus a custom "api" scope for
             // integration coverage. Both grants stay off in the Playground host's own secure defaults.
             serviceCollection.AddSingleton<IDefaultSettingsProvider, TestServerSettingsProvider>();
+
+            // Replace the SSRF-guarded client jwks_uri HTTP client with a stub serving canned JSON, so a jwks_uri
+            // fetch can be exercised without a real outbound connection (which the guard would refuse).
+            if (ClientJwksResponder is { } responder)
+            {
+                serviceCollection
+                    .AddHttpClient("NCode.Identity.OpenId.ClientJwks")
+                    .ConfigurePrimaryHttpMessageHandler(() =>
+                        new StubJsonHttpMessageHandler(responder)
+                    );
+            }
         });
     }
 }

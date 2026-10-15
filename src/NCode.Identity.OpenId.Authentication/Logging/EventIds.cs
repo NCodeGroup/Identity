@@ -61,4 +61,6 @@ internal static class EventIds
     public const int EndUserSessionExpired = Base + 30;
     public const int ClientAssertionInvalid = Base + 31;
     public const int ClientAssertionReplayed = Base + 32;
+    public const int ClientJwksFetchFailed = Base + 33;
+    public const int ClientJwksKeyImportFailed = Base + 34;
 }

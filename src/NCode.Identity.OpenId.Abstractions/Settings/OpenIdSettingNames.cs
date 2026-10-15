@@ -323,6 +323,37 @@ public static class OpenIdSettingNames
     public const string IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported";
 
     /// <summary>
+    /// Contains the name of the per-client <c>jwks_uri</c> setting: the URI of the client's JSON Web Key Set, resolved
+    /// at runtime to obtain the client's public verification keys for <c>private_key_jwt</c> client authentication and
+    /// signed request objects (JAR).
+    /// </summary>
+    public const string JwksUri = "jwks_uri";
+
+    /// <summary>
+    /// Contains the name of <c>jwks_uri_allowed_hosts</c> setting: an optional SSRF allow-list of hosts the client
+    /// <c>jwks_uri</c> fetch is permitted to connect to.
+    /// </summary>
+    public const string JwksUriAllowedHosts = "jwks_uri_allowed_hosts";
+
+    /// <summary>
+    /// Contains the name of <c>jwks_uri_fetch_timeout</c> setting: the wall-clock cap on the client <c>jwks_uri</c>
+    /// fetch.
+    /// </summary>
+    public const string JwksUriFetchTimeout = "jwks_uri_fetch_timeout";
+
+    /// <summary>
+    /// Contains the name of <c>jwks_uri_max_size_bytes</c> setting: the cap on the response body size accepted from the
+    /// client <c>jwks_uri</c> fetch.
+    /// </summary>
+    public const string JwksUriMaxSizeBytes = "jwks_uri_max_size_bytes";
+
+    /// <summary>
+    /// Contains the name of <c>jwks_uri_cache_duration</c> setting: how long a successfully fetched client JSON Web Key
+    /// Set is cached before it is re-fetched.
+    /// </summary>
+    public const string JwksUriCacheDuration = "jwks_uri_cache_duration";
+
+    /// <summary>
     /// Contains the name of <c>op_policy_uri</c> setting.
     /// </summary>
     public const string OpenIdProviderPolicyUri = "op_policy_uri";

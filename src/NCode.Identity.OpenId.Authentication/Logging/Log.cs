@@ -290,4 +290,27 @@ internal static partial class Log
         Message = "The end-user session is no longer valid (expired or terminated); treating as no session and prompting for login."
     )]
     internal static partial void EndUserSessionExpired(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = EventIds.ClientJwksFetchFailed,
+        Level = LogLevel.Warning,
+        Message = "The client 'jwks_uri' ('{JwksUri}') for client '{ClientId}' could not be fetched or parsed; falling back to the client's stored keys only."
+    )]
+    internal static partial void ClientJwksFetchFailed(
+        this ILogger logger,
+        string clientId,
+        string jwksUri,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientJwksKeyImportFailed,
+        Level = LogLevel.Debug,
+        Message = "A key from the client 'jwks_uri' for client '{ClientId}' was skipped because it could not be imported."
+    )]
+    internal static partial void ClientJwksKeyImportFailed(
+        this ILogger logger,
+        string clientId,
+        Exception exception
+    );
 }

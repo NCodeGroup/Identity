@@ -16,10 +16,12 @@
 
 #endregion
 
+using System.Net;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
+using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
@@ -44,6 +46,22 @@ internal static class DefaultRegistration
             serviceCollection.TryAddSingleton<IOpenIdClientFactory, DefaultOpenIdClientFactory>();
 
             serviceCollection.TryAddSingleton<IOpenIdClientResolver, DefaultOpenIdClientResolver>();
+
+            serviceCollection.TryAddSingleton<IClientKeyResolver, DefaultClientKeyResolver>();
+
+            // The client jwks_uri fetch targets a client-supplied URL, so it uses a dedicated HTTP client whose
+            // connections are pinned away from private/loopback/link-local addresses (SSRF floor) and which never
+            // follows redirects, so a redirect cannot bounce the fetch to an internal host.
+            serviceCollection
+                .AddHttpClient(DefaultClientKeyResolver.HttpClientName)
+                .ConfigurePrimaryHttpMessageHandler(serviceProvider => new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false,
+                    ConnectCallback = serviceProvider
+                        .GetRequiredService<IOutboundHttpForgeryGuard>()
+                        .ConnectAsync,
+                    AutomaticDecompression = DecompressionMethods.All,
+                });
 
             serviceCollection.TryAddSingleton<
                 IClientAuthenticationService,

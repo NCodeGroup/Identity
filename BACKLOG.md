@@ -65,7 +65,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D7`      | `D6`       |
-| `F` — Feature gaps                    | `F26`     | `F25`      |
+| `F` — Feature gaps                    | `F29`     | `F28`      |
 | `T` — Conformance & interop testing   | `T8`      | `T7`       |
 | `U` — Frontend presentation platform  | `U13`     | `U12`      |
 | `S` — Secrets management              | `S7`      | `S6`       |
@@ -222,6 +222,34 @@ entry and/or ADR that closed it.
   protocol sequencing (OIDC/OAuth first, then SAML 2.0, then WS-Fed/ADFS) and whether SAML/WS-Fed handling integrates a
   maintained SAML library behind an abstraction seam or is built natively. Touch points: a new connections/persistence
   model under `src/`, the `apps/auth` surface, and a new external validator registered against `ISubjectTokenValidator`.
+- **`F28` — JOSE/COSE algorithm coverage beyond RFC 7518 (EdDSA, modern curves, post-quantum).** The JOSE library today
+  is a complete, faithful implementation of **RFC 7518 (JWA)** — 43 algorithm instances: JWS `none`/HS\*/RS\*/PS\*/ES\*,
+  JWE key-management `dir`/A\*KW/A\*GCMKW/RSA1_5/RSA-OAEP\*/ECDH-ES(+A\*KW)/PBES2-\*, JWE content-encryption
+  A\*CBC-HS\*/A\*GCM, plus `DEF` compression — registered in
+  [`src/NCode.Identity.Jose/Algorithms/DefaultAlgorithmDataSource.cs`](src/NCode.Identity.Jose/Algorithms/DefaultAlgorithmDataSource.cs)
+  over three `SecretKey` types (`Symmetric`, `Rsa`, `Ecc` with NIST P-256/384/521 only). Everything standardized **after**
+  RFC 7518 is absent. Candidate additions, in rough priority order:
+    1. **EdDSA (RFC 8037)** — the only _ratified_ standards-track gap: `EdDSA` signatures over **Ed25519**/**Ed448**,
+       **ECDH-ES with X25519/X448** (Montgomery curves), and a new **`OKP` (Octet Key Pair) `SecretKey`** type alongside
+       `Ecc`. .NET 10 provides native Ed25519/ML-DSA primitives, so this no longer requires BouncyCastle.
+    2. **Post-quantum (FIPS 203/204/205)** — **ML-DSA** (Dilithium) and **SLH-DSA** (SPHINCS+) signatures, **ML-KEM**
+       (Kyber) key encapsulation for JWE, and **hybrid** schemes (e.g. X25519+ML-KEM). The IETF COSE/JOSE registrations
+       are still **draft** (codes may change), so this is prototype-behind-the-draft-codes, not a stable-surface commit.
+    3. **Ecosystem-specific, add-on-demand** — `ES256K`/secp256k1 (RFC 8812, blockchain/DID; deliberately discouraged
+       for general OIDC), `ECDH-1PU` (RFC 9278 / draft, authenticated ECDH; DIDComm/SSI), and Brainpool curves (BSI/German
+       government). ChaCha20-Poly1305 is intentionally **not** a gap — it was never standardized for JOSE `enc`.
+
+    **Pending final decision — exactly which algorithms to implement, and in which packages.** The standing secure-by-
+    default posture points at EdDSA (RFC 8037) as the clear next addition because it is finalized, broadly expected for
+    OIDC/FAPI interop, and lays the `OKP` groundwork that X25519 key-agreement and future PQC hybrids reuse; the PQC and
+    ecosystem-specific sets are not yet decided. Decide the concrete algorithm list (and whether PQC lands behind a
+    feature flag / separate package while its registrations are draft) before implementing; capture the rationale in an
+    ADR. Touch points:
+    [`src/NCode.Identity.Jose/Algorithms/DefaultAlgorithmDataSource.cs`](src/NCode.Identity.Jose/Algorithms/DefaultAlgorithmDataSource.cs),
+    [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms) (algorithm-code
+    constants), and the `SecretKey` model under
+    [`src/NCode.Identity.Secrets.Abstractions/Keys`](src/NCode.Identity.Secrets.Abstractions/Keys) /
+    [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets) (new `OKP` key type).
 
 ## Conformance & interop testing (group `T`)
 
@@ -240,19 +268,40 @@ entry and/or ADR that closed it.
   clients, and test-user seeding prerequisite is **done** (`T4` — `AddConformanceSeed`). The discovery-metadata
   alignment prerequisite is **done**: the OP advertises secure-by-default, verified capabilities
   ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
-- **`T6` — Spec-coverage conformance harness: wire the external certified suite as the oracle (remaining Phase 4).**
+- **`T6` — Spec-coverage conformance harness: wire the external certified suite as the oracle (remaining: nightly CI).**
   The in-house harness is built: the spec-coverage matrix measures the OP against the **full published
   OAuth/OIDC/CIBA/FAPI catalog** classified from **live discovery metadata** (a gap finder _and_ a regression detector),
   plus browser-drivable active probes (Phase 2) and a headless Node/backend **probe runner** (Phase 3,
   `@ncode/app-conformance-runner`) for the confidential and server-initiated legs a browser cannot drive
   (`client_credentials`, introspection/revocation with client auth, device-code polling, CIBA, `private_key_jwt`,
   DPoP/mTLS, back-channel logout). The runner exits non-zero on any failed probe, so it is already a usable local
-  pre-flight. **Remaining:** wire the external **OpenID Foundation Conformance Suite** (`T1`) as the certified oracle in
-  CI, with this harness as the fast pre-flight that runs first and the external suite as the authoritative gate — the
-  work tracked by `T1` (reachable host, automatable login, nightly CI). Design, phases, and the
+  pre-flight. **Phase 4 is now committed:** the external **OpenID Foundation Conformance Suite** (`T1`) is wired as the
+  certified oracle behind the probe-runner pre-flight by a committed, runnable harness —
+  [`build/conformance/`](build/conformance) (`run-conformance.ps1` launches the OP → runs the pre-flight → brings up the
+  prebuilt-image suite → drives the Config OP + Basic OP plans gated on committed baselines → tears down → one exit
+  code), with config templates + baselines resolved against the `AddConformanceSeed` values and documented in
+  [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md). **First live-run outcome:** the **Config
+  OP** certification plan passes cleanly against the harness (`44 successes, 0 failures, 0 warnings`) after three
+  conformance fixes it surfaced — the `client_credentials`/`password` omitted-scope crash, and two non-standard discovery
+  parameters (`discovery_endpoint`, `backchannel_authentication_request_encryption_{alg,enc}_values_supported`). The
+  **Basic OP** (browser-driven) plan now drives the full authorization-code flow: the no-JS login/consent gap is
+  **fixed** (the server renders a working `<form>` as a progressive-enhancement baseline the SPA still enhances), so
+  13+ interactive modules complete. Four more backend bugs it surfaced are **fixed**: an `AuthorizationResult` crash on
+  an omitted `state`; `expires_in` serialized as a JSON string instead of a number (new `DurationSecondsParser`); and
+  the `prompt=login` / `select_account` / `create` re-authentication **loop** (`DefaultAuthorizeHandler` now guards them
+  with `!IsContinuation` like `prompt=consent`, and the suite confirms the second id*token's `auth_time` advances).
+  **Remaining:** (a) the `prompt` tests now pass \_functionally* but get **INTERRUPTED** by the suite's
+  `Stopping test due to alias conflict` — the static `alias` forces serial execution and the long prompt flows overlap;
+  switch the Basic OP config to **Dynamic Client Registration** (drop the `alias` + static clients so the suite
+  registers per-test; the OP supports it, [ADR-0063](docs/adr/0063-dynamic-client-registration.md)), and triage the
+  `oidcc-response-type-missing` error-path flow. (b) a **nightly / opt-in CI pipeline** that invokes
+  `run-conformance.ps1` (Docker + Python 3, no local Java) and publishes the `.results/` zips — deferred until the
+  repo's broader CI bootstrap lands (no `.github/workflows` exists yet). The browser-driven Basic OP plan is opt-in in
+  `run-conformance.ps1` via `-IncludeBrowserPlans` until the DCR switch and nightly CI land. Design, phases, and the
   `browser` / `probe-runner` / `external-suite` exercise boundary are in
   [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). The harness is a **measurement** surface — it tracks
   backend gaps, it does not implement them. Touch points:
+  [`build/conformance`](build/conformance),
   [`src/frontend/apps/conformance`](src/frontend/apps/conformance),
   [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner),
   [`src/frontend/packages/conformance-core`](src/frontend/packages/conformance-core),

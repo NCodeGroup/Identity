@@ -10,6 +10,29 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **JWT-bearer client authentication (`private_key_jwt` / `client_secret_jwt`) — advances backlog `F16`
+  ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)).** The token endpoint now authenticates confidential
+  clients that present a signed `client_assertion`
+  (`client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer`, OpenID Connect Core §9 / RFC 7523).
+  Two handlers share one base and are selected by the assertion's signing-key family (asymmetric ⇒ `private_key_jwt`,
+  the FAPI-eligible method; HMAC ⇒ `client_secret_jwt`, non-FAPI), so each assertion is handled once and each method is
+  advertised independently in `token_endpoint_auth_methods_supported`. The client is identified from the assertion
+  (`iss == sub == client_id`), the signature is verified against the client's registered keys, the `aud` must be the
+  tenant issuer or the receiving endpoint URL, `exp` is required, and `jti` is single-use via the new
+  `IClientAssertionReplayCache` seam (default `IDistributedCache`-backed; a cluster registers a shared provider). New
+  public surface: `OpenIdConstants.ClientAssertionTypes.JwtBearer` and
+  `NCode.Identity.OpenId.Authentication.Clients.IClientAssertionReplayCache`. `private_key_jwt` end-to-end requires the
+  OP to hold the client's public verification key, provided by the verify-only key primitive below.
+
+- **Verify-only (public-only) asymmetric secret keys
+  ([ADR-0103](docs/adr/0103-public-only-asymmetric-secret-keys.md)).** `ISecretKeyFactory` gains `CreateRsaPublicKey`
+  and `CreateEccPublicKey`, producing `RsaSecretKey` / `EccSecretKey` instances that hold only the **public** half (a
+  `SubjectPublicKeyInfo`, stored unprotected): they verify signatures but cannot sign. `Create(KeyMetadata,
+X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-only key) instead of throwing, so a
+  relying party's registered public certificate (persisted as an `x509` secret) becomes a usable verification key with
+  no new secret type. This is the primitive that lets the OP hold a client's public key for `private_key_jwt`, JAR, and
+  the forthcoming `jwks_uri` / BYOK onboarding (`F16` Phase 0, `S3`).
+
 - **Headless conformance probe runner — advances backlog `T6` (Phase 3)
   ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)).** The spec-coverage harness gains the Node/backend
   **probe runner** for the confidential and server-initiated legs a browser cannot drive: a new

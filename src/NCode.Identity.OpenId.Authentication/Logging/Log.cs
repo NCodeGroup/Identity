@@ -119,6 +119,24 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.ClientAssertionInvalid,
+        Level = LogLevel.Information,
+        Message = "Client authentication failed: the client_assertion presented by client '{ClientId}' could not be validated (signature, issuer/subject, audience, lifetime, or claims)."
+    )]
+    internal static partial void ClientAssertionInvalid(
+        this ILogger logger,
+        string clientId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientAssertionReplayed,
+        Level = LogLevel.Information,
+        Message = "Client authentication failed: the client_assertion presented by client '{ClientId}' has already been used (replay)."
+    )]
+    internal static partial void ClientAssertionReplayed(this ILogger logger, string clientId);
+
+    [LoggerMessage(
         EventId = EventIds.TokenRequestClientAuthenticationRequired,
         Level = LogLevel.Warning,
         Message = "The token request was rejected as invalid_client because no client authentication was recognized (every client authentication handler returned undefined; the request carried no usable client_secret_post, client_secret_basic, or other recognized credential)."

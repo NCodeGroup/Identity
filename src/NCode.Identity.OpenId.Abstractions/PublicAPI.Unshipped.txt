@@ -61,6 +61,7 @@ const NCode.Identity.OpenId.OpenIdConstants.AuthenticationPropertyItems.TenantId
 const NCode.Identity.OpenId.OpenIdConstants.ClaimTypes.Aggregated = "aggregated" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ClaimTypes.Distributed = "distributed" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ClaimTypes.Normal = "normal" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClientAssertionTypes.JwtBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic = "client_secret_basic" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt = "client_secret_jwt" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost = "client_secret_post" -> string!
@@ -595,6 +596,7 @@ NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods
 NCode.Identity.OpenId.OpenIdConstants.AuthenticationPropertyItems
 NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope
 NCode.Identity.OpenId.OpenIdConstants.ClaimTypes
+NCode.Identity.OpenId.OpenIdConstants.ClientAssertionTypes
 NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods
 NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods
 NCode.Identity.OpenId.OpenIdConstants.ContinueCodes

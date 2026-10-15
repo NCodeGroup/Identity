@@ -63,4 +63,18 @@ public readonly record struct CreateSessionRequest
     /// Gets the optional lifetime of the session. When <c>null</c>, the session does not expire on its own.
     /// </summary>
     public TimeSpan? Lifetime { get; init; }
+
+    /// <summary>
+    /// Gets the optional sliding inactivity window after which the session expires if it is not used. When <c>null</c>,
+    /// no idle timeout applies and the session is bounded only by <see cref="Lifetime"/> (if any). The value is stamped
+    /// onto the session so the idle policy is later enforced without re-reading host configuration.
+    /// </summary>
+    public TimeSpan? IdleTimeout { get; init; }
+
+    /// <summary>
+    /// Gets the optional cap on the number of simultaneous sessions the subject may hold. When the subject is at or
+    /// above the cap, the oldest sessions are revoked so that creating this session leaves at most this many active.
+    /// When <c>null</c>, no concurrency limit is enforced.
+    /// </summary>
+    public int? MaxConcurrentSessions { get; init; }
 }

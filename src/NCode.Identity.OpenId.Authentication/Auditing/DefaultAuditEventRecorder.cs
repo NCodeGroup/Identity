@@ -20,6 +20,7 @@ using System.Diagnostics;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
@@ -249,6 +250,55 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             ErrorCode = error.Code,
             ErrorDescription = error.Description,
             StatusCode = error.StatusCode,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask RecordSessionCreatedAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        string sessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new SessionCreatedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = Activity.Current?.Id,
+            TenantId = openIdContext.Tenant.TenantId,
+            Source = openIdContext.EndpointName,
+            SubjectId = subjectId,
+            Outcome = AuditOutcome.Success,
+            SessionId = sessionId,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask RecordSessionTerminatedAsync(
+        OpenIdContext openIdContext,
+        SessionTerminationReason reason,
+        string? subjectId,
+        string? sessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new SessionTerminatedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = Activity.Current?.Id,
+            TenantId = openIdContext.Tenant.TenantId,
+            Source = openIdContext.EndpointName,
+            SubjectId = subjectId,
+            Outcome = AuditOutcome.Success,
+            Reason = reason.ToString(),
+            SessionId = sessionId,
+            TerminationReason = reason,
         };
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);

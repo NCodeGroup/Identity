@@ -16,11 +16,18 @@
 
 #endregion
 
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Mediator;
+using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Sessions;
 
@@ -31,12 +38,27 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 internal class DefaultSessionService(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
-    IPersistedGrantService persistedGrantService
+    IPersistedGrantService persistedGrantService,
+    IStoreManagerFactory storeManagerFactory,
+    ISessionEvictionPolicy evictionPolicy,
+    IAuditEventRecorder auditEventRecorder,
+    ILogger<DefaultSessionService> logger
 ) : ISessionService
 {
+    // The sliding idle window is renewed at most once per this interval, so a burst of authorize requests does not
+    // amplify into a write per request; the session's last-activity marker may lag real activity by up to this amount.
+    private static readonly TimeSpan TouchGranularity = TimeSpan.FromMinutes(1);
+
+    // Page size used when enumerating a subject's sessions; a subject holds far fewer sessions than this in practice.
+    private const int EnumerationPageSize = 100;
+
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
+    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private ISessionEvictionPolicy EvictionPolicy { get; } = evictionPolicy;
+    private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
+    private ILogger<DefaultSessionService> Logger { get; } = logger;
 
     private PersistedGrantId CreateGrantId(OpenIdContext openIdContext, string sessionId) =>
         PersistedGrantService.CreateGrantId(
@@ -52,6 +74,17 @@ internal class DefaultSessionService(
         CancellationToken cancellationToken
     )
     {
+        var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+
+        // Enforce the concurrent-session cap before persisting the new session so that, once it is added, the subject
+        // holds at most the configured number of active sessions (the oldest beyond the cap are revoked).
+        await EnforceConcurrentSessionLimitAsync(
+            openIdContext,
+            request.SubjectId,
+            request.MaxConcurrentSessions,
+            cancellationToken
+        );
+
         var sessionId = CryptoService.GenerateUrlSafeKey();
         var grantId = CreateGrantId(openIdContext, sessionId);
 
@@ -62,6 +95,8 @@ internal class DefaultSessionService(
             AuthenticationContextClassReference = request.AuthenticationContextClassReference,
             IdentityProvider = request.IdentityProvider,
             ClientIds = [],
+            LastActivityWhen = createdWhen,
+            IdleTimeout = request.IdleTimeout,
         };
 
         var grant = new PersistedGrant<SessionGrant>
@@ -76,8 +111,6 @@ internal class DefaultSessionService(
             Payload = payload,
         };
 
-        var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
-
         await PersistedGrantService.AddAsync(
             openIdContext,
             grantId,
@@ -87,8 +120,62 @@ internal class DefaultSessionService(
             cancellationToken
         );
 
+        await AuditEventRecorder.RecordSessionCreatedAsync(
+            openIdContext,
+            request.SubjectId,
+            sessionId,
+            cancellationToken
+        );
+        Logger.SessionCreated(sessionId, request.SubjectId);
+
         return sessionId;
     }
+
+    private async ValueTask EnforceConcurrentSessionLimitAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        int? maxConcurrentSessions,
+        CancellationToken cancellationToken
+    )
+    {
+        if (maxConcurrentSessions is not { } max || max <= 0)
+            return;
+
+        var sessions = await GetSessionsAsync(openIdContext, subjectId, cancellationToken);
+        if (sessions.Count < max)
+            return;
+
+        foreach (var session in EvictionPolicy.SelectSessionsToEvict(sessions, max))
+        {
+            await TerminateAsync(
+                openIdContext,
+                SessionTerminationReason.ConcurrentSessionLimit,
+                session.SubjectId,
+                session.SessionId,
+                session.Grant.ClientIds,
+                cancellationToken
+            );
+            Logger.SessionEvicted(session.SessionId);
+        }
+    }
+
+    // Dispatches the session-termination side-effect seam (grant revocation, back-channel logout, auditing, and any
+    // application extensions) so every termination path is handled consistently.
+    private static ValueTask TerminateAsync(
+        OpenIdContext openIdContext,
+        SessionTerminationReason reason,
+        string? subjectId,
+        string? sessionId,
+        IReadOnlyList<string> participatingClientIds,
+        CancellationToken cancellationToken
+    ) =>
+        openIdContext.Mediator.SendAsync(
+            new OnSessionTerminatedCommand(
+                openIdContext,
+                new SessionTermination(reason, subjectId, sessionId, participatingClientIds)
+            ),
+            cancellationToken
+        );
 
     /// <inheritdoc />
     public ValueTask<PersistedGrant<SessionGrant>?> GetOrDefaultAsync(
@@ -134,6 +221,184 @@ internal class DefaultSessionService(
             openIdContext,
             grantId,
             updatedPayload,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> ValidateAndTouchAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        var grantId = CreateGrantId(openIdContext, sessionId);
+
+        var grant = await PersistedGrantService.GetOrDefaultAsync<SessionGrant>(
+            openIdContext,
+            grantId,
+            cancellationToken
+        );
+
+        if (grant is not { Status: PersistedGrantStatus.Active } active)
+            return false;
+
+        var payload = active.Payload;
+        if (payload.IdleTimeout is not { } idleTimeout)
+            return true;
+
+        var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+        var elapsed = now - payload.LastActivityWhen;
+
+        // The session has been idle past its sliding window: expire it through the termination seam (revoke its grants,
+        // notify its relying parties, audit) and treat the request as having no valid session.
+        if (elapsed >= idleTimeout)
+        {
+            await TerminateAsync(
+                openIdContext,
+                SessionTerminationReason.IdleTimeout,
+                active.SubjectId,
+                sessionId,
+                payload.ClientIds,
+                cancellationToken
+            );
+            Logger.SessionIdleExpired(sessionId);
+            return false;
+        }
+
+        // Renew the sliding window, throttled so a burst of requests does not write on every one.
+        if (elapsed >= TouchGranularity)
+        {
+            await PersistedGrantService.UpdatePayloadAsync(
+                openIdContext,
+                grantId,
+                payload with
+                {
+                    LastActivityWhen = now,
+                },
+                cancellationToken
+            );
+        }
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<SessionInfo>> GetSessionsAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        CancellationToken cancellationToken
+    )
+    {
+        var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
+
+        var results = new List<SessionInfo>();
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IGrantStore>();
+
+        string? cursor = null;
+        do
+        {
+            var page = await store.GetPageAsync(
+                new GrantFilter
+                {
+                    SubjectId = subjectId,
+                    GrantType = OpenIdConstants.PersistedGrantTypes.Session,
+                },
+                cursor,
+                EnumerationPageSize,
+                cancellationToken
+            );
+
+            foreach (var envelope in page.Items)
+            {
+                if (envelope.SessionId is not { Length: > 0 } sessionId)
+                    continue;
+
+                // Skip sessions that are no longer usable: revoked, past their absolute expiry, or idle-timed-out.
+                if (envelope.RevokedWhen is not null)
+                    continue;
+
+                if (envelope.ExpiresWhen is { } expiresWhen && expiresWhen <= now)
+                    continue;
+
+                var payload = envelope.PayloadJson.Deserialize<SessionGrant>(jsonOptions);
+
+                if (
+                    payload.IdleTimeout is { } idleTimeout
+                    && now - payload.LastActivityWhen >= idleTimeout
+                )
+                {
+                    continue;
+                }
+
+                results.Add(
+                    new SessionInfo(
+                        sessionId,
+                        envelope.SubjectId,
+                        envelope.CreatedWhen,
+                        envelope.ExpiresWhen,
+                        payload
+                    )
+                );
+            }
+
+            cursor = page.NextCursor;
+        } while (cursor is not null);
+
+        // Newest first so the concurrent-session cap keeps the most recent sessions and the listing surfaces them in a
+        // natural order.
+        results.Sort((left, right) => right.CreatedWhen.CompareTo(left.CreatedWhen));
+
+        return results;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask RevokeAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        SessionTerminationReason reason,
+        CancellationToken cancellationToken
+    )
+    {
+        // Resolve the participating relying parties so the termination seam can notify them via back-channel logout.
+        var session = await GetOrDefaultAsync(openIdContext, sessionId, cancellationToken);
+        var participatingClientIds = session?.Payload.ClientIds ?? [];
+        var subjectId = session?.SubjectId;
+
+        await TerminateAsync(
+            openIdContext,
+            reason,
+            subjectId,
+            sessionId,
+            participatingClientIds,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask RevokeAllAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        CancellationToken cancellationToken
+    )
+    {
+        // Union the relying parties across all of the subject's sessions so every participant is notified once.
+        var sessions = await GetSessionsAsync(openIdContext, subjectId, cancellationToken);
+        var participatingClientIds = sessions
+            .SelectMany(session => session.Grant.ClientIds)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        // A null session id denotes a subject-wide termination (revokes every grant the subject holds).
+        await TerminateAsync(
+            openIdContext,
+            SessionTerminationReason.GlobalSignOut,
+            subjectId,
+            sessionId: null,
+            participatingClientIds,
             cancellationToken
         );
     }

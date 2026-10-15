@@ -10,6 +10,33 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Session claims & lifecycle enhancements (advances backlog `F25`).** The end-user session subsystem
+  ([ADR-0074](docs/adr/0074-session-management-and-logout.md)) gains server-authoritative lifecycle controls, modeled as
+  **tenant settings** (a session spans every client, so its policy is tenant-scoped, not per-client):
+  `session_absolute_lifetime`, `session_idle_timeout` (a sliding inactivity window, renewed on each authorize request
+  and enforced server-side via `ISessionService.ValidateAndTouchAsync` on the authorize path — an idle/expired session
+  self-heals by prompting for login), and `max_concurrent_sessions` (the oldest sessions beyond the cap are evicted,
+  via the swappable `ISessionEvictionPolicy`). These supersede the single `InteractiveAuthenticationOptions.SessionLifetime`
+  option. A new **per-client** `send_session_id_in_access_token` setting emits the `sid` claim into the access token
+  (RFC 9068 §2.2.1, off by default) so a resource server can honor session-scoped revocation. Session creation and
+  termination are now **audited** (`IAuditEventRecorder.RecordSessionCreatedAsync` / `RecordSessionTerminatedAsync`,
+  `session.created` / `session.terminated`) and logged.
+- **Unified session-termination mediator seam ([ADR-0098](docs/adr/0098-session-lifecycle-termination-seam.md)).** The
+  logout-only `OnEndSessionCommand` is **replaced** by `OnSessionTerminatedCommand`, which every termination cause flows
+  through (`SessionTerminationReason`: logout, idle timeout, absolute expiry, concurrent-session eviction,
+  administrative revocation, global sign-out). Default handlers revoke the session's (or subject's) grants, send
+  back-channel logout notifications, and audit — so an idle/evicted/admin-revoked session now notifies its relying
+  parties and audits exactly like an RP-initiated logout, closing a correctness gap. Applications extend termination by
+  registering another `ICommandHandler<OnSessionTerminatedCommand>`.
+
+### Changed
+
+- **Forward-compatible store filters ([ADR-0099](docs/adr/0099-forward-compatible-evolving-parameters.md)).**
+  `IGrantStore.GetPageAsync` and `RevokeWhereAsync` now take a `GrantFilter` init-only record struct
+  (`SubjectId`/`ClientId`/`SessionId`/`GrantType`) instead of positional filter parameters, so adding a future
+  selection criterion is a source-compatible change rather than a breaking signature change. The grants management
+  query gains a `grantType` filter.
+
 - **Sender-constrained access tokens — DPoP (RFC 9449) + mutual-TLS (RFC 8705), issuance side (advances backlog
   `F7`).** Access tokens can now be bound to a proof-of-possession key instead of being plain bearer tokens. A single
   `IProofOfPossessionService` evaluates, once per token request, an optional **DPoP proof** (the `DPoP` header — a JWS

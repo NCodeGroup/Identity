@@ -149,9 +149,7 @@ internal class GrantStore(
 
     /// <inheritdoc />
     public async ValueTask<PagedResult<PersistedGrant>> GetPageAsync(
-        string? subjectId,
-        string? clientId,
-        string? sessionId,
+        GrantFilter filter,
         string? cursor,
         int limit,
         CancellationToken cancellationToken
@@ -169,7 +167,7 @@ internal class GrantStore(
             query = query.Where(entity => entity.Id > id);
         }
 
-        query = ApplyGrantFilters(query, subjectId, clientId, sessionId);
+        query = ApplyGrantFilters(query, filter);
 
         // Fetch one extra row so a full page signals that another page exists.
         var entities = await query
@@ -182,9 +180,7 @@ internal class GrantStore(
 
     /// <inheritdoc />
     public async ValueTask<long> RevokeWhereAsync(
-        string? subjectId,
-        string? clientId,
-        string? sessionId,
+        GrantFilter filter,
         DateTimeOffset revokedWhen,
         CancellationToken cancellationToken
     )
@@ -195,7 +191,7 @@ internal class GrantStore(
             .Grants.Include(entity => entity.Client)
             .Where(entity => entity.RevokedWhen == null);
 
-        query = ApplyGrantFilters(query, subjectId, clientId, sessionId);
+        query = ApplyGrantFilters(query, filter);
 
         var entities = await query.ToListAsync(cancellationToken);
 
@@ -234,29 +230,33 @@ internal class GrantStore(
 
     private static IQueryable<GrantEntity> ApplyGrantFilters(
         IQueryable<GrantEntity> query,
-        string? subjectId,
-        string? clientId,
-        string? sessionId
+        GrantFilter filter
     )
     {
-        if (!string.IsNullOrEmpty(subjectId))
+        if (!string.IsNullOrEmpty(filter.SubjectId))
         {
-            var normalizedSubjectId = Normalize(subjectId);
+            var normalizedSubjectId = Normalize(filter.SubjectId);
             query = query.Where(entity => entity.NormalizedSubjectId == normalizedSubjectId);
         }
 
-        if (!string.IsNullOrEmpty(clientId))
+        if (!string.IsNullOrEmpty(filter.ClientId))
         {
-            var normalizedClientId = Normalize(clientId);
+            var normalizedClientId = Normalize(filter.ClientId);
             query = query.Where(entity =>
                 entity.Client != null && entity.Client.NormalizedClientId == normalizedClientId
             );
         }
 
         // The sid is an opaque, case-sensitive key, so it is matched verbatim.
-        if (!string.IsNullOrEmpty(sessionId))
+        if (!string.IsNullOrEmpty(filter.SessionId))
         {
-            query = query.Where(entity => entity.SessionId == sessionId);
+            query = query.Where(entity => entity.SessionId == filter.SessionId);
+        }
+
+        // The grant type is a fixed protocol constant, so it is matched verbatim.
+        if (!string.IsNullOrEmpty(filter.GrantType))
+        {
+            query = query.Where(entity => entity.GrantType == filter.GrantType);
         }
 
         return query;

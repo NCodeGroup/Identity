@@ -158,9 +158,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         MockGrantStore
             .Setup(x =>
                 x.GetPageAsync(
-                    null,
-                    null,
-                    null,
+                    It.IsAny<GrantFilter>(),
                     null,
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()
@@ -179,6 +177,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             subjectId: null,
             clientId: null,
             sessionId: null,
+            grantType: null,
             cursor: null,
             limit: null,
             CancellationToken.None
@@ -198,9 +197,11 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         MockGrantStore
             .Setup(x =>
                 x.GetPageAsync(
-                    "subject-1",
-                    "client-1",
-                    "sid-1",
+                    It.Is<GrantFilter>(f =>
+                        f.SubjectId == "subject-1"
+                        && f.ClientId == "client-1"
+                        && f.SessionId == "sid-1"
+                    ),
                     null,
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()
@@ -219,6 +220,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             subjectId: "subject-1",
             clientId: "client-1",
             sessionId: "sid-1",
+            grantType: null,
             cursor: null,
             limit: null,
             CancellationToken.None
@@ -241,6 +243,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             subjectId: null,
             clientId: null,
             sessionId: null,
+            grantType: null,
             cursor: null,
             limit: null,
             CancellationToken.None
@@ -281,9 +284,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         MockGrantStore
             .Setup(x =>
                 x.RevokeWhereAsync(
-                    "subject-1",
-                    null,
-                    null,
+                    It.Is<GrantFilter>(f => f.SubjectId == "subject-1"),
                     It.IsAny<DateTimeOffset>(),
                     It.IsAny<CancellationToken>()
                 )

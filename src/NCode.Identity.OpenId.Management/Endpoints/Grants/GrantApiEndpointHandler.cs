@@ -121,6 +121,7 @@ internal class GrantApiEndpointHandler(
     /// <param name="subjectId">When specified, restricts the page to grants for this subject.</param>
     /// <param name="clientId">When specified, restricts the page to grants for this client.</param>
     /// <param name="sessionId">When specified, restricts the page to grants issued under this session.</param>
+    /// <param name="grantType">When specified, restricts the page to grants of this type.</param>
     /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
     /// <param name="limit">The maximum number of grants to return on the page.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -132,6 +133,7 @@ internal class GrantApiEndpointHandler(
         [FromQuery] string? subjectId,
         [FromQuery] string? clientId,
         [FromQuery] string? sessionId,
+        [FromQuery] string? grantType,
         [FromQuery] string? cursor,
         [FromQuery] int? limit,
         CancellationToken cancellationToken
@@ -150,9 +152,13 @@ internal class GrantApiEndpointHandler(
                 );
                 var store = storeManager.GetStore<IGrantStore>();
                 return await store.GetPageAsync(
-                    subjectId,
-                    clientId,
-                    sessionId,
+                    new GrantFilter
+                    {
+                        SubjectId = subjectId,
+                        ClientId = clientId,
+                        SessionId = sessionId,
+                        GrantType = grantType,
+                    },
                     cursor,
                     effectiveLimit,
                     cancellationToken
@@ -184,11 +190,13 @@ internal class GrantApiEndpointHandler(
     )
     {
         // Require at least one filter: an unfiltered bulk revoke would silently revoke the whole tenant.
-        if (
-            string.IsNullOrEmpty(subjectId)
-            && string.IsNullOrEmpty(clientId)
-            && string.IsNullOrEmpty(sessionId)
-        )
+        var filter = new GrantFilter
+        {
+            SubjectId = subjectId,
+            ClientId = clientId,
+            SessionId = sessionId,
+        };
+        if (filter.IsEmpty)
         {
             return TypedResults.Problem(
                 detail: "At least one of 'subjectId', 'clientId', or 'sessionId' must be specified.",
@@ -211,9 +219,7 @@ internal class GrantApiEndpointHandler(
         var store = storeManager.GetStore<IGrantStore>();
 
         var revoked = await store.RevokeWhereAsync(
-            subjectId,
-            clientId,
-            sessionId,
+            filter,
             TimeProvider.GetUtcNow(),
             cancellationToken
         );

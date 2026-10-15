@@ -21,6 +21,7 @@ using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
@@ -501,6 +502,95 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("subject-1", captured.SubjectId);
         Assert.Equal("api/token", captured.Source);
+    }
+
+    #endregion
+
+    #region Session Lifecycle Tests
+
+    [Fact]
+    public async Task RecordSessionCreatedAsync_PublishesSessionCreatedAuditEvent()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("login").Verifiable();
+
+        SessionCreatedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<SessionCreatedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (SessionCreatedAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordSessionCreatedAsync(
+            mockContext.Object,
+            "subject-1",
+            "sid-1",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("session.created", captured.Action);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Equal("sid-1", captured.SessionId);
+    }
+
+    [Fact]
+    public async Task RecordSessionTerminatedAsync_PublishesSessionTerminatedAuditEventWithReason()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/sessions").Verifiable();
+
+        SessionTerminatedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<SessionTerminatedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (SessionTerminatedAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordSessionTerminatedAsync(
+            mockContext.Object,
+            SessionTerminationReason.GlobalSignOut,
+            "subject-1",
+            sessionId: null,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("session.terminated", captured.Action);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Null(captured.SessionId);
+        Assert.Equal(SessionTerminationReason.GlobalSignOut, captured.TerminationReason);
+        Assert.Equal(nameof(SessionTerminationReason.GlobalSignOut), captured.Reason);
     }
 
     #endregion

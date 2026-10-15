@@ -16,6 +16,8 @@ const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.Authoriza
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.ClientAuthentication = "client.authentication" -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.Error = "openid.error" -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.RefreshTokenReplay = "token.refresh.replay" -> string!
+const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.SessionCreated = "session.created" -> string!
+const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.SessionTerminated = "session.terminated" -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.SubjectAuthentication = "subject.authentication" -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.TokenIssued = "token.issued" -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.TokenRevoked = "token.revoked" -> string!
@@ -36,6 +38,8 @@ NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordAuthoriz
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordClientAuthenticationFailedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! clientId, string? reason, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordOpenIdErrorAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Messages.IOpenIdError! error, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordRefreshTokenReplayAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string? subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordSessionCreatedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! subjectId, string! sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordSessionTerminatedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason reason, string? subjectId, string? sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordSubjectAuthenticatedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordSubjectAuthenticationFailedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string? reason, string? attemptedSubjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordTokenIssuedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string? subjectId, NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken securityToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -49,6 +53,14 @@ NCode.Identity.OpenId.Authentication.Auditing.OpenIdErrorEvent.ErrorDescription.
 NCode.Identity.OpenId.Authentication.Auditing.OpenIdErrorEvent.StatusCode.get -> int?
 NCode.Identity.OpenId.Authentication.Auditing.OpenIdErrorEvent.StatusCode.init -> void
 NCode.Identity.OpenId.Authentication.Auditing.RefreshTokenReplayAuditEvent
+NCode.Identity.OpenId.Authentication.Auditing.SessionCreatedAuditEvent
+NCode.Identity.OpenId.Authentication.Auditing.SessionCreatedAuditEvent.SessionId.get -> string!
+NCode.Identity.OpenId.Authentication.Auditing.SessionCreatedAuditEvent.SessionId.init -> void
+NCode.Identity.OpenId.Authentication.Auditing.SessionTerminatedAuditEvent
+NCode.Identity.OpenId.Authentication.Auditing.SessionTerminatedAuditEvent.SessionId.get -> string?
+NCode.Identity.OpenId.Authentication.Auditing.SessionTerminatedAuditEvent.SessionId.init -> void
+NCode.Identity.OpenId.Authentication.Auditing.SessionTerminatedAuditEvent.TerminationReason.get -> NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason
+NCode.Identity.OpenId.Authentication.Auditing.SessionTerminatedAuditEvent.TerminationReason.init -> void
 NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.TokenType.get -> string!
@@ -881,10 +893,27 @@ NCode.Identity.OpenId.Authentication.Sessions.CreateSessionRequest.IdentityProvi
 NCode.Identity.OpenId.Authentication.Sessions.CreateSessionRequest.IdentityProvider.init -> void
 NCode.Identity.OpenId.Authentication.Sessions.CreateSessionRequest.Lifetime.get -> System.TimeSpan?
 NCode.Identity.OpenId.Authentication.Sessions.CreateSessionRequest.Lifetime.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.CreateSessionRequest.IdleTimeout.get -> System.TimeSpan?
+NCode.Identity.OpenId.Authentication.Sessions.CreateSessionRequest.IdleTimeout.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.CreateSessionRequest.MaxConcurrentSessions.get -> int?
+NCode.Identity.OpenId.Authentication.Sessions.CreateSessionRequest.MaxConcurrentSessions.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.ISessionEvictionPolicy
+NCode.Identity.OpenId.Authentication.Sessions.ISessionEvictionPolicy.SelectSessionsToEvict(System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Authentication.Sessions.SessionInfo>! existingSessions, int maxConcurrentSessions) -> System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Authentication.Sessions.SessionInfo>!
 NCode.Identity.OpenId.Authentication.Sessions.ISessionService
 NCode.Identity.OpenId.Authentication.Sessions.ISessionService.AddClientAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! sessionId, string! clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Authentication.Sessions.ISessionService.CreateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Sessions.CreateSessionRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
 NCode.Identity.OpenId.Authentication.Sessions.ISessionService.GetOrDefaultAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Models.PersistedGrant<NCode.Identity.OpenId.Authentication.Sessions.SessionGrant>?>
+NCode.Identity.OpenId.Authentication.Sessions.ISessionService.GetSessionsAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Authentication.Sessions.SessionInfo>!>
+NCode.Identity.OpenId.Authentication.Sessions.ISessionService.RevokeAllAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Sessions.ISessionService.RevokeAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! sessionId, NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason reason, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Sessions.ISessionService.ValidateAndTouchAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand
+NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand.OnSessionTerminatedCommand() -> void
+NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand.OnSessionTerminatedCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Sessions.SessionTermination Termination) -> void
+NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand.Termination.get -> NCode.Identity.OpenId.Authentication.Sessions.SessionTermination
+NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand.Termination.init -> void
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.AuthenticationContextClassReference.get -> string?
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.AuthenticationContextClassReference.init -> void
@@ -897,6 +926,23 @@ NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.IdentityProvider.get 
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.IdentityProvider.init -> void
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ClientIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ClientIds.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.LastActivityWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.LastActivityWhen.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.IdleTimeout.get -> System.TimeSpan?
+NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.IdleTimeout.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.SessionInfo() -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.SessionInfo(string! SessionId, string? SubjectId, System.DateTimeOffset CreatedWhen, System.DateTimeOffset? ExpiresWhen, NCode.Identity.OpenId.Authentication.Sessions.SessionGrant Grant) -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.SessionId.get -> string!
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.SessionId.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.SubjectId.get -> string?
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.SubjectId.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.CreatedWhen.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.ExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.Grant.get -> NCode.Identity.OpenId.Authentication.Sessions.SessionGrant
+NCode.Identity.OpenId.Authentication.Sessions.SessionInfo.Grant.init -> void
 NCode.Identity.OpenId.Authentication.Sessions.IBackChannelLogoutNotifier
 NCode.Identity.OpenId.Authentication.Sessions.IBackChannelLogoutNotifier.NotifyAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string? subjectId, string? sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Sessions.IFrontChannelLogoutService
@@ -906,6 +952,24 @@ NCode.Identity.OpenId.Authentication.Sessions.ISessionStateService.ClearBrowserS
 NCode.Identity.OpenId.Authentication.Sessions.ISessionStateService.CreateSessionState(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! clientId, System.Uri! clientRedirectUri) -> string!
 NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary
 NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary.OpenIdAuthenticationLibrary() -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionTermination
+NCode.Identity.OpenId.Authentication.Sessions.SessionTermination.ParticipatingClientIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Authentication.Sessions.SessionTermination.ParticipatingClientIds.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionTermination.Reason.get -> NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason
+NCode.Identity.OpenId.Authentication.Sessions.SessionTermination.Reason.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionTermination.SessionId.get -> string?
+NCode.Identity.OpenId.Authentication.Sessions.SessionTermination.SessionId.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionTermination.SessionTermination() -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionTermination.SessionTermination(NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason Reason, string? SubjectId, string? SessionId, System.Collections.Generic.IReadOnlyList<string!>! ParticipatingClientIds) -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionTermination.SubjectId.get -> string?
+NCode.Identity.OpenId.Authentication.Sessions.SessionTermination.SubjectId.init -> void
+NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason
+NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason.AbsoluteExpiry = 2 -> NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason
+NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason.AdministrativeRevocation = 4 -> NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason
+NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason.ConcurrentSessionLimit = 3 -> NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason
+NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason.GlobalSignOut = 5 -> NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason
+NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason.IdleTimeout = 1 -> NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason
+NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason.Logout = 0 -> NCode.Identity.OpenId.Authentication.Sessions.SessionTerminationReason
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectCommand
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectCommand.AuthenticateSubjectCommand() -> void
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectCommand.AuthenticateSubjectCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext) -> void
@@ -923,13 +987,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.LoadEndSessio
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.LoadEndSessionRequestCommand.LoadEndSessionRequestCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.LoadEndSessionRequestCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.LoadEndSessionRequestCommand.OpenIdContext.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.OnEndSessionCommand
-NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.OnEndSessionCommand.OnEndSessionCommand() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.OnEndSessionCommand.OnEndSessionCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject Subject) -> void
-NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.OnEndSessionCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
-NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.OnEndSessionCommand.OpenIdContext.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.OnEndSessionCommand.Subject.get -> NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject
-NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.OnEndSessionCommand.Subject.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ResolveEndSessionSubjectCommand
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ResolveEndSessionSubjectCommand.ResolveEndSessionSubjectCommand() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ResolveEndSessionSubjectCommand.ResolveEndSessionSubjectCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.IEndSessionRequest! Request) -> void
@@ -1038,6 +1095,8 @@ NCode.Identity.OpenId.Authentication.Tokens.MutualTlsForwardingOptions.Certifica
 NCode.Identity.OpenId.Authentication.Tokens.MutualTlsForwardingOptions.Format.get -> NCode.Identity.OpenId.Authentication.Tokens.MutualTlsClientCertificateFormat
 NCode.Identity.OpenId.Authentication.Tokens.MutualTlsForwardingOptions.Format.set -> void
 NCode.Identity.OpenId.Authentication.Tokens.MutualTlsForwardingOptions.MutualTlsForwardingOptions() -> void
+override NCode.Identity.OpenId.Authentication.Auditing.SessionCreatedAuditEvent.Action.get -> string!
+override NCode.Identity.OpenId.Authentication.Auditing.SessionTerminatedAuditEvent.Action.get -> string!
 static NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication.Create(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! authenticationScheme, Microsoft.AspNetCore.Authentication.AuthenticationProperties! authenticationProperties, System.Security.Claims.ClaimsPrincipal! subject, string! principalId) -> NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand
 NCode.Identity.OpenId.Authentication.Subject.ValidateSubjectAuthenticationCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!

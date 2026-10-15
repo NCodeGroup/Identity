@@ -22,11 +22,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -40,6 +42,7 @@ public class DefaultAuthenticateHandlerTests : BaseTests
     #region Scaffolding
 
     private Mock<OpenIdContext> MockContext { get; set; } = null!;
+    private Mock<ISessionService> MockSessionService { get; set; } = null!;
 
     private DefaultAuthenticateHandler CreateHandler(string? subjectId)
     {
@@ -47,7 +50,10 @@ public class DefaultAuthenticateHandlerTests : BaseTests
         MockContext
             .Setup(x => x.NormalizeSubjectId(It.IsAny<ClaimsPrincipal>(), It.IsAny<string>()))
             .Returns((ClaimsPrincipal subject, string _) => subject);
-        return new DefaultAuthenticateHandler(NullLogger<DefaultAuthenticateHandler>.Instance);
+        return new DefaultAuthenticateHandler(
+            NullLogger<DefaultAuthenticateHandler>.Instance,
+            MockSessionService.Object
+        );
     }
 
     private (
@@ -58,6 +64,7 @@ public class DefaultAuthenticateHandlerTests : BaseTests
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         MockContext = mockContext;
+        MockSessionService = CreateStrictMock<ISessionService>();
         var mockClient = CreateStrictMock<OpenIdClient>();
         var mockAuthRequest = CreateStrictMock<IAuthorizationRequest>();
         var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
@@ -98,6 +105,14 @@ public class DefaultAuthenticateHandlerTests : BaseTests
     private static AuthenticateResult SuccessResult()
     {
         var identity = new ClaimsIdentity("scheme");
+        var principal = new ClaimsPrincipal(identity);
+        return AuthenticateResult.Success(new AuthenticationTicket(principal, "scheme"));
+    }
+
+    private static AuthenticateResult SuccessResultWithSession(string sessionId)
+    {
+        var identity = new ClaimsIdentity("scheme");
+        identity.AddClaim(new Claim(JoseClaimNames.Payload.Sid, sessionId));
         var principal = new ClaimsPrincipal(identity);
         return AuthenticateResult.Success(new AuthenticationTicket(principal, "scheme"));
     }
@@ -153,6 +168,54 @@ public class DefaultAuthenticateHandlerTests : BaseTests
 
         Assert.True(result.IsAuthenticated);
         Assert.Equal("subject-id", result.Ticket.Value.PrincipalId);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSessionValid_SlidesAndReturnsTicket()
+    {
+        var (command, mockAuthService, _) = CreateScaffold();
+        SetupAuthenticate(mockAuthService, SuccessResultWithSession("session-1"));
+
+        var handler = CreateHandler("subject-id");
+        MockSessionService
+            .Setup(x =>
+                x.ValidateAndTouchAsync(
+                    MockContext.Object,
+                    "session-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var result = await handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsAuthenticated);
+        MockSessionService.Verify();
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSessionInvalid_ReturnsUndefined()
+    {
+        var (command, mockAuthService, _) = CreateScaffold();
+        SetupAuthenticate(mockAuthService, SuccessResultWithSession("session-1"));
+
+        var handler = CreateHandler("subject-id");
+        MockSessionService
+            .Setup(x =>
+                x.ValidateAndTouchAsync(
+                    MockContext.Object,
+                    "session-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+
+        var result = await handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsUndefined);
+        MockSessionService.Verify();
     }
 
     #endregion

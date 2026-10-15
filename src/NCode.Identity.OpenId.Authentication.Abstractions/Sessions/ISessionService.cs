@@ -75,4 +75,67 @@ public interface ISessionService
         string clientId,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Validates that the session identified by <paramref name="sessionId"/> is still active and, when a sliding idle
+    /// (inactivity) timeout applies, that it has not been idle for longer than its window. When the session is still
+    /// valid its last-activity marker is advanced (the sliding window is renewed); when it has lapsed it is revoked.
+    /// This is the server-authoritative session check performed when an authenticated request resolves a session.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="sessionId">The opaque session identifier (<c>sid</c>).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when the
+    /// session remains valid; otherwise <c>false</c> (missing, revoked, expired, or idle-timed-out).</returns>
+    ValueTask<bool> ValidateAndTouchAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Enumerates the active sessions the specified subject currently holds, newest first. This backs the
+    /// active-session listing surface and the concurrent-session-limit enforcement.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="subjectId">The stable, server-owned principal identifier whose sessions are enumerated.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the subject's active
+    /// sessions ordered newest first.</returns>
+    ValueTask<IReadOnlyList<SessionInfo>> GetSessionsAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Terminates a single session, dispatching the session-termination side effects (grant revocation, back-channel
+    /// logout notification, and auditing) through the <see cref="OnSessionTerminatedCommand"/> seam. Other sessions the
+    /// subject holds are left intact.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="sessionId">The opaque session identifier (<c>sid</c>) to terminate.</param>
+    /// <param name="reason">The reason the session is being terminated.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask RevokeAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        SessionTerminationReason reason,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Terminates every session the specified subject holds ("sign out everywhere"), dispatching the
+    /// session-termination side effects through the <see cref="OnSessionTerminatedCommand"/> seam.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="subjectId">The stable, server-owned principal identifier whose sessions are terminated.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask RevokeAllAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        CancellationToken cancellationToken
+    );
 }

@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -175,9 +176,7 @@ public sealed class GrantStoreTests : IDisposable
         _dbContext.ChangeTracker.Clear();
 
         var firstPage = await _store.GetPageAsync(
-            subjectId: null,
-            clientId: null,
-            sessionId: null,
+            new GrantFilter(),
             cursor: null,
             limit: 2,
             CancellationToken.None
@@ -187,9 +186,7 @@ public sealed class GrantStoreTests : IDisposable
         Assert.NotNull(firstPage.NextCursor);
 
         var secondPage = await _store.GetPageAsync(
-            subjectId: null,
-            clientId: null,
-            sessionId: null,
+            new GrantFilter(),
             firstPage.NextCursor,
             limit: 2,
             CancellationToken.None
@@ -217,9 +214,7 @@ public sealed class GrantStoreTests : IDisposable
         _dbContext.ChangeTracker.Clear();
 
         var page = await _store.GetPageAsync(
-            subjectId: "alice",
-            clientId: null,
-            sessionId: null,
+            new GrantFilter { SubjectId = "alice" },
             cursor: null,
             limit: 50,
             CancellationToken.None
@@ -244,9 +239,7 @@ public sealed class GrantStoreTests : IDisposable
         _dbContext.ChangeTracker.Clear();
 
         var page = await _store.GetPageAsync(
-            subjectId: null,
-            clientId: null,
-            sessionId: "sid-1",
+            new GrantFilter { SessionId = "sid-1" },
             cursor: null,
             limit: 50,
             CancellationToken.None
@@ -280,9 +273,7 @@ public sealed class GrantStoreTests : IDisposable
 
         var revokedWhen = DateTimeOffset.UnixEpoch.AddMinutes(10);
         var count = await _store.RevokeWhereAsync(
-            subjectId: "alice",
-            clientId: null,
-            sessionId: null,
+            new GrantFilter { SubjectId = "alice" },
             revokedWhen,
             CancellationToken.None
         );
@@ -310,9 +301,7 @@ public sealed class GrantStoreTests : IDisposable
         _dbContext.ChangeTracker.Clear();
 
         var first = await _store.RevokeWhereAsync(
-            subjectId: "alice",
-            clientId: null,
-            sessionId: null,
+            new GrantFilter { SubjectId = "alice" },
             DateTimeOffset.UnixEpoch.AddMinutes(10),
             CancellationToken.None
         );
@@ -320,9 +309,7 @@ public sealed class GrantStoreTests : IDisposable
         _dbContext.ChangeTracker.Clear();
 
         var second = await _store.RevokeWhereAsync(
-            subjectId: "alice",
-            clientId: null,
-            sessionId: null,
+            new GrantFilter { SubjectId = "alice" },
             DateTimeOffset.UnixEpoch.AddMinutes(20),
             CancellationToken.None
         );
@@ -357,9 +344,7 @@ public sealed class GrantStoreTests : IDisposable
 
         var revokedWhen = DateTimeOffset.UnixEpoch.AddMinutes(10);
         var count = await _store.RevokeWhereAsync(
-            subjectId: null,
-            clientId: null,
-            sessionId: "sid-1",
+            new GrantFilter { SessionId = "sid-1" },
             revokedWhen,
             CancellationToken.None
         );

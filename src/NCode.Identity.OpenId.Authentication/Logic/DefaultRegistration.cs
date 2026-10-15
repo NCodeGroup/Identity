@@ -75,6 +75,33 @@ internal static class DefaultRegistration
             >();
 
             serviceCollection.TryAddSingleton<
+                Sessions.ISessionEvictionPolicy,
+                Sessions.DefaultOldestFirstSessionEvictionPolicy
+            >();
+
+            // OnSessionTerminatedCommand is the session-termination side-effect extension point: applications add
+            // handlers (for example, front-channel logout or custom auditing) alongside these defaults, ordered by
+            // mediator priority.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    NCode.Mediator.ICommandHandler<Sessions.OnSessionTerminatedCommand>,
+                    Sessions.DefaultRevokeGrantsOnSessionTerminatedHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    NCode.Mediator.ICommandHandler<Sessions.OnSessionTerminatedCommand>,
+                    Sessions.DefaultBackChannelLogoutOnSessionTerminatedHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    NCode.Mediator.ICommandHandler<Sessions.OnSessionTerminatedCommand>,
+                    Sessions.DefaultAuditSessionTerminatedHandler
+                >()
+            );
+
+            serviceCollection.TryAddSingleton<
                 Sessions.ISessionStateService,
                 Sessions.DefaultSessionStateService
             >();

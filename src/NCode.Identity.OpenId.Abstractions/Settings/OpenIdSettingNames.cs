@@ -411,6 +411,30 @@ public static class OpenIdSettingNames
     public const string SessionManagementSupported = "session_management_supported";
 
     /// <summary>
+    /// Contains the name of the tenant <c>session_absolute_lifetime</c> setting: the absolute lifetime applied to the
+    /// server-side end-user session established at sign-in, after which the session expires regardless of activity. A
+    /// value of <see cref="System.TimeSpan.Zero"/> disables the absolute lifetime (the session is bounded only by the
+    /// idle timeout, if any). Defaults to <see cref="System.TimeSpan.Zero"/>. Not advertised in discovery.
+    /// </summary>
+    public const string SessionAbsoluteLifetime = "session_absolute_lifetime";
+
+    /// <summary>
+    /// Contains the name of the tenant <c>session_idle_timeout</c> setting: the sliding inactivity window after which
+    /// an end-user session expires if it is not used. Each authorize request that resolves the session renews the
+    /// window. A value of <see cref="System.TimeSpan.Zero"/> disables the idle timeout. Defaults to
+    /// <see cref="System.TimeSpan.Zero"/>. Not advertised in discovery.
+    /// </summary>
+    public const string SessionIdleTimeout = "session_idle_timeout";
+
+    /// <summary>
+    /// Contains the name of the tenant <c>max_concurrent_sessions</c> setting: the maximum number of simultaneous
+    /// sessions a single subject may hold. When a new sign-in would exceed the cap, the subject's oldest sessions are
+    /// revoked so that at most this many remain active. A value of <c>0</c> disables the limit. Defaults to <c>0</c>.
+    /// Not advertised in discovery.
+    /// </summary>
+    public const string MaxConcurrentSessions = "max_concurrent_sessions";
+
+    /// <summary>
     /// Contains the name of <c>registration_endpoint_allow_anonymous</c> setting.
     /// </summary>
     public const string RegistrationEndpointAllowAnonymous =
@@ -540,6 +564,13 @@ public static class OpenIdSettingNames
     /// Contains the name of <c>send_id_claims_in_access_token</c> setting.
     /// </summary>
     public const string SendIdClaimsInAccessToken = "send_id_claims_in_access_token";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>send_session_id_in_access_token</c> setting (RFC 9068 §2.2.1): whether
+    /// the end-user session identifier (<c>sid</c>) is emitted into the access token so a resource server can correlate
+    /// the token to the session and honor session-scoped revocation. Defaults to <see langword="false"/>.
+    /// </summary>
+    public const string SendSessionIdInAccessToken = "send_session_id_in_access_token";
 
     /// <summary>
     /// Contains the name of <c>send_profile_metadata_in_access_token</c> setting.

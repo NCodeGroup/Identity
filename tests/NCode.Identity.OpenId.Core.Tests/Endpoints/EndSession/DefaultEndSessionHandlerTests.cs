@@ -122,7 +122,9 @@ public class DefaultEndSessionHandlerTests : BaseTests
             .Returns(new ValueTask<EndSessionSubject>(subject))
             .Verifiable();
         mockMediator
-            .Setup(x => x.SendAsync(It.IsAny<OnEndSessionCommand>(), It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.SendAsync(It.IsAny<OnSessionTerminatedCommand>(), It.IsAny<CancellationToken>())
+            )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 

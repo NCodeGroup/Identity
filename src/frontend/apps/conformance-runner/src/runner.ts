@@ -7,10 +7,15 @@
 import { fetchRawDiscovery, type ProbeFetch, type ProbeReport } from '@ncode/conformance-core';
 import { toProbeContext, type RunnerConfig } from './config.js';
 import { runProbeRunner } from './probeRunner.js';
+import type { ClientAssertionSigner, DpopProofFactory } from './probeRunner.js';
 
-/** Injected dependencies: the fetch implementation used for both discovery and the probes. */
+/** Injected dependencies: the fetch implementation and the optional asymmetric signers. */
 export type RunnerDeps = {
   readonly fetchFn: ProbeFetch;
+  /** Signs the `private_key_jwt` client assertion; absent when no client key is configured. */
+  readonly signClientAssertion?: ClientAssertionSigner;
+  /** Builds DPoP proofs; absent when no DPoP key is configured. */
+  readonly createDpopProof?: DpopProofFactory;
 };
 
 /** Loads the provider's discovery metadata and runs the probe-runner suite, aggregating the outcomes. */
@@ -24,6 +29,8 @@ export async function runConformanceRunner(
     const raw = await fetchRawDiscovery(config.issuer, deps.fetchFn, controller.signal);
     return await runProbeRunner(raw, deps.fetchFn, {
       ...toProbeContext(config),
+      ...(deps.signClientAssertion ? { signClientAssertion: deps.signClientAssertion } : {}),
+      ...(deps.createDpopProof ? { createDpopProof: deps.createDpopProof } : {}),
       signal: controller.signal,
     });
   } finally {

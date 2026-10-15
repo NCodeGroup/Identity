@@ -5,6 +5,7 @@
  */
 
 import type { ClientAuthMethod } from './probeRunner.js';
+import { isSupportedAlg, type JwaSignatureAlg } from './signer.js';
 
 /** The fully-resolved configuration the runner executes with. */
 export type RunnerConfig = {
@@ -15,6 +16,14 @@ export type RunnerConfig = {
   readonly publicClientId?: string;
   readonly scope?: string;
   readonly loginHint?: string;
+  /** Path to a PEM/JWK private key signing the `private_key_jwt` client assertion. */
+  readonly privateKeyPath?: string;
+  /** Overrides the `private_key_jwt` signing algorithm (needed to pick an RSA `RS*` scheme). */
+  readonly privateKeyAlg?: JwaSignatureAlg;
+  /** Path to a PEM/JWK private key signing DPoP proofs. */
+  readonly dpopKeyPath?: string;
+  /** Overrides the DPoP proof signing algorithm (needed to pick an RSA `RS*` scheme). */
+  readonly dpopKeyAlg?: JwaSignatureAlg;
   /** Emit the report as JSON (for CI consumption) instead of a human-readable table. */
   readonly json: boolean;
   readonly timeoutMs: number;
@@ -39,9 +48,13 @@ Options:
   --client-id <id>          Confidential client id (or env CONFORMANCE_CLIENT_ID).
   --client-secret <secret>  Confidential client secret (or env CONFORMANCE_CLIENT_SECRET).
   --auth-method <m>         Client auth: 'basic' (default) or 'post'.
-  --public-client-id <id>   Public client id for the device-code / CIBA legs.
+  --public-client-id <id>   Public client id for the device-code / CIBA / private_key_jwt legs.
   --scope <scope>           Scope requested by the token-issuing probes.
   --login-hint <hint>       login_hint for the CIBA probe.
+  --private-key <path>      PEM/JWK private key for the private_key_jwt client assertion.
+  --private-key-alg <alg>   Override the private_key_jwt signing alg (e.g. RS256; default inferred).
+  --dpop-key <path>         PEM/JWK private key for the DPoP proof.
+  --dpop-key-alg <alg>      Override the DPoP signing alg (e.g. RS256; default inferred).
   --timeout <ms>            Per-request timeout in milliseconds (default ${DEFAULT_TIMEOUT_MS}).
   --json                    Emit the report as JSON instead of a table.
   --help                    Show this help.
@@ -56,6 +69,23 @@ function normalizeAuthMethod(value: string | undefined): ClientAuthMethod | unde
     return 'client_secret_post';
   }
   return undefined;
+}
+
+/** Validates an optional signing-algorithm option against the supported set, recording an error when invalid. */
+function resolveAlgOption(
+  key: string,
+  values: ReadonlyMap<string, string>,
+  errors: string[],
+): JwaSignatureAlg | undefined {
+  const value = values.get(key);
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!isSupportedAlg(value)) {
+    errors.push(`Invalid '--${key}' (unsupported signature algorithm '${value}').`);
+    return undefined;
+  }
+  return value;
 }
 
 /**
@@ -124,6 +154,9 @@ export function parseArgs(
     errors.push('A confidential client needs both --client-id and --client-secret.');
   }
 
+  const privateKeyAlg = resolveAlgOption('private-key-alg', values, errors);
+  const dpopKeyAlg = resolveAlgOption('dpop-key-alg', values, errors);
+
   if (errors.length > 0 || !issuer || authMethod === undefined) {
     return { kind: 'error', errors };
   }
@@ -131,6 +164,8 @@ export function parseArgs(
   const publicClientId = values.get('public-client-id');
   const scope = values.get('scope');
   const loginHint = values.get('login-hint');
+  const privateKeyPath = values.get('private-key');
+  const dpopKeyPath = values.get('dpop-key');
   const config: RunnerConfig = {
     issuer,
     authMethod,
@@ -141,6 +176,10 @@ export function parseArgs(
     ...(publicClientId ? { publicClientId } : {}),
     ...(scope ? { scope } : {}),
     ...(loginHint ? { loginHint } : {}),
+    ...(privateKeyPath ? { privateKeyPath } : {}),
+    ...(privateKeyAlg ? { privateKeyAlg } : {}),
+    ...(dpopKeyPath ? { dpopKeyPath } : {}),
+    ...(dpopKeyAlg ? { dpopKeyAlg } : {}),
   };
   return { kind: 'config', config };
 }

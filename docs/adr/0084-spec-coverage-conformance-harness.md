@@ -68,8 +68,10 @@ classification to active probing without re-architecture.** Concretely:
   browser dashboard is `apps/conformance` and the Phase-3 runner is the `@ncode/app-conformance-runner` CLI, which
   exercises `client_credentials`, introspection/revocation with client auth, device-code polling, CIBA, `private_key_jwt`,
   DPoP/mTLS, and back-channel logout, exiting non-zero on any `failed` probe so it is a usable CI pre-flight. The
-  runner's asymmetric legs (`private_key_jwt`, DPoP) accept an injected signer; wiring a real Node-crypto signer from a
-  PEM/JWK is the `T7` follow-up. Phase 4 (wiring the external certified suite as the oracle behind this pre-flight) is
+  runner's asymmetric legs (`private_key_jwt`, DPoP) are driven by a real Node-`crypto` signer (`T7`) that loads a
+  PEM/JWK private key (algorithm inferred from the key, overridable) via `--private-key` / `--dpop-key` and builds the
+  compact-JWS client assertion (OIDC Core §9) and DPoP proof (RFC 9449 §4). Phase 4 (wiring the external certified suite
+  as the oracle behind this pre-flight) is
   now committed as the runnable harness under [`build/conformance/`](../../build/conformance) — `run-conformance.ps1`
   launches the OP, runs the probe-runner pre-flight, brings up the prebuilt-image suite, and drives the Config/Basic OP
   plans gated on committed baselines (see [`docs/conformance/external-suite.md`](../conformance/external-suite.md)); only

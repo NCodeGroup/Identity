@@ -30,8 +30,10 @@ namespace NCode.Identity.Secrets.Logic;
 /// </summary>
 // See ADR-0050.
 internal sealed class SymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFactory)
-    : SecretKeyTypeDescriptor(secretKeyFactory)
+    : SecretKeyTypeDescriptor
 {
+    private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
+
     /// <inheritdoc />
     public override string KeyType => SecretKeyTypes.Symmetric;
 

@@ -26,19 +26,14 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// Provides the common base for <see cref="ISecretKeyTypeDescriptor"/> implementations, deriving the
 /// asymmetric/public-key flags from the descriptor's <see cref="KeyClrType"/> and sharing the <c>PKCS#8</c>
-/// export-and-protect routine used by the asymmetric generators. The injected <see cref="ISecretKeyFactory"/> builds
-/// the runtime <see cref="SecretKey"/> during deserialization. Applications can derive from this base (or from
-/// <see cref="AsymmetricSecretKeyTypeDescriptor"/>) to add support for custom key types.
+/// export-and-protect routine used by the asymmetric generators. This base takes no dependencies, so a custom key
+/// type that constructs its own <see cref="SecretKey"/> can derive from it directly; a descriptor that needs the
+/// low-level construction primitives derives from <see cref="AsymmetricSecretKeyTypeDescriptor"/> (which injects the
+/// <see cref="ISecretKeyFactory"/>) instead.
 /// </summary>
 [PublicAPI]
-public abstract class SecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFactory)
-    : ISecretKeyTypeDescriptor
+public abstract class SecretKeyTypeDescriptor : ISecretKeyTypeDescriptor
 {
-    /// <summary>
-    /// Gets the factory used to build runtime <see cref="SecretKey"/> instances during deserialization.
-    /// </summary>
-    protected ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
-
     /// <inheritdoc />
     public abstract string KeyType { get; }
 

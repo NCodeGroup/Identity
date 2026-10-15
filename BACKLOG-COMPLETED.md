@@ -344,6 +344,21 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   / enterprise-IdP federation is intentionally out of scope and tracked as `F26` (the `ISubjectTokenValidator` seam is
   its extension point)._
 
+- **`F30` — Centralize persistence of a _given_ shared-secret string.**
+  [ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md) added `ISecretGenerator.GenerateSharedSecret`
+  for _generating_ a presented secret (stored as the UTF-8 bytes of its opaque string). The complementary operation —
+  persisting a **caller-supplied** shared-secret string in that same shape — was duplicated inline in three places
+  (`ConformanceSeedHandler.CreatePersistedSecret`, `BootstrapAdminSeedHandler.CreatePersistedSecret`, and the
+  integration-test `PlaygroundApplicationFactory`), each re-implementing the data-protect-and-wrap logic.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md). Added
+  `ISecretGenerator.ImportSharedSecret(ImportSharedSecretRequest, ReadOnlySpan<byte>)` — the complement to
+  `GenerateSharedSecret` — which persists a caller-supplied `client_secret` (the UTF-8 octets of its opaque string) in
+  the identical `symmetric_raw` shape, deriving the bit length from the value and sharing one internal construction with
+  `GenerateSharedSecret` so the stored UTF-8 contract cannot drift. The value is accepted as `ReadOnlySpan<byte>` (not a
+  managed `string`) so the seed handlers keep the secret in their pinned, zeroed-on-return buffers. All three sites now
+  route through it._
+
 ## Conformance & interop testing (group `T`)
 
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface

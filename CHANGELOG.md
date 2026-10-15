@@ -41,6 +41,15 @@ change to the public API is a **major** version bump.
   `GenerateSecret` keeps the second. The distinction is made at the call site (per the no-flag-argument convention), so
   a client-secret issuer can no longer silently pick the wrong representation.
 
+- **`ISecretGenerator.ImportSharedSecret` — a correct-by-default primitive for persisting a _caller-supplied_ shared
+  secret — closes backlog `F30` ([ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md)).** The
+  complement to `GenerateSharedSecret`: it persists a given `client_secret` value (supplied as the UTF-8 octets of its
+  opaque string) in the identical `symmetric_raw` shape, deriving the bit length from the value and sharing a single
+  internal construction with `GenerateSharedSecret` so the stored UTF-8 contract cannot drift between the two. The three
+  call sites that had each re-implemented the data-protect-and-wrap logic inline — the conformance and bootstrap-admin
+  seed handlers and the integration-test host factory — now route through it. New surface: `ImportSharedSecret` and the
+  `ImportSharedSecretRequest` metadata type on `NCode.Identity.Secrets.Persistence`.
+
 - **FAPI 2.0 `security_profile` mechanism — advances backlog `F16` (Phase 2)
   ([ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).** A tenant or client opts into
   the OpenID Foundation FAPI 2.0 Security Profile with a single `security_profile=fapi2` setting. The profile expands

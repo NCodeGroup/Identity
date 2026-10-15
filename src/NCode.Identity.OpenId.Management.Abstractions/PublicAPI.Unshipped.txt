@@ -66,6 +66,8 @@ NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityReso
 NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SecretTypeCapabilityResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SupportsPublicKeyExport.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SupportsPublicKeyExport.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SupportsPublicKeyImport.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SupportsPublicKeyImport.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.ResourceServerEffectiveSettingsResource() -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.ResourceServerId.get -> string!
@@ -525,6 +527,21 @@ NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValida
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateCreate(NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateImport(NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ImportSecretRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.SecretType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.SecretType.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.Format.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.Format.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.KeyMaterial.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.KeyMaterial.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.Use.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.Use.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.Algorithm.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.Algorithm.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ExpiresWhen.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator
 NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! server, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! server, NCode.Identity.OpenId.Management.Contracts.Servers.UpdateServerRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>

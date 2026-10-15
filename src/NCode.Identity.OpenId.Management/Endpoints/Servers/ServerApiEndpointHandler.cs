@@ -36,6 +36,7 @@ using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -73,6 +74,7 @@ internal class ServerApiEndpointHandler(
     IServerValidator serverValidator,
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
+    ISecretImporter secretImporter,
     ISecretPublicKeyConverter secretPublicKeyConverter,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
@@ -85,6 +87,7 @@ internal class ServerApiEndpointHandler(
     private IServerValidator ServerValidator { get; } = serverValidator;
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private ISecretImporter SecretImporter { get; } = secretImporter;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
@@ -123,6 +126,9 @@ internal class ServerApiEndpointHandler(
         servers.MapGet("/{serverId}/secrets", GetSecretsAsync).Produces<ServerSecretsResource>();
         servers
             .MapPost("/{serverId}/secrets", CreateSecretAsync)
+            .Produces<SecretResource>(StatusCodes.Status201Created);
+        servers
+            .MapPost("/{serverId}/secrets/import", ImportSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created);
         servers.MapGet("/{serverId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
         servers
@@ -725,6 +731,112 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
+    /// Imports a caller-supplied public key (JWK, PEM, or certificate) as a new server secret.
+    /// </summary>
+    // See ADR-0104.
+    internal virtual async ValueTask<IResult> ImportSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        [FromBody] ImportSecretRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IServerStore>();
+
+        var server = await store.GetOrDefaultAsync(serverId, cancellationToken);
+        if (server is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            server,
+            Operations.Create
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var validationError = SecretValidator.ValidateImport(request);
+        if (validationError is not null)
+        {
+            return ToErrorResult(validationError);
+        }
+
+        if (!Enum.TryParse<SecretKeyImportFormat>(request.Format, ignoreCase: true, out var format))
+        {
+            return TypedResults.Problem(
+                detail: $"The import format '{request.Format}' is not supported.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        var secretId = CryptoService.GenerateResourceId();
+
+        PersistedSecret importedSecret;
+        try
+        {
+            importedSecret = SecretImporter.ImportSecret(
+                new SecretKeyImportRequest
+                {
+                    SecretId = secretId,
+                    SecretType = request.SecretType,
+                    Format = format,
+                    KeyMaterial = request.KeyMaterial,
+                    Use = request.Use,
+                    Algorithm = request.Algorithm,
+                    CreatedWhen = TimeProvider.GetUtcNow(),
+                    ExpiresWhen = request.ExpiresWhen,
+                }
+            );
+        }
+        catch (ArgumentException exception)
+        {
+            Logger.SecretGenerationFailed(exception);
+            return TypedResults.Problem(
+                detail: "The secret could not be imported from the supplied material.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        try
+        {
+            await store.AddSecretAsync(serverId, importedSecret, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Logger.ResourceConflict(exception);
+            return TypedResults.Problem(
+                detail: "A secret with the specified identifier already exists.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        var importedSecretResource = ToSecretResource(importedSecret);
+
+        await ManagementAuditRecorder.RecordServerSecretChangedAsync(
+            httpContext,
+            serverId,
+            secretId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(importedSecretResource),
+            cancellationToken
+        );
+
+        httpContext.Response.Headers.ETag = importedSecret.ConcurrencyToken;
+        return TypedResults.Created(
+            $"/servers/{serverId}/secrets/{secretId}",
+            importedSecretResource
+        );
+    }
+
+    /// <summary>
     /// Gets a server secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
@@ -835,6 +947,7 @@ internal class ServerApiEndpointHandler(
             CreatedWhen = secret.CreatedWhen,
             ExpiresWhen = request.ExpiresWhen,
             SecretType = secret.SecretType,
+            SecretEncoding = secret.SecretEncoding,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
         };

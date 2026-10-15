@@ -16,6 +16,7 @@
 
 #endregion
 
+using Moq;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Logic;
 
@@ -25,11 +26,13 @@ public class SecretKeyTypeDescriptorTests
 {
     private static readonly SecretKeyMaterialProtector Protect = _ => "protected";
 
-    private static SymmetricSecretKeyTypeDescriptor Symmetric() => new();
+    private static readonly ISecretKeyFactory Factory = Mock.Of<ISecretKeyFactory>();
 
-    private static RsaSecretKeyTypeDescriptor Rsa() => new();
+    private static SymmetricSecretKeyTypeDescriptor Symmetric() => new(Factory);
 
-    private static EccSecretKeyTypeDescriptor Ecc() => new(new DefaultEccCurveCatalog([]));
+    private static RsaSecretKeyTypeDescriptor Rsa() => new(Factory);
+
+    private static EccSecretKeyTypeDescriptor Ecc() => new(Factory, new DefaultEccCurveCatalog([]));
 
     private static SecretKeyGenerationParameters Params(int keySizeBits, string? curve = null) =>
         new() { KeySizeBits = keySizeBits, Curve = curve };

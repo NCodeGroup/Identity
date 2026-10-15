@@ -17,18 +17,28 @@
 #endregion
 
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 using NCode.Buffers;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Secrets.Logic;
 
 /// <summary>
-/// Provides the common base for the built-in <see cref="ISecretKeyTypeDescriptor"/> implementations, deriving the
-/// asymmetric/public-key-export flags from the descriptor's <see cref="KeyClrType"/> and sharing the <c>PKCS#8</c>
-/// export-and-protect routine used by the asymmetric generators.
+/// Provides the common base for <see cref="ISecretKeyTypeDescriptor"/> implementations, deriving the
+/// asymmetric/public-key flags from the descriptor's <see cref="KeyClrType"/> and sharing the <c>PKCS#8</c>
+/// export-and-protect routine used by the asymmetric generators. The injected <see cref="ISecretKeyFactory"/> builds
+/// the runtime <see cref="SecretKey"/> during deserialization. Applications can derive from this base (or from
+/// <see cref="AsymmetricSecretKeyTypeDescriptor"/>) to add support for custom key types.
 /// </summary>
-internal abstract class SecretKeyTypeDescriptor : ISecretKeyTypeDescriptor
+[PublicAPI]
+public abstract class SecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFactory)
+    : ISecretKeyTypeDescriptor
 {
+    /// <summary>
+    /// Gets the factory used to build runtime <see cref="SecretKey"/> instances during deserialization.
+    /// </summary>
+    protected ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
+
     /// <inheritdoc />
     public abstract string KeyType { get; }
 
@@ -42,6 +52,9 @@ internal abstract class SecretKeyTypeDescriptor : ISecretKeyTypeDescriptor
     public virtual bool SupportsPublicKeyExport => IsAsymmetric;
 
     /// <inheritdoc />
+    public virtual bool SupportsPublicKeyImport => IsAsymmetric;
+
+    /// <inheritdoc />
     public abstract string? ValidateGeneration(SecretKeyGenerationParameters parameters);
 
     /// <inheritdoc />
@@ -49,6 +62,25 @@ internal abstract class SecretKeyTypeDescriptor : ISecretKeyTypeDescriptor
         SecretKeyGenerationParameters parameters,
         SecretKeyMaterialProtector protect
     );
+
+    /// <inheritdoc />
+    public virtual ImportedSecretKeyMaterial ImportPublicKeyMaterial(
+        SecretKeyImportParameters parameters,
+        SecretKeyMaterialProtector protect
+    ) =>
+        throw new NotSupportedException(
+            $"The '{KeyType}' key type does not support importing public key material."
+        );
+
+    /// <inheritdoc />
+    public abstract SecretKey DeserializeKeyMaterial(
+        KeyMetadata metadata,
+        string secretEncoding,
+        ReadOnlySpan<byte> keyMaterial
+    );
+
+    /// <inheritdoc />
+    public virtual ExportedPublicKey? ExportPublicKey(SecretKey secretKey) => null;
 
     /// <summary>
     /// Exports the <c>PKCS#8</c> private key of the specified asymmetric algorithm into a rented sensitive buffer
@@ -69,6 +101,7 @@ internal abstract class SecretKeyTypeDescriptor : ISecretKeyTypeDescriptor
                 {
                     ProtectedKeyMaterial = protect(span[..bytesWritten]),
                     KeySizeBits = algorithm.KeySize,
+                    SecretEncoding = SecretEncodings.Pkcs8,
                     SecretMaterial = null,
                 };
             }

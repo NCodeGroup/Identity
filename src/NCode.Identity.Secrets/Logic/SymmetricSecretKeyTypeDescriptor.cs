@@ -29,7 +29,8 @@ namespace NCode.Identity.Secrets.Logic;
 /// their generated material is the one-time reveal value.
 /// </summary>
 // See ADR-0050.
-internal sealed class SymmetricSecretKeyTypeDescriptor : SecretKeyTypeDescriptor
+internal sealed class SymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFactory)
+    : SecretKeyTypeDescriptor(secretKeyFactory)
 {
     /// <inheritdoc />
     public override string KeyType => SecretKeyTypes.Symmetric;
@@ -73,7 +74,25 @@ internal sealed class SymmetricSecretKeyTypeDescriptor : SecretKeyTypeDescriptor
         {
             ProtectedKeyMaterial = protect(span),
             KeySizeBits = keySizeBits,
+            SecretEncoding = SecretEncodings.SymmetricRaw,
             SecretMaterial = secretMaterial,
         };
+    }
+
+    /// <inheritdoc />
+    public override SecretKey DeserializeKeyMaterial(
+        KeyMetadata metadata,
+        string secretEncoding,
+        ReadOnlySpan<byte> keyMaterial
+    )
+    {
+        if (secretEncoding != SecretEncodings.SymmetricRaw)
+        {
+            throw new InvalidOperationException(
+                $"The '{secretEncoding}' encoding is not supported for a '{KeyType}' secret."
+            );
+        }
+
+        return SecretKeyFactory.CreateSymmetric(metadata, keyMaterial);
     }
 }

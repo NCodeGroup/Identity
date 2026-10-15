@@ -17,16 +17,15 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Identity.Secrets.Logic;
 
 namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="EccSecretKey"/> abstraction.
+/// Provides a default implementation of the <see cref="EccSecretKey"/> abstraction that holds the protected
+/// <c>PKCS#8</c> private key.
 /// </summary>
 /// <remarks>
 /// Can be used for either <see cref="ECDsa"/> or <see cref="ECDiffieHellman"/> keys.
@@ -37,44 +36,10 @@ internal class DefaultEccSecretKey(
     int curveSizeBits,
     ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
     ReadOnlyMemory<byte>? certificateRawData
-) : EccSecretKey
+) : EccSecretKey(metadata, curveSizeBits, certificateRawData)
 {
     private IDataProtector DataProtector { get; } = dataProtector;
     private ReadOnlyMemory<byte> ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;
-    private ReadOnlyMemory<byte>? CertificateRawData { get; } = certificateRawData;
-
-    /// <inheritdoc />
-    public override KeyMetadata Metadata { get; } = metadata;
-
-    /// <inheritdoc />
-    public override int KeySizeBits { get; } = curveSizeBits;
-
-    /// <inheritdoc />
-    [MemberNotNullWhen(true, nameof(CertificateRawData))]
-    public override bool HasCertificate => CertificateRawData.HasValue;
-
-    /// <inheritdoc />
-    public override X509Certificate2? ExportCertificate() =>
-        HasCertificate
-            ? X509CertificateLoader.LoadCertificate(CertificateRawData.Value.Span)
-            : null;
-
-    /// <inheritdoc />
-    public override ECCurve GetECCurve() =>
-        KeySizeBits switch
-        {
-            256 => ECCurve.NamedCurves.nistP256,
-            384 => ECCurve.NamedCurves.nistP384,
-            521 => ECCurve.NamedCurves.nistP521,
-            _ => GetECCurveSlow(),
-        };
-
-    private ECCurve GetECCurveSlow()
-    {
-        using var key = ExportECDiffieHellman();
-        var parameters = key.ExportParameters(includePrivateParameters: false);
-        return parameters.Curve;
-    }
 
     /// <inheritdoc />
     public override ECDsa ExportECDsa() =>
@@ -86,7 +51,4 @@ internal class DefaultEccSecretKey(
             ProtectedPkcs8PrivateKey.Span,
             ECDiffieHellman.Create
         );
-
-    /// <inheritdoc />
-    public override AsymmetricAlgorithm ExportAsymmetricAlgorithm() => ExportECDsa();
 }

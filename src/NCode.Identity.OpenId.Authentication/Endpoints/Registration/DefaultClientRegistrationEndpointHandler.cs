@@ -36,6 +36,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -53,6 +54,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     LinkGenerator linkGenerator,
     ICryptoService cryptoService,
     ISecretGenerator secretGenerator,
+    ISecretImporter secretImporter,
     IStoreManagerFactory storeManagerFactory,
     IPersistedGrantService persistedGrantService,
     IInitialAccessTokenValidator initialAccessTokenValidator,
@@ -84,6 +86,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     private LinkGenerator LinkGenerator { get; } = linkGenerator;
     private ICryptoService CryptoService { get; } = cryptoService;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private ISecretImporter SecretImporter { get; } = secretImporter;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private IInitialAccessTokenValidator InitialAccessTokenValidator { get; } =
@@ -229,25 +232,17 @@ internal class DefaultClientRegistrationEndpointHandler(
         var isConfidential =
             resolved.TokenEndpointAuthMethod != OpenIdConstants.ClientAuthenticationMethods.None;
 
-        string? clientSecret = null;
-        var secrets = new List<PersistedSecret>();
-        if (isConfidential)
+        var secretsError = BuildClientSecrets(
+            request,
+            isConfidential,
+            createdWhen,
+            errorFactory,
+            out var secrets,
+            out var clientSecret
+        );
+        if (secretsError is not null)
         {
-            var secretId = CryptoService.GenerateResourceId();
-            var generated = SecretGenerator.GenerateSecret(
-                new GenerateSecretRequest
-                {
-                    SecretId = secretId,
-                    SecretType = SecretTypes.Symmetric,
-                    KeySizeBits = ClientSecretKeySizeBits,
-                    Use = null,
-                    Algorithm = null,
-                    CreatedWhen = createdWhen,
-                    ExpiresWhen = DateTimeOffset.MaxValue,
-                }
-            );
-            clientSecret = generated.SecretMaterial;
-            secrets.Add(generated.Secret);
+            return secretsError;
         }
 
         var settings = BuildSettingsObject(request, resolved);
@@ -727,6 +722,146 @@ internal class DefaultClientRegistrationEndpointHandler(
             cancellationToken
         );
     }
+
+    /// <summary>
+    /// Builds the new client's secrets: a generated symmetric secret for a confidential client, plus any public
+    /// verification keys imported from an inline <c>jwks</c> set (ADR-0104). Returns an error result when an inline
+    /// supported JWK is malformed; otherwise <see langword="null"/> with the secrets and one-time client secret.
+    /// </summary>
+    private IResult? BuildClientSecrets(
+        RegisterClientRequest request,
+        bool isConfidential,
+        DateTimeOffset createdWhen,
+        IOpenIdErrorFactory errorFactory,
+        out List<PersistedSecret> secrets,
+        out string? clientSecret
+    )
+    {
+        secrets = [];
+        clientSecret = null;
+
+        if (isConfidential)
+        {
+            var generated = SecretGenerator.GenerateSecret(
+                new GenerateSecretRequest
+                {
+                    SecretId = CryptoService.GenerateResourceId(),
+                    SecretType = SecretTypes.Symmetric,
+                    KeySizeBits = ClientSecretKeySizeBits,
+                    Use = null,
+                    Algorithm = null,
+                    CreatedWhen = createdWhen,
+                    ExpiresWhen = DateTimeOffset.MaxValue,
+                }
+            );
+            clientSecret = generated.SecretMaterial;
+            secrets.Add(generated.Secret);
+        }
+
+        // Import any inline JWK Set keys as public verification secrets (ADR-0104); runtime jwks_uri resolution is
+        // deferred (F16 Phase 0). An unsupported key type is skipped; a malformed supported key fails registration.
+        if (
+            request.Jwks is not { ValueKind: JsonValueKind.Object } jwks
+            || !jwks.TryGetProperty("keys", out var jwksKeys)
+            || jwksKeys.ValueKind != JsonValueKind.Array
+        )
+        {
+            return null;
+        }
+
+        foreach (var jwk in jwksKeys.EnumerateArray())
+        {
+            if (!TryImportJwk(jwk, createdWhen, out var importedSecret, out var importError))
+            {
+                return errorFactory
+                    .InvalidRequest(
+                        importError ?? "The supplied JWK is invalid.",
+                        OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                    )
+                    .WithStatusCode(StatusCodes.Status400BadRequest)
+                    .AsHttpResult();
+            }
+
+            if (importedSecret is not null)
+            {
+                secrets.Add(importedSecret);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Attempts to import a single inline <c>JWK</c> as a public verification secret. Returns <see langword="true"/>
+    /// with a <see langword="null"/> secret for an unsupported key type (skipped), <see langword="true"/> with the
+    /// imported secret for a supported key, or <see langword="false"/> with an error for a malformed supported key.
+    /// </summary>
+    // See ADR-0104.
+    private bool TryImportJwk(
+        JsonElement jwk,
+        DateTimeOffset createdWhen,
+        out PersistedSecret? secret,
+        out string? error
+    )
+    {
+        secret = null;
+        error = null;
+
+        if (
+            jwk.ValueKind != JsonValueKind.Object
+            || !jwk.TryGetProperty("kty", out var ktyElement)
+            || ktyElement.ValueKind != JsonValueKind.String
+        )
+        {
+            return true;
+        }
+
+        var secretType = ktyElement.GetString() switch
+        {
+            "RSA" => SecretTypes.Rsa,
+            "EC" => SecretTypes.Ecc,
+            _ => null,
+        };
+        if (secretType is null)
+        {
+            return true;
+        }
+
+        var keyId = ReadStringMember(jwk, "kid");
+        if (string.IsNullOrEmpty(keyId))
+        {
+            keyId = CryptoService.GenerateResourceId();
+        }
+
+        try
+        {
+            secret = SecretImporter.ImportSecret(
+                new SecretKeyImportRequest
+                {
+                    SecretId = keyId,
+                    SecretType = secretType,
+                    Format = SecretKeyImportFormat.Jwk,
+                    KeyMaterial = jwk.GetRawText(),
+                    Use = ReadStringMember(jwk, "use"),
+                    Algorithm = ReadStringMember(jwk, "alg"),
+                    CreatedWhen = createdWhen,
+                    ExpiresWhen = DateTimeOffset.MaxValue,
+                }
+            );
+            return true;
+        }
+        catch (ArgumentException exception)
+        {
+            error = $"The supplied JWK is invalid: {exception.Message}";
+            return false;
+        }
+    }
+
+    private static string? ReadStringMember(JsonElement element, string memberName) =>
+        element.TryGetProperty(memberName, out var member)
+        && member.ValueKind == JsonValueKind.String
+            ? member.GetString()
+            : null;
 
     /// <summary>
     /// Projects the submitted metadata and the resolved values into the client's persisted settings document.

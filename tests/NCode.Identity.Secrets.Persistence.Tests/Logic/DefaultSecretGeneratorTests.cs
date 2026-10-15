@@ -42,13 +42,13 @@ public class DefaultSecretGeneratorTests
         );
 
         var catalog = new DefaultSecretKeyTypeCatalog([
-            new SymmetricSecretKeyTypeDescriptor(),
-            new RsaSecretKeyTypeDescriptor(),
-            new EccSecretKeyTypeDescriptor(new DefaultEccCurveCatalog([])),
+            new SymmetricSecretKeyTypeDescriptor(secretKeyFactory),
+            new RsaSecretKeyTypeDescriptor(secretKeyFactory),
+            new EccSecretKeyTypeDescriptor(secretKeyFactory, new DefaultEccCurveCatalog([])),
         ]);
 
         _generator = new DefaultSecretGenerator(protectorFactory, catalog);
-        _serializer = new DefaultSecretSerializer(secretKeyFactory, protectorFactory);
+        _serializer = new DefaultSecretSerializer(catalog, protectorFactory);
     }
 
     private static GenerateSecretRequest CreateRequest(string secretType, int keySizeBits) =>
@@ -173,7 +173,7 @@ public class DefaultSecretGeneratorTests
     [Fact]
     public void GenerateSecret_WhenUnsupportedSecretType_Throws()
     {
-        var request = CreateRequest(SecretTypes.Certificate, 2048);
+        var request = CreateRequest("x509", 2048);
 
         Assert.Throws<InvalidOperationException>(() => _generator.GenerateSecret(request));
     }

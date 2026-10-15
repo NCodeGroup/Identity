@@ -147,6 +147,7 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
             SecretType = SecretTypes.Symmetric,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
             KeySizeBits = secretBytes.Length * 8,
             EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
         };
@@ -224,7 +225,9 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
-            SecretType = SecretTypes.Certificate,
+            // A certificate is persisted as its crypto family plus the x509 encoding (ADR-0104).
+            SecretType = SecretTypes.Rsa,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
             KeySizeBits = keySizeBits,
             EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
         };
@@ -404,6 +407,7 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
                             CreatedWhen = DateTimeOffset.UnixEpoch,
                             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
                             SecretType = SecretTypes.Symmetric,
+                            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
                             KeySizeBits = secretBytes.Length * 8,
                             EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
                         },

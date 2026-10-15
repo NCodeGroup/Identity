@@ -9,8 +9,6 @@ abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdClient.Settings.get 
 abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdConfidentialClient.AuthenticationMethod.get -> string!
 abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdConfidentialClient.Confirmation.get -> System.Text.Json.JsonElement?
 abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdConfidentialClient.SecretKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
-abstract NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.JsonWebKeyConverter<TSecretKey>.Convert(TSecretKey! secretKey) -> NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey?
-abstract NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey.KeyType.get -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.AuthorizationDenied = "authorization.denied" -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.AuthorizationGranted = "authorization.granted" -> string!
 const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditActions.ClientAuthentication = "client.authentication" -> string!
@@ -491,37 +489,10 @@ NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointDiscoverableMetada
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointDiscoverableMetadata.IsDiscoverable.get -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointExceptionHandlerMetadata
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointExceptionHandlerMetadata.GetExceptionHandlerAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler!>
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.IJsonWebKeyConverter
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.IJsonWebKeyConverter.TryConvert(NCode.Identity.Secrets.Keys.SecretKey! secretKey, out NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey? jsonWebKey) -> bool
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.JsonWebKeyConverter<TSecretKey>
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.JsonWebKeyConverter<TSecretKey>.JsonWebKeyConverter() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.JsonWebKeyConverter<TSecretKey>.TryConvert(NCode.Identity.Secrets.Keys.SecretKey! secretKey, out NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey? jsonWebKey) -> bool
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebKey
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebKey.Curve.get -> string!
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebKey.Curve.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebKey.EccJsonWebKey() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebKey.X.get -> string!
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebKey.X.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebKey.Y.get -> string!
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebKey.Y.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey.Algorithm.get -> string?
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey.Algorithm.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey.JsonWebKey() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey.KeyId.get -> string?
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey.KeyId.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey.Use.get -> string?
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey.Use.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKeySetResult
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKeySetResult.JsonWebKeySetResult() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKeySetResult.Keys.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKey!>!
+NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKeySetResult.Keys.get -> System.Collections.Generic.IReadOnlyCollection<System.Text.Json.Nodes.JsonObject!>!
 NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKeySetResult.Keys.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.Exponent.get -> string!
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.Exponent.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.Modulus.get -> string!
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.Modulus.init -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.RsaJsonWebKey() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.Description.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.Description.init -> void
@@ -1293,10 +1264,7 @@ override NCode.Identity.OpenId.Authentication.Auditing.RefreshTokenReplayAuditEv
 override NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.TokenRevokedAuditEvent.Action.get -> string!
-override NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.EccJsonWebKey.KeyType.get -> string!
-override NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.RsaJsonWebKey.KeyType.get -> string!
 static NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.Undefined.get -> NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult
-static NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters.JsonWebKeyConverter<TSecretKey>.NullIfEmpty(string? value) -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Grants.PushedAuthorizationGrant
 NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Grants.PushedAuthorizationGrant.PushedAuthorizationGrant() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Grants.PushedAuthorizationGrant.ClientId.get -> string!

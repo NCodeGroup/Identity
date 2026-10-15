@@ -68,6 +68,7 @@ internal class DefaultSecretGenerator(
             CreatedWhen = request.CreatedWhen,
             ExpiresWhen = request.ExpiresWhen,
             SecretType = request.SecretType,
+            SecretEncoding = material.SecretEncoding,
             KeySizeBits = material.KeySizeBits,
             EncodedValue = material.ProtectedKeyMaterial,
         };

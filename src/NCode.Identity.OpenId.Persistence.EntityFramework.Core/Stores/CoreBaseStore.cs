@@ -127,6 +127,7 @@ internal abstract class CoreBaseStore<TItem, TEntity> : BaseStore<TItem, TEntity
             CreatedWhen = secret.CreatedWhen.ToUniversalTime(),
             ExpiresWhen = secret.ExpiresWhen.ToUniversalTime(),
             SecretType = secret.SecretType,
+            SecretEncoding = secret.SecretEncoding,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
         };
@@ -146,6 +147,7 @@ internal abstract class CoreBaseStore<TItem, TEntity> : BaseStore<TItem, TEntity
             CreatedWhen = secret.CreatedWhen,
             ExpiresWhen = secret.ExpiresWhen,
             SecretType = secret.SecretType,
+            SecretEncoding = secret.SecretEncoding,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
         };

@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using JetBrains.Annotations;
@@ -24,15 +25,30 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
-/// Common abstractions for all secret keys using <c>asymmetric</c> cryptographic keys.
+/// Common abstractions for all secret keys using <c>asymmetric</c> cryptographic keys. Holds the shared
+/// <see cref="SecretKey.Metadata"/>, <see cref="SecretKey.KeySizeBits"/>, and optional public certificate, so
+/// concrete keys only supply their key-material export.
 /// </summary>
 [PublicAPI]
-public abstract class AsymmetricSecretKey : SecretKey
+public abstract class AsymmetricSecretKey(
+    KeyMetadata metadata,
+    int keySizeBits,
+    ReadOnlyMemory<byte>? certificateRawData
+) : SecretKey
 {
+    private ReadOnlyMemory<byte>? CertificateRawData { get; } = certificateRawData;
+
+    /// <inheritdoc />
+    public override KeyMetadata Metadata { get; } = metadata;
+
+    /// <inheritdoc />
+    public override int KeySizeBits { get; } = keySizeBits;
+
     /// <summary>
     /// Gets a value indicating whether this asymmetric key has an associated certificate.
     /// </summary>
-    public abstract bool HasCertificate { get; }
+    [MemberNotNullWhen(true, nameof(CertificateRawData))]
+    public bool HasCertificate => CertificateRawData.HasValue;
 
     /// <summary>
     /// Gets the optional <see cref="X509Certificate2"/> for this asymmetric key.
@@ -42,7 +58,10 @@ public abstract class AsymmetricSecretKey : SecretKey
     /// To create a certificate with both the private and public portions, use <c>CopyWithPrivateKey</c>.
     /// Doing so will create certificates with ephemeral keys and not persist keys to disk.
     /// </remarks>
-    public abstract X509Certificate2? ExportCertificate();
+    public X509Certificate2? ExportCertificate() =>
+        HasCertificate
+            ? X509CertificateLoader.LoadCertificate(CertificateRawData.Value.Span)
+            : null;
 
     /// <summary>
     /// Factory method to create an <see cref="AsymmetricAlgorithm"/> instance from the current key material.

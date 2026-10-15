@@ -16,15 +16,14 @@
 
 #endregion
 
-using System.Collections.Immutable;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Converters;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Logic;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
@@ -36,11 +35,10 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;
 /// tokens issued by this authorization server.
 /// </summary>
 /// <seealso href="https://datatracker.ietf.org/doc/html/rfc7517">RFC 7517 - JSON Web Key (JWK)</seealso>
-internal class DefaultJwksEndpointHandler(IEnumerable<IJsonWebKeyConverter> jsonWebKeyConverters)
+internal class DefaultJwksEndpointHandler(ISecretKeyTypeCatalog secretKeyTypeCatalog)
     : IEndpointProvider
 {
-    private ImmutableArray<IJsonWebKeyConverter> JsonWebKeyConverters { get; } =
-    [.. jsonWebKeyConverters];
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
@@ -71,33 +69,25 @@ internal class DefaultJwksEndpointHandler(IEnumerable<IJsonWebKeyConverter> json
         var openIdEnvironment = openIdContext.Environment;
         var secretKeys = openIdContext.Tenant.SecretsProvider.Collection;
 
-        var keys = new List<JsonWebKey>();
+        // Each key's descriptor (the single extensibility seam, ADR-0104) produces its public JWK; keys with no
+        // exportable public material (for example symmetric keys) are omitted.
+        var keys = new List<JsonObject>();
         foreach (var secretKey in secretKeys)
         {
-            var jsonWebKey = ConvertSecretKey(secretKey);
-            if (jsonWebKey is not null)
+            if (!SecretKeyTypeCatalog.TryGet(secretKey.KeyType, out var descriptor))
             {
-                keys.Add(jsonWebKey);
+                continue;
+            }
+
+            var exported = descriptor.ExportPublicKey(secretKey);
+            if (exported is not null)
+            {
+                keys.Add(exported.Jwk);
             }
         }
 
         var result = new JsonWebKeySetResult { Keys = keys };
 
         return TypedResults.Json(result, openIdEnvironment.JsonSerializerOptions);
-    }
-
-    private JsonWebKey? ConvertSecretKey(SecretKey secretKey)
-    {
-        // Ask each registered converter in turn; the first that handles the key wins. New key types are
-        // supported by registering an additional IJsonWebKeyConverter, without modifying this handler.
-        foreach (var converter in JsonWebKeyConverters)
-        {
-            if (converter.TryConvert(secretKey, out var jsonWebKey))
-            {
-                return jsonWebKey;
-            }
-        }
-
-        return null;
     }
 }

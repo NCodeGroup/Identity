@@ -509,6 +509,19 @@ public static partial class OpenIdConstants
         /// Indicates that the client authenticates with a JWT signed using its private key (<c>private_key_jwt</c>).
         /// </summary>
         public const string PrivateKeyJwt = "private_key_jwt";
+
+        /// <summary>
+        /// Indicates that the client authenticates with a PKI-validated mutual-TLS client certificate whose
+        /// subject distinguished name or subject alternative name matches the client's registered metadata
+        /// (<c>tls_client_auth</c>, RFC 8705 §2.1).
+        /// </summary>
+        public const string TlsClientAuth = "tls_client_auth";
+
+        /// <summary>
+        /// Indicates that the client authenticates with a mutual-TLS client certificate that matches one of the
+        /// client's registered certificates by thumbprint (<c>self_signed_tls_client_auth</c>, RFC 8705 §2.2).
+        /// </summary>
+        public const string SelfSignedTlsClientAuth = "self_signed_tls_client_auth";
     }
 
     /// <summary>

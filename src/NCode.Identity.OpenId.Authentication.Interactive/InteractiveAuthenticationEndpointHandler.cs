@@ -107,16 +107,78 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     }
 
     /// <summary>
-    /// Serves the login page (the single-page bundle), establishing the antiforgery token the form echoes back.
+    /// Serves the login page. The server renders a working no-JavaScript login form (progressive-enhancement baseline)
+    /// carrying the antiforgery token and the return URL; when the single-page bundle is present the form is injected
+    /// into its <c>#root</c> so the SPA replaces it on mount.
     /// </summary>
-    public async ValueTask<IResult> GetLoginPageAsync(HttpContext httpContext) =>
-        await ServeBundleAsync(httpContext);
+    public async ValueTask<IResult> GetLoginPageAsync(HttpContext httpContext)
+    {
+        var tokens = IssueAntiforgeryTokens(httpContext);
+        var query = httpContext.Request.Query;
+        var html = InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            await TryReadBundleIndexAsync(httpContext.RequestAborted),
+            query["ReturnUrl"].ToString(),
+            tokens.FormFieldName,
+            tokens.RequestToken ?? string.Empty,
+            DescribeLoginError(query["error"].ToString())
+        );
+        return TypedResults.Content(html, "text/html");
+    }
 
     /// <summary>
-    /// Serves the consent page (the single-page bundle), establishing the antiforgery token the form echoes back.
+    /// Serves the consent page. The server resolves the pending authorization request and renders a working
+    /// no-JavaScript consent form (a per-scope checkbox plus allow/deny) carrying the antiforgery token; when the
+    /// single-page bundle is present the form is injected into its <c>#root</c> so the SPA replaces it on mount.
     /// </summary>
-    public async ValueTask<IResult> GetConsentPageAsync(HttpContext httpContext) =>
-        await ServeBundleAsync(httpContext);
+    public async ValueTask<IResult> GetConsentPageAsync(HttpContext httpContext)
+    {
+        var tokens = IssueAntiforgeryTokens(httpContext);
+        var rawReturnUrl = httpContext.Request.Query["ReturnUrl"].ToString();
+
+        var appName = "An application";
+        IReadOnlyList<InteractiveAuthenticationPageRenderer.ScopeView> scopes = [];
+
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (authenticateResult.Succeeded && !string.IsNullOrEmpty(rawReturnUrl))
+        {
+            var openIdContext = httpContext.GetOpenIdContext();
+            var subjectId = openIdContext.GetSubjectId(authenticateResult.Principal);
+            if (!string.IsNullOrEmpty(subjectId))
+            {
+                var pending = await ConsentService.ResolvePendingConsentAsync(
+                    openIdContext,
+                    subjectId,
+                    rawReturnUrl,
+                    httpContext.RequestAborted
+                );
+                if (pending is { } value)
+                {
+                    appName = string.IsNullOrEmpty(value.ClientName)
+                        ? value.ClientId
+                        : value.ClientName;
+                    scopes = value
+                        .Scopes.Select(scope => new InteractiveAuthenticationPageRenderer.ScopeView(
+                            scope.Value,
+                            scope.Description,
+                            scope.IsGranted
+                        ))
+                        .ToList();
+                }
+            }
+        }
+
+        var html = InteractiveAuthenticationPageRenderer.RenderConsentPage(
+            await TryReadBundleIndexAsync(httpContext.RequestAborted),
+            rawReturnUrl,
+            tokens.FormFieldName,
+            tokens.RequestToken ?? string.Empty,
+            appName,
+            scopes
+        );
+        return TypedResults.Content(html, "text/html");
+    }
 
     /// <summary>
     /// Serves the account ("me") page (the single-page bundle), establishing the antiforgery token the sign-out form
@@ -788,44 +850,66 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
     private async ValueTask<ContentHttpResult> ServeBundleAsync(HttpContext httpContext)
     {
-        IssueAntiforgeryCookie(httpContext);
+        IssueAntiforgeryTokens(httpContext);
 
+        var html = await TryReadBundleIndexAsync(httpContext.RequestAborted);
+        if (html is null)
+        {
+            return BundleMissingResult();
+        }
+
+        return TypedResults.Content(html, "text/html");
+    }
+
+    // Reads the single-page bundle's index.html, or null when no bundle is configured/available (the no-JS login and
+    // consent forms then render standalone).
+    private async ValueTask<string?> TryReadBundleIndexAsync(CancellationToken cancellationToken)
+    {
         var bundleRootPath = Options.BundleRootPath;
         if (string.IsNullOrEmpty(bundleRootPath))
         {
-            return BundleMissingResult();
+            return null;
         }
 
         var indexPath = Path.Combine(bundleRootPath, "index.html");
         if (!File.Exists(indexPath))
         {
-            return BundleMissingResult();
+            return null;
         }
 
-        var html = await File.ReadAllTextAsync(indexPath, httpContext.RequestAborted);
-        return TypedResults.Content(html, "text/html");
+        return await File.ReadAllTextAsync(indexPath, cancellationToken);
     }
 
-    private void IssueAntiforgeryCookie(HttpContext httpContext)
+    // Mirrors the apps/auth describeLoginError mapping so the no-JS login form shows the same messages.
+    private static string? DescribeLoginError(string? error) =>
+        error switch
+        {
+            null or "" => null,
+            "invalid_credentials" => "The username or password is incorrect.",
+            "invalid_request" => "Enter both a username and a password.",
+            _ => "Sign-in failed. Please try again.",
+        };
+
+    private AntiforgeryTokenSet IssueAntiforgeryTokens(HttpContext httpContext)
     {
         var tokens = Antiforgery.GetAndStoreTokens(httpContext);
-        if (tokens.RequestToken is not { Length: > 0 } requestToken)
+        if (tokens.RequestToken is { Length: > 0 } requestToken)
         {
-            return;
+            // A JavaScript-readable cookie (not the HttpOnly antiforgery cookie) so the single-page form can echo the
+            // request token back as a hidden field, which the antiforgery middleware then validates on POST.
+            httpContext.Response.Cookies.Append(
+                InteractiveAuthenticationDefaults.AntiforgeryTokenCookieName,
+                requestToken,
+                new CookieOptions
+                {
+                    HttpOnly = false,
+                    SameSite = SameSiteMode.Strict,
+                    Secure = httpContext.Request.IsHttps,
+                }
+            );
         }
 
-        // A JavaScript-readable cookie (not the HttpOnly antiforgery cookie) so the single-page form can echo the
-        // request token back as a hidden field, which the antiforgery middleware then validates on POST.
-        httpContext.Response.Cookies.Append(
-            InteractiveAuthenticationDefaults.AntiforgeryTokenCookieName,
-            requestToken,
-            new CookieOptions
-            {
-                HttpOnly = false,
-                SameSite = SameSiteMode.Strict,
-                Secure = httpContext.Request.IsHttps,
-            }
-        );
+        return tokens;
     }
 
     private static ContentHttpResult BundleMissingResult() =>

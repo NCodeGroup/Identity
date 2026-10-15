@@ -54,6 +54,27 @@ change to the public API is a **major** version bump.
   non-weakenable security control; deployments extend it **additive-deny only** by registering `IOutboundAddressFilter`
   implementations. New public surface: `IClientKeyResolver`, `IOutboundAddressFilter`, and the five `jwks_uri*` settings.
 
+- **The interactive login & consent pages now work without JavaScript (progressive enhancement).** The server renders a
+  real `<form>` (login: `username`/`password`/`login`; consent: a per-scope checkbox plus `consent-allow`/`consent-deny`)
+  carrying the antiforgery token and return URL, injected into the single-page bundle's `#root` so the React `apps/auth`
+  SPA still replaces it on mount — and served standalone when no bundle is configured. One surface, no user-agent
+  sniffing: no-JS clients (assistive technology, hardened browsers, the OpenID conformance suite's headless
+  HtmlUnitDriver) get a working form, everyone else gets the SPA. This unblocks the browser-driven conformance profiles,
+  whose no-JS driver previously saw only an empty `<div id="root">` and could not find the login fields.
+
+- **External conformance suite wired as the certified oracle behind the in-house pre-flight — advances backlog `T6`
+  (Phase 4 / `T1` Phase D), [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md).** A committed, runnable
+  harness under [`build/conformance/`](build/conformance) drives the **OpenID Foundation Conformance Suite** against the
+  Playground OP end to end: `run-conformance.ps1` launches the OP on the reachable HTTPS origin (the `Conformance`
+  launch profile), runs the headless `@ncode/app-conformance-runner` probe runner as a fast pre-flight that fails early,
+  brings the suite up from prebuilt Docker images (no Java build), drives the Config OP + Basic OP plans headlessly via
+  `run-test-plan.py` gated on the committed `expected-failures.json` / `expected-skips.json` baselines, and tears
+  everything down — surfacing one non-zero exit code. The config templates (`oidcc-basic.json` with its `browser`
+  automation block, `oidcc-config.json`) are resolved against the deterministic `AddConformanceSeed` values. It is
+  **not** part of `build/dod.ps1` (Docker + Python 3, slow) and runs as an opt-in / nightly gate; the nightly CI
+  pipeline itself remains the sole `T6` follow-up. Documented in
+  [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md).
+
 - **Public-key import / BYOK across the management API and Dynamic Client Registration — closes backlog `S3`, advances
   `F16` ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md)).** A relying party's **public**
   asymmetric key can now be imported — as a **JWK**, **PEM**, or **X.509 certificate** — and persisted as a first-class
@@ -937,6 +958,45 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   [ADR-0056](docs/adr/0056-abstractions-split-into-framework-free-tiered-packages.md).
 
 ### Fixed
+
+- **`expires_in` is now serialized as a JSON number.** The token response is written in the OpenID wire format, where
+  the generic value parsers emit every value as a JSON string — so `expires_in` (a `TimeSpan?`) was emitted as
+  `"3600"` instead of `3600`, violating OAuth 2.0 §5.1. A new `DurationSecondsParser` (exposed as
+  `CommonParameterParsers.DurationSeconds`) reads and writes a seconds-valued duration as a JSON number; `expires_in`
+  now uses it. Surfaced by the OpenID Foundation Conformance Suite's Basic OP profile.
+
+- **`prompt=login` / `prompt=select_account` / `prompt=create` no longer loop.** `DefaultAuthorizeHandler`
+  unconditionally re-challenged for these prompts, so after the user completed the interactive step the resumed
+  continuation challenged again indefinitely. They are now guarded by `!IsContinuation` — the same pattern
+  `prompt=consent` already uses ([ADR-0081](docs/adr/0081-granular-consent-and-authorized-applications.md)) — so the
+  re-authentication happens exactly once (the conformance suite confirms the second id_token's `auth_time` advances).
+
+- **Authorization error/success responses no longer crash when the request omitted `state`.** `AuthorizationResult`
+  asserted `error.State`/`ticket.State is not null`, but `state` is echoed back only when the client sent it (OAuth 2.0
+  §4.1.2.1) — so a request without `state` (several conformance `prompt`/negative tests) terminated the process in a
+  Debug build. The assertions are removed; the result executor already omits a null `state` from the response. Surfaced
+  by the OpenID Foundation Conformance Suite's Basic OP profile.
+
+- **Discovery metadata no longer advertises the non-standard `discovery_endpoint` parameter.** The discovery endpoint
+  was marked discoverable and so listed itself in its own `/.well-known/openid-configuration`, but `discovery_endpoint`
+  is not defined by OpenID Connect Discovery 1.0 or RFC 8414. It is now marked non-discoverable. Surfaced by the OpenID
+  Foundation Conformance Suite's `CheckForUnexpectedParametersInServerMetadata` (Config OP profile).
+
+- **Discovery metadata no longer advertises the non-standard `backchannel_authentication_request_encryption_alg_values_supported`
+  / `…_enc_values_supported` parameters.** CIBA Core defines only the **signing** alg metadata for the backchannel
+  authentication request; there is no standardized encryption-metadata discovery parameter (unlike JAR's
+  `request_object_encryption_*`). These two were mis-classified as standard-discoverable and are now non-discoverable,
+  matching the already-non-discoverable `…_zip_values_supported` sibling — the encrypted-CIBA-request capability is
+  still honored, just not advertised via a non-standard parameter. Also surfaced by the Config OP profile.
+
+- **`client_credentials` (and `password`) token requests with an omitted `scope` no longer crash the token endpoint.**
+  The `scope` parameter is OPTIONAL (RFC 6749 §3.3 / §4.4), but `DefaultClientCredentialsGrantHandler` and
+  `DefaultPasswordGrantHandler` both asserted `scopes is not null` — an invariant that did not hold when the client sent
+  no `scope`, terminating the process in a Debug build. Both handlers now default an omitted scope to an empty set at
+  the point of use (issuing a no-scope token rather than failing). The fix is deliberately local to these two grants —
+  which have no prior grant to inherit scopes from — so the meaningful null-vs-empty distinction is preserved for the
+  refresh-token and token-exchange grants, where an omitted `scope` reuses the original grant's scopes. Surfaced by the
+  in-house conformance probe runner's `client_credentials` probe.
 
 - **Resource-owner-password tickets now carry the authentication's `AuthenticationProperties` from the start of the
   token-request flow instead of a fresh empty instance (completes backlog `F24`).** `DefaultAuthenticatePasswordGrantHandler`

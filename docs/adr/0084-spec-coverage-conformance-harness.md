@@ -69,8 +69,11 @@ classification to active probing without re-architecture.** Concretely:
   exercises `client_credentials`, introspection/revocation with client auth, device-code polling, CIBA, `private_key_jwt`,
   DPoP/mTLS, and back-channel logout, exiting non-zero on any `failed` probe so it is a usable CI pre-flight. The
   runner's asymmetric legs (`private_key_jwt`, DPoP) accept an injected signer; wiring a real Node-crypto signer from a
-  PEM/JWK is the `T7` follow-up. Phase 4 (wiring the external certified suite as the oracle behind this pre-flight)
-  remains, delegated to `T1`.
+  PEM/JWK is the `T7` follow-up. Phase 4 (wiring the external certified suite as the oracle behind this pre-flight) is
+  now committed as the runnable harness under [`build/conformance/`](../../build/conformance) — `run-conformance.ps1`
+  launches the OP, runs the probe-runner pre-flight, brings up the prebuilt-image suite, and drives the Config/Basic OP
+  plans gated on committed baselines (see [`docs/conformance/external-suite.md`](../conformance/external-suite.md)); only
+  its nightly/opt-in CI pipeline remains, deferred to `T1` until the repo's CI bootstrap lands.
 
 ## Options considered
 

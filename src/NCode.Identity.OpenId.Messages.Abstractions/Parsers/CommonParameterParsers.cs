@@ -69,4 +69,10 @@ public static class CommonParameterParsers
     /// Gets a <see cref="IParameterParser{T}"/> that can be used to parse <see cref="DateTimeOffset"/> values.
     /// </summary>
     public static readonly DateTimeOffsetParser DateTimeOffset = new();
+
+    /// <summary>
+    /// Gets a <see cref="IParameterParser{T}"/> that parses a nullable <see cref="TimeSpan"/> carried as an integer
+    /// number of seconds (a JSON number — for example <c>expires_in</c> per OAuth 2.0 §5.1, or <c>interval</c>).
+    /// </summary>
+    public static readonly DurationSecondsParser DurationSeconds = new();
 }

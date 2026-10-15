@@ -8,7 +8,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import type { CoverageChannel, CoverageReport, CoverageStatus } from '../coverage.js';
+import type { CoverageChannel, CoverageReport, CoverageStatus } from '@ncode/conformance-core';
 import { CoverageStatusChip } from './CoverageStatusChip.js';
 
 export type CoverageMatrixProps = {

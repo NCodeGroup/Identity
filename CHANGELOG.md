@@ -10,6 +10,22 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Headless conformance probe runner — advances backlog `T6` (Phase 3)
+  ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)).** The spec-coverage harness gains the Node/backend
+  **probe runner** for the confidential and server-initiated legs a browser cannot drive: a new
+  `@ncode/app-conformance-runner` CLI exercises `client_credentials`, token **introspection** and **revocation** with
+  client authentication, **device-code** issuance + polling, **CIBA**, `private_key_jwt`, **DPoP**/**mTLS**, and
+  **back-channel logout**. Each probe reports `verified` / `failed` / `skipped` (with an actionable reason — an
+  unadvertised capability or a missing credential), so unimplemented backend features (`F3` CIBA, `F7` DPoP/mTLS, `F16`
+  / `S3` `private_key_jwt`) surface as explicit gaps and light up as they land; the runner exits non-zero on any
+  failure, making it a usable CI pre-flight for the external certified suite (Phase 4 / `T1`). The framework-free,
+  injectable-fetch conformance logic (discovery fetch, the security audit, the spec-coverage catalog, and the
+  browser-drivable probes) moved into a shared, unit-tested `@ncode/conformance-core` package consumed by both the
+  dashboard (`apps/conformance`) and the runner — no behavior change to the dashboard. The asymmetric legs
+  (`private_key_jwt`, DPoP) take an injected signer (unit-tested with a fake); wiring a real Node-crypto signer from a
+  PEM/JWK is the `T7` follow-up. Development/conformance tooling only, outside the .NET inner loop
+  ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
 - **OAuth 2.0 Token Exchange (RFC 8693) — completes backlog `F23`
   ([ADR-0101](docs/adr/0101-oauth-token-exchange-rfc8693.md)).** The token endpoint gains a
   `DefaultTokenExchangeGrantHandler` for `urn:ietf:params:oauth:grant-type:token-exchange`, registered on the existing

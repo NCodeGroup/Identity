@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AppThemeProvider } from '@ncode/ui';
 import type { RuntimeConfig } from '@ncode/config';
 import { ConformanceDashboard } from './ConformanceDashboard.js';
-import type { RawDiscovery } from '../audit.js';
+import type { RawDiscovery } from '@ncode/conformance-core';
 
 const runtime: RuntimeConfig = {
   apiBaseUrl: 'https://op.test',

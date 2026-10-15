@@ -7,14 +7,14 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import type { RawDiscovery } from '../audit.js';
 import {
   runProbes as defaultRunProbes,
   type ProbeFetch,
   type ProbeOutcome,
   type ProbeReport,
   type ProbeRunOptions,
-} from '../probes.js';
+  type RawDiscovery,
+} from '@ncode/conformance-core';
 
 export type ProbePanelProps = {
   readonly raw: RawDiscovery;

@@ -1,5 +1,5 @@
 import Chip from '@mui/material/Chip';
-import type { Severity } from '../audit.js';
+import type { Severity } from '@ncode/conformance-core';
 
 export type SeverityChipProps = {
   readonly severity: Severity;

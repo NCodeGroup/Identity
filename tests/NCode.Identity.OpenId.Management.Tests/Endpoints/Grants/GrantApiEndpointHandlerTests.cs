@@ -159,8 +159,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.GetPageAsync(
                     It.IsAny<GrantFilter>(),
-                    null,
-                    It.IsAny<int>(),
+                    It.IsAny<PageRequest>(),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -202,8 +201,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
                         && f.ClientId == "client-1"
                         && f.SessionId == "sid-1"
                     ),
-                    null,
-                    It.IsAny<int>(),
+                    It.IsAny<PageRequest>(),
                     It.IsAny<CancellationToken>()
                 )
             )

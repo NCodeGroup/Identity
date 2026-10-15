@@ -481,7 +481,7 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         userManager.SetupGet(x => x.SupportsQueryableUsers).Returns(false).Verifiable();
 
         await Assert.ThrowsAsync<NotSupportedException>(async () =>
-            await store.GetPageAsync(cursor: null, limit: 10, CancellationToken.None)
+            await store.GetPageAsync(new PageRequest { Limit = 10 }, CancellationToken.None)
         );
     }
 
@@ -502,7 +502,7 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         userManager.SetupGet(x => x.SupportsUserLockout).Returns(true);
         userManager.Setup(x => x.IsLockedOutAsync(It.IsAny<IdentityUser>())).ReturnsAsync(false);
 
-        var page = await store.GetPageAsync(cursor: null, limit: 10, CancellationToken.None);
+        var page = await store.GetPageAsync(new PageRequest { Limit = 10 }, CancellationToken.None);
 
         Assert.Equal(2, page.Items.Count);
         Assert.Null(page.NextCursor);

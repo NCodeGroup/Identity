@@ -211,7 +211,10 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
 
         _ambientTenantAccessor.TenantId = TenantA;
 
-        var page = await _store.GetPageAsync(cursor: null, limit: 10, CancellationToken.None);
+        var page = await _store.GetPageAsync(
+            new PageRequest { Limit = 10 },
+            CancellationToken.None
+        );
 
         Assert.All(page.Items, client => Assert.Equal(TenantA, client.TenantId));
         Assert.Contains(page.Items, client => client.ClientId == ClientA);

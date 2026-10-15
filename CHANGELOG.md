@@ -37,6 +37,14 @@ change to the public API is a **major** version bump.
   selection criterion is a source-compatible change rather than a breaking signature change. The grants management
   query gains a `grantType` filter.
 
+- **Forward-compatible store pagination — `PageRequest` (completes backlog `D6`,
+  [ADR-0099](docs/adr/0099-forward-compatible-evolving-parameters.md)).** The positional `(cursor, limit)` pagination
+  pair is replaced by a shared `PageRequest { Cursor, Limit }` init-only record struct (in `NCode.Persistence.Stores`,
+  beside `PagedResult<T>`) across every store `GetPageAsync` — `IGrantStore`, `IClientStore`, `IClientGrantStore`,
+  `IResourceServerStore`, `IServerStore`, `ITenantStore`, `ILocalAccountStore`, and the generic `BaseStore` — so
+  pagination can grow (e.g. a future sort direction) without a breaking signature change, the same forward-compatible
+  shape the filter DTOs already use.
+
 - **Sender-constrained access tokens — DPoP (RFC 9449) + mutual-TLS (RFC 8705), issuance side (advances backlog
   `F7`).** Access tokens can now be bound to a proof-of-possession key instead of being plain bearer tokens. A single
   `IProofOfPossessionService` evaluates, once per token request, an optional **DPoP proof** (the `DPoP` header — a JWS

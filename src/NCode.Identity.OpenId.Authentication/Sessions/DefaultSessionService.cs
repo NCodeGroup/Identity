@@ -307,8 +307,7 @@ internal class DefaultSessionService(
                     SubjectId = subjectId,
                     GrantType = OpenIdConstants.PersistedGrantTypes.Session,
                 },
-                cursor,
-                EnumerationPageSize,
+                new PageRequest { Cursor = cursor, Limit = EnumerationPageSize },
                 cancellationToken
             );
 

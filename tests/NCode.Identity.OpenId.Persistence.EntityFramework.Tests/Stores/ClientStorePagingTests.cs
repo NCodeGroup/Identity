@@ -123,7 +123,10 @@ public sealed class ClientStorePagingTests : IDisposable
 
         do
         {
-            var page = await _store.GetPageAsync(cursor, 2, CancellationToken.None);
+            var page = await _store.GetPageAsync(
+                new PageRequest { Cursor = cursor, Limit = 2 },
+                CancellationToken.None
+            );
             Assert.True(page.Items.Count <= 2);
             seen.AddRange(page.Items.Select(client => client.ClientId));
             cursor = page.NextCursor;
@@ -140,7 +143,10 @@ public sealed class ClientStorePagingTests : IDisposable
     {
         await SeedAsync(3);
 
-        var page = await _store.GetPageAsync(cursor: null, limit: 10, CancellationToken.None);
+        var page = await _store.GetPageAsync(
+            new PageRequest { Limit = 10 },
+            CancellationToken.None
+        );
 
         Assert.Equal(3, page.Items.Count);
         Assert.Null(page.NextCursor);
@@ -151,7 +157,10 @@ public sealed class ClientStorePagingTests : IDisposable
     {
         await SeedAsync(3);
 
-        var page = await _store.GetPageAsync("not-a-valid-cursor", 10, CancellationToken.None);
+        var page = await _store.GetPageAsync(
+            new PageRequest { Cursor = "not-a-valid-cursor", Limit = 10 },
+            CancellationToken.None
+        );
 
         Assert.Equal(3, page.Items.Count);
     }
@@ -159,7 +168,10 @@ public sealed class ClientStorePagingTests : IDisposable
     [Fact]
     public async Task GetPageAsync_WhenEmpty_ReturnsEmptyPageAndNullCursor()
     {
-        var page = await _store.GetPageAsync(cursor: null, limit: 10, CancellationToken.None);
+        var page = await _store.GetPageAsync(
+            new PageRequest { Limit = 10 },
+            CancellationToken.None
+        );
 
         Assert.Empty(page.Items);
         Assert.Null(page.NextCursor);

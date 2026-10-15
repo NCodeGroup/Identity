@@ -177,8 +177,7 @@ public sealed class GrantStoreTests : IDisposable
 
         var firstPage = await _store.GetPageAsync(
             new GrantFilter(),
-            cursor: null,
-            limit: 2,
+            new PageRequest { Limit = 2 },
             CancellationToken.None
         );
 
@@ -187,8 +186,7 @@ public sealed class GrantStoreTests : IDisposable
 
         var secondPage = await _store.GetPageAsync(
             new GrantFilter(),
-            firstPage.NextCursor,
-            limit: 2,
+            new PageRequest { Cursor = firstPage.NextCursor, Limit = 2 },
             CancellationToken.None
         );
 
@@ -215,8 +213,7 @@ public sealed class GrantStoreTests : IDisposable
 
         var page = await _store.GetPageAsync(
             new GrantFilter { SubjectId = "alice" },
-            cursor: null,
-            limit: 50,
+            new PageRequest { Limit = 50 },
             CancellationToken.None
         );
 
@@ -240,8 +237,7 @@ public sealed class GrantStoreTests : IDisposable
 
         var page = await _store.GetPageAsync(
             new GrantFilter { SessionId = "sid-1" },
-            cursor: null,
-            limit: 50,
+            new PageRequest { Limit = 50 },
             CancellationToken.None
         );
 

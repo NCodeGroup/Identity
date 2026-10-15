@@ -60,6 +60,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private Mock<IClientStore> MockClientStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
+    private Mock<ISecretImporter> MockSecretImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<IClientValidator> MockClientValidator { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
@@ -79,6 +80,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         MockClientStore = MockRepository.Create<IClientStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
+        MockSecretImporter = MockRepository.Create<ISecretImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
         MockClientValidator = MockRepository.Create<IClientValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
@@ -137,6 +139,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             MockClientValidator.Object,
             MockSecretValidator.Object,
             MockSecretGenerator.Object,
+            MockSecretImporter.Object,
             MockSecretPublicKeyConverter.Object,
             TimeProvider.System,
             MockCryptoService.Object,
@@ -291,6 +294,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
             KeySizeBits = 256,
             EncodedValue = "encoded",
         };

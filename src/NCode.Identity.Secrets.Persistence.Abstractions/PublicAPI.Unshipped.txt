@@ -6,7 +6,6 @@ const NCode.Identity.Secrets.Persistence.SecretMaxLengths.SecretType = 100 -> in
 const NCode.Identity.Secrets.Persistence.SecretMaxLengths.Use = 100 -> int
 const NCode.Identity.Secrets.Persistence.SecretResourceTypes.Secret = "secret" -> string!
 const NCode.Identity.Secrets.Persistence.SecretResourceTypes.Secrets = "secrets" -> string!
-const NCode.Identity.Secrets.Persistence.SecretTypes.Certificate = "x509" -> string!
 const NCode.Identity.Secrets.Persistence.SecretTypes.Ecc = "ecc" -> string!
 const NCode.Identity.Secrets.Persistence.SecretTypes.Rsa = "rsa" -> string!
 const NCode.Identity.Secrets.Persistence.SecretTypes.Symmetric = "symmetric" -> string!
@@ -70,3 +69,26 @@ NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary
 NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary.SecretPersistenceLibrary() -> void
 NCode.Identity.Secrets.Persistence.SecretResourceTypes
 NCode.Identity.Secrets.Persistence.SecretTypes
+const NCode.Identity.Secrets.Persistence.SecretMaxLengths.SecretEncoding = 100 -> int
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretEncoding.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretEncoding.init -> void
+NCode.Identity.Secrets.Persistence.Logic.ISecretImporter
+NCode.Identity.Secrets.Persistence.Logic.ISecretImporter.ImportSecret(NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest! request) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Algorithm.get -> string?
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Algorithm.init -> void
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.CreatedWhen.init -> void
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.ExpiresWhen.init -> void
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Format.get -> NCode.Identity.Secrets.Logic.SecretKeyImportFormat
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Format.init -> void
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.KeyMaterial.get -> string!
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.KeyMaterial.init -> void
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.SecretId.get -> string!
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.SecretId.init -> void
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.SecretKeyImportRequest() -> void
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.SecretType.get -> string!
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.SecretType.init -> void
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Use.get -> string?
+NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Use.init -> void

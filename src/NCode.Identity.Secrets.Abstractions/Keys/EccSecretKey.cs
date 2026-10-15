@@ -26,7 +26,11 @@ namespace NCode.Identity.Secrets.Keys;
 /// Represents an <see cref="AsymmetricSecretKey"/> implementation using <c>Elliptic-Curve</c> cryptographic keys.
 /// </summary>
 [PublicAPI]
-public abstract class EccSecretKey : AsymmetricSecretKey
+public abstract class EccSecretKey(
+    KeyMetadata metadata,
+    int curveSizeBits,
+    ReadOnlyMemory<byte>? certificateRawData
+) : AsymmetricSecretKey(metadata, curveSizeBits, certificateRawData)
 {
     /// <summary>
     /// OID for <c>Elliptic-Curve</c> public key cryptography.
@@ -40,7 +44,21 @@ public abstract class EccSecretKey : AsymmetricSecretKey
     /// Gets the <see cref="ECCurve"/> for the current <c>Elliptic-Curve</c> key material.
     /// </summary>
     /// <returns>The <see cref="ECCurve"/> for the current <c>Elliptic-Curve</c> key material.</returns>
-    public abstract ECCurve GetECCurve();
+    public virtual ECCurve GetECCurve() =>
+        KeySizeBits switch
+        {
+            256 => ECCurve.NamedCurves.nistP256,
+            384 => ECCurve.NamedCurves.nistP384,
+            521 => ECCurve.NamedCurves.nistP521,
+            _ => GetECCurveSlow(),
+        };
+
+    private ECCurve GetECCurveSlow()
+    {
+        using var key = ExportECDsa();
+        var parameters = key.ExportParameters(includePrivateParameters: false);
+        return parameters.Curve;
+    }
 
     /// <summary>
     /// Factory method to create an <see cref="ECDsa"/> instance from the current <c>Elliptic-Curve</c> key material.
@@ -53,4 +71,7 @@ public abstract class EccSecretKey : AsymmetricSecretKey
     /// </summary>
     /// <returns>The newly created <see cref="ECDiffieHellman"/> instance</returns>
     public abstract ECDiffieHellman ExportECDiffieHellman();
+
+    /// <inheritdoc />
+    public override AsymmetricAlgorithm ExportAsymmetricAlgorithm() => ExportECDsa();
 }

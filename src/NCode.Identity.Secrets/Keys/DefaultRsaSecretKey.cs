@@ -17,16 +17,15 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Identity.Secrets.Logic;
 
 namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="RsaSecretKey"/> abstraction.
+/// Provides a default implementation of the <see cref="RsaSecretKey"/> abstraction that holds the protected
+/// <c>PKCS#8</c> private key.
 /// </summary>
 internal class DefaultRsaSecretKey(
     IDataProtector dataProtector,
@@ -34,32 +33,12 @@ internal class DefaultRsaSecretKey(
     int modulusSizeBits,
     ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
     ReadOnlyMemory<byte>? certificateRawData
-) : RsaSecretKey
+) : RsaSecretKey(metadata, modulusSizeBits, certificateRawData)
 {
     private IDataProtector DataProtector { get; } = dataProtector;
     private ReadOnlyMemory<byte> ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;
-    private ReadOnlyMemory<byte>? CertificateRawData { get; } = certificateRawData;
-
-    /// <inheritdoc />
-    public override KeyMetadata Metadata { get; } = metadata;
-
-    /// <inheritdoc />
-    public override int KeySizeBits { get; } = modulusSizeBits;
-
-    /// <inheritdoc />
-    [MemberNotNullWhen(true, nameof(CertificateRawData))]
-    public override bool HasCertificate => CertificateRawData.HasValue;
-
-    /// <inheritdoc />
-    public override X509Certificate2? ExportCertificate() =>
-        HasCertificate
-            ? X509CertificateLoader.LoadCertificate(CertificateRawData.Value.Span)
-            : null;
 
     /// <inheritdoc />
     public override RSA ExportRSA() =>
         DataProtector.ExportAsymmetricAlgorithm(ProtectedPkcs8PrivateKey.Span, RSA.Create);
-
-    /// <inheritdoc />
-    public override AsymmetricAlgorithm ExportAsymmetricAlgorithm() => ExportRSA();
 }

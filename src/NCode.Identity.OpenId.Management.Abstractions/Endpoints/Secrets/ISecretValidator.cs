@@ -40,4 +40,13 @@ public interface ISecretValidator
     /// <param name="request">The <see cref="CreateSecretRequest"/> to validate.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed check, or <c>null</c> when valid.</returns>
     ManagementError? ValidateCreate(CreateSecretRequest request);
+
+    /// <summary>
+    /// Validates that the specified <see cref="ImportSecretRequest"/> describes a coherent public-key import. The
+    /// supplied key material itself is parsed and validated by the importer; this check asserts only the
+    /// parameter-level coherence (recognized <c>format</c>, non-empty material, and supported <c>use</c>).
+    /// </summary>
+    /// <param name="request">The <see cref="ImportSecretRequest"/> to validate.</param>
+    /// <returns>A <see cref="ManagementError"/> describing the first failed check, or <c>null</c> when valid.</returns>
+    ManagementError? ValidateImport(ImportSecretRequest request);
 }

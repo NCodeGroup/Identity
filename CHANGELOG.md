@@ -10,6 +10,32 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Public-key import / BYOK across the management API and Dynamic Client Registration — closes backlog `S3`, advances
+  `F16` ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md)).** A relying party's **public**
+  asymmetric key can now be imported — as a **JWK**, **PEM**, or **X.509 certificate** — and persisted as a first-class
+  secret that round-trips and is consumed for client authentication / JAR verification. A new persisted `SecretEncoding`
+  axis (`symmetric_raw` / `pkcs8` / `spki` / `x509`) records the stored form orthogonally to the crypto family, so a
+  bare public key (the native JWKS shape) persists and deserializes unambiguously; a certificate is simply a family plus
+  the `x509` encoding (the former `SecretTypes.Certificate` discriminator is removed). New surface: `ISecretImporter` +
+  `SecretKeyImportRequest` + `SecretKeyImportFormat` (persistence), a `POST .../secrets/import` endpoint on every secret
+  owner (server, tenant, client, resource server) returning the material-free `SecretResource`, the
+  `ImportSecretRequest` management contract, the `SupportsPublicKeyImport` capability flag, and `ISecretKeyFactory`
+  `CreateRsaSpki` / `CreateEccSpki`. Import is **public-only by construction** — a private or symmetric key is rejected —
+  so the reveal-once model ([ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md)) remains the sole path
+  a symmetric value leaves the server. DCR consumes an inline `jwks` set at registration; runtime `jwks_uri` resolution
+  stays deferred (`F16` Phase 0). An EF migration adds the `SecretEncoding` column and backfills existing rows.
+
+- **The secret-key-type descriptor is now the first-class seam for every key operation
+  ([ADR-0105](docs/adr/0105-secret-key-type-descriptor-first-class-seam.md)).** `ISecretKeyTypeDescriptor` owns the full
+  lifecycle of a key type — validate, generate, **import**, **export** (`ExportPublicKey` → JWK + PEM), and
+  **deserialize** — so registering one descriptor adds a key type end-to-end; the persistence generator / importer /
+  serializer become thin wrappers over the catalog. The parallel `IJsonWebKeyConverter` strategy registry and the typed
+  `JsonWebKey` / `RsaJsonWebKey` / `EccJsonWebKey` result classes are **removed** (the JWKS `keys` array is now JSON
+  objects produced by the descriptor; the management public-key read path uses the same seam). The extension bases
+  `SecretKeyTypeDescriptor` and `AsymmetricSecretKeyTypeDescriptor` are now **public** so an application can add a custom
+  key type by deriving from them. Duplicated `SecretKey` state (metadata / key size / certificate handling) is lifted
+  onto `AsymmetricSecretKey`, leaving the `Default*` / `Public*` concretes holding only their key material.
+
 - **JWT-bearer client authentication (`private_key_jwt` / `client_secret_jwt`) — advances backlog `F16`
   ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)).** The token endpoint now authenticates confidential
   clients that present a signed `client_assertion`
@@ -838,7 +864,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 - **Asymmetric secret public-key read endpoints.** A new read-only sub-resource,
   `GET /api/.../{servers|tenants|clients}/{ownerId}/secrets/{secretId}/public-key`, returns an asymmetric secret's
   **public** key material as a `PublicKeyResource` carrying both a JWK (RFC 7517, the same representation the JWKS
-  endpoint publishes, reusing the registered `IJsonWebKeyConverter` pipeline) and a SubjectPublicKeyInfo PEM
+  endpoint publishes, via the key's `ISecretKeyTypeDescriptor.ExportPublicKey` seam) and a SubjectPublicKeyInfo PEM
   (`-----BEGIN PUBLIC KEY-----`) for copy-paste into an admin UI or crypto tooling. Private key material is never
   exposed; a symmetric secret has no public-key sub-resource and responds `404 Not Found`. The read is gated by the
   same `Operations.Read` authorization as reading the secret. See

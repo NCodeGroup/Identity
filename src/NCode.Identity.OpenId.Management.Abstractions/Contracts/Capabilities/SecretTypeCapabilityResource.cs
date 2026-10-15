@@ -45,4 +45,9 @@ public sealed class SecretTypeCapabilityResource
     /// Gets a value indicating whether secrets of this type expose exportable public-key material (JWK and PEM).
     /// </summary>
     public required bool SupportsPublicKeyExport { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether secrets of this type support importing caller-supplied public-key material.
+    /// </summary>
+    public required bool SupportsPublicKeyImport { get; init; }
 }

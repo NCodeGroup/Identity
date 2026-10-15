@@ -98,6 +98,38 @@ internal sealed class DefaultSecretValidator(
         return null;
     }
 
+    /// <inheritdoc />
+    public ManagementError? ValidateImport(ImportSecretRequest request)
+    {
+        if (
+            !string.Equals(request.Format, "jwk", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(request.Format, "pem", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(request.Format, "certificate", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            return Error(
+                $"The import format '{request.Format}' is not supported; expected "
+                    + "'jwk', 'pem', or 'certificate'."
+            );
+        }
+
+        if (string.IsNullOrWhiteSpace(request.KeyMaterial))
+        {
+            return Error("The key material must not be empty.");
+        }
+
+        var use = request.Use;
+        if (use is not null && use is not (SecretKeyUses.Signature or SecretKeyUses.Encryption))
+        {
+            return Error(
+                $"The use '{use}' is not supported; expected "
+                    + $"'{SecretKeyUses.Signature}' or '{SecretKeyUses.Encryption}'."
+            );
+        }
+
+        return null;
+    }
+
     private ManagementError? ValidateAgainstAlgorithm(
         CreateSecretRequest request,
         string secretType,

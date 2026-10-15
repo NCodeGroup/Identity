@@ -25,7 +25,7 @@ shapes**, distinguished by their DI registration and their calling convention:
 | Shape                                | Registration                                           | How it is called                                                    | Representative usages                                                                                                                                                                                                                         |
 | ------------------------------------ | ------------------------------------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **1. Service (capability)**          | `TryAddSingleton<IFoo, DefaultFoo>`                    | Caller invokes it and consumes the return value                     | `ITokenService`/`DefaultTokenService`, `IClaimsService`, `ICryptoService`, `IClientAuthenticationService`, `IJsonWebTokenService`, `ISecretKeyCollectionProvider`                                                                             |
-| **2. Strategy collection (plugins)** | `TryAddEnumerable<IFoo, …>`                            | Caller iterates or selects among the implementations itself         | `ITokenGrantHandler` (selected by `DefaultSelectTokenGrantHandlerHandler`), `IEndpointProvider`, `IJsonWebKeyConverter`, `ISecretKeyTypeDescriptor`, `EccCurveSpecification`                                                                  |
+| **2. Strategy collection (plugins)** | `TryAddEnumerable<IFoo, …>`                            | Caller iterates or selects among the implementations itself         | `ITokenGrantHandler` (selected by `DefaultSelectTokenGrantHandlerHandler`), `IEndpointProvider`, `ISecretKeyTypeDescriptor`, `EccCurveSpecification`                                                                  |
 | **3. Mediator (pipeline seam)**      | `ICommandHandler<T>` / `ICommandResponseHandler<T, R>` | Caller `SendAsync`es a message and does **not** know who handles it | `Get…ClaimsCommand` (void + mutate, fan-out, priority), `Validate…Command` (fan-out), `SelectTokenGrantHandlerCommand → ITokenGrantHandler` (single, returns a value), `DiscoverMetadataCommand`, `LoadRequestValuesCommand → IRequestValues` |
 
 Two observations from the code make the boundary precise:
@@ -102,7 +102,7 @@ the mediator only at the claims-contribution seam.
 
 - Contributors have one question to answer ("is it a pipeline seam?") and a ladder that defaults to
   the simplest tool.
-- New extension points that only need caller-owned fan-out (like `IJsonWebKeyConverter`) are added as
+- New extension points that only need caller-owned fan-out (like `ISecretKeyTypeDescriptor`) are added as
   strategy collections, avoiding mediator ceremony; they can later be promoted to mediator events if
   observation or ordered pre/post processing becomes a requirement.
 - The mediator remains reserved for true request-pipeline seams, keeping the set of commands small

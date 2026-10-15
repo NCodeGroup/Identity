@@ -35,6 +35,7 @@ public sealed class CapabilitiesProvidersTests
         mockDescriptor.Setup(x => x.KeyType).Returns("rsa");
         mockDescriptor.Setup(x => x.IsAsymmetric).Returns(true);
         mockDescriptor.Setup(x => x.SupportsPublicKeyExport).Returns(true);
+        mockDescriptor.Setup(x => x.SupportsPublicKeyImport).Returns(true);
 
         var mockCatalog = new Mock<ISecretKeyTypeCatalog>(MockBehavior.Strict);
         mockCatalog.Setup(x => x.Descriptors).Returns([mockDescriptor.Object]);
@@ -54,6 +55,7 @@ public sealed class CapabilitiesProvidersTests
         Assert.Equal("rsa", item.SecretType);
         Assert.True(item.IsAsymmetric);
         Assert.True(item.SupportsPublicKeyExport);
+        Assert.True(item.SupportsPublicKeyImport);
     }
 
     [Fact]
@@ -93,6 +95,7 @@ public sealed class CapabilitiesProvidersTests
         // Resolve the real algorithm collection and key-type catalog so the section is asserted against the exact
         // set of algorithms and key types the server supports — the same source of truth the provider reads.
         var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         await using var serviceProvider = serviceCollection.BuildServiceProvider();
 

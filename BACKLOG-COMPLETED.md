@@ -581,6 +581,22 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   `IManagementAuditRecorder`.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased] (`ServerSecretChangedAuditEvent`,
   `RecordServerSecretChangedAsync`)._
+- **`S3` — Key import / BYOK.** Secret creation was server-generation-only; there was no way to onboard a
+  `private_key_jwt` client (client generates its keypair and registers the **public** half) or to import an
+  `x509` certificate. Resolved by importing a **public** asymmetric key as JWK / PEM / certificate across the
+  management API (`POST .../secrets/import` on every secret owner) and Dynamic Client Registration (inline `jwks`),
+  persisted as a first-class secret via the new `SecretEncoding` axis (`symmetric_raw` / `pkcs8` / `spki` / `x509`)
+  and consumed for client authentication / JAR verification. Import is **public-only by construction** (private /
+  symmetric material is rejected), so the reveal-once model remains the sole path a symmetric value leaves the
+  server. The key-type **descriptor** (`ISecretKeyTypeDescriptor`) became the first-class seam for the full key
+  lifecycle (validate / generate / import / export / deserialize), collapsing the parallel `IJsonWebKeyConverter`
+  registry. The FAPI-preferred runtime `jwks_uri` resolver remains tracked under `F16` Phase 0.
+  Touch points: `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretImporter.cs`,
+  `src/NCode.Identity.OpenId.Management/Endpoints/`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/DynamicClientRegistration/`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md),
+  [ADR-0105](docs/adr/0105-secret-key-type-descriptor-first-class-seam.md)._
 - **`S4` — Asymmetric public-material exposure.** No read path returns public key material (JWK/PEM) for a
   client's registered public key or for server/tenant signing keys. ADR-0011/ADR-0050 reserve this as a
   deliberate additive option (public material only; private keys stay unreachable).

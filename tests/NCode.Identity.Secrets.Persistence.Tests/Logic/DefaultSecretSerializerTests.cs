@@ -43,8 +43,14 @@ public class DefaultSecretSerializerTests
             new TestDataProtectorFactory<SecretKey>(factoryProtector)
         );
 
+        var catalog = new DefaultSecretKeyTypeCatalog([
+            new SymmetricSecretKeyTypeDescriptor(secretKeyFactory),
+            new RsaSecretKeyTypeDescriptor(secretKeyFactory),
+            new EccSecretKeyTypeDescriptor(secretKeyFactory, new DefaultEccCurveCatalog([])),
+        ]);
+
         _serializer = new DefaultSecretSerializer(
-            secretKeyFactory,
+            catalog,
             new TestDataProtectorFactory<PersistedSecret>(_serializerProtector)
         );
     }
@@ -71,6 +77,11 @@ public class DefaultSecretSerializerTests
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = expiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
+            SecretEncoding = secretType switch
+            {
+                SecretTypes.Symmetric => SecretEncodings.SymmetricRaw,
+                _ => SecretEncodings.Pkcs8,
+            },
             KeySizeBits = keySizeBits,
             EncodedValue = EncodeProtected(rawBytes),
         };

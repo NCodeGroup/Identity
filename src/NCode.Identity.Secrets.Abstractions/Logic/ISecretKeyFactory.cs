@@ -75,6 +75,21 @@ public interface ISecretKeyFactory
     );
 
     /// <summary>
+    /// Factory method to create a verify-only <see cref="RsaSecretKey"/> from the <b>public</b> half of an
+    /// <c>RSA</c> key encoded as <c>SubjectPublicKeyInfo</c> (SPKI) DER. The resulting key can verify signatures but
+    /// not produce them, and holds no private material.
+    /// </summary>
+    /// <param name="metadata">The <see cref="KeyMetadata"/> for the secret key.</param>
+    /// <param name="bytes">The <c>RSA</c> public key material encoded as <c>SubjectPublicKeyInfo</c> (SPKI) DER.</param>
+    /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
+    /// <returns>The newly created secret key.</returns>
+    RsaSecretKey CreateRsaSpki(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> bytes,
+        X509Certificate2? certificate = null
+    );
+
+    /// <summary>
     /// Factory method to create a verify-only <see cref="EccSecretKey"/> from the <b>public</b> half of an
     /// elliptic-curve key. The resulting key can verify <c>ECDSA</c> signatures but not produce them or derive
     /// shared secrets, and holds no private material.
@@ -86,6 +101,21 @@ public interface ISecretKeyFactory
     EccSecretKey CreateEccPublicKey(
         KeyMetadata metadata,
         ECAlgorithm publicKey,
+        X509Certificate2? certificate = null
+    );
+
+    /// <summary>
+    /// Factory method to create a verify-only <see cref="EccSecretKey"/> from the <b>public</b> half of an
+    /// elliptic-curve key encoded as <c>SubjectPublicKeyInfo</c> (SPKI) DER. The resulting key can verify
+    /// <c>ECDSA</c> signatures but not produce them or derive shared secrets, and holds no private material.
+    /// </summary>
+    /// <param name="metadata">The <see cref="KeyMetadata"/> for the secret key.</param>
+    /// <param name="bytes">The elliptic-curve public key material encoded as <c>SubjectPublicKeyInfo</c> (SPKI) DER.</param>
+    /// <param name="certificate">The optional <see cref="X509Certificate2"/> for the secret key.</param>
+    /// <returns>The newly created secret key.</returns>
+    EccSecretKey CreateEccSpki(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> bytes,
         X509Certificate2? certificate = null
     );
 

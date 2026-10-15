@@ -68,6 +68,7 @@ public static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
             serviceCollection.TryAddSingleton<ISecretSerializer, DefaultSecretSerializer>();
             serviceCollection.TryAddSingleton<ISecretGenerator, DefaultSecretGenerator>();
+            serviceCollection.TryAddSingleton<ISecretImporter, DefaultSecretImporter>();
 
             return newBuilder;
         }

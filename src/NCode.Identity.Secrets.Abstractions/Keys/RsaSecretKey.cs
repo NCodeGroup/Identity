@@ -26,7 +26,11 @@ namespace NCode.Identity.Secrets.Keys;
 /// Represents an <see cref="AsymmetricSecretKey"/> implementation using <c>RSA</c> cryptographic keys.
 /// </summary>
 [PublicAPI]
-public abstract class RsaSecretKey : AsymmetricSecretKey
+public abstract class RsaSecretKey(
+    KeyMetadata metadata,
+    int modulusSizeBits,
+    ReadOnlyMemory<byte>? certificateRawData
+) : AsymmetricSecretKey(metadata, modulusSizeBits, certificateRawData)
 {
     /// <summary>
     /// OID for <c>RSA</c> public key cryptography.
@@ -41,4 +45,7 @@ public abstract class RsaSecretKey : AsymmetricSecretKey
     /// </summary>
     /// <returns>The newly created <see cref="RSA"/> instance</returns>
     public abstract RSA ExportRSA();
+
+    /// <inheritdoc />
+    public override AsymmetricAlgorithm ExportAsymmetricAlgorithm() => ExportRSA();
 }

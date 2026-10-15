@@ -37,6 +37,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         // Resolve the real algorithm collection and key-type catalog so the test asserts against the exact set
         // of algorithms and key types the server supports — the same source of truth the validator reads.
         var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 

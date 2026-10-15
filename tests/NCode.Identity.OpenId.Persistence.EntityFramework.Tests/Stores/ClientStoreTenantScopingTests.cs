@@ -86,6 +86,7 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
             KeySizeBits = 256,
             EncodedValue = "encoded-value",
         };

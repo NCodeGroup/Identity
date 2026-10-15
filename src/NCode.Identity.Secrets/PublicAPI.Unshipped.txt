@@ -6,8 +6,8 @@ NCode.Identity.Secrets.Logic.DataProtectorExtensions
 NCode.Identity.Secrets.Logic.DataProtectorExtensions.extension(Microsoft.AspNetCore.DataProtection.IDataProtector!)
 NCode.Identity.Secrets.Logic.DataProtectorExtensions.extension(Microsoft.AspNetCore.DataProtection.IDataProtector!).ExportAsymmetricAlgorithm<T>(System.ReadOnlySpan<byte> protectedPkcs8PrivateKey, System.Func<T!>! algorithmFactory) -> T!
 NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor
-NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.SecretKeyTypeDescriptor(NCode.Identity.Secrets.Logic.ISecretKeyFactory! secretKeyFactory) -> void
-NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.SecretKeyFactory.get -> NCode.Identity.Secrets.Logic.ISecretKeyFactory!
+NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.SecretKeyTypeDescriptor() -> void
+NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.SecretKeyFactory.get -> NCode.Identity.Secrets.Logic.ISecretKeyFactory!
 NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.IsAsymmetric.get -> bool
 abstract NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
 abstract NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.KeyType.get -> string!

@@ -36,8 +36,13 @@ namespace NCode.Identity.Secrets.Logic;
 // See ADR-0104.
 [PublicAPI]
 public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFactory)
-    : SecretKeyTypeDescriptor(secretKeyFactory)
+    : SecretKeyTypeDescriptor
 {
+    /// <summary>
+    /// Gets the factory used to build runtime <see cref="SecretKey"/> instances during deserialization.
+    /// </summary>
+    protected ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
+
     /// <summary>
     /// Gets the <c>JWK</c> <c>kty</c> value this key type accepts (for example <c>RSA</c> or <c>EC</c>).
     /// </summary>

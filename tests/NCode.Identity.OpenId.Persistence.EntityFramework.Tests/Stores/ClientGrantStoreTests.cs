@@ -194,8 +194,7 @@ public sealed class ClientGrantStoreTests : IDisposable
 
         var page = await _store.GetPageAsync(
             ClientId,
-            cursor: null,
-            limit: 50,
+            new PageRequest { Limit = 50 },
             CancellationToken.None
         );
 

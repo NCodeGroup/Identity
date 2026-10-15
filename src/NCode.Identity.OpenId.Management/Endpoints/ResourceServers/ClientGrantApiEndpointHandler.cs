@@ -121,8 +121,7 @@ internal class ClientGrantApiEndpointHandler(
                 var store = storeManager.GetStore<IClientGrantStore>();
                 return await store.GetPageAsync(
                     clientId,
-                    cursor,
-                    effectiveLimit,
+                    new PageRequest { Cursor = cursor, Limit = effectiveLimit },
                     cancellationToken
                 );
             },

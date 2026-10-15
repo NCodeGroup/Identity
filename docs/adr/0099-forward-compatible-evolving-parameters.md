@@ -31,9 +31,9 @@ Apply this specifically to **optional, growing filter/criteria sets**. Do **not*
 
 - **Required identity keys stay positional** (e.g. the `clientId` a client-grant query is scoped to) — they are the
   operation's subject, not a growing filter.
-- The **stable `(cursor, limit)` pagination pair stays positional** for now — it has not churned; a `PageRequest`
-  wrapper is a reasonable future consistency step but is low-value today and is tracked in
-  [`BACKLOG.md`](../../BACKLOG.md), not adopted here.
+- The **`(cursor, limit)` pagination pair is wrapped in a shared `PageRequest` DTO** (`NCode.Persistence.Stores`,
+  beside `PagedResult<T>`): every store `GetPageAsync` takes `PageRequest { Cursor, Limit }`, so pagination can grow
+  (e.g. a sort direction) without a breaking signature change — the same forward-compatible shape as the filter DTOs.
 - **Request/command inputs already use init-only records** (`CreateSessionRequest`, `CreateSecurityTokenRequest`,
   mediator `*Command` records) — they are already forward-compatible and need no change.
 
@@ -41,10 +41,14 @@ Apply this specifically to **optional, growing filter/criteria sets**. Do **not*
 
 - Store interfaces whose filters are expected to keep growing (grants today; more later) can gain criteria without a
   breaking signature change once GA lands.
-- There is a single, memorable rule for contributors: **optional + growing → init-only DTO; required key or stable pair
-  → positional.** This rule is also recorded in the production coding conventions.
-- `IGrantStore` was refactored to `GetPageAsync(GrantFilter, cursor, limit, ct)` and
-  `RevokeWhereAsync(GrantFilter, revokedWhen, ct)`; all callers and the management query surface were updated.
+- There is a single, memorable rule for contributors: **optional + growing → init-only DTO; required key → positional**
+  (the formerly-positional `(cursor, limit)` pair is now the `PageRequest` DTO). This rule is also recorded in the
+  production coding conventions.
+- `IGrantStore` was refactored to `GetPageAsync(GrantFilter, PageRequest, ct)` and
+  `RevokeWhereAsync(GrantFilter, revokedWhen, ct)`; the `PageRequest` wrapper was then swept across every store
+  `GetPageAsync` (`IGrantStore`, `IClientStore`, `IClientGrantStore`, `IResourceServerStore`, `IServerStore`,
+  `ITenantStore`, `ILocalAccountStore`, and the generic `BaseStore`). All callers and the management query surface were
+  updated.
 
 ## References
 

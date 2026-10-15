@@ -163,9 +163,10 @@ rationale.
 - 👁 **An evolving set of optional selection criteria is a DTO, not positional parameters.** When a method takes a
   growing set of optional filters (the way `IGrantStore` kept gaining `sessionId`, then `grantType`), model them as a
   dedicated `readonly record struct` with **init-only, non-`required`** properties (e.g. `GrantFilter`), constructed by
-  object initializer — so a new criterion is a source-compatible add, not a breaking signature change. Keep **required
-  identity keys** and the **stable `(cursor, limit)` pagination pair** positional. See
-  [ADR-0099](../../docs/adr/0099-forward-compatible-evolving-parameters.md).
+  object initializer — so a new criterion is a source-compatible add, not a breaking signature change. The
+  `(cursor, limit)` pagination pair follows the same shape via the shared `PageRequest` DTO (every store `GetPageAsync`
+  takes `PageRequest`), so pagination can grow (e.g. a sort direction) non-breakingly too. Keep **required identity
+  keys** positional. See [ADR-0099](../../docs/adr/0099-forward-compatible-evolving-parameters.md).
 - 👁 **Annotate a reflection-/DI-/serializer-consumed public type with `[PublicAPI]`** (JetBrains.Annotations) — the
   house pattern across the packages. Members of a public type touched only by the JSON serializer, the options binder,
   or the DI container have no in-repo call site, so the unused-member analyzers flag them; `[PublicAPI]` states the

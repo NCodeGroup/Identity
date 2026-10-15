@@ -265,7 +265,11 @@ internal class LocalAccountApiEndpointHandler(
         return await ProcessListAsync(
             httpContext,
             TenantScopeResource.For(tenantId),
-            () => store.GetPageAsync(cursor, NormalizeLimit(limit), cancellationToken),
+            () =>
+                store.GetPageAsync(
+                    new PageRequest { Cursor = cursor, Limit = NormalizeLimit(limit) },
+                    cancellationToken
+                ),
             ToLocalAccountResource
         );
     }

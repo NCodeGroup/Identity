@@ -34,15 +34,12 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// Gets a single page of <see cref="PersistedTenant"/> instances ordered by their identifier, using keyset
     /// (cursor) pagination.
     /// </summary>
-    /// <param name="cursor">The opaque cursor returned by a previous call that fetches the next page, or <c>null</c>
-    /// to fetch the first page.</param>
-    /// <param name="limit">The maximum number of items to return on the page.</param>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
     /// <see cref="PersistedTenant"/> instances and the cursor for the next page.</returns>
     ValueTask<PagedResult<PersistedTenant>> GetPageAsync(
-        string? cursor,
-        int limit,
+        PageRequest page,
         CancellationToken cancellationToken
     );
 

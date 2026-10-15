@@ -572,8 +572,7 @@ public class DefaultSessionServiceTests : BaseTests
             .Setup(x =>
                 x.GetPageAsync(
                     It.IsAny<GrantFilter>(),
-                    null,
-                    It.IsAny<int>(),
+                    It.IsAny<PageRequest>(),
                     It.IsAny<CancellationToken>()
                 )
             )

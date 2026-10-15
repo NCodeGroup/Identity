@@ -106,13 +106,12 @@ internal class ClientGrantStore(
     /// <inheritdoc />
     public async ValueTask<PagedResult<PersistedClientGrant>> GetPageAsync(
         string clientId,
-        string? cursor,
-        int limit,
+        PageRequest page,
         CancellationToken cancellationToken
     )
     {
         var normalizedClientId = Normalize(clientId);
-        var afterId = DecodeCursor(cursor);
+        var afterId = DecodeCursor(page.Cursor);
 
         var query = BuildIncludedQuery()
             .Where(entity => entity.Client.NormalizedClientId == normalizedClientId);
@@ -124,10 +123,10 @@ internal class ClientGrantStore(
 
         var entities = await query
             .OrderBy(entity => entity.Id)
-            .Take(limit + 1)
+            .Take(page.Limit + 1)
             .ToListAsync(cancellationToken);
 
-        return await BuildPageAsync(entities, limit, cancellationToken);
+        return await BuildPageAsync(entities, page.Limit, cancellationToken);
     }
 
     /// <inheritdoc />

@@ -163,8 +163,7 @@ internal class DefaultClientScopeService(
         {
             var page = await clientGrantStore.GetPageAsync(
                 clientId,
-                cursor,
-                PageSize,
+                new PageRequest { Cursor = cursor, Limit = PageSize },
                 cancellationToken
             );
 

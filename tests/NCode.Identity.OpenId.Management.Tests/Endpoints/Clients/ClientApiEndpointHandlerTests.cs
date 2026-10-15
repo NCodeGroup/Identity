@@ -384,7 +384,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockClientStore
-            .Setup(x => x.GetPageAsync(null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 new PagedResult<PersistedClient>
                 {

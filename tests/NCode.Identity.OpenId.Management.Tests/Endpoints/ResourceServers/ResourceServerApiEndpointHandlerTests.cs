@@ -233,7 +233,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
-            .Setup(x => x.GetPageAsync(null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 new PagedResult<PersistedResourceServer>
                 {

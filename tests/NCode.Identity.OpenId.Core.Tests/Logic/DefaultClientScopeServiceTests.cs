@@ -151,7 +151,7 @@ public sealed class DefaultClientScopeServiceTests : IDisposable
     {
         MockClientGrantStore
             .Setup(x =>
-                x.GetPageAsync(ClientId, null, It.IsAny<int>(), It.IsAny<CancellationToken>())
+                x.GetPageAsync(ClientId, It.IsAny<PageRequest>(), It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(
                 new PagedResult<PersistedClientGrant> { Items = grants, NextCursor = null }

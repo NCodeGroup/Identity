@@ -46,4 +46,33 @@ describe('runConformanceRunner', () => {
     const fetchFn: ProbeFetch = () => Promise.resolve(jsonResponse({ error: 'nope' }, 404));
     await expect(runConformanceRunner(config, { fetchFn })).rejects.toThrow();
   });
+
+  it('feeds the injected signers to the asymmetric probes', async () => {
+    const discovery = {
+      issuer: 'https://op.test',
+      token_endpoint: 'https://op.test/token',
+      token_endpoint_auth_methods_supported: ['private_key_jwt'],
+      dpop_signing_alg_values_supported: ['ES256'],
+    };
+    const fetchFn: ProbeFetch = (url) => {
+      if (url.endsWith('/.well-known/openid-configuration')) {
+        return Promise.resolve(jsonResponse(discovery));
+      }
+      if (url === 'https://op.test/token') {
+        return Promise.resolve(jsonResponse({ access_token: 'abc', token_type: 'DPoP' }));
+      }
+      return Promise.reject(new Error(`no route for ${url}`));
+    };
+    const report = await runConformanceRunner(
+      { ...config, publicClientId: 'app' },
+      {
+        fetchFn,
+        signClientAssertion: () => Promise.resolve('signed.jwt'),
+        createDpopProof: () => Promise.resolve('dpop-proof'),
+      },
+    );
+    const outcomes = Object.fromEntries(report.results.map((r) => [r.id, r.outcome]));
+    expect(outcomes['runner-private-key-jwt']).toBe('verified');
+    expect(outcomes['runner-dpop']).toBe('verified');
+  });
 });

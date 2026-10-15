@@ -155,6 +155,17 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   no new secret type. This is the primitive that lets the OP hold a client's public key for `private_key_jwt`, JAR, and
   the forthcoming `jwks_uri` / BYOK onboarding (`F16` Phase 0, `S3`).
 
+- **Node-`crypto` signer for the probe runner's asymmetric legs — completes backlog `T7`
+  ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)).** The `@ncode/app-conformance-runner`
+  `private_key_jwt` and DPoP probes gain a real signer instead of an injected fake: new `--private-key` / `--dpop-key`
+  options load a PEM- or JWK-encoded private key, the JWA signature algorithm is inferred from the key (the curve for
+  EC `ES256`/`ES384`/`ES512`, `EdDSA` for Ed25519/Ed448, `PS256` for RSA) and is overridable via `--private-key-alg` /
+  `--dpop-key-alg` (e.g. `RS256`), and the signer builds the `private_key_jwt` client assertion (OIDC Core §9, carrying
+  the JWK `kid` when present) and the DPoP proof (RFC 9449 §4, embedding the public JWK in the `dpop+jwt` header). ECDSA
+  uses the JOSE raw `ieee-p1363` encoding and RSA-PSS uses digest-length salt. The asymmetric legs now exercise the OP
+  for real once it advertises the capability (`private_key_jwt`: `F16` / `S3`; DPoP: `F7`). Development/conformance
+  tooling only, outside the .NET inner loop ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
 - **Headless conformance probe runner — advances backlog `T6` (Phase 3)
   ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)).** The spec-coverage harness gains the Node/backend
   **probe runner** for the confidential and server-initiated legs a browser cannot drive: a new
@@ -167,8 +178,8 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   injectable-fetch conformance logic (discovery fetch, the security audit, the spec-coverage catalog, and the
   browser-drivable probes) moved into a shared, unit-tested `@ncode/conformance-core` package consumed by both the
   dashboard (`apps/conformance`) and the runner — no behavior change to the dashboard. The asymmetric legs
-  (`private_key_jwt`, DPoP) take an injected signer (unit-tested with a fake); wiring a real Node-crypto signer from a
-  PEM/JWK is the `T7` follow-up. Development/conformance tooling only, outside the .NET inner loop
+  (`private_key_jwt`, DPoP) take an injected signer, now wired to a real Node-`crypto` signer (`T7`, above).
+  Development/conformance tooling only, outside the .NET inner loop
   ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
 - **OAuth 2.0 Token Exchange (RFC 8693) — completes backlog `F23`

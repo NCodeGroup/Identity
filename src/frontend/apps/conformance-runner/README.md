@@ -28,9 +28,17 @@ pnpm --filter @ncode/app-conformance-runner start -- --issuer https://localhost:
 # with a confidential client (credentials from the environment, never the command line)
 CONFORMANCE_CLIENT_ID=svc CONFORMANCE_CLIENT_SECRET=… \
   pnpm --filter @ncode/app-conformance-runner start -- --issuer https://localhost:5001 --json
+
+# with asymmetric client keys for the private_key_jwt and DPoP legs (PEM or JWK)
+pnpm --filter @ncode/app-conformance-runner start -- --issuer https://localhost:5001 \
+  --public-client-id app --private-key ./client.pem --dpop-key ./dpop.pem
 ```
 
 See `--help` for every option.
 
-> The asymmetric legs (`private_key_jwt`, DPoP) accept an injected signer so their logic is unit-tested; wiring a real
-> Node-crypto signer from a PEM/JWK is a follow-up (`T7`) that lands when the backend advertises those capabilities.
+The asymmetric legs (`private_key_jwt`, DPoP) are driven by a real Node-`crypto` signer: supply a PEM- or JWK-encoded
+private key via `--private-key` (the `private_key_jwt` client assertion, with `--public-client-id`) and/or `--dpop-key`
+(the DPoP proof). The signing algorithm is inferred from the key — the curve for EC keys (`ES256`/`ES384`/`ES512`),
+`EdDSA` for Ed25519/Ed448, and `PS256` for RSA — and can be overridden with `--private-key-alg` / `--dpop-key-alg`
+(e.g. `RS256`). The DPoP proof embeds the key's public JWK in its header (RFC 9449 §4). These legs still `skip` until
+the backend advertises the capability (`private_key_jwt`: `F16` / `S3`; DPoP: `F7`).

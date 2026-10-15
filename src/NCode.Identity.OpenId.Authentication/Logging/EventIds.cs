@@ -59,4 +59,6 @@ internal static class EventIds
     public const int SessionIdleExpired = Base + 28;
     public const int SessionEvicted = Base + 29;
     public const int EndUserSessionExpired = Base + 30;
+    public const int ClientAssertionInvalid = Base + 31;
+    public const int ClientAssertionReplayed = Base + 32;
 }

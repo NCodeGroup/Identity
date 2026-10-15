@@ -107,16 +107,88 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/Handlers/`.
 - **`F16` — FAPI (Financial-grade API) readiness epic.** An umbrella tracking the work to make the OP certifiable
   against the OpenID Foundation **FAPI** security profiles ([FAPI 1.0 Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html),
-  [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)). FAPI mandates **sender-constrained access
-  tokens** (DPoP / mTLS — implemented, `F7`), **Pushed Authorization Requests** (implemented — the
-  `pushed_authorization_request_endpoint` plus the `require_pushed_authorization_requests` policy), **signed request
-  objects and responses** (JAR / JARM — not yet tracked separately), and **strong client authentication**
-  (`private_key_jwt` or mTLS — the
-  `private_key_jwt` half rides `S3`). It also restricts signing to **`PS256`/`ES256`** and forbids symmetric (`HS256`)
-  signing — the always-tenant-asymmetric access-token signing from
-  [ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md) already satisfies the algorithm rule; a
-  FAPI **profile** would additionally constrain the advertised `*_signing_alg_values_supported` settings to that set.
-  This item is the tracking anchor; the concrete deliverables are `F7` (done), `S3`, and a new JAR/JARM work item.
+  [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)).
+
+    **Target decision (2026-10-14).** **FAPI 2.0 is the primary certification target**; it is the modern, formally-analyzed
+    profile and matches the repo's secure-by-default posture (code-only authorization responses, PAR, PKCE `S256`,
+    sender-constrained tokens). **FAPI 1.0 Advanced is a separate future item** — it mandates hybrid `code id_token`
+    flows, front-channel ID tokens, `s_hash` detached signatures, and JARM, which conflict with the posture forbidding
+    hybrid/front-channel-token flows. Scope decisions: deliver **both** `private_key_jwt` **and** mTLS client auth; client
+    **`jwks_uri` is the primary** public-key onboarding path with **BYOK static import secondary** (`S3`); the FAPI
+    constraints are enforced via a **named security-profile mechanism** (a `security_profile` setting that tightens the
+    merged setting ceilings and feeds discovery, per [ADR-0038](docs/adr/0038-setting-merge-lattice-duals.md) /
+    [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)); **JARM is deferred** to its own item (not required
+    by FAPI 2.0, which reduces the authorization response to `code`+`iss`).
+
+    **Already implemented (FAPI 2.0 building blocks).** Sender-constrained tokens — DPoP + mTLS with `dpop_jkt`
+    authorization-code binding (`F7`, [ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)); PAR +
+    `require_pushed_authorization_requests` ([ADR-0089](docs/adr/0089-pushed-authorization-requests.md)); JAR signed
+    request objects (inline `request` + remote `request_uri`); asymmetric-only token signing `PS256`/`ES256`
+    ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)); PKCE `S256` enforcement and
+    `response_type=code` secure default ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)); RFC 9207
+    `iss` authorization-response parameter **behavior** (the ticket carries `Issuer`; only the
+    `authorization_response_iss_parameter_supported` discovery flag is missing); resource indicators RFC 8707
+    ([ADR-0078](docs/adr/0078-resource-indicators-rfc-8707.md)); reused-authorization-code rejection. **Strong client
+    authentication `private_key_jwt` + `client_secret_jwt`** is **done**
+    ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)), and the **verify-only public-key `SecretKey`
+    primitive** that `private_key_jwt` needs is **done** ([ADR-0103](docs/adr/0103-public-only-asymmetric-secret-keys.md)).
+
+    **Remaining work, in order.**
+    - **Phase 0 — client public-key onboarding (continues).** The verify-only key primitive (ADR-0103) is done. Still to
+      do: **(a)** a JWK-JSON → verify-only `SecretKey` parser (RSA `n`/`e`, EC `crv`/`x`/`y` imported via `RSAParameters`
+      / `ECParameters` into `ISecretKeyFactory.CreateRsaPublicKey` / `CreateEccPublicKey`); **(b)** an SSRF-guarded
+      `jwks_uri` fetch + cache — generalize the existing `SectorIdentifierHttpGuard.ConnectAsync` SSRF floor
+      ([ADR-0095](docs/adr/0095-sector-identifier-uri-fetch-and-ssrf-guard.md)) into a shared outbound guard and add a
+      named HTTP client + fetch settings (timeout / max-size / allowed-hosts / cache-TTL) mirroring the
+      `sector_identifier_uri_*` settings; **(c)** an `IClientKeyResolver` that merges the client's stored `SecretKeys`
+      with keys resolved from its `jwks_uri` setting (currently **stored but never consumed** —
+      `RegisterClientRequest.JwksUri` → setting, but `DefaultOpenIdClientFactory` builds `SecretKeys` from stored secrets
+      only), wired into `ClientAssertionClientAuthenticationHandler` and the JAR loader; then **(d)** a
+      `private_key_jwt`-via-`jwks_uri` end-to-end test. Needs its own ADR for the `jwks_uri` resolution + SSRF control.
+    - **Phase 1 — mTLS client authentication.** `tls_client_auth` + `self_signed_tls_client_auth` (RFC 8705 §2), distinct
+      from the already-implemented cert-bound **tokens**. Reuse `IClientCertificateResolver` (exists, under
+      `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/`). `self_signed_tls_client_auth` matches the
+      presented certificate against the client's registered certificate keys by thumbprint (now representable via the
+      public-cert path, ADR-0103); `tls_client_auth` matches the presented cert's subject DN / SAN against new per-client
+      metadata (`tls_client_auth_subject_dn` + SAN variants). New handler(s) under
+      `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/`; discovery auto-advertises via the handler-derived
+      `token_endpoint_auth_methods_supported`.
+    - **Phase 2 — FAPI security-profile mechanism (own ADR).** A `security_profile` setting (e.g. `fapi2`) at tenant/
+      client scope that **injects ceilings into the merge lattice** so discovery and enforcement share one source of truth:
+      algorithms → `PS256`/`ES256`/`EdDSA`; require PAR; require PKCE `S256`; require sender-constrained; strong-client-
+      auth-only; confidential-only; `authorization_code_lifetime` ≤ 60s (default is 5 min today); PAR `request_uri`
+      lifetime < 600s; `response_type=code` only. Plus a thin request-time validator for the behavioral rules not
+      expressible as setting ceilings (confidential-client rejection, client-assertion `aud` = issuer string, non-PAR
+      rejection surface). Touch points: `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`,
+      `OpenIdSettingKeys` / `OpenIdSettingNames`, `DefaultDiscoverMetadataHandler`.
+    - **Phase 3 — remaining discovery/validation details.** Advertise `authorization_response_iss_parameter_supported`
+      (behavior already emitted); apply a ≤ 60s `iat`/`nbf` future tolerance in `ValidateJwtParameters`; verify
+      303-redirect / no-307 / auth-code single-use / `redirect_uri`-required-in-PAR; disable CORS on the authorization
+      endpoint (FAPI §5.2.3).
+    - **Phase 4 — conformance & docs.** Flip the `apps/conformance` `coverage.ts` FAPI rows to `verified`; add a FAPI-2.0
+      seed client (`security_profile=fapi2`, `private_key_jwt`) to `AddConformanceSeed`; wire the OpenID Foundation
+      FAPI 2.0 test plan into `T1` and the `T6` matrix.
+
+    **Spun-out items (record when starting):** a **JARM + authorization response-mode extensibility seam** work item (the
+    response modes are a hardcoded switch in `DefaultAuthorizationResultExecutor` today); **FAPI 1.0 Advanced**; and **S3**
+    BYOK static public-key import (secondary to `jwks_uri`).
+
+- **`F27` — JARM (JWT Secured Authorization Response Mode) + response-mode extensibility seam.** Signed/encrypted
+  authorization responses (`query.jwt`, `fragment.jwt`, `form_post.jwt`, `jwt`). **Not required by FAPI 2.0** (which
+  reduces the response to `code`+`iss`), so this was spun out of `F16`; it **is** required by FAPI 1.0 Advanced and is
+  independently useful. Current state: the inbound JAR half (RFC 9101 request objects) is fully implemented, but
+  **outbound** response modes are a hardcoded switch (`query` / `fragment` / `form_post`) in
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Results/DefaultAuthorizationResultExecutor.cs` with
+  **no extensibility point** (unlike token grants' `ITokenGrantHandler` strategy collection). Deliverables: **(a)** a
+  response-mode strategy seam (e.g. `IAuthorizationResponseMode`) replacing the switch; **(b)** a JWT-composition
+  service (sign with the tenant key, optionally encrypt with the client key) that wraps the response ticket
+  (`code`/`state`/`iss`/…) as JWT claims before serialization; **(c)** the `query.jwt`/`fragment.jwt`/`form_post.jwt`/
+  `jwt` response-mode constants (`OpenIdConstants.ResponseModes`); **(d)** discovery settings
+  `authorization_signing_alg_values_supported` (+ `_encryption_alg_`/`_enc_values_supported`) and the `.jwt` entries in
+  `response_modes_supported`. The `apps/conformance` `coverage.ts` `sec-jarm` row flips to `verified` once the signing
+  alg / `.jwt` modes are advertised. Touch points: `DefaultAuthorizationResultExecutor`,
+  `OpenIdConstants.ResponseModes`, `IAuthorizationTicket`, `DefaultSettingsProvider` (`response_modes_supported`),
+  `DefaultSettingDescriptorDataSource`. Needs its own ADR.
 - **`F26` — Enterprise connections / identity brokering (external upstream IdP federation).** Compete with Auth0/Okta
   "enterprise connections" by letting a tenant federate to external/enterprise identity providers — **OIDC** (EntraID,
   Ping, Okta, Auth0, Google), **SAML 2.0**, and **WS-Fed/ADFS** — and map the upstream identity onto the existing
@@ -201,7 +273,11 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   to onboard a `private_key_jwt` client (client generates its keypair and registers the **public** half)
   or to import an `x509` certificate — `SecretTypes.Certificate` is defined but `DefaultSecretGenerator`
   refuses it. ADR-0011 explicitly defers import; the `GenerateSecretRequest` `// Future:` note reserves
-  room. Import needs its own validation + threat-model ADR before implementation.
+  room. Import needs its own validation + threat-model ADR before implementation. The **key-model** half of
+  this gap is now resolved — a verify-only public key is representable and a public-only certificate
+  deserializes to one ([ADR-0103](docs/adr/0103-public-only-asymmetric-secret-keys.md)) — so `S3` is now the
+  **import/validation API surface** (management + DCR) over that primitive, and the FAPI-preferred alternative is
+  the runtime `jwks_uri` resolver tracked under `F16` Phase 0.
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/Logic/GenerateSecretRequest.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`.
 - **`S5` — Client-secret storage: hash-at-rest vs reversible protection (needs its own ADR).** A client secret

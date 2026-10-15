@@ -451,9 +451,11 @@ internal class ClientStore(
             return false;
         }
 
-        var hasSecrets = await DbContext.ClientSecrets.AnyAsync(
-            clientSecret => clientSecret.ClientId == clientEntity.Id,
-            cancellationToken
+        // Evaluate the guard against the change tracker, not a fresh DB query: a caller that removed the client's
+        // secrets earlier in this same unit of work (e.g. DCR deregistration) has them marked Deleted but not yet
+        // saved, so a database query would still see them and wrongly block the removal.
+        var hasSecrets = clientEntity.Secrets.Any(clientSecret =>
+            DbContext.Entry(clientSecret).State != EntityState.Deleted
         );
         if (hasSecrets)
         {

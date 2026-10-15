@@ -17,6 +17,8 @@
 
 #endregion
 
+using System.Buffers;
+using System.Text;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Logic;
@@ -95,6 +97,55 @@ public class DefaultSecretGeneratorTests
         var request = CreateRequest(SecretTypes.Symmetric, 100);
 
         Assert.Throws<ArgumentException>(() => _generator.GenerateSecret(request));
+    }
+
+    #endregion
+
+    #region GenerateSharedSecret Tests
+
+    [Fact]
+    public void GenerateSharedSecret_StoresUtf8OfTheRevealedString()
+    {
+        var request = CreateRequest(SecretTypes.Symmetric, 256);
+
+        var generated = _generator.GenerateSharedSecret(request);
+        var persisted = generated.Secret;
+
+        Assert.Equal(SecretTypes.Symmetric, persisted.SecretType);
+        Assert.Equal(SecretEncodings.SymmetricRaw, persisted.SecretEncoding);
+        Assert.NotNull(generated.SecretMaterial);
+        Assert.NotEmpty(generated.SecretMaterial);
+
+        var secretKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
+            _serializer.DeserializeSecret(persisted)
+        );
+
+        var writer = new ArrayBufferWriter<byte>();
+        secretKey.ExportPrivateKey(ref writer);
+
+        // The core contract (CommonClientAuthenticationHandler.IsSecretEqual): client authentication compares the UTF-8
+        // bytes of the presented secret against the stored key material, so the stored material must be exactly the
+        // UTF-8 bytes of the revealed opaque string — otherwise a generated client_secret can never authenticate.
+        Assert.Equal(
+            Encoding.UTF8.GetBytes(generated.SecretMaterial),
+            writer.WrittenSpan.ToArray()
+        );
+    }
+
+    [Fact]
+    public void GenerateSharedSecret_WhenNotSymmetric_Throws()
+    {
+        var request = CreateRequest(SecretTypes.Rsa, 2048);
+
+        Assert.Throws<InvalidOperationException>(() => _generator.GenerateSharedSecret(request));
+    }
+
+    [Fact]
+    public void GenerateSharedSecret_WhenSizeNotMultipleOfEight_Throws()
+    {
+        var request = CreateRequest(SecretTypes.Symmetric, 100);
+
+        Assert.Throws<ArgumentException>(() => _generator.GenerateSharedSecret(request));
     }
 
     #endregion

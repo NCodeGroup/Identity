@@ -205,7 +205,10 @@ internal class DefaultAuthorizationResultExecutor : IResultExecutor<Authorizatio
         httpResponse.Headers.Pragma = "no-cache";
         httpResponse.Headers.CacheControl = "no-store, no-cache, max-age=0";
 
-        httpResponse.Redirect(redirectUri.AbsoluteUri);
+        // 303 See Other (not 302) is required for the authorization response (FAPI 2.0 §5.2.2 / OAuth 2.1): it forces
+        // the user-agent to issue a GET to the redirect_uri regardless of the original request method.
+        httpResponse.StatusCode = StatusCodes.Status303SeeOther;
+        httpResponse.Headers.Location = redirectUri.AbsoluteUri;
     }
 
     private const string FormPostAction = "{FormPostAction}";

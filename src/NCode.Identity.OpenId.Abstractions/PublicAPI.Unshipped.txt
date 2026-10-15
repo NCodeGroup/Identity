@@ -309,6 +309,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowUnsafeTokenResponse
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationAuthenticateScheme = "authorization_authenticate_scheme" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationChallengeScheme = "authorization_challenge_scheme" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationCodeLifetime = "authorization_code_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationResponseIssParameterSupported = "authorization_response_iss_parameter_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsLocalesSupported = "claims_locales_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsParameterSupported = "claims_parameter_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsSupported = "claims_supported" -> string!
@@ -420,6 +421,18 @@ NCode.Identity.OpenId.OpenIdConstants.ConfirmationMethods
 NCode.Identity.OpenId.OpenIdConstants.DPoP
 NCode.Identity.OpenId.Results.IOpenIdResult
 NCode.Identity.OpenId.Results.IOpenIdResult.Response.get -> NCode.Identity.OpenId.Messages.IOpenIdResponse!
+NCode.Identity.OpenId.Settings.ISecurityProfile
+NCode.Identity.OpenId.Settings.ISecurityProfile.ApplyCeilingSettings(NCode.Identity.Settings.ISettingCollection! ceiling) -> void
+NCode.Identity.OpenId.Settings.ISecurityProfile.ProfileName.get -> string!
+NCode.Identity.OpenId.Settings.ISecurityProfile.Requirements.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Settings.ISecurityProfileRequirement!>!
+NCode.Identity.OpenId.Settings.ISecurityProfileCatalog
+NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.EvaluateRequirementsAsync<TContext>(NCode.Identity.Settings.IReadOnlySettingCollection! settings, TContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Text.Json.JsonElement settingsJson, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.TryGetProfile(string! profileName, out NCode.Identity.OpenId.Settings.ISecurityProfile! profile) -> bool
+NCode.Identity.OpenId.Settings.ISecurityProfileRequirement
+NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>
+NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>.EvaluateAsync(TContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.ITenantProvisioner
 NCode.Identity.OpenId.Tenants.ITenantProvisioner.ProvisionAsync(string! tenantId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.SeedTenantCommand
@@ -616,9 +629,6 @@ NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods
 NCode.Identity.OpenId.OpenIdConstants.ContinueCodes
 NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles
 const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi2 = "fapi2" -> string!
-NCode.Identity.OpenId.Settings.ISecurityProfileSettingsExpander
-NCode.Identity.OpenId.Settings.ISecurityProfileSettingsExpander.Expand(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
-NCode.Identity.OpenId.Settings.ISecurityProfileSettingsExpander.Expand(System.Text.Json.JsonElement settingsJson, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.OpenIdConstants.DisplayTypes
 NCode.Identity.OpenId.OpenIdConstants.EndpointNames
 NCode.Identity.OpenId.OpenIdConstants.EndpointPaths
@@ -777,6 +787,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowUnsafeTokenResponse
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationAuthenticateScheme.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationChallengeScheme.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationCodeLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationResponseIssParameterSupported.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsLocalesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsParameterSupported.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>

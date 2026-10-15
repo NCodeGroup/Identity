@@ -20,6 +20,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using NCode.Registration;
 
@@ -48,6 +49,11 @@ internal static class DefaultRegistration
                     ICollectionDataSource<SettingDescriptor>,
                     DefaultClientSettingDescriptorDataSource
                 >()
+            );
+
+            // The FAPI 2.0 security profile; the catalog (Core) resolves it from this strategy collection.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ISecurityProfile, Fapi2SecurityProfile>()
             );
 
             return builder;

@@ -60,7 +60,7 @@ public class DefaultOpenIdTenantFactory(
     ISecretSerializer secretSerializer,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
-    ISecurityProfileSettingsExpander securityProfileExpander
+    ISecurityProfileCatalog securityProfileCatalog
 ) : IOpenIdTenantFactory
 {
     /// <summary>
@@ -117,10 +117,9 @@ public class DefaultOpenIdTenantFactory(
         collectionDataSourceFactory;
 
     /// <summary>
-    /// Gets the <see cref="ISecurityProfileSettingsExpander"/> used to expand a scope's selected security profile.
+    /// Gets the <see cref="ISecurityProfileCatalog"/> used to expand a scope's selected security profile.
     /// </summary>
-    protected ISecurityProfileSettingsExpander SecurityProfileExpander { get; } =
-        securityProfileExpander;
+    protected ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
 
     /// <inheritdoc />
     public virtual async ValueTask<
@@ -353,7 +352,7 @@ public class DefaultOpenIdTenantFactory(
     {
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
         var initialSettingsJson = persistedTenant.Settings.Value;
-        var initialSettings = SecurityProfileExpander.Expand(initialSettingsJson, jsonOptions);
+        var initialSettings = SecurityProfileCatalog.Expand(initialSettingsJson, jsonOptions);
 
         var periodicPollingSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             new RefreshSettingsState(openIdEnvironment, openIdServer, persistedTenant),
@@ -402,7 +401,7 @@ public class DefaultOpenIdTenantFactory(
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var settings = SecurityProfileExpander.Expand(newSettings.Value, jsonOptions);
+        var settings = SecurityProfileCatalog.Expand(newSettings.Value, jsonOptions);
 
         // update the state after successfully deserializing the settings
         persistedTenant.Settings = newSettings;

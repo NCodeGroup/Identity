@@ -742,6 +742,31 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Models.SubjectTokenValidati
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Models.SubjectTokenValidationResult.SubjectTokenValidationResult() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Models.SubjectTokenValidationResult.TokenTypeIdentifier.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Models.SubjectTokenValidationResult.TokenTypeIdentifier.init -> void
+NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext
+NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.AuthorizationRequestProfileContext(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! Client) -> void
+NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.Client.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
+NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.Client.init -> void
+NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.OpenIdContext.init -> void
+NCode.Identity.OpenId.Settings.ClientAuthenticationProfileContext
+NCode.Identity.OpenId.Settings.ClientAuthenticationProfileContext.AssertionPayload.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Settings.ClientAuthenticationProfileContext.AssertionPayload.init -> void
+NCode.Identity.OpenId.Settings.ClientAuthenticationProfileContext.Client.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
+NCode.Identity.OpenId.Settings.ClientAuthenticationProfileContext.Client.init -> void
+NCode.Identity.OpenId.Settings.ClientAuthenticationProfileContext.ClientAuthenticationProfileContext(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! Client, System.Text.Json.JsonElement AssertionPayload) -> void
+NCode.Identity.OpenId.Settings.ClientAuthenticationProfileContext.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Settings.ClientAuthenticationProfileContext.OpenIdContext.init -> void
+NCode.Identity.OpenId.Settings.IAuthorizationRequestProfileRequirement
+NCode.Identity.OpenId.Settings.IClientAuthenticationProfileRequirement
+NCode.Identity.OpenId.Settings.ITokenRequestProfileRequirement
+NCode.Identity.OpenId.Settings.TokenRequestProfileContext
+NCode.Identity.OpenId.Settings.TokenRequestProfileContext.Client.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
+NCode.Identity.OpenId.Settings.TokenRequestProfileContext.Client.init -> void
+NCode.Identity.OpenId.Settings.TokenRequestProfileContext.Confirmation.get -> NCode.Identity.OpenId.Authentication.Tokens.Models.TokenConfirmation
+NCode.Identity.OpenId.Settings.TokenRequestProfileContext.Confirmation.init -> void
+NCode.Identity.OpenId.Settings.TokenRequestProfileContext.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Settings.TokenRequestProfileContext.OpenIdContext.init -> void
+NCode.Identity.OpenId.Settings.TokenRequestProfileContext.TokenRequestProfileContext(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! Client, NCode.Identity.OpenId.Authentication.Tokens.Models.TokenConfirmation Confirmation) -> void
 static NCode.Identity.OpenId.Authentication.Endpoints.Token.Models.SubjectTokenValidationResult.Fail(NCode.Identity.OpenId.Messages.IOpenIdError! error) -> NCode.Identity.OpenId.Authentication.Endpoints.Token.Models.SubjectTokenValidationResult!
 static NCode.Identity.OpenId.Authentication.Endpoints.Token.Models.SubjectTokenValidationResult.Success(System.Security.Claims.ClaimsPrincipal! principal, System.Text.Json.JsonElement payload, string! tokenTypeIdentifier) -> NCode.Identity.OpenId.Authentication.Endpoints.Token.Models.SubjectTokenValidationResult!
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest

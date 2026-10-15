@@ -35,12 +35,14 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 /// </summary>
 internal class DefaultProofOfPossessionService(
     IDPoPProofValidator dpopProofValidator,
-    IClientCertificateResolver clientCertificateResolver
+    IClientCertificateResolver clientCertificateResolver,
+    ISecurityProfileCatalog securityProfileCatalog
 ) : IProofOfPossessionService
 {
     private IDPoPProofValidator DPoPProofValidator { get; } = dpopProofValidator;
     private IClientCertificateResolver ClientCertificateResolver { get; } =
         clientCertificateResolver;
+    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
 
     /// <inheritdoc />
     public async ValueTask<ProofOfPossessionBinding> EvaluateTokenRequestAsync(
@@ -72,6 +74,13 @@ internal class DefaultProofOfPossessionService(
             JwkThumbprint = jwkThumbprint,
             X509CertificateSha256Thumbprint = certificateThumbprint,
         };
+
+        // Apply any security-profile token-request requirements (e.g. FAPI's sender-constrained-token rule).
+        await SecurityProfileCatalog.EvaluateRequirementsAsync(
+            settings,
+            new TokenRequestProfileContext(openIdContext, openIdClient, confirmation),
+            cancellationToken
+        );
 
         // A DPoP-bound token advertises token_type=DPoP; a purely certificate-bound (or unbound) token stays Bearer.
         var tokenType = jwkThumbprint is not null

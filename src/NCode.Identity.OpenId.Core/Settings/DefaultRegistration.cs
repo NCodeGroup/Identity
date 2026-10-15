@@ -54,9 +54,11 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<IDefaultSettingsProvider, DefaultSettingsProvider>()
             );
 
+            // The security-profile catalog resolves the registered profiles (a strategy collection contributed by the
+            // slices that define them) into their ceiling settings and request-time requirements.
             serviceCollection.TryAddSingleton<
-                ISecurityProfileSettingsExpander,
-                DefaultSecurityProfileSettingsExpander
+                ISecurityProfileCatalog,
+                DefaultSecurityProfileCatalog
             >();
 
             return builder;

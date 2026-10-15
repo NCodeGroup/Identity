@@ -17,41 +17,31 @@
 #endregion
 
 using Moq;
-using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
-using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
-using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Endpoints.EndSession;
+namespace NCode.Identity.OpenId.Core.Tests.Sessions;
 
-public sealed class DefaultRevokeGrantsOnEndSessionHandlerTests : IDisposable
+public class DefaultRevokeGrantsOnSessionTerminatedHandlerTests : BaseTests
 {
-    private const string SubjectId = "subject-1";
-    private const string SessionId = "sid-1";
-
-    private MockRepository MockRepository { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IGrantStore> MockGrantStore { get; }
-    private DefaultRevokeGrantsOnEndSessionHandler Handler { get; }
+    private DefaultRevokeGrantsOnSessionTerminatedHandler Handler { get; }
 
-    public DefaultRevokeGrantsOnEndSessionHandlerTests()
+    public DefaultRevokeGrantsOnSessionTerminatedHandlerTests()
     {
-        MockRepository = new MockRepository(MockBehavior.Strict);
-        MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
-        MockStoreManager = MockRepository.Create<IStoreManager>();
-        MockGrantStore = MockRepository.Create<IGrantStore>();
-
-        Handler = new DefaultRevokeGrantsOnEndSessionHandler(
+        MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        MockStoreManager = CreateStrictMock<IStoreManager>();
+        MockGrantStore = CreateStrictMock<IGrantStore>();
+        Handler = new DefaultRevokeGrantsOnSessionTerminatedHandler(
             TimeProvider.System,
             MockStoreManagerFactory.Object
         );
     }
-
-    public void Dispose() => MockRepository.Verify();
 
     private void SetupStore()
     {
@@ -70,21 +60,20 @@ public sealed class DefaultRevokeGrantsOnEndSessionHandlerTests : IDisposable
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
-    private static OnEndSessionCommand CreateCommand(string? subjectId, string? sessionId) =>
-        new(Mock.Of<OpenIdContext>(), new EndSessionSubject(subjectId, sessionId, null, []));
-
-    #region HandleAsync Tests
+    private static OnSessionTerminatedCommand CreateCommand(
+        SessionTerminationReason reason,
+        string? subjectId,
+        string? sessionId
+    ) => new(Mock.Of<OpenIdContext>(), new SessionTermination(reason, subjectId, sessionId, []));
 
     [Fact]
-    public async Task HandleAsync_WhenSessionResolved_RevokesOnlyThatSessionsGrants()
+    public async Task HandleAsync_WhenSessionScoped_RevokesBySession()
     {
         SetupStore();
         MockGrantStore
             .Setup(x =>
                 x.RevokeWhereAsync(
-                    null,
-                    null,
-                    SessionId,
+                    It.Is<GrantFilter>(f => f.SessionId == "sid-1" && f.SubjectId == null),
                     It.IsAny<DateTimeOffset>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -92,41 +81,40 @@ public sealed class DefaultRevokeGrantsOnEndSessionHandlerTests : IDisposable
             .ReturnsAsync(2)
             .Verifiable();
 
-        await Handler.HandleAsync(CreateCommand(SubjectId, SessionId), CancellationToken.None);
+        await Handler.HandleAsync(
+            CreateCommand(SessionTerminationReason.AdministrativeRevocation, "subject-1", "sid-1"),
+            CancellationToken.None
+        );
     }
 
     [Fact]
-    public async Task HandleAsync_WhenNoSession_FallsBackToSubjectWideRevocation()
+    public async Task HandleAsync_WhenSubjectWide_RevokesBySubject()
     {
         SetupStore();
         MockGrantStore
             .Setup(x =>
                 x.RevokeWhereAsync(
-                    SubjectId,
-                    null,
-                    null,
+                    It.Is<GrantFilter>(f => f.SubjectId == "subject-1" && f.SessionId == null),
                     It.IsAny<DateTimeOffset>(),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(3)
+            .ReturnsAsync(5)
             .Verifiable();
 
         await Handler.HandleAsync(
-            CreateCommand(SubjectId, sessionId: null),
+            CreateCommand(SessionTerminationReason.GlobalSignOut, "subject-1", sessionId: null),
             CancellationToken.None
         );
     }
 
     [Fact]
-    public async Task HandleAsync_WhenNeitherSubjectNorSession_DoesNothing()
+    public async Task HandleAsync_WhenNeitherScope_DoesNothing()
     {
         // No store scaffold is set up: a strict-mock failure would mean the handler touched the store.
         await Handler.HandleAsync(
-            CreateCommand(subjectId: null, sessionId: null),
+            CreateCommand(SessionTerminationReason.GlobalSignOut, subjectId: null, sessionId: null),
             CancellationToken.None
         );
     }
-
-    #endregion
 }

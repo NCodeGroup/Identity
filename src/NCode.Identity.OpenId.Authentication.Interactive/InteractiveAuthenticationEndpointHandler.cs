@@ -33,6 +33,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.PrincipalResolution;
+using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 using NCode.Registration.AspNetCore;
 
@@ -257,6 +258,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             .Select(claim => claim.Value)
             .ToList();
 
+        // Session lifecycle policy is tenant-scoped data (a session spans every client the subject signs into), read
+        // from the tenant's effective settings. The Zero/0 sentinels mean "disabled" and map to the request's null.
+        var settings = openIdContext.Tenant.SettingsProvider.Collection;
+        var absoluteLifetime = settings.GetValue(OpenIdSettingKeys.SessionAbsoluteLifetime);
+        var idleTimeout = settings.GetValue(OpenIdSettingKeys.SessionIdleTimeout);
+        var maxConcurrentSessions = settings.GetValue(OpenIdSettingKeys.MaxConcurrentSessions);
+
         var request = new CreateSessionRequest
         {
             SubjectId = subjectId,
@@ -266,7 +274,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 .FindFirst(JoseClaimNames.Payload.Acr)
                 ?.Value,
             IdentityProvider = principal.FindFirst(JoseClaimNames.Payload.Idp)?.Value,
-            Lifetime = Options.SessionLifetime,
+            Lifetime = absoluteLifetime > TimeSpan.Zero ? absoluteLifetime : null,
+            IdleTimeout = idleTimeout > TimeSpan.Zero ? idleTimeout : null,
+            MaxConcurrentSessions = maxConcurrentSessions > 0 ? maxConcurrentSessions : null,
         };
 
         var sessionId = await SessionService.CreateAsync(openIdContext, request, cancellationToken);

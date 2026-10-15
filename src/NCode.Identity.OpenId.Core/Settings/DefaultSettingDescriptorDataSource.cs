@@ -744,6 +744,43 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // session_absolute_lifetime: absolute lifetime of the server-side end-user session, after which it expires
+            // regardless of activity. TimeSpan.Zero disables it (bounded only by the idle timeout, if any). Default
+            // Zero. Not advertised (leaking session policy aids attackers). Override (Replace): a tenant fully replaces
+            // the value. (F25)
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.SessionAbsoluteLifetime,
+                Default = TimeSpan.Zero,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // session_idle_timeout: sliding inactivity window after which the end-user session expires if unused; each
+            // authorize request that resolves the session renews it. TimeSpan.Zero disables it. Default Zero. Not
+            // advertised. Override (Replace): a tenant fully replaces the value. (F25)
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.SessionIdleTimeout,
+                Default = TimeSpan.Zero,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // max_concurrent_sessions: cap on the number of simultaneous sessions a subject may hold; the oldest beyond
+            // the cap are revoked at sign-in. 0 disables the limit. Default 0. Not advertised. Override (Replace): a
+            // tenant fully replaces the value. (F25)
+            yield return new SettingDescriptor<int>
+            {
+                Name = OpenIdSettingNames.MaxConcurrentSessions,
+                Default = 0,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // registration_endpoint_allow_anonymous: whether the dynamic client registration endpoint accepts
             // anonymous (no initial access token) requests (default false). (ADR-0063)
             // Floor (And): once a parent disallows anonymous registration, a child cannot re-enable it.
@@ -1060,6 +1097,19 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.SendIdClaimsInAccessToken,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // send_session_id_in_access_token: emit the end-user session identifier (sid) into the access token
+            // (RFC 9068 §2.2.1) so a resource server can correlate the token to the session and honor session-scoped
+            // revocation (default false — it discloses the session id to resource servers). Override (Replace): a
+            // behavioral toggle; a child fully replaces the parent value.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.SendSessionIdInAccessToken,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,

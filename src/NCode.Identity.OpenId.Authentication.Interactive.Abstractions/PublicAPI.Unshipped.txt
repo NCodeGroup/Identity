@@ -3,8 +3,6 @@ NCode.Identity.OpenId.Authentication.Interactive.IInteractiveCredentialVerifier
 NCode.Identity.OpenId.Authentication.Interactive.IInteractiveCredentialVerifier.VerifyCredentialAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! username, string! password, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsPrincipal?>
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions
-NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.SessionLifetime.get -> System.TimeSpan?
-NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.SessionLifetime.set -> void
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.BundleRootPath.get -> string?
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.BundleRootPath.set -> void
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.InteractiveAuthenticationOptions() -> void

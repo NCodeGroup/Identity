@@ -17,20 +17,18 @@
 #endregion
 
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
-using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Mediator;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
+namespace NCode.Identity.OpenId.Authentication.Sessions;
 
 /// <summary>
-/// Handles <see cref="OnEndSessionCommand"/> by sending a back-channel logout notification to each relying party that
-/// participated in the session. Runs at low priority so it follows the server-side revocation.
+/// Handles <see cref="OnSessionTerminatedCommand"/> by sending a back-channel logout notification to each relying party
+/// that participated in the terminated session. Runs at low priority so it follows the server-side revocation.
 /// </summary>
-internal class DefaultBackChannelLogoutOnEndSessionHandler(
+internal class DefaultBackChannelLogoutOnSessionTerminatedHandler(
     IOpenIdClientResolver clientResolver,
     IBackChannelLogoutNotifier backChannelLogoutNotifier
-) : ICommandHandler<OnEndSessionCommand>, ISupportMediatorPriority
+) : ICommandHandler<OnSessionTerminatedCommand>, ISupportMediatorPriority
 {
     private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
     private IBackChannelLogoutNotifier BackChannelLogoutNotifier { get; } =
@@ -41,13 +39,13 @@ internal class DefaultBackChannelLogoutOnEndSessionHandler(
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(
-        OnEndSessionCommand command,
+        OnSessionTerminatedCommand command,
         CancellationToken cancellationToken
     )
     {
-        var (openIdContext, subject) = command;
+        var (openIdContext, termination) = command;
 
-        foreach (var clientId in subject.ParticipatingClientIds)
+        foreach (var clientId in termination.ParticipatingClientIds)
         {
             var client = await ClientResolver.ResolveClientOrDefaultAsync(
                 openIdContext,
@@ -62,8 +60,8 @@ internal class DefaultBackChannelLogoutOnEndSessionHandler(
             await BackChannelLogoutNotifier.NotifyAsync(
                 openIdContext,
                 client,
-                subject.SubjectId,
-                subject.SessionId,
+                termination.SubjectId,
+                termination.SessionId,
                 cancellationToken
             );
         }

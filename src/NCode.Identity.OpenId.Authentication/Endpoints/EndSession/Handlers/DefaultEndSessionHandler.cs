@@ -32,7 +32,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 /// <summary>
 /// Provides a default implementation of the <see cref="EndSessionCommand"/> handler that orchestrates OpenID Connect
 /// RP-Initiated Logout: it resolves the subject/session (<see cref="ResolveEndSessionSubjectCommand"/>), clears the OP
-/// login, dispatches <see cref="OnEndSessionCommand"/> to run the logout side effects (revocation, back-channel
+/// login, dispatches <see cref="NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand"/> to run the
+/// logout side effects (revocation, back-channel
 /// notification, and any application extensions), and resolves the validated <c>post_logout_redirect_uri</c>. When
 /// front-channel logout or session management are enabled, it also collects the front-channel logout iframe URIs and
 /// clears the OP browser-state cookie.
@@ -77,7 +78,15 @@ internal class DefaultEndSessionHandler(
 
         // Run the logout side effects (revocation, back-channel notification, and any application extensions).
         await mediator.SendAsync(
-            new OnEndSessionCommand(openIdContext, subject),
+            new OnSessionTerminatedCommand(
+                openIdContext,
+                new SessionTermination(
+                    SessionTerminationReason.Logout,
+                    subject.SubjectId,
+                    subject.SessionId,
+                    subject.ParticipatingClientIds
+                )
+            ),
             cancellationToken
         );
 

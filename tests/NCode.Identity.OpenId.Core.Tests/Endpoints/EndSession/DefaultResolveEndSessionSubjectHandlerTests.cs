@@ -130,6 +130,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
                         AuthenticationMethods = null,
                         IdentityProvider = null,
                         ClientIds = clientIds,
+                        LastActivityWhen = DateTimeOffset.UnixEpoch,
                     },
                 }
             )

@@ -426,6 +426,24 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.SessionManagementSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'session_absolute_lifetime' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> SessionAbsoluteLifetime =>
+        new(OpenIdSettingNames.SessionAbsoluteLifetime);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'session_idle_timeout' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> SessionIdleTimeout =>
+        new(OpenIdSettingNames.SessionIdleTimeout);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'max_concurrent_sessions' setting.
+    /// </summary>
+    public static SettingKey<int> MaxConcurrentSessions =>
+        new(OpenIdSettingNames.MaxConcurrentSessions);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'registration_endpoint_allow_anonymous' setting.
     /// </summary>
     public static SettingKey<bool> RegistrationEndpointAllowAnonymous =>
@@ -567,6 +585,12 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<bool> SendIdClaimsInAccessToken =>
         new(OpenIdSettingNames.SendIdClaimsInAccessToken);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_session_id_in_access_token' setting.
+    /// </summary>
+    public static SettingKey<bool> SendSessionIdInAccessToken =>
+        new(OpenIdSettingNames.SendSessionIdInAccessToken);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_profile_metadata_in_access_token' setting.

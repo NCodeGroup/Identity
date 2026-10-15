@@ -62,21 +62,6 @@ internal static class DefaultRegistration
                 ICommandResponseHandler<EndSessionCommand, EndSessionDisposition>,
                 DefaultEndSessionHandler
             >();
-
-            // OnEndSessionCommand is the logout side-effect extension point: applications add handlers (for example,
-            // front-channel logout or custom auditing) alongside these defaults, ordered by mediator priority.
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<OnEndSessionCommand>,
-                    DefaultRevokeGrantsOnEndSessionHandler
-                >()
-            );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICommandHandler<OnEndSessionCommand>,
-                    DefaultBackChannelLogoutOnEndSessionHandler
-                >()
-            );
         }
     }
 }

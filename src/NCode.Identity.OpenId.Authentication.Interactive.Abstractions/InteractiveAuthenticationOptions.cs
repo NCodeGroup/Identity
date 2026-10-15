@@ -33,11 +33,4 @@ public sealed class InteractiveAuthenticationOptions
     /// credential endpoints still function.
     /// </summary>
     public string? BundleRootPath { get; set; }
-
-    /// <summary>
-    /// Gets or sets the lifetime applied to the server-side end-user session established at sign-in. When
-    /// <see langword="null"/>, the session does not expire on its own and remains valid until it is revoked (for
-    /// example, by logout). Defaults to <see langword="null"/>.
-    /// </summary>
-    public TimeSpan? SessionLifetime { get; set; }
 }

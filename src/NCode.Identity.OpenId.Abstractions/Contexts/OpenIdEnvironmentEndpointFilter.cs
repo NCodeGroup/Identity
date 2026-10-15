@@ -54,7 +54,7 @@ public sealed class OpenIdEnvironmentEndpointFilter(
         try
         {
             // The factory publishes the context on the request (an IOpenIdContextFeature) for endpoints to retrieve.
-            openIdContext = await OpenIdContextFactory.CreateAsync(
+            openIdContext = await OpenIdContextFactory.CreateForRequestAsync(
                 httpContext,
                 mediator,
                 httpContext.RequestAborted

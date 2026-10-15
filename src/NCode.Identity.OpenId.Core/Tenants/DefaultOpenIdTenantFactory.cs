@@ -32,6 +32,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Results;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Logic;
@@ -115,7 +116,9 @@ public class DefaultOpenIdTenantFactory(
         collectionDataSourceFactory;
 
     /// <inheritdoc />
-    public virtual async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateTenantAsync(
+    public virtual async ValueTask<
+        AsyncSharedReferenceLease<OpenIdTenant>
+    > CreateTenantForRequestAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
         OpenIdServer openIdServer,
@@ -212,9 +215,117 @@ public class DefaultOpenIdTenantFactory(
         return newTenantReference.AddReference();
     }
 
-    /// <summary>
-    /// Used to get the tenant's <see cref="IReadOnlySettingCollectionProvider"/> instance from the current HTTP request.
-    /// </summary>
+    /// <inheritdoc />
+    public virtual async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateTenantByIdAsync(
+        HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
+        string tenantId,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
+        // Load the addressed tenant directly by identifier rather than resolving it from the request, since the request
+        // is not addressed to this tenant. The shared tenant cache is intentionally not consulted or written: it holds
+        // request-materialized tenants (whose base address derives from the request host), and an admin materialization
+        // derives its base address from the tenant's own issuer instead, so the two must not alias each other.
+        var persistedTenant = await LoadPersistedTenantAsync(tenantId, cancellationToken);
+
+        var tenantPropertyBag = propertyBag.Clone();
+
+        await using var tenantSettings = await GetTenantSettingsAsync(
+            httpContext,
+            openIdEnvironment,
+            openIdServer,
+            persistedTenant,
+            tenantPropertyBag,
+            cancellationToken
+        );
+
+        // The tenant's own configured issuer is its request-independent identity; it is both the issuer and the base
+        // address for an admin materialization, so the tenant must have one configured.
+        var tenantIssuer = GetConfiguredTenantIssuer(persistedTenant.TenantId, tenantSettings);
+        var tenantBaseAddress = ParseBaseAddress(tenantIssuer);
+
+        await using var tenantSecrets = await GetTenantSecretsAsync(
+            httpContext,
+            openIdEnvironment,
+            openIdServer,
+            persistedTenant,
+            tenantIssuer,
+            tenantBaseAddress,
+            tenantSettings,
+            tenantPropertyBag,
+            cancellationToken
+        );
+
+        await using var tenantReference = await CreateOpenIdTenantAsync(
+            httpContext,
+            persistedTenant,
+            tenantIssuer,
+            tenantBaseAddress,
+            tenantSettings,
+            tenantSecrets,
+            tenantPropertyBag,
+            cancellationToken
+        );
+
+        return tenantReference.AddReference();
+    }
+
+    private async ValueTask<PersistedTenant> LoadPersistedTenantAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var persistedTenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        if (persistedTenant is null)
+            throw TypedResults
+                .NotFound()
+                .AsException($"A tenant with id '{tenantId}' could not be found.");
+
+        if (persistedTenant.IsDisabled)
+            throw TypedResults
+                .NotFound()
+                .AsException($"The tenant with id '{tenantId}' is disabled.");
+
+        return persistedTenant;
+    }
+
+    private static string GetConfiguredTenantIssuer(
+        string tenantId,
+        AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> tenantSettings
+    )
+    {
+        var settings = tenantSettings.Value.Collection;
+        if (
+            settings.TryGetValue(OpenIdSettingKeys.TenantIssuer, out var tenantIssuer)
+            && !string.IsNullOrEmpty(tenantIssuer)
+        )
+        {
+            return tenantIssuer;
+        }
+
+        throw new InvalidOperationException(
+            $"The tenant with id '{tenantId}' has no configured issuer and cannot be materialized "
+                + "outside of an inbound request addressed to it."
+        );
+    }
+
+    private static UriDescriptor ParseBaseAddress(string issuer)
+    {
+        var uri = new Uri(issuer, UriKind.Absolute);
+        return new UriDescriptor
+        {
+            Scheme = uri.Scheme,
+            Host = HostString.FromUriComponent(uri),
+            Path = PathString.FromUriComponent(uri),
+        };
+    }
+
     /// <param name="httpContext">The <see cref="HttpContext"/> instance associated with current request.</param>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>
     /// <param name="openIdServer">The <see cref="OpenIdServer"/> instance associated with the current request.</param>

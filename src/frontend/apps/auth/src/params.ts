@@ -37,6 +37,18 @@ export const APPLICATIONS_LIST_ENDPOINT = '/account/applications/list';
 /** The same-origin path the authorized-applications page posts to in order to revoke a single application. */
 export const APPLICATIONS_REVOKE_ACTION = '/account/applications/revoke';
 
+/** The self-service "active sessions" page, where the end-user reviews and signs out of their sessions. */
+export const SESSIONS_PATH = '/account/sessions';
+
+/** The same-origin JSON endpoint returning the end-user's active sessions. */
+export const SESSIONS_LIST_ENDPOINT = '/account/sessions/list';
+
+/** The same-origin path the active-sessions page posts to in order to revoke a single session by its `sid`. */
+export const SESSIONS_REVOKE_ACTION = '/account/sessions/revoke';
+
+/** The same-origin path the active-sessions page posts to in order to revoke every session (optionally the others only). */
+export const SESSIONS_REVOKE_ALL_ACTION = '/account/sessions/revoke-all';
+
 /** The path that renders the consent page (every other path renders login). */
 export const CONSENT_PATH = '/account/consent';
 
@@ -71,6 +83,11 @@ export function isAccountPath(pathname: string): boolean {
 /** True when the given path should render the authorized-applications page. */
 export function isApplicationsPath(pathname: string): boolean {
   return pathname.replace(/\/+$/, '') === APPLICATIONS_PATH;
+}
+
+/** True when the given path should render the active-sessions page. */
+export function isSessionsPath(pathname: string): boolean {
+  return pathname.replace(/\/+$/, '') === SESSIONS_PATH;
 }
 
 /** Maps a login error code to a human-readable message. */

@@ -71,4 +71,16 @@ public readonly record struct SessionGrant
     /// creation so the idle policy travels with the session and is enforced without re-reading host configuration.
     /// </summary>
     public TimeSpan? IdleTimeout { get; init; }
+
+    /// <summary>
+    /// Gets the <c>User-Agent</c> header observed when the session was established, used to describe the session's
+    /// device/browser on an active-sessions surface, or <c>null</c> when none was recorded.
+    /// </summary>
+    public string? UserAgent { get; init; }
+
+    /// <summary>
+    /// Gets the remote IP address observed when the session was established, used to describe where the session
+    /// originated on an active-sessions surface, or <c>null</c> when none was recorded.
+    /// </summary>
+    public string? RemoteIpAddress { get; init; }
 }

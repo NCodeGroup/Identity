@@ -43,7 +43,7 @@ internal class DefaultOpenIdContextFactory(
     private IOpenIdTenantFactory OpenIdTenantFactory { get; } = openIdTenantFactory;
 
     /// <inheritdoc />
-    public async ValueTask<OpenIdContext> CreateAsync(
+    public async ValueTask<OpenIdContext> CreateForRequestAsync(
         HttpContext httpContext,
         IMediator mediator,
         CancellationToken cancellationToken
@@ -55,7 +55,7 @@ internal class DefaultOpenIdContextFactory(
             cancellationToken
         );
 
-        await using var tenantReference = await OpenIdTenantFactory.CreateTenantAsync(
+        await using var tenantReference = await OpenIdTenantFactory.CreateTenantForRequestAsync(
             httpContext,
             openIdEnvironment,
             openIdServer,
@@ -78,6 +78,43 @@ internal class DefaultOpenIdContextFactory(
         httpContext.Response.RegisterForDisposeAsync(openIdContext);
 
         return openIdContext;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<OpenIdContext> CreateForTenantAsync(
+        HttpContext httpContext,
+        string tenantId,
+        IMediator mediator,
+        CancellationToken cancellationToken
+    )
+    {
+        var openIdEnvironment = OpenIdEnvironmentProvider.Get();
+        var openIdServer = await OpenIdServerProvider.GetAsync(
+            openIdEnvironment,
+            cancellationToken
+        );
+
+        await using var tenantReference = await OpenIdTenantFactory.CreateTenantByIdAsync(
+            httpContext,
+            openIdEnvironment,
+            openIdServer,
+            tenantId,
+            openIdServer.PropertyBag,
+            cancellationToken
+        );
+
+        var propertyBag = tenantReference.Value.PropertyBag.Clone();
+
+        // Intentionally not published as the ambient context feature nor registered for request disposal: this is a
+        // secondary, caller-owned context for the addressed tenant, distinct from the request's own context.
+        return CreateContext(
+            httpContext,
+            mediator,
+            openIdEnvironment,
+            openIdServer,
+            tenantReference,
+            propertyBag
+        );
     }
 
     /// <summary>

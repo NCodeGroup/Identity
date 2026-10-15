@@ -49,7 +49,7 @@ internal sealed class ManagementEnvironmentEndpointFilter(
         try
         {
             // The factory publishes the context on the request (an IOpenIdContextFeature) for endpoints to retrieve.
-            await OpenIdContextFactory.CreateAsync(
+            await OpenIdContextFactory.CreateForRequestAsync(
                 httpContext,
                 mediator,
                 httpContext.RequestAborted

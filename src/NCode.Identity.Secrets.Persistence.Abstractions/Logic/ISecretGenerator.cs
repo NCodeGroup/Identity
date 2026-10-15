@@ -37,4 +37,18 @@ public interface ISecretGenerator
     /// <returns>The <see cref="GeneratedSecret"/> with data-protected key material and, for symmetric secrets,
     /// the one-time unprotected material to reveal.</returns>
     GeneratedSecret GenerateSecret(GenerateSecretRequest request);
+
+    /// <summary>
+    /// Generates an opaque, URL-safe shared-secret string (for example an OAuth <c>client_secret</c>) and returns it
+    /// as the one-time <see cref="GeneratedSecret.SecretMaterial"/>, alongside a data-protected
+    /// <see cref="PersistedSecret"/> whose stored symmetric key material is the <strong>UTF-8 bytes of that string</strong>.
+    /// Unlike <see cref="GenerateSecret"/> — which stores raw CSPRNG bytes for cryptographic keys and reveals their
+    /// base64url form — this stores exactly what a verifier compares against (the UTF-8 bytes of the presented secret),
+    /// so the generated secret authenticates round-trip. The request's <see cref="GenerateSecretRequest.KeySizeBits"/>
+    /// sets the random entropy; its <see cref="GenerateSecretRequest.SecretType"/> must be <c>Symmetric</c>.
+    /// </summary>
+    /// <param name="request">The <see cref="GenerateSecretRequest"/> describing the shared secret to generate.</param>
+    /// <returns>The <see cref="GeneratedSecret"/> with the data-protected UTF-8 key material and the one-time opaque
+    /// secret string to reveal.</returns>
+    GeneratedSecret GenerateSharedSecret(GenerateSecretRequest request);
 }

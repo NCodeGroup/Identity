@@ -1,42 +1,38 @@
 {
-    "alias": "ncode-basic",
-    "description": "NCode.Identity OP — Basic OP certification (authorization-code + PKCE S256).",
-    "server": {
-        "discoveryUrl": "https://host.docker.internal:5001/.well-known/openid-configuration"
-    },
-    "client": {
-        "client_id": "client",
-        "client_secret": "conformance-secret-client"
-    },
-    "client2": {
-        "client_id": "client2",
-        "client_secret": "conformance-secret-client2"
-    },
-    "browser": [
+  "description": "NCode.Identity OP — Basic OP certification (authorization-code + PKCE S256, dynamic client registration).",
+  "server": {
+    "discoveryUrl": "https://host.docker.internal:5001/.well-known/openid-configuration"
+  },
+  "client": {
+    "client_name": "ncode-conformance-basic",
+    "scope": "openid profile email"
+  },
+  "browser": [
+    {
+      "match": "https://host.docker.internal:5001/oauth2/authorize*",
+      "tasks": [
         {
-            "match": "https://host.docker.internal:5001/oauth2/authorize*",
-            "tasks": [
-                {
-                    "task": "Login",
-                    "match": "https://host.docker.internal:5001/account/login*",
-                    "commands": [
-                        ["text", "id", "username", "conformance-user"],
-                        ["text", "id", "password", "conformance-password"],
-                        ["click", "id", "login"]
-                    ]
-                },
-                {
-                    "task": "Consent",
-                    "match": "https://host.docker.internal:5001/account/consent*",
-                    "optional": true,
-                    "commands": [["click", "id", "consent-allow"]]
-                },
-                {
-                    "task": "Verify Complete",
-                    "match": "https://*/test/a/ncode-basic/callback*",
-                    "commands": [["wait", "id", "submission_complete", 10]]
-                }
-            ]
+          "task": "Login",
+          "match": "https://host.docker.internal:5001/account/login*",
+          "optional": true,
+          "commands": [
+            ["text", "id", "username", "conformance-user"],
+            ["text", "id", "password", "conformance-password"],
+            ["click", "id", "login"]
+          ]
+        },
+        {
+          "task": "Consent",
+          "match": "https://host.docker.internal:5001/account/consent*",
+          "optional": true,
+          "commands": [["click", "id", "consent-allow"]]
+        },
+        {
+          "task": "Verify Complete",
+          "match": "https://*/test/*/callback*",
+          "commands": [["wait", "id", "submission_complete", 10]]
         }
-    ]
+      ]
+    }
+  ]
 }

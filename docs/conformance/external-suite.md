@@ -56,25 +56,26 @@ hermetic [`build/dod.ps1`](../../build/dod.ps1) inner loop — consistent with
 
 ## Remaining
 
-- **Nightly CI pipeline** (the sole `T6` remainder). No `.github/workflows` exists yet; a separate, opt-in /
+- **Nightly CI pipeline** (a `T6` remainder). No `.github/workflows` exists yet; a separate, opt-in /
   nightly job (`docker compose` + Python 3, no local Java) that invokes `run-conformance.ps1` and publishes the
   `.results/` zips as artifacts is the last step. It is intentionally deferred from the committed harness so the
   wiring is introduced alongside the repo's broader CI bootstrap rather than as a one-off.
-- **Interactive (Basic OP) login surface — login, `prompt`, and token-response bugs are resolved; a harness
-  alias-conflict is the current blocker.** First live-run triage: the **Config OP** plan passes cleanly
+- **Basic OP now runs end-to-end under Dynamic Client Registration.** The **Config OP** plan passes cleanly
   (`44 successes, 0 failures, 0 warnings`). The **Basic OP** browser profile originally interrupted at
-  `Unable to locate element with ID: 'username'` because the suite's default `BrowserControl` is a no-JavaScript
-  **HtmlUnitDriver** and the login surface was a client-rendered SPA; that is **fixed** — the server now renders a
-  working no-JS `<form>` (progressive enhancement), and the suite drives full login/consent/token/userinfo flows
-  (13+ modules complete). Four backend bugs it surfaced are all **fixed**: an `AuthorizationResult` crash on an omitted
-  `state`; the `client_credentials`/`password` omitted-scope crash; `expires_in` serialized as a string instead of a
-  JSON number (OAuth 2.0 §5.1); and the `prompt=login` / `select_account` / `create` re-authentication **loop**
-  (`DefaultAuthorizeHandler` now guards them with `!IsContinuation`, and the suite confirms the second id_token's
-  `auth_time` advances). **Current blocker:** the `prompt` tests are _functionally_ passing but get **INTERRUPTED** by
-  the suite's `Stopping test due to alias conflict` — the static `alias` in the config forces serial execution, and the
-  long-running prompt flows overlap. The fix is to switch the Basic OP config to **Dynamic Client Registration** (drop
-  the `alias` + static `client`/`client2` so the suite registers per-test clients; the OP's `registration_endpoint`
-  supports it — [ADR-0063](../adr/0063-dynamic-client-registration.md)). The `oidcc-response-type-missing` error-path
-  browser flow also needs triage.
+  `Unable to locate element with ID: 'username'` (the suite's default `BrowserControl` is a no-JavaScript
+  **HtmlUnitDriver** and the login surface was a client-rendered SPA); that is **fixed** by the no-JS progressive
+  `<form>`. The config was then switched to **Dynamic Client Registration** (dropping the static `alias` + `client`/
+  `client2` so the suite registers a fresh client per module — [ADR-0063](../adr/0063-dynamic-client-registration.md),
+  with `registration_endpoint_allow_anonymous=true` in `appsettings.Conformance.json`), which removed the
+  `Stopping test due to alias conflict` serialization. The DCR switch surfaced and **fixed** two further backend bugs:
+  the deregistration `DELETE /oauth2/register/{client_id}` failing on a client that still owned a secret
+  (`ClientStore.RemoveAsync` guard was blind to same-unit-of-work pending deletes), and **generated `client_secret`s
+  failing `invalid_client`** because a symmetric secret was stored as raw bytes instead of the UTF-8 bytes client
+  authentication compares against (new `ISecretGenerator.GenerateSharedSecret` —
+  [ADR-0110](../adr/0110-shared-secret-vs-cryptographic-key-storage.md)). Two conformance-config fixes were also needed:
+  the `Verify Complete` callback match uses `/test/*/callback*` (DCR has no `/a/<alias>/` segment), and the `Login` task
+  is `optional` (so no-login `prompt=none` / `max_age` flows do not error). **First full Basic OP (DCR) run:**
+  `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` across 38 modules with no mass-abort. Triaging those dispositions is
+  tracked as backlog `T8`.
 - **Profile expansion** beyond Basic + Config (Form Post / Dynamic OP / FAPI) as those capabilities are
   verified end-to-end.

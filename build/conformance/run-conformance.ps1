@@ -51,15 +51,16 @@ param(
 
     [string] $ExportDir = "$PSScriptRoot/.results",
 
-    # Test plans and their matching config files, paired by index. Defaults to the Config OP profile, which passes
-    # today; the browser-driven Basic OP profile is opt-in via -IncludeBrowserPlans (it is blocked on the interactive
-    # login surface — the suite's no-JS HtmlUnitDriver cannot render the client-side React login SPA; see
-    # docs/conformance/external-suite.md).
+    # Test plans and their matching config files, paired by index. Defaults to the Config OP profile; the browser-driven
+    # Basic OP profile is opt-in via -IncludeBrowserPlans (it needs Docker-reachable browser automation and a running
+    # OP; see docs/conformance/external-suite.md).
     [string[]] $Plans = @('oidcc-config-certification-test-plan'),
     [string[]] $Configs = @('oidcc-config.json'),
 
-    # Append the browser-driven Basic OP certification plan (with its required variants). Interactive modules currently
-    # interrupt at the login step until the login/consent surface is driveable by the suite's no-JS browser.
+    # Append the browser-driven Basic OP certification plan (with its required variants). It registers a fresh client
+    # per module via Dynamic Client Registration (no shared static `alias`), so long interactive prompt flows no longer
+    # serialize into the suite's `alias conflict`. Requires anonymous registration on the OP
+    # (`registration_endpoint_allow_anonymous=true`, set in appsettings.Conformance.json).
     [switch] $IncludeBrowserPlans,
 
     # Skip the in-house probe-runner pre-flight (step 2).
@@ -215,8 +216,9 @@ try {
         $plansToRun = @($Plans)
         $configsToRun = @($Configs)
         if ($IncludeBrowserPlans) {
-            # The Basic OP modules require explicit variants (server_metadata / client_registration).
-            $plansToRun += 'oidcc-basic-certification-test-plan[server_metadata=discovery][client_registration=static_client]'
+            # The Basic OP modules require explicit variants (server_metadata / client_registration). `dynamic_client`
+            # makes the suite register a fresh client per module, avoiding the shared-`alias` serialization conflict.
+            $plansToRun += 'oidcc-basic-certification-test-plan[server_metadata=discovery][client_registration=dynamic_client]'
             $configsToRun += 'oidcc-basic.json'
         }
         if ($plansToRun.Count -ne $configsToRun.Count) {

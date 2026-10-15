@@ -742,7 +742,11 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         if (isConfidential)
         {
-            var generated = SecretGenerator.GenerateSecret(
+            // A client_secret is an opaque string the client later presents verbatim. GenerateSharedSecret stores it
+            // as the UTF-8 bytes client authentication compares against (see CommonClientAuthenticationHandler.
+            // IsSecretEqual), unlike GenerateSecret's raw-byte crypto-key material whose base64url reveal never
+            // round-trips back to the stored bytes.
+            var generated = SecretGenerator.GenerateSharedSecret(
                 new GenerateSecretRequest
                 {
                     SecretId = CryptoService.GenerateResourceId(),

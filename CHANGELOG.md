@@ -32,6 +32,15 @@ change to the public API is a **major** version bump.
   `authorization_response_iss_parameter_supported` setting. The standalone `ISecurityProfileSettingsExpander` was folded
   into the catalog and removed.
 
+- **`ISecretGenerator.GenerateSharedSecret` — a correct-by-default primitive for issuing a presented secret
+  ([ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md)).** A symmetric `PersistedSecret` serves two
+  distinct purposes that need two storage shapes: a **shared secret** an external party presents (an OAuth
+  `client_secret`) must be stored as the **UTF-8 bytes of its opaque string**, whereas a **cryptographic key** the
+  server itself uses (an `HS256` key, a symmetric JWE key) is stored as **raw bytes** and revealed `base64url`.
+  `GenerateSharedSecret` generates a URL-safe random string and persists it in the first shape; the existing
+  `GenerateSecret` keeps the second. The distinction is made at the call site (per the no-flag-argument convention), so
+  a client-secret issuer can no longer silently pick the wrong representation.
+
 - **FAPI 2.0 `security_profile` mechanism — advances backlog `F16` (Phase 2)
   ([ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).** A tenant or client opts into
   the OpenID Foundation FAPI 2.0 Security Profile with a single `security_profile=fapi2` setting. The profile expands
@@ -980,6 +989,24 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   [ADR-0056](docs/adr/0056-abstractions-split-into-framework-free-tiered-packages.md).
 
 ### Fixed
+
+- **A server-generated `client_secret` now authenticates.** Dynamic Client Registration and the management
+  "create client secret" endpoint generated a symmetric secret via `ISecretGenerator.GenerateSecret`, which stores the
+  raw CSPRNG bytes and reveals their `base64url` form — but client authentication compares the **UTF-8 bytes of the
+  presented secret** against the stored key material (and `client_secret_jwt` keys its HMAC from those same UTF-8
+  octets), so `UTF8(base64url(raw)) ≠ raw` meant every generated secret failed with `invalid_client`. A new
+  `ISecretGenerator.GenerateSharedSecret` persists the opaque secret string as its UTF-8 bytes (the representation a
+  verifier compares against); DCR and the management client-secret path now use it, while asymmetric / server-side
+  cryptographic keys keep `GenerateSecret` ([ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md)).
+  Surfaced by the OpenID Foundation Conformance Suite's Basic OP profile under Dynamic Client Registration.
+
+- **Dynamic Client Registration deregistration (`DELETE /oauth2/register/{client_id}`) no longer fails for a client
+  that still has a secret.** `ClientStore.RemoveAsync` guarded against orphaning secrets with a fresh
+  `ClientSecrets.AnyAsync(…)` **database** query, which could not see the secret rows the same unit of work had already
+  marked for deletion (the deregistration handler removes the client's secrets, then the client, then saves once) — so
+  the guard wrongly reported the client "still has secrets" and the delete threw `server_error`. The guard is now
+  change-tracker-aware: it ignores secrets already marked `Deleted` in the current `DbContext`. Surfaced by the OpenID
+  Foundation Conformance Suite's Basic OP profile under Dynamic Client Registration.
 
 - **`expires_in` is now serialized as a JSON number.** The token response is written in the OpenID wire format, where
   the generic value parsers emit every value as a JSON string — so `expires_in` (a `TimeSpan?`) was emitted as

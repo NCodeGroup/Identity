@@ -17,6 +17,8 @@
 #endregion
 
 using System.Buffers;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Encoders;
 using NCode.Extensions.DataProtection;
@@ -74,6 +76,48 @@ internal class DefaultSecretGenerator(
         };
 
         return new GeneratedSecret { Secret = secret, SecretMaterial = material.SecretMaterial };
+    }
+
+    /// <inheritdoc />
+    public GeneratedSecret GenerateSharedSecret(GenerateSecretRequest request)
+    {
+        if (request.SecretType != SecretTypes.Symmetric)
+        {
+            throw new InvalidOperationException(
+                $"A shared secret must be of type '{SecretTypes.Symmetric}'."
+            );
+        }
+
+        if (request.KeySizeBits <= 0 || request.KeySizeBits % 8 != 0)
+        {
+            throw new ArgumentException(
+                "The shared-secret entropy size (in bits) must be a positive multiple of 8.",
+                nameof(request)
+            );
+        }
+
+        // The opaque secret string is what an external party holds and later presents; its UTF-8 bytes are stored as
+        // the symmetric key material so a UTF-8 comparison of the presented secret against the stored material matches.
+        var entropyByteLength = request.KeySizeBits >> 3;
+        var entropy = new byte[entropyByteLength];
+        RandomNumberGenerator.Fill(entropy);
+        var secretMaterial = Base64Url.Encode(entropy);
+
+        var materialBytes = Encoding.UTF8.GetBytes(secretMaterial);
+        var secret = new PersistedSecret
+        {
+            SecretId = request.SecretId,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            CreatedWhen = request.CreatedWhen,
+            ExpiresWhen = request.ExpiresWhen,
+            SecretType = SecretTypes.Symmetric,
+            SecretEncoding = SecretEncodings.SymmetricRaw,
+            KeySizeBits = materialBytes.Length * 8,
+            EncodedValue = Protect(materialBytes),
+        };
+
+        return new GeneratedSecret { Secret = secret, SecretMaterial = secretMaterial };
     }
 
     private string Protect(ReadOnlySpan<byte> privateKeyBytes)

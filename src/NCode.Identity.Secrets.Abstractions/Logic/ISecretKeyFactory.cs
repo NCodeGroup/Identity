@@ -27,6 +27,12 @@ namespace NCode.Identity.Secrets.Logic;
 /// <summary>
 /// Provides factory methods to create <see cref="SecretKey"/> instances from cryptographic key material.
 /// </summary>
+/// <remarks>
+/// This is a low-level convenience primitive for the <b>built-in</b> key families (symmetric, RSA, ECC); its typed
+/// methods serve callers that already know which family they want. It is deliberately a closed set and is <b>not</b>
+/// the extensibility seam — a custom key type is added by registering an <see cref="ISecretKeyTypeDescriptor"/> that
+/// constructs its own <see cref="SecretKey"/> subtype, without routing through this factory.
+/// </remarks>
 [PublicAPI]
 public interface ISecretKeyFactory
 {

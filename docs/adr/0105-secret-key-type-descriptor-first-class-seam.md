@@ -47,9 +47,14 @@ fold the parallel registries and duplicated state into it.
    assembly, and the management public-key read path consumes the same seam. The `IJsonWebKeyConverter`,
    `JsonWebKeyConverter<T>`, and the typed `JsonWebKey` / `RsaJsonWebKey` / `EccJsonWebKey` result classes are removed.
 
-4. **The extension bases are public.** `SecretKeyTypeDescriptor` and `AsymmetricSecretKeyTypeDescriptor` become public
-   `abstract` classes so an application can derive from them to add a custom key type, reusing the shared import /
-   deserialize / export dispatch and supplying only the family-specific hooks.
+4. **The extension bases are public, and only the asymmetric base depends on the factory.** `SecretKeyTypeDescriptor`
+   and `AsymmetricSecretKeyTypeDescriptor` become public `abstract` classes so an application can derive from them to
+   add a custom key type, reusing the shared import / deserialize / export dispatch and supplying only the
+   family-specific hooks. The dependency-free `SecretKeyTypeDescriptor` base takes **no** constructor dependencies, so a
+   custom type that constructs its own `SecretKey` derives from it directly; `ISecretKeyFactory` is injected one level
+   down, on `AsymmetricSecretKeyTypeDescriptor` (where the built-in RSA/ECC/certificate construction primitives are
+   actually used), instead of being forced onto every descriptor. `ISecretKeyFactory` is thereby a **closed, low-level
+   convenience primitive for the built-in families — not the extensibility seam**: the descriptor is.
 
 5. **Shared `SecretKey` state is lifted to the base.** `AsymmetricSecretKey` now holds `Metadata`, `KeySizeBits`, and
    the optional certificate (with `HasCertificate` / `ExportCertificate`); `RsaSecretKey` / `EccSecretKey` own the

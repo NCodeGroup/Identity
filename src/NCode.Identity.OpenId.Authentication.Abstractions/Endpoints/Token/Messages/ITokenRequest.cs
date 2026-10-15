@@ -86,6 +86,43 @@ public interface ITokenRequest : IOpenIdRequest
     List<string>? Resources { get; set; }
 
     /// <summary>
+    /// Gets or sets a <see cref="string"/> collection containing the <c>audience</c> parameter (RFC 8693 §2.1)
+    /// identifying the logical target services the issued token is intended for, used to narrow the token's audience
+    /// during a token exchange.
+    /// </summary>
+    List<string>? Audience { get; set; }
+
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the <c>subject_token</c> parameter (RFC 8693 §2.1): the
+    /// security token that represents the identity of the party on behalf of whom the exchange is being made.
+    /// </summary>
+    string? SubjectToken { get; set; }
+
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the <c>subject_token_type</c> parameter (RFC 8693 §2.1):
+    /// the token type identifier of the <c>subject_token</c>.
+    /// </summary>
+    string? SubjectTokenType { get; set; }
+
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the <c>actor_token</c> parameter (RFC 8693 §2.1): the
+    /// security token that represents the identity of the acting party, present only for delegation.
+    /// </summary>
+    string? ActorToken { get; set; }
+
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the <c>actor_token_type</c> parameter (RFC 8693 §2.1): the
+    /// token type identifier of the <c>actor_token</c>.
+    /// </summary>
+    string? ActorTokenType { get; set; }
+
+    /// <summary>
+    /// Gets or sets a <see cref="string"/> value containing the <c>requested_token_type</c> parameter (RFC 8693 §2.1):
+    /// the token type identifier the client is requesting for the issued token.
+    /// </summary>
+    string? RequestedTokenType { get; set; }
+
+    /// <summary>
     /// Gets or sets a <see cref="string"/> value containing the username of the resource owner.
     /// </summary>
     string? Username { get; set; }

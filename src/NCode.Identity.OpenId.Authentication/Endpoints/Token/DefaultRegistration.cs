@@ -31,6 +31,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Messages;
 using NCode.Mediator;
@@ -153,6 +154,24 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<
                     ICommandHandler<ValidateTokenGrantCommand<PasswordGrant>>,
                     DefaultValidatePasswordGrantHandler
+                >()
+            );
+
+            // Token Exchange (RFC 8693)
+
+            serviceCollection.TryAddSingleton<
+                ISubjectTokenValidator,
+                DefaultSubjectTokenValidator
+            >();
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ITokenGrantHandler, DefaultTokenExchangeGrantHandler>()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateTokenGrantCommand<TokenExchangeGrant>>,
+                    DefaultValidateTokenExchangeGrantHandler
                 >()
             );
         }

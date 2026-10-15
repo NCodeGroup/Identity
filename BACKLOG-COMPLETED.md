@@ -328,6 +328,22 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
       revocation runs the full termination seam (back-channel logout + audit) in the addressed tenant's security domain —
       not a tenant-parameterized service overload._
 
+- **`F23` — OAuth 2.0 Token Exchange (RFC 8693).** The token endpoint had no token-exchange grant, so a client could
+  not exchange a presented `subject_token` (and optional `actor_token`) for a delegation/impersonation token.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0101](docs/adr/0101-oauth-token-exchange-rfc8693.md). A `DefaultTokenExchangeGrantHandler : ITokenGrantHandler`
+  for `urn:ietf:params:oauth:grant-type:token-exchange` now mints `access_token` / `refresh_token` / `id_token` outputs
+  (`issued_token_type` in the response), supporting both impersonation and delegation with spec-correct `act` / nested
+  `act` chains and `may_act` actor authorization (RFC 8693 §4). Presented tokens are validated through a replaceable
+  `ISubjectTokenValidator` seam whose default accepts only **self-issued** JWTs (tenant signing keys, issuer, lifetime);
+  the requesting client must be confidential and be the client the token was issued to (or named in its `aud`); the
+  subject is resolved forward through `IPrincipalResolver` (never by reversing a pairwise `sub`); scopes/audiences are
+  downscoped via the RFC 8707 `resource` and RFC 8693 `audience` parameters; and refresh-token issuance is gated per
+  client by `token_exchange_allow_refresh_token`. The grant is secure-by-default (not advertised in the baseline
+  `grant_types_supported`); the conformance tenant opts in, flipping the `grant-token-exchange` coverage probe. External
+  / enterprise-IdP federation is intentionally out of scope and tracked as `F26` (the `ISubjectTokenValidator` seam is
+  its extension point)._
+
 ## Conformance & interop testing (group `T`)
 
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface

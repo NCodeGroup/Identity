@@ -254,6 +254,18 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Scope
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Scopes.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Resources.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Resources.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Audience.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Audience.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.SubjectToken.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.SubjectToken.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.SubjectTokenType.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.SubjectTokenType.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.ActorToken.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.ActorToken.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.ActorTokenType.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.ActorTokenType.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.RequestedTokenType.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.RequestedTokenType.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.TokenRequest() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Username.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenRequest.Username.set -> void
@@ -271,6 +283,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Scop
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenResponse() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenType.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenType.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.IssuedTokenType.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.IssuedTokenType.set -> void
 NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters
 NCode.Identity.OpenId.Authentication.Messages.Parsers.AuthenticationParameterParsers
 NCode.Identity.OpenId.Authentication.UniqueCollection<T>

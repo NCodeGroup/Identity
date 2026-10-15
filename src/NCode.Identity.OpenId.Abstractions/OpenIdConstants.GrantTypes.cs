@@ -66,5 +66,11 @@ public static partial class OpenIdConstants
         /// Backchannel Authentication).
         /// </summary>
         public const string Ciba = "urn:openid:params:grant-type:ciba";
+
+        /// <summary>
+        /// Contains the constant value 'urn:ietf:params:oauth:grant-type:token-exchange'
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc8693">RFC 8693</see> OAuth 2.0 Token Exchange).
+        /// </summary>
+        public const string TokenExchange = "urn:ietf:params:oauth:grant-type:token-exchange";
     }
 }

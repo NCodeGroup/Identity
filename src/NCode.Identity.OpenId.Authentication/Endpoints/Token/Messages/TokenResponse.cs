@@ -84,5 +84,12 @@ public sealed class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
     }
 
     /// <inheritdoc />
+    public string? IssuedTokenType
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.IssuedTokenType);
+        set => SetKnownParameter(OpenIdCommonParameters.IssuedTokenType, value);
+    }
+
+    /// <inheritdoc />
     public override TokenResponse Clone() => new(this);
 }

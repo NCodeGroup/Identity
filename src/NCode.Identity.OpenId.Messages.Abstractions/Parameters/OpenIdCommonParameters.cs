@@ -473,6 +473,90 @@ public static class OpenIdCommonParameters
     };
 
     /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>audience</c> message parameter (RFC 8693 §2.1) which parses
+    /// <see cref="StringValues"/> into a <see cref="List{String}"/> result.
+    /// </summary>
+    public static readonly KnownParameter<List<string>> Audience = new(
+        OpenIdConstants.Parameters.Audience,
+        CommonParameterParsers.StringList
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>subject_token</c> message parameter (RFC 8693 §2.1) which
+    /// parses <see cref="StringValues"/> into a <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string> SubjectToken = new(
+        OpenIdConstants.Parameters.SubjectToken,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>subject_token_type</c> message parameter (RFC 8693 §2.1) which
+    /// parses <see cref="StringValues"/> into a <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string> SubjectTokenType = new(
+        OpenIdConstants.Parameters.SubjectTokenType,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>actor_token</c> message parameter (RFC 8693 §2.1) which parses
+    /// <see cref="StringValues"/> into a <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string> ActorToken = new(
+        OpenIdConstants.Parameters.ActorToken,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>actor_token_type</c> message parameter (RFC 8693 §2.1) which
+    /// parses <see cref="StringValues"/> into a <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string> ActorTokenType = new(
+        OpenIdConstants.Parameters.ActorTokenType,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>requested_token_type</c> message parameter (RFC 8693 §2.1)
+    /// which parses <see cref="StringValues"/> into a <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string> RequestedTokenType = new(
+        OpenIdConstants.Parameters.RequestedTokenType,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the <c>issued_token_type</c> response parameter (RFC 8693 §2.2.1)
+    /// which parses <see cref="StringValues"/> into a <see cref="String"/> result.
+    /// </summary>
+    public static readonly KnownParameter<string> IssuedTokenType = new(
+        OpenIdConstants.Parameters.IssuedTokenType,
+        CommonParameterParsers.String
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>state</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> State = new(

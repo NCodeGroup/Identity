@@ -56,4 +56,10 @@ public interface ITokenResponse : IOpenIdResponse
     /// Gets or sets the <c>token_type</c> parameter.
     /// </summary>
     string? TokenType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <c>issued_token_type</c> parameter (RFC 8693 §2.2.1): the token type identifier of the token
+    /// issued in the <see cref="AccessToken"/> field by an OAuth 2.0 Token Exchange.
+    /// </summary>
+    string? IssuedTokenType { get; set; }
 }

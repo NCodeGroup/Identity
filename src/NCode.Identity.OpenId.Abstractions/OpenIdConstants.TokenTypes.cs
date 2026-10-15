@@ -52,5 +52,12 @@ public static partial class OpenIdConstants
         /// Contains the <c>refresh_token</c> constant value.
         /// </summary>
         public const string RefreshToken = "refresh_token";
+
+        /// <summary>
+        /// Contains the <c>N_A</c> constant value, used as the <c>token_type</c> of an OAuth 2.0 Token Exchange
+        /// response (<see href="https://datatracker.ietf.org/doc/html/rfc8693">RFC 8693</see>) when the issued token is
+        /// not an access token (for example, an <c>id_token</c>) and therefore has no applicable <c>token_type</c>.
+        /// </summary>
+        public const string NotApplicable = "N_A";
     }
 }

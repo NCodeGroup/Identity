@@ -17,11 +17,10 @@
 #endregion
 
 using Microsoft.Extensions.Logging.Abstractions;
-using NCode.Extensions.DataProtection;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Server.ConformanceEnvironment;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -34,13 +33,13 @@ public class ConformanceSeedHandlerTests : BaseTests
 
     private ConformanceSeedHandler CreateHandler(ConformanceSeedOptions options)
     {
-        // Strict mocks: on the guard paths under test the data-protection, crypto, and time dependencies are untouched.
-        var mockDataProtectorFactory = CreateStrictMock<IDataProtectorFactory<PersistedSecret>>();
+        // Strict mocks: on the guard paths under test the secret, crypto, and time dependencies are untouched.
+        var mockSecretGenerator = CreateStrictMock<ISecretGenerator>();
         var mockCryptoService = CreateStrictMock<ICryptoService>();
 
         return new ConformanceSeedHandler(
             options,
-            mockDataProtectorFactory.Object,
+            mockSecretGenerator.Object,
             mockCryptoService.Object,
             TimeProvider.System,
             NullLogger<ConformanceSeedHandler>.Instance

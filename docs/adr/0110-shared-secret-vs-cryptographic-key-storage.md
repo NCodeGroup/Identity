@@ -55,7 +55,10 @@ the UTF-8 bytes of its opaque string.**
   `client_secret_jwt`, because the stored material is exactly what each path compares against or keys from.
 - The crypto-key-vs-shared-secret distinction is explicit at the call site and documented here, so a future secret
   issuer picks the right method rather than silently re-introducing the raw-bytes defect. Persisting a **given**
-  shared-secret string (the seed handlers / integration-test factory do this inline today) is a candidate for the same
-  consolidation — tracked in [`BACKLOG.md`](../../BACKLOG.md).
-- Public API grows by one method on `ISecretGenerator`; no storage-shape or migration change (both kinds remain
-  `symmetric_raw` `PersistedSecret`s).
+  shared-secret string is handled by the complementary `ISecretGenerator.ImportSharedSecret(ImportSharedSecretRequest,
+  ReadOnlySpan<byte>)`, which shares one internal construction with `GenerateSharedSecret` so the stored UTF-8 shape
+  cannot drift; the seed handlers and the integration-test factory route through it rather than re-implementing the
+  data-protect-and-wrap logic inline.
+- Public API grows by two methods on `ISecretGenerator` (`GenerateSharedSecret`, `ImportSharedSecret`) plus the
+  `ImportSharedSecretRequest` metadata type; no storage-shape or migration change (both kinds remain `symmetric_raw`
+  `PersistedSecret`s).

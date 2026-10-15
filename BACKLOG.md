@@ -65,7 +65,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D7`      | `D6`       |
-| `F` — Feature gaps                    | `F29`     | `F28`      |
+| `F` — Feature gaps                    | `F31`     | `F30`      |
 | `T` — Conformance & interop testing   | `T8`      | `T7`       |
 | `U` — Frontend presentation platform  | `U13`     | `U12`      |
 | `S` — Secrets management              | `S7`      | `S6`       |
@@ -182,18 +182,6 @@ entry and/or ADR that closed it.
     **Spun-out items (record when starting):** a **JARM + authorization response-mode extensibility seam** work item (the
     response modes are a hardcoded switch in `DefaultAuthorizationResultExecutor` today); **FAPI 1.0 Advanced**; and **S3**
     BYOK static public-key import (secondary to `jwks_uri`).
-
-- **`F30` — Centralize persistence of a _given_ shared-secret string.**
-  [ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md) added `ISecretGenerator.GenerateSharedSecret`
-  for _generating_ a presented secret (stored as the UTF-8 bytes of its opaque string). The complementary operation —
-  persisting a **caller-supplied** shared-secret string in that same shape — is still duplicated inline in three places
-  (`ConformanceSeedHandler.CreatePersistedSecret`, `BootstrapAdminSeedHandler.CreatePersistedSecret`, and the
-  integration-test `PlaygroundApplicationFactory`), each re-implementing the data-protect-and-wrap logic. Add a single
-  correct-by-default primitive (e.g. `ISecretGenerator.ImportSharedSecret(string value, …)` or an `ISecretImporter`
-  overload) and route those sites through it so the UTF-8 contract can't drift. Low priority (the current inline sites
-  are correct); it is a consolidation, not a bug fix. Touch points:
-  [`src/NCode.Identity.Secrets.Persistence`](src/NCode.Identity.Secrets.Persistence),
-  [`src/NCode.Identity.Server`](src/NCode.Identity.Server).
 
 - **`F28` — Complete outbound-fetch SSRF coverage and bound the `request_uri` fetch.** The shared
   `IOutboundHttpForgeryGuard` ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md))

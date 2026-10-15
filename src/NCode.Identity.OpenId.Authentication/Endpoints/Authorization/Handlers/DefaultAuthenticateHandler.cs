@@ -19,8 +19,10 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -32,10 +34,13 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthenticateCommand"/> message.
 /// </summary>
-internal class DefaultAuthenticateHandler(ILogger<DefaultAuthenticateHandler> logger)
-    : ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectDisposition>
+internal class DefaultAuthenticateHandler(
+    ILogger<DefaultAuthenticateHandler> logger,
+    ISessionService sessionService
+) : ICommandResponseHandler<AuthenticateCommand, AuthenticateSubjectDisposition>
 {
     private ILogger<DefaultAuthenticateHandler> Logger { get; } = logger;
+    private ISessionService SessionService { get; } = sessionService;
 
     internal virtual AuthenticateSubjectDisposition Undefined() => new();
 
@@ -100,6 +105,24 @@ internal class DefaultAuthenticateHandler(ILogger<DefaultAuthenticateHandler> lo
             return Failed(
                 errorFactory.AccessDenied("Unable to determine the the end-user's subject id.")
             );
+        }
+
+        // Server-authoritative session check: when the cookie names a session, validate it is still active and not
+        // idle-timed-out (which also slides its idle window). An invalid session self-heals by prompting for login,
+        // exactly like a stale cookie — treat it as no session rather than an access-denied error.
+        var sessionId = subject.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            var sessionValid = await SessionService.ValidateAndTouchAsync(
+                openIdContext,
+                sessionId,
+                cancellationToken
+            );
+            if (!sessionValid)
+            {
+                Logger.EndUserSessionExpired();
+                return Undefined();
+            }
         }
 
         var ticket = SubjectAuthentication.Create(

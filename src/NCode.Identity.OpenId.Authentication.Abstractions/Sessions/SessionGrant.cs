@@ -57,4 +57,18 @@ public readonly record struct SessionGrant
     /// notification list used for back-channel logout.
     /// </summary>
     public required IReadOnlyList<string> ClientIds { get; init; }
+
+    /// <summary>
+    /// Gets the most recent time the session was observed to be in use (an authorize request resolved it). It is the
+    /// sliding base against which <see cref="IdleTimeout"/> is measured; a server-authoritative idle (inactivity)
+    /// timeout expires the session once the elapsed time since this value exceeds <see cref="IdleTimeout"/>.
+    /// </summary>
+    public required DateTimeOffset LastActivityWhen { get; init; }
+
+    /// <summary>
+    /// Gets the sliding inactivity window after which the session expires if it is not used, or <c>null</c> when no
+    /// idle timeout applies (the session is bounded only by its absolute lifetime, if any). Stamped onto the session at
+    /// creation so the idle policy travels with the session and is enforced without re-reading host configuration.
+    /// </summary>
+    public TimeSpan? IdleTimeout { get; init; }
 }

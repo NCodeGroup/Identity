@@ -31,11 +31,9 @@ public interface IGrantStore : IStore<PersistedGrant>
 {
     /// <summary>
     /// Gets a single page of <see cref="PersistedGrant"/> instances ordered by their identifier, using keyset
-    /// (cursor) pagination, optionally filtered to a subject, a client, and/or a session.
+    /// (cursor) pagination, selected by the supplied <see cref="GrantFilter"/>.
     /// </summary>
-    /// <param name="subjectId">When specified, restricts the page to grants for this subject; otherwise all subjects.</param>
-    /// <param name="clientId">When specified, restricts the page to grants for this client; otherwise all clients.</param>
-    /// <param name="sessionId">When specified, restricts the page to grants issued under this session; otherwise all sessions.</param>
+    /// <param name="filter">The criteria selecting which grants are returned; an empty filter returns all grants.</param>
     /// <param name="cursor">The opaque cursor returned by a previous call that fetches the next page, or <c>null</c>
     /// to fetch the first page.</param>
     /// <param name="limit">The maximum number of items to return on the page.</param>
@@ -43,31 +41,24 @@ public interface IGrantStore : IStore<PersistedGrant>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
     /// <see cref="PersistedGrant"/> instances and the cursor for the next page.</returns>
     ValueTask<PagedResult<PersistedGrant>> GetPageAsync(
-        string? subjectId,
-        string? clientId,
-        string? sessionId,
+        GrantFilter filter,
         string? cursor,
         int limit,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Soft-revokes every active grant matching the specified subject, client, and/or session by setting its
-    /// <c>RevokedWhen</c> timestamp; already-revoked grants are left unchanged. At least one of
-    /// <paramref name="subjectId"/>, <paramref name="clientId"/>, or <paramref name="sessionId"/> should be
-    /// specified by the caller.
+    /// Soft-revokes every active grant selected by the supplied <see cref="GrantFilter"/> by setting its
+    /// <c>RevokedWhen</c> timestamp; already-revoked grants are left unchanged. The caller should ensure the filter is
+    /// not empty (see <see cref="GrantFilter.IsEmpty"/>) so an unscoped bulk revoke is not performed by accident.
     /// </summary>
-    /// <param name="subjectId">When specified, restricts the revocation to grants for this subject.</param>
-    /// <param name="clientId">When specified, restricts the revocation to grants for this client.</param>
-    /// <param name="sessionId">When specified, restricts the revocation to grants issued under this session.</param>
+    /// <param name="filter">The criteria selecting which grants are revoked.</param>
     /// <param name="revokedWhen">The timestamp to record as the revocation time.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
     /// grants that were revoked.</returns>
     ValueTask<long> RevokeWhereAsync(
-        string? subjectId,
-        string? clientId,
-        string? sessionId,
+        GrantFilter filter,
         DateTimeOffset revokedWhen,
         CancellationToken cancellationToken
     );

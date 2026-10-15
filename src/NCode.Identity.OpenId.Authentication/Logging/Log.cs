@@ -240,4 +240,36 @@ internal static partial class Log
         Message = "RP-initiated logout completed; notified {ClientCount} participating client(s) via back-channel logout."
     )]
     internal static partial void EndSessionCompleted(this ILogger logger, int clientCount);
+
+    [LoggerMessage(
+        EventId = EventIds.SessionCreated,
+        Level = LogLevel.Information,
+        Message = "Established end-user session '{SessionId}' for subject '{SubjectId}'."
+    )]
+    internal static partial void SessionCreated(
+        this ILogger logger,
+        string sessionId,
+        string subjectId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.SessionIdleExpired,
+        Level = LogLevel.Information,
+        Message = "End-user session '{SessionId}' expired after exceeding its idle timeout."
+    )]
+    internal static partial void SessionIdleExpired(this ILogger logger, string sessionId);
+
+    [LoggerMessage(
+        EventId = EventIds.SessionEvicted,
+        Level = LogLevel.Information,
+        Message = "Evicted end-user session '{SessionId}' to enforce the subject's concurrent-session limit."
+    )]
+    internal static partial void SessionEvicted(this ILogger logger, string sessionId);
+
+    [LoggerMessage(
+        EventId = EventIds.EndUserSessionExpired,
+        Level = LogLevel.Information,
+        Message = "The end-user session is no longer valid (expired or terminated); treating as no session and prompting for login."
+    )]
+    internal static partial void EndUserSessionExpired(this ILogger logger);
 }

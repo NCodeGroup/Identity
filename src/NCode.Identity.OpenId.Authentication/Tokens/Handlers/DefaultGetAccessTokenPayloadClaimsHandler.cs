@@ -19,6 +19,7 @@
 using NCode.Identity.Jose;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
+using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
@@ -90,8 +91,18 @@ internal class DefaultGetAccessTokenPayloadClaimsHandler(ICryptoService cryptoSe
             }
         }
 
-        // The optional 'sid' session claim (RFC 9068 §2.2.1) is a setting-gated follow-up tracked by backlog F25;
-        // the session id is available as tokenRequest.SubjectAuthentication.SessionId.
+        // sid (session identifier, RFC 9068 §2.2.1): emitted only when the client opts in via
+        // send_session_id_in_access_token, so a resource server can correlate the token to the end-user session and
+        // honor session-scoped revocation. Off by default because it discloses the session id to resource servers.
+        var sessionId = tokenRequest.SubjectAuthentication?.SessionId;
+        if (
+            !string.IsNullOrEmpty(sessionId)
+            && !payloadClaims.ContainsKey(JoseClaimNames.Payload.Sid)
+            && openIdClient.Settings.GetValue(OpenIdSettingKeys.SendSessionIdInAccessToken)
+        )
+        {
+            payloadClaims[JoseClaimNames.Payload.Sid] = sessionId;
+        }
 
         return ValueTask.CompletedTask;
     }

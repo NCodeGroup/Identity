@@ -64,7 +64,7 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D6`      | `D5`       |
+| `D` — Deferred, intentionally not-yet | `D7`      | `D6`       |
 | `F` — Feature gaps                    | `F26`     | `F25`      |
 | `T` — Conformance & interop testing   | `T7`      | `T6`       |
 | `U` — Frontend presentation platform  | `U13`     | `U12`      |
@@ -94,6 +94,14 @@ entry and/or ADR that closed it.
   until a concrete need justifies the persistence/migration (or broker/scheduler) operational cost. Touch points:
   implement `NCode.Identity.Dispatch.IJobDispatcher` in a new adapter package and register it before
   `AddInProcessJobDispatcher` (or omit that call).
+- **`D6` — `PageRequest` pagination DTO across the store `GetPageAsync` family.** The evolving *filter* sets are now
+  DTOs ([ADR-0099](docs/adr/0099-forward-compatible-evolving-parameters.md), `GrantFilter`), but the stable
+  `(cursor, limit)` pagination pair is still positional on every `*Store.GetPageAsync` (`IGrantStore`, `IClientStore`,
+  `IClientGrantStore`, `IResourceServerStore`, `IServerStore`, `ITenantStore`, `ILocalAccountStore`) and the generic
+  `BaseStore`. Wrapping it in a shared `PageRequest { Cursor, Limit }` (in `NCode.Persistence.Abstractions`, beside
+  `PagedResult<T>`) would future-proof pagination evolution (e.g. a sort direction) non-breakingly and unify the
+  signatures. Deferred: the pair has not churned, so the value is low today and the change touches every store +
+  implementation + call site + test. Do it as one mechanical sweep before GA if pagination needs to grow.
 
 ## Feature gaps — not yet implemented (group `F`)
 
@@ -136,22 +144,21 @@ entry and/or ADR that closed it.
   ([ADR-0074](docs/adr/0074-session-management-and-logout.md),
   [ADR-0077](docs/adr/0077-session-scoped-grant-revocation-on-logout.md),
   [ADR-0088](docs/adr/0088-opt-in-front-channel-logout-and-session-management.md),
-  [ADR-0096](docs/adr/0096-end-session-subject-from-server-state.md)). These are additive follow-ups that ride it, not a
-  new subsystem:
-    - **`sid` in the access token (RFC 9068 §2.2.1), setting-gated.** The access-token payload-claims handler still
-      omits `sid` (a stale `// TODO` from before the subsystem existed); the session id is already available as
-      `SubjectAuthentication.SessionId`. Emit it as an optional, setting-gated claim (off by default — it correlates the
-      session to resource servers) so a resource server can honor session-scoped revocation. Touch point:
-      `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultGetAccessTokenPayloadClaimsHandler.cs`.
-    - **Active-session listing + global sign-out.** `ISessionService` resolves a single session by `sid` and tracks its
-      relying parties, but cannot enumerate a subject's active sessions or revoke them all ("sign out everywhere"). Add a
-      subject-scoped session query and a bulk-revocation path, plus a management-API/user-facing surface to view and
-      terminate individual or all sessions.
-    - **Idle (inactivity) session timeout.** Only an absolute `SessionLifetime` exists
-      (`InteractiveAuthenticationOptions`); add a sliding idle-timeout policy that expires a session after a period of
-      inactivity.
-    - **Concurrent-session limits per subject.** Optionally cap the number of simultaneous sessions a subject may hold,
-      evicting the oldest (or rejecting the newest) when the limit is exceeded.
+  [ADR-0096](docs/adr/0096-end-session-subject-from-server-state.md)). **Mostly delivered** — see
+  [`CHANGELOG.md`](CHANGELOG.md) and [ADR-0098](docs/adr/0098-session-lifecycle-termination-seam.md): the setting-gated
+  `sid` in the access token, the server-authoritative idle (inactivity) timeout, the concurrent-session limit with a
+  swappable `ISessionEvictionPolicy`, the subject-scoped session query / bulk revocation (`ISessionService.GetSessionsAsync`
+  / `RevokeAsync` / `RevokeAllAsync`), and session auditing/logging are all done. **Remaining:**
+    - **A surface to view and terminate sessions.** The `ISessionService` query/revoke capability exists and is
+      tested, but there is no dedicated surface yet: (a) a **user-facing** "active sessions" + "sign out everywhere"
+      view on the OP-hosted account page (`apps/auth`), which runs in the ambient `OpenIdContext` and can call
+      `GetSessionsAsync` / `RevokeAllAsync` directly; and (b) a tenant-addressed **admin** endpoint
+      (`api/tenants/{tenantId}/sessions`). The admin endpoint is **blocked on a design decision**: management endpoints
+      are addressed by a route `{tenantId}` while `ISessionService` is bound to the ambient `OpenIdContext.Tenant`, so
+      it must first resolve a per-tenant context (or `ISessionService` must gain a tenant-parameterized overload). The
+      existing grants management surface (`GET`/`DELETE api/tenants/{tenantId}/grants?subjectId=…`) already provides
+      subject-filtered listing and bulk revoke in the interim (though it does not run the termination seam's
+      back-channel/audit side effects).
 
 ## Conformance & interop testing (group `T`)
 

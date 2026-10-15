@@ -18,6 +18,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
@@ -207,6 +208,47 @@ public interface IAuditEventRecorder
     ValueTask RecordOpenIdErrorAsync(
         OpenIdContext openIdContext,
         IOpenIdError error,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records that a server-side end-user session was established at sign-in.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="subjectId">The identifier of the subject the session was created for.</param>
+    /// <param name="sessionId">The opaque session identifier (<c>sid</c>) that was created.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordSessionCreatedAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        string sessionId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records that a server-side end-user session (or every session a subject holds) was terminated.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="reason">The reason the session was terminated.</param>
+    /// <param name="subjectId">The identifier of the subject whose session was terminated, when known.</param>
+    /// <param name="sessionId">The opaque session identifier (<c>sid</c>) that was terminated, or <see langword="null"/>
+    /// for a subject-wide termination.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordSessionTerminatedAsync(
+        OpenIdContext openIdContext,
+        SessionTerminationReason reason,
+        string? subjectId,
+        string? sessionId,
         CancellationToken cancellationToken
     );
 }

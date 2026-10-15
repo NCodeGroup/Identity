@@ -67,4 +67,14 @@ public static class OpenIdAuditActions
     /// A protocol endpoint returned an <c>OAuth</c> or <c>OpenID Connect</c> error response.
     /// </summary>
     public const string Error = "openid.error";
+
+    /// <summary>
+    /// A server-side end-user session was established at sign-in.
+    /// </summary>
+    public const string SessionCreated = "session.created";
+
+    /// <summary>
+    /// A server-side end-user session (or every session a subject holds) was terminated.
+    /// </summary>
+    public const string SessionTerminated = "session.terminated";
 }

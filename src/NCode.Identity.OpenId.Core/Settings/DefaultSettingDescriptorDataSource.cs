@@ -287,6 +287,18 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Min,
             };
 
+            // authorization_response_iss_parameter_supported: advertises that the OP returns the iss parameter in
+            // authorization responses (RFC 9207). The behavior is always emitted; this flag advertises it. Default true.
+            // Floor (Or): once a parent advertises it, a child cannot un-advertise it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.AuthorizationResponseIssParameterSupported,
+                Default = true,
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Or,
+            };
+
             // claims_locales_supported: BCP47 locales for which the server can return localized claim values.
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>

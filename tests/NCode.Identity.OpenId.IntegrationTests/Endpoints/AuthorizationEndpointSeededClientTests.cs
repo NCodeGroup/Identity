@@ -76,8 +76,8 @@ public class AuthorizationEndpointSeededClientTests(PlaygroundApplicationFactory
         using var response = await client.GetAsync("/oauth2/authorize" + query);
 
         // prompt=none with no active session cannot interactively re-authenticate, so the server
-        // redirects the error back to the client's registered redirect_uri.
-        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        // redirects the error back to the client's registered redirect_uri (303 See Other).
+        Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
         var location = response.Headers.Location;
         Assert.NotNull(location);
         Assert.StartsWith(RedirectUri, location.GetLeftPart(UriPartial.Path));
@@ -129,9 +129,9 @@ public class AuthorizationEndpointSeededClientTests(PlaygroundApplicationFactory
         using var response = await client.GetAsync("/oauth2/authorize" + query);
 
         // The secure default does not advertise or accept the implicit flow: supported-values validation
-        // fails and the error is redirected back to the client's registered redirect_uri (rather than the
-        // interactive challenge an accepted request would produce).
-        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        // fails and the error is redirected back to the client's registered redirect_uri (303 See Other),
+        // rather than the interactive challenge an accepted request would produce.
+        Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
         var location = response.Headers.Location;
         Assert.NotNull(location);
         Assert.StartsWith(RedirectUri, location.GetLeftPart(UriPartial.Path));

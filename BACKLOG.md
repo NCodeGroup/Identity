@@ -142,21 +142,24 @@ entry and/or ADR that closed it.
     (registered-certificate thumbprint match), gated by the client's `token_endpoint_auth_method`, reusing
     `IClientCertificateResolver` and auto-advertised in `token_endpoint_auth_methods_supported`
     ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)).
-    **The FAPI security-profile mechanism** is **done**: a `security_profile=fapi2` setting whose
-    `ISecurityProfileSettingsExpander` injects the FAPI 2.0 ceilings into the merge lattice (algorithms `PS256`/`ES256`/
-    `EdDSA`, strong-client-auth-only, `response_type=code`, PKCE `S256`, require PKCE + PAR, short code/PAR lifetimes),
+    **The FAPI security-profile mechanism** is **done**: a `security_profile=fapi2` setting resolved through an
+    extensible **profile registry** (`ISecurityProfileCatalog` over `ISecurityProfile` definitions) that injects the
+    FAPI 2.0 ceilings into the merge lattice (algorithms `PS256`/`ES256`/`EdDSA`, strong-client-auth-only,
+    `response_type=code`, PKCE `S256`, require PKCE + PAR, short code/PAR lifetimes, and a ≤ 60s `clock_skew` ceiling),
     plus permitted-`token_endpoint_auth_methods_supported` enforcement in the client-auth service (rejecting weak/public
     auth under `fapi2`) ([ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
+    **The FAPI behavioral rules and discovery/validation details** are **done**
+    ([ADR-0109](docs/adr/0109-fapi-behavioral-rules-and-discovery-validation-details.md)): the rules that cannot be
+    expressed as a setting ceiling are modeled as composable **requirement objects** a profile composes and the catalog
+    runs per enforcement phase — a confidential-client rule (public clients rejected at the authorization endpoint), a
+    sender-constrained-access-token rule (DPoP **or** mTLS required at the token endpoint), and an issuer-only
+    `client_assertion` audience rule — so a new requirement kind or a whole new profile is additive. The OP also
+    advertises `authorization_response_iss_parameter_supported` (RFC 9207), uses **303 See Other** for the authorization
+    response (FAPI §5.2.2 / OAuth 2.1), honors the operator-configured `clock_skew` when validating signed request
+    objects / client assertions, and enforces single-use authorization codes with an exact-matched, required
+    `redirect_uri`.
 
     **Remaining work, in order.**
-    - **Phase 3 — remaining behavioral rules + discovery/validation details.** The FAPI behavioral rules not expressible
-      as setting ceilings: the client-assertion `aud` must equal the issuer string (not the token-endpoint URL) under
-      `fapi2`; **sender-constrained access tokens** must be required (DPoP **or** mTLS binding — not a single setting, so
-      a request-time check); and a **public client** must be rejected at the **authorization** endpoint under `fapi2`
-      (the token endpoint already rejects it via permitted-method enforcement). Plus: advertise
-      `authorization_response_iss_parameter_supported` (behavior already emitted); apply a ≤ 60s `iat`/`nbf` future
-      tolerance in `ValidateJwtParameters`; verify 303-redirect / no-307 / auth-code single-use /
-      `redirect_uri`-required-in-PAR; disable CORS on the authorization endpoint (FAPI §5.2.3).
     - **Phase 4 — conformance & docs.** Flip the `apps/conformance` `coverage.ts` FAPI rows to `verified`; add a FAPI-2.0
       seed client (`security_profile=fapi2`, `private_key_jwt`) to `AddConformanceSeed`; wire the OpenID Foundation
       FAPI 2.0 test plan into `T1` and the `T6` matrix. Also extend Dynamic Client Registration to **accept the
@@ -164,6 +167,10 @@ entry and/or ADR that closed it.
       `self_signed_tls_client_auth`) — currently the DCR `SupportedTokenEndpointAuthMethods` allow-list only lists the
       secret-based + `none` methods, so a client using an advertised strong-auth method must be provisioned through the
       management API — and project the `tls_client_auth_*` metadata from the registration request.
+    - **Deferred hardening — disable CORS on the authorization endpoint (FAPI §5.2.3).** No current exposure: the
+      repository ships only a development-only, explicit-origin CORS policy that is not applied to the authorization
+      endpoint in production. Add a defense-in-depth guard that asserts no CORS policy can ever attach to the
+      front-channel endpoints (low priority).
 
     **Spun-out items (record when starting):** a **JARM + authorization response-mode extensibility seam** work item (the
     response modes are a hardcoded switch in `DefaultAuthorizationResultExecutor` today); **FAPI 1.0 Advanced**; and **S3**

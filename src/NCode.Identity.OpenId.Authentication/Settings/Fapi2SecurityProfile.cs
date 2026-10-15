@@ -16,25 +16,20 @@
 
 #endregion
 
-using System.Text.Json;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// Provides the default implementation of <see cref="ISecurityProfileSettingsExpander"/>. The only recognized profile
-/// is <c>fapi2</c>; when a scope declares it, the FAPI 2.0 ceiling settings are merged into that scope's settings so the
-/// existing floor/ceiling merge lattice enforces them down the cascade.
+/// The OpenID Foundation <b>FAPI 2.0 Security Profile</b>, defined in one place: the setting ceilings it injects into
+/// the merge lattice and the request-time requirement objects it composes.
 /// </summary>
-internal sealed class DefaultSecurityProfileSettingsExpander(
-    ISettingSerializer settingSerializer,
-    ISettingCollectionFactory settingCollectionFactory
-) : ISecurityProfileSettingsExpander
+internal sealed class Fapi2SecurityProfile : ISecurityProfile
 {
     // FAPI 2.0 restricts signing to PS256 / ES256 / EdDSA; EdDSA is listed forward-compatibly — it is intersected
     // against the server's actually-supported algorithms, so it only takes effect once EdDSA signing is implemented.
-    private static readonly string[] Fapi2SigningAlgorithms =
+    private static readonly string[] SigningAlgorithms =
     [
         AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
         AlgorithmCodes.DigitalSignature.EcdsaSha256,
@@ -42,64 +37,43 @@ internal sealed class DefaultSecurityProfileSettingsExpander(
     ];
 
     // FAPI 2.0 permits only strong (asymmetric / mutual-TLS) client authentication.
-    private static readonly string[] Fapi2TokenEndpointAuthMethods =
+    private static readonly string[] TokenEndpointAuthMethods =
     [
         OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
         OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
         OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
     ];
 
-    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
-    private ISettingCollectionFactory SettingCollectionFactory { get; } = settingCollectionFactory;
+    /// <inheritdoc />
+    public string ProfileName => OpenIdConstants.SecurityProfiles.Fapi2;
 
     /// <inheritdoc />
-    public IReadOnlyCollection<Setting> Expand(
-        JsonElement settingsJson,
-        JsonSerializerOptions jsonOptions
-    ) => Expand(SettingSerializer.DeserializeSettings(settingsJson, jsonOptions));
+    public IReadOnlyCollection<ISecurityProfileRequirement> Requirements { get; } =
+    [
+        // A public client is rejected at the authorization endpoint (the token endpoint rejects it via the permitted
+        // token_endpoint_auth_methods_supported ceiling).
+        new ConfidentialClientRequirement(),
+        // Every access token must be DPoP- or mutual-TLS-bound.
+        new SenderConstrainedAccessTokenRequirement(),
+        // A client_assertion may only target the issuer identifier (FAPI 2.0 §5.3.2.1).
+        new IssuerOnlyAssertionAudienceRequirement(),
+    ];
 
     /// <inheritdoc />
-    public IReadOnlyCollection<Setting> Expand(IReadOnlyCollection<Setting> scopeSettings)
+    public void ApplyCeilingSettings(ISettingCollection ceiling)
     {
-        var collection = SettingCollectionFactory.Create(scopeSettings);
-
-        if (
-            !collection.TryGetValue(OpenIdSettingKeys.SecurityProfile, out var profile)
-            || !string.Equals(
-                profile,
-                OpenIdConstants.SecurityProfiles.Fapi2,
-                StringComparison.Ordinal
-            )
-        )
-        {
-            return scopeSettings;
-        }
-
-        return collection.Merge(BuildFapi2Ceiling());
-    }
-
-    private ISettingCollection BuildFapi2Ceiling()
-    {
-        var ceiling = SettingCollectionFactory.Create();
-
         // Signing algorithms → PS256 / ES256 / EdDSA (Intersect ceilings narrow the advertised/accepted set).
-        ceiling.Set(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, Fapi2SigningAlgorithms);
-        ceiling.Set(OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported, Fapi2SigningAlgorithms);
-        ceiling.Set(OpenIdSettingKeys.UserInfoSigningAlgValuesSupported, Fapi2SigningAlgorithms);
-        ceiling.Set(
-            OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported,
-            Fapi2SigningAlgorithms
-        );
+        ceiling.Set(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, SigningAlgorithms);
+        ceiling.Set(OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported, SigningAlgorithms);
+        ceiling.Set(OpenIdSettingKeys.UserInfoSigningAlgValuesSupported, SigningAlgorithms);
+        ceiling.Set(OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(
             OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported,
-            Fapi2SigningAlgorithms
+            SigningAlgorithms
         );
 
         // Strong client authentication only, and code-only / PKCE-S256 authorization (Intersect ceilings).
-        ceiling.Set(
-            OpenIdSettingKeys.TokenEndpointAuthMethodsSupported,
-            Fapi2TokenEndpointAuthMethods
-        );
+        ceiling.Set(OpenIdSettingKeys.TokenEndpointAuthMethodsSupported, TokenEndpointAuthMethods);
         ceiling.Set(
             OpenIdSettingKeys.ResponseTypesSupported,
             (IReadOnlyCollection<string>)[OpenIdConstants.ResponseTypes.Code]
@@ -117,6 +91,8 @@ internal sealed class DefaultSecurityProfileSettingsExpander(
         ceiling.Set(OpenIdSettingKeys.AuthorizationCodeLifetime, TimeSpan.FromSeconds(60));
         ceiling.Set(OpenIdSettingKeys.PushedAuthorizationRequestLifetime, TimeSpan.FromSeconds(90));
 
-        return ceiling;
+        // Tight clock skew for signed request objects / client assertions (Min ceiling): FAPI 2.0 allows at most a
+        // 60-second future tolerance when validating token time claims, so a child may only reduce it further.
+        ceiling.Set(OpenIdSettingKeys.ClockSkew, TimeSpan.FromSeconds(60));
     }
 }

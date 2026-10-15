@@ -145,6 +145,11 @@ internal class DefaultLoadAuthorizationRequestHandler(
             );
 
             var parameters = new ValidateJwtParameters()
+            {
+                // Honor the client's effective clock_skew setting (the FAPI 2.0 profile tightens this to ≤ 60s via the
+                // merge-lattice ceiling); without this the JWT validator would fall back to its 5-minute default.
+                ClockSkew = openIdClient.Settings.GetValue(OpenIdSettingKeys.ClockSkew),
+            }
                 .UseValidationKeys(validationKeys)
                 .ValidateIssuer(openIdClient.ClientId)
                 .ValidateCertificateLifeTime()

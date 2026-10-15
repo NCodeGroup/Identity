@@ -147,6 +147,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.AuthorizationCodeLifetime);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_response_iss_parameter_supported' setting.
+    /// </summary>
+    public static SettingKey<bool> AuthorizationResponseIssParameterSupported =>
+        new(OpenIdSettingNames.AuthorizationResponseIssParameterSupported);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_authenticate_scheme' setting.
     /// </summary>
     public static SettingKey<string> AuthorizationAuthenticateScheme =>

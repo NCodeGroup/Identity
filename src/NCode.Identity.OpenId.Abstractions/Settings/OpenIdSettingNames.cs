@@ -152,6 +152,13 @@ public static class OpenIdSettingNames
     public const string AuthorizationCodeLifetime = "authorization_code_lifetime";
 
     /// <summary>
+    /// Contains the name of the <c>authorization_response_iss_parameter_supported</c> setting (RFC 9207): whether the
+    /// OP advertises that it returns the <c>iss</c> parameter in authorization responses.
+    /// </summary>
+    public const string AuthorizationResponseIssParameterSupported =
+        "authorization_response_iss_parameter_supported";
+
+    /// <summary>
     /// Contains the name of <c>claims_locales_supported</c> setting.
     /// </summary>
     public const string ClaimsLocalesSupported = "claims_locales_supported";

@@ -34,6 +34,11 @@ un-loosenably, so discovery and request-time enforcement read one source of trut
   every persisted-scope load (the tenant factory's initial + refresh paths and the client resolver) deserializes and
   expands in one call and cannot forget to apply the profile.
 
+    > **Superseded by [ADR-0109](0109-fapi-behavioral-rules-and-discovery-validation-details.md).** The standalone
+    > `ISecurityProfileSettingsExpander` was folded into `ISecurityProfileCatalog`, the single registry of `ISecurityProfile`
+    > definitions; the ceiling settings are now contributed by each profile's `ApplyCeilingSettings`, and the catalog still
+    > exposes the same `Expand(…)` entry points. The mechanism and guarantees described here are unchanged.
+
 - **The FAPI 2.0 ceiling.** Signing algorithms → `PS256` / `ES256` / `EdDSA` (`Intersect`; `EdDSA` is listed
   forward-compatibly and only takes effect once EdDSA signing is implemented, backlog `F29`); strong client
   authentication only — `private_key_jwt` / `tls_client_auth` / `self_signed_tls_client_auth` (`Intersect` on
@@ -56,7 +61,8 @@ un-loosenably, so discovery and request-time enforcement read one source of trut
 - A tenant can mandate `fapi2` for all its clients; a client cannot loosen any of the injected ceilings, nor clear the
   profile flag itself.
 - New public surface: the `security_profile` setting, the `OpenIdConstants.SecurityProfiles.Fapi2` constant, and
-  `ISecurityProfileSettingsExpander`.
+  `ISecurityProfileSettingsExpander` (the latter superseded by `ISecurityProfileCatalog` in
+  [ADR-0109](0109-fapi-behavioral-rules-and-discovery-validation-details.md)).
 - Remaining FAPI behavioral rules not expressible as setting ceilings are follow-ups (backlog `F16` Phase 3): the
   client-assertion `aud` must equal the issuer; sender-constrained access tokens must be required (DPoP **or** mTLS
   binding, so not a single setting); and a public client must be rejected at the authorization endpoint (the token

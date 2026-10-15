@@ -20,6 +20,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
@@ -39,7 +40,8 @@ internal sealed class ClientSecretJwtClientAuthenticationHandler(
     IJsonWebTokenService jsonWebTokenService,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     IClientAssertionReplayCache replayCache,
-    IClientKeyResolver clientKeyResolver
+    IClientKeyResolver clientKeyResolver,
+    ISecurityProfileCatalog securityProfileCatalog
 )
     : ClientAssertionClientAuthenticationHandler(
         clientResolver,
@@ -49,7 +51,8 @@ internal sealed class ClientSecretJwtClientAuthenticationHandler(
         jsonWebTokenService,
         algorithmCollectionProvider,
         replayCache,
-        clientKeyResolver
+        clientKeyResolver,
+        securityProfileCatalog
     )
 {
     /// <inheritdoc />

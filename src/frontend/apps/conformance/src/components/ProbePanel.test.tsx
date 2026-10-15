@@ -1,8 +1,7 @@
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AppThemeProvider } from '@ncode/ui';
-import type { RawDiscovery } from '../audit.js';
-import type { ProbeReport } from '../probes.js';
+import type { ProbeReport, RawDiscovery } from '@ncode/conformance-core';
 import { ProbePanel } from './ProbePanel.js';
 
 const discovery: RawDiscovery = { issuer: 'https://op.test', jwks_uri: 'https://op.test/jwks' };

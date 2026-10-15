@@ -1,0 +1,23 @@
+{
+  "name": "@ncode/app-conformance-runner",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Headless OAuth 2.x / OIDC conformance probe runner (Phase 3): exercises the confidential and server-initiated legs a browser cannot drive — client_credentials, introspection/revocation with client auth, private_key_jwt, device-code polling, CIBA, DPoP/mTLS, and back-channel logout.",
+  "type": "module",
+  "scripts": {
+    "start": "vite-node src/main.ts --",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ncode/conformance-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "typescript": "^5.6.2",
+    "vite-node": "^2.1.9",
+    "vitest": "^2.1.2"
+  }
+}

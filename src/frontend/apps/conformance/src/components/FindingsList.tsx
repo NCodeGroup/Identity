@@ -3,7 +3,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import type { Finding } from '../audit.js';
+import type { Finding } from '@ncode/conformance-core';
 import { SeverityChip } from './SeverityChip.js';
 
 export type FindingsListProps = {

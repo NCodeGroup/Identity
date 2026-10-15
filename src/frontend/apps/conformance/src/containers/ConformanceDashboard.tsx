@@ -12,8 +12,14 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { DataStateBoundary } from '@ncode/ui';
 import type { RuntimeConfig } from '@ncode/config';
-import { auditDiscovery, summarize, type AuditReport, type RawDiscovery } from '../audit.js';
-import { buildCoverageReport, type CoverageReport } from '../coverage.js';
+import {
+  auditDiscovery,
+  buildCoverageReport,
+  summarize,
+  type AuditReport,
+  type CoverageReport,
+  type RawDiscovery,
+} from '@ncode/conformance-core';
 import { loadDiscovery as defaultLoadDiscovery } from '../bootstrap.js';
 import { CoverageMatrix } from '../components/CoverageMatrix.js';
 import { CoverageStatusChip } from '../components/CoverageStatusChip.js';

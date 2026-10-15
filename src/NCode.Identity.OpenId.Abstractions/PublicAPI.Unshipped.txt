@@ -895,3 +895,18 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityJoinCla
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityVerifiedClaim.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityRequireVerified.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityExplicitOnly.get -> NCode.Identity.Settings.SettingKey<bool>
+const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.TokenExchange = "urn:ietf:params:oauth:grant-type:token-exchange" -> string!
+NCode.Identity.OpenId.OpenIdConstants.TokenTypeIdentifiers
+const NCode.Identity.OpenId.OpenIdConstants.TokenTypeIdentifiers.AccessToken = "urn:ietf:params:oauth:token-type:access_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TokenTypeIdentifiers.RefreshToken = "urn:ietf:params:oauth:token-type:refresh_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TokenTypeIdentifiers.IdToken = "urn:ietf:params:oauth:token-type:id_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TokenTypeIdentifiers.Jwt = "urn:ietf:params:oauth:token-type:jwt" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.SubjectToken = "subject_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.SubjectTokenType = "subject_token_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ActorToken = "actor_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.ActorTokenType = "actor_token_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.RequestedTokenType = "requested_token_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuedTokenType = "issued_token_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.NotApplicable = "N_A" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenExchangeAllowRefreshToken = "token_exchange_allow_refresh_token" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TokenExchangeAllowRefreshToken.get -> NCode.Identity.Settings.SettingKey<bool>

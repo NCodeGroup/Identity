@@ -573,6 +573,14 @@ public static class OpenIdSettingNames
     public const string SendSessionIdInAccessToken = "send_session_id_in_access_token";
 
     /// <summary>
+    /// Contains the name of the per-client <c>token_exchange_allow_refresh_token</c> setting: whether this client may
+    /// obtain a refresh token from an OAuth 2.0 Token Exchange
+    /// (<see href="https://datatracker.ietf.org/doc/html/rfc8693">RFC 8693</see>) by requesting
+    /// <c>requested_token_type=urn:ietf:params:oauth:token-type:refresh_token</c>. Defaults to <see langword="false"/>.
+    /// </summary>
+    public const string TokenExchangeAllowRefreshToken = "token_exchange_allow_refresh_token";
+
+    /// <summary>
     /// Contains the name of <c>send_profile_metadata_in_access_token</c> setting.
     /// </summary>
     public const string SendProfileMetadataInAccessToken = "send_profile_metadata_in_access_token";

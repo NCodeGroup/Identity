@@ -593,6 +593,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.SendSessionIdInAccessToken);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'token_exchange_allow_refresh_token' setting.
+    /// </summary>
+    public static SettingKey<bool> TokenExchangeAllowRefreshToken =>
+        new(OpenIdSettingNames.TokenExchangeAllowRefreshToken);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_profile_metadata_in_access_token' setting.
     /// </summary>
     public static SettingKey<bool> SendProfileMetadataInAccessToken =>

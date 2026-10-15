@@ -120,6 +120,48 @@ public sealed class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
     }
 
     /// <inheritdoc />
+    public List<string>? Audience
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.Audience);
+        set => SetKnownParameter(OpenIdCommonParameters.Audience, value);
+    }
+
+    /// <inheritdoc />
+    public string? SubjectToken
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.SubjectToken);
+        set => SetKnownParameter(OpenIdCommonParameters.SubjectToken, value);
+    }
+
+    /// <inheritdoc />
+    public string? SubjectTokenType
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.SubjectTokenType);
+        set => SetKnownParameter(OpenIdCommonParameters.SubjectTokenType, value);
+    }
+
+    /// <inheritdoc />
+    public string? ActorToken
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.ActorToken);
+        set => SetKnownParameter(OpenIdCommonParameters.ActorToken, value);
+    }
+
+    /// <inheritdoc />
+    public string? ActorTokenType
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.ActorTokenType);
+        set => SetKnownParameter(OpenIdCommonParameters.ActorTokenType, value);
+    }
+
+    /// <inheritdoc />
+    public string? RequestedTokenType
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.RequestedTokenType);
+        set => SetKnownParameter(OpenIdCommonParameters.RequestedTokenType, value);
+    }
+
+    /// <inheritdoc />
     public string? Username
     {
         get => GetKnownParameter(OpenIdCommonParameters.Username);

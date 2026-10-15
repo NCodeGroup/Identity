@@ -117,19 +117,21 @@ entry and/or ADR that closed it.
   [ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md) already satisfies the algorithm rule; a
   FAPI **profile** would additionally constrain the advertised `*_signing_alg_values_supported` settings to that set.
   This item is the tracking anchor; the concrete deliverables are `F7` (done), `S3`, and a new JAR/JARM work item.
-- **`F23` — OAuth 2.0 Token Exchange (RFC 8693).** Implement the token-exchange grant
-  (`urn:ietf:params:oauth:grant-type:token-exchange`) so the token endpoint can mint delegation/impersonation tokens
-  from a presented `subject_token` (and optional `actor_token`). The routing seam already exists — register an
-  `ITokenGrantHandler` whose `GrantTypes` includes the grant URI and the token endpoint dispatches to it with no
-  endpoint changes (see `ITokenGrantHandler` remarks). Deliverables: a token-exchange request model binding the
-  RFC 8693 parameters (`subject_token`, `subject_token_type`, `actor_token`, `actor_token_type`,
-  `requested_token_type`, `resource`, `audience`, `scope`), validation of the presented token types
-  (`urn:ietf:params:oauth:token-type:*`), an authorization policy governing which clients may exchange and which
-  delegation/impersonation targets are permitted, `act`/`may_act` claim handling for delegation chains, and the
-  `issued_token_type` response field. Surfaces in the conformance coverage report as the currently-missing
-  `grant-token-exchange` probe (`src/frontend/apps/conformance/src/coverage.ts`). Touch point: a new
-  `DefaultTokenExchangeGrantHandler` under
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/`.
+- **`F26` — Enterprise connections / identity brokering (external upstream IdP federation).** Compete with Auth0/Okta
+  "enterprise connections" by letting a tenant federate to external/enterprise identity providers — **OIDC** (EntraID,
+  Ping, Okta, Auth0, Google), **SAML 2.0**, and **WS-Fed/ADFS** — and map the upstream identity onto the existing
+  federated-principal model (`FederatedIdentity` / `IPrincipalResolver` / `IFederatedIdentityLinkingPolicy`, ADR-0035 /
+  ADR-0094). This is a dedicated subsystem, **not** part of token exchange (`F23`, done): token exchange accepts only
+  self-issued tokens, and this epic is where external tokens become trusted. Deliverables: a per-tenant **IdP connection
+  configuration** model (issuer, OIDC discovery/JWKS cache, SAML entityID/signing certificates/metadata, protocol,
+  claim mapping, allowed audiences); **interactive browser federation** that redirects the user to their corporate IdP
+  via the OP-hosted `apps/auth` surface and the `IInteractiveCredentialVerifier` seam (ADR-0065 / ADR-0070);
+  **external→internal token exchange** that registers an external `ISubjectTokenValidator` (the seam `F23` left open) so
+  a configured upstream token can be exchanged for an OP token; and **inbound assertion grants** (RFC 7523 JWT-bearer /
+  RFC 7522 SAML-bearer) over the same `ITokenGrantHandler` extension seam. Open decisions deferred to this epic:
+  protocol sequencing (OIDC/OAuth first, then SAML 2.0, then WS-Fed/ADFS) and whether SAML/WS-Fed handling integrates a
+  maintained SAML library behind an abstraction seam or is built natively. Touch points: a new connections/persistence
+  model under `src/`, the `apps/auth` surface, and a new external validator registered against `ISubjectTokenValidator`.
 
 ## Conformance & interop testing (group `T`)
 

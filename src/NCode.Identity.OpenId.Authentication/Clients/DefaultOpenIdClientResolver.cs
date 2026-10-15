@@ -33,14 +33,13 @@ internal class DefaultOpenIdClientResolver(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISecretSerializer secretSerializer,
-    ISecurityProfileSettingsExpander securityProfileExpander
+    ISecurityProfileCatalog securityProfileCatalog
 ) : IOpenIdClientResolver
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IOpenIdClientFactory ClientFactory { get; } = clientFactory;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
-    private ISecurityProfileSettingsExpander SecurityProfileExpander { get; } =
-        securityProfileExpander;
+    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
 
     /// <inheritdoc />
     public async ValueTask<OpenIdClient?> ResolveClientOrDefaultAsync(
@@ -65,7 +64,7 @@ internal class DefaultOpenIdClientResolver(
         }
 
         var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var clientSettings = SecurityProfileExpander.Expand(
+        var clientSettings = SecurityProfileCatalog.Expand(
             persistedClient.Settings.Value,
             jsonOptions
         );

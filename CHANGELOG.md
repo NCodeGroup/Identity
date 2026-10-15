@@ -10,6 +10,28 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **FAPI 2.0 behavioral rules + an extensible security-profile registry — advances backlog `F16` (Phase 3)
+  ([ADR-0109](docs/adr/0109-fapi-behavioral-rules-and-discovery-validation-details.md)).** The FAPI behavioral rules
+  that cannot be expressed as a floor/ceiling setting are now modeled as an **open registry of requirement objects**
+  rather than scattered `security_profile == "fapi2"` checks. A profile is an `ISecurityProfile` (its name, its ceiling
+  settings, and its composed `Requirements`); `ISecurityProfileCatalog` is the single registry that resolves the active
+  profile and runs its requirements for a given enforcement phase via `EvaluateRequirementsAsync<TContext>`. Each
+  requirement is a self-contained rule object implementing a typed phase seam
+  (`IAuthorizationRequestProfileRequirement`, `ITokenRequestProfileRequirement`,
+  `IClientAuthenticationProfileRequirement`), so adding a new requirement kind or a whole new profile (FAPI 1.0, a
+  custom organizational profile) is additive — no change to existing enforcement sites. FAPI 2.0 now ships three
+  requirements: a **confidential-client** rule (rejecting public clients at the authorization endpoint), a
+  **sender-constrained access token** rule (requiring a DPoP or mutual-TLS binding at the token endpoint), and an
+  **issuer-only `client_assertion` audience** rule (FAPI 2.0 §5.3.2.1). The OP also now advertises
+  `authorization_response_iss_parameter_supported` (RFC 9207, default `true`), the authorization **response** redirect
+  uses **303 See Other** (FAPI 2.0 §5.2.2 / OAuth 2.1) for every client, and the operator-configured `clock_skew`
+  setting is now honored when validating signed request objects / client assertions (a latent bug — it was previously
+  ignored in favor of a 5-minute default — with the FAPI profile tightening it to ≤ 60 s via the merge lattice). New
+  surface: `ISecurityProfile`, `ISecurityProfileRequirement` (+ generic `ISecurityProfileRequirement<TContext>`),
+  `ISecurityProfileCatalog`, the three phase requirement interfaces and their evaluation contexts, and the
+  `authorization_response_iss_parameter_supported` setting. The standalone `ISecurityProfileSettingsExpander` was folded
+  into the catalog and removed.
+
 - **FAPI 2.0 `security_profile` mechanism — advances backlog `F16` (Phase 2)
   ([ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).** A tenant or client opts into
   the OpenID Foundation FAPI 2.0 Security Profile with a single `security_profile=fapi2` setting. The profile expands
@@ -21,9 +43,9 @@ change to the public API is a **major** version bump.
   and a client cannot loosen it or clear the flag. The client-authentication service now also enforces that the method
   used is within the client's effective `token_endpoint_auth_methods_supported` (a general control that, under `fapi2`,
   rejects weak and public authentication at the token endpoint). New surface: the `security_profile` setting, the
-  `OpenIdConstants.SecurityProfiles.Fapi2` constant, `ISecurityProfileSettingsExpander`, and the
-  `AlgorithmCodes.DigitalSignature.EdDsa` algorithm code (the EdDSA signing implementation itself is tracked as backlog
-  `F29`).
+  `OpenIdConstants.SecurityProfiles.Fapi2` constant, the extensible security-profile registry (`ISecurityProfile` /
+  `ISecurityProfileCatalog`; see Phase 3 below), and the `AlgorithmCodes.DigitalSignature.EdDsa` algorithm code (the
+  EdDSA signing implementation itself is tracked as backlog `F29`).
 
 - **Mutual-TLS client authentication (`tls_client_auth` / `self_signed_tls_client_auth`) — advances backlog `F16`
   (Phase 1) ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)).** A confidential client can now authenticate

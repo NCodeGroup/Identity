@@ -103,6 +103,32 @@ public class DiscoveryEndpointTests(PlaygroundApplicationFactory factory)
     }
 
     [Fact]
+    public async Task GetDiscovery_AdvertisesAuthorizationResponseIssParameterSupported()
+    {
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.GetAsync("/.well-known/openid-configuration");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+
+        // The authorization response always carries the 'iss' parameter (RFC 9207), so the OP advertises
+        // 'authorization_response_iss_parameter_supported' as true so relying parties can validate it.
+        Assert.True(
+            root.TryGetProperty(
+                "authorization_response_iss_parameter_supported",
+                out var issParameterSupported
+            )
+        );
+        Assert.True(issParameterSupported.GetBoolean());
+    }
+
+    [Fact]
     public async Task GetDiscovery_AdvertisesOnlySecureFlows()
     {
         var client = Factory.CreateClient(

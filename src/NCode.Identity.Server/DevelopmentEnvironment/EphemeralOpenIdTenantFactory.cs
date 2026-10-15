@@ -62,7 +62,7 @@ public sealed class EphemeralOpenIdTenantFactory(
     ISecretSerializer secretSerializer,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
-    ISecurityProfileSettingsExpander securityProfileExpander,
+    ISecurityProfileCatalog securityProfileCatalog,
     ISecretKeyFactory secretKeyFactory
 )
     : DefaultOpenIdTenantFactory(
@@ -76,7 +76,7 @@ public sealed class EphemeralOpenIdTenantFactory(
         secretSerializer,
         secretKeyCollectionProviderFactory,
         collectionDataSourceFactory,
-        securityProfileExpander
+        securityProfileCatalog
     )
 {
     private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;

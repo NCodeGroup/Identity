@@ -51,7 +51,8 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
     IJsonWebTokenService jsonWebTokenService,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     IClientAssertionReplayCache replayCache,
-    IClientKeyResolver clientKeyResolver
+    IClientKeyResolver clientKeyResolver,
+    ISecurityProfileCatalog securityProfileCatalog
 ) : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger)
 {
     // The replay record is retained until the assertion can no longer be accepted (its 'exp' plus a clock-skew margin).
@@ -62,6 +63,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         algorithmCollectionProvider;
     private IClientAssertionReplayCache ReplayCache { get; } = replayCache;
     private IClientKeyResolver ClientKeyResolver { get; } = clientKeyResolver;
+    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
 
     /// <summary>
     /// When the assertion's signing <paramref name="algorithm"/> belongs to this handler's key family, returns
@@ -242,6 +244,11 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         try
         {
             var parameters = new ValidateJwtParameters()
+            {
+                // Honor the client's effective clock_skew setting (the FAPI 2.0 profile tightens this to ≤ 60s via the
+                // merge-lattice ceiling); without this the JWT validator would fall back to its 5-minute default.
+                ClockSkew = publicClient.Settings.GetValue(OpenIdSettingKeys.ClockSkew),
+            }
                 .UseValidationKeys(validationKeys)
                 .ValidateIssuer(clientId)
                 .ValidateClaim(
@@ -262,6 +269,18 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
 
             if (!result.IsValid)
                 ExceptionDispatchInfo.Throw(result.Exception);
+
+            // Apply any security-profile client-authentication requirements (e.g. FAPI's issuer-only assertion
+            // audience). A requirement throws to reject, which the catch below surfaces as an invalid-client failure.
+            await SecurityProfileCatalog.EvaluateRequirementsAsync(
+                publicClient.Settings,
+                new ClientAuthenticationProfileContext(
+                    openIdContext,
+                    publicClient,
+                    result.DecodedJwt.Payload
+                ),
+                cancellationToken
+            );
         }
         catch (Exception exception)
         {
@@ -337,12 +356,13 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
     private static IReadOnlyCollection<string> GetValidAudiences(OpenIdContext openIdContext)
     {
         var request = openIdContext.Http.Request;
+        var issuer = openIdContext.Tenant.Issuer;
 
-        // FAPI 2.0 §5.3.2.1 requires the issuer identifier as the audience; OpenID Connect Core §9 also allows the
-        // URL of the endpoint receiving the request. Both are accepted so standard and FAPI clients interoperate.
+        // OpenID Connect Core §9 accepts either the issuer identifier or the URL of the endpoint receiving the request;
+        // a security profile may further restrict this (see IClientAuthenticationProfileRequirement).
         var endpointUrl = $"{request.Scheme}://{request.Host}{request.PathBase}{request.Path}";
 
-        return [openIdContext.Tenant.Issuer, endpointUrl];
+        return [issuer, endpointUrl];
     }
 
     private static bool TryGetString(JsonElement element, string propertyName, out string? value)

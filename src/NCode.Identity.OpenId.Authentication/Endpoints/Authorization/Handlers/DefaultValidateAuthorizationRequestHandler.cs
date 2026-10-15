@@ -34,11 +34,13 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="ValidateAuthorizationRequestCommand"/> message.
 /// </summary>
-internal class DefaultValidateAuthorizationRequestHandler(IClientScopeService clientScopeService)
-    : ICommandHandler<ValidateAuthorizationRequestCommand>,
-        ISupportMediatorPriority
+internal class DefaultValidateAuthorizationRequestHandler(
+    IClientScopeService clientScopeService,
+    ISecurityProfileCatalog securityProfileCatalog
+) : ICommandHandler<ValidateAuthorizationRequestCommand>, ISupportMediatorPriority
 {
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
+    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -62,6 +64,13 @@ internal class DefaultValidateAuthorizationRequestHandler(IClientScopeService cl
             ValidateRequestObject(requestMessage, requestObject);
 
         ValidateRequest(openIdEnvironment, openIdClient, authorizationRequest);
+
+        // Apply any security-profile authorization-request requirements (e.g. FAPI's confidential-client rule).
+        await SecurityProfileCatalog.EvaluateRequirementsAsync(
+            openIdClient.Settings,
+            new AuthorizationRequestProfileContext(openIdContext, openIdClient),
+            cancellationToken
+        );
 
         // A requested scope must be permitted by the client's grants (ADR-0026).
         var allowedScopes = await ClientScopeService.GetAllowedScopesAsync(

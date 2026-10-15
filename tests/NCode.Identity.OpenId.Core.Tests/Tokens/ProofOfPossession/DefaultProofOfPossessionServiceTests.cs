@@ -40,6 +40,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
 {
     private Mock<IDPoPProofValidator> MockValidator { get; }
     private Mock<IClientCertificateResolver> MockCertificateResolver { get; }
+    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
     private Mock<IReadOnlySettingCollection> MockSettings { get; }
     private Mock<OpenIdContext> MockContext { get; }
     private Mock<OpenIdClient> MockClient { get; }
@@ -51,6 +52,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     {
         MockValidator = CreateStrictMock<IDPoPProofValidator>();
         MockCertificateResolver = CreateStrictMock<IClientCertificateResolver>();
+        MockSecurityProfileCatalog = CreateLooseMock<ISecurityProfileCatalog>();
         MockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         MockContext = CreateStrictMock<OpenIdContext>();
         MockClient = CreateStrictMock<OpenIdClient>();
@@ -71,7 +73,8 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
 
         Service = new DefaultProofOfPossessionService(
             MockValidator.Object,
-            MockCertificateResolver.Object
+            MockCertificateResolver.Object,
+            MockSecurityProfileCatalog.Object
         );
     }
 

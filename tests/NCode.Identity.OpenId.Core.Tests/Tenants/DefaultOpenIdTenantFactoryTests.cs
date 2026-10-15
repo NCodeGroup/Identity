@@ -85,7 +85,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
             settingSerializer.Object,
             secretSerializer.Object,
             secretKeyCollectionProviderFactory.Object,
-            collectionDataSourceFactory.Object
+            collectionDataSourceFactory.Object,
+            mocks.Create<ISecurityProfileSettingsExpander>().Object
         );
 
         await using var result = await factory.CreateTenantForRequestAsync(
@@ -150,7 +151,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
             settingSerializer.Object,
             secretSerializer.Object,
             secretKeyCollectionProviderFactory.Object,
-            collectionDataSourceFactory.Object
+            collectionDataSourceFactory.Object,
+            mocks.Create<ISecurityProfileSettingsExpander>().Object
         );
 
         await Assert.ThrowsAsync<HttpResultException>(async () =>

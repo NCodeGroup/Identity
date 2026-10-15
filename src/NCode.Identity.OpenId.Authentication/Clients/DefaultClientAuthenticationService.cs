@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
@@ -107,7 +108,7 @@ internal class DefaultClientAuthenticationService : IClientAuthenticationService
             return ClientAuthenticationResult.Undefined;
 
         if (results.Count == 1)
-            return results[0];
+            return EnforceAllowedAuthenticationMethod(openIdContext, results[0]);
 
         var confidentialResults = results.Where(result => result.IsConfidential).ToList();
 
@@ -119,8 +120,42 @@ internal class DefaultClientAuthenticationService : IClientAuthenticationService
             );
 
         if (confidentialResults.Count == 1)
-            return confidentialResults[0];
+            return EnforceAllowedAuthenticationMethod(openIdContext, confidentialResults[0]);
 
-        return results[0];
+        return EnforceAllowedAuthenticationMethod(openIdContext, results[0]);
+    }
+
+    // Enforces that the method the client actually authenticated with is one its effective
+    // token_endpoint_auth_methods_supported permits; under a tightened profile (e.g. fapi2) this rejects weak or
+    // public ("none") authentication. An empty set means unrestricted (ADR-0010).
+    private static ClientAuthenticationResult EnforceAllowedAuthenticationMethod(
+        OpenIdContext openIdContext,
+        ClientAuthenticationResult result
+    )
+    {
+        if (result.Client is not { } client)
+            return result;
+
+        var allowedMethods = client.Settings.GetValue(
+            OpenIdSettingKeys.TokenEndpointAuthMethodsSupported
+        );
+        if (allowedMethods.Count == 0)
+            return result;
+
+        var method = client.IsConfidential
+            ? client.ConfidentialClient.AuthenticationMethod
+            : OpenIdConstants.ClientAuthenticationMethods.None;
+
+        if (allowedMethods.Contains(method, StringComparer.Ordinal))
+            return result;
+
+        return new ClientAuthenticationResult(
+            openIdContext
+                .ErrorFactory.InvalidClient()
+                .WithDescription(
+                    "The client authentication method is not permitted for this client."
+                )
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+        );
     }
 }

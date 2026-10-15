@@ -460,6 +460,61 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
     }
 
     /// <summary>
+    /// Ensures the tenant exists and seeds a confidential <c>client_secret_post</c> client whose
+    /// <paramref name="securityProfile"/> (for example <c>fapi2</c>) is applied, so profile-driven setting ceilings and
+    /// enforcement can be exercised end-to-end.
+    /// </summary>
+    public async Task SeedConfidentialClientWithSecurityProfileAsync(
+        string clientId,
+        string clientSecret,
+        string securityProfile,
+        params string[] grantTypes
+    )
+    {
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        using var scope = Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        var protector = serviceProvider
+            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
+            .CreateDataProtector();
+
+        var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
+        var writer = new ArrayBufferWriter<byte>();
+        protector.ProtectSpan(secretBytes, ref writer);
+
+        var persistedSecret = new PersistedSecret
+        {
+            SecretId = $"{clientId}-secret",
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
+            SecretType = SecretTypes.Symmetric,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
+            KeySizeBits = secretBytes.Length * 8,
+            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+        };
+
+        var settings = new Dictionary<string, object>();
+        if (!string.IsNullOrEmpty(securityProfile))
+            settings["security_profile"] = securityProfile;
+        if (grantTypes.Length > 0)
+            settings["grant_types_supported"] = grantTypes;
+
+        await AddClientAsync(
+            serviceProvider,
+            clientId,
+            System.Text.Json.JsonSerializer.SerializeToElement(settings),
+            [persistedSecret]
+        );
+    }
+
+    /// <summary>
     /// Seeds a resource server owning the given scopes and a client grant authorizing the client to all of them,
     /// so the client may request those scopes (replaces the retired <c>scopes_supported</c> setting).
     /// </summary>

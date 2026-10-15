@@ -670,6 +670,11 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.ServiceDocumentation);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'security_profile' setting.
+    /// </summary>
+    public static SettingKey<string> SecurityProfile => new(OpenIdSettingNames.SecurityProfile);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'pairwise_salt' setting.
     /// </summary>
     public static SettingKey<string> PairwiseSalt => new(OpenIdSettingNames.PairwiseSalt);

@@ -1,0 +1,63 @@
+# 108. FAPI security profile via merge-lattice ceiling injection
+
+- **Status:** Accepted
+- **Date:** 2026-10-15
+- **Deciders:** NCode Group
+
+## Context
+
+FAPI 2.0 readiness (backlog `F16`) needs a way for a tenant or client to opt into the OpenID Foundation **FAPI 2.0
+Security Profile** as a single switch, rather than configuring a dozen individual settings correctly and consistently.
+The profile constrains many things the OP already models as settings — signing algorithms, required PKCE/PAR, response
+types, code/PAR lifetimes, permitted client-authentication methods — plus a few behavioral rules.
+
+Settings already merge down a `server → tenant → client` cascade through a first-class
+[lattice-dual merge policy](0038-setting-merge-lattice-duals.md): collection ceilings use `Intersect`, requirement
+floors use `Or`, lifetime ceilings use `Min`. Crucially, **those operations are commutative and idempotent**, so the
+order in which a constraint enters the cascade does not change the result.
+
+## Decision
+
+**Model the profile as a `security_profile` setting that, at the scope where it is declared, expands into the profile's
+concrete ceiling settings; the existing floor/ceiling merge then carries those constraints down the cascade
+un-loosenably, so discovery and request-time enforcement read one source of truth.**
+
+- **`security_profile` is an un-loosenable string setting.** Its merge delegate keeps `fapi2` once any scope in the
+  cascade selects it (a tenant can mandate the profile and a child cannot clear it); otherwise the child value wins.
+  The recognized value today is `fapi2`.
+
+- **`ISecurityProfileSettingsExpander` expands a scope's own settings before they enter the cascade.** When a scope
+  (tenant or client) declares `security_profile=fapi2`, the expander merges the FAPI 2.0 ceiling settings into that
+  scope's settings using the normal descriptor merge. Because the FAPI constraints are all expressed with commutative
+  merge operations, injecting them at the declaring scope is equivalent to injecting them anywhere, and a more-specific
+  scope cannot loosen them. The expander exposes a single `Expand(JsonElement, JsonSerializerOptions)` entry point so
+  every persisted-scope load (the tenant factory's initial + refresh paths and the client resolver) deserializes and
+  expands in one call and cannot forget to apply the profile.
+
+- **The FAPI 2.0 ceiling.** Signing algorithms → `PS256` / `ES256` / `EdDSA` (`Intersect`; `EdDSA` is listed
+  forward-compatibly and only takes effect once EdDSA signing is implemented, backlog `F29`); strong client
+  authentication only — `private_key_jwt` / `tls_client_auth` / `self_signed_tls_client_auth` (`Intersect` on
+  `token_endpoint_auth_methods_supported`); `response_type=code` only and PKCE `S256` only (`Intersect`); require PKCE
+  and require PAR (`Or` floors); a 60-second authorization-code ceiling and a 90-second PAR `request_uri` ceiling
+  (`Min`).
+
+- **Permitted-method enforcement makes the client-auth ceiling bite.** `DefaultClientAuthenticationService` now rejects
+  an authentication whose method is not in the client's effective `token_endpoint_auth_methods_supported` (an empty set
+  means unrestricted, per [ADR-0010](0010-supported-settings-unset-means-unrestricted.md)). This is a general control —
+  for a non-profiled client the default set lists every registered method, so nothing changes — but under `fapi2` it
+  rejects weak (`client_secret_*`) and public (`none`) authentication at the token endpoint, giving confidential-only,
+  strong-authentication enforcement for free.
+
+## Consequences
+
+- A tenant or client opts into FAPI 2.0 with one `security_profile=fapi2` setting; discovery automatically advertises
+  the constrained metadata, and request-time checks that already read those settings (PKCE, PAR, algorithms, lifetimes)
+  are automatically tightened, with no second source of truth to drift.
+- A tenant can mandate `fapi2` for all its clients; a client cannot loosen any of the injected ceilings, nor clear the
+  profile flag itself.
+- New public surface: the `security_profile` setting, the `OpenIdConstants.SecurityProfiles.Fapi2` constant, and
+  `ISecurityProfileSettingsExpander`.
+- Remaining FAPI behavioral rules not expressible as setting ceilings are follow-ups (backlog `F16` Phase 3): the
+  client-assertion `aud` must equal the issuer; sender-constrained access tokens must be required (DPoP **or** mTLS
+  binding, so not a single setting); and a public client must be rejected at the authorization endpoint (the token
+  endpoint already rejects it via permitted-method enforcement).

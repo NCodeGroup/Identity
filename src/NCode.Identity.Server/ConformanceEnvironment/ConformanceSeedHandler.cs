@@ -198,29 +198,18 @@ internal sealed class ConformanceSeedHandler(
         var givenName = Options.TestUserGivenName;
         var familyName = Options.TestUserFamilyName;
 
-        var claims = new List<PersistedLocalAccountClaim>(3);
+        var claims = new List<PersistedLocalAccountClaim>();
 
-        if (!string.IsNullOrEmpty(givenName))
+        void Add(string type, string? value)
         {
-            claims.Add(
-                new PersistedLocalAccountClaim
-                {
-                    Type = JoseClaimNames.Payload.GivenName,
-                    Value = givenName,
-                }
-            );
+            if (!string.IsNullOrEmpty(value))
+            {
+                claims.Add(new PersistedLocalAccountClaim { Type = type, Value = value });
+            }
         }
 
-        if (!string.IsNullOrEmpty(familyName))
-        {
-            claims.Add(
-                new PersistedLocalAccountClaim
-                {
-                    Type = JoseClaimNames.Payload.FamilyName,
-                    Value = familyName,
-                }
-            );
-        }
+        Add(JoseClaimNames.Payload.GivenName, givenName);
+        Add(JoseClaimNames.Payload.FamilyName, familyName);
 
         // Compose the displayed 'name' from whichever name parts are configured so the suite's EnsureUserInfoContainsName
         // check (a 'profile' scope request) always finds one.
@@ -228,16 +217,38 @@ internal sealed class ConformanceSeedHandler(
             ' ',
             new[] { givenName, familyName }.Where(part => !string.IsNullOrEmpty(part))
         );
-        if (!string.IsNullOrEmpty(displayName))
-        {
-            claims.Add(
-                new PersistedLocalAccountClaim
-                {
-                    Type = JoseClaimNames.Payload.Name,
-                    Value = displayName,
-                }
-            );
-        }
+        Add(JoseClaimNames.Payload.Name, displayName);
+
+        // Seed the full standard 'profile', 'address', and 'phone' scope claim sets with deterministic values so the
+        // suite's VerifyScopesReturnedInUserInfoClaims check finds every scope-mapped claim in the UserInfo response
+        // (OIDC Core §5.4); the UserInfo enricher coerces the typed claims (updated_at → number, address → object,
+        // phone_number_verified → boolean) on the way out.
+        Add(JoseClaimNames.Payload.MiddleName, "Q");
+        Add(JoseClaimNames.Payload.Nickname, "Con");
+        Add(JoseClaimNames.Payload.PreferredUsername, Options.TestUserName);
+        Add(JoseClaimNames.Payload.Profile, "https://op.localhost/users/conformance-user");
+        Add(
+            JoseClaimNames.Payload.Picture,
+            "https://op.localhost/users/conformance-user/picture.png"
+        );
+        Add(JoseClaimNames.Payload.Website, "https://op.localhost");
+        Add(JoseClaimNames.Payload.Gender, "unspecified");
+        Add(JoseClaimNames.Payload.Birthdate, "2000-01-01");
+        Add(JoseClaimNames.Payload.Zoneinfo, "America/Los_Angeles");
+        Add(JoseClaimNames.Payload.Locale, "en-US");
+        Add(JoseClaimNames.Payload.UpdatedAt, "1700000000");
+
+        // The address claim is a structured JSON object (OIDC Core §5.1.1); it is persisted as its JSON text and the
+        // enricher parses it back into an object for the response.
+        Add(
+            JoseClaimNames.Payload.Address,
+            """
+            {"formatted":"123 Main St\nSpringfield, CA 90000\nUS","street_address":"123 Main St","locality":"Springfield","region":"CA","postal_code":"90000","country":"US"}
+            """
+        );
+
+        Add(JoseClaimNames.Payload.PhoneNumber, "+15555550100");
+        Add(JoseClaimNames.Payload.PhoneNumberVerified, "true");
 
         return claims;
     }

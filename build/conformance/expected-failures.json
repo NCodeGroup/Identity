@@ -1,20 +1,11 @@
 [
   {
-    "test-name": "oidcc-ensure-registered-redirect-uri",
+    "test-name": "oidcc-codereuse-30seconds",
     "variant": "*",
     "configuration-filename": "oidcc-basic.json",
     "current-block": "*",
-    "condition": "oidcc-ensure-registered-redirect-uri",
-    "expected-result": "failure",
-    "comment": "Harness-automation limitation, not a backend defect (BACKLOG T8). The OP correctly refuses to redirect to an unregistered redirect_uri and renders a 400 unauthorized_client error instead (OIDC Core 3.1.2.3 / 3.1.2.4). The suite's headless scripted-browser flow is built for the happy path, so its 'Verify Complete' step waits for the 'submission_complete' callback element that (correctly) never appears and times out. In a human-driven OIDF certification run this test passes. Removing this baseline once the browser flow handles the negative-redirect case is tracked in BACKLOG T8."
-  },
-  {
-    "test-name": "oidcc-ensure-registered-redirect-uri",
-    "variant": "*",
-    "configuration-filename": "oidcc-basic.json",
-    "current-block": "*",
-    "condition": "WebRunner",
-    "expected-result": "failure",
-    "comment": "Companion to the oidcc-ensure-registered-redirect-uri condition above: the scripted browser's 'wait for submission_complete' task times out because the OP correctly does not redirect to the unregistered redirect_uri. Harness-automation limitation, not a backend defect (BACKLOG T8)."
+    "condition": "EnsureHttpStatusCodeIs4xx",
+    "expected-result": "warning",
+    "comment": "Accepted, intentional deviation, not a backend defect (BACKLOG T8). RFC 6749 §4.1.2 SHOULD revoke tokens previously issued from a reused authorization code 'when possible'. The OP correctly rejects the second code use with invalid_grant (one-time codes) and enforces PKCE S256, which already prevents authorization-code injection (RFC 9700). Its access tokens are stateless, short-lived JWTs (the modern default), so an already-issued access token cannot be revoked without a denylist / reference-token store that would contradict the stateless design — the short lifetime bounds the exposure, which is exactly the trade-off RFC 9700 accepts for self-contained tokens. The suite replays the still-valid access token after the code reuse and warns because EnsureHttpStatusCodeIs4xx expected a 4xx but the stateless token is still accepted (200). Revisit only if the OP ever adopts reference/stateful access tokens."
   }
 ]

@@ -22,6 +22,8 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Buffers;
+using NCode.Identity.Jose;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
@@ -41,6 +43,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// </summary>
 internal class DefaultLoadAuthorizationRequestHandler(
     ILogger<DefaultLoadAuthorizationRequestHandler> logger,
+    IJoseSerializer joseSerializer,
     IJsonWebTokenService jsonWebTokenService,
     IHttpClientFactory httpClientFactory,
     IOutboundHttpContentReader outboundHttpContentReader,
@@ -48,6 +51,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
 ) : ICommandResponseHandler<LoadAuthorizationRequestCommand, IAuthorizationRequest>
 {
     private ILogger<DefaultLoadAuthorizationRequestHandler> Logger { get; } = logger;
+    private IJoseSerializer JoseSerializer { get; } = joseSerializer;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
     private IOutboundHttpContentReader OutboundHttpContentReader { get; } =
@@ -144,6 +148,20 @@ internal class DefaultLoadAuthorizationRequestHandler(
             return null;
         }
 
+        // OpenID Connect Core 1.0 §6.1: an OP that does not support unsigned request objects must answer exactly
+        // 'request_not_supported' (not a generic 'invalid_request_object' decode error) for an 'alg':'none' request
+        // object. The OP advertises only asymmetric request-object signing algorithms (RFC 9700 / FAPI), so detect
+        // the unsigned case up front and reject it with the precise error the spec requires.
+        if (IsUnsignedRequestObject(requestJwt))
+        {
+            throw errorFactory
+                .Create(OpenIdConstants.ErrorCodes.RequestNotSupported)
+                .WithDescription(
+                    "The authorization server does not support unsigned ('alg':'none') request objects."
+                )
+                .AsException();
+        }
+
         JsonElement jwtPayload;
         try
         {
@@ -208,6 +226,35 @@ internal class DefaultLoadAuthorizationRequestHandler(
                 .FailedToDeserializeJson(errorCode)
                 .WithException(exception)
                 .AsException();
+        }
+    }
+
+    private bool IsUnsignedRequestObject(string requestJwt)
+    {
+        try
+        {
+            var compactJwt = JoseSerializer.ParseCompactJwt(requestJwt);
+            if (compactJwt.ProtectionType != JoseProtectionTypes.Jws)
+            {
+                return false;
+            }
+
+            return compactJwt.DeserializedHeader.TryGetProperty(
+                    JoseClaimNames.Header.Alg,
+                    out var algElement
+                )
+                && algElement.ValueKind == JsonValueKind.String
+                && string.Equals(
+                    algElement.GetString(),
+                    AlgorithmCodes.DigitalSignature.None,
+                    StringComparison.OrdinalIgnoreCase
+                );
+        }
+        catch (Exception)
+        {
+            // A malformed token is not the unsigned case; let the normal validation path report the decode failure as
+            // 'invalid_request_object'.
+            return false;
         }
     }
 

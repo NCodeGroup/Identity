@@ -98,20 +98,41 @@ public class SettingDescriptor<TValue> : SettingDescriptor
 
     /// <inheritdoc />
     [MemberNotNullWhen(true, nameof(DefaultOrNull))]
-    public override bool HasDefault => DefaultOrNull is not null;
+    public override bool HasDefault => _hasDefault;
+
+    private readonly TValue? _defaultValue;
+    private readonly bool _hasDefault;
 
     /// <summary>
-    /// Gets the default value for the setting.
+    /// Gets the default value for the setting, or <c>null</c>/<c>default</c> when no default was configured. Use
+    /// <see cref="HasDefault"/> to distinguish an unconfigured default from a configured default equal to
+    /// <c>default(TValue)</c> — a value-type <c>TValue</c> (e.g. <see cref="System.TimeSpan"/>) cannot carry a null
+    /// sentinel here, so the presence of a default is tracked explicitly rather than inferred from this value.
     /// </summary>
-    public TValue? DefaultOrNull { get; init; }
+    public TValue? DefaultOrNull
+    {
+        get => _defaultValue;
+        init
+        {
+            _defaultValue = value;
+            _hasDefault = true;
+        }
+    }
 
     /// <summary>
     /// Gets the default value for the setting or throws an <see cref="InvalidOperationException"/> if the default value is not set.
     /// </summary>
     public TValue Default
     {
-        get => DefaultOrNull ?? throw new InvalidOperationException();
-        init => DefaultOrNull = value;
+        get =>
+            _hasDefault && _defaultValue is { } value
+                ? value
+                : throw new InvalidOperationException();
+        init
+        {
+            _defaultValue = value;
+            _hasDefault = true;
+        }
     }
 
     /// <summary>

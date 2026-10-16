@@ -110,6 +110,48 @@ public class UserInfoEndpointTests
     }
 
     [Fact]
+    public async Task GetUserInfo_WithLocalAccountAndScope_ReturnsAccountSourcedScopeClaims()
+    {
+        using var factory = new PlaygroundApplicationFactory();
+
+        // Seed the local account and its self-issued federated identity (what a real login provisions), then present a
+        // subject whose id is the provisioned principal id and whose 'scope' grants profile+email (OpenID Connect
+        // Core 1.0 §5.4): the account-sourced enricher must return those claims from UserInfo, not just 'sub'.
+        var principalId = await factory.SeedLocalAccountAsync(
+            localAccountId: "local-alice",
+            email: "alice@localhost",
+            emailVerified: true,
+            ("given_name", "Alice"),
+            ("family_name", "Example")
+        );
+
+        using var authFactory = WithTestAuthentication(factory);
+        var client = authFactory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, UserInfoPath);
+        request.Headers.Add(TestSubjectAuthenticationHandler.SubjectHeaderName, principalId);
+        request.Headers.Add(
+            TestSubjectAuthenticationHandler.ScopeHeaderName,
+            "openid profile email"
+        );
+
+        using var response = await client.SendAsync(request);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        Assert.True(root.TryGetProperty("email", out var emailProp), body);
+        Assert.Equal("alice@localhost", emailProp.GetString());
+        Assert.True(root.GetProperty("email_verified").GetBoolean());
+        Assert.Equal("Alice", root.GetProperty("given_name").GetString());
+        Assert.Equal("Example", root.GetProperty("family_name").GetString());
+    }
+
+    [Fact]
     public async Task Discovery_AdvertisesUserInfoEndpoint()
     {
         using var factory = new PlaygroundApplicationFactory();

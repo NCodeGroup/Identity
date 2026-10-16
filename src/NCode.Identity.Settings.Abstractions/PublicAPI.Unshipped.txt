@@ -39,6 +39,9 @@ NCode.Identity.Settings.Setting<TValue>
 NCode.Identity.Settings.Setting<TValue>.Descriptor.get -> NCode.Identity.Settings.SettingDescriptor<TValue>!
 NCode.Identity.Settings.Setting<TValue>.Setting(NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor, TValue value) -> void
 NCode.Identity.Settings.Setting<TValue>.Value.get -> TValue
+NCode.Identity.Settings.SettingCollectionExtensions
+NCode.Identity.Settings.SettingCollectionExtensions.extension(NCode.Identity.Settings.IReadOnlySettingCollection!)
+NCode.Identity.Settings.SettingCollectionExtensions.extension(NCode.Identity.Settings.IReadOnlySettingCollection!).GetValueOrNull<TValue>(NCode.Identity.Settings.SettingKey<TValue> key) -> TValue?
 NCode.Identity.Settings.SettingDescriptor
 NCode.Identity.Settings.SettingDescriptor.IsDiscoverable.get -> bool
 NCode.Identity.Settings.SettingDescriptor.IsDiscoverable.init -> void

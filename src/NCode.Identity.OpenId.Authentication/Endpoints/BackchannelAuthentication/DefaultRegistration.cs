@@ -97,6 +97,23 @@ internal static class DefaultRegistration
                     CibaDeliveryJobHandler
                 >()
             );
+
+            // CIBA ping/push delivery POSTs to the client-registered client_notification_endpoint, so it uses a
+            // dedicated SSRF-guarded HTTP client whose connections are pinned away from private/loopback/link-local
+            // addresses and which never follows redirects, so a registered internal URL cannot turn the OP into a
+            // confused deputy.
+            serviceCollection
+                .AddHttpClient(CibaDeliveryJobHandler.HttpClientName)
+                .ConfigurePrimaryHttpMessageHandler(
+                    serviceProvider => new System.Net.Http.SocketsHttpHandler
+                    {
+                        AllowAutoRedirect = false,
+                        ConnectCallback = serviceProvider
+                            .GetRequiredService<NCode.Identity.OpenId.Authentication.Logic.IOutboundHttpForgeryGuard>()
+                            .ConnectAsync,
+                        AutomaticDecompression = System.Net.DecompressionMethods.All,
+                    }
+                );
         }
     }
 }

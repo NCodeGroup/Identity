@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Net;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -122,9 +123,28 @@ internal static class DefaultRegistration
                 OutboundHttpForgeryGuard
             >();
             serviceCollection.TryAddSingleton<
+                IOutboundHttpContentReader,
+                DefaultOutboundHttpContentReader
+            >();
+            serviceCollection.TryAddSingleton<
                 Sessions.IBackChannelLogoutNotifier,
                 Sessions.DefaultBackChannelLogoutNotifier
             >();
+
+            // Back-channel logout POSTs to the relying party's client-registered backchannel_logout_uri, so it uses a
+            // dedicated SSRF-guarded HTTP client whose connections are pinned away from private/loopback/link-local
+            // addresses and which never follows redirects, so a registered internal URL cannot turn the OP into a
+            // confused deputy.
+            serviceCollection
+                .AddHttpClient(Sessions.BackChannelLogoutDeliveryJobHandler.HttpClientName)
+                .ConfigurePrimaryHttpMessageHandler(serviceProvider => new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false,
+                    ConnectCallback = serviceProvider
+                        .GetRequiredService<IOutboundHttpForgeryGuard>()
+                        .ConnectAsync,
+                    AutomaticDecompression = DecompressionMethods.All,
+                });
 
             // Back-channel logout delivery runs as a durable, retryable dispatch job; the handler performs the POST.
             serviceCollection.TryAddEnumerable(

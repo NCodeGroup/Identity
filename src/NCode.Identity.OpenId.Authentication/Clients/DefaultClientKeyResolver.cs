@@ -20,8 +20,10 @@ using System.Buffers;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using NCode.Buffers;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -45,6 +47,7 @@ internal sealed class DefaultClientKeyResolver(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     IHttpClientFactory httpClientFactory,
+    IOutboundHttpContentReader outboundHttpContentReader,
     IMemoryCache memoryCache,
     ISecretImporter secretImporter,
     ISecretSerializer secretSerializer,
@@ -57,6 +60,8 @@ internal sealed class DefaultClientKeyResolver(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
+    private IOutboundHttpContentReader OutboundHttpContentReader { get; } =
+        outboundHttpContentReader;
     private IMemoryCache MemoryCache { get; } = memoryCache;
     private ISecretImporter SecretImporter { get; } = secretImporter;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
@@ -168,7 +173,6 @@ internal sealed class DefaultClientKeyResolver(
         if (timeout > TimeSpan.Zero)
             timeoutCts.CancelAfter(timeout);
 
-        byte[] content;
         try
         {
             using var httpClient = HttpClientFactory.CreateClient(HttpClientName);
@@ -192,7 +196,14 @@ internal sealed class DefaultClientKeyResolver(
                 return [];
             }
 
-            if (response.Content.Headers.ContentLength > maxSizeBytes)
+            using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
+            var readResult = await OutboundHttpContentReader.ReadCappedAsync(
+                response,
+                buffer,
+                maxSizeBytes,
+                timeoutCts.Token
+            );
+            if (readResult != OutboundHttpReadResult.Completed)
             {
                 Logger.ClientJwksFetchFailed(
                     openIdClient.ClientId,
@@ -204,20 +215,7 @@ internal sealed class DefaultClientKeyResolver(
                 return [];
             }
 
-            var contentOrNull = await ReadCappedAsync(response, maxSizeBytes, timeoutCts.Token);
-            if (contentOrNull is null)
-            {
-                Logger.ClientJwksFetchFailed(
-                    openIdClient.ClientId,
-                    uri.AbsoluteUri,
-                    new InvalidOperationException(
-                        "The 'jwks_uri' document exceeds the maximum allowed size."
-                    )
-                );
-                return [];
-            }
-
-            content = contentOrNull;
+            return ImportKeys(openIdClient, buffer.AsReadOnlySequence);
         }
         catch (Exception exception)
             when (exception is HttpRequestException or OperationCanceledException)
@@ -225,11 +223,9 @@ internal sealed class DefaultClientKeyResolver(
             Logger.ClientJwksFetchFailed(openIdClient.ClientId, uri.AbsoluteUri, exception);
             return [];
         }
-
-        return ImportKeys(openIdClient, content);
     }
 
-    private List<SecretKey> ImportKeys(OpenIdClient openIdClient, byte[] content)
+    private List<SecretKey> ImportKeys(OpenIdClient openIdClient, ReadOnlySequence<byte> content)
     {
         JsonElement keysElement;
         try
@@ -336,35 +332,4 @@ internal sealed class DefaultClientKeyResolver(
         && member.ValueKind == JsonValueKind.String
             ? member.GetString()
             : null;
-
-    private static async ValueTask<byte[]?> ReadCappedAsync(
-        HttpResponseMessage response,
-        int maxSizeBytes,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var buffer = new MemoryStream();
-
-        var rented = ArrayPool<byte>.Shared.Rent(8192);
-        try
-        {
-            int read;
-            while (
-                (read = await stream.ReadAsync(rented, cancellationToken).ConfigureAwait(false)) > 0
-            )
-            {
-                if (buffer.Length + read > maxSizeBytes)
-                    return null;
-
-                buffer.Write(rented, 0, read);
-            }
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(rented);
-        }
-
-        return buffer.ToArray();
-    }
 }

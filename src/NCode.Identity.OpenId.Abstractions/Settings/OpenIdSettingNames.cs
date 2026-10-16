@@ -549,6 +549,24 @@ public static class OpenIdSettingNames
     public const string RequestUriExpectedContentType = "request_uri_expected_content_type";
 
     /// <summary>
+    /// Contains the name of <c>request_uri_allowed_hosts</c> setting: an optional SSRF allow-list of hosts the JAR
+    /// <c>request_uri</c> fetch (RFC 9101) is permitted to connect to.
+    /// </summary>
+    public const string RequestUriAllowedHosts = "request_uri_allowed_hosts";
+
+    /// <summary>
+    /// Contains the name of <c>request_uri_fetch_timeout</c> setting: the wall-clock cap on the JAR <c>request_uri</c>
+    /// fetch (RFC 9101).
+    /// </summary>
+    public const string RequestUriFetchTimeout = "request_uri_fetch_timeout";
+
+    /// <summary>
+    /// Contains the name of <c>request_uri_max_size_bytes</c> setting: the cap on the response body size accepted from
+    /// the JAR <c>request_uri</c> fetch (RFC 9101).
+    /// </summary>
+    public const string RequestUriMaxSizeBytes = "request_uri_max_size_bytes";
+
+    /// <summary>
     /// Contains the name of <c>require_consent</c> setting.
     /// </summary>
     public const string RequireConsent = "require_consent";

@@ -84,6 +84,7 @@ ct)` returns the client's **stored** `SecretKeys` **merged** with the public key
 - The private/reserved-address floor is uniform across all three fetches and cannot be weakened by configuration; a
   deployment that needs stricter egress adds `IOutboundAddressFilter` rules.
 - `IClientKeyResolver`, `IOutboundAddressFilter`, and the five `jwks_uri*` settings are new public surface.
-- Open follow-ups (tracked in [`BACKLOG.md`](../../BACKLOG.md)): the `request_uri` fetch still has no response-size cap,
-  and the back-channel logout and CIBA client-notification **deliveries** POST to client-registered URLs through
-  unguarded clients — both should route through the shared guard.
+- The remaining outbound-fetch gaps called out below were closed in
+  [ADR-0111](0111-complete-outbound-fetch-ssrf-coverage.md): the JAR `request_uri` fetch now has a response-size cap,
+  fetch-timeout, and host allow-list (a `request_uri_*` settings family), and the back-channel-logout and CIBA
+  client-notification **deliveries** POST through SSRF-guarded named clients.

@@ -82,7 +82,7 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
     public async Task HandleAsync_WhenConfigured_PostsFormEncodedLogoutToken()
     {
         MockHttpClientFactory
-            .Setup(x => x.CreateClient(It.IsAny<string>()))
+            .Setup(x => x.CreateClient(BackChannelLogoutDeliveryJobHandler.HttpClientName))
             .Returns(new HttpClient(Handler))
             .Verifiable();
 
@@ -99,7 +99,7 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
     {
         var errorHandler = new RecordingHttpMessageHandler(HttpStatusCode.ServiceUnavailable);
         MockHttpClientFactory
-            .Setup(x => x.CreateClient(It.IsAny<string>()))
+            .Setup(x => x.CreateClient(BackChannelLogoutDeliveryJobHandler.HttpClientName))
             .Returns(new HttpClient(errorHandler))
             .Verifiable();
 

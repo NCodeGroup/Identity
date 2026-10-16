@@ -65,7 +65,7 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
     private void SetupHttpClient() =>
         MockHttpClientFactory
-            .Setup(x => x.CreateClient(It.IsAny<string>()))
+            .Setup(x => x.CreateClient(CibaDeliveryJobHandler.HttpClientName))
             .Returns(new HttpClient(Handler))
             .Verifiable();
 

@@ -569,6 +569,24 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RequestUriExpectedContentType);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_uri_allowed_hosts' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> RequestUriAllowedHosts =>
+        new(OpenIdSettingNames.RequestUriAllowedHosts);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_uri_fetch_timeout' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> RequestUriFetchTimeout =>
+        new(OpenIdSettingNames.RequestUriFetchTimeout);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_uri_max_size_bytes' setting.
+    /// </summary>
+    public static SettingKey<int> RequestUriMaxSizeBytes =>
+        new(OpenIdSettingNames.RequestUriMaxSizeBytes);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_consent' setting.
     /// </summary>
     public static SettingKey<bool> RequireConsent => new(OpenIdSettingNames.RequireConsent);

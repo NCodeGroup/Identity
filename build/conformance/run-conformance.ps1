@@ -282,6 +282,17 @@ try {
                 Remove-Item $f -ErrorAction SilentlyContinue
             }
         }
+
+        # --- 4b) Render a single HTML summary of the run (what passed / warned / was skipped / failed). ---
+        # Best-effort: a reporting hiccup must never mask the primary pass/fail result.
+        try {
+            Write-Step 'Rendering the HTML conformance report.'
+            $reportPath = & (Join-Path $PSScriptRoot 'New-ConformanceReport.ps1') -ResultsDir $exportDirFull
+            Write-Host "    Open the report: $reportPath" -ForegroundColor Green
+        }
+        catch {
+            Write-Host "    Could not render the HTML report: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
     }
 }
 finally {

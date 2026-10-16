@@ -150,6 +150,10 @@ function Invoke-WithDeadline([string] $FilePath, [string[]] $Arguments, [int] $T
     $psi = [System.Diagnostics.ProcessStartInfo]::new()
     $psi.FileName = $FilePath
     $psi.UseShellExecute = $false
+    # PowerShell's Push-Location/Set-Location does NOT update the native process working directory ([Environment]::
+    # CurrentDirectory), which a UseShellExecute=false child inherits. Pin it to the caller's current filesystem
+    # location so the suite's run-test-plan.py resolves the bare config filename (it can't take an absolute path).
+    $psi.WorkingDirectory = (Get-Location -PSProvider FileSystem).ProviderPath
     foreach ($arg in $Arguments) { $psi.ArgumentList.Add($arg) }
     $proc = [System.Diagnostics.Process]::Start($psi)
     if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {

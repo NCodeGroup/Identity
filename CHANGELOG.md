@@ -20,10 +20,25 @@ change to the public API is a **major** version bump.
   a new account-sourced UserInfo enricher (`DefaultGetLocalAccountUserInfoClaimsHandler`, registered by
   `AddLocalAccountAuthentication` / `AddLocalAccountInteractiveAuthentication`) resolves the caller's local account from
   its self-issued connection and returns the scope-permitted `profile`/`email`/`address`/`phone` claims from the account
-  store (the access token's `scope` claim gates which); and (c) the conformance test-user seed now provisions
-  `given_name`/`family_name`/`name` profile claims (new `ConformanceSeedOptions.TestUserGivenName` /
-  `TestUserFamilyName`). This clears the OpenID Foundation suite's `oidcc-scope-{profile,email,…}`,
-  `EnsureUserInfoContainsName`, and `EnsureIdTokenDoesNotContainNonRequestedClaims` warnings.
+  store (the access token's `scope` claim gates which) — it also honors individual claims requested via the OIDC
+  `claims` request parameter's `userinfo` member (OIDC Core §5.5), serving them from the account store even when the
+  owning scope was not granted, and coerces the standard typed claims (`updated_at` → number, `address` → JSON object,
+  `phone_number_verified` → boolean) so the UserInfo response carries the correct JSON types; and (c) the conformance
+  test-user seed now provisions the full standard `profile`/`address`/`phone` claim set (new
+  `ConformanceSeedOptions.TestUserGivenName` / `TestUserFamilyName` for the name parts, deterministic values for the
+  rest). This clears the OpenID Foundation suite's `oidcc-scope-{profile,email,address,phone,all}`,
+  `oidcc-claims-essential` (`EnsureUserInfoContainsName`), and `oidcc-server`
+  (`EnsureIdTokenDoesNotContainNonRequestedClaims`) warnings.
+
+- **The ID token no longer carries the `tid` and `client_id` claims (backlog `T8`).** Those are JWT access-token
+  claims (RFC 9068 §2.2), not ID-token claims — the ID-token claim set is defined by OpenID Connect Core 1.0 §2, and
+  emitting a tenant id and a redundant client id the client never requested leaks data and tripped the suite's
+  `oidcc-server` "id_token contains non-requested claim" warning. `DefaultGetIdTokenPayloadClaimsHandler` now emits only
+  the standard `azp` (authorized party) to identify the client in the ID token; `tid` and `client_id` remain on the
+  access token (`DefaultGetAccessTokenPayloadClaimsHandler`) where tenant- and client-scoped authorization reads them.
+  With this and the UserInfo scope-claim work above (plus a browser-automation refinement for the unregistered
+  `redirect_uri` error page), the browser-driven **Basic OP** certification plan now runs **31 PASSED, 1 WARNING
+  (accepted stateless-token `oidcc-codereuse-30seconds` deviation), 3 REVIEW, 4 SKIPPED, 0 FAILED** with a clean gate.
 
 - **The UserInfo endpoint now accepts the access token in a form-encoded request body (backlog `T8`).** Per RFC 6750
   §2.2 / OpenID Connect Core 1.0 §5.3.1, a client may present the bearer access token as an `access_token` form
@@ -35,12 +50,13 @@ change to the public API is a **major** version bump.
 
 - **`IReadOnlySettingCollection.GetValueOrNull<TValue>()` reads an optional value-type setting as a genuine
   `Nullable<TValue>`.** A new `SettingCollectionExtensions.GetValueOrNull<TValue>(SettingKey<TValue>) where TValue :
-  struct` returns the setting's value when present and `null` when absent, so a caller can distinguish "unset" from a
+struct` returns the setting's value when present and `null` when absent, so a caller can distinguish "unset" from a
   materialized zero/default without hand-rolling a `TryGetValue` dance — the reusable replacement for the
   `settings.TryGetValue(key, out var v) ? v : (TValue?)null` pattern at freshness/limit call sites. **Public surface:**
   the new `GetValueOrNull` extension in `NCode.Identity.Settings`.
 
 ### Changed
+
 - **Complete outbound-fetch SSRF coverage and bound the JAR `request_uri` fetch — closes backlog `F28`
   ([ADR-0111](docs/adr/0111-complete-outbound-fetch-ssrf-coverage.md)).** Every server-initiated outbound HTTP call to a
   client-controlled URL is now SSRF-guarded uniformly. The JAR `request_uri` fetch (RFC 9101) gains the same bound set
@@ -1116,15 +1132,14 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   logs and tripping false alerts. A 4xx-status `OpenIdException` now logs at Warning with its error code; only genuine
   5xx / unexpected faults remain at Error. Surfaced by `oidcc-ensure-registered-redirect-uri`.
 
-
-  "create client secret" endpoint generated a symmetric secret via `ISecretGenerator.GenerateSecret`, which stores the
-  raw CSPRNG bytes and reveals their `base64url` form — but client authentication compares the **UTF-8 bytes of the
-  presented secret** against the stored key material (and `client_secret_jwt` keys its HMAC from those same UTF-8
-  octets), so `UTF8(base64url(raw)) ≠ raw` meant every generated secret failed with `invalid_client`. A new
-  `ISecretGenerator.GenerateSharedSecret` persists the opaque secret string as its UTF-8 bytes (the representation a
-  verifier compares against); DCR and the management client-secret path now use it, while asymmetric / server-side
-  cryptographic keys keep `GenerateSecret` ([ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md)).
-  Surfaced by the OpenID Foundation Conformance Suite's Basic OP profile under Dynamic Client Registration.
+    "create client secret" endpoint generated a symmetric secret via `ISecretGenerator.GenerateSecret`, which stores the
+    raw CSPRNG bytes and reveals their `base64url` form — but client authentication compares the **UTF-8 bytes of the
+    presented secret** against the stored key material (and `client_secret_jwt` keys its HMAC from those same UTF-8
+    octets), so `UTF8(base64url(raw)) ≠ raw` meant every generated secret failed with `invalid_client`. A new
+    `ISecretGenerator.GenerateSharedSecret` persists the opaque secret string as its UTF-8 bytes (the representation a
+    verifier compares against); DCR and the management client-secret path now use it, while asymmetric / server-side
+    cryptographic keys keep `GenerateSecret` ([ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md)).
+    Surfaced by the OpenID Foundation Conformance Suite's Basic OP profile under Dynamic Client Registration.
 
 - **Dynamic Client Registration deregistration (`DELETE /oauth2/register/{client_id}`) no longer fails for a client
   that still has a secret.** `ClientStore.RemoveAsync` guarded against orphaning secrets with a fresh

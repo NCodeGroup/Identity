@@ -17,6 +17,7 @@
 #endregion
 
 using System.Security.Claims;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authentication;
 using Moq;
 using NCode.Identity.Jose;
@@ -24,11 +25,15 @@ using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
+using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -39,11 +44,13 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
     private const string TenantId = "tenant-1";
     private const string PrincipalId = "principal-1";
     private const string LocalAccountId = "account-1";
+    private const string AccessTokenId = "jti-1";
 
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IFederatedIdentityStore> MockFederatedIdentityStore { get; }
     private Mock<ILocalAccountStore> MockLocalAccountStore { get; }
+    private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private DefaultGetLocalAccountUserInfoClaimsHandler Handler { get; }
 
     public DefaultGetLocalAccountUserInfoClaimsHandlerTests()
@@ -52,7 +59,11 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockFederatedIdentityStore = CreateStrictMock<IFederatedIdentityStore>();
         MockLocalAccountStore = CreateStrictMock<ILocalAccountStore>();
-        Handler = new DefaultGetLocalAccountUserInfoClaimsHandler(MockStoreManagerFactory.Object);
+        MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
+        Handler = new DefaultGetLocalAccountUserInfoClaimsHandler(
+            MockStoreManagerFactory.Object,
+            MockPersistedGrantService.Object
+        );
     }
 
     #region Scaffolding
@@ -132,12 +143,29 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
     private GetUserInfoClaimsCommand CreateCommand(
         IDictionary<string, object> claims,
         params string[] scopes
+    ) => CreateCommandCore(claims, jti: null, scopes);
+
+    private GetUserInfoClaimsCommand CreateCommandWithJti(
+        IDictionary<string, object> claims,
+        string jti,
+        params string[] scopes
+    ) => CreateCommandCore(claims, jti, scopes);
+
+    private GetUserInfoClaimsCommand CreateCommandCore(
+        IDictionary<string, object> claims,
+        string? jti,
+        string[] scopes
     )
     {
         var identity = new ClaimsIdentity("test");
         if (scopes.Length > 0)
         {
             identity.AddClaim(new Claim(JoseClaimNames.Payload.Scope, string.Join(' ', scopes)));
+        }
+
+        if (!string.IsNullOrEmpty(jti))
+        {
+            identity.AddClaim(new Claim(JoseClaimNames.Payload.Jti, jti));
         }
 
         var subjectAuthentication = new SubjectAuthentication(
@@ -147,11 +175,56 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
             PrincipalId
         );
 
-        return new GetUserInfoClaimsCommand(
-            CreateStrictMock<OpenIdContext>().Object,
-            subjectAuthentication,
-            claims
-        );
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        if (!string.IsNullOrEmpty(jti))
+        {
+            var mockTenant = CreateStrictMock<OpenIdTenant>();
+            mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+            mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        }
+
+        return new GetUserInfoClaimsCommand(mockContext.Object, subjectAuthentication, claims);
+    }
+
+    private void SetupRequestedUserInfoClaims(string jti, params string[] claimTypes)
+    {
+        var grantId = new PersistedGrantId
+        {
+            TenantId = TenantId,
+            GrantType = OpenIdConstants.PersistedGrantTypes.UserInfoClaims,
+            GrantKey = jti,
+        };
+        MockPersistedGrantService
+            .Setup(x =>
+                x.CreateGrantId(TenantId, OpenIdConstants.PersistedGrantTypes.UserInfoClaims, jti)
+            )
+            .Returns(grantId)
+            .Verifiable();
+
+        var userInfo = new RequestClaimDictionary();
+        foreach (var claimType in claimTypes)
+        {
+            userInfo[claimType] = null;
+        }
+
+        var grant = new PersistedGrant<IRequestClaims>
+        {
+            TenantId = TenantId,
+            ClientId = "client-1",
+            SubjectId = PrincipalId,
+            SessionId = null,
+            Payload = new RequestClaims { UserInfo = userInfo },
+        };
+        MockPersistedGrantService
+            .Setup(x =>
+                x.GetOrDefaultAsync<IRequestClaims>(
+                    It.IsAny<OpenIdContext>(),
+                    grantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(grant)
+            .Verifiable();
     }
 
     #endregion
@@ -276,6 +349,132 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
         await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Equal("existing@localhost", claims[JoseClaimNames.Payload.Email]);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenClaimsParameterRequestsName_AddsFromAccountWithoutProfileScope()
+    {
+        SetupStoreManager();
+        SetupIdentities(SelfIssuedIdentity());
+        SetupAccount(
+            Account(
+                email: null,
+                emailVerified: false,
+                new PersistedLocalAccountClaim
+                {
+                    Type = JoseClaimNames.Payload.Name,
+                    Value = "Test User",
+                }
+            )
+        );
+        SetupRequestedUserInfoClaims(AccessTokenId, JoseClaimNames.Payload.Name);
+
+        var claims = new Dictionary<string, object>();
+        var command = CreateCommandWithJti(
+            claims,
+            AccessTokenId,
+            OpenIdConstants.ScopeTypes.OpenId
+        );
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.Equal("Test User", claims[JoseClaimNames.Payload.Name]);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAddressScope_EmitsAddressAsJsonObject()
+    {
+        const string addressJson = """{"locality":"Springfield","country":"US"}""";
+        SetupStoreManager();
+        SetupIdentities(SelfIssuedIdentity());
+        SetupAccount(
+            Account(
+                email: null,
+                emailVerified: false,
+                new PersistedLocalAccountClaim
+                {
+                    Type = JoseClaimNames.Payload.Address,
+                    Value = addressJson,
+                }
+            )
+        );
+
+        var claims = new Dictionary<string, object>();
+        var command = CreateCommand(
+            claims,
+            OpenIdConstants.ScopeTypes.OpenId,
+            OpenIdConstants.ScopeTypes.Address
+        );
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        var address = Assert.IsAssignableFrom<JsonNode>(claims[JoseClaimNames.Payload.Address]);
+        Assert.Equal("Springfield", (string?)address["locality"]);
+        Assert.Equal("US", (string?)address["country"]);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenPhoneScope_EmitsTypedPhoneClaims()
+    {
+        SetupStoreManager();
+        SetupIdentities(SelfIssuedIdentity());
+        SetupAccount(
+            Account(
+                email: null,
+                emailVerified: false,
+                new PersistedLocalAccountClaim
+                {
+                    Type = JoseClaimNames.Payload.PhoneNumber,
+                    Value = "+1 555 0100",
+                },
+                new PersistedLocalAccountClaim
+                {
+                    Type = JoseClaimNames.Payload.PhoneNumberVerified,
+                    Value = "true",
+                }
+            )
+        );
+
+        var claims = new Dictionary<string, object>();
+        var command = CreateCommand(
+            claims,
+            OpenIdConstants.ScopeTypes.OpenId,
+            OpenIdConstants.ScopeTypes.Phone
+        );
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.Equal("+1 555 0100", claims[JoseClaimNames.Payload.PhoneNumber]);
+        Assert.Equal(true, claims[JoseClaimNames.Payload.PhoneNumberVerified]);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenProfileScope_EmitsUpdatedAtAsNumber()
+    {
+        SetupStoreManager();
+        SetupIdentities(SelfIssuedIdentity());
+        SetupAccount(
+            Account(
+                email: null,
+                emailVerified: false,
+                new PersistedLocalAccountClaim
+                {
+                    Type = JoseClaimNames.Payload.UpdatedAt,
+                    Value = "1700000000",
+                }
+            )
+        );
+
+        var claims = new Dictionary<string, object>();
+        var command = CreateCommand(
+            claims,
+            OpenIdConstants.ScopeTypes.OpenId,
+            OpenIdConstants.ScopeTypes.Profile
+        );
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.Equal(1700000000L, claims[JoseClaimNames.Payload.UpdatedAt]);
     }
 
     #endregion

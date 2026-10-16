@@ -17,11 +17,17 @@
 #endregion
 
 using System.Collections.Frozen;
+using System.Globalization;
 using System.Security.Claims;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
+using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -33,17 +39,21 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// <c>profile</c>/<c>email</c>/<c>address</c>/<c>phone</c> scope claims from the configured
 /// <see cref="ILocalAccountStore"/>. Per OpenID Connect Core 1.0 §5.4 these scope-driven claims are returned from the
 /// UserInfo endpoint (not the ID token) whenever an access token was issued, so the matching gate in the ID-token
-/// subject-claims handler keeps them out of the ID token and this handler supplies them here. The local account is
-/// resolved from the caller's principal via its one-to-one self-issued connection
-/// (<see cref="AccountConstants.SelfIssuer"/>), and only the claims permitted by the token's granted scopes are
-/// emitted. A host fronting a different user store registers its own enricher instead.
+/// subject-claims handler keeps them out of the ID token and this handler supplies them here. In addition, individual
+/// claims requested via the OIDC <c>claims</c> request parameter's <c>userinfo</c> member (OIDC Core §5.5) are served
+/// from the account store even when the owning scope was not granted. The local account is resolved from the caller's
+/// principal via its one-to-one self-issued connection (<see cref="AccountConstants.SelfIssuer"/>), and only the
+/// claims permitted by the token's granted scopes or explicitly requested are emitted. A host fronting a different
+/// user store registers its own enricher instead.
 /// </summary>
 // See ADR-0030, ADR-0051.
 internal sealed class DefaultGetLocalAccountUserInfoClaimsHandler(
-    IStoreManagerFactory storeManagerFactory
+    IStoreManagerFactory storeManagerFactory,
+    IPersistedGrantService persistedGrantService
 ) : ICommandHandler<GetUserInfoClaimsCommand>, ISupportMediatorPriority
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.Low;
@@ -54,16 +64,22 @@ internal sealed class DefaultGetLocalAccountUserInfoClaimsHandler(
         CancellationToken cancellationToken
     )
     {
-        var (_, subjectAuthentication, claims) = command;
+        var (openIdContext, subjectAuthentication, claims) = command;
 
         var scopes = GetGrantedScopes(subjectAuthentication.Subject);
-        if (scopes.Count == 0)
-        {
-            return;
-        }
-
         var wantsEmail = scopes.Contains(OpenIdConstants.ScopeTypes.Email);
         var claimTypes = CollectScopeClaimTypes(scopes);
+
+        // Also honor individual claims requested via the OIDC 'claims' parameter's 'userinfo' member (OIDC Core §5.5),
+        // which are served from the account store regardless of scope; 'value'/'values' are advisory and 'essential' is
+        // best-effort, so a requested claim the account does not carry is simply omitted.
+        var requestedClaimTypes = await GetRequestedUserInfoClaimTypesAsync(
+            openIdContext,
+            subjectAuthentication.Subject,
+            cancellationToken
+        );
+        claimTypes.UnionWith(requestedClaimTypes);
+
         if (!wantsEmail && claimTypes.Count == 0)
         {
             return;
@@ -95,9 +111,43 @@ internal sealed class DefaultGetLocalAccountUserInfoClaimsHandler(
         {
             if (claimTypes.Contains(claim.Type))
             {
-                TryAdd(claims, claim.Type, claim.Value);
+                TryAdd(claims, claim.Type, ToClaimValue(claim.Type, claim.Value));
             }
         }
+    }
+
+    private async ValueTask<IReadOnlySet<string>> GetRequestedUserInfoClaimTypesAsync(
+        OpenIdContext openIdContext,
+        ClaimsPrincipal subject,
+        CancellationToken cancellationToken
+    )
+    {
+        // The requested 'claims' were persisted at access-token issuance as a grant keyed by the token's jti.
+        var jti = subject.FindFirstValue(JoseClaimNames.Payload.Jti);
+        if (string.IsNullOrEmpty(jti))
+        {
+            return FrozenSet<string>.Empty;
+        }
+
+        var grantId = PersistedGrantService.CreateGrantId(
+            openIdContext.Tenant.TenantId,
+            OpenIdConstants.PersistedGrantTypes.UserInfoClaims,
+            jti
+        );
+
+        var grant = await PersistedGrantService.GetOrDefaultAsync<IRequestClaims>(
+            openIdContext,
+            grantId,
+            cancellationToken
+        );
+
+        var requested = grant?.Payload.UserInfo;
+        if (requested is null || requested.Count == 0)
+        {
+            return FrozenSet<string>.Empty;
+        }
+
+        return requested.Keys.ToHashSet(StringComparer.Ordinal);
     }
 
     private static IReadOnlySet<string> GetGrantedScopes(ClaimsPrincipal subject)
@@ -173,5 +223,40 @@ internal sealed class DefaultGetLocalAccountUserInfoClaimsHandler(
     {
         // Do not override a claim another enricher already supplied (for example the required 'sub').
         claims.TryAdd(claimType, value);
+    }
+
+    private static object ToClaimValue(string claimType, string rawValue)
+    {
+        // Account claims persist as strings, but several standard OIDC claims have non-string JSON types the UserInfo
+        // response must honor (OIDC Core §5.1 / §5.1.1); coerce the well-known ones and leave everything else a string.
+        switch (claimType)
+        {
+            case JoseClaimNames.Payload.UpdatedAt
+                when long.TryParse(
+                    rawValue,
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out var seconds
+                ):
+                return seconds;
+
+            case JoseClaimNames.Payload.PhoneNumberVerified
+                when bool.TryParse(rawValue, out var verified):
+                return verified;
+
+            case JoseClaimNames.Payload.Address:
+                // The address claim is a structured JSON object; parse it so it serializes as an object, not a string.
+                try
+                {
+                    return JsonNode.Parse(rawValue) ?? rawValue;
+                }
+                catch (JsonException)
+                {
+                    return rawValue;
+                }
+
+            default:
+                return rawValue;
+        }
     }
 }

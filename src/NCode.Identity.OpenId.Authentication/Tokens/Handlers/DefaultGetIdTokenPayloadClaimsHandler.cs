@@ -54,13 +54,9 @@ internal class DefaultGetIdTokenPayloadClaimsHandler(ISessionService sessionServ
         var (openIdContext, openIdClient, tokenContext, payloadClaims) = command;
         var (tokenRequest, signingCredentials, _, _) = tokenContext;
 
-        // tid
-        var tenant = openIdContext.Tenant;
-        payloadClaims[JoseClaimNames.Payload.Tid] = tenant.TenantId;
-
-        // client_id
-        // https://datatracker.ietf.org/doc/html/rfc9068#section-2.2
-        payloadClaims[JoseClaimNames.Payload.ClientId] = openIdClient.ClientId;
+        // 'tid' and 'client_id' are JWT access-token claims (RFC 9068 §2.2), not ID-token claims, so they are emitted
+        // on the access token only; placing them in the ID token returns data the client did not request (OIDC Core
+        // §2 defines the ID-token claim set). 'azp' below is the standard ID-token claim that identifies the client.
 
         // azp (authorized party)
         // https://openid.net/specs/openid-connect-core-1_0.html#IDToken

@@ -28,14 +28,12 @@ using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Tenants;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Tokens.Handlers;
 
 public class DefaultGetIdTokenPayloadClaimsHandlerTests : BaseTests
 {
-    private const string TenantId = "tenant-1";
     private const string ClientId = "client-1";
 
     private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.Parse(
@@ -61,11 +59,8 @@ public class DefaultGetIdTokenPayloadClaimsHandlerTests : BaseTests
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
-        var mockTenant = CreateStrictMock<OpenIdTenant>();
         var mockSigAlg = CreateStrictMock<SignatureAlgorithm>();
 
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
         mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
         mockSigAlg
             .SetupGet(x => x.HashAlgorithmName)
@@ -117,15 +112,17 @@ public class DefaultGetIdTokenPayloadClaimsHandlerTests : BaseTests
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_Always_PopulatesTidClientIdAzp()
+    public async Task HandleAsync_Always_PopulatesAzpButNotTidOrClientId()
     {
         var (command, payloadClaims) = CreateCommand(CreateTokenRequest());
 
         await Handler.HandleAsync(command, CancellationToken.None);
 
-        Assert.Equal(TenantId, payloadClaims[JoseClaimNames.Payload.Tid]);
-        Assert.Equal(ClientId, payloadClaims[JoseClaimNames.Payload.ClientId]);
+        // 'tid' and 'client_id' are access-token claims (RFC 9068), not ID-token claims; only 'azp' identifies the
+        // client in the ID token (OIDC Core §2).
         Assert.Equal(ClientId, payloadClaims[JoseClaimNames.Payload.Azp]);
+        Assert.False(payloadClaims.ContainsKey(JoseClaimNames.Payload.Tid));
+        Assert.False(payloadClaims.ContainsKey(JoseClaimNames.Payload.ClientId));
         Assert.False(payloadClaims.ContainsKey(JoseClaimNames.Payload.Nonce));
         Assert.False(payloadClaims.ContainsKey(JoseClaimNames.Payload.CHash));
     }

@@ -35,8 +35,31 @@
       ]
     }
   ],
-  "comment:override": "oidcc-prompt-login and oidcc-max-age-1 force a SECOND authorization and then park in WAITING on a screenshot-upload placeholder (the suite asks a human to upload a photo of the re-login — which it admits in OIDCCPromptLogin.createPlaceholder() is 'a little pointless'). Headless, nobody uploads, so each test burns the full 240s wait_for_state timeout. The scripted browser fills the placeholder itself via the 'update-image-placeholder-optional' action on a 'wait' command (BrowserControl snapshots the page as the placeholder image), so the second login resolves the placeholder and the test finishes in seconds. This mirrors the suite's own .gitlab-ci/local-provider-oidcc-conformance-config.json override for the same two modules. The regexp 'Sign in' matches the OP's login page (<h1>Sign in</h1>, InteractiveAuthenticationPageRenderer.RenderLoginPage).",
+  "comment:override": "oidcc-prompt-login and oidcc-max-age-1 force a SECOND authorization and then park in WAITING on a screenshot-upload placeholder (the suite asks a human to upload a photo of the re-login — which it admits in OIDCCPromptLogin.createPlaceholder() is 'a little pointless'). Headless, nobody uploads, so each test burns the full 240s wait_for_state timeout. The scripted browser fills the placeholder itself via the 'update-image-placeholder-optional' action on a 'wait' command (BrowserControl snapshots the page as the placeholder image), so the second login resolves the placeholder and the test finishes in seconds. This mirrors the suite's own .gitlab-ci/local-provider-oidcc-conformance-config.json override for the same two modules. The regexp 'Sign in' matches the OP's login page (<h1>Sign in</h1>, InteractiveAuthenticationPageRenderer.RenderLoginPage). oidcc-ensure-registered-redirect-uri exercises an UNREGISTERED redirect_uri: the OP correctly refuses to redirect and renders a non-redirectable authorization error page (OIDC Core 3.1.2.4) at the authorize endpoint instead of calling back, so the default 'Verify Complete' task that waits for the 'submission_complete' callback element times out. Its override drops the callback wait and instead waits for the error page (matched by the 'unauthorized_client' error code in the rendered body) and snapshots it as the review placeholder, turning the harness-automation timeout into the REVIEW the suite expects.",
   "override": {
+    "oidcc-ensure-registered-redirect-uri": {
+      "browser": [
+        {
+          "match": "https://host.docker.internal:5001/oauth2/authorize*",
+          "tasks": [
+            {
+              "task": "Verify error page",
+              "match": "https://host.docker.internal:5001/oauth2/authorize*",
+              "commands": [
+                [
+                  "wait",
+                  "xpath",
+                  "//*",
+                  10,
+                  "unauthorized_client",
+                  "update-image-placeholder-optional"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     "oidcc-prompt-login": {
       "browser": [
         {

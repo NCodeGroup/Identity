@@ -65,7 +65,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D7`      | `D6`       |
-| `F` — Feature gaps                    | `F31`     | `F30`      |
+| `F` — Feature gaps                    | `F32`     | `F31`      |
 | `T` — Conformance & interop testing   | `T9`      | `T8`       |
 | `U` — Frontend presentation platform  | `U13`     | `U12`      |
 | `S` — Secrets management              | `S7`      | `S6`       |
@@ -193,6 +193,23 @@ entry and/or ADR that closed it.
   and coverage in the JOSE round-trip tests. Touch points: `src/NCode.Identity.Jose/Algorithms/`,
   `src/NCode.Identity.Secrets/Logic/` (a new OKP descriptor alongside the RSA/ECC ones),
   `src/NCode.Identity.Jose/Algorithms/DefaultAlgorithmDataSource.cs`.
+
+- **`F31` — User-facing HTML error page for non-redirectable authorization errors (content negotiation).** When the
+  authorize endpoint cannot safely redirect an error back to the client — an unregistered/invalid `redirect_uri` or an
+  unresolvable `client_id` (OIDC Core §3.1.2.4: the server MUST NOT redirect to an invalid URI and SHOULD **inform the
+  resource owner**) — the OP currently returns a raw `application/json` error body
+  (`DefaultOpenIdExceptionHandler`/`OpenIdExceptionEndpointFilter`), which a browser user sees as unstyled JSON. The
+  correct behavior is a content-negotiated, human-readable HTML error page for an interactive (`Accept: text/html`)
+  request to the authorize endpoint, while programmatic callers keep the JSON body. Deliverables: a non-redirectable
+  interactive error renderer (reuse the `InteractiveAuthenticationPageRenderer` login/consent markup seam, with a stable
+  element id/heading for automation) wired into the authorize error path via content negotiation; HTML for
+  `text/html`, JSON otherwise. This also hardens the conformance harness: the
+  `oidcc-ensure-registered-redirect-uri` browser override currently matches the `unauthorized_client` code in the JSON
+  body (`build/conformance/oidcc-basic.json`); once a stable error-page element exists it can match that instead.
+  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/OpenIdExceptionEndpointFilter.cs`,
+  `src/NCode.Identity.OpenId.Core/Exceptions/DefaultOpenIdExceptionHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/DefaultAuthorizationEndpointHandler.cs`.
 
 - **`F27` — JARM (JWT Secured Authorization Response Mode) + response-mode extensibility seam.** Signed/encrypted
   authorization responses (`query.jwt`, `fragment.jwt`, `form_post.jwt`, `jwt`). **Not required by FAPI 2.0** (which
@@ -332,7 +349,10 @@ entry and/or ADR that closed it.
   under Dynamic Client Registration completed `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` (38 modules, no
   mass-abort). Each non-pass was investigated against the suite's per-module log and classified as a **backend gap to
   fix**, a **harness/config refinement**, or a **documented, intentional deviation** codified in
-  `build/conformance/expected-failures.json` / `expected-skips.json`. **Fixed backend bugs** (see `CHANGELOG.md`):
+  `build/conformance/expected-failures.json` / `expected-skips.json`. **After the fixes below the plan now runs clean**
+  — `31 PASSED, 1 WARNING, 3 REVIEW, 4 SKIPPED, 0 FAILED` (39 modules incl. the Config OP) with a green gate
+  (`Conformance run PASSED`); the sole remaining WARNING (`oidcc-codereuse-30seconds`) is the accepted stateless-token
+  deviation, now baselined. **Fixed backend bugs** (see `CHANGELOG.md`):
     - **`oidcc-refresh-token`** — the consent screen (no-JS form + SPA) pre-checked a requested scope's checkbox only
       when it was _previously_ granted, so a first-time `prompt=consent` + `offline_access` consent posted an empty
       `scope` set; the recorded grant lost `openid`/`offline_access` and the token response dropped the `id_token` and
@@ -359,15 +379,18 @@ entry and/or ADR that closed it.
       `prompt=none` integration regression test.
     - **`oidcc-ensure-registered-redirect-uri`** — the OP correctly refuses an unregistered `redirect_uri` with a 400
       `unauthorized_client`, but the exception handler logged that expected 4xx client error at Error level as "an
-      unexpected error". 4xx `OpenIdException`s now log at Warning. The disposition itself is a **harness-automation
-      limitation** (the headless scripted-browser `Verify Complete` step waits for a happy-path callback that correctly
-      never comes and times out), codified in `expected-failures.json`.
+      unexpected error". 4xx `OpenIdException`s now log at Warning. The scripted-browser timeout (its `Verify Complete`
+      step waited for a happy-path `submission_complete` callback that correctly never comes) is resolved with a
+      per-module `override` block in `build/conformance/oidcc-basic.json` that drops the callback wait and instead waits
+      for the error page (matched by the `unauthorized_client` error code in the rendered body) and snapshots it as the
+      review placeholder — so the module now lands on the `REVIEW` the suite expects ("Show redirect URI error page",
+      OIDCC-3.1.2.1) instead of `FAILED`, and its `expected-failures.json` baseline was removed.
     - **Codified intentional deviations.** The four `SKIPPED` modules (`oidcc-idtoken-unsigned` and the three
       request-object `…-supported-correctly-or-rejected-as-unsupported` / `oidcc-ensure-request-object-with-redirect-uri`
       tests) are spec-conformant optional-feature skips — the OP does not advertise the OPTIONAL `alg:none` value in
       `id_token_signing_alg_values_supported` / `request_object_signing_alg_values_supported` (asymmetric signing is the
-      secure default) — now in `expected-skips.json`. `oidcc-ensure-registered-redirect-uri` is in
-      `expected-failures.json` (both its `WebRunner` timeout and test-marker conditions).
+      secure default) — now in `expected-skips.json`. The sole `expected-failures.json` entry is the accepted
+      `oidcc-codereuse-30seconds` warning (`expected-result: warning`, below).
     - **UserInfo scope-claims + ID-token claim placement (`WARNING`: `oidcc-server`, `oidcc-scope-{profile,email,address,phone,all}`,
       `oidcc-alternate-happy-flow`, `oidcc-claims-essential`).** Per OIDC Core §5.4 the `profile`/`email`/`address`/`phone`
       scope claims belong in the **UserInfo** response, not the `id_token`, whenever an access token is issued (the code
@@ -376,9 +399,15 @@ entry and/or ADR that closed it.
       no longer carries them — requested `claims.id_token` claims, `sub`, `auth_time`, `acr`, `idp`, `amr` are
       unaffected; (b) a new account-sourced UserInfo enricher (`DefaultGetLocalAccountUserInfoClaimsHandler`, registered
       by `AddLocalAccountAuthentication` / `AddLocalAccountInteractiveAuthentication`) resolves the caller's local
-      account from its self-issued connection and returns the scope-permitted claims from the account store; and (c) the
-      conformance seed now provisions `given_name`/`family_name`/`name` (new `ConformanceSeedOptions.TestUserGivenName` /
-      `TestUserFamilyName`). (See `CHANGELOG.md`.)
+      account from its self-issued connection and returns the scope-permitted claims from the account store — it also
+      honors individual claims requested via the OIDC `claims` parameter's `userinfo` member (OIDC Core §5.5) regardless
+      of scope, and coerces the standard typed claims (`updated_at` → number, `address` → JSON object,
+      `phone_number_verified` → boolean); and (c) the conformance seed now provisions the **full** standard
+      `profile`/`address`/`phone` claim set (new `ConformanceSeedOptions.TestUserGivenName` / `TestUserFamilyName` for
+      the name parts, deterministic values for the rest). Separately, the ID token no longer carries the `tid` and
+      `client_id` claims at all — those are JWT **access-token** claims (RFC 9068 §2.2), not ID-token claims, so
+      `DefaultGetIdTokenPayloadClaimsHandler` now emits only the standard `azp`; this cleared the residual
+      `oidcc-server` "id_token contains non-requested claim" warning. (See `CHANGELOG.md`.)
     - **`acr` emission (`WARNING`: `oidcc-ensure-request-with-acr-values-succeeds`).** Fixed by configuring the
       conformance environment, not the backend: the OP now advertises `acr_values_supported` and sets a `default_acr`
       baseline (server settings in `appsettings.Conformance.json`), so the password login's resolved `acr`
@@ -401,8 +430,9 @@ entry and/or ADR that closed it.
       denylist / reference-token store that would contradict the stateless design — the short lifetime bounds the
       exposure, which is exactly the trade-off RFC 9700 accepts for self-contained tokens. Aggressively revoking the
       legitimate client's refresh token on a replay would itself be a denial-of-service on the honest client. This
-      WARNING is therefore an accepted, intentional deviation; the suite does not fail on it (warnings do not gate the
-      run). Revisit only if the OP ever adopts reference/stateful access tokens.
+      WARNING is therefore an accepted, intentional deviation, baselined in `expected-failures.json` with
+      `expected-result: warning` (condition `EnsureHttpStatusCodeIs4xx`) so it does not gate the run. Revisit only if the
+      OP ever adopts reference/stateful access tokens.
     - **Headless auto-fill of screenshot-review placeholders (`oidcc-prompt-login`, `oidcc-max-age-1`) — fixed.** These
       two double-login modules complete every automated assertion, then deliberately park in `WAITING` on a REVIEW
       "browser-interaction placeholder" (OIDCC-3.1.2.1: _"a screenshot of the second login … must be uploaded"_). The OP

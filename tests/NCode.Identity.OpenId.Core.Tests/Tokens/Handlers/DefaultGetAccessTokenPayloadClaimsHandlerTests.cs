@@ -28,9 +28,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Tokens.Handlers;
@@ -77,8 +75,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
     ) CreateCommand(
         SubjectAuthentication? subjectAuthentication,
         IReadOnlyList<string> scopes,
-        TokenConfirmation confirmation = default,
-        IReadOnlySettingCollection? settings = null
+        TokenConfirmation confirmation = default
     )
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
@@ -88,11 +85,6 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
         mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
         mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
-
-        if (settings is not null)
-        {
-            mockClient.SetupGet(x => x.Settings).Returns(settings).Verifiable();
-        }
 
         var tokenRequest = new CreateSecurityTokenRequest
         {
@@ -195,18 +187,11 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenSessionPresentAndSettingEnabled_AddsSidClaim()
+    public async Task HandleAsync_WhenSessionPresent_AddsSidClaim()
     {
-        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.SendSessionIdInAccessToken))
-            .Returns(true)
-            .Verifiable();
-
         var (command, payloadClaims) = CreateCommand(
             CreateSubjectAuthenticationWithSession("session-123"),
-            ["openid"],
-            settings: mockSettings.Object
+            ["openid"]
         );
         payloadClaims[JoseClaimNames.Payload.Jti] = "existing-id";
 
@@ -216,28 +201,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenSessionPresentAndSettingDisabled_OmitsSidClaim()
-    {
-        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.SendSessionIdInAccessToken))
-            .Returns(false)
-            .Verifiable();
-
-        var (command, payloadClaims) = CreateCommand(
-            CreateSubjectAuthenticationWithSession("session-123"),
-            ["openid"],
-            settings: mockSettings.Object
-        );
-        payloadClaims[JoseClaimNames.Payload.Jti] = "existing-id";
-
-        await Handler.HandleAsync(command, CancellationToken.None);
-
-        Assert.False(payloadClaims.ContainsKey(JoseClaimNames.Payload.Sid));
-    }
-
-    [Fact]
-    public async Task HandleAsync_WhenNoSession_DoesNotReadSettingOrAddSid()
+    public async Task HandleAsync_WhenNoSession_OmitsSid()
     {
         var (command, payloadClaims) = CreateCommand(CreateSubjectAuthentication(), ["openid"]);
         payloadClaims[JoseClaimNames.Payload.Jti] = "existing-id";

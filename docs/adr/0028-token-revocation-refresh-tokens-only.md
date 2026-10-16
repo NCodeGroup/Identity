@@ -1,6 +1,6 @@
 # 28. Token revocation revokes refresh tokens only; stateless access tokens expire
 
-- **Status:** Accepted
+- **Status:** Accepted (refined by [ADR-0112](0112-authorization-code-replay-revokes-session.md))
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
 
@@ -54,6 +54,12 @@ Two further rules:
   revocation logic.
 - A future "revoke access tokens immediately" requirement would be an additive denylist/introspection-state feature, not
   a change to this contract.
+
+> **Refinement ([ADR-0112](0112-authorization-code-replay-revokes-session.md)).** The revocation-endpoint contract above
+> stands unchanged. For the **authorization-code replay** path specifically, the OP now revokes the end-user session's
+> grants and its own first-party resource endpoints reject an access token whose session is revoked — so the blanket
+> statement "already-issued access tokens remain valid until they expire" holds for external resource servers but no
+> longer for the OP's own endpoints.
 
 ## References
 

@@ -16,9 +16,14 @@
 
 #endregion
 
+using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using NCode.Buffers;
+using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
+using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
@@ -37,19 +42,23 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
     private const string Issuer = "https://issuer.example.com";
     private const string Token = "token-value";
     private const string ManagementAudience = "urn:ncode:management";
+    private const string SessionId = "session-xyz";
 
     private Mock<IJsonWebTokenService> MockJsonWebTokenService { get; }
     private Mock<IProofOfPossessionService> MockProofOfPossessionService { get; }
+    private Mock<ISessionService> MockSessionService { get; }
     private DefaultAuthenticateAccessTokenHandler Handler { get; }
 
     public DefaultAuthenticateAccessTokenHandlerTests()
     {
         MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
         MockProofOfPossessionService = CreateStrictMock<IProofOfPossessionService>();
+        MockSessionService = CreateStrictMock<ISessionService>();
         Handler = new DefaultAuthenticateAccessTokenHandler(
             NullLogger<DefaultAuthenticateAccessTokenHandler>.Instance,
             MockJsonWebTokenService.Object,
-            MockProofOfPossessionService.Object
+            MockProofOfPossessionService.Object,
+            MockSessionService.Object
         );
     }
 
@@ -104,6 +113,52 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
             .Verifiable();
     }
 
+    private void SetupValidJwt(object payloadObject)
+    {
+        var payload = JsonSerializer.SerializeToElement(payloadObject);
+        var compactJwt = new CompactJwt("JWS", "aaa.bbb.ccc".SplitSegments('.'), default);
+        var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey: null!);
+        var result = ValidateJwtResult.Success(
+            new ValidateJwtParameters(),
+            PropertyBagFactory.Create(),
+            decodedJwt
+        );
+
+        MockJsonWebTokenService
+            .Setup(x =>
+                x.ValidateJwtAsync(
+                    Token,
+                    It.IsAny<ValidateJwtParameters>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+    }
+
+    private void SetupSession(OpenIdContext context, PersistedGrantStatus status) =>
+        MockSessionService
+            .Setup(x => x.GetOrDefaultAsync(context, SessionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PersistedGrant<SessionGrant>
+                {
+                    Status = status,
+                    TenantId = "tenant-1",
+                    ClientId = null,
+                    SubjectId = "subject-1",
+                    SessionId = SessionId,
+                    Payload = new SessionGrant
+                    {
+                        AuthTime = DateTimeOffset.UnixEpoch,
+                        AuthenticationMethods = null,
+                        IdentityProvider = null,
+                        ClientIds = [],
+                        LastActivityWhen = DateTimeOffset.UnixEpoch,
+                    },
+                }
+            )
+            .Verifiable();
+
     #endregion
 
     #region HandleAsync Tests
@@ -132,6 +187,52 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
 
         Assert.True(disposition.HasError);
         Assert.False(disposition.IsAuthenticated);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSessionRevoked_ReturnsError()
+    {
+        // ADR-0112: a token whose end-user session has been revoked (e.g. by authorization-code replay) is rejected
+        // at the OP's own resource endpoints.
+        var command = CreateCommand(Token);
+        SetupTenantForJwtValidation(command.OpenIdContext);
+        SetupValidJwt(new Dictionary<string, object> { [JoseClaimNames.Payload.Sid] = SessionId });
+        SetupSession(command.OpenIdContext, PersistedGrantStatus.Revoked);
+        SetupErrorFactory(command.OpenIdContext);
+
+        var disposition = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(disposition.HasError);
+        Assert.False(disposition.IsAuthenticated);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSessionActive_ReturnsAuthenticated()
+    {
+        var command = CreateCommand(Token);
+        SetupTenantForJwtValidation(command.OpenIdContext);
+        SetupValidJwt(new Dictionary<string, object> { [JoseClaimNames.Payload.Sid] = SessionId });
+        SetupSession(command.OpenIdContext, PersistedGrantStatus.Active);
+
+        var disposition = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(disposition.IsAuthenticated);
+        Assert.False(disposition.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenNoSessionClaim_SkipsSessionCheckAndAuthenticates()
+    {
+        var command = CreateCommand(Token);
+        SetupTenantForJwtValidation(command.OpenIdContext);
+        SetupValidJwt(
+            new Dictionary<string, object> { [JoseClaimNames.Payload.Sub] = "subject-1" }
+        );
+
+        var disposition = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(disposition.IsAuthenticated);
+        Assert.False(disposition.HasError);
     }
 
     #endregion

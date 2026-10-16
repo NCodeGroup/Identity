@@ -88,9 +88,16 @@ internal class DefaultAuthorizationCodeGrantHandler(
             );
 
         if (!persistedGrantOrNull.HasValue)
+        {
+            // A second redemption of an already-consumed authorization code is a replay/compromise signal: revoke the
+            // end-user session's grants — the access and refresh tokens previously issued from this code (RFC 6749
+            // §4.1.2, ADR-0112). The grant row survives consumption, so its payload still yields the session to revoke.
+            await RevokeSessionOnReplayAsync(openIdContext, persistedGrantId, cancellationToken);
+
             return errorFactory
                 .InvalidGrant("The provided authorization code is invalid, expired, or revoked.")
                 .WithStatusCode(StatusCodes.Status400BadRequest);
+        }
 
         var persistedGrant = persistedGrantOrNull.Value;
         Debug.Assert(persistedGrant.Status == PersistedGrantStatus.Active);
@@ -137,6 +144,34 @@ internal class DefaultAuthorizationCodeGrantHandler(
         );
 
         return tokenResponse;
+    }
+
+    private async ValueTask RevokeSessionOnReplayAsync(
+        OpenIdContext openIdContext,
+        PersistedGrantId persistedGrantId,
+        CancellationToken cancellationToken
+    )
+    {
+        // GetOrDefaultAsync returns the grant regardless of its consumed marker (status is computed from
+        // revoked/expired only), so a replayed — hence already-consumed — code still yields the original payload and
+        // the session behind it; an unknown code yields null and revokes nothing.
+        var consumedGrant = await PersistedGrantService.GetOrDefaultAsync<AuthorizationGrant>(
+            openIdContext,
+            persistedGrantId,
+            cancellationToken
+        );
+
+        var sessionId = consumedGrant?.Payload.SubjectAuthentication.SessionId;
+        if (string.IsNullOrEmpty(sessionId))
+            return;
+
+        var revokedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+        await PersistedGrantService.RevokeBySessionAsync(
+            openIdContext,
+            sessionId,
+            revokedWhen,
+            cancellationToken
+        );
     }
 
     private async ValueTask<TokenResponse> CreateTokenResponseAsync(

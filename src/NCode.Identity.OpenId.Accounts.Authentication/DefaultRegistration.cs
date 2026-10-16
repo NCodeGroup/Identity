@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Authentication;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
+using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
 using NCode.Identity.OpenId.Authentication.Interactive;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Mediator;
@@ -42,7 +43,9 @@ public static class DefaultRegistration
         /// <summary>
         /// Registers the resource-owner password grant capability over the configured <c>ILocalAccountStore</c>. This
         /// overrides the base <c>NCode.Identity.OpenId.Authentication</c> handler that reports the password grant as
-        /// unsupported, so calling it is what enables the grant.
+        /// unsupported, so calling it is what enables the grant. It also registers the account-sourced UserInfo
+        /// scope-claims enricher, so the UserInfo endpoint returns the subject's profile/email/address/phone claims
+        /// from the local account (OpenID Connect Core 1.0 §5.4).
         /// </summary>
         /// <param name="localAccountStore">The local-account store builder — the compile-time proof that a
         /// <c>ILocalAccountStore</c> is registered, so this capability cannot be added without one.</param>
@@ -71,6 +74,8 @@ public static class DefaultRegistration
                 DefaultCreatePasswordGrantSubjectHandler
             >();
 
+            AddLocalAccountUserInfoClaims(serviceCollection);
+
             return builder;
         }
 
@@ -97,7 +102,20 @@ public static class DefaultRegistration
                 LocalAccountInteractiveCredentialVerifier
             >();
 
+            AddLocalAccountUserInfoClaims(serviceCollection);
+
             return builder;
         }
     }
+
+    // The account-sourced UserInfo enricher is grant-agnostic (any access token issued for a local account), so both
+    // the password-grant and interactive registrations wire it; TryAddEnumerable keys on the implementation type, so
+    // registering it from both entry points adds it exactly once.
+    private static void AddLocalAccountUserInfoClaims(IServiceCollection serviceCollection) =>
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICommandHandler<GetUserInfoClaimsCommand>,
+                DefaultGetLocalAccountUserInfoClaimsHandler
+            >()
+        );
 }

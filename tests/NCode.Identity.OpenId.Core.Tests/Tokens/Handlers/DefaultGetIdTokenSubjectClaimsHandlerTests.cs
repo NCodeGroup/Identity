@@ -72,7 +72,8 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
         IReadOnlyList<string> effectiveScopes,
         IRequestClaims? requestClaims = null,
         bool alwaysIncludeAuthTime = true,
-        bool authTimeRequired = false
+        bool authTimeRequired = false,
+        string? accessToken = null
     )
     {
         var tokenRequest = new CreateSecurityTokenRequest
@@ -84,6 +85,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             SubjectAuthentication = subjectAuthentication,
             RequestClaims = requestClaims,
             AuthTimeRequired = authTimeRequired,
+            AccessToken = accessToken,
         };
 
         var tokenContext = new SecurityTokenContext(
@@ -361,6 +363,65 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             claim => claim.Type == JoseClaimNames.Payload.Sub
         );
         Assert.Equal("pairwise-pseudonym", subClaim.Value);
+    }
+
+    [Fact]
+    public void HandleAsync_WhenNoAccessTokenIssued_IncludesScopeClaimTypes()
+    {
+        // OpenID Connect Core 1.0 §5.4: with no access token issued the scope-driven claims belong in the ID token.
+        var command = CreateCommand(
+            CreateSubjectAuthentication(),
+            [OpenIdConstants.ScopeTypes.Profile, OpenIdConstants.ScopeTypes.Email],
+            accessToken: null
+        );
+
+        var claimTypes = CaptureCopiedClaimTypes(command);
+
+        Assert.Contains(JoseClaimNames.Payload.Name, claimTypes);
+        Assert.Contains(JoseClaimNames.Payload.Email, claimTypes);
+    }
+
+    [Fact]
+    public void HandleAsync_WhenAccessTokenIssued_OmitsScopeClaimTypes()
+    {
+        // OpenID Connect Core 1.0 §5.4: when an access token is issued (the code flow) the scope-driven claims are
+        // returned from the UserInfo endpoint, not the ID token; the account-sourced UserInfo enricher supplies them.
+        var command = CreateCommand(
+            CreateSubjectAuthentication(),
+            [OpenIdConstants.ScopeTypes.Profile, OpenIdConstants.ScopeTypes.Email],
+            accessToken: "the-access-token"
+        );
+
+        var claimTypes = CaptureCopiedClaimTypes(command);
+
+        Assert.DoesNotContain(JoseClaimNames.Payload.Name, claimTypes);
+        Assert.DoesNotContain(JoseClaimNames.Payload.Email, claimTypes);
+        Assert.DoesNotContain(JoseClaimNames.Payload.EmailVerified, claimTypes);
+    }
+
+    [Fact]
+    public void HandleAsync_WhenAccessTokenIssued_StillIncludesRequestedIdTokenClaims()
+    {
+        // Claims explicitly requested via the 'claims.id_token' parameter are additive to the scope gate and still
+        // belong in the ID token even when an access token is issued.
+        var requestClaims = new RequestClaims
+        {
+            IdToken = new RequestClaimDictionary
+            {
+                ["custom_claim"] = new RequestClaim { Essential = true },
+            },
+        };
+        var command = CreateCommand(
+            CreateSubjectAuthentication(),
+            [OpenIdConstants.ScopeTypes.Profile],
+            requestClaims,
+            accessToken: "the-access-token"
+        );
+
+        var claimTypes = CaptureCopiedClaimTypes(command);
+
+        Assert.Contains("custom_claim", claimTypes);
+        Assert.DoesNotContain(JoseClaimNames.Payload.Name, claimTypes);
     }
 
     #endregion

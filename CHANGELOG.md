@@ -1027,7 +1027,45 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Fixed
 
-- **A server-generated `client_secret` now authenticates.** Dynamic Client Registration and the management
+- **The token endpoint now sends `Cache-Control: no-store` on every response (backlog `T8`).** RFC 6749 §5.1/§5.2
+  require the token endpoint to return `Cache-Control: no-store` (and `Pragma: no-cache`) so issued tokens are never
+  cached by the client or an intermediary; the OP omitted them. Both headers are now set up front so the success and
+  error responses carry them. Surfaced by `oidcc-refresh-token` (its `CheckTokenEndpointCacheHeaders` check) once the
+  consent fix below let the refresh flow run to the refresh request.
+
+- **The consent screen now grants the requested scopes instead of silently dropping them (backlog `T8`).** The no-JS
+  consent form and the SPA consent form rendered each requested scope's checkbox pre-checked only when it was
+  _previously_ granted, so on a first-time consent every box was unchecked and clicking **Allow** posted an empty
+  `scope` set — the recorded grant (and therefore the issued tokens) lost `openid`, `offline_access`, and every other
+  requested scope, so the token response omitted the `id_token` and `refresh_token`. A consent screen now pre-selects
+  all requested scopes (Allow authorizes the request; the subject unchecks a scope to down-scope). Surfaced by the
+  OpenID Foundation Conformance Suite's `oidcc-refresh-token` Basic OP module (it uses `prompt=consent` +
+  `offline_access`).
+
+- **Authorization error responses created outside the command pipeline now echo `state` (backlog `T8`).** The
+  `prompt=none` → `login_required` and the no-consent-surface → `interaction_required` errors are built inline in the
+  authorization endpoint (not via the `AuthenticateCommand` / `AuthorizeCommand`, whose post-processors stamp `state`),
+  so they were returned to the client without the request's `state` — violating OIDC Core §3.1.2.6. Both now carry the
+  request `state`. Surfaced by `oidcc-prompt-none-not-logged-in`.
+
+- **`max_age` / `subject_max_age` authentication-age freshness is enforced only at the authorization endpoint, with no
+  clock-skew leeway (backlog `T8`).** Two defects compounded: (1) the freshness check added the client's `clock_skew`
+  (default 5 min, intended for validating token time claims across parties) to the window, so a small `max_age` such as
+  `max_age=1` never forced re-authentication; and (2) the same check was re-evaluated at the token endpoint (and on
+  refresh) against a _later_ clock, so once the (un-inflated) window elapsed a valid authorization-code / refresh
+  exchange was wrongly rejected with `access_denied`. The check now uses a pure OP-internal elapsed-time comparison (no
+  skew) and runs only in the interactive authorization step via a new
+  `ValidateSubjectAuthenticationCommand.EnforceAuthenticationAge` flag (`true` at the authorization endpoint; `false`
+  for the authorization-code, refresh-token, and password grants). Surfaced by `oidcc-max-age-1`. **Public surface:**
+  `ValidateSubjectAuthenticationCommand` gains a required `EnforceAuthenticationAge` parameter.
+
+- **A rejected client request (4xx `OpenIdException`) is logged at Warning, not Error (backlog `T8`).** The OpenID
+  exception handler logged every unhandled exception — including an expected client-side validation failure such as an
+  unregistered `redirect_uri` (`unauthorized_client`, HTTP 400) — at Error level as "an unexpected error", polluting
+  logs and tripping false alerts. A 4xx-status `OpenIdException` now logs at Warning with its error code; only genuine
+  5xx / unexpected faults remain at Error. Surfaced by `oidcc-ensure-registered-redirect-uri`.
+
+
   "create client secret" endpoint generated a symmetric secret via `ISecretGenerator.GenerateSecret`, which stores the
   raw CSPRNG bytes and reveals their `base64url` form — but client authentication compares the **UTF-8 bytes of the
   presented secret** against the stored key material (and `client_secret_jwt` keys its HMAC from those same UTF-8

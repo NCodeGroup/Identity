@@ -33,9 +33,9 @@ describe('ConsentForm', () => {
     );
     expect(openidCheckbox).not.toBeNull();
     expect(profileCheckbox).not.toBeNull();
-    // Already-granted scopes are pre-selected; previously-declined scopes are not.
+    // A consent screen pre-selects every requested scope so Allow authorizes the request.
     expect(openidCheckbox?.checked).toBe(true);
-    expect(profileCheckbox?.checked).toBe(false);
+    expect(profileCheckbox?.checked).toBe(true);
 
     expect(container.querySelector('#consent-allow')).not.toBeNull();
     expect(container.querySelector('#consent-deny')).not.toBeNull();

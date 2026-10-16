@@ -132,7 +132,7 @@ public class InteractiveAuthenticationPageRendererTests
     }
 
     [Fact]
-    public void RenderConsentPage_WhenScopes_RendersACheckboxPerScopeWithGrantedState()
+    public void RenderConsentPage_WhenScopes_RendersACheckboxPerScopeWithCheckedState()
     {
         var html = InteractiveAuthenticationPageRenderer.RenderConsentPage(
             bundleIndexHtml: null,

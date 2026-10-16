@@ -37,4 +37,16 @@ internal static partial class Log
         Exception exception,
         string displayName
     );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientError,
+        Level = LogLevel.Warning,
+        Message = "The request {DisplayName} was rejected with a client error: {ErrorCode}"
+    )]
+    internal static partial void ClientError(
+        this ILogger logger,
+        Exception exception,
+        string displayName,
+        string errorCode
+    );
 }

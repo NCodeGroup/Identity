@@ -62,7 +62,8 @@ internal class DefaultValidateSubjectAuthenticationHandler(
             openIdClient,
             openIdRequest,
             subjectAuthentication,
-            operationDisposition
+            operationDisposition,
+            enforceAuthenticationAge
         ) = command;
 
         var errorFactory = openIdContext.ErrorFactory;
@@ -98,33 +99,40 @@ internal class DefaultValidateSubjectAuthenticationHandler(
             return ValueTask.CompletedTask;
         }
 
-        var clockSkew = settings.GetValue(OpenIdSettingKeys.ClockSkew);
         var authTime = GetAuthTime(subjectAuthentication.Subject);
 
-        // verify the request's max age
-        var requestMaxAge = openIdRequest.Parameters.GetValueOrDefault(
-            OpenIdCommonParameters.MaxAge
-        );
-        if (!ValidateMaxAge(authTime, requestMaxAge, clockSkew))
+        // Authentication-age freshness (the request's max_age and the client's subject_max_age) is an interactive
+        // authorization-time concern: it decides whether to force re-authentication before issuing a code. It is
+        // enforced at the authorization endpoint and skipped when a back-channel token grant re-validates the subject
+        // against a later clock (re-checking the fixed auth_time against "now" would wrongly reject valid code/refresh
+        // exchanges that occur after the window elapses).
+        if (enforceAuthenticationAge)
         {
-            const string message =
-                "The end-user's authentication time is too old from the request's MaxAge.";
-            operationDisposition.Error ??= errorFactory.AccessDenied(message);
-            Logger.SubjectValidationFailed(message);
-            return ValueTask.CompletedTask;
-        }
+            // verify the request's max age
+            var requestMaxAge = openIdRequest.Parameters.GetValueOrDefault(
+                OpenIdCommonParameters.MaxAge
+            );
+            if (!ValidateMaxAge(authTime, requestMaxAge))
+            {
+                const string message =
+                    "The end-user's authentication time is too old from the request's MaxAge.";
+                operationDisposition.Error ??= errorFactory.AccessDenied(message);
+                Logger.SubjectValidationFailed(message);
+                return ValueTask.CompletedTask;
+            }
 
-        // verify the client's max age (an unset subject_max_age imposes no freshness constraint)
-        var clientMaxAge = settings.TryGetValue(OpenIdSettingKeys.SubjectMaxAge, out var maxAge)
-            ? maxAge
-            : (TimeSpan?)null;
-        if (!ValidateMaxAge(authTime, clientMaxAge, clockSkew))
-        {
-            const string message =
-                "The end-user's authentication time is too old from the client's MaxAge.";
-            operationDisposition.Error ??= errorFactory.AccessDenied(message);
-            Logger.SubjectValidationFailed(message);
-            return ValueTask.CompletedTask;
+            // verify the client's max age (an unset subject_max_age imposes no freshness constraint)
+            var clientMaxAge = settings.TryGetValue(OpenIdSettingKeys.SubjectMaxAge, out var maxAge)
+                ? maxAge
+                : (TimeSpan?)null;
+            if (!ValidateMaxAge(authTime, clientMaxAge))
+            {
+                const string message =
+                    "The end-user's authentication time is too old from the client's MaxAge.";
+                operationDisposition.Error ??= errorFactory.AccessDenied(message);
+                Logger.SubjectValidationFailed(message);
+                return ValueTask.CompletedTask;
+            }
         }
 
         // check requested IdP
@@ -285,7 +293,7 @@ internal class DefaultValidateSubjectAuthenticationHandler(
         return DateTimeOffset.FromUnixTimeSeconds(authTimeSeconds);
     }
 
-    private bool ValidateMaxAge(DateTimeOffset? authTime, TimeSpan? maxAge, TimeSpan clockSkew)
+    private bool ValidateMaxAge(DateTimeOffset? authTime, TimeSpan? maxAge)
     {
         /*
          * max_age
@@ -306,13 +314,15 @@ internal class DefaultValidateSubjectAuthenticationHandler(
             return false;
         }
 
-        // use 'long/ticks' vs 'DateTime/DateTimeOffset' comparisons to avoid overflow exceptions
+        // max_age is the elapsed time since the OP last authenticated the subject: a pure OP-internal comparison of the
+        // OP-issued auth_time against the OP clock. No clock_skew leeway is applied (that setting is for validating token
+        // time claims across parties) — adding it would widen the window and let a small max_age (e.g. max_age=1) never
+        // force re-authentication. Compare via long/ticks to avoid DateTime overflow.
 
         var nowTicks = TimeProvider.GetTimestampWithPrecisionInSeconds();
         var authTimeTicks = authTime.Value.UtcTicks;
         var maxAgeTicks = maxAge.Value.Ticks;
-        var clockSkewTicks = clockSkew.Ticks;
 
-        return nowTicks <= authTimeTicks + maxAgeTicks + clockSkewTicks;
+        return nowTicks <= authTimeTicks + maxAgeTicks;
     }
 }

@@ -30,4 +30,6 @@ internal static class EventIds
     private const int Base = 1000;
 
     public const int UnhandledException = Base + 1;
+
+    public const int ClientError = Base + 2;
 }

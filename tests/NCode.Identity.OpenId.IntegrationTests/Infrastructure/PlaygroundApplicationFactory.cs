@@ -28,6 +28,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Extensions.DataProtection;
+using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Settings;
@@ -70,6 +71,10 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
     public Func<HttpRequestMessage, string>? ClientJwksResponder { get; set; }
 
     private string DatabaseName { get; } = $"it-{Guid.NewGuid():N}";
+
+    // Shared across every host built from this factory instance (including WithWebHostBuilder-derived hosts) so data
+    // seeded through one host is visible to another; a per-host root would give each its own empty database.
+    private InMemoryDatabaseRoot DatabaseRoot { get; } = new();
 
     /// <summary>
     /// Ensures the tenant exists (persisted lazily on first request) and seeds a public client
@@ -116,6 +121,81 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
 
         await store.AddAsync(persistedClient, CancellationToken.None);
         await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a passwordless local account together with the one-to-one self-issued
+    /// federated identity that a real interactive login provisions (ADR-0035), so the UserInfo scope-claims enricher
+    /// can be exercised end-to-end. Returns the provisioned principal id — the value a self-issued access token carries
+    /// as its public <c>sub</c>, which the enricher resolves the local account from.
+    /// </summary>
+    public async Task<string> SeedLocalAccountAsync(
+        string localAccountId,
+        string? email = null,
+        bool emailVerified = false,
+        params (string Type, string Value)[] claims
+    )
+    {
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        var principalId = $"pid-{Guid.NewGuid():N}";
+
+        using var scope = Services.CreateScope();
+        var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+
+        var accountStore = storeManager.GetStore<ILocalAccountStore>();
+        await accountStore.AddAsync(
+            new PersistedLocalAccount
+            {
+                TenantId = TenantId,
+                LocalAccountId = localAccountId,
+                UserName = localAccountId,
+                Email = email,
+                EmailVerified = emailVerified,
+                IsEnabled = true,
+                Claims = claims
+                    .Select(c => new PersistedLocalAccountClaim { Type = c.Type, Value = c.Value })
+                    .ToList(),
+                ConcurrencyToken = string.Empty,
+            },
+            password: null,
+            CancellationToken.None
+        );
+
+        var principalStore = storeManager.GetStore<IFederatedPrincipalStore>();
+        await principalStore.AddAsync(
+            new PersistedFederatedPrincipal
+            {
+                TenantId = TenantId,
+                PrincipalId = principalId,
+                ConcurrencyToken = string.Empty,
+            },
+            CancellationToken.None
+        );
+
+        var identityStore = storeManager.GetStore<IFederatedIdentityStore>();
+        await identityStore.AddAsync(
+            new PersistedFederatedIdentity
+            {
+                TenantId = TenantId,
+                FederatedIdentityId = $"fid-{Guid.NewGuid():N}",
+                PrincipalId = principalId,
+                Issuer = AccountConstants.SelfIssuer,
+                Subject = localAccountId,
+                JoinKey = null,
+                ConcurrencyToken = string.Empty,
+            },
+            CancellationToken.None
+        );
+
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+        return principalId;
     }
 
     /// <summary>
@@ -747,9 +827,8 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
             serviceCollection.RemoveAll<DbContextOptions<OpenIdDbContext>>();
             serviceCollection.RemoveAll<IDbContextFactory<OpenIdDbContext>>();
 
-            var databaseRoot = new InMemoryDatabaseRoot();
             serviceCollection.AddDbContextFactory<OpenIdDbContext>(options =>
-                options.UseInMemoryDatabase(DatabaseName, databaseRoot)
+                options.UseInMemoryDatabase(DatabaseName, DatabaseRoot)
             );
 
             // Widen the server ceiling (registered after the library default, so it unions on top):

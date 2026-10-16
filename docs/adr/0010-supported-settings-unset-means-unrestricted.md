@@ -67,6 +67,21 @@ unset scalar has no sensible ⊤.
   default-less collection. `DefaultValidateAuthorizationRequestHandler` already followed this pattern;
   the remaining scope/grant/response-mode gates were converted to match.
 - Discovery omits unset `*_supported` fields automatically (it iterates only present settings).
+- **A default-less _value-type_ scalar setting must stay genuinely absent, too.** Some scalar settings
+  (e.g. `subject_max_age`, an authentication-age freshness ceiling with `OnMerge = Min` and **no**
+  descriptor `Default`) intentionally have no default: unset means "no constraint", exactly like the
+  collections above. A regression broke this for value types: `SettingDescriptor<TValue>.HasDefault`
+  was computed as `DefaultOrNull is not null`, but under the `where TValue : notnull` constraint
+  `TValue?` is **not** `Nullable<TValue>` for a value type — it is the non-nullable `TValue` — so
+  `DefaultOrNull` was never null and `HasDefault` was always `true`. The root data source then
+  materialized `default(TValue)` (`TimeSpan.Zero` for `subject_max_age`) into the lattice, turning
+  "no freshness constraint" into a zero-second window that rejected every just-completed login and
+  returned `login_required` to a logged-in `prompt=none` request. `HasDefault` now tracks an explicit
+  flag set only when a default is actually supplied, so a default-less value-type setting reports
+  `HasDefault == false`, stays absent, and `TryGetValue` returns `false` — preserving the
+  unset-means-unrestricted invariant for scalars as well as collections. The reusable optional-value
+  reader for such settings is `IReadOnlySettingCollection.GetValueOrNull<TValue>() where TValue :
+  struct`, which returns a genuine `Nullable<TValue>`.
 
 ## References
 
@@ -74,6 +89,8 @@ unset scalar has no sensible ⊤.
 - `src/NCode.Identity.OpenId.Authentication/Settings/DefaultSettingsProvider.cs`
 - `src/NCode.Identity.OpenId.Authentication/Settings/RootSettingsCollectionDataSource.cs`
 - `src/NCode.Identity.OpenId.Authentication/Settings/DefaultSettingDescriptorDataSource.cs`
+- `src/NCode.Identity.Settings.Abstractions/SettingDescriptor.cs` (the `HasDefault` value-type flag)
+- `src/NCode.Identity.Settings.Abstractions/SettingCollectionExtensions.cs` (`GetValueOrNull<TValue>`)
 - Enforcement gates: `DefaultSelectTokenGrantHandlerHandler`, `DefaultValidateTokenRequestHandler`,
   `DefaultValidateAuthorizationCodeGrantHandler`, `DefaultValidateRefreshTokenGrantHandler`,
   `DefaultValidateAuthorizationRequestHandler`, `DefaultAuthorizationEndpointHandler`

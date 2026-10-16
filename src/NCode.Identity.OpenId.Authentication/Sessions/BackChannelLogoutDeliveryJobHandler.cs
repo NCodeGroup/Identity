@@ -29,6 +29,12 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 internal sealed class BackChannelLogoutDeliveryJobHandler(IHttpClientFactory httpClientFactory)
     : IDispatchJobHandler<BackChannelLogoutDeliveryJob>
 {
+    /// <summary>
+    /// The name of the SSRF-guarded HTTP client used to POST the <c>logout_token</c> to the relying party's
+    /// client-registered <c>backchannel_logout_uri</c>.
+    /// </summary>
+    internal const string HttpClientName = "NCode.Identity.OpenId.BackChannelLogout";
+
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
 
     /// <inheritdoc />
@@ -44,7 +50,7 @@ internal sealed class BackChannelLogoutDeliveryJobHandler(IHttpClientFactory htt
         ];
         using var content = new FormUrlEncodedContent(formValues);
 
-        var httpClient = HttpClientFactory.CreateClient();
+        var httpClient = HttpClientFactory.CreateClient(HttpClientName);
         using var response = await httpClient.PostAsync(job.LogoutUri, content, cancellationToken);
 
         // A non-success status throws, signaling the dispatcher to retry with back-off.

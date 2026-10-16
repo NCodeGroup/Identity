@@ -359,6 +359,24 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   managed `string`) so the seed handlers keep the secret in their pinned, zeroed-on-return buffers. All three sites now
   route through it._
 
+- **`F28` — Complete outbound-fetch SSRF coverage and bound the `request_uri` fetch.** The shared
+  `IOutboundHttpForgeryGuard` ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md))
+  guarded the `sector_identifier_uri`, `jwks_uri`, and JAR `request_uri` fetches, but two gaps remained. **(a)** The JAR
+  `request_uri` fetch (`DefaultLoadAuthorizationRequestHandler.FetchRequestUriAsync`) read the response body with **no
+  size cap** (a DoS vector) and had no fetch-timeout/allowed-hosts settings. **(b)** The **server→client deliveries**
+  that POST to client-registered URLs — back-channel logout (`backchannel_logout_uri`) and CIBA push notification
+  (`client_notification_endpoint`) — used plain `IHttpClientFactory` clients with **no** SSRF guard.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0111](docs/adr/0111-complete-outbound-fetch-ssrf-coverage.md). The `request_uri` fetch now requires an absolute
+  `https` URI, enforces an optional host allow-list, bounds the request with a wall-clock timeout, and caps the response
+  body via a new non-discoverable `request_uri_\*` settings family (`request*uri_allowed_hosts`,
+`request_uri_fetch_timeout`default 10 s,`request_uri_max_size_bytes`default 100 KB). The back-channel-logout and
+CIBA deliveries now POST through dedicated SSRF-guarded named clients (connection pinned away from
+private/loopback/link-local addresses, auto-redirect disabled), so a registered internal URL cannot turn the OP into a
+  confused deputy. The streamed response-size-cap read was extracted into one replaceable, DI-registered
+  `IOutboundHttpContentReader` seam (buffer-writer in, `ReadOnlySequence<byte>` out) consumed by all three body-reading
+  fetches._
+
 ## Conformance & interop testing (group `T`)
 
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface

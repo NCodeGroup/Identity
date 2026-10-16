@@ -16,16 +16,21 @@
 
 #endregion
 
+using System.Net;
 using System.Runtime.ExceptionServices;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using NCode.Buffers;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 
@@ -38,12 +43,15 @@ internal class DefaultLoadAuthorizationRequestHandler(
     ILogger<DefaultLoadAuthorizationRequestHandler> logger,
     IJsonWebTokenService jsonWebTokenService,
     IHttpClientFactory httpClientFactory,
+    IOutboundHttpContentReader outboundHttpContentReader,
     IClientKeyResolver clientKeyResolver
 ) : ICommandResponseHandler<LoadAuthorizationRequestCommand, IAuthorizationRequest>
 {
     private ILogger<DefaultLoadAuthorizationRequestHandler> Logger { get; } = logger;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
+    private IOutboundHttpContentReader OutboundHttpContentReader { get; } =
+        outboundHttpContentReader;
     private IClientKeyResolver ClientKeyResolver { get; } = clientKeyResolver;
 
     /// <summary>
@@ -213,20 +221,46 @@ internal class DefaultLoadAuthorizationRequestHandler(
         var errorFactory = openIdEnvironment.ErrorFactory;
         var settings = openIdClient.Settings;
 
+        // The OP fetches this client-supplied URL, so it must be https and (when configured) pass the host allow-list;
+        // the always-on private/loopback/link-local address block in OutboundHttpForgeryGuard applies regardless.
+        if (!string.Equals(requestUri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal))
+            throw errorFactory
+                .InvalidRequestUri("The 'request_uri' must be an absolute https URI.")
+                .AsException();
+
+        if (
+            settings.TryGetValue(OpenIdSettingKeys.RequestUriAllowedHosts, out var allowedHosts)
+            && allowedHosts.Count > 0
+            && !allowedHosts.Contains(requestUri.Host, StringComparer.OrdinalIgnoreCase)
+        )
+            throw errorFactory
+                .InvalidRequestUri(
+                    $"The 'request_uri' host '{requestUri.Host}' is not in the configured allow-list."
+                )
+                .AsException();
+
+        var timeout = settings.GetValue(OpenIdSettingKeys.RequestUriFetchTimeout);
+        var maxSizeBytes = settings.GetValue(OpenIdSettingKeys.RequestUriMaxSizeBytes);
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        if (timeout > TimeSpan.Zero)
+            timeoutCts.CancelAfter(timeout);
+
         using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
 
         request.Options.Set(new HttpRequestOptionsKey<OpenIdClient>("OpenIdClient"), openIdClient);
 
         using var httpClient = HttpClientFactory.CreateClient(HttpClientName);
+        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
 
         try
         {
             using var response = await httpClient.SendAsync(
                 request,
-                HttpCompletionOption.ResponseContentRead,
-                cancellationToken
+                HttpCompletionOption.ResponseHeadersRead,
+                timeoutCts.Token
             );
-            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+            if (response.StatusCode != HttpStatusCode.OK)
                 throw errorFactory
                     .InvalidRequestUri(
                         $"The http status code of the response must be 200 OK. Received {(int)response.StatusCode} {response.StatusCode}."
@@ -247,7 +281,31 @@ internal class DefaultLoadAuthorizationRequestHandler(
                     )
                     .AsException();
 
-            return await response.Content.ReadAsStringAsync(cancellationToken);
+            var readResult = await OutboundHttpContentReader.ReadCappedAsync(
+                response,
+                buffer,
+                maxSizeBytes,
+                timeoutCts.Token
+            );
+            if (readResult != OutboundHttpReadResult.Completed)
+                throw errorFactory
+                    .InvalidRequestUri(
+                        "The 'request_uri' response exceeds the maximum allowed size."
+                    )
+                    .AsException();
+
+            using var lease = buffer.GetSpanLease(isSensitive: false);
+            return Encoding.UTF8.GetString(lease.Span);
+        }
+        catch (OpenIdException)
+        {
+            // A specific validation failure (status / content-type / size) is surfaced as-is, not masked as a fetch error.
+            throw;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Genuine caller cancellation (not the fetch timeout) propagates unchanged.
+            throw;
         }
         catch (Exception exception)
         {

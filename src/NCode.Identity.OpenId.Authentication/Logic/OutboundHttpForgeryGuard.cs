@@ -45,8 +45,7 @@ internal sealed class OutboundHttpForgeryGuard(IEnumerable<IOutboundAddressFilte
 
         var addresses = IPAddress.TryParse(endPoint.Host, out var literal)
             ? [literal]
-            : await Dns.GetHostAddressesAsync(endPoint.Host, cancellationToken)
-                .ConfigureAwait(false);
+            : await Dns.GetHostAddressesAsync(endPoint.Host, cancellationToken);
 
         var anyAllowed = false;
         Exception? lastError = null;
@@ -65,9 +64,10 @@ internal sealed class OutboundHttpForgeryGuard(IEnumerable<IOutboundAddressFilte
 
             try
             {
-                await socket
-                    .ConnectAsync(new IPEndPoint(address, endPoint.Port), cancellationToken)
-                    .ConfigureAwait(false);
+                await socket.ConnectAsync(
+                    new IPEndPoint(address, endPoint.Port),
+                    cancellationToken
+                );
 
                 return new NetworkStream(socket, ownsSocket: true);
             }

@@ -32,6 +32,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthenticati
 internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactory)
     : IDispatchJobHandler<CibaDeliveryJob>
 {
+    /// <summary>
+    /// The name of the SSRF-guarded HTTP client used to POST the CIBA client notification to the client-registered
+    /// <c>client_notification_endpoint</c>.
+    /// </summary>
+    internal const string HttpClientName = "NCode.Identity.OpenId.CibaDelivery";
+
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
 
     /// <inheritdoc />
@@ -80,7 +86,7 @@ internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactor
             );
         }
 
-        var httpClient = HttpClientFactory.CreateClient();
+        var httpClient = HttpClientFactory.CreateClient(HttpClientName);
         using var response = await httpClient.SendAsync(requestMessage, cancellationToken);
 
         // A non-success status throws, signaling the dispatcher to retry with back-off.

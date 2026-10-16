@@ -10,6 +10,23 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Complete outbound-fetch SSRF coverage and bound the JAR `request_uri` fetch — closes backlog `F28`
+  ([ADR-0111](docs/adr/0111-complete-outbound-fetch-ssrf-coverage.md)).** Every server-initiated outbound HTTP call to a
+  client-controlled URL is now SSRF-guarded uniformly. The JAR `request_uri` fetch (RFC 9101) gains the same bound set
+  as the `jwks_uri` / `sector_identifier_uri` fetches: it now requires an absolute `https` URI, enforces an optional
+  host allow-list, bounds the request with a wall-clock timeout, and caps the response body — closing a prior
+  no-size-cap DoS vector — via a new non-discoverable `request_uri_*` settings family (`request_uri_allowed_hosts`,
+  `request_uri_fetch_timeout` default 10 s, `request_uri_max_size_bytes` default 100 KB). The two server→client POST
+  **deliveries** that target client-registered URLs — back-channel logout (`backchannel_logout_uri`) and CIBA ping/push
+  notification (`client_notification_endpoint`) — previously used the default unnamed `HttpClient` with no SSRF control;
+  they now POST through dedicated SSRF-guarded named clients (connection pinned away from private/loopback/link-local
+  addresses, redirects disabled), so a registered internal URL can no longer turn the OP into a confused deputy. The
+  streamed response-size-cap read is extracted into one replaceable, DI-registered `IOutboundHttpContentReader` seam
+  consumed by all three body-reading fetches; it writes into a caller-supplied (pooled) `IBufferWriter<byte>` and the
+  callers parse directly from the resulting `ReadOnlySequence<byte>`, so the capped read no longer allocates an
+  intermediate array. New public surface: the three `request_uri_*` settings and the `IOutboundHttpContentReader` /
+  `OutboundHttpReadResult` seam.
+
 - **FAPI 2.0 behavioral rules + an extensible security-profile registry — advances backlog `F16` (Phase 3)
   ([ADR-0109](docs/adr/0109-fapi-behavioral-rules-and-discovery-validation-details.md)).** The FAPI behavioral rules
   that cannot be expressed as a floor/ceiling setting are now modeled as an **open registry of requirement objects**

@@ -183,17 +183,6 @@ entry and/or ADR that closed it.
     response modes are a hardcoded switch in `DefaultAuthorizationResultExecutor` today); **FAPI 1.0 Advanced**; and **S3**
     BYOK static public-key import (secondary to `jwks_uri`).
 
-- **`F28` — Complete outbound-fetch SSRF coverage and bound the `request_uri` fetch.** The shared
-  `IOutboundHttpForgeryGuard` ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md))
-  now guards the `sector_identifier_uri`, `jwks_uri`, and JAR `request_uri` fetches, but two gaps remain. **(a)** The JAR
-  `request_uri` fetch (`DefaultLoadAuthorizationRequestHandler.FetchRequestUriAsync`) reads the response body with **no
-  size cap** (a DoS vector) and has no fetch-timeout/allowed-hosts settings — add a `request_uri_*` settings family
-  mirroring `jwks_uri_*` and a capped reader. **(b)** The **server→client deliveries** that POST to client-registered
-  URLs — back-channel logout (`DefaultBackChannelLogoutNotifier`, `backchannel_logout_uri`) and CIBA push notification
-  (`ICibaNotificationService`, `client_notification_endpoint`) — use plain `IHttpClientFactory` clients with **no** SSRF
-  guard; route them through the shared guard's named-client pattern (guard + no auto-redirect) so a registered internal
-  URL cannot turn the OP into a confused deputy.
-
 - **`F29` — EdDSA (Ed25519 / Ed448) signing algorithm support.** The JOSE library implements RSA (`RS*`/`PS*`) and ECDSA
   (`ES*`) signatures but not **EdDSA** (the JWA `alg` value `EdDSA`, RFC 8037), the modern Edwards-curve signature scheme
   FAPI 2.0 permits. The algorithm code constant exists (`AlgorithmCodes.DigitalSignature.EdDsa`) and the FAPI security

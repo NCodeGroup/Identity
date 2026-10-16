@@ -76,7 +76,13 @@ param(
     # needed). A fast local check of the confidential/server-initiated legs without the full certified run.
     [switch] $PreflightOnly,
 
-    [int] $ReadyTimeoutSeconds = 120
+    [int] $ReadyTimeoutSeconds = 120,
+
+    # Hard wall-clock ceiling for a single `run-test-plan.py` invocation. If the suite container drops out mid-plan the
+    # suite script retries with backoff; this watchdog kills a plan that blows past the deadline so a dead suite fails
+    # fast instead of hanging overnight (backlog `T8`). A healthy Basic/Config OP plan completes in a couple of minutes,
+    # so the generous default never trips on a good run while still bounding a wedged one.
+    [int] $PlanTimeoutSeconds = 1800
 )
 
 $ErrorActionPreference = 'Stop'
@@ -133,6 +139,26 @@ function Stop-ProcessTree([int] $ProcessId) {
         & pkill -TERM -P $ProcessId 2>$null
         & kill -TERM $ProcessId 2>$null
     }
+}
+
+function Invoke-WithDeadline([string] $FilePath, [string[]] $Arguments, [int] $TimeoutSeconds, [string] $Label) {
+    # Run an external process under a hard wall-clock deadline, streaming its output live to this console (no
+    # redirection, so UseShellExecute=false inherits our stdout/stderr handles). ProcessStartInfo.ArgumentList adds each
+    # argument verbatim, so paths with spaces or the plan's '[...]' variant brackets need no manual quoting. On overrun
+    # the whole child tree is killed and a conventional timeout code (124) is returned so the caller fails fast rather
+    # than blocking forever on a suite that went unreachable mid-plan (backlog `T8`).
+    $psi = [System.Diagnostics.ProcessStartInfo]::new()
+    $psi.FileName = $FilePath
+    $psi.UseShellExecute = $false
+    foreach ($arg in $Arguments) { $psi.ArgumentList.Add($arg) }
+    $proc = [System.Diagnostics.Process]::Start($psi)
+    if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {
+        Write-Host "    $Label exceeded the ${TimeoutSeconds}s deadline; the suite is likely unreachable — killing it and failing fast." -ForegroundColor Red
+        Stop-ProcessTree $proc.Id
+        $null = $proc.WaitForExit(10000)
+        return 124
+    }
+    return $proc.ExitCode
 }
 
 function Clear-OpPort([int] $Port) {
@@ -266,6 +292,14 @@ try {
         # runs without authentication, so without this run-test-plan.py hard-fails reading CONFORMANCE_TOKEN.
         $env:CONFORMANCE_DEV_MODE = '1'
         $env:DISABLE_SSL_VERIFY = '1'
+        # Pin the suite script's own retry bounds explicitly instead of inheriting whatever defaults the freshly-cloned
+        # upstream happens to ship (backlog `T8`): cap each HTTP request's internal retry budget, the per-module restart
+        # retries, and the consecutive-failure circuit breaker so the suite self-aborts quickly on a dead/flapping
+        # server. The wrapper-level Invoke-WithDeadline watchdog below is the hard outer bound that does not depend on
+        # any of these upstream knobs still existing.
+        $env:CONFORMANCE_RETRY_TIMEOUT = '120'
+        $env:CONFORMANCE_RESTART_RETRIES = '2'
+        $env:CONFORMANCE_MAX_CONSECUTIVE_FAILURES = '3'
 
         # The suite's test-plan parser only accepts a bare config filename (its grammar excludes ':' and '\\', so a
         # Windows absolute path is mis-parsed to the drive letter); run from the config dir and pass the filename.
@@ -300,12 +334,17 @@ try {
                 Write-Host "    Plan: $($plansToRun[$i])  Config: $($configsToRun[$i])" -ForegroundColor Yellow
                 $planFailures = New-ScopedBaseline $expectedFailures $configsToRun[$i] 'failures'
                 $planSkips = New-ScopedBaseline $expectedSkips $configsToRun[$i] 'skips'
-                & $venvPython $runTestPlan `
-                    $plansToRun[$i] $configsToRun[$i] `
-                    --expected-failures-file $planFailures `
-                    --expected-skips-file $planSkips `
-                    --export-dir $exportDirFull --verbose
-                if ($LASTEXITCODE -ne 0) { $failed = $true }
+                # Run under a hard wall-clock deadline so a suite that goes unreachable mid-plan fails fast instead of
+                # hanging the whole wrapper indefinitely (backlog `T8`).
+                $exitCode = Invoke-WithDeadline -FilePath $venvPython -TimeoutSeconds $PlanTimeoutSeconds `
+                    -Label "Plan '$($plansToRun[$i])'" -Arguments @(
+                    $runTestPlan,
+                    $plansToRun[$i], $configsToRun[$i],
+                    '--expected-failures-file', $planFailures,
+                    '--expected-skips-file', $planSkips,
+                    '--export-dir', $exportDirFull, '--verbose'
+                )
+                if ($exitCode -ne 0) { $failed = $true }
             }
         }
         finally {
@@ -338,7 +377,7 @@ finally {
         # Tree-kill: 'dotnet run' spawns the OP as a child, so Stop-Process on the wrapper alone would orphan it.
         Stop-ProcessTree $opProcess.Id
     }
-    Remove-Item Env:CONFORMANCE_SERVER, Env:CONFORMANCE_DEV_MODE, Env:DISABLE_SSL_VERIFY -ErrorAction SilentlyContinue
+    Remove-Item Env:CONFORMANCE_SERVER, Env:CONFORMANCE_DEV_MODE, Env:DISABLE_SSL_VERIFY, Env:CONFORMANCE_RETRY_TIMEOUT, Env:CONFORMANCE_RESTART_RETRIES, Env:CONFORMANCE_MAX_CONSECUTIVE_FAILURES -ErrorAction SilentlyContinue
     Set-Location $OriginalLocation
 }
 

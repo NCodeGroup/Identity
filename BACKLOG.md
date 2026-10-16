@@ -273,206 +273,66 @@ entry and/or ADR that closed it.
 
 ## Conformance & interop testing (group `T`)
 
-- **`T1` — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite (remaining: nightly CI).**
-  Our own integration tests encode our own reading of the specs; an independent, spec-author-maintained oracle is needed
-  to catch shared misreadings. **This is not un-started — its runnable realization is already committed:** the external
-  suite is wired behind a one-command harness ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1)),
-  delivered under `T6` Phase 4 (see `T6`). **How it runs (local, not public):** the certified suite runs **locally in
-  Docker** against the Playground OP and reaches it over `host.docker.internal:5001` — nothing is exposed to the public
-  internet. Running against the OpenID Foundation's **hosted** instance (`https://www.certification.openid.net/`), which
-  _would_ require a publicly reachable OP, is an optional alternative, **not** a requirement and **not** what this item
-  is about. **Prerequisites — all done:** the Dynamic OP profile / Dynamic Client Registration
-  ([ADR-0063](docs/adr/0063-dynamic-client-registration.md); the harness enables anonymous registration,
-  `registration_endpoint_allow_anonymous`); the reachable HTTPS host (`T3` — the `Conformance` launch profile binds all
-  interfaces on `:5001` and pins the discovery `issuer` to `https://host.docker.internal:5001`); the browser-automatable
-  login/consent surface (`T2` — the OP-hosted `apps/auth` surface,
-  [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md)); the deterministic conformance tenant,
-  clients, and test-user seeding (`T4` — `AddConformanceSeed`); and discovery-metadata alignment (the OP advertises
-  secure-by-default, verified capabilities, [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
-  **Remaining:** the nightly (not `dod.ps1`) CI pipeline that invokes `run-conformance.ps1` — shared with `T6` — plus the
-  ongoing triage of live-run dispositions (`T8`). Full design and automation plan — harness architecture, the
-  `BrowserControl`/`run-test-plan.py` automation model, target profiles, and the prerequisites above — lives in its
-  dedicated doc: [`docs/conformance-testing.md`](docs/conformance-testing.md).
+- **`T1` — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite (remaining:
+  nightly CI).** An independent, spec-author-maintained oracle to catch misreadings our own integration tests share. The
+  external suite is already wired behind the one-command harness
+  ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1), delivered under `T6`), running
+  **locally in Docker** against the Playground OP over `host.docker.internal:5001` — nothing is exposed publicly. All
+  prerequisites are done (DCR, reachable HTTPS host, browser-automatable login/consent, deterministic seeding,
+  discovery-metadata alignment). **Remaining:** the nightly (not `dod.ps1`) CI pipeline that invokes
+  `run-conformance.ps1` — shared with `T6`. Full design, the delivered prerequisites, and the automation model are in
+  [`docs/conformance-testing.md`](docs/conformance-testing.md) and
+  [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md).
 - **`T6` — Spec-coverage conformance harness: wire the external certified suite as the oracle (remaining: nightly CI).**
-  **Relationship to `T1`/`T8` (read first):** this item owns the **in-house measurement harness** (the spec-coverage
-  matrix + the headless probe-runner pre-flight) **and** the committed automation
-  ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1)) that drives the external certified
-  suite — i.e. this is **where `T1`'s external oracle was actually delivered**; `T8` then triages the module verdicts that
-  run produces. All three run **locally**; none exposes the OP publicly.
-  The in-house harness is built: the spec-coverage matrix measures the OP against the **full published
-  OAuth/OIDC/CIBA/FAPI catalog** classified from **live discovery metadata** (a gap finder _and_ a regression detector),
-  plus browser-drivable active probes (Phase 2) and a headless Node/backend **probe runner** (Phase 3,
-  `@ncode/app-conformance-runner`) for the confidential and server-initiated legs a browser cannot drive
-  (`client_credentials`, introspection/revocation with client auth, device-code polling, CIBA, `private_key_jwt`,
-  DPoP/mTLS, back-channel logout). The runner exits non-zero on any failed probe, so it is already a usable local
-  pre-flight. **Phase 4 is now committed:** the external **OpenID Foundation Conformance Suite** (`T1`) is wired as the
-  certified oracle behind the probe-runner pre-flight by a committed, runnable harness —
-  [`build/conformance/`](build/conformance) (`run-conformance.ps1` launches the OP → runs the pre-flight → brings up the
-  prebuilt-image suite → drives the Config OP + Basic OP plans gated on committed baselines → tears down → one exit
-  code), with config templates + baselines resolved against the `AddConformanceSeed` values and documented in
-  [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md). **First live-run outcome:** the **Config
-  OP** certification plan passes cleanly against the harness (`44 successes, 0 failures, 0 warnings`) after three
-  conformance fixes it surfaced — the `client_credentials`/`password` omitted-scope crash, and two non-standard discovery
-  parameters (`discovery_endpoint`, `backchannel_authentication_request_encryption_{alg,enc}_values_supported`). The
-  **Basic OP** (browser-driven) plan now drives the full authorization-code flow: the no-JS login/consent gap is
-  **fixed** (the server renders a working `<form>` as a progressive-enhancement baseline the SPA still enhances), so
-  13+ interactive modules complete. Four more backend bugs it surfaced are **fixed**: an `AuthorizationResult` crash on
-  an omitted `state`; `expires_in` serialized as a JSON string instead of a number (new `DurationSecondsParser`); and
-  the `prompt=login` / `select_account` / `create` re-authentication **loop** (`DefaultAuthorizeHandler` now guards them
-  with `!IsContinuation` like `prompt=consent`, and the suite confirms the second id\*token's `auth_time` advances). The
-  Basic OP plan now runs under **Dynamic Client Registration** (the config drops the static `alias` + static clients so
-  the suite registers a fresh client per module, eliminating the `Stopping test due to alias conflict` serialization —
-  [ADR-0063](docs/adr/0063-dynamic-client-registration.md)), which surfaced and **fixed** two further backend bugs: the
-  DCR deregistration `DELETE /oauth2/register/{client_id}` failing on a client that still owned a secret
-  (`ClientStore.RemoveAsync` guarded with a database query blind to the same-unit-of-work pending secret deletes), and
-  **server-generated `client_secret`s failing `invalid_client`** because a symmetric secret was stored as raw bytes
-  instead of the UTF-8 bytes client authentication compares against (new `ISecretGenerator.GenerateSharedSecret`,
-  [ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md)). **First full Basic OP (DCR) run:**
-  `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` across 38 modules with no mass-abort (up from every module interrupting).
-  **Remaining:** (a) triage the live-run dispositions (the 4 `FAILED`, 11 `WARNING`, and 4 `SKIPPED` modules) — tracked
-  as `T8`. (b) a **nightly / opt-in CI pipeline** that invokes
-  `run-conformance.ps1` (Docker + Python 3, no local Java) and publishes the `.results/` zips — deferred until the
-  repo's broader CI bootstrap lands (no `.github/workflows` exists yet). The browser-driven Basic OP plan is opt-in in
-  `run-conformance.ps1` via `-IncludeBrowserPlans`. Design, phases, and the
-  `browser` / `probe-runner` / `external-suite` exercise boundary are in
-  [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). The harness is a **measurement** surface — it tracks
-  backend gaps, it does not implement them. Touch points:
+  This item owns the **in-house measurement harness** (the spec-coverage matrix + the headless probe-runner pre-flight)
+  **and** the committed automation ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1))
+  that drives the external certified suite — i.e. **where `T1`'s external oracle was actually delivered**; `T8` then
+  triages the module verdicts a run produces. All three run **locally**; none exposes the OP publicly. Built: the
+  spec-coverage matrix (OP vs the full published OAuth/OIDC/CIBA/FAPI catalog, classified from live discovery metadata),
+  the browser-drivable active probes, the headless `@ncode/app-conformance-runner` pre-flight (confidential +
+  server-initiated legs), and the Phase 4 harness that launches the OP → runs the pre-flight → brings up the
+  prebuilt-image suite → drives the Config OP + Basic OP plans gated on committed baselines → tears down → one exit code.
+  The **Config OP** plan passes cleanly (`44 successes, 0 failures, 0 warnings`); the **Basic OP** (browser-driven) plan
+  runs end-to-end under Dynamic Client Registration (opt-in via `-IncludeBrowserPlans`). The harness is a
+  **measurement** surface — it tracks backend gaps, it does not implement them. **Remaining:** a **nightly / opt-in CI
+  pipeline** that invokes `run-conformance.ps1` (Docker + Python 3, no local Java) and publishes the `.results/` zips —
+  deferred until the repo's broader CI bootstrap lands (no `.github/workflows` exists yet); the live-run disposition
+  triage is tracked as `T8`. Design and phases are in
+  [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md),
+  [`docs/conformance-testing.md`](docs/conformance-testing.md), and
+  [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md). Touch points:
   [`build/conformance`](build/conformance),
   [`src/frontend/apps/conformance`](src/frontend/apps/conformance),
   [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner),
-  [`src/frontend/packages/conformance-core`](src/frontend/packages/conformance-core),
-  [`docs/conformance-testing.md`](docs/conformance-testing.md).
-- **`T8` — Triage the Basic OP (DCR) live-run dispositions.** These are the module verdicts produced by the **external
-  OpenID Foundation Conformance Suite** (the `T1` oracle), run **locally** via
-  [`build/conformance/run-conformance.ps1 -IncludeBrowserPlans`](build/conformance/run-conformance.ps1) (`T6`) — **not** an
-  in-house test engine. The first full browser-driven Basic OP certification run
-  under Dynamic Client Registration completed `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` (38 modules, no
-  mass-abort). Each non-pass was investigated against the suite's per-module log and classified as a **backend gap to
-  fix**, a **harness/config refinement**, or a **documented, intentional deviation** codified in
-  `build/conformance/expected-failures.json` / `expected-skips.json`. **After the fixes below the plan now runs clean**
-  — `32 PASSED, 0 WARNING, 3 REVIEW, 4 SKIPPED, 0 FAILED` (39 modules incl. the Config OP) with a green gate
-  (`Conformance run PASSED`); the former `oidcc-codereuse-30seconds` WARNING is now fixed (session-scoped revocation on
-  code replay — [ADR-0112](docs/adr/0112-authorization-code-replay-revokes-session.md)). **Fixed backend bugs** (see `CHANGELOG.md`):
-    - **`oidcc-refresh-token`** — the consent screen (no-JS form + SPA) pre-checked a requested scope's checkbox only
-      when it was _previously_ granted, so a first-time `prompt=consent` + `offline_access` consent posted an empty
-      `scope` set; the recorded grant lost `openid`/`offline_access` and the token response dropped the `id_token` and
-      `refresh_token`. The consent screen now pre-selects all requested scopes. (The second validation run then
-      surfaced a residual — the token endpoint omitted `Cache-Control: no-store` — see below.)
-    - **Token-endpoint `Cache-Control: no-store`** — RFC 6749 §5.1/§5.2 require it (and `Pragma: no-cache`) so tokens
-      are never cached; the OP omitted them. Now set on every token-endpoint response. Revealed by `oidcc-refresh-token`
-      once the consent fix let its refresh flow reach the refresh request (56 → 157 passing conditions).
-    - **`oidcc-prompt-none-not-logged-in`** — the inline `prompt=none` → `login_required` (and no-consent-surface →
-      `interaction_required`) errors omitted `state` (they bypass the `Authenticate`/`Authorize` post-processors that
-      stamp it). Both now echo the request `state` (OIDC Core §3.1.2.6).
-    - **`oidcc-max-age-1`** — authentication-age freshness added the 5-min `clock_skew` (so `max_age=1` never forced
-      re-auth) **and** was re-evaluated at the token/refresh endpoints against a later clock (rejecting valid exchanges
-      with `access_denied`). It now uses a pure elapsed-time comparison and runs only at the authorization endpoint via
-      `ValidateSubjectAuthenticationCommand.EnforceAuthenticationAge`.
-    - **`oidcc-prompt-none-logged-in` / `oidcc-id-token-hint` (intermittent, all-or-nothing per process)** — a
-      value-type-default bug in `SettingDescriptor<TValue>` made `HasDefault` always `true` for a value-type `TValue`
-      (the `notnull`-constrained `TValue?` is not `Nullable<TValue>`), so the root settings source loaded
-      `default(TValue)` for every value-type descriptor lacking an explicit default. For `subject_max_age` that was
-      `TimeSpan.Zero` — a zero-second freshness window that rejected every just-completed login and returned
-      `login_required` to a logged-in `prompt=none` request. `HasDefault` now tracks an explicit flag, so an unset
-      value-type setting stays genuinely absent. A new `IReadOnlySettingCollection.GetValueOrNull<TValue>()` (struct
-      constraint, genuine `Nullable<TValue>`) is the reusable optional-value reader. Guarded by a 32-concurrent
-      `prompt=none` integration regression test.
-    - **`oidcc-ensure-registered-redirect-uri`** — the OP correctly refuses an unregistered `redirect_uri` with a 400
-      `unauthorized_client`, but the exception handler logged that expected 4xx client error at Error level as "an
-      unexpected error". 4xx `OpenIdException`s now log at Warning. The scripted-browser timeout (its `Verify Complete`
-      step waited for a happy-path `submission_complete` callback that correctly never comes) is resolved with a
-      per-module `override` block in `build/conformance/oidcc-basic.json` that drops the callback wait and instead waits
-      for the error page (matched by the `unauthorized_client` error code in the rendered body) and snapshots it as the
-      review placeholder — so the module now lands on the `REVIEW` the suite expects ("Show redirect URI error page",
-      OIDCC-3.1.2.1) instead of `FAILED`, and its `expected-failures.json` baseline was removed.
-    - **Codified intentional deviations.** The four `SKIPPED` modules (`oidcc-idtoken-unsigned` and the three
-      request-object `…-supported-correctly-or-rejected-as-unsupported` / `oidcc-ensure-request-object-with-redirect-uri`
-      tests) are spec-conformant optional-feature skips — the OP does not advertise the OPTIONAL `alg:none` value in
-      `id_token_signing_alg_values_supported` / `request_object_signing_alg_values_supported` (asymmetric signing is the
-      secure default) — now in `expected-skips.json`. `expected-failures.json` now has no entries (the former
-      `oidcc-codereuse-30seconds` baseline was removed once the warning was fixed, below).
-    - **UserInfo scope-claims + ID-token claim placement (`WARNING`: `oidcc-server`, `oidcc-scope-{profile,email,address,phone,all}`,
-      `oidcc-alternate-happy-flow`, `oidcc-claims-essential`).** Per OIDC Core §5.4 the `profile`/`email`/`address`/`phone`
-      scope claims belong in the **UserInfo** response, not the `id_token`, whenever an access token is issued (the code
-      flow). Fixed as a cohesive change: (a) `DefaultGetIdTokenSubjectClaimsHandler` now gates the scope-driven claim set
-      on _no access token issued_ (a non-null `AccessToken` on the token request signals the code flow), so the ID token
-      no longer carries them — requested `claims.id_token` claims, `sub`, `auth_time`, `acr`, `idp`, `amr` are
-      unaffected; (b) a new account-sourced UserInfo enricher (`DefaultGetLocalAccountUserInfoClaimsHandler`, registered
-      by `AddLocalAccountAuthentication` / `AddLocalAccountInteractiveAuthentication`) resolves the caller's local
-      account from its self-issued connection and returns the scope-permitted claims from the account store — it also
-      honors individual claims requested via the OIDC `claims` parameter's `userinfo` member (OIDC Core §5.5) regardless
-      of scope, and coerces the standard typed claims (`updated_at` → number, `address` → JSON object,
-      `phone_number_verified` → boolean); and (c) the conformance seed now provisions the **full** standard
-      `profile`/`address`/`phone` claim set (new `ConformanceSeedOptions.TestUserGivenName` / `TestUserFamilyName` for
-      the name parts, deterministic values for the rest). Separately, the ID token no longer carries the `tid` and
-      `client_id` claims at all — those are JWT **access-token** claims (RFC 9068 §2.2), not ID-token claims, so
-      `DefaultGetIdTokenPayloadClaimsHandler` now emits only the standard `azp`; this cleared the residual
-      `oidcc-server` "id_token contains non-requested claim" warning. (See `CHANGELOG.md`.)
-    - **`acr` emission (`WARNING`: `oidcc-ensure-request-with-acr-values-succeeds`).** Fixed by configuring the
-      conformance environment, not the backend: the OP now advertises `acr_values_supported` and sets a `default_acr`
-      baseline (server settings in `appsettings.Conformance.json`), so the password login's resolved `acr`
-      ([ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md)) is emitted and matches the suite's requested
-      `acr_values`. The ACR resolver already honored `default_acr`; only the conformance environment lacked a baseline.
-    - **UserInfo access token in the POST body (`WARNING`: `oidcc-userinfo-post-body`).** `DefaultAuthenticateSubjectHandler`
-      now accepts the bearer token as an `access_token` form parameter (RFC 6750 §2.2 / OIDC §5.3.1) for a non-GET
-      `application/x-www-form-urlencoded` request, in addition to the preferred `Authorization: Bearer` header (which
-      takes precedence when both are present); the URI-query form (§2.3) stays unsupported because RFC 9700 deprecates
-      it. (See `CHANGELOG.md`.)
-    - **`alg:none` request object → `request_not_supported` (the `SKIPPED` residual).** OIDC Core §6.1:
-      `DefaultLoadAuthorizationRequestHandler` now detects an unsigned (`alg:none`) request object (inline `request` or a
-      fetched `request_uri`) up front and returns exactly `request_not_supported`; a genuinely malformed request object
-      still returns `invalid_request_object`. (See `CHANGELOG.md`.)
-    - **Access-token revocation on authorization-code reuse (`WARNING`: `oidcc-codereuse-30seconds`) — fixed.** RFC 6749
-      §4.1.2 SHOULD revoke the tokens previously issued from a reused code _"when possible"_. The OP already rejected the
-      second code use with `invalid_grant` (one-time codes) and enforces PKCE `S256`, but the suite re-presented the
-      previously-issued access token at the resource endpoint and expected a `4xx`. A second redemption of an
-      already-consumed code is now treated as a compromise signal: the token endpoint revokes the end-user **session's**
-      grants (the access and refresh tokens issued from that code) via the session-scoped grant revocation the logout
-      seam uses — minus the back-channel-logout/audit side effects — and the OP's own resource endpoints (UserInfo,
-      introspection, management API) reject an access token whose `sid` resolves to a revoked session (`invalid_token`).
-      `sid` is now always emitted into subject-bound access tokens (the opt-in `send_session_id_in_access_token` setting
-      is retired). No global access-token denylist and no per-token store: one indexed session lookup on first-party
-      access-token authentication and one session-scoped revocation on the rare replay path. External resource servers
-      still treat the JWT as self-contained. See [ADR-0112](docs/adr/0112-authorization-code-replay-revokes-session.md)
-      (refines [ADR-0028](docs/adr/0028-token-revocation-refresh-tokens-only.md)) and `CHANGELOG.md`; its
-      `expected-failures.json` baseline was removed.
-    - **Headless auto-fill of screenshot-review placeholders (`oidcc-prompt-login`, `oidcc-max-age-1`) — fixed.** These
-      two double-login modules complete every automated assertion, then deliberately park in `WAITING` on a REVIEW
-      "browser-interaction placeholder" (OIDCC-3.1.2.1: _"a screenshot of the second login … must be uploaded"_). The OP
-      is not involved — it already passed all checks (e.g. `auth_time is later in the second id_token`); the suite itself
-      calls the request "a little pointless" (`OIDCCPromptLogin.createPlaceholder()`). Headless, nobody uploads the
-      screenshot, so each module burned the full 240 s module timeout and left the run `WAITING`/incomplete. Fixed with
-      the **suite-native configuration knob**, not an out-of-band upload: per-module `override` blocks in
-      `build/conformance/oidcc-basic.json` add the suite's `update-image-placeholder-optional` action to the second
-      login's scripted-browser `wait` command (`["wait","xpath","//*",10,"Sign in","update-image-placeholder-optional"]`),
-      so `BrowserControl` snapshots the login page as the placeholder image inline while it drives the re-login — the
-      regexp `Sign in` matches the OP's login page (`<h1>Sign in</h1>`, `InteractiveAuthenticationPageRenderer`). This
-      mirrors the suite's own `.gitlab-ci/local-provider-oidcc-conformance-config.json` override for the same two modules
-      and is deterministic (no polling, no separate authenticated POST, no hang risk). Verified end-to-end: both modules
-      now reach `FINISHED`/`REVIEW` in ~3 s with 0 failing conditions (a `REVIEW` result with no failing conditions does
-      not gate the run), and the Basic OP plan dropped from ~247 s to ~46 s. The earlier background PNG-upload watcher in
-      `run-conformance.ps1` (`Start-PlaceholderAutoFiller`) was removed as the redundant, unverified predecessor of this
-      deterministic knob.
-    - **Remaining (documented follow-ups, non-blocking for Basic OP certification):**
-        - **Suite goes unreachable mid-run → `run-test-plan.py` retries forever (wrapper hangs).** When the suite's
-          Docker container drops out mid-plan, the suite script's `wait-state` reconnect loop retries with unbounded
-          backoff, so `run-conformance.ps1` blocks indefinitely instead of failing fast. Investigate why the prebuilt
-          suite becomes unreachable under the browser plan (container OOM/health? Docker Desktop resource limits?), and
-          add a bounded overall deadline / max-reconnect-attempts in the wrapper so a dead suite surfaces a fast,
-          clear failure instead of an overnight hang.
-        - **Parallel browser-session cookie collision (`oidcc-server`, `oidcc-idtoken-signature`).**
-          The Basic OP plan runs with `parallel=2`; concurrent browser modules share the OP's login cookie on the single
-          `host.docker.internal:5001` origin, so one module's scripted login can land on another module's `continue` URL
-          (observed: a login submitted for `state=1fEiOJ…` completed on a page for `state=lTOSHx…`, then "Unexpected URL for
-          Verify Complete"). These modules pass in isolation and passed in the first run; the collision is
-          harness parallelism, not a backend defect. A harness accommodation (run the browser plan at `parallel=1`, or
-          isolate cookie jars per module) would make the run deterministic.
-    - Design, phases, and the baseline schema are in [`docs/conformance-testing.md`](docs/conformance-testing.md)
-      (Appendix F) and [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). Touch points:
-      [`build/conformance`](build/conformance), the authorization/token endpoint handlers and the interactive consent
-      surface under [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication) /
-      [`src/NCode.Identity.OpenId.Authentication.Interactive`](src/NCode.Identity.OpenId.Authentication.Interactive), and
-      the SPA consent form under [`src/frontend/apps/auth`](src/frontend/apps/auth).
+  [`src/frontend/packages/conformance-core`](src/frontend/packages/conformance-core).
+- **`T8` — Triage the Basic OP (DCR) live-run dispositions (remaining: one harness follow-up).** The module verdicts
+  produced by the **external OpenID Foundation Conformance Suite** (the `T1` oracle), run **locally** via
+  [`build/conformance/run-conformance.ps1 -IncludeBrowserPlans`](build/conformance/run-conformance.ps1) (`T6`). The first
+  full browser-driven Basic OP run under Dynamic Client Registration completed `18 PASSED, 11 WARNING, 4 SKIPPED,
+4 FAILED` (38 modules); after triage and fixes the plan now runs **clean** — `32 PASSED, 0 WARNING, 3 REVIEW,
+4 SKIPPED, 0 FAILED` (39 modules incl. Config OP) with a green gate (`Conformance run PASSED`), and
+  `expected-failures.json` has no entries. The full disposition log — every fixed backend bug, the codified intentional
+  skips, and the harness refinements — lives in
+  [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md) (§ "Live-run dispositions (`T8`)"), with
+  the individual fixes also in [`CHANGELOG.md`](CHANGELOG.md) and their ADRs. **Remaining (one harness follow-up,
+  non-blocking for Basic OP certification):** - **Parallel browser-session cookie collision (`oidcc-server`, `oidcc-idtoken-signature`).** The Basic OP plan runs
+  `parallel=2`; concurrent modules share the OP's login cookie on the single `host.docker.internal:5001` origin, so
+  one module's scripted login can land on another's `continue` URL. These modules pass in isolation — the collision
+  is harness parallelism, not a backend defect. A harness accommodation (run the browser plan at `parallel=1`, or
+  isolate cookie jars per module) would make the run deterministic.
+
+        The **unreachable-suite hang** follow-up is **done**: `run-conformance.ps1` now runs each `run-test-plan.py`
+        invocation under a hard wall-clock watchdog (`-PlanTimeoutSeconds`, default `1800`) that tree-kills a plan on
+        overrun, and pins the suite script's own retry bounds explicitly, so a suite that drops out mid-plan fails fast
+        instead of hanging overnight (see [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md) §
+        "Open follow-ups" and [`CHANGELOG.md`](CHANGELOG.md)).
+
+        Design, phases, and the baseline schema are in [`docs/conformance-testing.md`](docs/conformance-testing.md)
+        (Appendix F) and [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). Touch points:
+        [`build/conformance`](build/conformance), the authorization/token endpoint handlers and the interactive consent
+        surface under [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication) /
+        [`src/NCode.Identity.OpenId.Authentication.Interactive`](src/NCode.Identity.OpenId.Authentication.Interactive), and
+        the SPA consent form under [`src/frontend/apps/auth`](src/frontend/apps/auth).
 
 ## Frontend presentation platform (group `U`)
 

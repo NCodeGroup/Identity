@@ -640,12 +640,6 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.SendIdClaimsInAccessToken);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'send_session_id_in_access_token' setting.
-    /// </summary>
-    public static SettingKey<bool> SendSessionIdInAccessToken =>
-        new(OpenIdSettingNames.SendSessionIdInAccessToken);
-
-    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'token_exchange_allow_refresh_token' setting.
     /// </summary>
     public static SettingKey<bool> TokenExchangeAllowRefreshToken =>

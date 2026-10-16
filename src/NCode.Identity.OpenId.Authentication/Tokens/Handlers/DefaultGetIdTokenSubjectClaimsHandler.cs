@@ -77,27 +77,36 @@ internal class DefaultGetIdTokenSubjectClaimsHandler(
 
         // add standard claims requested by the client via the scope parameter
         // https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
-
+        //
+        // OpenID Connect Core 1.0 §5.4: the scope-driven profile/email/address/phone claims are returned from the
+        // UserInfo endpoint whenever an access token is issued (the code flow), and only placed in the ID token when no
+        // access token is issued (for example a bare 'id_token' response). An access token issued alongside this ID
+        // token is signalled by a non-null AccessToken on the request, so gate the scope-driven claims on its absence;
+        // the account-sourced UserInfo enricher returns them to the caller instead.
+        var accessTokenIssued = !string.IsNullOrEmpty(tokenRequest.AccessToken);
         var scopes = tokenRequest.EffectiveScopes;
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.Profile))
+        if (!accessTokenIssued)
         {
-            claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Profile);
-        }
+            if (scopes.Contains(OpenIdConstants.ScopeTypes.Profile))
+            {
+                claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Profile);
+            }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.Email))
-        {
-            claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Email);
-        }
+            if (scopes.Contains(OpenIdConstants.ScopeTypes.Email))
+            {
+                claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Email);
+            }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.Address))
-        {
-            claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Address);
-        }
+            if (scopes.Contains(OpenIdConstants.ScopeTypes.Address))
+            {
+                claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Address);
+            }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.Phone))
-        {
-            claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Phone);
+            if (scopes.Contains(OpenIdConstants.ScopeTypes.Phone))
+            {
+                claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Phone);
+            }
         }
 
         // claims requested via the OpenID Connect 'claims' request parameter (ADR-0039); value/values are advisory and

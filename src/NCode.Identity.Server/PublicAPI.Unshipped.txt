@@ -37,6 +37,10 @@ NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TenantId.get
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TenantId.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserEmail.get -> string?
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserEmail.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserFamilyName.get -> string?
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserFamilyName.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserGivenName.get -> string?
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserGivenName.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserName.get -> string?
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserName.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.TestUserPassword.get -> string?

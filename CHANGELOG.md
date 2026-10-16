@@ -10,6 +10,21 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Scope-driven claims now return from UserInfo (not the ID token) when an access token is issued, sourced from the
+  local account (backlog `T8`).** Per OpenID Connect Core 1.0 §5.4, the `profile`/`email`/`address`/`phone` scope claims
+  belong in the UserInfo response whenever an access token is issued (the authorization-code flow), and only in the ID
+  token when no access token is issued (a bare `id_token` response). Three coordinated changes land this: (a)
+  `DefaultGetIdTokenSubjectClaimsHandler` now gates the scope-driven claim set on no access token being issued
+  (signalled by a non-null `AccessToken` on the token request), so they no longer appear in the ID token for the code
+  flow — explicitly requested `claims.id_token` claims, `sub`, `auth_time`, `acr`, `idp`, and `amr` are unaffected; (b)
+  a new account-sourced UserInfo enricher (`DefaultGetLocalAccountUserInfoClaimsHandler`, registered by
+  `AddLocalAccountAuthentication` / `AddLocalAccountInteractiveAuthentication`) resolves the caller's local account from
+  its self-issued connection and returns the scope-permitted `profile`/`email`/`address`/`phone` claims from the account
+  store (the access token's `scope` claim gates which); and (c) the conformance test-user seed now provisions
+  `given_name`/`family_name`/`name` profile claims (new `ConformanceSeedOptions.TestUserGivenName` /
+  `TestUserFamilyName`). This clears the OpenID Foundation suite's `oidcc-scope-{profile,email,…}`,
+  `EnsureUserInfoContainsName`, and `EnsureIdTokenDoesNotContainNonRequestedClaims` warnings.
+
 - **Complete outbound-fetch SSRF coverage and bound the JAR `request_uri` fetch — closes backlog `F28`
   ([ADR-0111](docs/adr/0111-complete-outbound-fetch-ssrf-coverage.md)).** Every server-initiated outbound HTTP call to a
   client-controlled URL is now SSRF-guarded uniformly. The JAR `request_uri` fetch (RFC 9101) gains the same bound set

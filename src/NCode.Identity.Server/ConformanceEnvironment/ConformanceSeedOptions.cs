@@ -59,6 +59,18 @@ public sealed class ConformanceSeedOptions
     public string? TestUserEmail { get; set; } = "conformance-user@localhost";
 
     /// <summary>
+    /// Gets or sets the test user's given (first) name, seeded as the <c>given_name</c> profile claim. The suite's
+    /// standard-claims tests request the <c>profile</c> scope and expect the resulting claims (including a composed
+    /// <c>name</c>) from the UserInfo endpoint.
+    /// </summary>
+    public string? TestUserGivenName { get; set; } = "Conformance";
+
+    /// <summary>
+    /// Gets or sets the test user's family (last) name, seeded as the <c>family_name</c> profile claim.
+    /// </summary>
+    public string? TestUserFamilyName { get; set; } = "User";
+
+    /// <summary>
     /// Gets or sets the test user password. When empty, no user is seeded (there is intentionally no default
     /// password).
     /// </summary>

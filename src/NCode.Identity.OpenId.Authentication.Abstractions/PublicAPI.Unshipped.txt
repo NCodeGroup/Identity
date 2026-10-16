@@ -1319,3 +1319,19 @@ NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Results.Pushe
 NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Results.PushedAuthorizationResult.ExpiresIn.init -> void
 static NCode.Identity.OpenId.Authentication.Tokens.Models.ProofOfPossessionBinding.Unbound.get -> NCode.Identity.OpenId.Authentication.Tokens.Models.ProofOfPossessionBinding
 static NCode.Identity.OpenId.Authentication.Tokens.Models.TokenConfirmation.None.get -> NCode.Identity.OpenId.Authentication.Tokens.Models.TokenConfirmation
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.ExtensionData.get -> System.Collections.Generic.IDictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.ExtensionData.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.DeviceCodeGrant.ExtensionData.get -> System.Collections.Generic.IDictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.DeviceCodeGrant.ExtensionData.init -> void
+NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadSerializer
+NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadSerializer.Deserialize<TPayload>(System.Text.Json.JsonElement document, System.Text.Json.JsonSerializerOptions! jsonOptions) -> TPayload
+NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadSerializer.Serialize<TPayload>(TPayload payload, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadUpcaster
+NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadUpcaster.FromVersion.get -> int
+NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadUpcaster.PayloadType.get -> System.Type!
+NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadUpcaster.Upcast(System.Text.Json.Nodes.JsonNode? payload) -> System.Text.Json.Nodes.JsonNode?
+NCode.Identity.OpenId.Authentication.Persistence.PersistedPayloadVersionAttribute
+NCode.Identity.OpenId.Authentication.Persistence.PersistedPayloadVersionAttribute.PersistedPayloadVersionAttribute(int version) -> void
+NCode.Identity.OpenId.Authentication.Persistence.PersistedPayloadVersionAttribute.Version.get -> int
+NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ExtensionData.get -> System.Collections.Generic.IDictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ExtensionData.init -> void

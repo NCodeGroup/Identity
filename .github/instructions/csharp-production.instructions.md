@@ -115,6 +115,16 @@ rationale.
 - 👁 **A JSON-deserialized DTO captures unknown fields** with a
   `[JsonExtensionData] public Dictionary<string, JsonElement>? ExtensionData { get; set; }` member, so an unrecognized
   wire member round-trips instead of being silently dropped.
+- 👁 **A persisted-at-rest payload is schema-versioned and evolves additively.** A domain payload serialized into a
+  stored JSON blob (the `PersistedGrant<TPayload>.Payload` path) is written through the versioned seam
+  `IPersistedPayloadSerializer` ([ADR-0113](../../docs/adr/0113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md)),
+  not a bare `JsonSerializer` call. Evolve the DTO **additively**: a new member is optional (nullable or defaulted),
+  **never `required`** (`System.Text.Json` enforces `required` on read, breaking every older row); enums stay
+  string-valued, never ordinal; a member is never renamed, removed, or retyped in place. A **non-additive** change bumps
+  `[PersistedPayloadVersion(N)]` on the payload and ships one `FromVersion → FromVersion + 1` `IPersistedPayloadUpcaster`.
+  A long-lived payload that is rewritten in place (`UpdatePayloadAsync`) also carries the `[JsonExtensionData]` bag above
+  so a mixed-version node cannot drop members on a read-modify-write. Payload members never begin with `$` (reserved for
+  the envelope).
 - 👁 **Buffer by default; stream deliberately.** Reach for a lazy `IEnumerable<T>` / `IAsyncEnumerable<T>` only when the
   sequence is genuinely large/unbounded, I/O-backed, or usually short-circuited. Never return a deferred sequence that
   **captures request/ambient context** (it goes stale off-request — see §7), and never hand back as lazy a sequence a

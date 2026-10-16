@@ -17,10 +17,10 @@
 
 #endregion
 
-using System.Text.Json;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -34,7 +34,8 @@ namespace NCode.Identity.OpenId.Authentication.Logic;
 internal class DefaultPersistedGrantService(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
-    IStoreManagerFactory storeManagerFactory
+    IStoreManagerFactory storeManagerFactory,
+    IPersistedPayloadSerializer payloadSerializer
 ) : IPersistedGrantService
 {
     // This uses C# compiler's ability to refer to static data directly.
@@ -44,6 +45,7 @@ internal class DefaultPersistedGrantService(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IPersistedPayloadSerializer PayloadSerializer { get; } = payloadSerializer;
 
     private static string GetHashInput(PersistedGrantId grantId) =>
         string.Concat(grantId.TenantId.AsSpan(), TenantDelimiter, grantId.GrantKey.AsSpan());
@@ -83,7 +85,7 @@ internal class DefaultPersistedGrantService(
 
         var expiresWhen = createdWhen + lifetime;
 
-        var payloadJson = JsonSerializer.SerializeToElement(
+        var payloadJson = PayloadSerializer.Serialize(
             grant.Payload,
             openIdEnvironment.JsonSerializerOptions
         );
@@ -149,12 +151,10 @@ internal class DefaultPersistedGrantService(
         if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
             return null;
 
-        var payload = envelope.PayloadJson.Deserialize<TPayload>(
+        var payload = PayloadSerializer.Deserialize<TPayload>(
+            envelope.PayloadJson,
             openIdEnvironment.JsonSerializerOptions
         );
-
-        if (payload is null)
-            throw new InvalidOperationException("The payload could not be deserialized.");
 
         var status = GetStatus(utcNow, envelope);
         var persistedGrant = new PersistedGrant<TPayload>
@@ -199,12 +199,10 @@ internal class DefaultPersistedGrantService(
         if (status != PersistedGrantStatus.Active || isConsumed)
             return null;
 
-        var payload = envelope.PayloadJson.Deserialize<TPayload>(
+        var payload = PayloadSerializer.Deserialize<TPayload>(
+            envelope.PayloadJson,
             openIdEnvironment.JsonSerializerOptions
         );
-
-        if (payload is null)
-            throw new InvalidOperationException("The payload could not be deserialized.");
 
         envelope.ConsumedWhen = utcNow;
 
@@ -356,7 +354,7 @@ internal class DefaultPersistedGrantService(
         if (GetStatus(utcNow, envelope) != PersistedGrantStatus.Active)
             return false;
 
-        envelope.PayloadJson = JsonSerializer.SerializeToElement(
+        envelope.PayloadJson = PayloadSerializer.Serialize(
             payload,
             openIdEnvironment.JsonSerializerOptions
         );

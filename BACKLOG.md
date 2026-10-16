@@ -256,31 +256,24 @@ entry and/or ADR that closed it.
 
 ## Conformance & interop testing (group `T`)
 
-- **`T1` — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite (remaining:
-  nightly CI).** An independent, spec-author-maintained oracle to catch misreadings our own integration tests share. The
-  external suite is already wired behind the one-command harness
-  ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1), delivered under `T6`), running
-  **locally in Docker** against the Playground OP over `host.docker.internal:5001` — nothing is exposed publicly. All
-  prerequisites are done (DCR, reachable HTTPS host, browser-automatable login/consent, deterministic seeding,
-  discovery-metadata alignment). **Remaining:** the nightly (not `dod.ps1`) CI pipeline that invokes
-  `run-conformance.ps1` — shared with `T6`. Full design, the delivered prerequisites, and the automation model are in
-  [`docs/conformance-testing.md`](docs/conformance-testing.md) and
-  [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md).
-- **`T6` — Spec-coverage conformance harness: wire the external certified suite as the oracle (remaining: nightly CI).**
-  This item owns the **in-house measurement harness** (the spec-coverage matrix + the headless probe-runner pre-flight)
-  **and** the committed automation ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1))
-  that drives the external certified suite — i.e. **where `T1`'s external oracle was actually delivered**; `T8` then
-  triages the module verdicts a run produces. All three run **locally**; none exposes the OP publicly. Built: the
-  spec-coverage matrix (OP vs the full published OAuth/OIDC/CIBA/FAPI catalog, classified from live discovery metadata),
-  the browser-drivable active probes, the headless `@ncode/app-conformance-runner` pre-flight (confidential +
-  server-initiated legs), and the Phase 4 harness that launches the OP → runs the pre-flight → brings up the
-  prebuilt-image suite → drives the Config OP + Basic OP plans gated on committed baselines → tears down → one exit code.
-  The **Config OP** plan passes cleanly (`44 successes, 0 failures, 0 warnings`); the **Basic OP** (browser-driven) plan
-  runs end-to-end under Dynamic Client Registration (opt-in via `-IncludeBrowserPlans`). The harness is a
-  **measurement** surface — it tracks backend gaps, it does not implement them. **Remaining:** a **nightly / opt-in CI
-  pipeline** that invokes `run-conformance.ps1` (Docker + Python 3, no local Java) and publishes the `.results/` zips —
-  deferred until the repo's broader CI bootstrap lands (no `.github/workflows` exists yet); the live-run disposition
-  triage (`T8`) is **complete** (archived in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)). Design and phases are in
+- **`T1` (subsumes `T6`) — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite,
+  delivered through the in-house spec-coverage harness (remaining: nightly CI).** An independent, spec-author-maintained
+  oracle to catch misreadings our own integration tests share, driven by an **in-house measurement harness** (the
+  spec-coverage matrix + the headless probe-runner pre-flight) **and** the committed automation
+  ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1)) that drives the external certified
+  suite. Everything runs **locally in Docker** against the Playground OP over `host.docker.internal:5001` — nothing is
+  exposed publicly; `T8` (complete, archived in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)) triaged the module
+  verdicts a run produces. Built: all prerequisites (DCR, reachable HTTPS host, browser-automatable login/consent,
+  deterministic seeding, discovery-metadata alignment); the spec-coverage matrix (OP vs the full published
+  OAuth/OIDC/CIBA/FAPI catalog, classified from live discovery metadata); the browser-drivable active probes; the
+  headless `@ncode/app-conformance-runner` pre-flight (confidential + server-initiated legs); and the Phase 4 harness
+  that launches the OP → runs the pre-flight → brings up the prebuilt-image suite → drives the Config OP + Basic OP plans
+  gated on committed baselines → tears down → one exit code. The **Config OP** plan passes cleanly (`44 successes, 0
+failures, 0 warnings`); the **Basic OP** (browser-driven) plan runs end-to-end under Dynamic Client Registration
+  (opt-in via `-IncludeBrowserPlans`). The harness is a **measurement** surface — it tracks backend gaps, it does not
+  implement them. **Remaining:** a **nightly / opt-in CI pipeline** (not `dod.ps1`) that invokes `run-conformance.ps1`
+  (Docker + Python 3, no local Java) and publishes the `.results/` zips — deferred until the repo's broader CI bootstrap
+  lands (no `.github/workflows` exists yet). Design and phases are in
   [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md),
   [`docs/conformance-testing.md`](docs/conformance-testing.md), and
   [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md). Touch points:
@@ -288,6 +281,10 @@ entry and/or ADR that closed it.
   [`src/frontend/apps/conformance`](src/frontend/apps/conformance),
   [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner),
   [`src/frontend/packages/conformance-core`](src/frontend/packages/conformance-core).
+- **`T6` — Spec-coverage conformance harness (folded into `T1`).** The in-house measurement harness and the committed
+  `run-conformance.ps1` automation that drives the external certified suite are the mechanism by which `T1`'s
+  independent-oracle goal was delivered; they are tracked together under `T1` above. See there for status, the lone
+  remaining item (nightly CI), design ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)), and touch points.
 
 ## Frontend presentation platform (group `U`)
 

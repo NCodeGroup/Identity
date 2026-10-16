@@ -842,6 +842,11 @@ NCode.Identity.OpenId.Authentication.Logic.IClientScopeService.GetEnabledResourc
 NCode.Identity.OpenId.Authentication.Logic.IClientScopeService.ResolveAudiencesAsync(string! tenantId, System.Collections.Generic.IReadOnlyCollection<string!>! scopes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyCollection<string!>!>
 NCode.Identity.OpenId.Authentication.Logic.IOutboundAddressFilter
 NCode.Identity.OpenId.Authentication.Logic.IOutboundAddressFilter.IsDisallowed(System.Net.IPAddress! address) -> bool
+NCode.Identity.OpenId.Authentication.Logic.IOutboundHttpContentReader
+NCode.Identity.OpenId.Authentication.Logic.IOutboundHttpContentReader.ReadCappedAsync(System.Net.Http.HttpResponseMessage! response, System.Buffers.IBufferWriter<byte>! destination, int maxSizeBytes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Logic.OutboundHttpReadResult>
+NCode.Identity.OpenId.Authentication.Logic.OutboundHttpReadResult
+NCode.Identity.OpenId.Authentication.Logic.OutboundHttpReadResult.Completed = 0 -> NCode.Identity.OpenId.Authentication.Logic.OutboundHttpReadResult
+NCode.Identity.OpenId.Authentication.Logic.OutboundHttpReadResult.Exceeded = 1 -> NCode.Identity.OpenId.Authentication.Logic.OutboundHttpReadResult
 NCode.Identity.OpenId.Authentication.Logic.ICodeChallengeMethod
 NCode.Identity.OpenId.Authentication.Logic.ICodeChallengeMethod.ComputeChallenge(string! codeVerifier) -> string!
 NCode.Identity.OpenId.Authentication.Logic.ICodeChallengeMethod.Method.get -> string!

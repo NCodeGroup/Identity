@@ -18,6 +18,8 @@
 
 using System.Buffers;
 using System.Text.Json;
+using NCode.Buffers;
+using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -34,12 +36,16 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
 /// <see cref="NCode.Identity.OpenId.Authentication.Logic.OutboundHttpForgeryGuard"/>, redirects are not followed, and
 /// both a wall-clock timeout and a response size cap bound the request.
 /// </summary>
-internal class DefaultSectorIdentifierValidator(IHttpClientFactory httpClientFactory)
-    : ISectorIdentifierValidator
+internal class DefaultSectorIdentifierValidator(
+    IHttpClientFactory httpClientFactory,
+    IOutboundHttpContentReader outboundHttpContentReader
+) : ISectorIdentifierValidator
 {
     internal const string HttpClientName = "NCode.Identity.OpenId.SectorIdentifier";
 
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
+    private IOutboundHttpContentReader OutboundHttpContentReader { get; } =
+        outboundHttpContentReader;
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdError?> ValidateAsync(
@@ -90,7 +96,7 @@ internal class DefaultSectorIdentifierValidator(IHttpClientFactory httpClientFac
         if (timeout > TimeSpan.Zero)
             timeoutCts.CancelAfter(timeout);
 
-        byte[] content;
+        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
         try
         {
             using var httpClient = HttpClientFactory.CreateClient(HttpClientName);
@@ -109,23 +115,19 @@ internal class DefaultSectorIdentifierValidator(IHttpClientFactory httpClientFac
                 );
             }
 
-            if (response.Content.Headers.ContentLength > maxSizeBytes)
+            var readResult = await OutboundHttpContentReader.ReadCappedAsync(
+                response,
+                buffer,
+                maxSizeBytes,
+                timeoutCts.Token
+            );
+
+            if (readResult != OutboundHttpReadResult.Completed)
             {
                 return InvalidMetadata(
                     "The 'sector_identifier_uri' document exceeds the maximum allowed size."
                 );
             }
-
-            var contentOrNull = await ReadCappedAsync(response, maxSizeBytes, timeoutCts.Token);
-
-            if (contentOrNull is null)
-            {
-                return InvalidMetadata(
-                    "The 'sector_identifier_uri' document exceeds the maximum allowed size."
-                );
-            }
-
-            content = contentOrNull;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -138,7 +140,7 @@ internal class DefaultSectorIdentifierValidator(IHttpClientFactory httpClientFac
             return InvalidMetadata("The 'sector_identifier_uri' document could not be fetched.");
         }
 
-        if (!TryParseDocument(content, out var documentUris))
+        if (!TryParseDocument(buffer.AsReadOnlySequence, out var documentUris))
         {
             return InvalidMetadata(
                 "The 'sector_identifier_uri' document is not a JSON array of redirect URI strings."
@@ -159,38 +161,10 @@ internal class DefaultSectorIdentifierValidator(IHttpClientFactory httpClientFac
         return null;
     }
 
-    private static async ValueTask<byte[]?> ReadCappedAsync(
-        HttpResponseMessage response,
-        int maxSizeBytes,
-        CancellationToken cancellationToken
+    private static bool TryParseDocument(
+        ReadOnlySequence<byte> content,
+        out List<string> redirectUris
     )
-    {
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var buffer = new MemoryStream();
-
-        var rented = ArrayPool<byte>.Shared.Rent(8192);
-        try
-        {
-            int read;
-            while (
-                (read = await stream.ReadAsync(rented, cancellationToken).ConfigureAwait(false)) > 0
-            )
-            {
-                if (buffer.Length + read > maxSizeBytes)
-                    return null;
-
-                buffer.Write(rented, 0, read);
-            }
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(rented);
-        }
-
-        return buffer.ToArray();
-    }
-
-    private static bool TryParseDocument(byte[] content, out List<string> redirectUris)
     {
         redirectUris = [];
 

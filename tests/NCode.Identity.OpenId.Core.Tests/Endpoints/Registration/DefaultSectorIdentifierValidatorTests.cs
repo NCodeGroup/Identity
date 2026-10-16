@@ -20,6 +20,7 @@ using System.Net;
 using System.Text;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
+using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -41,7 +42,8 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         MockHttpClientFactory = CreateStrictMock<IHttpClientFactory>();
     }
 
-    private DefaultSectorIdentifierValidator CreateValidator() => new(MockHttpClientFactory.Object);
+    private DefaultSectorIdentifierValidator CreateValidator() =>
+        new(MockHttpClientFactory.Object, new DefaultOutboundHttpContentReader());
 
     private (IOpenIdErrorFactory factory, Func<string?> capturedCode) CreateErrorFactory()
     {

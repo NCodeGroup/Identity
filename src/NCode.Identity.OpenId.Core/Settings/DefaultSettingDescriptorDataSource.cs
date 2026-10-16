@@ -949,6 +949,41 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
+            // request_uri_allowed_hosts: SSRF allow-list for the JAR request_uri fetch (RFC 9101). When set, the
+            // request_uri host must appear in this list; unset = no host allow-list, though the always-on private/
+            // loopback/link-local address block in OutboundHttpForgeryGuard still applies. Not advertised.
+            // Ceiling (Intersect): a child narrows the parent's set.
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.RequestUriAllowedHosts,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // request_uri_fetch_timeout: wall-clock cap on the JAR request_uri fetch (RFC 9101). Not advertised.
+            // Ceiling (Min): a child may only shorten it.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.RequestUriFetchTimeout,
+                Default = TimeSpan.FromSeconds(10),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // request_uri_max_size_bytes: cap on the response body size accepted from the JAR request_uri fetch
+            // (RFC 9101), defending against an oversized-response resource-exhaustion vector. Not advertised.
+            // Ceiling (Min): a child may only shrink it.
+            yield return new SettingDescriptor<int>
+            {
+                Name = OpenIdSettingNames.RequestUriMaxSizeBytes,
+                Default = 100 * 1024,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
             // require_consent: whether the authorization endpoint must obtain (and persist) end-user consent for the
             // requested scopes before issuing a grant, even when a valid session exists (default false; prompt=consent
             // forces it regardless). Floor (Or): once a parent requires it, a child cannot un-require it.

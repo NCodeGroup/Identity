@@ -403,26 +403,24 @@ entry and/or ADR that closed it.
       legitimate client's refresh token on a replay would itself be a denial-of-service on the honest client. This
       WARNING is therefore an accepted, intentional deviation; the suite does not fail on it (warnings do not gate the
       run). Revisit only if the OP ever adopts reference/stateful access tokens.
-    - **Headless auto-fill of screenshot-review placeholders (`oidcc-prompt-login`, `oidcc-max-age-1`).** These two
-      double-login modules complete every automated assertion, then deliberately park in `WAITING` on a REVIEW
+    - **Headless auto-fill of screenshot-review placeholders (`oidcc-prompt-login`, `oidcc-max-age-1`) — fixed.** These
+      two double-login modules complete every automated assertion, then deliberately park in `WAITING` on a REVIEW
       "browser-interaction placeholder" (OIDCC-3.1.2.1: _"a screenshot of the second login … must be uploaded"_). The OP
-      is not involved — it already passed all checks (e.g. `auth_time is later in the second id_token`). Headless, nobody
-      uploads the screenshot, so each module burned the full 240 s module timeout and left the run `WAITING`/incomplete.
-      `run-conformance.ps1` now runs a background watcher during the browser plan that polls `GET /api/runner/running`,
-      finds pending placeholders via `GET /api/log/{id}/images` (an unfilled placeholder is a log entry with an `upload`
-      field and no `img`), and `POST`s a 1×1 PNG to `/api/log/{id}/images/{placeholder}` — exactly the human-certifier
-      upload step, automated. The module then finalizes within one poll as `FINISHED`/`REVIEW` (a `REVIEW` result with no
-      failing conditions does not gate the run), removing ~4 min of dead wait per browser run. The suite runs
-      CSRF-disabled behind an injected dummy admin, so the POST is authorized without a token.
+      is not involved — it already passed all checks (e.g. `auth_time is later in the second id_token`); the suite itself
+      calls the request "a little pointless" (`OIDCCPromptLogin.createPlaceholder()`). Headless, nobody uploads the
+      screenshot, so each module burned the full 240 s module timeout and left the run `WAITING`/incomplete. Fixed with
+      the **suite-native configuration knob**, not an out-of-band upload: per-module `override` blocks in
+      `build/conformance/oidcc-basic.json` add the suite's `update-image-placeholder-optional` action to the second
+      login's scripted-browser `wait` command (`["wait","xpath","//*",10,"Sign in","update-image-placeholder-optional"]`),
+      so `BrowserControl` snapshots the login page as the placeholder image inline while it drives the re-login — the
+      regexp `Sign in` matches the OP's login page (`<h1>Sign in</h1>`, `InteractiveAuthenticationPageRenderer`). This
+      mirrors the suite's own `.gitlab-ci/local-provider-oidcc-conformance-config.json` override for the same two modules
+      and is deterministic (no polling, no separate authenticated POST, no hang risk). Verified end-to-end: both modules
+      now reach `FINISHED`/`REVIEW` in ~3 s with 0 failing conditions (a `REVIEW` result with no failing conditions does
+      not gate the run), and the Basic OP plan dropped from ~247 s to ~46 s. The earlier background PNG-upload watcher in
+      `run-conformance.ps1` (`Start-PlaceholderAutoFiller`) was removed as the redundant, unverified predecessor of this
+      deterministic knob.
     - **Remaining (documented follow-ups, non-blocking for Basic OP certification):**
-        - **Validate the screenshot-placeholder auto-filler end-to-end; it is implemented but UNVERIFIED.** The watcher in
-          `run-conformance.ps1` (see the "Headless auto-fill" item above) is coded and parse-checked, but the two browser
-          runs attempted to confirm it both ended with the **conformance-suite container becoming unreachable mid-run**
-          (`httpx … /api/runner/{id}/wait-state … All connection attempts failed … retrying`), so the auto-filler never
-          got a clean window to prove it finalizes `oidcc-prompt-login` / `oidcc-max-age-1` fast. The OP itself was
-          healthy throughout (tokens issued normally). Next session: re-run `./build/conformance/run-conformance.ps1
-          -IncludeBrowserPlans -SkipFrontendInstall` on a stable suite and confirm both modules reach `FINISHED`/`REVIEW`
-          within a few seconds (not the 240 s timeout), then move the "Headless auto-fill" item to `BACKLOG-COMPLETED.md`.
         - **Suite goes unreachable mid-run → `run-test-plan.py` retries forever (wrapper hangs).** When the suite's
           Docker container drops out mid-plan, the suite script's `wait-state` reconnect loop retries with unbounded
           backoff, so `run-conformance.ps1` blocks indefinitely instead of failing fast. Investigate why the prebuilt

@@ -11,13 +11,14 @@ is slow, so it runs as an opt-in / nightly gate while the `dod.ps1` inner loop s
 
 ## Contents
 
-| File                                               | Role                                                                          |
-| -------------------------------------------------- | ----------------------------------------------------------------------------- |
-| [`run-conformance.ps1`](run-conformance.ps1)       | Orchestration: launch OP → pre-flight → suite up → run plans → teardown.      |
-| [`oidcc-config.json`](oidcc-config.json)           | Config OP plan config (discovery-metadata only).                              |
-| [`oidcc-basic.json`](oidcc-basic.json)             | Basic OP plan config, with the `browser` automation block and seeded clients. |
-| [`expected-failures.json`](expected-failures.json) | Baseline of documented, intentional failures (starts empty).                  |
-| [`expected-skips.json`](expected-skips.json)       | Baseline of documented, intentional skips (starts empty).                     |
+| File                                                 | Role                                                                          |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [`run-conformance.ps1`](run-conformance.ps1)         | Orchestration: launch OP → pre-flight → suite up → run plans → report → teardown. |
+| [`New-ConformanceReport.ps1`](New-ConformanceReport.ps1) | Renders a self-contained HTML report (pass / warn / skip / fail) from the result zips. |
+| [`oidcc-config.json`](oidcc-config.json)             | Config OP plan config (discovery-metadata only).                              |
+| [`oidcc-basic.json`](oidcc-basic.json)               | Basic OP plan config, with the `browser` automation block and seeded clients. |
+| [`expected-failures.json`](expected-failures.json)   | Baseline of documented, intentional failures (starts empty).                  |
+| [`expected-skips.json`](expected-skips.json)         | Baseline of documented, intentional skips (starts empty).                     |
 
 The config values (alias `ncode-basic`, clients `client` / `client2`, the `conformance-user` identity) match
 the deterministic seed in
@@ -66,6 +67,21 @@ On first run the script shallow-clones the suite repo into `./.conformance-suite
 `scripts/run-test-plan.py` and `docker-compose-prebuilt.yml`, and creates a Python venv there for the suite's
 script dependencies. Per-plan result zips are written to `./.results/` (gitignored); diff successive runs with
 the suite's `compare-results.py`.
+
+## Report
+
+Instead of scanning the suite's long console output, every run renders a single self-contained HTML report at
+`./.results/report.html` (gitignored) summarizing — per plan and per module — what **passed / warned / was
+skipped / failed** (plus `incomplete` for interrupted modules). Summary cards give the run-wide counts; clicking
+a module row expands its failing / warning / review conditions with the OIDCC requirement references.
+
+Regenerate the report from already-exported zips without re-running the suite, and open it in the browser:
+
+```powershell
+./build/conformance/New-ConformanceReport.ps1 -Open
+```
+
+By default it reports on the newest zip per plan in `./.results/`.
 
 The script exits non-zero if the pre-flight fails **or** any external plan reports an unexpected failure (one
 not codified in the baselines). A baseline entry that stops firing also fails the run, so the baselines cannot

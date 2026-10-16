@@ -26,19 +26,18 @@ change to the public API is a **major** version bump.
   `Executor`; a deployment without the interactive package degrades gracefully to JSON. See
   [ADR-0114](docs/adr/0114-non-redirectable-authorization-errors-are-content-negotiated.md).
 
-
-  Every grant payload (`PersistedGrant<TPayload>.Payload` — authorization codes, refresh tokens, device/CIBA requests,
-  pushed authorization requests, DCR tokens, the end-user `session` grant, continue envelopes) is written through a new
-  `IPersistedPayloadSerializer` seam that wraps it in a self-describing envelope `{ "$ver": N, "$payload": … }`, stamping
-  the schema version declared by `[PersistedPayloadVersion(N)]` (default `1`). On read, registered
-  `IPersistedPayloadUpcaster` steps migrate an older stored document up to the current version before deserialization; a
-  document written before the envelope existed reads as version `1`, and a newer-than-current document (a rollback) is
-  read forward-compatibly. The long-lived, in-place-mutated payloads (`SessionGrant`, `CibaGrant`, `DeviceCodeGrant`)
-  gain a `[JsonExtensionData]` bag so a mixed-version node cannot drop unknown members on a read-modify-write. There are
-  no upcasters today — the pipeline is dormant until the first non-additive change — so the value realized now is the
-  version stamp in the data and the single migration seam. **The at-rest shape of grant payloads changed; a dev-store
-  reset is required** (no shipped data exists under the pre-release posture). See
-  [ADR-0113](docs/adr/0113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md).
+    Every grant payload (`PersistedGrant<TPayload>.Payload` — authorization codes, refresh tokens, device/CIBA requests,
+    pushed authorization requests, DCR tokens, the end-user `session` grant, continue envelopes) is written through a new
+    `IPersistedPayloadSerializer` seam that wraps it in a self-describing envelope `{ "$ver": N, "$payload": … }`, stamping
+    the schema version declared by `[PersistedPayloadVersion(N)]` (default `1`). On read, registered
+    `IPersistedPayloadUpcaster` steps migrate an older stored document up to the current version before deserialization; a
+    document written before the envelope existed reads as version `1`, and a newer-than-current document (a rollback) is
+    read forward-compatibly. The long-lived, in-place-mutated payloads (`SessionGrant`, `CibaGrant`, `DeviceCodeGrant`)
+    gain a `[JsonExtensionData]` bag so a mixed-version node cannot drop unknown members on a read-modify-write. There are
+    no upcasters today — the pipeline is dormant until the first non-additive change — so the value realized now is the
+    version stamp in the data and the single migration seam. **The at-rest shape of grant payloads changed; a dev-store
+    reset is required** (no shipped data exists under the pre-release posture). See
+    [ADR-0113](docs/adr/0113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md).
 
 - **Authorization-code replay now revokes the end-user session, and first-party resource endpoints enforce it (backlog
   `T8`).** Per RFC 6749 §4.1.2 (reaffirmed by the OAuth Security BCP, RFC 9700), a second redemption of a one-time
@@ -102,6 +101,18 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   the new `GetValueOrNull` extension in `NCode.Identity.Settings`.
 
 ### Changed
+
+- **The browser-driven Basic OP conformance plan keeps `parallel=2` — the earlier "cookie collision" concern was
+  mooted, not worked around by serializing (backlog `T8`).** An earlier run observed one module's scripted login
+  landing on another module's `continue` URL under `parallel=2`, which suggested dropping the plan to `parallel=1`.
+  That would have forfeited the speed boost for no correctness gain: the suite already isolates browser state **per
+  test module** (each module gets its own `BrowserControl`/`CookieManager`), the plan runs under
+  `client_registration=dynamic_client` so each module registers its **own** client and `redirect_uri`, and the OP's
+  interactive login is **request-bound** (`PostLoginAsync` round-trips the `ReturnUrl` carrying the request's `state`
+  grant key, with no ambient server-side "current pending request"). With that three-way isolation, cross-module
+  contamination is structurally impossible; the observation did not reproduce and two consecutive full harness runs are
+  green at `parallel=2` (`Conformance run PASSED`, 39 modules, `0 failures`). Harness-only (not a library/API change);
+  details in [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md) § "Open follow-ups".
 
 - **The conformance harness fails fast when the external suite goes unreachable mid-run (backlog `T8`).** Previously, if
   the OpenID Foundation Conformance Suite's Docker container dropped out mid-plan, the suite's `run-test-plan.py`

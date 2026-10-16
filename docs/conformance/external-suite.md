@@ -210,10 +210,25 @@ secure default) — now in [`expected-skips.json`](../../build/conformance/expec
   upstream knobs still existing. (The underlying resource question — why the prebuilt suite becomes unreachable
   under the browser plan, e.g. container OOM / Docker Desktop limits — is a separate operational tuning concern, no
   longer a correctness hang.)
-- **Parallel browser-session cookie collision (`oidcc-server`, `oidcc-idtoken-signature`).** The Basic OP plan runs with
-  `parallel=2`; concurrent browser modules share the OP's login cookie on the single `host.docker.internal:5001` origin,
-  so one module's scripted login can land on another module's `continue` URL (observed: a login submitted for
-  `state=1fEiOJ…` completed on a page for `state=lTOSHx…`, then "Unexpected URL for Verify Complete"). These modules
-  pass in isolation and passed in the first run; the collision is harness parallelism, not a backend defect. A harness
-  accommodation (run the browser plan at `parallel=1`, or isolate cookie jars per module) would make the run
-  deterministic.
+- **Parallel browser-session cookie collision (`oidcc-server`, `oidcc-idtoken-signature`). _(Resolved — parallelism
+  retained.)_** An earlier browser-driven run observed one module's scripted login landing on another module's
+  `continue` URL under `parallel=2` (a login submitted for `state=1fEiOJ…` completed on a page for `state=lTOSHx…`, then
+  "Unexpected URL for Verify Complete"), raising the question of whether the Basic OP plan should drop to `parallel=1`.
+  It should **not** — dropping to serial would forfeit the speed boost, and the isolation that makes the parallel run
+  correct is already structural on both sides:
+    - **The suite isolates browser state per test module.** Each module gets its own `BrowserControl` (constructed with
+      the module's `testId`) carrying a per-instance `CookieManager` (`BrowserControl.java` — the manager is _"shared
+      between all webrunners for this testmodule instance"_, and `client.setCookieManager(cookieManager)` applies it to
+      every `WebRunner`'s `WebClient`). Concurrent modules therefore do **not** share the OP's login cookie.
+    - **Each module registers its own client.** The plan runs under `client_registration=dynamic_client`, so there is no
+      shared `alias` and every module has its own client with its own `redirect_uri` — the OP's callback target is bound
+      to the request's client, not to any ambient origin-wide value.
+    - **The OP's interactive login is request-bound, not ambient.** `PostLoginAsync` round-trips the `ReturnUrl` (carrying
+      the parked request's `state` grant key) through the login form and redirects to that validated local URL; there is
+      no server-side "current pending request" that a concurrent flow could cross into
+      (`InteractiveAuthenticationEndpointHandler.PostLoginAsync`).
+
+    With per-module cookie jars + per-module DCR clients + request-bound login, cross-module contamination is
+    structurally impossible; the one earlier observation did not reproduce, and two consecutive full harness runs are
+    green at `parallel=2` (`Conformance run PASSED`, 39 modules, `0 failures`). The plan therefore **keeps `parallel=2`**
+    for the speed boost.

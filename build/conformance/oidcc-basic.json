@@ -34,5 +34,70 @@
         }
       ]
     }
-  ]
+  ],
+  "comment:override": "oidcc-prompt-login and oidcc-max-age-1 force a SECOND authorization and then park in WAITING on a screenshot-upload placeholder (the suite asks a human to upload a photo of the re-login — which it admits in OIDCCPromptLogin.createPlaceholder() is 'a little pointless'). Headless, nobody uploads, so each test burns the full 240s wait_for_state timeout. The scripted browser fills the placeholder itself via the 'update-image-placeholder-optional' action on a 'wait' command (BrowserControl snapshots the page as the placeholder image), so the second login resolves the placeholder and the test finishes in seconds. This mirrors the suite's own .gitlab-ci/local-provider-oidcc-conformance-config.json override for the same two modules. The regexp 'Sign in' matches the OP's login page (<h1>Sign in</h1>, InteractiveAuthenticationPageRenderer.RenderLoginPage).",
+  "override": {
+    "oidcc-prompt-login": {
+      "browser": [
+        {
+          "match": "https://host.docker.internal:5001/oauth2/authorize*",
+          "tasks": [
+            {
+              "task": "Login",
+              "match": "https://host.docker.internal:5001/account/login*",
+              "optional": true,
+              "commands": [
+                ["wait", "xpath", "//*", 10, "Sign in", "update-image-placeholder-optional"],
+                ["text", "id", "username", "conformance-user"],
+                ["text", "id", "password", "conformance-password"],
+                ["click", "id", "login"]
+              ]
+            },
+            {
+              "task": "Consent",
+              "match": "https://host.docker.internal:5001/account/consent*",
+              "optional": true,
+              "commands": [["click", "id", "consent-allow"]]
+            },
+            {
+              "task": "Verify Complete",
+              "match": "https://*/test/*/callback*",
+              "commands": [["wait", "id", "submission_complete", 10]]
+            }
+          ]
+        }
+      ]
+    },
+    "oidcc-max-age-1": {
+      "browser": [
+        {
+          "match": "https://host.docker.internal:5001/oauth2/authorize*",
+          "tasks": [
+            {
+              "task": "Login",
+              "match": "https://host.docker.internal:5001/account/login*",
+              "optional": true,
+              "commands": [
+                ["wait", "xpath", "//*", 10, "Sign in", "update-image-placeholder-optional"],
+                ["text", "id", "username", "conformance-user"],
+                ["text", "id", "password", "conformance-password"],
+                ["click", "id", "login"]
+              ]
+            },
+            {
+              "task": "Consent",
+              "match": "https://host.docker.internal:5001/account/consent*",
+              "optional": true,
+              "commands": [["click", "id", "consent-allow"]]
+            },
+            {
+              "task": "Verify Complete",
+              "match": "https://*/test/*/callback*",
+              "commands": [["wait", "id", "submission_complete", 10]]
+            }
+          ]
+        }
+      ]
+    }
+  }
 }

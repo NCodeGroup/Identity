@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Authentication.Sessions;
@@ -83,4 +85,12 @@ public readonly record struct SessionGrant
     /// originated on an active-sessions surface, or <c>null</c> when none was recorded.
     /// </summary>
     public string? RemoteIpAddress { get; init; }
+
+    /// <summary>
+    /// Gets any unrecognized members read from the at-rest JSON, captured so that members written by a newer schema
+    /// version are preserved rather than silently dropped when this session is read and rewritten by an older node
+    /// during a mixed-version deployment.
+    /// </summary>
+    [JsonExtensionData]
+    public IDictionary<string, JsonElement>? ExtensionData { get; init; }
 }

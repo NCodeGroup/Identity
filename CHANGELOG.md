@@ -10,6 +10,20 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Persisted-grant payloads are now schema-versioned at rest, with an upcasting seam and unknown-member preservation.**
+  Every grant payload (`PersistedGrant<TPayload>.Payload` — authorization codes, refresh tokens, device/CIBA requests,
+  pushed authorization requests, DCR tokens, the end-user `session` grant, continue envelopes) is written through a new
+  `IPersistedPayloadSerializer` seam that wraps it in a self-describing envelope `{ "$ver": N, "$payload": … }`, stamping
+  the schema version declared by `[PersistedPayloadVersion(N)]` (default `1`). On read, registered
+  `IPersistedPayloadUpcaster` steps migrate an older stored document up to the current version before deserialization; a
+  document written before the envelope existed reads as version `1`, and a newer-than-current document (a rollback) is
+  read forward-compatibly. The long-lived, in-place-mutated payloads (`SessionGrant`, `CibaGrant`, `DeviceCodeGrant`)
+  gain a `[JsonExtensionData]` bag so a mixed-version node cannot drop unknown members on a read-modify-write. There are
+  no upcasters today — the pipeline is dormant until the first non-additive change — so the value realized now is the
+  version stamp in the data and the single migration seam. **The at-rest shape of grant payloads changed; a dev-store
+  reset is required** (no shipped data exists under the pre-release posture). See
+  [ADR-0113](docs/adr/0113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md).
+
 - **Authorization-code replay now revokes the end-user session, and first-party resource endpoints enforce it (backlog
   `T8`).** Per RFC 6749 §4.1.2 (reaffirmed by the OAuth Security BCP, RFC 9700), a second redemption of a one-time
   authorization code is a replay/compromise signal. The token endpoint now treats it as such: on a replay it revokes the

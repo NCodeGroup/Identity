@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Subject;
 
@@ -54,4 +56,12 @@ public readonly record struct DeviceCodeGrant
     /// interval (the <c>slow_down</c> response).
     /// </summary>
     public DateTimeOffset? LastPolledWhen { get; init; }
+
+    /// <summary>
+    /// Gets any unrecognized members read from the at-rest JSON, captured so that members written by a newer schema
+    /// version are preserved rather than silently dropped when this request is read and rewritten by an older node
+    /// during a mixed-version deployment.
+    /// </summary>
+    [JsonExtensionData]
+    public IDictionary<string, JsonElement>? ExtensionData { get; init; }
 }

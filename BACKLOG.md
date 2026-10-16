@@ -359,16 +359,18 @@ entry and/or ADR that closed it.
       `id_token_signing_alg_values_supported` / `request_object_signing_alg_values_supported` (asymmetric signing is the
       secure default) — now in `expected-skips.json`. `oidcc-ensure-registered-redirect-uri` is in
       `expected-failures.json` (both its `WebRunner` timeout and test-marker conditions).
+    - **UserInfo scope-claims + ID-token claim placement (`WARNING`: `oidcc-server`, `oidcc-scope-{profile,email,address,phone,all}`,
+      `oidcc-alternate-happy-flow`, `oidcc-claims-essential`).** Per OIDC Core §5.4 the `profile`/`email`/`address`/`phone`
+      scope claims belong in the **UserInfo** response, not the `id_token`, whenever an access token is issued (the code
+      flow). Fixed as a cohesive change: (a) `DefaultGetIdTokenSubjectClaimsHandler` now gates the scope-driven claim set
+      on _no access token issued_ (a non-null `AccessToken` on the token request signals the code flow), so the ID token
+      no longer carries them — requested `claims.id_token` claims, `sub`, `auth_time`, `acr`, `idp`, `amr` are
+      unaffected; (b) a new account-sourced UserInfo enricher (`DefaultGetLocalAccountUserInfoClaimsHandler`, registered
+      by `AddLocalAccountAuthentication` / `AddLocalAccountInteractiveAuthentication`) resolves the caller's local
+      account from its self-issued connection and returns the scope-permitted claims from the account store; and (c) the
+      conformance seed now provisions `given_name`/`family_name`/`name` (new `ConformanceSeedOptions.TestUserGivenName` /
+      `TestUserFamilyName`). (See `CHANGELOG.md`.)
     - **Remaining (documented follow-ups, non-blocking for Basic OP certification):**
-        - **UserInfo scope-claims + ID-token claim placement (`WARNING`: `oidcc-server`, `oidcc-scope-{profile,email,address,phone,all}`,
-          `oidcc-alternate-happy-flow`, `oidcc-claims-essential`).** Per OIDC Core §5.4, when an access token is issued (the
-          code flow) the `profile`/`email`/`address`/`phone` scope claims belong in the **UserInfo** response, not the
-          `id_token`. Today `DefaultGetIdTokenSubjectClaimsHandler` adds those claims to the `id_token` unconditionally
-          (→ `EnsureIdTokenDoesNotContainNonRequestedClaims` warning) and no handler returns them from UserInfo
-          (→ `VerifyScopesReturnedInUserInfoClaims` / `EnsureUserInfoContainsName` warnings). The cohesive fix is one change:
-          (a) gate the `id_token` scope-claims on _no access token issued_, (b) add an account-sourced UserInfo scope-claims
-          handler, and (c) seed the conformance test user with profile claims (it currently has only email). This is a
-          feature, not a one-line fix — deferred so it lands coherently.
         - **`acr` emission (`WARNING`: `oidcc-ensure-request-with-acr-values-succeeds`).** When `acr_values` is requested the
           OP SHOULD return an `acr` claim; the seeded subject carries none. Tied to the ACR resolver
           ([ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md)); give the conformance login a default `acr`.

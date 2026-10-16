@@ -20,6 +20,7 @@ using System.Buffers.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Buffers;
+using NCode.Identity.Jose;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
@@ -177,7 +178,7 @@ internal sealed class ConformanceSeedHandler(
             Email = Options.TestUserEmail,
             EmailVerified = true,
             IsEnabled = true,
-            Claims = [],
+            Claims = BuildTestUserProfileClaims(),
             ConcurrencyToken = string.Empty,
         };
 
@@ -190,6 +191,55 @@ internal sealed class ConformanceSeedHandler(
         await store.AddAsync(account, owner.Memory[..written], cancellationToken);
 
         Logger.ConformanceTestUserSeeded(userName, tenantId);
+    }
+
+    private List<PersistedLocalAccountClaim> BuildTestUserProfileClaims()
+    {
+        var givenName = Options.TestUserGivenName;
+        var familyName = Options.TestUserFamilyName;
+
+        var claims = new List<PersistedLocalAccountClaim>(3);
+
+        if (!string.IsNullOrEmpty(givenName))
+        {
+            claims.Add(
+                new PersistedLocalAccountClaim
+                {
+                    Type = JoseClaimNames.Payload.GivenName,
+                    Value = givenName,
+                }
+            );
+        }
+
+        if (!string.IsNullOrEmpty(familyName))
+        {
+            claims.Add(
+                new PersistedLocalAccountClaim
+                {
+                    Type = JoseClaimNames.Payload.FamilyName,
+                    Value = familyName,
+                }
+            );
+        }
+
+        // Compose the displayed 'name' from whichever name parts are configured so the suite's EnsureUserInfoContainsName
+        // check (a 'profile' scope request) always finds one.
+        var displayName = string.Join(
+            ' ',
+            new[] { givenName, familyName }.Where(part => !string.IsNullOrEmpty(part))
+        );
+        if (!string.IsNullOrEmpty(displayName))
+        {
+            claims.Add(
+                new PersistedLocalAccountClaim
+                {
+                    Type = JoseClaimNames.Payload.Name,
+                    Value = displayName,
+                }
+            );
+        }
+
+        return claims;
     }
 
     private bool TargetsTenant(TenantSeedContext context)

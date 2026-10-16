@@ -17,7 +17,11 @@
 #endregion
 
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using NCode.Identity.Jose;
 using NCode.Identity.Logic;
+using NCode.Identity.OpenId.Accounts.DataContracts;
+using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.Logic;
@@ -46,10 +50,14 @@ public class ConformanceSeedHandlerTests : BaseTests
         );
     }
 
-    private SeedTenantCommand CreateCommand(string tenantId, TenantPlane plane)
+    private SeedTenantCommand CreateCommand(
+        string tenantId,
+        TenantPlane plane,
+        IStoreManager? storeManager = null
+    )
     {
         // Strict mock: the store manager is untouched on the guard paths under test.
-        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        storeManager ??= CreateStrictMock<IStoreManager>().Object;
 
         var persistedTenant = new PersistedTenant
         {
@@ -68,7 +76,7 @@ public class ConformanceSeedHandlerTests : BaseTests
                 Tenant = persistedTenant,
                 Plane = plane,
                 IsNewlyProvisioned = true,
-                StoreManager = mockStoreManager.Object,
+                StoreManager = storeManager,
             }
         );
     }
@@ -113,6 +121,64 @@ public class ConformanceSeedHandlerTests : BaseTests
             CreateCommand("tenant-b", TenantPlane.Workload),
             CancellationToken.None
         );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTestUserConfigured_SeedsAccountWithProfileClaims()
+    {
+        var options = new ConformanceSeedOptions
+        {
+            Clients = [],
+            TestUserName = "conformance-user",
+            TestUserEmail = "conformance-user@localhost",
+            TestUserGivenName = "Conformance",
+            TestUserFamilyName = "User",
+            TestUserPassword = "conformance-password",
+        };
+        var handler = CreateHandler(options);
+
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        var mockAccountStore = CreateStrictMock<ILocalAccountStore>();
+        mockStoreManager
+            .Setup(x => x.GetStore<ILocalAccountStore>())
+            .Returns(mockAccountStore.Object)
+            .Verifiable();
+        mockAccountStore
+            .Setup(x =>
+                x.GetByUserNameOrDefaultAsync("conformance-user", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync((PersistedLocalAccount?)null)
+            .Verifiable();
+
+        PersistedLocalAccount? captured = null;
+        mockAccountStore
+            .Setup(x =>
+                x.AddAsync(
+                    It.IsAny<PersistedLocalAccount>(),
+                    It.IsAny<ReadOnlyMemory<byte>?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (PersistedLocalAccount account, ReadOnlyMemory<byte>? _, CancellationToken _) =>
+                    captured = account
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await handler.HandleAsync(
+            CreateCommand(WorkloadTenantId, TenantPlane.Workload, mockStoreManager.Object),
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("conformance-user@localhost", captured.Email);
+        Assert.True(captured.EmailVerified);
+
+        var claims = captured.Claims.ToDictionary(claim => claim.Type, claim => claim.Value);
+        Assert.Equal("Conformance", claims[JoseClaimNames.Payload.GivenName]);
+        Assert.Equal("User", claims[JoseClaimNames.Payload.FamilyName]);
+        Assert.Equal("Conformance User", claims[JoseClaimNames.Payload.Name]);
     }
 
     #endregion

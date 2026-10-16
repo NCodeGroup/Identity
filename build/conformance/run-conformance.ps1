@@ -127,6 +127,10 @@ $opProcess = $null
 $suiteUp = $false
 $failed = $false
 
+# Location is session-global, not script-scoped: any Set-Location / Push-Location here (including nvs' auto-switch hook
+# triggered by entering src/frontend) leaks into the caller's shell. Capture the entry location and restore it on exit.
+$OriginalLocation = Get-Location
+
 try {
     if (-not $PreflightOnly) {
         Test-Command 'docker'
@@ -248,7 +252,12 @@ try {
             $scoped = @($entries | Where-Object { $ConfigFileName -like $_.'configuration-filename' })
             $configStem = [System.IO.Path]::GetFileNameWithoutExtension($ConfigFileName)
             $tmp = Join-Path ([System.IO.Path]::GetTempPath()) "conf-$Tag-$configStem.json"
-            Set-Content -Path $tmp -Value (ConvertTo-Json -InputObject $scoped -Depth 10 -AsArray) -Encoding utf8
+            # Pipe (not -InputObject) into ConvertTo-Json: passing the array via -InputObject with -AsArray makes the
+            # whole array a single object that -AsArray then wraps again, emitting a nested [[...]] that run-test-plan.py
+            # chokes on ('list' object has no attribute 'get'). Piping flattens it; guard the empty case to a bare [].
+            $json = $scoped | ConvertTo-Json -Depth 10 -AsArray
+            if ([string]::IsNullOrWhiteSpace($json)) { $json = '[]' }
+            Set-Content -Path $tmp -Value $json -Encoding utf8
             $scopedBaselineFiles.Add($tmp)
             return $tmp
         }
@@ -286,6 +295,7 @@ finally {
         Stop-Process -Id $opProcess.Id -Force -ErrorAction SilentlyContinue
     }
     Remove-Item Env:CONFORMANCE_SERVER, Env:CONFORMANCE_DEV_MODE, Env:DISABLE_SSL_VERIFY -ErrorAction SilentlyContinue
+    Set-Location $OriginalLocation
 }
 
 if ($failed) {

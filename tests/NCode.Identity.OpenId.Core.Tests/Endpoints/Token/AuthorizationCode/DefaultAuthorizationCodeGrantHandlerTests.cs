@@ -20,6 +20,7 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Moq;
+using NCode.Identity.Jose;
 using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
@@ -73,6 +74,32 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
 
     private static SubjectAuthentication CreateSubjectAuthentication() =>
         new("scheme", new AuthenticationProperties(), new ClaimsPrincipal(), "subject-id");
+
+    private static SubjectAuthentication CreateSubjectAuthenticationWithSession(string sessionId)
+    {
+        var identity = new ClaimsIdentity("test");
+        identity.AddClaim(new Claim(JoseClaimNames.Payload.Sid, sessionId));
+        return new SubjectAuthentication(
+            "scheme",
+            new AuthenticationProperties(),
+            new ClaimsPrincipal(identity),
+            "subject-id"
+        );
+    }
+
+    private void SetupReplayLookup(PersistedGrant<AuthorizationGrant>? consumedGrant)
+    {
+        MockPersistedGrantService
+            .Setup(x =>
+                x.GetOrDefaultAsync<AuthorizationGrant>(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<PersistedGrantId>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<PersistedGrant<AuthorizationGrant>?>(consumedGrant))
+            .Verifiable();
+    }
 
     private static PersistedGrantId CreateGrantId() =>
         new()
@@ -185,6 +212,8 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
         var (mockContext, mockClient, _, mockTokenRequest, mockError) = CreateScaffold();
 
         SetupConsume(mockTokenRequest, null);
+        // An unknown code (the grant row does not exist) revokes nothing.
+        SetupReplayLookup(null);
 
         var result = await Handler.HandleAsync(
             mockContext.Object,
@@ -195,6 +224,64 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAuthorizationCodeReplayed_RevokesSessionAndReturnsInvalidGrant()
+    {
+        // RFC 6749 §4.1.2 / ADR-0112: a second redemption of an already-consumed code revokes the end-user session's
+        // grants (the access and refresh tokens previously issued from that code).
+        var (mockContext, mockClient, _, mockTokenRequest, mockError) = CreateScaffold();
+
+        SetupConsume(mockTokenRequest, null);
+
+        var consumedGrant = new PersistedGrant<AuthorizationGrant>
+        {
+            Status = PersistedGrantStatus.Active,
+            TenantId = TenantId,
+            ClientId = "client-1",
+            SubjectId = "subject-1",
+            SessionId = "session-xyz",
+            Payload = new AuthorizationGrant(
+                CreateStrictMock<IAuthorizationRequest>().Object,
+                CreateSubjectAuthenticationWithSession("session-xyz")
+            ),
+        };
+        SetupReplayLookup(consumedGrant);
+
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeBySessionAsync(
+                    It.IsAny<OpenIdContext>(),
+                    "session-xyz",
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<long>(2L))
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+        MockPersistedGrantService.Verify(
+            x =>
+                x.RevokeBySessionAsync(
+                    It.IsAny<OpenIdContext>(),
+                    "session-xyz",
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Fact]

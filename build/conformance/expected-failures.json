@@ -1,11 +1,1 @@
-[
-  {
-    "test-name": "oidcc-codereuse-30seconds",
-    "variant": "*",
-    "configuration-filename": "oidcc-basic.json",
-    "current-block": "*",
-    "condition": "EnsureHttpStatusCodeIs4xx",
-    "expected-result": "warning",
-    "comment": "Accepted, intentional deviation, not a backend defect (BACKLOG T8). RFC 6749 §4.1.2 SHOULD revoke tokens previously issued from a reused authorization code 'when possible'. The OP correctly rejects the second code use with invalid_grant (one-time codes) and enforces PKCE S256, which already prevents authorization-code injection (RFC 9700). Its access tokens are stateless, short-lived JWTs (the modern default), so an already-issued access token cannot be revoked without a denylist / reference-token store that would contradict the stateless design — the short lifetime bounds the exposure, which is exactly the trade-off RFC 9700 accepts for self-contained tokens. The suite replays the still-valid access token after the code reuse and warns because EnsureHttpStatusCodeIs4xx expected a 4xx but the stateless token is still accepted (200). Revisit only if the OP ever adopts reference/stateful access tokens."
-  }
-]
+[]

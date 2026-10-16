@@ -280,6 +280,28 @@ internal class DefaultPersistedGrantService(
     }
 
     /// <inheritdoc />
+    public async ValueTask<long> RevokeBySessionAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IGrantStore>();
+
+        var count = await store.RevokeWhereAsync(
+            new GrantFilter { SessionId = sessionId },
+            revokedWhen,
+            cancellationToken
+        );
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return count;
+    }
+
+    /// <inheritdoc />
     public async ValueTask UpdateExpirationAsync(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,

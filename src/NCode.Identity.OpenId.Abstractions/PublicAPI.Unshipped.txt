@@ -381,7 +381,6 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendIdClaimsInAccessToke
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendProfileMetadataInAccessToken = "send_profile_metadata_in_access_token" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendProfileMetadataInIdToken = "send_profile_metadata_in_id_token" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendProfileMetadataInUserInfo = "send_profile_metadata_in_user_info" -> string!
-const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendSessionIdInAccessToken = "send_session_id_in_access_token" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendSystemMetadataInAccessToken = "send_system_metadata_in_access_token" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendSystemMetadataInIdToken = "send_system_metadata_in_id_token" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendSystemMetadataInUserInfo = "send_system_metadata_in_user_info" -> string!
@@ -878,7 +877,6 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SectorIdentifierUriFetch
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SectorIdentifierUriMaxSizeBytes.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendProfileMetadataInIdToken.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendProfileMetadataInUserInfo.get -> NCode.Identity.Settings.SettingKey<bool>
-static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSessionIdInAccessToken.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInAccessToken.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInIdToken.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInUserInfo.get -> NCode.Identity.Settings.SettingKey<bool>

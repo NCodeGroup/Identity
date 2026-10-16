@@ -10,6 +10,21 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Authorization-code replay now revokes the end-user session, and first-party resource endpoints enforce it (backlog
+  `T8`).** Per RFC 6749 §4.1.2 (reaffirmed by the OAuth Security BCP, RFC 9700), a second redemption of a one-time
+  authorization code is a replay/compromise signal. The token endpoint now treats it as such: on a replay it revokes the
+  end-user **session's** grants — the access and refresh tokens issued from that code — via the same session-scoped
+  grant revocation the logout seam uses, but without the back-channel-logout/audit side effects. The session identifier
+  (`sid`, RFC 9068 §2.2.1) is now **always** emitted into subject-bound access tokens (the opt-in
+  `send_session_id_in_access_token` client setting is retired), and every endpoint that authenticates a self-issued
+  access token (UserInfo, introspection, the management API) rejects a token whose `sid` resolves to a revoked session
+  (`invalid_token`). There is no global access-token denylist and no per-token store: one indexed session lookup on
+  first-party access-token authentication, and one session-scoped revocation on the rare replay path; external resource
+  servers continue to treat the JWT as self-contained. This fixes the OpenID Foundation suite's
+  `oidcc-codereuse-30seconds` warning. `IPersistedGrantService` gains `RevokeBySessionAsync`. See
+  [ADR-0112](docs/adr/0112-authorization-code-replay-revokes-session.md), which refines
+  [ADR-0028](docs/adr/0028-token-revocation-refresh-tokens-only.md).
+
 - **Scope-driven claims now return from UserInfo (not the ID token) when an access token is issued, sourced from the
   local account (backlog `T8`).** Per OpenID Connect Core 1.0 §5.4, the `profile`/`email`/`address`/`phone` scope claims
   belong in the UserInfo response whenever an access token is issued (the authorization-code flow), and only in the ID
@@ -37,8 +52,9 @@ change to the public API is a **major** version bump.
   the standard `azp` (authorized party) to identify the client in the ID token; `tid` and `client_id` remain on the
   access token (`DefaultGetAccessTokenPayloadClaimsHandler`) where tenant- and client-scoped authorization reads them.
   With this and the UserInfo scope-claim work above (plus a browser-automation refinement for the unregistered
-  `redirect_uri` error page), the browser-driven **Basic OP** certification plan now runs **31 PASSED, 1 WARNING
-  (accepted stateless-token `oidcc-codereuse-30seconds` deviation), 3 REVIEW, 4 SKIPPED, 0 FAILED** with a clean gate.
+  `redirect_uri` error page), the browser-driven **Basic OP** certification plan now runs **32 PASSED, 0 WARNING,
+  3 REVIEW, 4 SKIPPED, 0 FAILED** with a clean gate (the former `oidcc-codereuse-30seconds` warning is now fixed — see
+  the authorization-code-replay entry above).
 
 - **The UserInfo endpoint now accepts the access token in a form-encoded request body (backlog `T8`).** Per RFC 6750
   §2.2 / OpenID Connect Core 1.0 §5.3.1, a client may present the bearer access token as an `access_token` form

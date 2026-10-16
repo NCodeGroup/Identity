@@ -22,6 +22,8 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Errors;
@@ -38,12 +40,14 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 internal class DefaultAuthenticateAccessTokenHandler(
     ILogger<DefaultAuthenticateAccessTokenHandler> logger,
     IJsonWebTokenService jsonWebTokenService,
-    IProofOfPossessionService proofOfPossessionService
+    IProofOfPossessionService proofOfPossessionService,
+    ISessionService sessionService
 ) : ICommandResponseHandler<AuthenticateAccessTokenCommand, AuthenticateAccessTokenDisposition>
 {
     private ILogger<DefaultAuthenticateAccessTokenHandler> Logger { get; } = logger;
     private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
     private IProofOfPossessionService ProofOfPossessionService { get; } = proofOfPossessionService;
+    private ISessionService SessionService { get; } = sessionService;
 
     /// <inheritdoc />
     public async ValueTask<AuthenticateAccessTokenDisposition> HandleAsync(
@@ -116,6 +120,26 @@ internal class DefaultAuthenticateAccessTokenHandler(
             if (error is not null)
             {
                 return new AuthenticateAccessTokenDisposition(error);
+            }
+        }
+
+        // A token whose end-user session has been revoked (for example, by authorization-code replay — ADR-0112) is
+        // rejected at the OP's own resource endpoints; external resource servers treat the JWT as self-contained and
+        // never see this check. Only an explicitly revoked session blocks the token — an absent (aged-out) session
+        // grant is treated as fail-open, bounded by the access token's own short lifetime.
+        var sessionId = claimsIdentity.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            var session = await SessionService.GetOrDefaultAsync(
+                openIdContext,
+                sessionId,
+                cancellationToken
+            );
+            if (session is { Status: PersistedGrantStatus.Revoked })
+            {
+                return new AuthenticateAccessTokenDisposition(
+                    openIdContext.ErrorFactory.InvalidToken()
+                );
             }
         }
 

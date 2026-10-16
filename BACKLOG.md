@@ -350,9 +350,9 @@ entry and/or ADR that closed it.
   mass-abort). Each non-pass was investigated against the suite's per-module log and classified as a **backend gap to
   fix**, a **harness/config refinement**, or a **documented, intentional deviation** codified in
   `build/conformance/expected-failures.json` / `expected-skips.json`. **After the fixes below the plan now runs clean**
-  — `31 PASSED, 1 WARNING, 3 REVIEW, 4 SKIPPED, 0 FAILED` (39 modules incl. the Config OP) with a green gate
-  (`Conformance run PASSED`); the sole remaining WARNING (`oidcc-codereuse-30seconds`) is the accepted stateless-token
-  deviation, now baselined. **Fixed backend bugs** (see `CHANGELOG.md`):
+  — `32 PASSED, 0 WARNING, 3 REVIEW, 4 SKIPPED, 0 FAILED` (39 modules incl. the Config OP) with a green gate
+  (`Conformance run PASSED`); the former `oidcc-codereuse-30seconds` WARNING is now fixed (session-scoped revocation on
+  code replay — [ADR-0112](docs/adr/0112-authorization-code-replay-revokes-session.md)). **Fixed backend bugs** (see `CHANGELOG.md`):
     - **`oidcc-refresh-token`** — the consent screen (no-JS form + SPA) pre-checked a requested scope's checkbox only
       when it was _previously_ granted, so a first-time `prompt=consent` + `offline_access` consent posted an empty
       `scope` set; the recorded grant lost `openid`/`offline_access` and the token response dropped the `id_token` and
@@ -389,8 +389,8 @@ entry and/or ADR that closed it.
       request-object `…-supported-correctly-or-rejected-as-unsupported` / `oidcc-ensure-request-object-with-redirect-uri`
       tests) are spec-conformant optional-feature skips — the OP does not advertise the OPTIONAL `alg:none` value in
       `id_token_signing_alg_values_supported` / `request_object_signing_alg_values_supported` (asymmetric signing is the
-      secure default) — now in `expected-skips.json`. The sole `expected-failures.json` entry is the accepted
-      `oidcc-codereuse-30seconds` warning (`expected-result: warning`, below).
+      secure default) — now in `expected-skips.json`. `expected-failures.json` now has no entries (the former
+      `oidcc-codereuse-30seconds` baseline was removed once the warning was fixed, below).
     - **UserInfo scope-claims + ID-token claim placement (`WARNING`: `oidcc-server`, `oidcc-scope-{profile,email,address,phone,all}`,
       `oidcc-alternate-happy-flow`, `oidcc-claims-essential`).** Per OIDC Core §5.4 the `profile`/`email`/`address`/`phone`
       scope claims belong in the **UserInfo** response, not the `id_token`, whenever an access token is issued (the code
@@ -422,17 +422,20 @@ entry and/or ADR that closed it.
       `DefaultLoadAuthorizationRequestHandler` now detects an unsigned (`alg:none`) request object (inline `request` or a
       fetched `request_uri`) up front and returns exactly `request_not_supported`; a genuinely malformed request object
       still returns `invalid_request_object`. (See `CHANGELOG.md`.)
-    - **Access-token revocation on authorization-code reuse (`WARNING`: `oidcc-codereuse-30seconds`) — accepted,
-      documented deviation (not a backend gap).** RFC 6749 §4.1.2 SHOULD revoke the tokens previously issued from a
-      reused code _"when possible"_. The OP correctly rejects the second code use with `invalid_grant` (one-time codes)
-      and enforces PKCE `S256`, which already prevents authorization-code injection (RFC 9700). Its access tokens are
-      **stateless, short-lived JWTs** (the modern default), so an already-issued access token cannot be revoked without a
-      denylist / reference-token store that would contradict the stateless design — the short lifetime bounds the
-      exposure, which is exactly the trade-off RFC 9700 accepts for self-contained tokens. Aggressively revoking the
-      legitimate client's refresh token on a replay would itself be a denial-of-service on the honest client. This
-      WARNING is therefore an accepted, intentional deviation, baselined in `expected-failures.json` with
-      `expected-result: warning` (condition `EnsureHttpStatusCodeIs4xx`) so it does not gate the run. Revisit only if the
-      OP ever adopts reference/stateful access tokens.
+    - **Access-token revocation on authorization-code reuse (`WARNING`: `oidcc-codereuse-30seconds`) — fixed.** RFC 6749
+      §4.1.2 SHOULD revoke the tokens previously issued from a reused code _"when possible"_. The OP already rejected the
+      second code use with `invalid_grant` (one-time codes) and enforces PKCE `S256`, but the suite re-presented the
+      previously-issued access token at the resource endpoint and expected a `4xx`. A second redemption of an
+      already-consumed code is now treated as a compromise signal: the token endpoint revokes the end-user **session's**
+      grants (the access and refresh tokens issued from that code) via the session-scoped grant revocation the logout
+      seam uses — minus the back-channel-logout/audit side effects — and the OP's own resource endpoints (UserInfo,
+      introspection, management API) reject an access token whose `sid` resolves to a revoked session (`invalid_token`).
+      `sid` is now always emitted into subject-bound access tokens (the opt-in `send_session_id_in_access_token` setting
+      is retired). No global access-token denylist and no per-token store: one indexed session lookup on first-party
+      access-token authentication and one session-scoped revocation on the rare replay path. External resource servers
+      still treat the JWT as self-contained. See [ADR-0112](docs/adr/0112-authorization-code-replay-revokes-session.md)
+      (refines [ADR-0028](docs/adr/0028-token-revocation-refresh-tokens-only.md)) and `CHANGELOG.md`; its
+      `expected-failures.json` baseline was removed.
     - **Headless auto-fill of screenshot-review placeholders (`oidcc-prompt-login`, `oidcc-max-age-1`) — fixed.** These
       two double-login modules complete every automated assertion, then deliberately park in `WAITING` on a REVIEW
       "browser-interaction placeholder" (OIDCC-3.1.2.1: _"a screenshot of the second login … must be uploaded"_). The OP

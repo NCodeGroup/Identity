@@ -120,6 +120,25 @@ public interface IPersistedGrantService
     );
 
     /// <summary>
+    /// Revokes every active grant belonging to the specified end-user session — the <c>session</c> grant itself plus
+    /// the access- and refresh-token grants issued under it. Used by authorization-code replay detection to revoke the
+    /// tokens previously issued from a reused code (RFC 6749 §4.1.2); it performs the revocation only, without the
+    /// back-channel-logout or audit side effects of a user-initiated logout.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="sessionId">The opaque end-user session identifier (<c>sid</c>) whose grants to revoke.</param>
+    /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
+    /// grants that were revoked.</returns>
+    ValueTask<long> RevokeBySessionAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Updates the expiration of a grant if it is still active.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>

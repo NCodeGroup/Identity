@@ -622,13 +622,6 @@ public static class OpenIdSettingNames
     public const string SendIdClaimsInAccessToken = "send_id_claims_in_access_token";
 
     /// <summary>
-    /// Contains the name of the per-client <c>send_session_id_in_access_token</c> setting (RFC 9068 §2.2.1): whether
-    /// the end-user session identifier (<c>sid</c>) is emitted into the access token so a resource server can correlate
-    /// the token to the session and honor session-scoped revocation. Defaults to <see langword="false"/>.
-    /// </summary>
-    public const string SendSessionIdInAccessToken = "send_session_id_in_access_token";
-
-    /// <summary>
     /// Contains the name of the per-client <c>token_exchange_allow_refresh_token</c> setting: whether this client may
     /// obtain a refresh token from an OAuth 2.0 Token Exchange
     /// (<see href="https://datatracker.ietf.org/doc/html/rfc8693">RFC 8693</see>) by requesting

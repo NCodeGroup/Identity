@@ -1213,19 +1213,6 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // send_session_id_in_access_token: emit the end-user session identifier (sid) into the access token
-            // (RFC 9068 §2.2.1) so a resource server can correlate the token to the session and honor session-scoped
-            // revocation (default false — it discloses the session id to resource servers). Override (Replace): a
-            // behavioral toggle; a child fully replaces the parent value.
-            yield return new SettingDescriptor<bool>
-            {
-                Name = OpenIdSettingNames.SendSessionIdInAccessToken,
-                Default = false,
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
-            };
-
             // token_exchange_allow_refresh_token: whether this client may obtain a refresh token from an OAuth 2.0
             // Token Exchange (RFC 8693) by requesting requested_token_type=...:refresh_token (default false — issuing a
             // long-lived refresh token from an exchange is opt-in per client). Override (Replace): a behavioral toggle;

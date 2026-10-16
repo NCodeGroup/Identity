@@ -369,13 +369,13 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0111](docs/adr/0111-complete-outbound-fetch-ssrf-coverage.md). The `request_uri` fetch now requires an absolute
   `https` URI, enforces an optional host allow-list, bounds the request with a wall-clock timeout, and caps the response
-  body via a new non-discoverable `request_uri_\*` settings family (`request*uri_allowed_hosts`,
+  body via a new non-discoverable `request_uri_\*` settings family (`request\*uri*allowed_hosts`,
 `request_uri_fetch_timeout`default 10 s,`request_uri_max_size_bytes`default 100 KB). The back-channel-logout and
 CIBA deliveries now POST through dedicated SSRF-guarded named clients (connection pinned away from
 private/loopback/link-local addresses, auto-redirect disabled), so a registered internal URL cannot turn the OP into a
   confused deputy. The streamed response-size-cap read was extracted into one replaceable, DI-registered
-  `IOutboundHttpContentReader` seam (buffer-writer in, `ReadOnlySequence<byte>` out) consumed by all three body-reading
-  fetches._
+  `IOutboundHttpContentReader`seam (buffer-writer in,`ReadOnlySequence<byte>` out) consumed by all three body-reading
+  fetches.*
 
 - **`F31` — User-facing HTML error page for non-redirectable authorization errors (content negotiation).** When the
   authorize endpoint cannot safely redirect an error back to the client — an unregistered/invalid `redirect_uri` or an
@@ -472,6 +472,36 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   usefully once the backend advertises `private_key_jwt` / DPoP (`S3`, `F7`, `F16`). Touch points:
   [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner).
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]._
+
+- **`T8` — Triage the Basic OP (DCR) live-run dispositions.** _Done._ The module verdicts produced by the **external
+  OpenID Foundation Conformance Suite** (the `T1` oracle), run **locally** via
+  [`build/conformance/run-conformance.ps1 -IncludeBrowserPlans`](build/conformance/run-conformance.ps1) (`T6`). The
+  first full browser-driven Basic OP run under Dynamic Client Registration completed `18 PASSED, 11 WARNING, 4 SKIPPED,
+4 FAILED` (38 modules); after triage and fixes the plan runs **clean** — `32 PASSED, 0 WARNING, 3 REVIEW, 4 SKIPPED,
+0 FAILED` (39 modules incl. Config OP) with a green gate (`Conformance run PASSED`), and `expected-failures.json` has
+  no entries. The full disposition log — every fixed backend bug, the codified intentional skips, and the harness
+  refinements — lives in [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md) (§ "Live-run
+  dispositions (`T8`)"), with the individual fixes also in [`CHANGELOG.md`](CHANGELOG.md) and their ADRs. **Both
+  harness follow-ups are resolved:**
+    - **Unreachable-suite hang.** `run-conformance.ps1` now runs each `run-test-plan.py` invocation under a hard
+      wall-clock watchdog (`-PlanTimeoutSeconds`, default `1800`) that tree-kills a plan on overrun, and pins the suite
+      script's own retry bounds explicitly, so a suite that drops out mid-plan fails fast instead of hanging overnight.
+    - **Parallel browser-session cookie collision (`oidcc-server`, `oidcc-idtoken-signature`).** The plan **keeps
+      `parallel=2`** for the speed boost rather than falling back to `parallel=1`: cross-module contamination is
+      structurally impossible because the suite isolates browser state **per test module** (each module gets its own
+      `BrowserControl` with a per-instance `CookieManager`), the plan runs under `client_registration=dynamic_client` so
+      each module registers its **own** client and `redirect_uri`, and the OP's interactive login is **request-bound**
+      (`PostLoginAsync` round-trips the `ReturnUrl` carrying the parked request's `state` grant key, with no ambient
+      server-side pending-request state). The one earlier observation did not reproduce and two consecutive full harness
+      runs are green at `parallel=2`.
+
+    Design, phases, and the baseline schema are in [`docs/conformance-testing.md`](docs/conformance-testing.md)
+    (Appendix F) and [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). Touch points:
+    [`build/conformance`](build/conformance), the authorization/token endpoint handlers and the interactive consent
+    surface under [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication) /
+    [`src/NCode.Identity.OpenId.Authentication.Interactive`](src/NCode.Identity.OpenId.Authentication.Interactive), and
+    the SPA consent form under [`src/frontend/apps/auth`](src/frontend/apps/auth).
+    _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)._
 
 ## Frontend presentation platform (group `U`)
 

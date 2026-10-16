@@ -63,6 +63,14 @@ The pre-flight step bootstraps the frontend pnpm workspace via
 [`build/frontend-install.ps1`](../frontend-install.ps1) (idempotent; also self-heals a partially-installed
 `node_modules`). Pass `-SkipFrontendInstall` to skip it when the workspace is already installed.
 
+**Fail-fast on an unreachable suite.** Each `run-test-plan.py` plan invocation runs under a hard wall-clock
+watchdog (`-PlanTimeoutSeconds`, default `1800`): if the suite container drops out mid-plan the suite script
+would otherwise retry with backoff and hang the wrapper indefinitely, so a plan that blows past the deadline is
+killed (process tree) and the run fails fast. The harness also pins the suite script's own retry bounds
+(`CONFORMANCE_RETRY_TIMEOUT`, `CONFORMANCE_RESTART_RETRIES`, `CONFORMANCE_MAX_CONSECUTIVE_FAILURES`) so the suite
+self-aborts quickly on a dead/flapping server rather than relying on whatever defaults the freshly-cloned
+upstream ships (backlog `T8`).
+
 On first run the script shallow-clones the suite repo into `./.conformance-suite/` (gitignored) for its
 `scripts/run-test-plan.py` and `docker-compose-prebuilt.yml`, and creates a Python venv there for the suite's
 script dependencies. Per-plan result zips are written to `./.results/` (gitignored); diff successive runs with

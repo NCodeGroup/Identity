@@ -22,6 +22,13 @@ Apache-2 for libs), and self-hostable:
 - Hosted instance (free to run; fee only for the certification mark): <https://www.certification.openid.net/>
 - Automated-testing tutorial: <https://gitlab.com/openid/conformance-suite-automated-testing-tutorial>
 
+**Local by default — the OP is never exposed publicly.** The committed harness
+([`build/conformance/run-conformance.ps1`](../build/conformance/run-conformance.ps1)) **self-hosts** the suite from
+prebuilt Docker images on the developer's machine; the suite reaches the OP over `host.docker.internal:5001`, so no
+public ingress is required. The OpenID Foundation's **hosted** instance (`https://www.certification.openid.net/`) is an
+optional alternative that _would_ require a publicly reachable OP — it is not the default path and not a prerequisite of
+backlog `T1`.
+
 It is what Auth0, Okta, Keycloak, Ping, and Duende IdentityServer use to self-certify. There is **no
 separate official OAuth 2.0/2.1-only** suite; the OIDC **Basic/Config** OP profiles exercise the OAuth
 2.0 authorization-code and token endpoints, and we supplement with targeted RFC checks (6749/6750, 7636

@@ -148,50 +148,10 @@ function Clear-OpPort([int] $Port) {
     }
 }
 
-function Start-PlaceholderAutoFiller([string] $SuiteBase, [int] $PollSeconds = 3) {
-    # A handful of OIDC-conformance modules (oidcc-prompt-login, oidcc-max-age-1) complete every automated assertion,
-    # then deliberately park in WAITING on a REVIEW "browser-interaction placeholder" — the suite is asking a human to
-    # upload a screenshot of the (second) login page (OIDCC-3.1.2.1). Headless, nobody uploads it, so each module burns
-    # the full 240 s module timeout for nothing. This watcher uploads a 1x1 PNG to any pending placeholder, which is
-    # exactly what a human certifier does: it satisfies the gate and lets the module finalize on its own already-passed
-    # checks. The local suite runs CSRF-disabled behind an injected dummy admin user, so a plain POST is authorized; the
-    # image is validated only for type/size, not content. Runs as a background job for the lifetime of the plan loop.
-    $filler = Start-Job -ScriptBlock {
-        param([string] $Base, [int] $Poll)
-        $ErrorActionPreference = 'SilentlyContinue'
-        # A minimal valid 1x1 transparent PNG as a data URI (what the ImageAPI upload endpoint expects).
-        $png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-        $filled = @{}
-        while ($true) {
-            $running = @()
-            try { $running = @(Invoke-RestMethod -Uri "$Base/api/runner/running" -SkipCertificateCheck -TimeoutSec 10) } catch { }
-            foreach ($id in $running) {
-                $docs = @()
-                try { $docs = @(Invoke-RestMethod -Uri "$Base/api/log/$id/images" -SkipCertificateCheck -TimeoutSec 10) } catch { continue }
-                foreach ($doc in $docs) {
-                    $placeholder = $doc.upload
-                    if ([string]::IsNullOrEmpty($placeholder) -or $doc.img) { continue }
-                    $key = "$id/$placeholder"
-                    if ($filled.ContainsKey($key)) { continue }
-                    try {
-                        Invoke-RestMethod -Uri "$Base/api/log/$id/images/$placeholder" -Method Post `
-                            -Body $png -ContentType 'text/plain' -SkipCertificateCheck -TimeoutSec 10 | Out-Null
-                        $filled[$key] = $true
-                    }
-                    catch { }
-                }
-            }
-            Start-Sleep -Seconds $Poll
-        }
-    } -ArgumentList $SuiteBase, $PollSeconds
-    return $filler
-}
-
-function Stop-PlaceholderAutoFiller($Job) {
-    if ($null -eq $Job) { return }
-    Stop-Job $Job -ErrorAction SilentlyContinue
-    Remove-Job $Job -Force -ErrorAction SilentlyContinue
-}
+# The screenshot-review placeholders that oidcc-prompt-login / oidcc-max-age-1 park on (OIDCC-3.1.2.1) are filled
+# deterministically, inline in the scripted-browser flow, by the per-module `override` blocks in oidcc-basic.json
+# (the suite-native `update-image-placeholder-optional` action — mirrors the suite's own
+# .gitlab-ci/local-provider-oidcc-conformance-config.json). No out-of-band upload watcher is needed.
 
 $opProcess = $null
 $suiteUp = $false
@@ -335,9 +295,6 @@ try {
         }
 
         Push-Location $ConfigDir
-        # The browser-driven Basic OP plan is the only one with human-screenshot placeholders; auto-fill them so the
-        # headless run doesn't idle 240 s/module on oidcc-prompt-login and oidcc-max-age-1 (see Start-PlaceholderAutoFiller).
-        $placeholderFiller = $IncludeBrowserPlans ? (Start-PlaceholderAutoFiller -SuiteBase $SuiteBase) : $null
         try {
             for ($i = 0; $i -lt $plansToRun.Count; $i++) {
                 Write-Host "    Plan: $($plansToRun[$i])  Config: $($configsToRun[$i])" -ForegroundColor Yellow
@@ -353,7 +310,6 @@ try {
         }
         finally {
             Pop-Location
-            Stop-PlaceholderAutoFiller $placeholderFiller
             foreach ($f in $scopedBaselineFiles) {
                 Remove-Item $f -ErrorAction SilentlyContinue
             }

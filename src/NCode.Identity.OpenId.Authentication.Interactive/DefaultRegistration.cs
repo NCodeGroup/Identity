@@ -23,6 +23,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
+using NCode.Identity.OpenId.Results;
 using NCode.Mediator;
 using NCode.Registration;
 using NCode.Registration.AspNetCore;
@@ -97,6 +98,16 @@ public static class DefaultRegistration
             configureOptions?.Invoke(options);
 
             serviceCollection.AddSingleton(options);
+            serviceCollection.TryAddSingleton<InteractiveBundleReader>();
+
+            // The content-negotiation seam in OpenIdResult selects this formatter when an interactive browser
+            // explicitly requests text/html, rendering a non-redirectable authorization error as a styled HTML page.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IOpenIdResponseFormatter,
+                    InteractiveOpenIdErrorResponseFormatter
+                >()
+            );
 
             // The surface's endpoints flow through the same MapEndpointGroups discovery as every other endpoint.
             builder.AddEndpointGroup<InteractiveAuthenticationEndpointGroup>();

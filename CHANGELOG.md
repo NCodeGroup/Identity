@@ -10,7 +10,23 @@ change to the public API is a **major** version bump.
 
 ### Added
 
-- **Persisted-grant payloads are now schema-versioned at rest, with an upcasting seam and unknown-member preservation.**
+- **Non-redirectable authorization errors are now content-negotiated: a browser gets a human-readable HTML error page,
+  programmatic callers keep JSON.** When the authorize endpoint refuses to redirect an error back to the client — an
+  unregistered/invalid `redirect_uri` or an unresolvable `client_id`
+  ([OIDC Core §3.1.2.4](https://openid.net/specs/openid-connect-core-1_0.html#AuthError)) — an interactive request
+  (`Accept: text/html`) now receives a styled, SPA-enhanced error page carrying a stable `authorization-error` element
+  (and `data-error-code`) for automation, while wildcard-only (`*/*`) and programmatic callers keep the machine-readable
+  JSON body. The representation is chosen by a new open **`IOpenIdResponseFormatter`** strategy collection: each
+  formatter declares the media types it emits and a `CanFormat(IOpenIdResponse)` predicate, so a new representation for
+  any response type is an additive registration. `OpenIdResult<T>` is now a thin `IResult` that delegates to
+  `IResultExecutor<IOpenIdResult>` (`DefaultOpenIdResultExecutor` in Core), which applies the response envelope and does
+  the server-driven negotiation — keeping the `NCode.Identity.OpenId.Abstractions` package lean, mirroring the existing
+  `OpenIdRedirectResult` → `DefaultOpenIdRedirectResultExecutor` pattern. The HTML page is registered by the interactive
+  surface (`AddInteractiveAuthentication`) and written via `SecureEncoding.UTF8`, matching `DefaultAuthorizationResult`-
+  `Executor`; a deployment without the interactive package degrades gracefully to JSON. See
+  [ADR-0114](docs/adr/0114-non-redirectable-authorization-errors-are-content-negotiated.md).
+
+
   Every grant payload (`PersistedGrant<TPayload>.Payload` — authorization codes, refresh tokens, device/CIBA requests,
   pushed authorization requests, DCR tokens, the end-user `session` grant, continue envelopes) is written through a new
   `IPersistedPayloadSerializer` seam that wraps it in a self-describing envelope `{ "$ver": N, "$payload": … }`, stamping

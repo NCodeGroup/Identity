@@ -131,6 +131,39 @@ internal static class InteractiveAuthenticationPageRenderer
         return Compose(bundleIndexHtml, form.ToString(), "Authorize access");
     }
 
+    /// <summary>
+    /// Renders the non-redirectable authorization error page shown to the resource owner when the authorize endpoint
+    /// cannot safely redirect the error back to the client (an unregistered <c>redirect_uri</c> or an unresolvable
+    /// <c>client_id</c>; OpenID Connect Core §3.1.2.4). The error code is rendered as the text of a stable
+    /// <c>authorization-error</c> element (plus a <c>data-error-code</c> attribute) so automation — including the
+    /// OpenID conformance suite's <c>oidcc-ensure-registered-redirect-uri</c> browser task — can assert on it.
+    /// </summary>
+    public static string RenderErrorPage(
+        string? bundleIndexHtml,
+        string errorCode,
+        string? errorDescription
+    )
+    {
+        var html = HtmlEncoder.Default;
+        var form = new StringBuilder();
+        form.Append("<main class=\"auth-card\">");
+        form.Append("<h1>Authorization error</h1>");
+        form.Append(
+            CultureInfo.InvariantCulture,
+            $"<p id=\"authorization-error\" role=\"alert\" class=\"auth-error\" data-error-code=\"{html.Encode(errorCode)}\">{html.Encode(errorCode)}</p>"
+        );
+        if (!string.IsNullOrEmpty(errorDescription))
+        {
+            form.Append(
+                CultureInfo.InvariantCulture,
+                $"<p id=\"authorization-error-description\" class=\"auth-error-description\">{html.Encode(errorDescription)}</p>"
+            );
+        }
+        form.Append("</main>");
+
+        return Compose(bundleIndexHtml, form.ToString(), "Authorization error");
+    }
+
     private static void AppendHiddenFields(
         StringBuilder form,
         string returnUrl,

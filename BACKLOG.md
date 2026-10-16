@@ -66,7 +66,7 @@ entry and/or ADR that closed it.
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D7`      | `D6`       |
 | `F` — Feature gaps                    | `F31`     | `F30`      |
-| `T` — Conformance & interop testing   | `T8`      | `T7`       |
+| `T` — Conformance & interop testing   | `T9`      | `T8`       |
 | `U` — Frontend presentation platform  | `U13`     | `U12`      |
 | `S` — Secrets management              | `S7`      | `S6`       |
 | `X` — Tooling & agent customization   | `X3`      | `X2`       |
@@ -256,22 +256,32 @@ entry and/or ADR that closed it.
 
 ## Conformance & interop testing (group `T`)
 
-- **`T1` — Independent OIDC/OAuth conformance validation (OpenID Foundation Conformance Suite).** Our own
-  integration tests encode our own reading of the specs; an independent, spec-author-maintained oracle is
-  needed to catch shared misreadings. The full design and automation plan — harness architecture, the
-  `BrowserControl`/`run-test-plan.py` automation model, target profiles, the reachable-host /
-  automatable-login / discovery-alignment prerequisites, and the nightly (not `dod.ps1`) CI wiring — lives
-  in its dedicated doc: [`docs/conformance-testing.md`](docs/conformance-testing.md). The Dynamic OP profile
-  prerequisite (Dynamic Client Registration) is implemented ([ADR-0063](docs/adr/0063-dynamic-client-registration.md));
-  the harness enables anonymous registration (`registration_endpoint_allow_anonymous`). The reachable HTTPS host the
-  harness drives is **done** (`T3` — the `Conformance` launch profile binds all interfaces on `:5001` and pins the
-  discovery `issuer` to `https://host.docker.internal:5001`). The browser-automatable login/consent surface
-  prerequisite is **done** (`T2` — the OP-hosted `apps/auth` interactive login/consent surface,
-  [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md)). The deterministic conformance tenant,
-  clients, and test-user seeding prerequisite is **done** (`T4` — `AddConformanceSeed`). The discovery-metadata
-  alignment prerequisite is **done**: the OP advertises secure-by-default, verified capabilities
-  ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
+- **`T1` — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite (remaining: nightly CI).**
+  Our own integration tests encode our own reading of the specs; an independent, spec-author-maintained oracle is needed
+  to catch shared misreadings. **This is not un-started — its runnable realization is already committed:** the external
+  suite is wired behind a one-command harness ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1)),
+  delivered under `T6` Phase 4 (see `T6`). **How it runs (local, not public):** the certified suite runs **locally in
+  Docker** against the Playground OP and reaches it over `host.docker.internal:5001` — nothing is exposed to the public
+  internet. Running against the OpenID Foundation's **hosted** instance (`https://www.certification.openid.net/`), which
+  _would_ require a publicly reachable OP, is an optional alternative, **not** a requirement and **not** what this item
+  is about. **Prerequisites — all done:** the Dynamic OP profile / Dynamic Client Registration
+  ([ADR-0063](docs/adr/0063-dynamic-client-registration.md); the harness enables anonymous registration,
+  `registration_endpoint_allow_anonymous`); the reachable HTTPS host (`T3` — the `Conformance` launch profile binds all
+  interfaces on `:5001` and pins the discovery `issuer` to `https://host.docker.internal:5001`); the browser-automatable
+  login/consent surface (`T2` — the OP-hosted `apps/auth` surface,
+  [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md)); the deterministic conformance tenant,
+  clients, and test-user seeding (`T4` — `AddConformanceSeed`); and discovery-metadata alignment (the OP advertises
+  secure-by-default, verified capabilities, [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
+  **Remaining:** the nightly (not `dod.ps1`) CI pipeline that invokes `run-conformance.ps1` — shared with `T6` — plus the
+  ongoing triage of live-run dispositions (`T8`). Full design and automation plan — harness architecture, the
+  `BrowserControl`/`run-test-plan.py` automation model, target profiles, and the prerequisites above — lives in its
+  dedicated doc: [`docs/conformance-testing.md`](docs/conformance-testing.md).
 - **`T6` — Spec-coverage conformance harness: wire the external certified suite as the oracle (remaining: nightly CI).**
+  **Relationship to `T1`/`T8` (read first):** this item owns the **in-house measurement harness** (the spec-coverage
+  matrix + the headless probe-runner pre-flight) **and** the committed automation
+  ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1)) that drives the external certified
+  suite — i.e. this is **where `T1`'s external oracle was actually delivered**; `T8` then triages the module verdicts that
+  run produces. All three run **locally**; none exposes the OP publicly.
   The in-house harness is built: the spec-coverage matrix measures the OP against the **full published
   OAuth/OIDC/CIBA/FAPI catalog** classified from **live discovery metadata** (a gap finder _and_ a regression detector),
   plus browser-drivable active probes (Phase 2) and a headless Node/backend **probe runner** (Phase 3,
@@ -315,8 +325,11 @@ entry and/or ADR that closed it.
   [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner),
   [`src/frontend/packages/conformance-core`](src/frontend/packages/conformance-core),
   [`docs/conformance-testing.md`](docs/conformance-testing.md).
-- **`T8` — Triage the Basic OP (DCR) live-run dispositions.** The first full browser-driven Basic OP certification run
-  under Dynamic Client Registration (`T6`) completed `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` (38 modules, no
+- **`T8` — Triage the Basic OP (DCR) live-run dispositions.** These are the module verdicts produced by the **external
+  OpenID Foundation Conformance Suite** (the `T1` oracle), run **locally** via
+  [`build/conformance/run-conformance.ps1 -IncludeBrowserPlans`](build/conformance/run-conformance.ps1) (`T6`) — **not** an
+  in-house test engine. The first full browser-driven Basic OP certification run
+  under Dynamic Client Registration completed `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` (38 modules, no
   mass-abort). Each non-pass was investigated against the suite's per-module log and classified as a **backend gap to
   fix**, a **harness/config refinement**, or a **documented, intentional deviation** codified in
   `build/conformance/expected-failures.json` / `expected-skips.json`. **Fixed backend bugs** (see `CHANGELOG.md`):

@@ -81,7 +81,8 @@ internal class DefaultAuthenticateSubjectHandler(
 
         // A presented bearer access token (the UserInfo path) is validated in-environment against the resolved tenant,
         // not via a pre-routing authentication scheme the host cannot tenant-scope (ADR-0044).
-        if (TryGetBearerToken(httpContext, out var accessToken))
+        var accessToken = await ResolveBearerTokenAsync(httpContext);
+        if (!string.IsNullOrEmpty(accessToken))
         {
             return await AuthenticateAccessTokenAsync(
                 openIdContext,
@@ -217,7 +218,41 @@ internal class DefaultAuthenticateSubjectHandler(
         return Authenticated(ticket);
     }
 
-    private static bool TryGetBearerToken(HttpContext httpContext, out string token)
+    private static async ValueTask<string?> ResolveBearerTokenAsync(HttpContext httpContext)
+    {
+        // RFC 6750 §2.1: the 'Authorization' header is the preferred (and here, primary) transport.
+        if (TryGetAuthorizationHeaderToken(httpContext, out var headerToken))
+        {
+            return headerToken;
+        }
+
+        // RFC 6750 §2.2: a client MAY send the access token as a form-encoded body parameter. Honor it only for a
+        // non-GET request whose body is exactly 'application/x-www-form-urlencoded' (the spec's single-part body
+        // requirement, which excludes multipart). The URI-query form (§2.3) is intentionally unsupported because
+        // RFC 9700 deprecates passing access tokens in the query string.
+        var request = httpContext.Request;
+        if (
+            !HttpMethods.IsGet(request.Method)
+            && request.HasFormContentType
+            && request.ContentType is { } contentType
+            && contentType.StartsWith(
+                "application/x-www-form-urlencoded",
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
+            var form = await request.ReadFormAsync();
+            var bodyToken = form[OpenIdConstants.Parameters.AccessToken].ToString();
+            if (!string.IsNullOrEmpty(bodyToken))
+            {
+                return bodyToken;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool TryGetAuthorizationHeaderToken(HttpContext httpContext, out string token)
     {
         var authorization = httpContext.Request.Headers.Authorization.ToString();
 

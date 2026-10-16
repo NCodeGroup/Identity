@@ -16,7 +16,9 @@
 
 #endregion
 
+using System.Collections.Concurrent;
 using System.Net;
+using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
@@ -102,6 +104,73 @@ public class InteractiveLogoutTests
         // The OP login cookie is cleared (an expired Set-Cookie for the interactive scheme).
         var clearing = ReadSetCookieRaw(logout, InteractiveCookieName);
         Assert.NotNull(clearing);
+    }
+
+    [Fact]
+    public async Task ConcurrentLogins_ForSameAccount_EachSessionSucceedsWithPromptNone()
+    {
+        const string clientId = "it-concurrent-prompt-none";
+        const string redirectUri = "https://client.example/cb";
+
+        using var factory = new PlaygroundApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedPublicClientAsync(clientId, redirectUri);
+
+        const int concurrency = 32;
+        var failures = new ConcurrentBag<string>();
+
+        await Task.WhenAll(
+            Enumerable
+                .Range(0, concurrency)
+                .Select(async i =>
+                {
+                    var client = factory.CreateClient(
+                        new WebApplicationFactoryClientOptions
+                        {
+                            AllowAutoRedirect = false,
+                            HandleCookies = false,
+                        }
+                    );
+
+                    var sessionCookie = await LoginAsync(client);
+                    if (string.IsNullOrEmpty(sessionCookie))
+                    {
+                        failures.Add($"request {i}: login issued no session cookie");
+                        return;
+                    }
+
+                    // prompt=none re-authorization must silently succeed for the session just established, echoing a
+                    // code back to the client — never login_required. Regression guard for a value-type-default bug
+                    // where subject_max_age materialized as 0 and forced re-authentication on every request.
+                    var query =
+                        $"?client_id={clientId}"
+                        + $"&redirect_uri={Uri.EscapeDataString(redirectUri)}"
+                        + "&response_type=code"
+                        + "&scope=openid"
+                        + $"&state=state-{i:D2}"
+                        + "&prompt=none";
+                    using var request = new HttpRequestMessage(
+                        HttpMethod.Get,
+                        "/oauth2/authorize" + query
+                    );
+                    request.Headers.Add("Cookie", $"{InteractiveCookieName}={sessionCookie}");
+                    using var response = await client.SendAsync(request);
+
+                    var parameters = response.Headers.Location is { } location
+                        ? HttpUtility.ParseQueryString(location.Query)
+                        : null;
+                    var error = parameters?["error"];
+                    var code = parameters?["code"];
+                    if (!string.IsNullOrEmpty(error) || string.IsNullOrEmpty(code))
+                    {
+                        failures.Add(
+                            $"request {i}: prompt=none returned error='{error ?? "<none>"}' code='{code ?? "<none>"}'"
+                        );
+                    }
+                })
+        );
+
+        Assert.True(failures.IsEmpty, string.Join("; ", failures));
     }
 
     #region Login Helpers

@@ -25,6 +25,22 @@ change to the public API is a **major** version bump.
   `TestUserFamilyName`). This clears the OpenID Foundation suite's `oidcc-scope-{profile,email,…}`,
   `EnsureUserInfoContainsName`, and `EnsureIdTokenDoesNotContainNonRequestedClaims` warnings.
 
+- **The UserInfo endpoint now accepts the access token in a form-encoded request body (backlog `T8`).** Per RFC 6750
+  §2.2 / OpenID Connect Core 1.0 §5.3.1, a client may present the bearer access token as an `access_token` form
+  parameter. `DefaultAuthenticateSubjectHandler` now honors it for a non-GET request whose body is
+  `application/x-www-form-urlencoded`, in addition to the preferred `Authorization: Bearer` header (RFC 6750 §2.1) which
+  still takes precedence when both are present. The URI-query transport (§2.3) remains intentionally unsupported because
+  RFC 9700 deprecates passing access tokens in the query string. This clears the suite's `oidcc-userinfo-post-body`
+  warning.
+
+- **`IReadOnlySettingCollection.GetValueOrNull<TValue>()` reads an optional value-type setting as a genuine
+  `Nullable<TValue>`.** A new `SettingCollectionExtensions.GetValueOrNull<TValue>(SettingKey<TValue>) where TValue :
+  struct` returns the setting's value when present and `null` when absent, so a caller can distinguish "unset" from a
+  materialized zero/default without hand-rolling a `TryGetValue` dance — the reusable replacement for the
+  `settings.TryGetValue(key, out var v) ? v : (TValue?)null` pattern at freshness/limit call sites. **Public surface:**
+  the new `GetValueOrNull` extension in `NCode.Identity.Settings`.
+
+### Changed
 - **Complete outbound-fetch SSRF coverage and bound the JAR `request_uri` fetch — closes backlog `F28`
   ([ADR-0111](docs/adr/0111-complete-outbound-fetch-ssrf-coverage.md)).** Every server-initiated outbound HTTP call to a
   client-controlled URL is now SSRF-guarded uniformly. The JAR `request_uri` fetch (RFC 9101) gains the same bound set
@@ -283,6 +299,14 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   request's tenant-resolution strategy and derived from the tenant's own configured issuer.
 
 ### Changed
+
+- **An unsigned (`alg:none`) JWT-secured authorization request now returns `request_not_supported` (backlog `T8`).**
+  Per OpenID Connect Core 1.0 §6.1, an OP that does not support unsigned request objects must answer exactly
+  `request_not_supported`. `DefaultLoadAuthorizationRequestHandler` previously surfaced a generic
+  `invalid_request_object` for any request-object decode failure; it now detects an `alg:none` request object (inline
+  `request` or a fetched `request_uri`) up front and rejects it with `request_not_supported`, while a genuinely
+  malformed request object still returns `invalid_request_object`. The OP advertises only asymmetric request-object
+  signing algorithms (RFC 9700 / FAPI), so an unsigned request object is never accepted.
 
 - **Self-documenting tenant/context factory method pairs ([ADR-0100](docs/adr/0100-explicit-tenant-context-materialization.md)).**
   `IOpenIdContextFactory.CreateAsync` is renamed to `CreateForRequestAsync` (paired with the new `CreateForTenantAsync`),
@@ -1073,6 +1097,18 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `ValidateSubjectAuthenticationCommand.EnforceAuthenticationAge` flag (`true` at the authorization endpoint; `false`
   for the authorization-code, refresh-token, and password grants). Surfaced by `oidcc-max-age-1`. **Public surface:**
   `ValidateSubjectAuthenticationCommand` gains a required `EnforceAuthenticationAge` parameter.
+
+- **A value-type setting with no explicit default no longer materializes `default(TValue)` into the settings lattice,
+  which had intermittently forced `prompt=none` to return `login_required` (backlog `T8`).** `SettingDescriptor<TValue>`
+  reported `HasDefault` as `DefaultOrNull is not null`, but for a value-type `TValue` (e.g. `TimeSpan`) the
+  `notnull`-constrained `TValue?` is **not** `Nullable<TValue>`, so `DefaultOrNull` was never null and `HasDefault` was
+  always `true`. The root settings data source therefore loaded `default(TValue)` for every value-type descriptor that
+  declared no explicit default — most consequentially `subject_max_age`, which materialized as `TimeSpan.Zero`, a
+  zero-second freshness window that rejected every just-completed authentication and returned `login_required` to a
+  logged-in `prompt=none` request. `HasDefault` now tracks an explicit `_hasDefault` flag set only when a default is
+  actually supplied, so an unset value-type setting stays genuinely absent (`TryGetValue` returns `false`) and imposes
+  no constraint. Surfaced by the intermittent `oidcc-prompt-none-logged-in` / `oidcc-id-token-hint` conformance
+  failures.
 
 - **A rejected client request (4xx `OpenIdException`) is logged at Warning, not Error (backlog `T8`).** The OpenID
   exception handler logged every unhandled exception — including an expected client-side validation failure such as an

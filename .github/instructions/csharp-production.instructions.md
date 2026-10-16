@@ -51,6 +51,12 @@ rationale.
   is banned** — always restructure so the compiler proves non-null (`?? throw`, `[MemberNotNullWhen]`, an
   `is { } local` pattern, early-out narrowing) instead of asserting it. Even though the analyzer accepts a `// !`
   justification comment, **do not use that escape hatch**: eliminate the `!`, never annotate it.
+- ⚠️ **`T?` under a `where T : notnull` constraint is NOT `Nullable<T>` for a value type** — it is the
+  non-nullable `T`, so `field is not null` / `field is null` on such a member is always `true` / `false` for value
+  types and silently misdetects "has a value". Never use a `T?` field (or the `x is null` test on one) as the
+  presence flag for an optional value-type slot under a `notnull` constraint; track presence with an explicit `bool`
+  flag (or constrain the API to `where T : struct` so `T?` really is `Nullable<T>`). This bit the settings lattice:
+  see [ADR-0010](../../docs/adr/0010-supported-settings-unset-means-unrestricted.md).
 - ✅ **`Debug.Assert` is for internal invariants only — never to validate untrusted or external input.** It is
   compiled out in Release (`DEBUG`-gated), so any check written as an assertion silently disappears in shipped
   builds. Validating a parsed/decoded value (e.g. a `TryDecode`/`TryParse` result on caller- or wire-supplied data)

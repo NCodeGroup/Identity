@@ -81,6 +81,54 @@ public class AuthorizationEndpointSeededClientTests(PlaygroundApplicationFactory
         var location = response.Headers.Location;
         Assert.NotNull(location);
         Assert.StartsWith(RedirectUri, location.GetLeftPart(UriPartial.Path));
+
+        // The error response MUST echo the request's state back to the client (OIDC Core 3.1.2.6 / RFC 6749
+        // 4.1.2.1); otherwise the client cannot correlate the response and rejects it (conformance CheckState).
+        var parameters = System.Web.HttpUtility.ParseQueryString(location.Query);
+        Assert.Equal("login_required", parameters["error"]);
+        Assert.Equal("abc123", parameters["state"]);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithConcurrentPromptNoneRequests_EachEchoesItsOwnState()
+    {
+        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+
+        // Each concurrent request carries a DISTINCT state; a response that returns a null or another request's
+        // state proves request-scoped data (the authorization request / its state) is bleeding across concurrent
+        // requests via shared mutable server state — the parallel-safety defect the conformance suite surfaced.
+        var states = Enumerable
+            .Range(0, 32)
+            .Select(i => $"state-{i:D2}-{Guid.NewGuid():N}")
+            .ToArray();
+
+        var results = await Task.WhenAll(
+            states.Select(async state =>
+            {
+                var client = Factory.CreateClient(
+                    new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+                );
+                var query =
+                    $"?client_id={ClientId}"
+                    + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+                    + "&response_type=code"
+                    + "&scope=openid"
+                    + $"&state={state}"
+                    + "&prompt=none";
+                using var response = await client.GetAsync("/oauth2/authorize" + query);
+                var location = response.Headers.Location;
+                var echoed = location is null
+                    ? null
+                    : System.Web.HttpUtility.ParseQueryString(location.Query)["state"];
+                return (Expected: state, Echoed: echoed);
+            })
+        );
+
+        var mismatches = results
+            .Where(r => r.Echoed != r.Expected)
+            .Select(r => $"expected '{r.Expected}' but got '{r.Echoed ?? "<null>"}'")
+            .ToArray();
+        Assert.True(mismatches.Length == 0, string.Join("; ", mismatches));
     }
 
     [Fact]

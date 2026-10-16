@@ -20,6 +20,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Auditing;
@@ -335,6 +336,87 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsUndefined);
+    }
+
+    #endregion
+
+    #region Form-Body Access Token Tests
+
+    private (AuthenticateSubjectCommand command, Mock<IMediator> mediator) CreateFormBodyScaffold(
+        AuthenticateAccessTokenDisposition disposition,
+        string expectedAccessToken,
+        bool includeAuthorizationHeader = false
+    )
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        MockContext = mockContext;
+        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+        var mockMediator = CreateStrictMock<IMediator>();
+
+        // RFC 6750 §2.2: a form-encoded POST body carrying 'access_token'.
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Method = HttpMethods.Post;
+        httpContext.Request.ContentType = "application/x-www-form-urlencoded";
+        httpContext.Request.Form = new FormCollection(
+            new Dictionary<string, StringValues> { ["access_token"] = "the-body-access-token" }
+        );
+        if (includeAuthorizationHeader)
+        {
+            httpContext.Request.Headers.Authorization = "Bearer the-header-access-token";
+        }
+
+        mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
+        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+
+        // Strict: the command must carry the token from the expected transport, or the setup never matches.
+        mockMediator
+            .Setup(x =>
+                x.SendAsync<AuthenticateAccessTokenCommand, AuthenticateAccessTokenDisposition>(
+                    It.Is<AuthenticateAccessTokenCommand>(c =>
+                        c.AccessToken == expectedAccessToken
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<AuthenticateAccessTokenDisposition>(disposition))
+            .Verifiable();
+
+        var command = new AuthenticateSubjectCommand(mockContext.Object);
+        return (command, mockMediator);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAccessTokenInFormBody_ReturnsTicket()
+    {
+        var principal = new ClaimsPrincipal(new ClaimsIdentity("Bearer"));
+        var (command, mockMediator) = CreateFormBodyScaffold(
+            new AuthenticateAccessTokenDisposition(principal),
+            expectedAccessToken: "the-body-access-token"
+        );
+
+        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsAuthenticated);
+        Assert.Equal("subject-id", result.Ticket.Value.PrincipalId);
+        mockMediator.Verify();
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenHeaderAndFormBothPresent_PrefersAuthorizationHeader()
+    {
+        var principal = new ClaimsPrincipal(new ClaimsIdentity("Bearer"));
+        // RFC 6750 §2.1 is primary: the header token must win over a form-body token.
+        var (command, mockMediator) = CreateFormBodyScaffold(
+            new AuthenticateAccessTokenDisposition(principal),
+            expectedAccessToken: "the-header-access-token",
+            includeAuthorizationHeader: true
+        );
+
+        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsAuthenticated);
+        mockMediator.Verify();
     }
 
     #endregion

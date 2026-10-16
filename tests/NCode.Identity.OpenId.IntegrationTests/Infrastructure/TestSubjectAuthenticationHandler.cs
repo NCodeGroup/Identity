@@ -38,6 +38,7 @@ public class TestSubjectAuthenticationHandler(
 {
     public const string SchemeName = "Test";
     public const string SubjectHeaderName = "X-Test-Subject";
+    public const string ScopeHeaderName = "X-Test-Scope";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -51,6 +52,16 @@ public class TestSubjectAuthenticationHandler(
 
         var identity = new ClaimsIdentity(SchemeName);
         identity.AddClaim(new Claim("sub", subjectId));
+
+        // Mirror the self-issued access token's space-delimited 'scope' claim (RFC 9068) so the scope-driven UserInfo
+        // enricher has the granted scopes to act on, just as it would from a real bearer token.
+        if (
+            Request.Headers.TryGetValue(ScopeHeaderName, out var scopeValues)
+            && scopeValues.ToString() is { Length: > 0 } scope
+        )
+        {
+            identity.AddClaim(new Claim("scope", scope));
+        }
 
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName);
         return Task.FromResult(AuthenticateResult.Success(ticket));

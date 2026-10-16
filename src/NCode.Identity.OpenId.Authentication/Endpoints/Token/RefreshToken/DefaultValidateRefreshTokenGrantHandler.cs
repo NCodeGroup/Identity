@@ -118,7 +118,10 @@ internal class DefaultValidateRefreshTokenGrantHandler(IClientScopeService clien
                 openIdClient,
                 openIdRequest,
                 subjectAuthentication,
-                operationDisposition
+                operationDisposition,
+                // Back-channel refresh: authentication-age freshness was enforced at the original authorization, so
+                // do not re-check the fixed auth_time against the later refresh-time clock.
+                EnforceAuthenticationAge: false
             ),
             cancellationToken
         );

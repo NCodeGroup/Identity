@@ -162,7 +162,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                         .Scopes.Select(scope => new InteractiveAuthenticationPageRenderer.ScopeView(
                             scope.Value,
                             scope.Description,
-                            scope.IsGranted
+                            // A consent screen pre-selects every requested scope so Allow authorizes the request;
+                            // the subject unchecks a scope to down-scope. Defaulting to the prior-granted state would
+                            // silently drop a freshly-requested scope (e.g. openid) when the subject clicks Allow.
+                            Checked: true
                         ))
                         .ToList();
                 }

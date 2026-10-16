@@ -317,41 +317,79 @@ entry and/or ADR that closed it.
   [`docs/conformance-testing.md`](docs/conformance-testing.md).
 - **`T8` — Triage the Basic OP (DCR) live-run dispositions.** The first full browser-driven Basic OP certification run
   under Dynamic Client Registration (`T6`) completed `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` (38 modules, no
-  mass-abort). Each non-pass needs investigation against the suite's per-module log
-  (`https://localhost.emobix.co.uk:8443/api/log/<id>`) to classify it as a **backend gap to fix**, a **harness/config
-  refinement**, or a **documented, intentional deviation** to codify in `build/conformance/expected-failures.json` /
-  `expected-skips.json` (with a link back here). Known starting points from the first run:
-    - **`FAILED` — `oidcc-refresh-token`:** the token response for the `refresh_token` grant omits an `id_token`, so
-      `ExtractIdTokenFromTokenResponse` fails. When the original authorization granted `openid`, a refresh should re-issue
-      an `id_token` (OpenID Connect Core §12.2). Likely a real backend gap in the refresh-token grant handler.
-    - **`FAILED` — `oidcc-prompt-none-not-logged-in` / `oidcc-max-age-1`:** the `prompt=none` (no session →
-      `login_required`) and `max_age` forced-re-authentication semantics need verification; may be backend or harness.
-    - **`FAILED` — `oidcc-ensure-registered-redirect-uri`:** _not_ a backend defect — the OP correctly refuses to redirect
-      to an unregistered `redirect_uri`, so there is no callback page for the suite's `Verify Complete` step to confirm and
-      it times out. Decide between a harness accommodation and an `expected-failures` baseline entry.
-    - **`WARNING` (11):** `oidcc-server`, `oidcc-userinfo-post-body`, `oidcc-scope-{profile,email,address,phone,all}`,
-      `oidcc-alternate-happy-flow`, `oidcc-ensure-request-with-acr-values-succeeds`, `oidcc-codereuse-30seconds`,
-      `oidcc-claims-essential` — not yet inspected; likely minor (extra/absent claims, header expectations) but each needs
-      a look to confirm it is not masking a real gap.
-    - **`SKIPPED` (4) — spec-conformant optional-feature skips (plus one behavior the skip leaves unverified).**
-      Conformance is adherence to the spec, not a judgment about secure defaults — and the relevant spec fact is that
-      **`alg=none` support is OPTIONAL**: OIDC Discovery §3 says the `none` value for
-      `request_object_signing_alg_values_supported` _MAY_ be used, and an unsigned (`alg:none`) `id_token` is permitted
-      only for flows that return no `id_token` from the authorization endpoint (the code flow) and only when the client
-      registers it. The OP advertises signing algs without `none` (both `id_token_signing_alg_values_supported` and
-      `request_object_signing_alg_values_supported` are `RS*/PS*/ES*`), so the suite skips the optional-feature tests
-      (`oidcc-idtoken-unsigned` and the three request-object tests
-      `oidcc-{request-uri-unsigned,unsigned-request-object}-supported-correctly-or-rejected-as-unsupported`,
-      `oidcc-ensure-request-object-with-redirect-uri`, each per its own `testSummary`). The skips therefore do **not**
-      indicate non-conformance and do not block Basic OP certification. The OP **does** implement and advertise JAR
-      itself (`request_parameter_supported`/`request_uri_parameter_supported` are `true`;
-      `DefaultLoadAuthorizationRequestHandler` processes `request` and `request_uri`). **Residual item the skip hides:**
-      OIDC Core §6.1 still requires an OP that receives an unsigned request object it does not support to either process
-      it or return `request_not_supported` — verify the OP returns exactly `request_not_supported` (not a generic error
-      or 500) for an `alg:none` request object, since the skipped test would otherwise have covered it. Then codify the
-      skips in `expected-skips.json` so a future run that stops skipping them is flagged.
-      Touch points: [`build/conformance`](build/conformance), the authorization/token endpoint handlers under
-      [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication).
+  mass-abort). Each non-pass was investigated against the suite's per-module log and classified as a **backend gap to
+  fix**, a **harness/config refinement**, or a **documented, intentional deviation** codified in
+  `build/conformance/expected-failures.json` / `expected-skips.json`. **Fixed backend bugs** (see `CHANGELOG.md`):
+    - **`oidcc-refresh-token`** — the consent screen (no-JS form + SPA) pre-checked a requested scope's checkbox only
+      when it was _previously_ granted, so a first-time `prompt=consent` + `offline_access` consent posted an empty
+      `scope` set; the recorded grant lost `openid`/`offline_access` and the token response dropped the `id_token` and
+      `refresh_token`. The consent screen now pre-selects all requested scopes. (The second validation run then
+      surfaced a residual — the token endpoint omitted `Cache-Control: no-store` — see below.)
+    - **Token-endpoint `Cache-Control: no-store`** — RFC 6749 §5.1/§5.2 require it (and `Pragma: no-cache`) so tokens
+      are never cached; the OP omitted them. Now set on every token-endpoint response. Revealed by `oidcc-refresh-token`
+      once the consent fix let its refresh flow reach the refresh request (56 → 157 passing conditions).
+    - **`oidcc-prompt-none-not-logged-in`** — the inline `prompt=none` → `login_required` (and no-consent-surface →
+      `interaction_required`) errors omitted `state` (they bypass the `Authenticate`/`Authorize` post-processors that
+      stamp it). Both now echo the request `state` (OIDC Core §3.1.2.6).
+    - **`oidcc-max-age-1`** — authentication-age freshness added the 5-min `clock_skew` (so `max_age=1` never forced
+      re-auth) **and** was re-evaluated at the token/refresh endpoints against a later clock (rejecting valid exchanges
+      with `access_denied`). It now uses a pure elapsed-time comparison and runs only at the authorization endpoint via
+      `ValidateSubjectAuthenticationCommand.EnforceAuthenticationAge`.
+    - **`oidcc-ensure-registered-redirect-uri`** — the OP correctly refuses an unregistered `redirect_uri` with a 400
+      `unauthorized_client`, but the exception handler logged that expected 4xx client error at Error level as "an
+      unexpected error". 4xx `OpenIdException`s now log at Warning. The disposition itself is a **harness-automation
+      limitation** (the headless scripted-browser `Verify Complete` step waits for a happy-path callback that correctly
+      never comes and times out), codified in `expected-failures.json`.
+    - **Codified intentional deviations.** The four `SKIPPED` modules (`oidcc-idtoken-unsigned` and the three
+      request-object `…-supported-correctly-or-rejected-as-unsupported` / `oidcc-ensure-request-object-with-redirect-uri`
+      tests) are spec-conformant optional-feature skips — the OP does not advertise the OPTIONAL `alg:none` value in
+      `id_token_signing_alg_values_supported` / `request_object_signing_alg_values_supported` (asymmetric signing is the
+      secure default) — now in `expected-skips.json`. `oidcc-ensure-registered-redirect-uri` is in
+      `expected-failures.json` (both its `WebRunner` timeout and test-marker conditions).
+    - **Remaining (documented follow-ups, non-blocking for Basic OP certification):**
+        - **UserInfo scope-claims + ID-token claim placement (`WARNING`: `oidcc-server`, `oidcc-scope-{profile,email,address,phone,all}`,
+          `oidcc-alternate-happy-flow`, `oidcc-claims-essential`).** Per OIDC Core §5.4, when an access token is issued (the
+          code flow) the `profile`/`email`/`address`/`phone` scope claims belong in the **UserInfo** response, not the
+          `id_token`. Today `DefaultGetIdTokenSubjectClaimsHandler` adds those claims to the `id_token` unconditionally
+          (→ `EnsureIdTokenDoesNotContainNonRequestedClaims` warning) and no handler returns them from UserInfo
+          (→ `VerifyScopesReturnedInUserInfoClaims` / `EnsureUserInfoContainsName` warnings). The cohesive fix is one change:
+          (a) gate the `id_token` scope-claims on _no access token issued_, (b) add an account-sourced UserInfo scope-claims
+          handler, and (c) seed the conformance test user with profile claims (it currently has only email). This is a
+          feature, not a one-line fix — deferred so it lands coherently.
+        - **`acr` emission (`WARNING`: `oidcc-ensure-request-with-acr-values-succeeds`).** When `acr_values` is requested the
+          OP SHOULD return an `acr` claim; the seeded subject carries none. Tied to the ACR resolver
+          ([ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md)); give the conformance login a default `acr`.
+        - **Access-token revocation on authorization-code reuse (`WARNING`: `oidcc-codereuse-30seconds`).** RFC 6749 §4.1.2
+          SHOULD: reusing an authorization code should revoke the tokens previously issued from it. The OP correctly rejects
+          the second code use (`invalid_grant`) but does not revoke the already-issued access token.
+        - **UserInfo access token in the POST body (`WARNING`: `oidcc-userinfo-post-body`).** Accepting the access token in a
+          form-encoded body is OPTIONAL (OIDC §5.3.1 / RFC 6750 §2.2); the OP supports the recommended `Authorization: Bearer`
+          header and the query form. Decide whether to support the body form or leave it as an intentional deviation.
+        - **`alg:none` request object → `request_not_supported` (residual the `SKIPPED` tests hide).** OIDC Core §6.1
+          requires an OP that receives an unsigned request object it does not support to process it or return exactly
+          `request_not_supported`; `DefaultLoadAuthorizationRequestHandler` currently surfaces a generic
+          `invalid_request_object` for a failed JWT decode. Verify/adjust so an `alg:none` request object yields
+          `request_not_supported`, since the skipped optional-feature tests no longer cover it.
+        - **Double-login harness finalization (`oidcc-prompt-login`, and `oidcc-max-age-1` after its backend fix).** Both
+          force a _second_ interactive login; the OP completes the flow correctly (for `oidcc-prompt-login` the suite logged
+          `auth_time is later in the second id_token` and "Completed processing of webpage"; for `oidcc-max-age-1` the
+          post-fix run confirmed `auth_time is later in the second id_token`), but the suite never transitions the module to
+          `FINISHED` and times out at 240 s. This is a harness/scripted-browser finalization issue on double-login flows,
+          not a backend defect — needs a harness accommodation (it cannot be codified as a baseline because a timeout leaves
+          the module `WAITING`, not `FAILED`/`SKIPPED`).
+        - **Parallel browser-session cookie collision (`oidcc-server`, `oidcc-idtoken-signature`, `oidcc-prompt-none-logged-in`).**
+          The Basic OP plan runs with `parallel=2`; concurrent browser modules share the OP's login cookie on the single
+          `host.docker.internal:5001` origin, so one module's scripted login can land on another module's `continue` URL
+          (observed: a login submitted for `state=1fEiOJ…` completed on a page for `state=lTOSHx…`, then "Unexpected URL for
+          Verify Complete"). These modules pass in isolation and passed in the first run; the collision is
+          harness parallelism, not a backend defect. A harness accommodation (run the browser plan at `parallel=1`, or
+          isolate cookie jars per module) would make the run deterministic.
+    - Design, phases, and the baseline schema are in [`docs/conformance-testing.md`](docs/conformance-testing.md)
+      (Appendix F) and [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). Touch points:
+      [`build/conformance`](build/conformance), the authorization/token endpoint handlers and the interactive consent
+      surface under [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication) /
+      [`src/NCode.Identity.OpenId.Authentication.Interactive`](src/NCode.Identity.OpenId.Authentication.Interactive), and
+      the SPA consent form under [`src/frontend/apps/auth`](src/frontend/apps/auth).
 
 ## Frontend presentation platform (group `U`)
 

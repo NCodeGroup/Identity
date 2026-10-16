@@ -80,7 +80,9 @@ internal class DefaultValidatePasswordGrantHandler
                 openIdClient,
                 openIdRequest,
                 subjectAuthentication,
-                operationDisposition
+                operationDisposition,
+                // Direct ROPC authentication: there is no prior interactive authorization step whose max_age applies.
+                EnforceAuthenticationAge: false
             ),
             cancellationToken
         );

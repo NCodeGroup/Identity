@@ -237,20 +237,41 @@ try {
         $expectedFailures = Join-Path $ConfigDir 'expected-failures.json'
         $expectedSkips = Join-Path $ConfigDir 'expected-skips.json'
         $exportDirFull = (New-Item -ItemType Directory -Force -Path $ExportDir).FullName
+
+        # run-test-plan.py loads the whole baseline file for every plan invocation and fails the run if any entry never
+        # matches a module ("expected failure/skip not found"). The baselines are keyed by configuration-filename, so a
+        # plan whose config has no entries (e.g. the Config OP plan) would be failed by the other plan's entries. Scope
+        # each invocation to a temp baseline containing only the entries whose configuration-filename matches this plan.
+        $scopedBaselineFiles = [System.Collections.Generic.List[string]]::new()
+        function New-ScopedBaseline([string] $BaselinePath, [string] $ConfigFileName, [string] $Tag) {
+            $entries = @(Get-Content $BaselinePath -Raw | ConvertFrom-Json)
+            $scoped = @($entries | Where-Object { $ConfigFileName -like $_.'configuration-filename' })
+            $configStem = [System.IO.Path]::GetFileNameWithoutExtension($ConfigFileName)
+            $tmp = Join-Path ([System.IO.Path]::GetTempPath()) "conf-$Tag-$configStem.json"
+            Set-Content -Path $tmp -Value (ConvertTo-Json -InputObject $scoped -Depth 10 -AsArray) -Encoding utf8
+            $scopedBaselineFiles.Add($tmp)
+            return $tmp
+        }
+
         Push-Location $ConfigDir
         try {
             for ($i = 0; $i -lt $plansToRun.Count; $i++) {
                 Write-Host "    Plan: $($plansToRun[$i])  Config: $($configsToRun[$i])" -ForegroundColor Yellow
+                $planFailures = New-ScopedBaseline $expectedFailures $configsToRun[$i] 'failures'
+                $planSkips = New-ScopedBaseline $expectedSkips $configsToRun[$i] 'skips'
                 & $venvPython $runTestPlan `
                     $plansToRun[$i] $configsToRun[$i] `
-                    --expected-failures-file $expectedFailures `
-                    --expected-skips-file $expectedSkips `
+                    --expected-failures-file $planFailures `
+                    --expected-skips-file $planSkips `
                     --export-dir $exportDirFull --verbose
                 if ($LASTEXITCODE -ne 0) { $failed = $true }
             }
         }
         finally {
             Pop-Location
+            foreach ($f in $scopedBaselineFiles) {
+                Remove-Item $f -ErrorAction SilentlyContinue
+            }
         }
     }
 }

@@ -185,7 +185,10 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
                 openIdClient,
                 openIdRequest,
                 subjectAuthentication,
-                operationDisposition
+                operationDisposition,
+                // Back-channel code exchange: authentication-age freshness was already enforced at authorization, so
+                // do not re-check the fixed auth_time against the later token-endpoint clock.
+                EnforceAuthenticationAge: false
             ),
             cancellationToken
         );

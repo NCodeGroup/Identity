@@ -46,6 +46,10 @@ internal static class DefaultRegistration
                 DefaultAuthorizationCodeService
             >();
             serviceCollection.TryAddSingleton<
+                Persistence.IPersistedPayloadSerializer,
+                Persistence.DefaultPersistedPayloadSerializer
+            >();
+            serviceCollection.TryAddSingleton<
                 IPersistedGrantService,
                 DefaultPersistedGrantService
             >();

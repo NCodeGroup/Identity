@@ -280,7 +280,7 @@ entry and/or ADR that closed it.
   **measurement** surface — it tracks backend gaps, it does not implement them. **Remaining:** a **nightly / opt-in CI
   pipeline** that invokes `run-conformance.ps1` (Docker + Python 3, no local Java) and publishes the `.results/` zips —
   deferred until the repo's broader CI bootstrap lands (no `.github/workflows` exists yet); the live-run disposition
-  triage is tracked as `T8`. Design and phases are in
+  triage (`T8`) is **complete** (archived in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)). Design and phases are in
   [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md),
   [`docs/conformance-testing.md`](docs/conformance-testing.md), and
   [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md). Touch points:
@@ -288,34 +288,6 @@ entry and/or ADR that closed it.
   [`src/frontend/apps/conformance`](src/frontend/apps/conformance),
   [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner),
   [`src/frontend/packages/conformance-core`](src/frontend/packages/conformance-core).
-- **`T8` — Triage the Basic OP (DCR) live-run dispositions (remaining: one harness follow-up).** The module verdicts
-  produced by the **external OpenID Foundation Conformance Suite** (the `T1` oracle), run **locally** via
-  [`build/conformance/run-conformance.ps1 -IncludeBrowserPlans`](build/conformance/run-conformance.ps1) (`T6`). The first
-  full browser-driven Basic OP run under Dynamic Client Registration completed `18 PASSED, 11 WARNING, 4 SKIPPED,
-4 FAILED` (38 modules); after triage and fixes the plan now runs **clean** — `32 PASSED, 0 WARNING, 3 REVIEW,
-4 SKIPPED, 0 FAILED` (39 modules incl. Config OP) with a green gate (`Conformance run PASSED`), and
-  `expected-failures.json` has no entries. The full disposition log — every fixed backend bug, the codified intentional
-  skips, and the harness refinements — lives in
-  [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md) (§ "Live-run dispositions (`T8`)"), with
-  the individual fixes also in [`CHANGELOG.md`](CHANGELOG.md) and their ADRs. **Remaining (one harness follow-up,
-  non-blocking for Basic OP certification):** - **Parallel browser-session cookie collision (`oidcc-server`, `oidcc-idtoken-signature`).** The Basic OP plan runs
-  `parallel=2`; concurrent modules share the OP's login cookie on the single `host.docker.internal:5001` origin, so
-  one module's scripted login can land on another's `continue` URL. These modules pass in isolation — the collision
-  is harness parallelism, not a backend defect. A harness accommodation (run the browser plan at `parallel=1`, or
-  isolate cookie jars per module) would make the run deterministic.
-
-        The **unreachable-suite hang** follow-up is **done**: `run-conformance.ps1` now runs each `run-test-plan.py`
-        invocation under a hard wall-clock watchdog (`-PlanTimeoutSeconds`, default `1800`) that tree-kills a plan on
-        overrun, and pins the suite script's own retry bounds explicitly, so a suite that drops out mid-plan fails fast
-        instead of hanging overnight (see [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md) §
-        "Open follow-ups" and [`CHANGELOG.md`](CHANGELOG.md)).
-
-        Design, phases, and the baseline schema are in [`docs/conformance-testing.md`](docs/conformance-testing.md)
-        (Appendix F) and [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md). Touch points:
-        [`build/conformance`](build/conformance), the authorization/token endpoint handlers and the interactive consent
-        surface under [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication) /
-        [`src/NCode.Identity.OpenId.Authentication.Interactive`](src/NCode.Identity.OpenId.Authentication.Interactive), and
-        the SPA consent form under [`src/frontend/apps/auth`](src/frontend/apps/auth).
 
 ## Frontend presentation platform (group `U`)
 

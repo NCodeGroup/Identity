@@ -36,11 +36,18 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// <param name="OpenIdRequest">The <see cref="IOpenIdRequest"/> being processed.</param>
 /// <param name="SubjectAuthentication">The <see cref="SubjectAuthentication"/> identifying the authenticated end-user to validate.</param>
 /// <param name="OperationDisposition">The disposition a handler records a validation error on when the subject must not proceed.</param>
+/// <param name="EnforceAuthenticationAge">Whether to enforce the authentication-age freshness checks (the request's
+/// <c>max_age</c> and the client's <c>subject_max_age</c>). These are interactive authorization-time concerns that
+/// decide whether to force re-authentication, so they are enforced at the authorization endpoint (<c>true</c>) and
+/// skipped when a back-channel token grant (authorization-code, refresh-token, password) re-validates the subject
+/// against a later clock (<c>false</c>) — re-checking a fixed <c>auth_time</c> against the current time would
+/// wrongly reject valid code/refresh exchanges that occur after the window elapses.</param>
 [PublicAPI]
 public readonly record struct ValidateSubjectAuthenticationCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
     IOpenIdRequest OpenIdRequest,
     SubjectAuthentication SubjectAuthentication,
-    OperationDisposition<IOpenIdError> OperationDisposition
+    OperationDisposition<IOpenIdError> OperationDisposition,
+    bool EnforceAuthenticationAge
 ) : ICommand;

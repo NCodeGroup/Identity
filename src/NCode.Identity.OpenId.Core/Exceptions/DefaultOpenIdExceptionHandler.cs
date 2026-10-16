@@ -74,6 +74,15 @@ internal class DefaultOpenIdExceptionHandler(ILogger<DefaultOpenIdExceptionHandl
     private void LogException(HttpContext httpContext, Exception exception)
     {
         var requestToString = HttpContextDebugFormatter.RequestToString(httpContext.Request);
+
+        // A client-facing 4xx OpenIdException (e.g. an invalid redirect_uri or malformed request) is an expected
+        // validation outcome, not a server fault; log it at Warning so genuine 5xx faults stay the only Error entries.
+        if (exception is OpenIdException { Error: { StatusCode: >= 400 and < 500 } error })
+        {
+            Logger.ClientError(exception, requestToString, error.Code);
+            return;
+        }
+
         Logger.UnhandledException(exception, requestToString);
     }
 

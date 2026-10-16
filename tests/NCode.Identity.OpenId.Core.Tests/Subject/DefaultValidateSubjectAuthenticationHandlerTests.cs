@@ -145,7 +145,8 @@ public class DefaultValidateSubjectAuthenticationHandlerTests : BaseTests
             mockClient.Object,
             mockRequest.Object,
             subjectAuthentication,
-            disposition
+            disposition,
+            EnforceAuthenticationAge: true
         );
 
         return (command, disposition, mockContext, mockTenant);

@@ -226,7 +226,10 @@ internal class DefaultAuthorizeHandler(
                 openIdClient,
                 openIdRequest,
                 subjectAuthentication,
-                operationDisposition
+                operationDisposition,
+                // The authorization endpoint is the interactive step where max_age / subject_max_age decide whether to
+                // force re-authentication.
+                EnforceAuthenticationAge: true
             ),
             cancellationToken
         );

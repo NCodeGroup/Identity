@@ -100,6 +100,10 @@ internal class DefaultTokenEndpointProvider(
     {
         var openIdContext = httpContext.GetOpenIdContext();
 
+        // RFC 6749 §5.1/§5.2: the token endpoint MUST prevent caching of the sensitive token response. Set it up front
+        // so both the success and the error responses carry the no-store headers.
+        httpContext.Response.SetNoStore();
+
         var mediator = openIdContext.Mediator;
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdContext.ErrorFactory;

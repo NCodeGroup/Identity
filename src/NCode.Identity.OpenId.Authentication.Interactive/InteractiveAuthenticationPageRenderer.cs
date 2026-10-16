@@ -36,8 +36,10 @@ internal static class InteractiveAuthenticationPageRenderer
     // it on mount rather than rendering alongside it.
     private const string RootElement = "<div id=\"root\"></div>";
 
-    /// <summary>A single requested scope the consent form presents as a checkbox.</summary>
-    internal readonly record struct ScopeView(string Value, string? Description, bool Granted);
+    /// <summary>A single requested scope the consent form presents as a checkbox. <paramref name="Checked"/> is the
+    /// default selection state — a consent screen pre-selects the requested scopes so <c>Allow</c> authorizes the
+    /// request, and the subject unchecks a scope to down-scope the grant.</summary>
+    internal readonly record struct ScopeView(string Value, string? Description, bool Checked);
 
     /// <summary>
     /// Renders the login page: a native form POST to the login endpoint carrying <c>username</c>, <c>password</c>, the
@@ -111,7 +113,7 @@ internal static class InteractiveAuthenticationPageRenderer
         foreach (var scope in scopes)
         {
             var label = string.IsNullOrEmpty(scope.Description) ? scope.Value : scope.Description;
-            var checkedAttr = scope.Granted ? " checked" : string.Empty;
+            var checkedAttr = scope.Checked ? " checked" : string.Empty;
             form.Append(
                 CultureInfo.InvariantCulture,
                 $"<p><label><input type=\"checkbox\" name=\"scope\" value=\"{html.Encode(scope.Value)}\"{checkedAttr} /> {html.Encode(label)}</label></p>"

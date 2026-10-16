@@ -101,6 +101,11 @@ internal class DefaultAuthorizationEndpointLogic(IContinueService continueServic
         var mediator = openIdContext.Mediator;
         var redirectUri = clientRedirectContext.RedirectUri;
 
+        // Errors produced by the AuthenticateCommand / AuthorizeCommand already have their state stamped by their
+        // post-processors; the two errors created inline below (prompt=none login_required, no-consent-surface
+        // interaction_required) bypass that pipeline, so echo the request's state onto them here (OIDC Core 3.1.2.6).
+        var state = authorizationRequest.State;
+
         // the request object may have changed the response mode
         var requestObject = authorizationRequest.OriginalRequestObject;
         var effectiveResponseMode = !string.IsNullOrEmpty(requestObject?.ResponseMode)
@@ -145,7 +150,7 @@ internal class DefaultAuthorizationEndpointLogic(IContinueService continueServic
                     new AuthorizationResult(
                         redirectUri,
                         effectiveResponseMode,
-                        openIdContext.ErrorFactory.LoginRequired()
+                        openIdContext.ErrorFactory.LoginRequired().WithState(state)
                     )
                 );
             }
@@ -213,7 +218,7 @@ internal class DefaultAuthorizationEndpointLogic(IContinueService continueServic
                 new AuthorizationResult(
                     redirectUri,
                     effectiveResponseMode,
-                    openIdContext.ErrorFactory.InteractionRequired()
+                    openIdContext.ErrorFactory.InteractionRequired().WithState(state)
                 )
             );
         }

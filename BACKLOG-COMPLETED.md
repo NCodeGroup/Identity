@@ -377,6 +377,37 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `IOutboundHttpContentReader` seam (buffer-writer in, `ReadOnlySequence<byte>` out) consumed by all three body-reading
   fetches._
 
+- **`F31` — User-facing HTML error page for non-redirectable authorization errors (content negotiation).** When the
+  authorize endpoint cannot safely redirect an error back to the client — an unregistered/invalid `redirect_uri` or an
+  unresolvable `client_id` (OIDC Core §3.1.2.4: the server MUST NOT redirect to an invalid URI and SHOULD **inform the
+  resource owner**) — the OP currently returns a raw `application/json` error body
+  (`DefaultOpenIdExceptionHandler`/`OpenIdExceptionEndpointFilter`), which a browser user sees as unstyled JSON. The
+  correct behavior is a content-negotiated, human-readable HTML error page for an interactive (`Accept: text/html`)
+  request to the authorize endpoint, while programmatic callers keep the JSON body. Deliverables: a non-redirectable
+  interactive error renderer (reuse the `InteractiveAuthenticationPageRenderer` login/consent markup seam, with a stable
+  element id/heading for automation) wired into the authorize error path via content negotiation; HTML for
+  `text/html`, JSON otherwise. This also hardens the conformance harness: the
+  `oidcc-ensure-registered-redirect-uri` browser override currently matches the `unauthorized_client` code in the JSON
+  body (`build/conformance/oidcc-basic.json`); once a stable error-page element exists it can match that instead.
+  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/OpenIdExceptionEndpointFilter.cs`,
+  `src/NCode.Identity.OpenId.Core/Exceptions/DefaultOpenIdExceptionHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/DefaultAuthorizationEndpointHandler.cs`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0114](docs/adr/0114-non-redirectable-authorization-errors-are-content-negotiated.md). Delivered as a general,
+  extensible **content-negotiation seam** rather than an error-specific renderer: `OpenIdResult<T>` is now a thin
+  `IResult` that delegates to `IResultExecutor<IOpenIdResult>` (`DefaultOpenIdResultExecutor` in Core), which applies the
+  response envelope and negotiates an `IOpenIdResponseFormatter` strategy collection — each formatter declares the media
+  types it emits and a `CanFormat(IOpenIdResponse)` predicate, so the seam is open on both the response-type and
+  media-type axes (not hardcoded to errors→HTML), and only an explicit `Accept` match (never a `*/*` wildcard) selects a
+  formatter. The interactive package registers `InteractiveOpenIdErrorResponseFormatter`, which renders via the shared
+  `InteractiveAuthenticationPageRenderer.RenderErrorPage` (stable `authorization-error` element + `data-error-code`) and
+  writes the body with `SecureEncoding.UTF8`. A deployment without the interactive surface degrades gracefully to JSON.
+  The planned `OpenIdExceptionEndpointFilter`/`DefaultOpenIdExceptionHandler`/`DefaultAuthorizationEndpointHandler` touch
+  points were unnecessary — both non-redirectable error paths (the direct `error.AsHttpResult()` return and the thrown
+  `OpenIdException`) already funnel through `OpenIdResult<T>`, so negotiating there covered both without touching the
+  authorize handler or exception plumbing._
+
 ## Conformance & interop testing (group `T`)
 
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface

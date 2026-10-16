@@ -16,17 +16,19 @@
 
 #endregion
 
-using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.Results;
-using HttpResults = Microsoft.AspNetCore.Http.Results;
 
 namespace NCode.Identity.OpenId.Results;
 
 /// <summary>
-/// Provides an implementation of <see cref="IResult"/> that when executed, will render an <see cref="IOpenIdResponse"/> as a JSON response.
+/// Provides an implementation of <see cref="IResult"/> that when executed, writes an <see cref="IOpenIdResponse"/> to
+/// the HTTP response. Execution is delegated to the registered <see cref="IResultExecutor{T}"/>, which content-
+/// negotiates the representation (the default JSON body, or an alternate such as an HTML error page when an
+/// interactive client requests it).
 /// </summary>
 /// <param name="response">The <see cref="IOpenIdResponse"/> that contains information about the <c>OAuth</c> or <c>OpenID Connect</c> operation.</param>
 [PublicAPI]
@@ -44,33 +46,9 @@ public sealed class OpenIdResult<T>(T response) : IResult, IOpenIdResult
     /// <inheritdoc />
     public async Task ExecuteAsync(HttpContext httpContext)
     {
-        var jsonSerializerOptions = Response.OpenIdEnvironment.JsonSerializerOptions;
-        var statusCode = Response is ISupportStatusCode supportStatusCode
-            ? supportStatusCode.StatusCode
-            : null;
-
-        if (Response is ISupportResponseHeaders { ResponseHeaders: { } responseHeaders })
-        {
-            var headers = httpContext.Response.Headers;
-            foreach (var (name, value) in responseHeaders)
-            {
-                headers[name] = value;
-            }
-        }
-
-        var jsonResult = CreateJsonResult(Response, jsonSerializerOptions, statusCode);
-
-        await jsonResult.ExecuteAsync(httpContext);
+        var executor = httpContext.RequestServices.GetRequiredService<
+            IResultExecutor<IOpenIdResult>
+        >();
+        await executor.ExecuteAsync(httpContext, this, httpContext.RequestAborted);
     }
-
-    private static IResult CreateJsonResult(
-        IOpenIdResponse response,
-        JsonSerializerOptions jsonSerializerOptions,
-        int? statusCode
-    ) =>
-        HttpResults.Json(
-            response,
-            jsonSerializerOptions.GetTypeInfo(response.GetType()),
-            statusCode: statusCode
-        );
 }

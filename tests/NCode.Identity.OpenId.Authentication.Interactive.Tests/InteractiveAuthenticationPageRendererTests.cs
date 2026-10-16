@@ -161,4 +161,71 @@ public class InteractiveAuthenticationPageRendererTests
     }
 
     #endregion
+
+    #region RenderErrorPage Tests
+
+    [Fact]
+    public void RenderErrorPage_Always_ContainsStableAutomationElementAndErrorCode()
+    {
+        var html = InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            bundleIndexHtml: null,
+            errorCode: "unauthorized_client",
+            errorDescription: "The specified 'redirect_uri' is not valid for the associated 'client_id'."
+        );
+
+        Assert.Contains("id=\"authorization-error\"", html, StringComparison.Ordinal);
+        Assert.Contains("role=\"alert\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-error-code=\"unauthorized_client\"", html, StringComparison.Ordinal);
+        Assert.Contains("unauthorized_client", html, StringComparison.Ordinal);
+        Assert.Contains(
+            "The specified &#x27;redirect_uri&#x27; is not valid for the associated &#x27;client_id&#x27;.",
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void RenderErrorPage_WhenNoDescription_OmitsDescriptionElement()
+    {
+        var html = InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            bundleIndexHtml: null,
+            errorCode: "invalid_client",
+            errorDescription: null
+        );
+
+        Assert.Contains("id=\"authorization-error\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "id=\"authorization-error-description\"",
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void RenderErrorPage_WhenHostileErrorCode_EncodesIt()
+    {
+        var html = InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            bundleIndexHtml: null,
+            errorCode: "\"><script>alert(1)</script>",
+            errorDescription: null
+        );
+
+        Assert.DoesNotContain("<script>alert(1)</script>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderErrorPage_WhenBundlePresent_InjectsErrorIntoRoot()
+    {
+        var html = InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            bundleIndexHtml: BundleShell,
+            errorCode: "invalid_client",
+            errorDescription: null
+        );
+
+        Assert.DoesNotContain("<div id=\"root\"></div>", html, StringComparison.Ordinal);
+        Assert.Contains("<div id=\"root\"><main", html, StringComparison.Ordinal);
+        Assert.Contains("<script src=\"/app.js\">", html, StringComparison.Ordinal);
+    }
+
+    #endregion
 }

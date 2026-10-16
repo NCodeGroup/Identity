@@ -1,0 +1,55 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Messages;
+using HttpResults = Microsoft.AspNetCore.Http.Results;
+
+namespace NCode.Identity.OpenId.Results;
+
+/// <summary>
+/// The default <see cref="IOpenIdResponseFormatter"/> that writes any <see cref="IOpenIdResponse"/> as an
+/// <c>application/json</c> body — the OAuth/OpenID Connect wire default. It can format every response, so it is the
+/// fallback the negotiation resolves to when no interactive client explicitly requests an alternate representation.
+/// </summary>
+internal sealed class DefaultJsonOpenIdResponseFormatter : IOpenIdResponseFormatter
+{
+    /// <inheritdoc />
+    public IReadOnlyList<string> MediaTypes { get; } = [OpenIdConstants.MediaTypes.Json];
+
+    /// <inheritdoc />
+    public bool CanFormat(IOpenIdResponse response) => true;
+
+    /// <inheritdoc />
+    public async ValueTask WriteAsync(
+        OpenIdResponseFormatterContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var response = context.Response;
+        var jsonSerializerOptions = response.OpenIdEnvironment.JsonSerializerOptions;
+
+        var jsonResult = HttpResults.Json(
+            response,
+            jsonSerializerOptions.GetTypeInfo(response.GetType()),
+            statusCode: context.StatusCode
+        );
+
+        await jsonResult.ExecuteAsync(context.HttpContext);
+    }
+}

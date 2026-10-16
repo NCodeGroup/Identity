@@ -86,4 +86,60 @@ public class AuthorizationEndpointTests(PlaygroundApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetAuthorize_WhenBrowserAcceptsHtml_RendersHtmlErrorPage()
+    {
+        var client = CreateClient();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+        );
+        request.Headers.Accept.ParseAdd("text/html,application/xhtml+xml,*/*;q=0.8");
+
+        using var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("id=\"authorization-error\"", body, StringComparison.Ordinal);
+        Assert.Contains(OpenIdConstants.ErrorCodes.InvalidClient, body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WhenClientAcceptsJson_ReturnsJsonError()
+    {
+        var client = CreateClient();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+        );
+        request.Headers.Accept.ParseAdd("application/json");
+
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WhenWildcardAccept_ReturnsJsonError()
+    {
+        var client = CreateClient();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+        );
+        request.Headers.Accept.ParseAdd("*/*");
+
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
+    }
 }

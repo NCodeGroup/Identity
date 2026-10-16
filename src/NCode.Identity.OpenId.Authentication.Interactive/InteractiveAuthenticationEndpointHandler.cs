@@ -53,7 +53,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     ISessionService sessionService,
     TimeProvider timeProvider,
     IAntiforgery antiforgery,
-    InteractiveAuthenticationOptions options
+    InteractiveBundleReader bundleReader
 ) : IEndpointProvider
 {
     // The `scope` form value that selects "sign out everywhere else" (retain the current session); any other value is
@@ -66,7 +66,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private ISessionService SessionService { get; } = sessionService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IAntiforgery Antiforgery { get; } = antiforgery;
-    private InteractiveAuthenticationOptions Options { get; } = options;
+    private InteractiveBundleReader BundleReader { get; } = bundleReader;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -116,7 +116,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var tokens = IssueAntiforgeryTokens(httpContext);
         var query = httpContext.Request.Query;
         var html = InteractiveAuthenticationPageRenderer.RenderLoginPage(
-            await TryReadBundleIndexAsync(httpContext.RequestAborted),
+            await BundleReader.TryReadIndexHtmlAsync(httpContext.RequestAborted),
             query["ReturnUrl"].ToString(),
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
@@ -173,7 +173,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         }
 
         var html = InteractiveAuthenticationPageRenderer.RenderConsentPage(
-            await TryReadBundleIndexAsync(httpContext.RequestAborted),
+            await BundleReader.TryReadIndexHtmlAsync(httpContext.RequestAborted),
             rawReturnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
@@ -855,32 +855,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     {
         IssueAntiforgeryTokens(httpContext);
 
-        var html = await TryReadBundleIndexAsync(httpContext.RequestAborted);
+        var html = await BundleReader.TryReadIndexHtmlAsync(httpContext.RequestAborted);
         if (html is null)
         {
             return BundleMissingResult();
         }
 
         return TypedResults.Content(html, "text/html");
-    }
-
-    // Reads the single-page bundle's index.html, or null when no bundle is configured/available (the no-JS login and
-    // consent forms then render standalone).
-    private async ValueTask<string?> TryReadBundleIndexAsync(CancellationToken cancellationToken)
-    {
-        var bundleRootPath = Options.BundleRootPath;
-        if (string.IsNullOrEmpty(bundleRootPath))
-        {
-            return null;
-        }
-
-        var indexPath = Path.Combine(bundleRootPath, "index.html");
-        if (!File.Exists(indexPath))
-        {
-            return null;
-        }
-
-        return await File.ReadAllTextAsync(indexPath, cancellationToken);
     }
 
     // Mirrors the apps/auth describeLoginError mapping so the no-JS login form shows the same messages.

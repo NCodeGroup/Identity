@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Results;
 using NCode.Registration;
@@ -39,6 +40,20 @@ internal static class DefaultRegistration
         public IServiceBuilder<OpenIdCoreLibrary> AddResultServices()
         {
             var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection.TryAddSingleton<
+                IResultExecutor<IOpenIdResult>,
+                DefaultOpenIdResultExecutor
+            >();
+
+            // The default application/json representation is itself a formatter, so it participates in the same
+            // content-negotiation pipeline as any alternate representation rather than being a special-cased fallback.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IOpenIdResponseFormatter,
+                    DefaultJsonOpenIdResponseFormatter
+                >()
+            );
 
             serviceCollection.TryAddSingleton<
                 IResultExecutor<OpenIdRedirectResult>,

@@ -251,6 +251,8 @@ const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.None = 
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.Sliding = "sliding" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy.None = "none" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy.RevokeAll = "revoke_all" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.MediaTypes.Html = "text/html" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.MediaTypes.Json = "application/json" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.FormPost = "form_post" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.Fragment = "fragment" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.Query = "query" -> string!
@@ -421,6 +423,10 @@ NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.InvokeAsync(Micro
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.OpenIdEnvironmentEndpointFilter(NCode.Identity.OpenId.Contexts.IOpenIdContextFactory! openIdContextFactory, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor! ambientTenantAccessor) -> void
 NCode.Identity.OpenId.OpenIdConstants.ConfirmationMethods
 NCode.Identity.OpenId.OpenIdConstants.DPoP
+NCode.Identity.OpenId.Results.IOpenIdResponseFormatter
+NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.CanFormat(NCode.Identity.OpenId.Messages.IOpenIdResponse! response) -> bool
+NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.MediaTypes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.WriteAsync(NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Results.IOpenIdResult
 NCode.Identity.OpenId.Results.IOpenIdResult.Response.get -> NCode.Identity.OpenId.Messages.IOpenIdResponse!
 NCode.Identity.OpenId.Settings.ISecurityProfile
@@ -637,6 +643,7 @@ NCode.Identity.OpenId.OpenIdConstants.EndpointPaths
 NCode.Identity.OpenId.OpenIdConstants.EndpointTags
 NCode.Identity.OpenId.OpenIdConstants.ErrorCodes
 NCode.Identity.OpenId.OpenIdConstants.GrantTypes
+NCode.Identity.OpenId.OpenIdConstants.MediaTypes
 NCode.Identity.OpenId.OpenIdConstants.Parameters
 NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes
 NCode.Identity.OpenId.OpenIdConstants.PromptTypes
@@ -688,6 +695,16 @@ NCode.Identity.OpenId.Results.OpenIdRedirectResult.RedirectUrl.init -> void
 NCode.Identity.OpenId.Results.OpenIdResponseExtensions
 NCode.Identity.OpenId.Results.OpenIdResponseExtensions.extension<T>(T!)
 NCode.Identity.OpenId.Results.OpenIdResponseExtensions.extension<T>(T!).AsHttpResult() -> Microsoft.AspNetCore.Http.IResult!
+NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext
+NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext.HttpContext.init -> void
+NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext.MediaType.get -> string!
+NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext.MediaType.init -> void
+NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext.OpenIdResponseFormatterContext() -> void
+NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext.Response.get -> NCode.Identity.OpenId.Messages.IOpenIdResponse!
+NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext.Response.init -> void
+NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext.StatusCode.get -> int?
+NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext.StatusCode.init -> void
 NCode.Identity.OpenId.Results.OpenIdResult<T>
 NCode.Identity.OpenId.Results.OpenIdResult<T>.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext) -> System.Threading.Tasks.Task!
 NCode.Identity.OpenId.Results.OpenIdResult<T>.OpenIdResult(T! response) -> void

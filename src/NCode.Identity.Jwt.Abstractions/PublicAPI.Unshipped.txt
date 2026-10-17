@@ -40,8 +40,6 @@ NCode.Identity.Jwt.Encoding.JwtEncodingParameters.SubjectClaims.get -> System.Co
 NCode.Identity.Jwt.Encoding.JwtEncodingParameters.SubjectClaims.init -> void
 NCode.Identity.Jwt.Encoding.JwtEncodingParameters.TokenType.get -> string!
 NCode.Identity.Jwt.Encoding.JwtEncodingParameters.TokenType.init -> void
-NCode.Identity.Jwt.JsonWebTokensLibrary
-NCode.Identity.Jwt.JsonWebTokensLibrary.JsonWebTokensLibrary() -> void
 NCode.Identity.Jwt.JwtLibrary
 NCode.Identity.Jwt.JwtLibrary.JwtLibrary() -> void
 NCode.Identity.Jwt.Validation.AssertionRequirement

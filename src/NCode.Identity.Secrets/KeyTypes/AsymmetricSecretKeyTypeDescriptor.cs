@@ -25,6 +25,7 @@ using JetBrains.Annotations;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
+using NCode.Json;
 
 namespace NCode.Identity.Secrets.KeyTypes;
 
@@ -142,16 +143,12 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
                 nameof(keyMaterial)
             );
 
-        if (
-            !root.TryGetProperty("kty", out var ktyElement)
-            || ktyElement.ValueKind != JsonValueKind.String
-        )
+        if (!root.TryGetPropertyValue<string>("kty", out var kty))
             throw new ArgumentException(
                 "The supplied JWK is missing the 'kty' member.",
                 nameof(keyMaterial)
             );
 
-        var kty = ktyElement.GetString();
         if (!string.Equals(kty, ExpectedJwkKeyType, StringComparison.Ordinal))
             throw new ArgumentException(
                 $"The JWK key type '{kty}' does not match the expected '{ExpectedJwkKeyType}' for a "
@@ -257,15 +254,12 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
     /// </summary>
     protected static byte[] GetRequiredBase64UrlMember(JsonElement root, string memberName)
     {
-        if (
-            !root.TryGetProperty(memberName, out var element)
-            || element.ValueKind != JsonValueKind.String
-        )
+        if (!root.TryGetPropertyValue<string>(memberName, out var value))
             throw new ArgumentException($"The supplied JWK is missing the '{memberName}' member.");
 
         try
         {
-            return Base64Url.DecodeFromChars(element.GetString());
+            return Base64Url.DecodeFromChars(value);
         }
         catch (FormatException exception)
         {

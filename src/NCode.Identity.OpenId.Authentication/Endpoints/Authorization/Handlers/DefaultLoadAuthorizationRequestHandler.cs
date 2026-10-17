@@ -34,6 +34,7 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Settings;
+using NCode.Json;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
@@ -239,10 +240,12 @@ internal class DefaultLoadAuthorizationRequestHandler(
                 return false;
             }
 
-            return joseToken.Header.TryGetProperty(JoseClaimNames.Header.Alg, out var algElement)
-                && algElement.ValueKind == JsonValueKind.String
+            return joseToken.Header.TryGetPropertyValue<string>(
+                    JoseClaimNames.Header.Alg,
+                    out var alg
+                )
                 && string.Equals(
-                    algElement.GetString(),
+                    alg,
                     AlgorithmCodes.DigitalSignature.None,
                     StringComparison.OrdinalIgnoreCase
                 );

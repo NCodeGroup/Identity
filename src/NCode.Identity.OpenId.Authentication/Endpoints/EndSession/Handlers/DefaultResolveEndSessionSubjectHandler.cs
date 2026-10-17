@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Json;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
@@ -170,9 +171,7 @@ internal class DefaultResolveEndSessionSubjectHandler(
     }
 
     private static string? GetString(JsonElement payload, string name) =>
-        payload.TryGetProperty(name, out var element) && element.ValueKind == JsonValueKind.String
-            ? element.GetString()
-            : null;
+        payload.TryGetPropertyValue<string>(name, out var value) ? value : null;
 
     private static string? GetAudience(JsonElement payload)
     {

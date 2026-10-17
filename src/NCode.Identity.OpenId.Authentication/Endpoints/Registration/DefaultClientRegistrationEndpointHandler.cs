@@ -40,6 +40,7 @@ using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Json;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 
@@ -813,14 +814,13 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         if (
             jwk.ValueKind != JsonValueKind.Object
-            || !jwk.TryGetProperty("kty", out var ktyElement)
-            || ktyElement.ValueKind != JsonValueKind.String
+            || !jwk.TryGetPropertyValue<string>("kty", out var kty)
         )
         {
             return true;
         }
 
-        var secretType = ktyElement.GetString() switch
+        var secretType = kty switch
         {
             "RSA" => SecretTypes.Rsa,
             "EC" => SecretTypes.Ecc,
@@ -862,10 +862,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     private static string? ReadStringMember(JsonElement element, string memberName) =>
-        element.TryGetProperty(memberName, out var member)
-        && member.ValueKind == JsonValueKind.String
-            ? member.GetString()
-            : null;
+        element.TryGetPropertyValue<string>(memberName, out var value) ? value : null;
 
     /// <summary>
     /// Projects the submitted metadata and the resolved values into the client's persisted settings document.

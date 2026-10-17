@@ -24,6 +24,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
+using NCode.Json;
 
 namespace NCode.Identity.Secrets.KeyTypes;
 
@@ -74,13 +75,9 @@ internal sealed class EccSecretKeyTypeDescriptor(
         JsonElement root
     )
     {
-        if (
-            !root.TryGetProperty("crv", out var crvElement)
-            || crvElement.ValueKind != JsonValueKind.String
-        )
+        if (!root.TryGetPropertyValue<string>("crv", out var curveName))
             throw new ArgumentException("The supplied EC JWK is missing the 'crv' member.");
 
-        var curveName = crvElement.GetString();
         if (
             string.IsNullOrEmpty(curveName)
             || !EccCurveCatalog.TryGetByName(curveName, out var specification)

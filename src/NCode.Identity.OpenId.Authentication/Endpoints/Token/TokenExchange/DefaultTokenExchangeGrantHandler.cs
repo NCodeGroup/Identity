@@ -35,6 +35,7 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Settings;
+using NCode.Json;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
@@ -617,11 +618,7 @@ internal class DefaultTokenExchangeGrantHandler(
 
     private static DateTimeOffset? ReadAuthTime(JsonElement payload)
     {
-        if (
-            payload.TryGetProperty(JoseClaimNames.Payload.AuthTime, out var authTime)
-            && authTime.ValueKind == JsonValueKind.Number
-            && authTime.TryGetInt64(out var seconds)
-        )
+        if (payload.TryGetPropertyValue<long>(JoseClaimNames.Payload.AuthTime, out var seconds))
         {
             return DateTimeOffset.FromUnixTimeSeconds(seconds);
         }
@@ -630,9 +627,7 @@ internal class DefaultTokenExchangeGrantHandler(
     }
 
     private static string? GetStringClaim(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var property) && property.ValueKind == JsonValueKind.String
-            ? property.GetString()
-            : null;
+        element.TryGetPropertyValue<string>(name, out var value) ? value : null;
 
     private static List<string> GetAudiences(JsonElement payload)
     {
@@ -642,7 +637,7 @@ internal class DefaultTokenExchangeGrantHandler(
             return audiences;
         }
 
-        if (aud.ValueKind == JsonValueKind.String && aud.GetString() is { } single)
+        if (aud.TryGetValue<string>(out var single))
         {
             audiences.Add(single);
         }
@@ -650,7 +645,7 @@ internal class DefaultTokenExchangeGrantHandler(
         {
             foreach (var element in aud.EnumerateArray())
             {
-                if (element.ValueKind == JsonValueKind.String && element.GetString() is { } value)
+                if (element.TryGetValue<string>(out var value))
                 {
                     audiences.Add(value);
                 }

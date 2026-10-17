@@ -20,6 +20,7 @@ using System.Text.Json;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Settings;
 
@@ -69,10 +70,7 @@ internal sealed class IssuerOnlyAssertionAudienceRequirement
                 var list = new List<string>(aud.GetArrayLength());
                 foreach (var item in aud.EnumerateArray())
                 {
-                    if (
-                        item.ValueKind == JsonValueKind.String
-                        && item.GetString() is { Length: > 0 } value
-                    )
+                    if (item.TryGetValue<string>(out var value) && value is { Length: > 0 })
                         list.Add(value);
                 }
                 return list;

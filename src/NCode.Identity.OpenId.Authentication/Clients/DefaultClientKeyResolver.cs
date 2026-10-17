@@ -30,6 +30,7 @@ using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
@@ -269,14 +270,13 @@ internal sealed class DefaultClientKeyResolver(
     {
         if (
             jwk.ValueKind != JsonValueKind.Object
-            || !jwk.TryGetProperty("kty", out var ktyElement)
-            || ktyElement.ValueKind != JsonValueKind.String
+            || !jwk.TryGetPropertyValue<string>("kty", out var kty)
         )
         {
             return null;
         }
 
-        var secretType = ktyElement.GetString() switch
+        var secretType = kty switch
         {
             "RSA" => SecretTypes.Rsa,
             "EC" => SecretTypes.Ecc,
@@ -328,8 +328,5 @@ internal sealed class DefaultClientKeyResolver(
         $"NCode.Identity.OpenId.Authentication.Clients.DefaultClientKeyResolver:{uri.AbsoluteUri}";
 
     private static string? ReadStringMember(JsonElement element, string memberName) =>
-        element.TryGetProperty(memberName, out var member)
-        && member.ValueKind == JsonValueKind.String
-            ? member.GetString()
-            : null;
+        element.TryGetPropertyValue<string>(memberName, out var value) ? value : null;
 }

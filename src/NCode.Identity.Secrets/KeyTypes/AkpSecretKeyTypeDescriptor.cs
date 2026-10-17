@@ -28,6 +28,7 @@ using NCode.Extensions.DataProtection;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
+using NCode.Json;
 
 namespace NCode.Identity.Secrets.KeyTypes;
 
@@ -264,19 +265,14 @@ public sealed class AkpSecretKeyTypeDescriptor(
             );
         }
 
-        if (
-            !root.TryGetProperty("kty", out var kty)
-            || kty.ValueKind != JsonValueKind.String
-            || kty.GetString() != "AKP"
-        )
+        if (!root.TryGetPropertyValue<string>("kty", out var kty) || kty != "AKP")
         {
             throw new ArgumentException("The supplied JWK is not an 'AKP' key.");
         }
 
         if (
-            !root.TryGetProperty("alg", out var alg)
-            || alg.ValueKind != JsonValueKind.String
-            || !MlDsaParameterSets.TryGetByName(alg.GetString(), out var algorithm)
+            !root.TryGetPropertyValue<string>("alg", out var alg)
+            || !MlDsaParameterSets.TryGetByName(alg, out var algorithm)
         )
         {
             throw new ArgumentException(
@@ -284,7 +280,7 @@ public sealed class AkpSecretKeyTypeDescriptor(
             );
         }
 
-        if (!root.TryGetProperty("pub", out var pub) || pub.ValueKind != JsonValueKind.String)
+        if (!root.TryGetPropertyValue<string>("pub", out var pub))
         {
             throw new ArgumentException("The supplied AKP JWK is missing the 'pub' member.");
         }
@@ -292,7 +288,7 @@ public sealed class AkpSecretKeyTypeDescriptor(
         byte[] publicKey;
         try
         {
-            publicKey = Base64Url.DecodeFromChars(pub.GetString());
+            publicKey = Base64Url.DecodeFromChars(pub);
         }
         catch (FormatException exception)
         {

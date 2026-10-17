@@ -22,29 +22,13 @@ using System.Diagnostics;
 using System.Text;
 using NCode.Buffers;
 using NCode.Encoders;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Json;
-using Nerdbank.Streams;
 
 namespace NCode.Identity.Jose;
 
 partial class JoseSerializer
 {
-    private string DecodeJws(CompactJwt compactJwt, SecretKey secretKey)
-    {
-        using var payloadBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
-        DecodeJws(compactJwt, secretKey, payloadBuffer);
-        return DecodeUtf8(payloadBuffer);
-    }
-
-    private T? DeserializeJws<T>(CompactJwt compactJwt, SecretKey secretKey)
-    {
-        using var payloadBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
-        DecodeJws(compactJwt, secretKey, payloadBuffer);
-        return Deserialize<T>(payloadBuffer);
-    }
-
     private void DecodeJws(
         CompactJwt compactJwt,
         SecretKey secretKey,
@@ -58,20 +42,14 @@ partial class JoseSerializer
         */
         Debug.Assert(compactJwt.ProtectionType == JoseProtectionTypes.Jws);
 
-        // JWS Protected Header
-        var jwsProtectedHeader = compactJwt.Segments.First;
-        var encodedHeader = compactJwt.EncodedHeader;
-        var header = compactJwt.DeserializedHeader;
+        var segments = compactJwt.Segments;
+        if (segments.Count != JwsSegmentCount)
+            throw new InvalidOperationException("Malformed JWS token.");
 
-        // JWS Payload
-        var jwsPayload =
-            jwsProtectedHeader.Next ?? throw new InvalidOperationException("Malformed JWS token.");
-        var encodedPayload = jwsPayload.Memory.Span;
-
-        // JWS Signature
-        var jwsSignature =
-            jwsPayload.Next ?? throw new InvalidOperationException("Malformed JWS token.");
-        var encodedSignature = jwsSignature.Memory.Span;
+        var header = compactJwt.Header;
+        var encodedHeader = segments[0].Span;
+        var encodedPayload = segments[1].Span;
+        var encodedSignature = segments[2].Span;
 
         VerifyJws(secretKey, header, encodedHeader, encodedPayload, encodedSignature);
 

@@ -93,10 +93,15 @@ internal partial class JoseSerializer(
     }
 
     /// <inheritdoc />
-    public CompactJwt ParseCompactJwt(string token)
+    public JoseToken Parse(string token)
     {
-        var segments = token.SplitSegments('.');
-        var protectionType = segments.Count switch
+        if (IsJsonSerialized(token))
+            return ParseJson(token);
+
+        var tokenSpan = token.AsSpan();
+        Span<Range> ranges = stackalloc Range[JweSegmentCount + 1];
+        var count = tokenSpan.Split(ranges, '.');
+        var protectionType = count switch
         {
             JwsSegmentCount => JoseProtectionTypes.Jws,
             JweSegmentCount => JoseProtectionTypes.Jwe,
@@ -105,8 +110,12 @@ internal partial class JoseSerializer(
             ),
         };
 
-        var deserializedHeader = DeserializeHeader(segments.First.Memory.Span);
-        return new CompactJwt(protectionType, segments, deserializedHeader);
+        var segments = new ReadOnlyMemory<char>[count];
+        for (var i = 0; i < count; i++)
+            segments[i] = token.AsMemory(ranges[i]);
+
+        var header = DeserializeHeader(segments[0].Span);
+        return new CompactJwt(protectionType, header, token, segments);
     }
 
     private static JsonElement DeserializeHeader(ReadOnlySpan<char> encodedHeader)
@@ -116,28 +125,56 @@ internal partial class JoseSerializer(
     }
 
     /// <inheritdoc />
-    public string Decode(string token, SecretKey secretKey) => Decode(token, secretKey, out _);
-
-    /// <inheritdoc />
-    public string Decode(string token, SecretKey secretKey, out JsonElement header)
+    public void Decode(JoseToken token, SecretKey secretKey, IBufferWriter<byte> payload)
     {
-        if (IsJsonSerialized(token))
-            return DecodeJson(token, secretKey, out header);
+        switch (token)
+        {
+            case CompactJwt compactJwt:
+                DecodeCompact(compactJwt, secretKey, payload);
+                break;
 
-        var compact = ParseCompactJwt(token);
-        var payload = Decode(compact, secretKey);
-        header = compact.DeserializedHeader;
-        return payload;
+            case JsonJwt jsonJwt:
+                DecodeJson(jsonJwt, secretKey, payload);
+                break;
+
+            default:
+                throw new JoseException(
+                    $"The token type '{token.GetType().Name}' is not supported."
+                );
+        }
+    }
+
+    private void DecodeCompact(
+        CompactJwt compactJwt,
+        SecretKey secretKey,
+        IBufferWriter<byte> payload
+    )
+    {
+        switch (compactJwt.ProtectionType)
+        {
+            case JoseProtectionTypes.Jws:
+                DecodeJws(compactJwt, secretKey, payload);
+                break;
+
+            case JoseProtectionTypes.Jwe:
+                DecryptJwe(compactJwt, secretKey, payload);
+                break;
+
+            default:
+                throw new InvalidOperationException();
+        }
     }
 
     /// <inheritdoc />
-    public string Decode(CompactJwt compactJwt, SecretKey secretKey) =>
-        compactJwt.ProtectionType switch
-        {
-            JoseProtectionTypes.Jws => DecodeJws(compactJwt, secretKey),
-            JoseProtectionTypes.Jwe => DecodeJwe(compactJwt, secretKey),
-            _ => throw new InvalidOperationException(),
-        };
+    public string Decode(JoseToken token, SecretKey secretKey)
+    {
+        using var payloadBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
+        Decode(token, secretKey, payloadBuffer);
+        return DecodeUtf8(payloadBuffer.AsReadOnlySequence);
+    }
+
+    /// <inheritdoc />
+    public string Decode(string token, SecretKey secretKey) => Decode(Parse(token), secretKey);
 
     private static string DecodeUtf8(ReadOnlySequence<byte> byteSequence)
     {
@@ -147,42 +184,112 @@ internal partial class JoseSerializer(
     }
 
     /// <inheritdoc />
-    public T? Deserialize<T>(string token, SecretKey secretKey) =>
-        Deserialize<T>(token, secretKey, out _);
+    public T? Deserialize<T>(JoseToken token, SecretKey secretKey) =>
+        Deserialize<T>(token, secretKey, jsonOptions: null);
 
     /// <inheritdoc />
-    public T? Deserialize<T>(string token, SecretKey secretKey, out JsonElement header)
+    public T? Deserialize<T>(
+        JoseToken token,
+        SecretKey secretKey,
+        JsonSerializerOptions? jsonOptions
+    )
     {
-        if (IsJsonSerialized(token))
-            return DeserializeJson<T>(token, secretKey, out header);
-
-        var compact = ParseCompactJwt(token);
-        var payload = Deserialize<T>(compact, secretKey);
-        header = compact.DeserializedHeader;
-        return payload;
+        using var payloadBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
+        Decode(token, secretKey, payloadBuffer);
+        return Deserialize<T>(payloadBuffer.AsReadOnlySequence, jsonOptions);
     }
 
     /// <inheritdoc />
-    public T? Deserialize<T>(CompactJwt compactJwt, SecretKey secretKey) =>
-        compactJwt.ProtectionType switch
-        {
-            JoseProtectionTypes.Jws => DeserializeJws<T>(compactJwt, secretKey),
-            JoseProtectionTypes.Jwe => DeserializeJwe<T>(compactJwt, secretKey),
-            _ => throw new InvalidOperationException(),
-        };
+    public T? Deserialize<T>(string token, SecretKey secretKey) =>
+        Deserialize<T>(Parse(token), secretKey, jsonOptions: null);
 
-    private T? Deserialize<T>(ReadOnlySequence<byte> byteSequence)
+    /// <inheritdoc />
+    public T? Deserialize<T>(
+        string token,
+        SecretKey secretKey,
+        JsonSerializerOptions? jsonOptions
+    ) => Deserialize<T>(Parse(token), secretKey, jsonOptions);
+
+    private T? Deserialize<T>(
+        ReadOnlySequence<byte> byteSequence,
+        JsonSerializerOptions? jsonOptions
+    )
     {
-        var jsonOptions = JoseSerializerOptions.JsonSerializerOptions;
+        var options = jsonOptions ?? JoseSerializerOptions.JsonSerializerOptions;
         var readerOptions = new JsonReaderOptions
         {
-            AllowTrailingCommas = jsonOptions.AllowTrailingCommas,
-            CommentHandling = jsonOptions.ReadCommentHandling,
-            MaxDepth = jsonOptions.MaxDepth,
+            AllowTrailingCommas = options.AllowTrailingCommas,
+            CommentHandling = options.ReadCommentHandling,
+            MaxDepth = options.MaxDepth,
         };
         var reader = new Utf8JsonReader(byteSequence, readerOptions);
-        return JsonSerializer.Deserialize<T>(ref reader, jsonOptions);
+        return JsonSerializer.Deserialize<T>(ref reader, options);
     }
+
+    /// <inheritdoc />
+    public void VerifyJws(JoseToken token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload)
+    {
+        switch (token)
+        {
+            case CompactJwt compactJwt:
+                VerifyJwsCompact(compactJwt, secretKey, detachedPayload);
+                break;
+
+            case JsonJwt jsonJwt:
+                VerifyJwsJson(jsonJwt, secretKey, detachedPayload);
+                break;
+
+            default:
+                throw new JoseException(
+                    $"The token type '{token.GetType().Name}' is not supported."
+                );
+        }
+    }
+
+    /// <inheritdoc />
+    public void VerifyJws(JoseToken token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload)
+    {
+        var byteCount = SecureEncoding.UTF8.GetByteCount(detachedPayload);
+        using var lease = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> bytes);
+        var bytesWritten = SecureEncoding.UTF8.GetBytes(detachedPayload, bytes);
+        VerifyJws(token, secretKey, bytes[..bytesWritten]);
+    }
+
+    /// <inheritdoc />
+    public void VerifyJws<T>(JoseToken token, SecretKey secretKey, T detachedPayload) =>
+        VerifyJws(token, secretKey, detachedPayload, jsonOptions: null);
+
+    /// <inheritdoc />
+    public void VerifyJws<T>(
+        JoseToken token,
+        SecretKey secretKey,
+        T detachedPayload,
+        JsonSerializerOptions? jsonOptions
+    )
+    {
+        using var _ = SerializeToUtf8(detachedPayload, jsonOptions, out var bytes);
+        VerifyJws(token, secretKey, bytes);
+    }
+
+    /// <inheritdoc />
+    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<byte> detachedPayload) =>
+        VerifyJws(Parse(token), secretKey, detachedPayload);
+
+    /// <inheritdoc />
+    public void VerifyJws(string token, SecretKey secretKey, ReadOnlySpan<char> detachedPayload) =>
+        VerifyJws(Parse(token), secretKey, detachedPayload);
+
+    /// <inheritdoc />
+    public void VerifyJws<T>(string token, SecretKey secretKey, T detachedPayload) =>
+        VerifyJws(Parse(token), secretKey, detachedPayload, jsonOptions: null);
+
+    /// <inheritdoc />
+    public void VerifyJws<T>(
+        string token,
+        SecretKey secretKey,
+        T detachedPayload,
+        JsonSerializerOptions? jsonOptions
+    ) => VerifyJws(Parse(token), secretKey, detachedPayload, jsonOptions);
 
     /// <summary>
     /// Provides the ability to serialize a value to UTF8 using memory pooling.

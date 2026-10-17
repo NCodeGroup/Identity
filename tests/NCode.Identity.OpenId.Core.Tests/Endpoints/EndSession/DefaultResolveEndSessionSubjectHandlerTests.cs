@@ -144,7 +144,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
 
     private void SetupValidHint(JsonElement payload)
     {
-        var compactJwt = new CompactJwt("JWS", "aaa.bbb.ccc".SplitSegments('.'), default);
+        var compactJwt = new CompactJwt("JWS", default, "aaa.bbb.ccc", []);
         var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey: null!);
         var result = ValidateJwtResult.Success(
             new ValidateJwtParameters(),

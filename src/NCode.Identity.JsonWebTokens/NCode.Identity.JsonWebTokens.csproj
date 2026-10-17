@@ -9,6 +9,7 @@
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.JsonWebTokens.Abstractions\NCode.Identity.JsonWebTokens.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
     </ItemGroup>
 
     <ItemGroup>

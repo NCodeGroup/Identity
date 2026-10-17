@@ -64,7 +64,7 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D8`      | `D7`       |
+| `D` — Deferred, intentionally not-yet | `D10`     | `D9`       |
 | `F` — Feature gaps                    | `F39`     | `F38`      |
 | `T` — Conformance & interop testing   | `T9`      | `T8`       |
 | `U` — Frontend presentation platform  | `U14`     | `U13`      |
@@ -102,6 +102,28 @@ entry and/or ADR that closed it.
   folders. Each should be evaluated and, where it is a genuine grab-bag (not a legitimately-named slice), split the same
   way for family-wide consistency with the §3 "folder/namespace by purpose" convention. Scoped out of the Secrets sweep
   to keep that change reviewable; revisit as a dedicated cohesion pass.
+- **`D8` — Split the `NCode.Identity.JsonWebTokens` service contract into its `.Abstractions` package.** Unlike the
+  Jose and OpenId families (where `IJoseSerializer`, OpenId service interfaces, and their DTOs live in `*.Abstractions`),
+  the entire JsonWebTokens service surface — `IJsonWebTokenService` plus its contract DTOs `DecodedJwt`,
+  `ValidateJwtResult`, `EncodeJwtParameters`, `ValidateJwtContext`, and the data-only shape of `ValidateJwtParameters`
+  — currently lives in the **impl** package `NCode.Identity.JsonWebTokens`, while `NCode.Identity.JsonWebTokens.Abstractions`
+  holds only the `JsonWebTokensLibrary` marker. The cohesive long-term design moves the pure-contract cluster into the
+  `.Abstractions` package and leaves the logic (`DefaultJsonWebTokenService`, `Validators`,
+  `ValidateJwtParametersExtensions`, and the default-delegate factories on `ValidateJwtParameters`) in impl, so
+  Abstractions-only consumers (the OpenId.Authentication handlers) depend on contracts, not the implementation. A
+  sizable but mechanical breaking change (acceptable under the greenfield posture). Deferred to keep it from entangling
+  the in-flight JOSE serializer refactor; do it as its own focused pass. Touch points:
+  `src/NCode.Identity.JsonWebTokens/` (contract types + `IJsonWebTokenService`),
+  `src/NCode.Identity.JsonWebTokens.Abstractions/`, and the OpenId.Authentication handler consumers.
+- **`D9` — `DictionaryExtensions.TryGetValue<T>` carries logic inside the `*.Abstractions` package.**
+  `NCode.Identity.Jose.Abstractions/Extensions/DictionaryExtensions.cs` exposes a C# 14 `extension(IDictionary<string,
+  object>)` member with a real method body — a typed `TryGetValue<T>` — which violates the house rule that
+  `*.Abstractions` packages hold only dumb DTOs / POCOs / interfaces / contracts (no logic). It stays for now because it
+  is consumed widely by **Abstractions-only** OpenId handlers via `using NCode.Identity.Jose.Extensions;`, so relocating
+  it (e.g. into an impl/helper package, or replacing the call sites with a local helper) is a cross-cutting change best
+  done deliberately. Revisit as a dedicated no-logic-in-abstractions cleanup. Touch points:
+  `src/NCode.Identity.Jose.Abstractions/Extensions/DictionaryExtensions.cs` and every `NCode.Identity.Jose.Extensions`
+  consumer.
 
 ## Feature gaps — not yet implemented (group `F`)
 

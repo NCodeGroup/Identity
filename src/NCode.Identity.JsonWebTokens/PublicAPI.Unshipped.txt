@@ -5,7 +5,7 @@ const NCode.Identity.JsonWebTokens.JsonClaimValueTypes.JsonArray = "JSON_ARRAY" 
 const NCode.Identity.JsonWebTokens.JsonClaimValueTypes.JsonNull = "JSON_NULL" -> string!
 NCode.Identity.JsonWebTokens.CreateClaimsIdentityAsync
 NCode.Identity.JsonWebTokens.DecodedJwt
-NCode.Identity.JsonWebTokens.DecodedJwt.DecodedJwt(NCode.Identity.Jose.CompactJwt compactJwt, System.Text.Json.JsonElement payload, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> void
+NCode.Identity.JsonWebTokens.DecodedJwt.DecodedJwt(NCode.Identity.Jose.JoseToken! token, System.Text.Json.JsonElement payload, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> void
 NCode.Identity.JsonWebTokens.DecodedJwt.EncodedToken.get -> string!
 NCode.Identity.JsonWebTokens.DecodedJwt.Header.get -> System.Text.Json.JsonElement
 NCode.Identity.JsonWebTokens.DecodedJwt.Payload.get -> System.Text.Json.JsonElement

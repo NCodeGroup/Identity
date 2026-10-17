@@ -44,50 +44,214 @@ partial class JoseSerializer
         return false;
     }
 
-    private string DecodeJson(string token, SecretKey secretKey, out JsonElement header)
+    private static JsonJwt ParseJson(string token)
     {
-        using var payloadBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
-        DecodeJson(token, secretKey, payloadBuffer, out header);
-        return DecodeUtf8(payloadBuffer.AsReadOnlySequence);
-    }
-
-    private T? DeserializeJson<T>(string token, SecretKey secretKey, out JsonElement header)
-    {
-        using var payloadBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
-        DecodeJson(token, secretKey, payloadBuffer, out header);
-        return Deserialize<T>(payloadBuffer.AsReadOnlySequence);
-    }
-
-    private void DecodeJson(
-        string token,
-        SecretKey secretKey,
-        IBufferWriter<byte> payloadWriter,
-        out JsonElement header
-    )
-    {
-        using var document = JsonDocument.Parse(token);
-        var root = document.RootElement;
+        var root = JsonSerializer.Deserialize<JsonElement>(token);
 
         if (root.ValueKind != JsonValueKind.Object)
             throw new JoseException("The JOSE JSON serialization must be a JSON object.");
 
         if (root.TryGetProperty(JoseClaimNames.Json.Ciphertext, out _))
         {
-            DecryptJsonJwe(root, secretKey, payloadWriter, out header);
+            var format = root.TryGetProperty(JoseClaimNames.Json.Recipients, out _)
+                ? JoseSerializationFormat.General
+                : JoseSerializationFormat.Flattened;
+            return new JsonJwt(
+                JoseProtectionTypes.Jwe,
+                format,
+                token,
+                root,
+                ComputeJweHeader(root)
+            );
         }
-        else if (
-            root.TryGetProperty(JoseClaimNames.Json.Signatures, out _)
-            || root.TryGetProperty(JoseClaimNames.Json.Signature, out _)
+
+        if (root.TryGetProperty(JoseClaimNames.Json.Signatures, out _))
+            return new JsonJwt(
+                JoseProtectionTypes.Jws,
+                JoseSerializationFormat.General,
+                token,
+                root,
+                ComputeJwsHeader(root)
+            );
+
+        if (root.TryGetProperty(JoseClaimNames.Json.Signature, out _))
+            return new JsonJwt(
+                JoseProtectionTypes.Jws,
+                JoseSerializationFormat.Flattened,
+                token,
+                root,
+                ComputeJwsHeader(root)
+            );
+
+        throw new JoseException("The JOSE JSON serialization is neither a recognized JWS nor JWE.");
+    }
+
+    private static JsonElement ComputeJwsHeader(JsonElement root)
+    {
+        var signature = root;
+        if (
+            root.TryGetProperty(JoseClaimNames.Json.Signatures, out var signatures)
+            && signatures.ValueKind == JsonValueKind.Array
         )
         {
-            VerifyJsonJws(root, secretKey, payloadWriter, out header);
+            signature = default;
+            foreach (var element in signatures.EnumerateArray())
+            {
+                signature = element;
+                break;
+            }
+        }
+
+        var protectedHeader =
+            signature.ValueKind == JsonValueKind.Object
+            && signature.TryGetProperty(JoseClaimNames.Json.Protected, out var protectedElement)
+            && protectedElement.ValueKind == JsonValueKind.String
+                ? DeserializeHeader(protectedElement.GetString() ?? string.Empty)
+                : default;
+
+        var unprotectedHeader =
+            signature.ValueKind == JsonValueKind.Object
+            && signature.TryGetProperty(JoseClaimNames.Json.Header, out var unprotectedElement)
+                ? unprotectedElement
+                : default;
+
+        return MergeHeaders(protectedHeader, unprotectedHeader);
+    }
+
+    private static JsonElement ComputeJweHeader(JsonElement root)
+    {
+        var encodedProtected = root.TryGetProperty(
+            JoseClaimNames.Json.Protected,
+            out var protectedElement
+        )
+            ? protectedElement.GetString() ?? string.Empty
+            : string.Empty;
+        var protectedHeader =
+            encodedProtected.Length > 0 ? DeserializeHeader(encodedProtected) : default;
+
+        var sharedUnprotected = root.TryGetProperty(
+            JoseClaimNames.Json.Unprotected,
+            out var sharedElement
+        )
+            ? sharedElement
+            : default;
+
+        var recipientHeader = default(JsonElement);
+        if (
+            root.TryGetProperty(JoseClaimNames.Json.Recipients, out var recipients)
+            && recipients.ValueKind == JsonValueKind.Array
+        )
+        {
+            foreach (var recipient in recipients.EnumerateArray())
+            {
+                if (
+                    recipient.TryGetProperty(
+                        JoseClaimNames.Json.Header,
+                        out var recipientHeaderElement
+                    )
+                )
+                    recipientHeader = recipientHeaderElement;
+                break;
+            }
+        }
+        else if (root.TryGetProperty(JoseClaimNames.Json.Header, out var flatHeader))
+        {
+            recipientHeader = flatHeader;
+        }
+
+        return MergeHeaders(protectedHeader, sharedUnprotected, recipientHeader);
+    }
+
+    private void DecodeJson(JsonJwt jsonJwt, SecretKey secretKey, IBufferWriter<byte> payloadWriter)
+    {
+        switch (jsonJwt.ProtectionType)
+        {
+            case JoseProtectionTypes.Jwe:
+                DecryptJsonJwe(jsonJwt.Root, secretKey, payloadWriter);
+                break;
+
+            case JoseProtectionTypes.Jws:
+                VerifyJsonJws(jsonJwt.Root, secretKey, payloadWriter);
+                break;
+
+            default:
+                throw new JoseException(
+                    $"The protection type '{jsonJwt.ProtectionType}' is not supported."
+                );
+        }
+    }
+
+    private void VerifyJwsJson(
+        JsonJwt jsonJwt,
+        SecretKey secretKey,
+        ReadOnlySpan<byte> detachedPayload
+    )
+    {
+        if (jsonJwt.ProtectionType != JoseProtectionTypes.Jws)
+            throw new InvalidOperationException(
+                "Only JWS tokens can be validated with a detached payload."
+            );
+
+        List<Exception>? failures = null;
+        foreach (var signature in GetJwsSignatures(jsonJwt.Root))
+        {
+            var encodedProtected = GetRequiredJsonString(signature, JoseClaimNames.Json.Protected);
+            var protectedHeader = DeserializeHeader(encodedProtected);
+            var unprotectedHeader = signature.TryGetProperty(
+                JoseClaimNames.Json.Header,
+                out var unprotectedElement
+            )
+                ? unprotectedElement
+                : default;
+            var mergedHeader = MergeHeaders(protectedHeader, unprotectedHeader);
+            var encodedSignature = GetRequiredJsonString(signature, JoseClaimNames.Json.Signature);
+
+            if (!mergedHeader.TryGetPropertyValue<bool>(JoseClaimNames.Header.B64, out var b64))
+                b64 = true;
+
+            using var payloadLease = EncodeJose(b64, detachedPayload, out var encodedPayload);
+
+            try
+            {
+                VerifyJws(
+                    secretKey,
+                    mergedHeader,
+                    encodedProtected,
+                    encodedPayload,
+                    encodedSignature
+                );
+            }
+            catch (Exception exception)
+            {
+                (failures ??= []).Add(exception);
+                continue;
+            }
+
+            return;
+        }
+
+        throw new JoseIntegrityException(
+            "None of the JWS signatures could be verified with the provided key.",
+            AsInnerException(failures)
+        );
+    }
+
+    private static List<JsonElement> GetJwsSignatures(JsonElement root)
+    {
+        var signatures = new List<JsonElement>();
+        if (root.TryGetProperty(JoseClaimNames.Json.Signatures, out var signaturesElement))
+        {
+            if (signaturesElement.ValueKind != JsonValueKind.Array)
+                throw new JoseException("The 'signatures' member must be an array.");
+
+            signatures.AddRange(signaturesElement.EnumerateArray());
         }
         else
         {
-            throw new JoseException(
-                "The JOSE JSON serialization is neither a recognized JWS nor JWE."
-            );
+            signatures.Add(root);
         }
+
+        return signatures;
     }
 
     private static JsonElement MergeHeaders(params JsonElement[] sources)
@@ -119,8 +283,7 @@ partial class JoseSerializer
     private void VerifyJsonJws(
         JsonElement root,
         SecretKey secretKey,
-        IBufferWriter<byte> payloadWriter,
-        out JsonElement header
+        IBufferWriter<byte> payloadWriter
     )
     {
         if (
@@ -134,21 +297,8 @@ partial class JoseSerializer
 
         var encodedPayload = payloadElement.GetString() ?? string.Empty;
 
-        var signatures = new List<JsonElement>();
-        if (root.TryGetProperty(JoseClaimNames.Json.Signatures, out var signaturesElement))
-        {
-            if (signaturesElement.ValueKind != JsonValueKind.Array)
-                throw new JoseException("The 'signatures' member must be an array.");
-
-            signatures.AddRange(signaturesElement.EnumerateArray());
-        }
-        else
-        {
-            signatures.Add(root);
-        }
-
         List<Exception>? failures = null;
-        foreach (var signature in signatures)
+        foreach (var signature in GetJwsSignatures(root))
         {
             var encodedProtected = GetRequiredJsonString(signature, JoseClaimNames.Json.Protected);
             var protectedHeader = DeserializeHeader(encodedProtected);
@@ -188,7 +338,6 @@ partial class JoseSerializer
             else
                 SecureEncoding.UTF8.GetBytes(encodedPayload, payloadWriter);
 
-            header = mergedHeader;
             return;
         }
 
@@ -201,8 +350,7 @@ partial class JoseSerializer
     private void DecryptJsonJwe(
         JsonElement root,
         SecretKey secretKey,
-        IBufferWriter<byte> payloadWriter,
-        out JsonElement header
+        IBufferWriter<byte> payloadWriter
     )
     {
         var encodedProtected = root.TryGetProperty(
@@ -282,7 +430,6 @@ partial class JoseSerializer
                 continue;
             }
 
-            header = mergedHeader;
             return;
         }
 

@@ -19,46 +19,41 @@
 
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Buffers;
 
 namespace NCode.Identity.Jose;
 
 /// <summary>
-/// Represents a JSON Web Token (JWT) in compact form with support for either JWS or JWE protection.
+/// Represents a JSON Web Token (JWT) parsed from the compact serialization, with support for either JWS or JWE
+/// protection.
 /// </summary>
-/// <param name="protectionType">Contains a value indicating how the JWT is protected, either 'JWS' or 'JWE'.</param>
-/// <param name="segments">Contains the substrings from the JWT separated by the '.' (dot) character.</param>
-/// <param name="deserializedHeader">Contains the deserialized header from the JWT.</param>
+/// <param name="protectionType">Contains a value indicating how the JWT is protected, either <c>JWS</c> or <c>JWE</c>.</param>
+/// <param name="header">Contains the deserialized JOSE Protected Header from the JWT.</param>
+/// <param name="encodedToken">Contains the original encoded compact JWT value.</param>
+/// <param name="segments">Contains the dot-separated segments of the compact token, as slices over
+/// <paramref name="encodedToken"/> (no copies are made).</param>
 [PublicAPI]
-public readonly struct CompactJwt(
+public sealed class CompactJwt(
     string protectionType,
-    StringSegments segments,
-    JsonElement deserializedHeader
-)
+    JsonElement header,
+    string encodedToken,
+    IReadOnlyList<ReadOnlyMemory<char>> segments
+) : JoseToken
 {
-    /// <summary>
-    /// Gets a value indicating how the JWT is protected, either 'JWS' or 'JWE'.
-    /// </summary>
-    public string ProtectionType { get; } = protectionType;
+    /// <inheritdoc />
+    public override string ProtectionType { get; } = protectionType;
+
+    /// <inheritdoc />
+    public override JoseSerializationFormat SerializationFormat => JoseSerializationFormat.Compact;
 
     /// <summary>
-    /// Gets the segment collection from the JWT.
+    /// Gets the dot-separated segments of the compact token, as slices over the original encoded token.
+    /// A JWS token has three segments and a JWE token has five.
     /// </summary>
-    public StringSegments Segments { get; } = segments;
+    public IReadOnlyList<ReadOnlyMemory<char>> Segments { get; } = segments;
 
-    /// <summary>
-    /// Gets the encoded header from the JWT.
-    /// </summary>
-    public ReadOnlySpan<char> EncodedHeader =>
-        Segments.IsEmpty ? ReadOnlySpan<char>.Empty : Segments.First.Memory.Span;
+    /// <inheritdoc />
+    public override JsonElement Header { get; } = header;
 
-    /// <summary>
-    /// Gets the deserialized header from the JWT.
-    /// </summary>
-    public JsonElement DeserializedHeader { get; } = deserializedHeader;
-
-    /// <summary>
-    /// Returns the original JSON Web Token (JWT) in compact form.
-    /// </summary>
-    public override string ToString() => Segments.Original.ToString();
+    /// <inheritdoc />
+    public override string ToString() => encodedToken;
 }

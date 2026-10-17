@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.DataProtection;
 using NCode.Buffers;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Jose.EdDsa.Keys;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -217,7 +218,11 @@ public sealed class OkpSecretKeyTypeDescriptor(
         AddIfPresent(jwk, "use", okp.Metadata.Use);
         AddIfPresent(jwk, "alg", okp.Metadata.Algorithm);
 
-        return new ExportedPublicKey { Jwk = jwk, Pem = okp.ExportSubjectPublicKeyInfoPem() };
+        return new ExportedPublicKey
+        {
+            Jwk = new JsonWebKey(jwk),
+            Pem = okp.ExportSubjectPublicKeyInfoPem(),
+        };
     }
 
     private ReadOnlyMemory<byte> ProtectSeed(ReadOnlySpan<byte> seed)

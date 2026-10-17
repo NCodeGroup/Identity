@@ -1,0 +1,54 @@
+#nullable enable
+const NCode.Identity.Jwk.JsonWebKey.ThumbprintUriPrefix = "urn:ietf:params:oauth:jwk-thumbprint:" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.Algorithm = "alg" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.Curve = "crv" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.EccPrivateKey = "d" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.Exponent = "e" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.KeyId = "kid" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.KeyOperations = "key_ops" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.KeyType = "kty" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.Modulus = "n" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.PrivateKey = "priv" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.PublicKey = "pub" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.PublicKeyUse = "use" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.SymmetricKey = "k" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.X = "x" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.X509CertificateChain = "x5c" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.X509CertificateSha1Thumbprint = "x5t" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.X509CertificateSha256Thumbprint = "x5t#S256" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.X509Url = "x5u" -> string!
+const NCode.Identity.Jwk.JsonWebKeyParameterNames.Y = "y" -> string!
+NCode.Identity.Jwk.JsonWebKey
+NCode.Identity.Jwk.JsonWebKey.Algorithm.get -> string?
+NCode.Identity.Jwk.JsonWebKey.AsElement() -> System.Text.Json.JsonElement
+NCode.Identity.Jwk.JsonWebKey.ComputeThumbprint() -> string!
+NCode.Identity.Jwk.JsonWebKey.ComputeThumbprint(System.Security.Cryptography.HashAlgorithmName hashAlgorithmName) -> string!
+NCode.Identity.Jwk.JsonWebKey.ComputeThumbprintUri() -> string!
+NCode.Identity.Jwk.JsonWebKey.ComputeThumbprintUri(System.Security.Cryptography.HashAlgorithmName hashAlgorithmName) -> string!
+NCode.Identity.Jwk.JsonWebKey.ContainsPrivateKeyMaterial.get -> bool
+NCode.Identity.Jwk.JsonWebKey.GetMember(string! name) -> string?
+NCode.Identity.Jwk.JsonWebKey.JsonWebKey(System.Text.Json.JsonElement element) -> void
+NCode.Identity.Jwk.JsonWebKey.JsonWebKey(System.Text.Json.Nodes.JsonObject! members) -> void
+NCode.Identity.Jwk.JsonWebKey.KeyId.get -> string?
+NCode.Identity.Jwk.JsonWebKey.KeyOperations.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.Jwk.JsonWebKey.KeyType.get -> string!
+NCode.Identity.Jwk.JsonWebKey.PublicKeyUse.get -> string?
+NCode.Identity.Jwk.JsonWebKey.ToJsonString() -> string!
+NCode.Identity.Jwk.JsonWebKey.ToPublicKey() -> NCode.Identity.Jwk.JsonWebKey!
+NCode.Identity.Jwk.JsonWebKey.TryGetMember(string! name, out string? value) -> bool
+NCode.Identity.Jwk.JsonWebKey.X509CertificateChain.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.Jwk.JsonWebKey.X509CertificateSha1Thumbprint.get -> string?
+NCode.Identity.Jwk.JsonWebKey.X509CertificateSha256Thumbprint.get -> string?
+NCode.Identity.Jwk.JsonWebKey.X509Url.get -> string?
+NCode.Identity.Jwk.JsonWebKeyParameterNames
+NCode.Identity.Jwk.JsonWebKeySet
+NCode.Identity.Jwk.JsonWebKeySet.JsonWebKeySet(System.Collections.Generic.IEnumerable<NCode.Identity.Jwk.JsonWebKey!>! keys) -> void
+NCode.Identity.Jwk.JsonWebKeySet.JsonWebKeySet(System.Text.Json.JsonElement element) -> void
+NCode.Identity.Jwk.JsonWebKeySet.Keys.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.Jwk.JsonWebKey!>
+NCode.Identity.Jwk.JsonWebKeySet.ToJsonString() -> string!
+NCode.Identity.Jwk.JsonWebKeySet.TryGetKey(string! keyId, out NCode.Identity.Jwk.JsonWebKey? key) -> bool
+override NCode.Identity.Jwk.JsonWebKey.ToString() -> string!
+override NCode.Identity.Jwk.JsonWebKeySet.ToString() -> string!
+static NCode.Identity.Jwk.JsonWebKey.Parse(string! json) -> NCode.Identity.Jwk.JsonWebKey!
+static NCode.Identity.Jwk.JsonWebKeySet.Empty.get -> NCode.Identity.Jwk.JsonWebKeySet!
+static NCode.Identity.Jwk.JsonWebKeySet.Parse(string! json) -> NCode.Identity.Jwk.JsonWebKeySet!

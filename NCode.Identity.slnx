@@ -8,6 +8,12 @@
         <File Path=".editorconfig" />
         <File Path="README.md" />
     </Folder>
+    <Folder Name="/src/">
+        <Project Path="src/NCode.Identity.Jwk/NCode.Identity.Jwk.csproj" />
+    </Folder>
+    <Folder Name="/tests/">
+        <Project Path="tests/NCode.Identity.Jwk.Tests/NCode.Identity.Jwk.Tests.csproj" />
+    </Folder>
     <Project Path="src/NCode.Identity.Abstractions/NCode.Identity.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.AspNetCore.Abstractions/NCode.Identity.AspNetCore.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.Dispatch.Abstractions/NCode.Identity.Dispatch.Abstractions.csproj" />

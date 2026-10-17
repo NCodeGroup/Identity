@@ -491,10 +491,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointDiscoverableMetada
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointDiscoverableMetadata.IsDiscoverable.get -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointExceptionHandlerMetadata
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointExceptionHandlerMetadata.GetExceptionHandlerAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler!>
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKeySetResult
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKeySetResult.JsonWebKeySetResult() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKeySetResult.Keys.get -> System.Collections.Generic.IReadOnlyCollection<System.Text.Json.Nodes.JsonObject!>!
-NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results.JsonWebKeySetResult.Keys.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.Description.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.Description.init -> void

@@ -22,6 +22,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using NCode.Encoders;
 using NCode.Identity.Jose;
+using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
@@ -108,14 +109,24 @@ internal class DefaultDPoPProofValidator(
         // The embedded public JWK is the key the proof is signed with and the token is bound to; it MUST NOT carry
         // any private key material (RFC 9449 §4.3).
         if (
-            !header.TryGetProperty(JoseClaimNames.Header.Jwk, out var jwk)
-            || jwk.ValueKind != JsonValueKind.Object
+            !header.TryGetProperty(JoseClaimNames.Header.Jwk, out var jwkElement)
+            || jwkElement.ValueKind != JsonValueKind.Object
         )
         {
             throw Invalid("The DPoP proof is missing the 'jwk' header.");
         }
 
-        if (jwk.TryGetProperty("d", out _))
+        JsonWebKey jwk;
+        try
+        {
+            jwk = new JsonWebKey(jwkElement);
+        }
+        catch (ArgumentException)
+        {
+            throw Invalid("The DPoP proof 'jwk' header is not a valid JSON Web Key.");
+        }
+
+        if (jwk.ContainsPrivateKeyMaterial)
             throw Invalid("The DPoP proof 'jwk' header must not contain private key material.");
 
         var signingInput = Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}");
@@ -236,15 +247,14 @@ internal class DefaultDPoPProofValidator(
     }
 
     private string VerifySignatureAndComputeThumbprint(
-        JsonElement jwk,
+        JsonWebKey jwk,
         string alg,
         byte[] signingInput,
         byte[] signature,
         Func<string, OpenIdException> invalid
     )
     {
-        if (!TryGetString(jwk, JoseClaimNames.Header.Kty, out var kty) || string.IsNullOrEmpty(kty))
-            throw invalid("The DPoP proof 'jwk' is missing the 'kty' member.");
+        var kty = jwk.KeyType;
 
         var hashAlgorithmName = alg[^3..] switch
         {
@@ -259,10 +269,8 @@ internal class DefaultDPoPProofValidator(
             case "RSA":
             {
                 if (
-                    !TryGetString(jwk, "n", out var modulus)
-                    || !TryGetString(jwk, "e", out var exponent)
-                    || string.IsNullOrEmpty(modulus)
-                    || string.IsNullOrEmpty(exponent)
+                    jwk.GetMember("n") is not { Length: > 0 } modulus
+                    || jwk.GetMember("e") is not { Length: > 0 } exponent
                 )
                 {
                     throw invalid("The DPoP proof 'jwk' is missing RSA public members.");
@@ -292,21 +300,15 @@ internal class DefaultDPoPProofValidator(
                 if (!rsa.VerifyData(signingInput, signature, hashAlgorithmName, padding))
                     throw invalid("The DPoP proof signature is invalid.");
 
-                // RFC 7638 canonical RSA JWK: lexicographically ordered {"e","kty","n"}.
-                return ComputeThumbprint(
-                    $$"""{"e":"{{exponent}}","kty":"RSA","n":"{{modulus}}"}"""
-                );
+                break;
             }
 
             case "EC":
             {
                 if (
-                    !TryGetString(jwk, "crv", out var curveName)
-                    || !TryGetString(jwk, "x", out var x)
-                    || !TryGetString(jwk, "y", out var y)
-                    || string.IsNullOrEmpty(curveName)
-                    || string.IsNullOrEmpty(x)
-                    || string.IsNullOrEmpty(y)
+                    jwk.GetMember("crv") is not { Length: > 0 } curveName
+                    || jwk.GetMember("x") is not { Length: > 0 } x
+                    || jwk.GetMember("y") is not { Length: > 0 } y
                 )
                 {
                     throw invalid("The DPoP proof 'jwk' is missing EC public members.");
@@ -345,19 +347,26 @@ internal class DefaultDPoPProofValidator(
                     throw invalid("The DPoP proof signature is invalid.");
                 }
 
-                // RFC 7638 canonical EC JWK: lexicographically ordered {"crv","kty","x","y"}.
-                return ComputeThumbprint(
-                    $$"""{"crv":"{{curveName}}","kty":"EC","x":"{{x}}","y":"{{y}}"}"""
-                );
+                break;
             }
 
             default:
                 throw invalid($"The DPoP proof 'jwk' key type '{kty}' is not supported.");
         }
-    }
 
-    private static string ComputeThumbprint(string canonicalJwk) =>
-        Base64Url.Encode(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalJwk)));
+        // RFC 7638 / RFC 9278: the thumbprint is computed over the key type's required members in canonical form.
+        try
+        {
+            return jwk.ComputeThumbprint();
+        }
+        catch (Exception exception)
+            when (exception is NotSupportedException or InvalidOperationException)
+        {
+            throw invalid(
+                "The DPoP proof 'jwk' is missing members required to compute its thumbprint."
+            );
+        }
+    }
 
     private static bool TryGetString(JsonElement element, string propertyName, out string? value)
     {

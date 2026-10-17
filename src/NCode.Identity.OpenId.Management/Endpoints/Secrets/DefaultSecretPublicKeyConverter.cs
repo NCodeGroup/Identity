@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Text.Json;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -56,13 +55,11 @@ internal class DefaultSecretPublicKeyConverter(
             return null;
         }
 
-        var jwk = JsonSerializer.SerializeToElement(exported.Jwk, JsonSerializerOptions.Web);
-
         return new PublicKeyResource
         {
             SecretId = secret.SecretId,
             SecretType = secret.SecretType,
-            Jwk = jwk,
+            Jwk = exported.Jwk.AsElement(),
             Pem = exported.Pem,
         };
     }

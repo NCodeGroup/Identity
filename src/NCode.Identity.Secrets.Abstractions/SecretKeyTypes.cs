@@ -41,4 +41,10 @@ public static class SecretKeyTypes
     /// Contains the constant value for an <c>Elliptic-Curve</c> cryptographic key.
     /// </summary>
     public const string Ecc = "ecc";
+
+    /// <summary>
+    /// Contains the constant value for an <c>Algorithm Key Pair</c> (AKP) cryptographic key — the key type backing
+    /// post-quantum <c>ML-DSA</c> (FIPS 204 / RFC 9964) signatures.
+    /// </summary>
+    public const string Akp = "akp";
 }

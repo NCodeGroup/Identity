@@ -1,4 +1,14 @@
 #nullable enable
+abstract NCode.Identity.Secrets.Keys.AkpSecretKey.ExportMLDsa() -> System.Security.Cryptography.MLDsa!
+abstract NCode.Identity.Secrets.Keys.AkpSecretKey.HasPrivateKey.get -> bool
+const NCode.Identity.Secrets.Keys.AkpSecretKey.TypeName = "akp" -> string!
+const NCode.Identity.Secrets.SecretKeyTypes.Akp = "akp" -> string!
+NCode.Identity.Secrets.Keys.AkpSecretKey
+NCode.Identity.Secrets.Keys.AkpSecretKey.AkpSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.MLDsaAlgorithm! algorithm, System.ReadOnlyMemory<byte> publicKey, System.ReadOnlyMemory<byte>? certificateRawData) -> void
+NCode.Identity.Secrets.Keys.AkpSecretKey.Algorithm.get -> System.Security.Cryptography.MLDsaAlgorithm!
+NCode.Identity.Secrets.Keys.AkpSecretKey.AlgorithmName.get -> string!
+NCode.Identity.Secrets.Keys.AkpSecretKey.ExportPublicKey<TWriter>(ref TWriter destination) -> void
+NCode.Identity.Secrets.Keys.AkpSecretKey.RawPublicKey.get -> System.ReadOnlyMemory<byte>
 NCode.Identity.Secrets.Logic.ExportedPublicKey
 NCode.Identity.Secrets.Logic.ExportedPublicKey.ExportedPublicKey() -> void
 NCode.Identity.Secrets.Logic.ExportedPublicKey.Jwk.get -> System.Text.Json.Nodes.JsonObject!
@@ -12,6 +22,8 @@ NCode.Identity.Secrets.Keys.AsymmetricSecretKey.CertificateRawData.get -> System
 NCode.Identity.Secrets.Keys.AsymmetricSecretKey.HasCertificate.get -> bool
 abstract NCode.Identity.Secrets.Keys.EccSecretKey.ExportECDiffieHellman() -> System.Security.Cryptography.ECDiffieHellman!
 abstract NCode.Identity.Secrets.Keys.EccSecretKey.ExportECDsa() -> System.Security.Cryptography.ECDsa!
+override NCode.Identity.Secrets.Keys.AkpSecretKey.ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination) -> void
+override NCode.Identity.Secrets.Keys.AkpSecretKey.KeyType.get -> string!
 virtual NCode.Identity.Secrets.Keys.EccSecretKey.GetECCurve() -> System.Security.Cryptography.ECCurve
 abstract NCode.Identity.Secrets.Keys.RsaSecretKey.ExportRSA() -> System.Security.Cryptography.RSA!
 abstract NCode.Identity.Secrets.Keys.SecretKey.KeySizeBits.get -> int

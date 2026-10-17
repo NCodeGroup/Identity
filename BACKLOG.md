@@ -65,10 +65,10 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D7`      | `D6`       |
-| `F` — Feature gaps                    | `F32`     | `F31`      |
+| `F` — Feature gaps                    | `F39`     | `F38`      |
 | `T` — Conformance & interop testing   | `T9`      | `T8`       |
 | `U` — Frontend presentation platform  | `U14`     | `U13`      |
-| `S` — Secrets management              | `S7`      | `S6`       |
+| `S` — Secrets management              | `S10`     | `S9`       |
 | `X` — Tooling & agent customization   | `X3`      | `X2`       |
 
 ---
@@ -245,6 +245,61 @@ entry and/or ADR that closed it.
     [`src/NCode.Identity.Secrets.Abstractions/Keys`](src/NCode.Identity.Secrets.Abstractions/Keys) /
     [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets) (new `OKP` key type).
 
+- **`F32` — DPoP sender-constrained proof-of-possession (RFC 9449), JOSE building block.** The highest-value modern,
+  non-algorithm JOSE addition and the OAuth 2.1 / FAPI 2.0 direction. Add a first-class capability to **create and
+  verify `dpop+jwt` proofs**: the `typ: dpop+jwt` header with an embedded public `jwk`, the `htm`/`htu`/`jti`/`iat`
+  claims, the `ath` access-token hash, the `nonce` challenge/replay flow, and the `jkt` (JWK SHA-256 thumbprint)
+  confirmation that binds a token to the proof key. This is the JOSE primitive the OpenId authentication stack then
+  consumes to issue and validate DPoP-bound access/refresh tokens; it complements the shipped `private_key_jwt`
+  client-authentication work ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)). Depends on `F33`
+  (JWK thumbprint). Touch points: [`src/NCode.Identity.Jose`](src/NCode.Identity.Jose),
+  [`src/NCode.Identity.Jose.Abstractions`](src/NCode.Identity.Jose.Abstractions),
+  [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication). Capture the design in an ADR.
+
+- **`F33` — First-class JWK / JWKS types + JWK Thumbprint (RFC 7517 / 7638 / 9278).** Keys live today only as
+  `SecretKey`; a modern JOSE surface also exposes **JWK** parse/serialize, **JWK Set** documents, and the
+  **JWK Thumbprint (RFC 7638)** + **Thumbprint URI (RFC 9278)**. This underpins `kid` derivation, `jwks_uri`
+  publishing/fetching, and the `jkt` confirmation that `F32` (DPoP) and mTLS-bound tokens need. A natural bridge
+  between the `SecretKey` model and the wire JWK representation. Touch points:
+  [`src/NCode.Identity.Jose.Abstractions`](src/NCode.Identity.Jose.Abstractions),
+  [`src/NCode.Identity.Secrets.Abstractions/Keys`](src/NCode.Identity.Secrets.Abstractions/Keys),
+  [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets).
+
+- **`F34` — SD-JWT + SD-JWT VC (selective disclosure).** The hottest bleeding-edge JOSE area (verifiable credentials,
+  EUDI wallet). Issuer signs over salted-hash claim digests; the holder discloses a chosen subset plus a key-binding
+  JWT. Builds additively on the existing JWS encoder: salted disclosure generation/parsing, the `_sd` / `_sd_alg`
+  digest structures, `~`-separated combined format, and holder key binding (`cnf`/`kb+jwt`). Larger, standalone
+  feature — likely its own opt-in package. Track the IETF SD-JWT and SD-JWT VC specs (approaching RFC). Touch points:
+  [`src/NCode.Identity.Jose`](src/NCode.Identity.Jose),
+  [`src/NCode.Identity.Jose.Abstractions`](src/NCode.Identity.Jose.Abstractions). Capture the design in an ADR.
+
+- **`F35` — Explicit `typ` / media-type validation hardening (RFC 8725 BCP + RFC 9068 `at+jwt`).** A
+  validation-policy (not algorithm) feature: enforce an explicit, expected `typ` on decode to defeat token-substitution
+  / cross-JWT-confusion, and recognize the registered application types (`at+jwt` access tokens, `dpop+jwt`,
+  `logout+jwt`, `secevent+jwt`). Extends the decode/verify options already on `IJoseSerializer`. Touch points:
+  [`src/NCode.Identity.Jose/JoseSerializer.Jws.Verify.cs`](src/NCode.Identity.Jose/JoseSerializer.Jws.Verify.cs),
+  [`src/NCode.Identity.Jose.Abstractions/JoseTokenTypes.cs`](src/NCode.Identity.Jose.Abstractions/JoseTokenTypes.cs).
+
+- **`F36` — JWS/JWE JSON serialization (General + Flattened) with multiple signatures / recipients.** The serializer is
+  compact-only; RFC 7515/7516 also define the General and Flattened **JSON** serializations, which carry **multiple
+  signatures** (JWS) / **multiple recipients** (JWE) and **unprotected** header members — the shape many
+  verifiable-credential and multi-audience scenarios require, and a prerequisite for some `F34`/`F38` use. Additive to
+  the existing encode/decode paths. Touch points: [`src/NCode.Identity.Jose`](src/NCode.Identity.Jose),
+  [`src/NCode.Identity.Jose.Abstractions`](src/NCode.Identity.Jose.Abstractions).
+
+- **`F37` — COSE / CWT (RFC 9052 / 9053 / 8392).** CBOR Object Signing and Encryption plus CBOR Web Tokens — the basis
+  for ISO mdoc/mDL (18013-5) and EUDI-wallet credentials, and genuinely bleeding-edge for .NET. A large, standalone
+  effort (needs a CBOR codec) that reuses the existing algorithm/`SecretKey` model but a different wire format; almost
+  certainly its own package family (`NCode.Identity.Cose*`). Track IETF COSE RFCs. Capture the design in an ADR.
+
+- **`F38` — JOSE-HPKE (Hybrid Public Key Encryption, RFC 9180 + `draft-ietf-jose-hpke-encrypt`).** The modern
+  KEM-based JWE path and the vehicle most **post-quantum hybrid** encryption rides on (pairs with the ML-KEM work in
+  `F28`). Adds HPKE key-encapsulation as a JWE key-management mode. The JOSE registration is still **draft** (codes may
+  change), so this is prototype-behind-the-draft-codes, likely behind a feature flag / separate package until stable —
+  same posture as the PQC item in `F28`. Touch points:
+  [`src/NCode.Identity.Jose/Algorithms/KeyManagement`](src/NCode.Identity.Jose/Algorithms/KeyManagement),
+  [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms).
+
 ## Conformance & interop testing (group `T`)
 
 - **`T1` (subsumes `T6`) — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite,
@@ -326,6 +381,30 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`,
   `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`.
+
+- **`S7` — HSM / KMS / keyless-signing `SecretKey` providers.** The biggest production-modern gap for the secrets
+  library: back an asymmetric `SecretKey` with an external keystore — Azure Key Vault, AWS KMS, PKCS#11 HSM, TPM 2.0,
+  or Windows CNG — so private material **never leaves the boundary** and sign/unwrap operations are delegated to the
+  provider. Needs a `SecretKey` that exposes operations without exportable material (the verify-only public-key
+  primitive from [ADR-0103](docs/adr/0103-public-only-asymmetric-secret-keys.md) is the shape to generalize) and a
+  provider abstraction the JOSE signature/key-management algorithms call instead of in-process BCL primitives.
+  Touch points: [`src/NCode.Identity.Secrets.Abstractions/Keys`](src/NCode.Identity.Secrets.Abstractions/Keys),
+  [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets),
+  [`src/NCode.Identity.Jose/Algorithms`](src/NCode.Identity.Jose/Algorithms). Capture the design in an ADR.
+
+- **`S8` — Key lifecycle / rotation primitives.** First-class signing-key rollover: overlapping validity windows,
+  activation/retirement grace periods, automatic rotation, and a published JWKS that reflects active **and** retiring
+  keys (so verifiers accept both across a rotation) — analogous to the ASP.NET Core Data Protection key ring. Pairs with
+  `F33` (JWKS publishing) and the `S1` rotate endpoint. Touch points:
+  [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets),
+  `src/NCode.Identity.Secrets.Persistence`. Capture the design in an ADR.
+
+- **`S9` — Envelope encryption / hardware-backed protection at rest.** Protect stored reversible secret material with
+  envelope encryption (a KMS/HSM-held root key wrapping per-secret data keys) rather than the single data-protection
+  key today, and allow hardware-backed root keys. Ties into the `S5` hash-at-rest-vs-reversible fork and the `S7`
+  external-keystore providers. Touch points:
+  `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`,
+  `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`. Capture the design in an ADR.
 
 ## Tooling & agent customization (group `X`)
 

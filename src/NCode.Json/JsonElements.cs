@@ -78,6 +78,53 @@ public static class JsonElements
         }
 
         /// <summary>
+        /// Attempts to read the JSON property with the specified name as an RFC 7519 <c>NumericDate</c>. See
+        /// <see cref="TryGetNumericDate"/>.
+        /// </summary>
+        /// <param name="propertyName">The name of the JSON property to read.</param>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the UTC instant.</param>
+        /// <returns>
+        /// <see langword="true"/> if the property exists and is a valid <c>NumericDate</c>; otherwise,
+        /// <see langword="false"/>.
+        /// </returns>
+        public bool TryGetPropertyNumericDate(string propertyName, out DateTimeOffset value)
+        {
+            if (!jsonElement.TryGetProperty(propertyName, out var property))
+            {
+                value = default;
+                return false;
+            }
+
+            return property.TryGetNumericDate(out value);
+        }
+
+        /// <summary>
+        /// Attempts to read this JSON value as an RFC 7519 <c>NumericDate</c>: a JSON number (integer or fractional) of
+        /// seconds since the Unix epoch, UTC. A JSON string is never a <c>NumericDate</c>, and a value outside the
+        /// representable <see cref="DateTimeOffset"/> range fails rather than throwing. Read a JWT time claim
+        /// (<c>exp</c>, <c>nbf</c>, <c>iat</c>, <c>auth_time</c>) with this, not with <see cref="TryGetValue{T}"/>,
+        /// which also parses date strings.
+        /// </summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the UTC instant.</param>
+        /// <returns>
+        /// <see langword="true"/> if this value is a valid <c>NumericDate</c>; otherwise, <see langword="false"/>.
+        /// </returns>
+        public bool TryGetNumericDate(out DateTimeOffset value)
+        {
+            if (jsonElement.ValueKind == JsonValueKind.Number)
+            {
+                if (jsonElement.TryGetInt64(out var seconds))
+                    return DateCoercion.TryFromNumericDate(seconds, out value);
+
+                if (jsonElement.TryGetDouble(out var fractionalSeconds))
+                    return DateCoercion.TryFromNumericDate(fractionalSeconds, out value);
+            }
+
+            value = default;
+            return false;
+        }
+
+        /// <summary>
         /// Attempts to convert this JSON value to <typeparamref name="T"/>.
         /// </summary>
         /// <param name="value">When this method returns, contains the converted value if the conversion succeeded.</param>
@@ -89,8 +136,9 @@ public static class JsonElements
         /// <see cref="int"/>, <see cref="uint"/>, <see cref="long"/>, <see cref="ulong"/>; and the real types
         /// <see cref="float"/>, <see cref="double"/>, <see cref="decimal"/>. A JSON number requested as
         /// <see cref="DateTime"/> or <see cref="DateTimeOffset"/> is interpreted as an RFC 7519 <c>NumericDate</c>
-        /// (Unix seconds, UTC). A JSON string requested as a date/time or <see cref="Guid"/> is parsed leniently (any
-        /// format the corresponding <c>TryParse</c> accepts, invariant culture), matching <see cref="ObjectJsonConverter"/>:
+        /// (integer or fractional Unix seconds, UTC; see <see cref="TryGetNumericDate"/>). A JSON string requested as a
+        /// date/time or <see cref="Guid"/> is parsed leniently (any format the corresponding <c>TryParse</c> accepts,
+        /// invariant culture), matching <see cref="ObjectJsonConverter"/>:
         /// a <c>Z</c>/UTC value is <see cref="DateTimeKind.Utc"/>, an explicit offset is <see cref="DateTimeKind.Local"/>,
         /// and a zone-less value is labeled <see cref="DateTimeKind.Utc"/> (never <see cref="DateTimeKind.Unspecified"/>).
         /// A <see cref="byte"/>[] is decoded from either base64 or base64url.
@@ -311,13 +359,17 @@ public static class JsonElements
             return true;
         }
 
-        // RFC 7519 NumericDate: integer seconds since the Unix epoch (UTC), range-guarded against overflow.
+        // RFC 7519 NumericDate: seconds since the Unix epoch (UTC), integer or fractional, range-guarded.
         if (
-            element.TryGetInt64(out var epochSeconds)
-            && DateCoercion.TryFromNumericDate(epochSeconds, out value)
+            (
+                typeof(T) == typeof(DateTimeOffset)
+                || typeof(T) == typeof(DateTimeOffset?)
+                || typeof(T) == typeof(DateTime)
+                || typeof(T) == typeof(DateTime?)
+            ) && element.TryGetNumericDate(out var instant)
         )
         {
-            return true;
+            return DateCoercion.TryConvertInstant(instant, out value);
         }
 
         value = default;

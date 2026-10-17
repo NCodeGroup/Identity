@@ -359,5 +359,35 @@ public class ObjectGraphExtensionsTests
         Assert.Equal(default, value);
     }
 
+    [Fact]
+    public void TryGetValue_DoubleBoxedReadAsDateTimeOffset_ReturnsFractionalNumericDate()
+    {
+        const string key = nameof(key);
+        const double stored = 1_700_000_000.5;
+
+        var dictionary = new Dictionary<string, object> { [key] = stored };
+
+        var exists = dictionary.TryGetValue<DateTimeOffset>(key, out var value);
+
+        Assert.True(exists);
+        Assert.Equal(
+            DateTimeOffset.UnixEpoch.AddSeconds(1_700_000_000).AddMilliseconds(500),
+            value
+        );
+    }
+
+    [Fact]
+    public void TryGetValue_DoubleBoxedOutOfRangeReadAsDateTime_ReturnsFalse()
+    {
+        const string key = nameof(key);
+        const double stored = 1e20;
+
+        var dictionary = new Dictionary<string, object> { [key] = stored };
+
+        var exists = dictionary.TryGetValue<DateTime>(key, out _);
+
+        Assert.False(exists);
+    }
+
     #endregion
 }

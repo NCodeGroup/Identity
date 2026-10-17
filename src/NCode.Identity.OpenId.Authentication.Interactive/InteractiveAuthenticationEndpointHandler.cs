@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -34,6 +33,7 @@ using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Settings;
+using NCode.Json;
 using NCode.Mediator;
 using NCode.Registration.AspNetCore;
 
@@ -241,13 +241,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             .Select(claim => claim.Value)
             .ToList();
 
-        long? authTime = long.TryParse(
-            principal.FindFirst(JoseClaimNames.Payload.AuthTime)?.Value,
-            NumberStyles.Integer,
-            CultureInfo.InvariantCulture,
-            out var parsedAuthTime
-        )
-            ? parsedAuthTime
+        var authTimeValue = principal.FindFirst(JoseClaimNames.Payload.AuthTime)?.Value;
+        long? authTime = DateCoercion.TryParseNumericDate(authTimeValue, out var parsedAuthTime)
+            ? parsedAuthTime.ToUnixTimeSeconds()
             : null;
 
         return new AccountMeResponse(
@@ -395,13 +391,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private DateTimeOffset ReadAuthTime(ClaimsPrincipal principal)
     {
         var value = principal.FindFirst(JoseClaimNames.Payload.AuthTime)?.Value;
-        return long.TryParse(
-            value,
-            NumberStyles.Integer,
-            CultureInfo.InvariantCulture,
-            out var authTime
-        )
-            ? DateTimeOffset.FromUnixTimeSeconds(authTime)
+        return DateCoercion.TryParseNumericDate(value, out var authTime)
+            ? authTime
             : TimeProvider.GetUtcNow();
     }
 

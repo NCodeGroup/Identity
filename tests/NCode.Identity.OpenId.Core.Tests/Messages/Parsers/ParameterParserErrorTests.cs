@@ -116,6 +116,29 @@ public class ParameterParserErrorTests : BaseTests
         );
     }
 
+    [Theory]
+    [InlineData("99999999999999")]
+    [InlineData("-99999999999999")]
+    public void DateTimeOffsetParser_Parse_WhenOutOfRange_Throws(string value)
+    {
+        var parser = new DateTimeOffsetParser();
+
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(_environment, _allowMissingDescriptor, value)
+        );
+    }
+
+    [Fact]
+    public void DateTimeOffsetParser_Parse_WhenNullValue_Throws()
+    {
+        var parser = new DateTimeOffsetParser();
+        var values = new StringValues([null]);
+
+        Assert.Throws<OpenIdException>(() =>
+            parser.Parse(_environment, _allowMissingDescriptor, values)
+        );
+    }
+
     #endregion
 
     #region StringValuesParser Error Tests

@@ -160,6 +160,27 @@ public class TokenEndpointClientAssertionTests
     }
 
     [Fact]
+    public async Task PostToken_ClientSecretJwt_WhenExpAtMaxNumericDate_ReturnsAccessToken()
+    {
+        // The replay record's retention (exp plus a skew margin) saturates instead of overflowing.
+        using var factory = await CreateSeededFactoryAsync();
+        var client = CreateClient(factory);
+
+        var issuer = await GetIssuerAsync(client);
+        var assertion = BuildClientSecretJwt(
+            ClientId,
+            ClientSecret,
+            issuer,
+            expires: DateTimeOffset.MaxValue
+        );
+
+        using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+    }
+
+    [Fact]
     public async Task PostToken_ClientSecretJwt_AdvertisedInDiscovery()
     {
         using var factory = await CreateSeededFactoryAsync();

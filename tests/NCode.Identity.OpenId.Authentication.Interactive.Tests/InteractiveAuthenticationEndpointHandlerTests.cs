@@ -160,5 +160,41 @@ public class InteractiveAuthenticationEndpointHandlerTests
         Assert.Null(result.AuthTime);
     }
 
+    [Fact]
+    public void BuildMeResponse_WhenAuthTimeOutOfRange_ReturnsNullAuthTime()
+    {
+        var principal = new ClaimsPrincipal(
+            new ClaimsIdentity(
+                [new Claim(JoseClaimNames.Payload.AuthTime, "99999999999999")],
+                authenticationType: "cookie"
+            )
+        );
+
+        var result = InteractiveAuthenticationEndpointHandler.BuildMeResponse(
+            principal,
+            "subject-1"
+        );
+
+        Assert.Null(result.AuthTime);
+    }
+
+    [Fact]
+    public void BuildMeResponse_WhenAuthTimeIsFractional_ReturnsWholeSeconds()
+    {
+        var principal = new ClaimsPrincipal(
+            new ClaimsIdentity(
+                [new Claim(JoseClaimNames.Payload.AuthTime, "1700000000.75")],
+                authenticationType: "cookie"
+            )
+        );
+
+        var result = InteractiveAuthenticationEndpointHandler.BuildMeResponse(
+            principal,
+            "subject-1"
+        );
+
+        Assert.Equal(1700000000L, result.AuthTime);
+    }
+
     #endregion
 }

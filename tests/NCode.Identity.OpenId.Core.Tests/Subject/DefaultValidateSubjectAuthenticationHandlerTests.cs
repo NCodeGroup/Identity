@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
@@ -87,6 +88,23 @@ public class DefaultValidateSubjectAuthenticationHandlerTests : BaseTests
             requestClaims
         );
         return new ParameterCollection([parameter], cloneParameters: false);
+    }
+
+    private static IParameterCollection CreateMaxAgeParameters(TimeSpan maxAge)
+    {
+        var parameter = new Parameter<TimeSpan?>(
+            new ParameterDescriptor(OpenIdCommonParameters.MaxAge),
+            OpenIdCommonParameters.MaxAge.Parser,
+            maxAge
+        );
+        return new ParameterCollection([parameter], cloneParameters: false);
+    }
+
+    private static ClaimsPrincipal CreateSubjectWithAuthTime(string authTime)
+    {
+        var identity = new ClaimsIdentity(authenticationType: "pwd");
+        identity.AddClaim(new Claim(JoseClaimNames.Payload.AuthTime, authTime));
+        return new ClaimsPrincipal(identity);
     }
 
     private static RequestClaims CreateEssentialAcrRequest(
@@ -311,6 +329,49 @@ public class DefaultValidateSubjectAuthenticationHandlerTests : BaseTests
     {
         var subject = CreateSubjectAuthentication(TenantId, CreateAuthenticatedSubject(acr: null));
         var parameters = CreateClaimsParameters(CreateEssentialAcrRequest(essential: true));
+        var (command, disposition, mockContext, mockTenant) = CreateCommand(
+            subject,
+            initialError: null,
+            parameters
+        );
+        SetupTenant(mockContext, mockTenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(disposition.HasError);
+    }
+
+    #endregion
+
+    #region auth_time NumericDate Tests
+
+    [Fact]
+    public async Task HandleAsync_WhenAuthTimeOutOfRangeAndMaxAgeRequested_SetsAccessDeniedError()
+    {
+        var subject = CreateSubjectAuthentication(
+            TenantId,
+            CreateSubjectWithAuthTime("99999999999999")
+        );
+        var parameters = CreateMaxAgeParameters(TimeSpan.FromHours(1));
+        var (command, disposition, mockContext, mockTenant) = CreateCommand(
+            subject,
+            initialError: null,
+            parameters
+        );
+        SetupTenant(mockContext, mockTenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(disposition.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenFractionalAuthTimeWithinMaxAge_Succeeds()
+    {
+        var authSeconds = DateTimeOffset.UtcNow.AddSeconds(-10).ToUnixTimeSeconds();
+        var authTime = string.Create(CultureInfo.InvariantCulture, $"{authSeconds}.5");
+        var subject = CreateSubjectAuthentication(TenantId, CreateSubjectWithAuthTime(authTime));
+        var parameters = CreateMaxAgeParameters(TimeSpan.FromHours(1));
         var (command, disposition, mockContext, mockTenant) = CreateCommand(
             subject,
             initialError: null,

@@ -294,9 +294,9 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         if (
             !validatedPayload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Jti, out var jti)
             || string.IsNullOrEmpty(jti)
-            || !validatedPayload.TryGetPropertyValue<long>(
+            || !validatedPayload.TryGetPropertyNumericDate(
                 JoseClaimNames.Payload.Exp,
-                out var expSeconds
+                out var expiresAt
             )
         )
         {
@@ -308,7 +308,11 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
             );
         }
 
-        var expiresWhen = DateTimeOffset.FromUnixTimeSeconds(expSeconds) + ReplayRetentionSkew;
+        // Saturate rather than overflow when 'exp' sits at the edge of the representable range.
+        var expiresWhen =
+            expiresAt > DateTimeOffset.MaxValue - ReplayRetentionSkew
+                ? DateTimeOffset.MaxValue
+                : expiresAt + ReplayRetentionSkew;
 
         var recorded = await ReplayCache.TryRecordAsync(
             clientId,

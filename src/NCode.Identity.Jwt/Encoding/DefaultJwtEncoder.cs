@@ -16,13 +16,9 @@
 
 #endregion
 
-using System.Diagnostics;
-using System.Globalization;
 using System.Security.Claims;
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
-using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Extensions;
@@ -130,7 +126,7 @@ internal sealed class DefaultJwtEncoder(
 
         foreach (var claim in subjectClaims)
         {
-            var nativeValue = ConvertClaimToNativeValue(claim);
+            var nativeValue = ClaimValueMapper.ToJsonValue(claim);
 
             // ClaimsIdentity may contain duplicate claims. If we encounter a duplicate claim,
             // we need to convert the duplicate values into a collection.
@@ -158,7 +154,7 @@ internal sealed class DefaultJwtEncoder(
         IReadOnlyDictionary<string, object>? extraClaims
     )
     {
-        if (extraClaims is not { Count: > 1 })
+        if (extraClaims is null)
             return;
 
         foreach (var (key, value) in extraClaims)
@@ -207,9 +203,12 @@ internal sealed class DefaultJwtEncoder(
             return;
 
         DateTimeOffset issuedAt;
-        if (payload.TryGetValue<long>(JoseClaimNames.Payload.Iat, out var iat))
+        if (
+            payload.TryGetValue<long>(JoseClaimNames.Payload.Iat, out var iat)
+            && DateCoercion.TryFromNumericDate(iat, out var suppliedIssuedAt)
+        )
         {
-            issuedAt = DateTimeOffset.FromUnixTimeSeconds(iat);
+            issuedAt = suppliedIssuedAt;
         }
         else
         {
@@ -227,66 +226,5 @@ internal sealed class DefaultJwtEncoder(
             var expires = issuedAt + Options.DefaultTokenLifetime;
             payload[JoseClaimNames.Payload.Exp] = expires.ToUnixTimeSeconds();
         }
-    }
-
-    private static object ConvertClaimToNativeValue(Claim claim) =>
-        claim.ValueType switch
-        {
-            ClaimValueTypes.String => claim.Value,
-            ClaimValueTypes.Boolean when bool.TryParse(claim.Value, out var boolValue) => boolValue,
-            ClaimValueTypes.Double
-                when double.TryParse(
-                    claim.Value,
-                    NumberStyles.Any,
-                    CultureInfo.InvariantCulture,
-                    out var doubleValue
-                ) => doubleValue,
-            ClaimValueTypes.Integer
-            or ClaimValueTypes.Integer32
-                when int.TryParse(
-                    claim.Value,
-                    NumberStyles.Any,
-                    CultureInfo.InvariantCulture,
-                    out var intValue
-                ) => intValue,
-            ClaimValueTypes.Integer64
-                when long.TryParse(
-                    claim.Value,
-                    NumberStyles.Any,
-                    CultureInfo.InvariantCulture,
-                    out var longValue
-                ) => longValue,
-            ClaimValueTypes.DateTime
-                when DateTimeOffset.TryParse(
-                    claim.Value,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal,
-                    out var dateTimeOffsetValue
-                ) => dateTimeOffsetValue,
-            ClaimValueTypes.DateTime
-                when DateTime.TryParse(
-                    claim.Value,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal,
-                    out var dateTimeValue
-                ) => dateTimeValue.ToUniversalTime(),
-            JsonClaimValueTypes.Json => CreateJsonElement(claim.Value),
-            JsonClaimValueTypes.JsonArray => CreateJsonElement(claim.Value),
-            JsonClaimValueTypes.JsonNull => string.Empty,
-            _ => claim.Value,
-        };
-
-    private static JsonElement CreateJsonElement(string json)
-    {
-        var byteCount = SecureEncoding.UTF8.GetByteCount(json);
-        using var _ = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> buffer);
-
-        var bytesWritten = SecureEncoding.UTF8.GetBytes(json, buffer);
-        Debug.Assert(bytesWritten == byteCount);
-
-        var reader = new Utf8JsonReader(buffer);
-        return JsonElement.TryParseValue(ref reader, out var jsonElement)
-            ? jsonElement.Value
-            : default;
     }
 }

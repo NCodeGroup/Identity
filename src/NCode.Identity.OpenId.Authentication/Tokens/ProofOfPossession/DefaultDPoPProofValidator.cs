@@ -192,14 +192,13 @@ internal class DefaultDPoPProofValidator(
         )
             throw Invalid("The DPoP proof is missing the 'jti' claim.");
 
-        // iat MUST be present and within the acceptable freshness window (RFC 9449 §4.3, §11.1).
-        if (!payload.TryGetPropertyValue<long>(JoseClaimNames.Payload.Iat, out var iatSeconds))
+        // iat MUST be a valid NumericDate within the acceptable freshness window (RFC 9449 §4.3, §11.1).
+        if (!payload.TryGetPropertyNumericDate(JoseClaimNames.Payload.Iat, out var issuedAt))
         {
             throw Invalid("The DPoP proof is missing a valid 'iat' claim.");
         }
 
         var lifetime = settings.GetValue(OpenIdSettingKeys.DPoPProofLifetime);
-        var issuedAt = DateTimeOffset.FromUnixTimeSeconds(iatSeconds);
         var now = TimeProvider.GetUtcNow();
         if (issuedAt > now + lifetime || issuedAt < now - lifetime)
             throw Invalid("The DPoP proof 'iat' claim is outside the acceptable window.");

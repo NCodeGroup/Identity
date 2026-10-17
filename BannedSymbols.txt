@@ -27,3 +27,7 @@ M:System.Runtime.CompilerServices.ValueTaskAwaiter`1.GetResult;Sync-over-async i
 # The legacy JWT stack is banned: use Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler, not the older APIs.
 T:System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler;Use Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler instead of the legacy JwtSecurityTokenHandler.
 T:System.IdentityModel.Tokens.Jwt.JwtSecurityToken;Use Microsoft.IdentityModel.JsonWebTokens.JsonWebToken instead of the legacy JwtSecurityToken.
+
+# Unix-time factories throw on out-of-range input, so a wire-supplied NumericDate could fault the caller (ADR-0123).
+M:System.DateTimeOffset.FromUnixTimeSeconds(System.Int64);Throws on out-of-range input. Use NCode.Json.DateCoercion.TryFromNumericDate / TryParseNumericDate or JsonElement.TryGetNumericDate.
+M:System.DateTimeOffset.FromUnixTimeMilliseconds(System.Int64);Throws on out-of-range input. Use NCode.Json.DateCoercion.TryFromNumericDate / TryParseNumericDate or JsonElement.TryGetNumericDate.

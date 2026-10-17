@@ -64,8 +64,8 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D13`     | `D12`      |
-| `F` — Feature gaps                    | `F39`     | `F38`      |
+| `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
+| `F` — Feature gaps                    | `F40`     | `F39`      |
 | `T` — Conformance & interop testing   | `T9`      | `T8`       |
 | `U` — Frontend presentation platform  | `U14`     | `U13`      |
 | `S` — Secrets management              | `S10`     | `S9`       |
@@ -102,18 +102,6 @@ entry and/or ADR that closed it.
   folders. Each should be evaluated and, where it is a genuine grab-bag (not a legitimately-named slice), split the same
   way for family-wide consistency with the §3 "folder/namespace by purpose" convention. Scoped out of the Secrets sweep
   to keep that change reviewable; revisit as a dedicated cohesion pass.
-- **`D12` — Consolidate claim-string date parsing in `ConvertClaimToNativeValue` onto `DateCoercion`.** The JWT
-  encoder's `DefaultJwtEncoder.ConvertClaimToNativeValue` (which maps a `Claim`'s string value to a native CLR value by
-  `Claim.ValueType` before serialization) parses a `ClaimValueTypes.DateTime` claim with its own
-  `DateTimeOffset.TryParse(..., AssumeUniversal)` / `DateTime.TryParse(..., AssumeUniversal).ToUniversalTime()` logic.
-  The `DateTimeOffset` branch already matches `NCode.Json.DateCoercion.TryParseDateTimeOffset` exactly, but the
-  `DateTime` fallback branch diverges from `DateCoercion.TryParseDateTime` (which uses `RoundtripKind` and labels a
-  zone-less value `Utc`), so an explicit-offset value is UTC-normalized here yet offset-preserved there. The branch is
-  rarely reached — the `DateTimeOffset` branch wins for almost any date string — so this is latent rather than live,
-  but it duplicates the date-parsing policy the `DateCoercion` consolidation deliberately centralized. Folding it in
-  requires exposing `DateCoercion` (currently `internal` to `NCode.Json`) as public API, so it is a small cross-cutting
-  change best done deliberately. Touch points: `src/NCode.Json/DateCoercion.cs` (make public) and
-  `src/NCode.Identity.Jwt/Encoding/DefaultJwtEncoder.cs` (`ConvertClaimToNativeValue`).
 - **`D11` — Time/date extension methods carry logic inside the `*.Abstractions` package.**
   `NCode.Identity.Jose.Abstractions/Extensions/` still holds `DateTimeExtensions`, `DateTimeOffsetExtensions`, and
   `TimeProviderExtensions` — each a C# 14 `extension(...)` member with a real method body (`WithPrecisionInSeconds`,
@@ -315,6 +303,18 @@ entry and/or ADR that closed it.
   same posture as the PQC item in `F28`. Touch points:
   [`src/NCode.Identity.Jose/Algorithms/KeyManagement`](src/NCode.Identity.Jose/Algorithms/KeyManagement),
   [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms).
+
+- **`F39` — Cap the accepted lifetime of client assertions (RFC 7523 §3).** A `private_key_jwt` / `client_secret_jwt`
+  assertion is accepted for any `exp` that has not yet passed — including one at the top of the `NumericDate` range
+  (year 9999), whose `jti` is then held in the replay cache effectively forever. RFC 7523 §3 lets the server reject an
+  assertion whose `exp` is "unreasonably far in the future", and mainstream providers bound assertion lifetime. Add a
+  per-client/tenant maximum assertion lifetime setting (bounded by the merge lattice, tightened by the FAPI 2.0
+  security profile) enforced against `exp - iat` (or `exp - now` when `iat` is absent), rejecting with
+  `invalid_client`; this also bounds replay-cache retention. The overflow on such an `exp` is already fixed
+  ([ADR-0123](docs/adr/0123-numeric-date-is-read-strictly-and-range-guarded.md)); the integration test
+  `PostToken_ClientSecretJwt_WhenExpAtMaxNumericDate_ReturnsAccessToken` flips to a rejection when this lands. Touch
+  points: `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/ClientAssertionClientAuthenticationHandler.cs`,
+  `OpenIdSettingKeys`, the FAPI security profile.
 
 ## Conformance & interop testing (group `T`)
 

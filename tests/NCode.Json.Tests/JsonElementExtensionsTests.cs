@@ -520,4 +520,84 @@ public class JsonElementExtensionsTests
         Assert.True(exists);
         Assert.Equal(expected, value);
     }
+
+    [Fact]
+    public void TryGetPropertyValue_Number_FractionalNumericDate_DateTimeOffset()
+    {
+        var jsonElement = JsonElement.Parse("""{"exp":1700000000.5}""");
+
+        var exists = jsonElement.TryGetPropertyValue<DateTimeOffset>("exp", out var value);
+
+        Assert.True(exists);
+        Assert.Equal(
+            DateTimeOffset.UnixEpoch.AddSeconds(1_700_000_000).AddMilliseconds(500),
+            value
+        );
+    }
+
+    #region TryGetNumericDate Tests
+
+    [Theory]
+    [InlineData("1700000000", 1_700_000_000L)]
+    [InlineData("1700000000.0", 1_700_000_000L)]
+    [InlineData("1.7e9", 1_700_000_000L)]
+    [InlineData("-1", -1L)]
+    public void TryGetNumericDate_WhenNumber_ReturnsUtcInstant(string json, long expectedSeconds)
+    {
+        var jsonElement = JsonElement.Parse(json);
+
+        var exists = jsonElement.TryGetNumericDate(out var value);
+
+        Assert.True(exists);
+        Assert.Equal(TimeSpan.Zero, value.Offset);
+        Assert.Equal(expectedSeconds, value.ToUnixTimeSeconds());
+    }
+
+    [Theory]
+    [InlineData("\"1700000000\"")]
+    [InlineData("\"2024-01-02T03:04:05Z\"")]
+    [InlineData("99999999999999")]
+    [InlineData("99999999999999999999")]
+    [InlineData("1e300")]
+    [InlineData("null")]
+    [InlineData("true")]
+    [InlineData("{}")]
+    public void TryGetNumericDate_WhenNotANumericDate_ReturnsFalse(string json)
+    {
+        var jsonElement = JsonElement.Parse(json);
+
+        var exists = jsonElement.TryGetNumericDate(out _);
+
+        Assert.False(exists);
+    }
+
+    #endregion
+
+    #region TryGetPropertyNumericDate Tests
+
+    [Fact]
+    public void TryGetPropertyNumericDate_WhenPresent_ReturnsUtcInstant()
+    {
+        var jsonElement = JsonElement.Parse("""{"iat":1700000000}""");
+
+        var exists = jsonElement.TryGetPropertyNumericDate("iat", out var value);
+
+        Assert.True(exists);
+        Assert.Equal(1_700_000_000L, value.ToUnixTimeSeconds());
+    }
+
+    [Theory]
+    [InlineData("""{}""")]
+    [InlineData("""{"iat":"1700000000"}""")]
+    [InlineData("""{"iat":99999999999999}""")]
+    public void TryGetPropertyNumericDate_WhenMissingOrInvalid_ReturnsFalse(string json)
+    {
+        var jsonElement = JsonElement.Parse(json);
+
+        var exists = jsonElement.TryGetPropertyNumericDate("iat", out _);
+
+        Assert.False(exists);
+    }
+
+    #endregion
 }

@@ -238,6 +238,53 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
+- **Claim dates parse only by declared type, through the now-public `NCode.Json.DateCoercion` (backlog `D12`,
+  [ADR-0121](docs/adr/0121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md)).** `DateCoercion` —
+  the date/time policy shared by `ObjectJsonConverter`, `JsonElements`, and `ObjectGraphExtensions` — is public, exposing
+  `TryParseDateTimeOffset` and `TryParseDateTime` so every package parses date strings under one lenient,
+  invariant-culture policy instead of hand-rolling `DateTime(Offset).TryParse`. The JWT encoder parses a claim typed
+  `ClaimValueTypes.DateTime` through it; a value that does not parse — including an instant outside the representable
+  `DateTimeOffset` range, which the encoder previously clamped to a wrong machine-local value — is emitted as its
+  verbatim string. **Behavior change:** the JWT claims-identity factory no longer sniffs JSON strings for dates. It
+  re-typed any date-looking string as `ClaimValueTypes.DateTime` and rewrote its value after signature verification —
+  `"1.2"` became January 2 of the current year, `"10:30"` became today's date, and an OpenID Connect `birthdate` of
+  `"1990-03-15"` became `"1990-03-15T00:00:00.0000000Z"`. A JSON string now always decodes verbatim as a
+  `ClaimValueTypes.String` claim; parse it with `DateCoercion` where the claim is known to be a date. **Public surface:**
+  adds `NCode.Json.DateCoercion` (`TryParseDateTimeOffset`, `TryParseDateTime`).
+
+- **JWT claim values map to and from JSON by declared type, losslessly, in one symmetric mapper (backlog `D14`,
+  [ADR-0122](docs/adr/0122-jwt-claim-values-map-to-json-by-declared-type.md)).** Both directions of the JWT claim-value
+  mapping — encoding a `Claim` into a payload value and decoding a payload value into a `Claim` — now live in one
+  internal `ClaimValueMapper`, guarded by a decode → encode round-trip test over every JSON scalar kind. **Decode:** a
+  JSON number keeps its exact literal and is typed most specific first — `ClaimValueTypes.Integer32`, `Integer64`,
+  `UInteger64`, the unbounded `Integer` for larger integers, and `Double` only for a fraction or exponent. Previously
+  every number was typed `Double`, so re-encoding lost integers above 2^53 (`9007199254740993` → `9007199254740992`).
+  **Encode:** each declared type parses in its XML Schema lexical space (invariant culture; `NumberStyles.Integer` /
+  `Float` instead of the lenient `NumberStyles.Any`, which coerced `"1,000"` to `1000`); `UInteger32` / `UInteger64`
+  emit numbers instead of strings; `Integer` is unbounded (beyond 64 bits it emits the exact JSON number); `JSON_NULL`
+  emits JSON `null` instead of `""`; and `JSON` / `JSON_ARRAY` emit the parsed value only when well formed and of the
+  declared kind. A value outside its declared type — including a `Double` of `NaN`/`Infinity` or malformed `JSON`, both
+  of which previously made encoding throw — is emitted as its verbatim string. **Fixed:** `IJwtEncoder` silently dropped
+  a lone entry in `JwtEncodingParameters.ExtraPayloadClaims` (the guard required more than one), so an ID token whose
+  only payload claim was `azp` lost it.
+
+- **RFC 7519 `NumericDate` values are read strictly and never fault the server (backlog `D13`,
+  [ADR-0123](docs/adr/0123-numeric-date-is-read-strictly-and-range-guarded.md)).** `NCode.Json.DateCoercion` adds the
+  public, non-throwing `TryFromNumericDate(long)`, `TryFromNumericDate(double)` (fractional seconds, kept to tick
+  precision as RFC 7519 allows), and `TryParseNumericDate(string?)`; `JsonElements` adds the strict
+  `TryGetNumericDate()` / `TryGetPropertyNumericDate(name)`, which accept only a JSON **number**. The loosely-typed
+  `TryGetValue<DateTimeOffset>` accessors now accept fractional `NumericDate`s too. Every wire-facing read routes through
+  them: the DPoP proof `iat`, the client-assertion `exp`, token-exchange and session `auth_time`, the `$created_when`
+  parameter, and the encoder's `iat`. **Fixed:** an out-of-range value (e.g. a self-signed DPoP proof with
+  `iat: 99999999999999`, or a client assertion whose `exp` is the maximum `NumericDate`) raised an unhandled
+  `ArgumentOutOfRangeException` instead of the endpoint's normal rejection; a fractional `iat`/`exp`/`auth_time` was
+  rejected; and a culture-sensitive parse read `auth_time`. **Security:** the JWT lifetime validator treated a present
+  but unreadable `nbf` or `exp` as absent — an unparseable `nbf` let a token be used early, and an unparseable `exp`
+  never expired when expiry was not required — and accepted date **strings** for both. A present time claim must now be
+  a valid `NumericDate` or validation fails. `DateTimeOffset.FromUnixTimeSeconds` / `FromUnixTimeMilliseconds` are
+  banned in shipping code (`RS0030`). **Public surface:** adds `DateCoercion.TryFromNumericDate` (two overloads),
+  `DateCoercion.TryParseNumericDate`, `JsonElements.TryGetNumericDate`, and `JsonElements.TryGetPropertyNumericDate`.
+
 - **The JWT library is renamed `NCode.Identity.JsonWebTokens` → `NCode.Identity.Jwt` (and the paired `.Abstractions`
   package likewise), its service is segregated, and validation is redesigned as ASP.NET Core-style
   requirements/handlers.** (`D8`, [ADR-0120](docs/adr/0120-jwt-validation-requirements-and-handlers.md).) The package,

@@ -432,6 +432,26 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   `ValueKind == JsonValueKind.Null` absence check; and `EmptyObject` / `OrEmptyObject()` in place of re-parsing `"{}"`.
   Reference the dependency-free **`NCode.Json`** package — the shared home for these helpers
   ([ADR-0056](../../docs/adr/0056-abstractions-split-into-framework-free-tiered-packages.md)).
+- **Parse a date/time string with `NCode.Json.DateCoercion`, never a hand-rolled `DateTime(Offset).TryParse`.**
+  `TryParseDateTimeOffset` / `TryParseDateTime` are the family's single lenient, invariant-culture date policy (zone-less
+  → UTC, explicit offset honored, an out-of-range instant fails instead of clamping), so every package accepts the same
+  formats and produces the same values. Apply it only where the value is **declared** to be a date (an explicit claim
+  value type, a date-typed target) — **never** to sniff whether an arbitrary string "looks like" a date: lenient parsing
+  turns `"1.2"` or `"10:30"` into dates and would rewrite them. A decoded JSON string claim stays a verbatim
+  `ClaimValueTypes.String`. See [ADR-0121](../../docs/adr/0121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md).
+- ✅ **Read an RFC 7519 `NumericDate` (`exp`, `nbf`, `iat`, `auth_time`, a Unix-seconds parameter) strictly and
+  range-guarded** — `JsonElement.TryGetNumericDate` / `TryGetPropertyNumericDate` for JSON (a number only, integer or
+  fractional; never a string), `DateCoercion.TryParseNumericDate` for a claim value or parameter text, and
+  `DateCoercion.TryFromNumericDate` for a number already in hand. They return `false` instead of throwing, so wire input
+  can never fault the caller; `DateTimeOffset.FromUnixTimeSeconds`/`FromUnixTimeMilliseconds` are **banned** (`RS0030`)
+  because they throw on out-of-range input. A time claim that is **present but invalid fails closed** — never read it
+  as absent. Saturate (don't overflow) when adding a margin to an instant near `DateTimeOffset.MaxValue`. See
+  [ADR-0123](../../docs/adr/0123-numeric-date-is-read-strictly-and-range-guarded.md).
+- **Give a typed `Claim` its value in the declared type's XML Schema lexical form** — numbers via
+  `value.ToString(CultureInfo.InvariantCulture)`, never culture-formatted (`"1,000"`). The JWT claim ⇄ JSON mapping
+  (`ClaimValueMapper`, the single place a `Claim.ValueType` is interpreted) parses each value strictly in its declared
+  type and emits a value outside it as a verbatim string. See
+  [ADR-0122](../../docs/adr/0122-jwt-claim-values-map-to-json-by-declared-type.md).
 
 ## 7. Testability & unit-test-friendliness
 

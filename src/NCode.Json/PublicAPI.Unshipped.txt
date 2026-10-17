@@ -5,7 +5,31 @@ NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.get -
 NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.set -> void
 NCode.Json.JsonElements
 NCode.Json.ObjectJsonConverter
-NCode.Json.ObjectJsonConverter.ObjectJsonConverter() -> void
+NCode.Json.ObjectJsonConverter.ObjectJsonConverter(NCode.Json.ObjectJsonConverterOptions! options) -> void
+NCode.Json.ObjectJsonConverterOptions
+NCode.Json.ObjectJsonConverterOptions.AllowBigInteger.get -> bool
+NCode.Json.ObjectJsonConverterOptions.AllowBigInteger.init -> void
+NCode.Json.ObjectJsonConverterOptions.CoerceStringToGuid.get -> bool
+NCode.Json.ObjectJsonConverterOptions.CoerceStringToGuid.init -> void
+NCode.Json.ObjectJsonConverterOptions.CoerceStringToNumber.get -> bool
+NCode.Json.ObjectJsonConverterOptions.CoerceStringToNumber.init -> void
+NCode.Json.ObjectJsonConverterOptions.DateString.get -> NCode.Json.ObjectJsonDateStringHandling
+NCode.Json.ObjectJsonConverterOptions.DateString.init -> void
+NCode.Json.ObjectJsonConverterOptions.Integer.get -> NCode.Json.ObjectJsonIntegerHandling
+NCode.Json.ObjectJsonConverterOptions.Integer.init -> void
+NCode.Json.ObjectJsonConverterOptions.ObjectJsonConverterOptions() -> void
+NCode.Json.ObjectJsonConverterOptions.Real.get -> NCode.Json.ObjectJsonRealHandling
+NCode.Json.ObjectJsonConverterOptions.Real.init -> void
+NCode.Json.ObjectJsonDateStringHandling
+NCode.Json.ObjectJsonDateStringHandling.DateTime = 1 -> NCode.Json.ObjectJsonDateStringHandling
+NCode.Json.ObjectJsonDateStringHandling.DateTimeOffset = 2 -> NCode.Json.ObjectJsonDateStringHandling
+NCode.Json.ObjectJsonDateStringHandling.None = 0 -> NCode.Json.ObjectJsonDateStringHandling
+NCode.Json.ObjectJsonIntegerHandling
+NCode.Json.ObjectJsonIntegerHandling.Int64 = 1 -> NCode.Json.ObjectJsonIntegerHandling
+NCode.Json.ObjectJsonIntegerHandling.MostSpecific = 0 -> NCode.Json.ObjectJsonIntegerHandling
+NCode.Json.ObjectJsonRealHandling
+NCode.Json.ObjectJsonRealHandling.Decimal = 1 -> NCode.Json.ObjectJsonRealHandling
+NCode.Json.ObjectJsonRealHandling.Double = 0 -> NCode.Json.ObjectJsonRealHandling
 override NCode.Json.ObjectJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> object?
 override NCode.Json.ObjectJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, object! value, System.Text.Json.JsonSerializerOptions! options) -> void
 NCode.Json.UriJsonConverter
@@ -15,7 +39,9 @@ override NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.Read(re
 override NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.Write(System.Text.Json.Utf8JsonWriter! writer, TInterface value, System.Text.Json.JsonSerializerOptions! options) -> void
 override NCode.Json.UriJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> System.Uri?
 override NCode.Json.UriJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, System.Uri? value, System.Text.Json.JsonSerializerOptions! options) -> void
-static NCode.Json.ObjectJsonConverter.Singleton.get -> NCode.Json.ObjectJsonConverter!
+static NCode.Json.ObjectJsonConverter.Default.get -> NCode.Json.ObjectJsonConverter!
+static NCode.Json.ObjectJsonConverterOptions.Default.get -> NCode.Json.ObjectJsonConverterOptions!
+static NCode.Json.ObjectJsonConverterOptions.NewtonsoftCompatible.get -> NCode.Json.ObjectJsonConverterOptions!
 static NCode.Json.UriJsonConverter.Singleton.get -> NCode.Json.UriJsonConverter!
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement)
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).IsNullOrUndefined() -> bool

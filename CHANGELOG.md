@@ -12,12 +12,23 @@ change to the public API is a **major** version bump.
 
 - **Reusable `NCode.Json.ObjectJsonConverter` for loosely-typed JSON deserialization.** The `System.Text.Json`
   converter that reads JSON into an `object` graph (objects → `Dictionary<string, object?>`, arrays →
-  `List<object?>`, scalars coerced to the most specific matching CLR type) was promoted out of `NCode.Identity.Jose`
-  (where it was an internal `JoseObjectJsonConverter`) into the dependency-free `NCode.Json` package as the public
-  `ObjectJsonConverter` (singleton via `ObjectJsonConverter.Singleton`), co-locating it with the existing
-  `JsonElements` helpers so any package can reuse it. By design it never interprets a bare number as an RFC 7519
-  `NumericDate`, since the target type is unknown when deserializing to `object` — that interpretation remains
-  exclusive to `JsonElements.TryGetPropertyValue<T>`, where the caller supplies an explicit date target type.
+  `List<object?>`) was promoted out of `NCode.Identity.Jose` (where it was an internal `JoseObjectJsonConverter`)
+  into the dependency-free `NCode.Json` package as the public `ObjectJsonConverter`, co-locating it with the existing
+  `JsonElements` helpers so any package can reuse it. Scalar mapping is now driven by a cohesive
+  `ObjectJsonConverterOptions` (passed to the constructor; `ObjectJsonConverter.Default` is the shared default
+  instance). `ObjectJsonConverterOptions.Default` preserves the original lenient coercion — most-specific integers,
+  `double` reals, and strings coerced to the most specific matching type (`DateTimeOffset`, then `Guid`, then a numeric
+  type) before falling back to `string` — rather than the narrower built-in `System.Text.Json` behavior. The new
+  policies make each facet configurable: integer handling (`ObjectJsonIntegerHandling.MostSpecific` / `Int64`), real
+  handling (`ObjectJsonRealHandling.Double` / `Decimal`), oversized integers (`AllowBigInteger` →
+  `System.Numerics.BigInteger` instead of a lossy `double`), date-string parsing (`ObjectJsonDateStringHandling.None` /
+  `DateTime` / `DateTimeOffset`), and `CoerceStringToGuid` / `CoerceStringToNumber` (both default on; disable for strict
+  round-trip fidelity so a value such as `"123"` stays a `string`). A ready-made `ObjectJsonConverterOptions`.`Default`
+  and `.NewtonsoftCompatible` preset are provided — the latter widening integers to `long` and parsing date strings
+  while, like Newtonsoft.Json, leaving number- and `Guid`-like strings as `string`. A bare JSON number is still never
+  interpreted as an RFC 7519 `NumericDate` (the target type is unknown when deserializing to `object`) — that
+  interpretation remains exclusive to `JsonElements.TryGetPropertyValue<T>`, where the caller supplies an explicit date
+  target type.
 
 - **Reusable `NCode.Json.UriJsonConverter` and `NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>`.**
   Two framework-free `System.Text.Json` converters were promoted into the dependency-free `NCode.Json` package,

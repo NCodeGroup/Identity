@@ -64,7 +64,7 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D10`     | `D9`       |
+| `D` — Deferred, intentionally not-yet | `D11`     | `D10`      |
 | `F` — Feature gaps                    | `F39`     | `F38`      |
 | `T` — Conformance & interop testing   | `T9`      | `T8`       |
 | `U` — Frontend presentation platform  | `U14`     | `U13`      |
@@ -124,6 +124,19 @@ entry and/or ADR that closed it.
   done deliberately. Revisit as a dedicated no-logic-in-abstractions cleanup. Touch points:
   `src/NCode.Identity.Jose.Abstractions/Extensions/DictionaryExtensions.cs` and every `NCode.Identity.Jose.Extensions`
   consumer.
+- **`D10` — Numeric claim reads couple to the exact boxed CLR type from loosely-typed deserialization.** The strict
+  `obj is T` match in `DictionaryExtensions.TryGetValue<T>` (and similar reads over an `ObjectJsonConverter` object
+  graph) assumes one specific boxed numeric width, but `ObjectJsonConverter.Default` maps integers **most-specifically**
+  (`p2c` `4096` → `int`, a larger value → `long`/`ulong`), so the width is value-dependent. Consumers already disagree:
+  `Pbes2KeyManagementAlgorithm` reads `TryGetValue<int>("p2c")` (matches the `int`-first mapping), while
+  `DefaultJsonWebTokenService.ProcessTokenLifetime` reads `TryGetValue<long>("iat")` — a deserialized `1700000000`
+  boxes as `int`, so `is long` misses and the code can re-set `iat`. The robust fix is a numeric-tolerant accessor that
+  converts across `int`/`long`/`ulong`/`BigInteger` (as `JsonElements.TryGetPropertyValue<T>` already does for the
+  `JsonElement` path) rather than relying on the exact boxed type; it pairs naturally with the `D9` relocation of that
+  extension. Deferred out of the `ObjectJsonConverter` options rework to keep that change focused. Touch points:
+  `src/NCode.Identity.Jose.Abstractions/Extensions/DictionaryExtensions.cs`,
+  `src/NCode.Identity.Jose/Algorithms/KeyManagement/Pbes2KeyManagementAlgorithm.cs`,
+  `src/NCode.Identity.JsonWebTokens/DefaultJsonWebTokenService.Encode.cs`.
 
 ## Feature gaps — not yet implemented (group `F`)
 

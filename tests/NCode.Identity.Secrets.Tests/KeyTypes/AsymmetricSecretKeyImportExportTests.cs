@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Extensions.DataProtection;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
@@ -55,6 +56,9 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
     private EccSecretKeyTypeDescriptor Ecc() => new(_factory, new DefaultEccCurveCatalog([]));
 
     private SymmetricSecretKeyTypeDescriptor Symmetric() => new(_factory);
+
+    // Reads a key-type-specific JWK member (for example 'n' or 'x') by name.
+    private static string? Member(JsonWebKey jwk, string name) => jwk.GetMember(name);
 
     // A capturing protector that records the raw (unprotected) bytes so a test can feed them back into
     // DeserializeKeyMaterial, mirroring the persistence unprotect-then-deserialize path.
@@ -219,10 +223,10 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
 
         var exported = descriptor.ExportPublicKey(secretKey);
         Assert.NotNull(exported);
-        Assert.Equal("RSA", exported.Jwk["kty"]!.GetValue<string>());
-        Assert.Equal(expectedModulus, exported.Jwk["n"]!.GetValue<string>());
-        Assert.Equal(expectedExponent, exported.Jwk["e"]!.GetValue<string>());
-        Assert.Equal("kid-1", exported.Jwk["kid"]!.GetValue<string>());
+        Assert.Equal("RSA", exported.Jwk.KeyType);
+        Assert.Equal(expectedModulus, Member(exported.Jwk, "n"));
+        Assert.Equal(expectedExponent, Member(exported.Jwk, "e"));
+        Assert.Equal("kid-1", exported.Jwk.KeyId);
         Assert.Contains("-----BEGIN PUBLIC KEY-----", exported.Pem);
     }
 
@@ -277,10 +281,10 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
 
         var exported = descriptor.ExportPublicKey(secretKey);
         Assert.NotNull(exported);
-        Assert.Equal("EC", exported.Jwk["kty"]!.GetValue<string>());
-        Assert.Equal("P-256", exported.Jwk["crv"]!.GetValue<string>());
-        Assert.Equal(expectedX, exported.Jwk["x"]!.GetValue<string>());
-        Assert.Equal(expectedY, exported.Jwk["y"]!.GetValue<string>());
+        Assert.Equal("EC", exported.Jwk.KeyType);
+        Assert.Equal("P-256", Member(exported.Jwk, "crv"));
+        Assert.Equal(expectedX, Member(exported.Jwk, "x"));
+        Assert.Equal(expectedY, Member(exported.Jwk, "y"));
     }
 
     [Fact]

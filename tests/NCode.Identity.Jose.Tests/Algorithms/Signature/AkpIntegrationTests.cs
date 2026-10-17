@@ -174,13 +174,13 @@ public class AkpIntegrationTests
 
         var exported = descriptor.ExportPublicKey(privateKey);
         Assert.NotNull(exported);
-        Assert.Equal("AKP", exported.Jwk["kty"]!.GetValue<string>());
-        Assert.Equal(name, exported.Jwk["alg"]!.GetValue<string>());
+        Assert.Equal("AKP", exported.Jwk.KeyType);
+        Assert.Equal(name, exported.Jwk.Algorithm);
 
         var publicKey = ImportPublicKey(
             descriptor,
             SecretKeyImportFormat.Jwk,
-            exported.Jwk.ToJsonString()
+            System.Text.Json.JsonSerializer.Serialize(exported.Jwk)
         );
 
         Assert.False(publicKey.HasPrivateKey);
@@ -229,7 +229,7 @@ public class AkpIntegrationTests
         var publicKey = ImportPublicKey(
             descriptor,
             SecretKeyImportFormat.Jwk,
-            exported.Jwk.ToJsonString()
+            System.Text.Json.JsonSerializer.Serialize(exported.Jwk)
         );
 
         var signature = new byte[algorithm.GetSignatureSizeBytes(KeySizeBitsOf(name))];

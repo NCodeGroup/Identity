@@ -17,8 +17,8 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Nodes;
 using JetBrains.Annotations;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.Secrets.KeyMaterial;
@@ -34,11 +34,11 @@ namespace NCode.Identity.Secrets.KeyMaterial;
 public sealed class ExportedPublicKey
 {
     /// <summary>
-    /// Gets the public key as a <c>JSON Web Key</c> (RFC 7517) object carrying the key-type-specific members
+    /// Gets the public key as a <c>JSON Web Key</c> (RFC 7517) carrying the key-type-specific members
     /// (for example <c>kty</c>/<c>n</c>/<c>e</c> or <c>kty</c>/<c>crv</c>/<c>x</c>/<c>y</c>) plus any
     /// <c>kid</c>/<c>use</c>/<c>alg</c> from the key's metadata.
     /// </summary>
-    public required JsonObject Jwk { get; init; }
+    public required JsonWebKey Jwk { get; init; }
 
     /// <summary>
     /// Gets the public key as a <c>SubjectPublicKeyInfo</c> PEM (<c>-----BEGIN PUBLIC KEY-----</c>).

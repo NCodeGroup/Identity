@@ -3,6 +3,7 @@ abstract NCode.Identity.Secrets.Keys.AkpSecretKey.ExportMLDsa() -> System.Securi
 abstract NCode.Identity.Secrets.Keys.AkpSecretKey.HasPrivateKey.get -> bool
 const NCode.Identity.Secrets.Keys.AkpSecretKey.TypeName = "akp" -> string!
 const NCode.Identity.Secrets.SecretKeyTypes.Akp = "akp" -> string!
+NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey.Jwk.get -> NCode.Identity.Jwk.JsonWebKey!
 NCode.Identity.Secrets.Keys.AkpSecretKey
 NCode.Identity.Secrets.Keys.AkpSecretKey.AkpSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.MLDsaAlgorithm! algorithm, System.ReadOnlyMemory<byte> publicKey, System.ReadOnlyMemory<byte>? certificateRawData) -> void
 NCode.Identity.Secrets.Keys.AkpSecretKey.Algorithm.get -> System.Security.Cryptography.MLDsaAlgorithm!
@@ -11,7 +12,6 @@ NCode.Identity.Secrets.Keys.AkpSecretKey.ExportPublicKey<TWriter>(ref TWriter de
 NCode.Identity.Secrets.Keys.AkpSecretKey.RawPublicKey.get -> System.ReadOnlyMemory<byte>
 NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey
 NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey.ExportedPublicKey() -> void
-NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey.Jwk.get -> System.Text.Json.Nodes.JsonObject!
 NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey.Jwk.init -> void
 NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey.Pem.get -> string!
 NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey.Pem.init -> void

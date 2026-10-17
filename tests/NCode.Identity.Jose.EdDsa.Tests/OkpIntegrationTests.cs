@@ -151,7 +151,7 @@ public class OkpIntegrationTests
         var publicKey = ImportPublicKey(
             descriptor,
             SecretKeyImportFormat.Jwk,
-            exported.Jwk.ToJsonString()
+            System.Text.Json.JsonSerializer.Serialize(exported.Jwk)
         );
 
         Assert.False(publicKey.HasPrivateKey);
@@ -194,7 +194,7 @@ public class OkpIntegrationTests
         var publicKey = ImportPublicKey(
             descriptor,
             SecretKeyImportFormat.Jwk,
-            exported.Jwk.ToJsonString()
+            System.Text.Json.JsonSerializer.Serialize(exported.Jwk)
         );
 
         var signature = new byte[algorithm.GetSignatureSizeBytes(keySizeBits)];

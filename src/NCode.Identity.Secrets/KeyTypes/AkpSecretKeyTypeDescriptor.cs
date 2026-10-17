@@ -25,6 +25,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Buffers;
 using NCode.Extensions.DataProtection;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 
@@ -186,7 +187,11 @@ public sealed class AkpSecretKeyTypeDescriptor(
         AddIfPresent(jwk, "kid", akp.Metadata.KeyId);
         AddIfPresent(jwk, "use", akp.Metadata.Use);
 
-        return new ExportedPublicKey { Jwk = jwk, Pem = akp.ExportSubjectPublicKeyInfoPem() };
+        return new ExportedPublicKey
+        {
+            Jwk = new JsonWebKey(jwk),
+            Pem = akp.ExportSubjectPublicKeyInfoPem(),
+        };
     }
 
     private ReadOnlyMemory<byte> Protect(ReadOnlySpan<byte> material)

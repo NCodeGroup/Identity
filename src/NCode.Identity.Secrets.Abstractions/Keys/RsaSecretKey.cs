@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 
@@ -47,5 +48,9 @@ public abstract class RsaSecretKey(
     public abstract RSA ExportRSA();
 
     /// <inheritdoc />
-    public override AsymmetricAlgorithm ExportAsymmetricAlgorithm() => ExportRSA();
+    public override void ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination)
+    {
+        using var key = ExportRSA();
+        WriteSubjectPublicKeyInfo(key, ref destination);
+    }
 }

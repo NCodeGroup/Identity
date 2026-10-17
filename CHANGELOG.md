@@ -10,6 +10,30 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **EdDSA (Ed25519 / Ed448) signing is now available as the opt-in `NCode.Identity.Jose.EdDsa` package.** The JWA `alg`
+  value `EdDSA` (RFC 8037) over both Edwards curves is implemented **clean-room** from the specifications
+  (RFC 8032 / 8037 / 7748 / 8410) — constant-time field, scalar, and group arithmetic composing only the BCL hash
+  primitives (`SHA512`, `Shake256`), with **zero** third-party cryptographic dependency in shipping code. The package
+  depends only on abstractions (`NCode.Identity.Jose.Abstractions`, `NCode.Identity.Secrets.Abstractions`). It adds a
+  first-class `OKP` (Octet Key Pair) `AsymmetricSecretKey` (`OkpSecretKey`; JWK `kty` `OKP`, `crv` `Ed25519` / `Ed448`)
+  with its `ISecretKeyTypeDescriptor` — generate, JWK/PEM public import, JWK + SPKI-PEM public export, and PKCS#8 / SPKI
+  deserialize, with the private seed held data-protected in memory and exported only through `ExportPrivateKey` — and a
+  single `EdDsaSignatureAlgorithm` that selects the curve from the signing key's `crv`. A host enables it with one
+  `serviceCollection.AddEdDsa()` call; discovery then advertises `EdDSA` in the asymmetric token-signing metadata
+  automatically (the signing-algorithm partition keys on `AsymmetricSecretKey`), and the existing FAPI signing-algorithm
+  ceiling already lists it. See [ADR-0117](docs/adr/0117-eddsa-clean-room-implementation-opt-in-package.md).
+
+- **Asymmetric secret keys now model their public half as `SubjectPublicKeyInfo` DER through a buffer writer, making the
+  key model forward-compatible with Edwards-curve (OKP) and post-quantum keys.** The `AsymmetricSecretKey` base replaces
+  `ExportAsymmetricAlgorithm()` (which coupled every asymmetric key to `System.Security.Cryptography.AsymmetricAlgorithm`)
+  with `ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination)` writing into a caller-supplied
+  `IBufferWriter<byte>`, and derives the PEM convenience from it via a pooled non-sensitive writer. RSA/ECC implement it
+  from their family exports; OKP and future PQC keys implement it from their own DER encoders. Callers that need a live
+  classical algorithm still use the family-specific `ExportRSA()` / `ExportECDsa()` accessors. This is a breaking change
+  to the `NCode.Identity.Secrets.Abstractions` public surface (acceptable under the greenfield pre-release posture). See
+  [ADR-0115](docs/adr/0115-asymmetric-keys-model-der-material-via-buffer-writers.md) and
+  [ADR-0116](docs/adr/0116-memory-allocations-and-buffer-operations.md).
+
 - **Non-redirectable authorization errors are now content-negotiated: a browser gets a human-readable HTML error page,
   programmatic callers keep JSON.** When the authorize endpoint refuses to redirect an error back to the client — an
   unregistered/invalid `redirect_uri` or an unresolvable `client_id`
@@ -192,7 +216,8 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   rejects weak and public authentication at the token endpoint). New surface: the `security_profile` setting, the
   `OpenIdConstants.SecurityProfiles.Fapi2` constant, the extensible security-profile registry (`ISecurityProfile` /
   `ISecurityProfileCatalog`; see Phase 3 below), and the `AlgorithmCodes.DigitalSignature.EdDsa` algorithm code (the
-  EdDSA signing implementation itself is tracked as backlog `F29`).
+  EdDSA signing implementation ships in the opt-in `NCode.Identity.Jose.EdDsa` package,
+  [ADR-0117](docs/adr/0117-eddsa-clean-room-implementation-opt-in-package.md)).
 
 - **Mutual-TLS client authentication (`tls_client_auth` / `self_signed_tls_client_auth`) — advances backlog `F16`
   (Phase 1) ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)).** A confidential client can now authenticate

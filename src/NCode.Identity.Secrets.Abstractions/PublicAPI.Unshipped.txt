@@ -6,7 +6,7 @@ NCode.Identity.Secrets.Logic.ExportedPublicKey.Jwk.init -> void
 NCode.Identity.Secrets.Logic.ExportedPublicKey.Pem.get -> string!
 NCode.Identity.Secrets.Logic.ExportedPublicKey.Pem.init -> void
 NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.Logic.ExportedPublicKey?
-abstract NCode.Identity.Secrets.Keys.AsymmetricSecretKey.ExportAsymmetricAlgorithm() -> System.Security.Cryptography.AsymmetricAlgorithm!
+abstract NCode.Identity.Secrets.Keys.AsymmetricSecretKey.ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination) -> void
 NCode.Identity.Secrets.Keys.AsymmetricSecretKey.ExportCertificate() -> System.Security.Cryptography.X509Certificates.X509Certificate2?
 NCode.Identity.Secrets.Keys.AsymmetricSecretKey.CertificateRawData.get -> System.ReadOnlyMemory<byte>?
 NCode.Identity.Secrets.Keys.AsymmetricSecretKey.HasCertificate.get -> bool
@@ -31,7 +31,7 @@ override NCode.Identity.Secrets.Keys.AsymmetricSecretKey.KeySizeBits.get -> int
 override NCode.Identity.Secrets.Keys.AsymmetricSecretKey.Metadata.get -> NCode.Identity.Secrets.Keys.KeyMetadata
 NCode.Identity.Secrets.Keys.EccSecretKey
 NCode.Identity.Secrets.Keys.EccSecretKey.EccSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, int curveSizeBits, System.ReadOnlyMemory<byte>? certificateRawData) -> void
-override NCode.Identity.Secrets.Keys.EccSecretKey.ExportAsymmetricAlgorithm() -> System.Security.Cryptography.AsymmetricAlgorithm!
+override NCode.Identity.Secrets.Keys.EccSecretKey.ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination) -> void
 NCode.Identity.Secrets.Keys.KeyMetadata
 NCode.Identity.Secrets.Keys.KeyMetadata.Algorithm.get -> string?
 NCode.Identity.Secrets.Keys.KeyMetadata.Algorithm.init -> void
@@ -44,7 +44,7 @@ NCode.Identity.Secrets.Keys.KeyMetadata.Use.get -> string?
 NCode.Identity.Secrets.Keys.KeyMetadata.Use.init -> void
 NCode.Identity.Secrets.Keys.RsaSecretKey
 NCode.Identity.Secrets.Keys.RsaSecretKey.RsaSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, int modulusSizeBits, System.ReadOnlyMemory<byte>? certificateRawData) -> void
-override NCode.Identity.Secrets.Keys.RsaSecretKey.ExportAsymmetricAlgorithm() -> System.Security.Cryptography.AsymmetricAlgorithm!
+override NCode.Identity.Secrets.Keys.RsaSecretKey.ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination) -> void
 NCode.Identity.Secrets.Keys.SecretKey
 NCode.Identity.Secrets.Keys.SecretKey.SecretKey() -> void
 NCode.Identity.Secrets.Keys.SymmetricSecretKey

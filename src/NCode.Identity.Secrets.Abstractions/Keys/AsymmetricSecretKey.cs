@@ -17,10 +17,12 @@
 
 #endregion
 
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using JetBrains.Annotations;
+using NCode.Buffers;
 
 namespace NCode.Identity.Secrets.Keys;
 
@@ -70,9 +72,16 @@ public abstract class AsymmetricSecretKey(
             : null;
 
     /// <summary>
-    /// Factory method to create an <see cref="AsymmetricAlgorithm"/> instance from the current key material.
+    /// Writes the <b>public</b> half of this asymmetric key as <c>SubjectPublicKeyInfo</c> (SPKI) DER to
+    /// <paramref name="destination"/>. This is the universal public-key-material primitive for every asymmetric
+    /// family: classical keys backed by an <see cref="AsymmetricAlgorithm"/> (RSA/ECC) and families whose keys are
+    /// <b>not</b> an <see cref="AsymmetricAlgorithm"/> instance (for example post-quantum ML-DSA / SLH-DSA, or
+    /// Edwards-curve OKP keys), which expose their key material only as SPKI / PKCS#8 DER. No private key material
+    /// is included.
     /// </summary>
-    public abstract AsymmetricAlgorithm ExportAsymmetricAlgorithm();
+    /// <param name="destination">The destination buffer writer that receives the SPKI DER bytes.</param>
+    public abstract void ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination)
+        where TWriter : IBufferWriter<byte>, allows ref struct;
 
     /// <summary>
     /// Exports the <b>public</b> half of this asymmetric key as a <c>SubjectPublicKeyInfo</c> <c>PEM</c>
@@ -80,7 +89,34 @@ public abstract class AsymmetricSecretKey(
     /// </summary>
     public virtual string ExportSubjectPublicKeyInfoPem()
     {
-        using var algorithm = ExportAsymmetricAlgorithm();
-        return algorithm.ExportSubjectPublicKeyInfoPem();
+        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
+        IBufferWriter<byte> writer = buffer;
+        ExportSubjectPublicKeyInfo(ref writer);
+        using var lease = buffer.GetSpanLease(isSensitive: false);
+        return PemEncoding.WriteString("PUBLIC KEY", lease.Span);
+    }
+
+    /// <summary>
+    /// Writes the <c>SubjectPublicKeyInfo</c> (SPKI) DER of the specified <paramref name="algorithm"/> to
+    /// <paramref name="destination"/>, growing the request until the export succeeds.
+    /// </summary>
+    private protected static void WriteSubjectPublicKeyInfo<TWriter>(
+        AsymmetricAlgorithm algorithm,
+        ref TWriter destination
+    )
+        where TWriter : IBufferWriter<byte>, allows ref struct
+    {
+        var sizeHint = 512;
+        while (true)
+        {
+            var span = destination.GetSpan(sizeHint);
+            if (algorithm.TryExportSubjectPublicKeyInfo(span, out var bytesWritten))
+            {
+                destination.Advance(bytesWritten);
+                return;
+            }
+
+            sizeHint = checked(sizeHint * 2);
+        }
     }
 }

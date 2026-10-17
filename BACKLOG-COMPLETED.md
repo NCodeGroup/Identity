@@ -408,6 +408,34 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `OpenIdException`) already funnel through `OpenIdResult<T>`, so negotiating there covered both without touching the
   authorize handler or exception plumbing._
 
+- **`F29` — EdDSA (Ed25519 / Ed448) signing algorithm support.** The JOSE library implemented RSA (`RS*`/`PS*`) and
+  ECDSA (`ES*`) signatures but not **EdDSA** (the JWA `alg` value `EdDSA`, RFC 8037), the modern Edwards-curve signature
+  scheme FAPI 2.0 permits. The algorithm code constant (`AlgorithmCodes.DigitalSignature.EdDsa`) and the FAPI
+  signing-algorithm ceiling already listed `EdDSA`, so it is advertised/permitted the moment the implementation is
+  registered (the ceiling intersects with the server's actually-supported set). Unlike the library's other
+  self-implemented algorithms — AES-KW, Concat-KDF/ECDH, PBES2, AES-CBC-HMAC, which compose **BCL primitives** — EdDSA
+  has no BCL primitive to compose: `System.Security.Cryptography` on .NET 10 ships the PQC set (`MLDsa`/`SlhDsa`/`MLKem`)
+  but **no** Edwards-curve type, and native .NET EdDSA is a later-release proposal. Only the two hashes EdDSA needs
+  (SHA-512 for Ed25519, SHAKE256 for Ed448) are in the BCL.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0117](docs/adr/0117-eddsa-clean-room-implementation-opt-in-package.md). Delivered as the opt-in
+  `NCode.Identity.Jose.EdDsa` package: a **clean-room** implementation of Ed25519 and Ed448 from RFC 8032 / 8037 / 7748 /
+  8410 — constant-time field, scalar, and group arithmetic composing only the BCL hash primitives, with **zero**
+  third-party cryptographic dependency in shipping code. The package depends only on abstractions
+  (`NCode.Identity.Jose.Abstractions`, `NCode.Identity.Secrets.Abstractions`). It adds a first-class `OKP` (Octet Key
+  Pair) `AsymmetricSecretKey` (`OkpSecretKey`, JWK `kty` `OKP`, `crv` `Ed25519`/`Ed448`) with its
+  `ISecretKeyTypeDescriptor` (generate, JWK/PEM import, JWK+SPKI-PEM export, PKCS#8/SPKI deserialize; private seed
+  data-protected in memory), a single `EdDsaSignatureAlgorithm` that selects the curve from the key's `crv`, and a
+  `serviceCollection.AddEdDsa()` turnkey registration. Discovery advertises `EdDSA` in the asymmetric signing metadata
+  automatically once registered (the signing-alg partition keys on `AsymmetricSecretKey`). Correctness is pinned by
+  differential tests that cross-check the output byte-for-byte against an independent implementation used solely as a
+  test oracle (never referenced by shipping code). The curve catalog is deliberately `internal` (RFC 8032 defines a
+  closed set of exactly two curves — unlike the open, public ECC curve catalog). Not wired into the reference host by
+  default (it stays opt-in to avoid changing the conformance discovery baseline); enabling it in the Playground and
+  seeding an OKP developer signing key is a follow-up. The planned touch points in `src/NCode.Identity.Jose/Algorithms/`
+  and `src/NCode.Identity.Secrets/Logic/` were superseded by the standalone package so the core JOSE library gains no new
+  dependency and no always-on algorithm._
+
 ## Conformance & interop testing (group `T`)
 
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface

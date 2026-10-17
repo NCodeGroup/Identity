@@ -539,6 +539,27 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   that enters from configuration (already an unavoidable managed `string`) is supplied **pre-encoded** (Base64Url) and
   decoded straight into the secure buffer, so a raw process-memory snapshot does not expose the plaintext directly. See
   [ADR-0011](../../docs/adr/0011-secret-management-api.md).
+- 👁 **Prefer `Span<byte>` / `ReadOnlyMemory<byte>` / `IBufferWriter<byte>` over `byte[]` for binary and key material.**
+  A producer writes into a caller-supplied writer — `void Export…<TWriter>(ref TWriter destination) where TWriter :
+  IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivateKey` /
+  `AsymmetricSecretKey.ExportSubjectPublicKeyInfo`) — instead of returning a freshly-allocated `byte[]`; inputs are
+  `ReadOnlySpan<byte>` / `ReadOnlyMemory<byte>`. Rent a pooled writer with
+  `BufferFactory.CreatePooledBufferWriter(isSensitive:)` (`NCode.Buffers` over `Nerdbank.Streams`), not a bare
+  `ArrayBufferWriter<byte>` — `isSensitive: true` for secrets (pinned, zeroed `SecureMemoryPool`), `false` for
+  non-secret bytes — and flatten a multi-segment `Sequence<byte>` to a contiguous span via `GetSpanLease(isSensitive:)`,
+  never manual concatenation. This is the general convention for all byte-array/memory/buffer usage; existing `byte[]`
+  surfaces migrate incrementally. See [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md).
+- 👁 **Cryptographic and numeric hot-path primitives are optimized aggressively; readability is secondary there.**
+  Inner loops of the math/crypto primitives (field, scalar, and group arithmetic; encoders; constant-time helpers)
+  should use every applicable trick — `[MethodImpl(MethodImplOptions.AggressiveInlining |
+  MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-count (e.g. 4/5-limb) loops,
+  `stackalloc`, `MemoryMarshal`/`Unsafe` `ref`-based **zero-copy** reinterpretation (`MemoryMarshal.Cast<byte, T>`,
+  `MemoryMarshal.AsBytes`, with a JIT-constant `BitConverter.IsLittleEndian` guard for portability), and bounds-check
+  elision — even when the result is dense and harder to read, to minimize allocations and branches. **Two constraints override speed and are never traded away:** (1) constant-time
+  code must not gain a data-dependent branch or memory access from any optimization; (2) correctness is pinned by
+  test vectors / differential tests that must stay green. This is a deliberate, scoped exception to the clean-code
+  rules above, limited to performance-critical primitives. See
+  [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md).
 
 ## 11. Logging
 

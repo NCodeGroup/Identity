@@ -1,0 +1,25 @@
+#nullable enable
+NCode.Identity.Jose.EdDsa.DefaultRegistration
+NCode.Identity.Jose.EdDsa.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Jose.EdDsa.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEdDsa() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey
+NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.Curve.get -> string!
+NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.ExportPublicKey<TWriter>(ref TWriter destination) -> void
+NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.OkpSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! curve, int keySizeBits, System.ReadOnlyMemory<byte> publicKey, System.ReadOnlyMemory<byte>? certificateRawData) -> void
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.Logic.ExportedPublicKey?
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial!
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.Logic.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial!
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor.IsAsymmetric.get -> bool
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor.KeyType.get -> string!
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor.OkpSecretKeyTypeDescriptor(NCode.Extensions.DataProtection.IDataProtectorFactory<NCode.Identity.Secrets.Keys.SecretKey!>! dataProtectorFactory) -> void
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
+NCode.Identity.Jose.EdDsa.Logic.OkpSecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters! parameters) -> string?
+abstract NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.ExportPrivateKey<TWriter>(ref TWriter destination) -> void
+abstract NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.HasPrivateKey.get -> bool
+const NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.TypeName = "okp" -> string!
+override NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination) -> void
+override NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.KeyType.get -> string!

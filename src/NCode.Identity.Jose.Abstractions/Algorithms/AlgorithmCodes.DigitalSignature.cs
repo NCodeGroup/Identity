@@ -93,9 +93,8 @@ public partial class AlgorithmCodes
         public const string RsaSsaPssSha512 = "PS512";
 
         /// <summary>
-        /// Edwards-curve Digital Signature Algorithm (EdDSA) — the JWA <c>alg</c> identifier for Ed25519 / Ed448
-        /// (RFC 8037). This is the registered algorithm code; the signing/verification implementation is tracked in the
-        /// backlog.
+        /// Edwards-curve Digital Signature Algorithm (EdDSA) — the JWA <c>alg</c> identifier for Ed25519 and Ed448
+        /// (RFC 8037). The concrete curve is selected from the signing key's OKP <c>crv</c>.
         /// </summary>
         public const string EdDsa = "EdDSA";
     }

@@ -23,6 +23,7 @@ using JetBrains.Annotations;
 using NCode.Identity.JsonWebTokens.Exceptions;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
+using NCode.Json;
 
 namespace NCode.Identity.JsonWebTokens;
 
@@ -92,8 +93,7 @@ public static class ValidateJwtParametersExtensions
                     if (!claims.TryGetProperty(claimName, out var property))
                         throw new TokenValidationException($"The claim '{claimName}' is missing.");
 
-                    // ReSharper disable once ConvertIfStatementToSwitchStatement
-                    if (property.ValueKind == JsonValueKind.Null)
+                    if (property.IsNullOrUndefined())
                     {
                         throw new TokenValidationException($"The claim '{claimName}' is null.");
                     }

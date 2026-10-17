@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
 
@@ -176,11 +177,7 @@ internal class DefaultSectorIdentifierValidator(
 
             foreach (var element in document.RootElement.EnumerateArray())
             {
-                if (element.ValueKind != JsonValueKind.String)
-                    return false;
-
-                var value = element.GetString();
-                if (value is null)
+                if (!element.TryGetValue<string>(out var value))
                     return false;
 
                 redirectUris.Add(value);

@@ -11,6 +11,7 @@
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
     </ItemGroup>
 
     <ItemGroup>

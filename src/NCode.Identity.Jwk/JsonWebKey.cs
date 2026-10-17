@@ -24,6 +24,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using NCode.Json;
 
 namespace NCode.Identity.Jwk;
 
@@ -102,9 +103,8 @@ public sealed class JsonWebKey
             throw new ArgumentException("The JWK is not a JSON object.", nameof(element));
 
         if (
-            !element.TryGetProperty(JsonWebKeyParameterNames.KeyType, out var ktyElement)
-            || ktyElement.ValueKind != JsonValueKind.String
-            || ktyElement.GetString() is not { Length: > 0 } kty
+            !element.TryGetPropertyValue<string>(JsonWebKeyParameterNames.KeyType, out var kty)
+            || kty.Length == 0
         )
         {
             throw new ArgumentException(
@@ -215,9 +215,7 @@ public sealed class JsonWebKey
     /// <param name="name">The member name (see <see cref="JsonWebKeyParameterNames"/>).</param>
     /// <returns>The member's string value, or <c>null</c>.</returns>
     public string? GetMember(string name) =>
-        Element.TryGetProperty(name, out var member) && member.ValueKind == JsonValueKind.String
-            ? member.GetString()
-            : null;
+        Element.TryGetPropertyValue<string>(name, out var value) ? value : null;
 
     /// <summary>
     /// Attempts to read a string-valued member of this key.
@@ -351,7 +349,7 @@ public sealed class JsonWebKey
         var result = new List<string>(array.GetArrayLength());
         foreach (var item in array.EnumerateArray())
         {
-            if (item.ValueKind == JsonValueKind.String && item.GetString() is { } text)
+            if (item.TryGetValue<string>(out var text))
                 result.Add(text);
         }
 

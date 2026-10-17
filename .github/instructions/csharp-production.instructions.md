@@ -417,6 +417,13 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   `JsonDocument` to dispose and is the concise replacement for `JsonDocument.Parse(json).RootElement.Clone()` and for
   `JsonSerializer.Deserialize<JsonElement>(json)`; keep `JsonDocument` only when you parse UTF-8 bytes (no
   `JsonElement.Parse` byte overload) or genuinely enumerate within a scoped `using`.
+- **Read `JsonElement` members with the `NCode.Json.JsonElements` extension methods, not hand-rolled accessors.** Use
+  `TryGetPropertyValue<T>` / `TryGetValue<T>` — which convert by `ValueKind` and never throw — in place of a
+  `TryGetProperty(name, out var e) + e.ValueKind == JsonValueKind.X + e.GetString()/GetInt64()/…` chain (the bare
+  `GetInt64()`/`GetString()` form also throws on a mismatched kind); `IsNullOrUndefined()` in place of a bare
+  `ValueKind == JsonValueKind.Null` absence check; and `EmptyObject` / `OrEmptyObject()` in place of re-parsing `"{}"`.
+  Reference the dependency-free **`NCode.Json`** package — the shared home for these helpers
+  ([ADR-0056](../../docs/adr/0056-abstractions-split-into-framework-free-tiered-packages.md)).
 
 ## 7. Testability & unit-test-friendliness
 

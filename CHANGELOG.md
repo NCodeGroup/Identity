@@ -27,15 +27,19 @@ change to the public API is a **major** version bump.
   and `.NewtonsoftCompatible` preset are provided — the latter widening integers to `long` and parsing date strings
   while, like Newtonsoft.Json, leaving number- and `Guid`-like strings as `string`. A bare JSON number is still never
   interpreted as an RFC 7519 `NumericDate` (the target type is unknown when deserializing to `object`) — that
-  interpretation remains exclusive to `JsonElements.TryGetPropertyValue<T>`, where the caller supplies an explicit date
-  target type.
+  interpretation remains exclusive to `JsonElements.TryGetValue<T>`, where the caller supplies an explicit date
+  target type. To keep the two helpers consistent, both share the same lenient, invariant-culture date/time parsing
+  (`JsonDateParsing`) — so they recognize the same broad set of string formats (e.g. date-only values and
+  non-hyphenated `Guid`s) and normalize kind identically: a `Z`/UTC value is `Utc`, an explicit offset is `Local`,
+  and a zone-less value is labeled `Utc` (never `Unspecified`), so a parsed `DateTime` is never ambiguously treated
+  as machine-local downstream.
 
 - **Reusable `NCode.Json.UriJsonConverter` and `NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>`.**
   Two framework-free `System.Text.Json` converters were promoted into the dependency-free `NCode.Json` package,
   co-locating them with `ObjectJsonConverter` / `JsonElements` so any package can reuse them. `UriJsonConverter`
   (round-trips `System.Uri` with absolute/relative fidelity) moved out of `NCode.Identity.OpenId.Core` — where it was
-  an internal converter — and is now public with a shared `UriJsonConverter.Singleton` (mirroring
-  `ObjectJsonConverter.Singleton`, since it is stateless); `DelegatingJsonConverter<TInterface, TImplementation>`
+  an internal converter — and is now public with a shared `UriJsonConverter.Singleton` (mirroring the shared
+  `ObjectJsonConverter.Default` instance, since it is stateless); `DelegatingJsonConverter<TInterface, TImplementation>`
   (serializes an interface by delegating to a concrete implementation) moved out of
   `NCode.Identity.OpenId.Abstractions` — it keeps no singleton because it carries mutable `MatchExact` state per
   interface/implementation pair. Neither carried any OpenID-specific coupling, so the move keeps `NCode.Json`

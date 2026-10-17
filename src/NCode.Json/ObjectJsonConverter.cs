@@ -51,7 +51,7 @@ namespace NCode.Json;
 /// Because the target type is unknown when deserializing to <see cref="object"/>, a bare JSON number is inherently
 /// ambiguous and is therefore never interpreted as an RFC 7519 <c>NumericDate</c> (Unix seconds). That interpretation
 /// only applies where the caller supplies an explicit date target type — see
-/// <see cref="JsonElements"/>.<c>TryGetPropertyValue&lt;T&gt;</c>.
+/// <see cref="JsonElements"/>.<c>TryGetValue&lt;T&gt;</c>.
 /// </para>
 /// </remarks>
 /// <param name="options">The options that control how JSON scalar values are mapped to CLR types.</param>
@@ -178,21 +178,11 @@ public sealed class ObjectJsonConverter(ObjectJsonConverterOptions options) : Js
         switch (Options.DateString)
         {
             case ObjectJsonDateStringHandling.DateTimeOffset
-                when DateTimeOffset.TryParse(
-                    value,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal,
-                    out var dateTimeOffset
-                ):
+                when JsonDateParsing.TryParseDateTimeOffset(value, out var dateTimeOffset):
                 return dateTimeOffset;
 
             case ObjectJsonDateStringHandling.DateTime
-                when DateTime.TryParse(
-                    value,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal,
-                    out var dateTime
-                ):
+                when JsonDateParsing.TryParseDateTime(value, out var dateTime):
                 return dateTime;
         }
 

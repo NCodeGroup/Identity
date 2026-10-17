@@ -106,16 +106,29 @@ public static class ObjectGraphExtensions
             return true;
         }
 
+        // Each boxed integer widens implicitly to BigInteger, so a single type dispatch feeds the conversion.
         switch (obj)
         {
-            case sbyte or byte or short or ushort or int or uint or long or ulong or BigInteger:
-                return TryConvertFromInteger(ToBigInteger(obj), out value);
-
-            case float
-            or double
-            or decimal:
+            case sbyte v:
+                return TryConvertFromInteger(v, out value);
+            case byte v:
+                return TryConvertFromInteger(v, out value);
+            case short v:
+                return TryConvertFromInteger(v, out value);
+            case ushort v:
+                return TryConvertFromInteger(v, out value);
+            case int v:
+                return TryConvertFromInteger(v, out value);
+            case uint v:
+                return TryConvertFromInteger(v, out value);
+            case long v:
+                return TryConvertFromInteger(v, out value);
+            case ulong v:
+                return TryConvertFromInteger(v, out value);
+            case BigInteger v:
+                return TryConvertFromInteger(v, out value);
+            case float or double or decimal:
                 return TryConvertFromReal(obj, out value);
-
             default:
                 value = default;
                 return false;
@@ -153,9 +166,10 @@ public static class ObjectGraphExtensions
         if (IsType<T, decimal>() && source >= DecimalMin && source <= DecimalMax)
             return Boxed((decimal)source, out value);
 
-        // RFC 7519 NumericDate (integer seconds since the Unix epoch, UTC).
+        // RFC 7519 NumericDate (integer seconds since the Unix epoch, UTC); skipped unless a date is requested.
         if (
-            source >= DateCoercion.MinNumericDateSeconds
+            (IsType<T, DateTimeOffset>() || IsType<T, DateTime>())
+            && source >= DateCoercion.MinNumericDateSeconds
             && source <= DateCoercion.MaxNumericDateSeconds
         )
             return DateCoercion.TryFromNumericDate((long)source, out value);
@@ -197,19 +211,4 @@ public static class ObjectGraphExtensions
         value = (T)(object)source;
         return true;
     }
-
-    private static BigInteger ToBigInteger(object source) =>
-        source switch
-        {
-            sbyte v => v,
-            byte v => v,
-            short v => v,
-            ushort v => v,
-            int v => v,
-            uint v => v,
-            long v => v,
-            ulong v => v,
-            BigInteger v => v,
-            _ => throw new ArgumentOutOfRangeException(nameof(source)),
-        };
 }

@@ -178,11 +178,11 @@ public sealed class ObjectJsonConverter(ObjectJsonConverterOptions options) : Js
         switch (Options.DateString)
         {
             case ObjectJsonDateStringHandling.DateTimeOffset
-                when JsonDateParsing.TryParseDateTimeOffset(value, out var dateTimeOffset):
+                when DateCoercion.TryParseDateTimeOffset(value, out var dateTimeOffset):
                 return dateTimeOffset;
 
             case ObjectJsonDateStringHandling.DateTime
-                when JsonDateParsing.TryParseDateTime(value, out var dateTime):
+                when DateCoercion.TryParseDateTime(value, out var dateTime):
                 return dateTime;
         }
 

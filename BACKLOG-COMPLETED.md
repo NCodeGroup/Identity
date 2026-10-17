@@ -66,6 +66,36 @@ group heading in ID order, preserve the original wording verbatim, and add a tra
   signatures. Deferred: the pair has not churned, so the value is low today and the change touches every store +
   implementation + call site + test. Do it as one mechanical sweep before GA if pagination needs to grow.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0099](docs/adr/0099-forward-compatible-evolving-parameters.md)._
+- **`D9` — `DictionaryExtensions.TryGetValue<T>` carries logic inside the `*.Abstractions` package.**
+  `NCode.Identity.Jose.Abstractions/Extensions/DictionaryExtensions.cs` exposes a C# 14 `extension(IDictionary<string,
+  object>)` member with a real method body — a typed `TryGetValue<T>` — which violates the house rule that
+  `*.Abstractions` packages hold only dumb DTOs / POCOs / interfaces / contracts (no logic). It stays for now because it
+  is consumed widely by **Abstractions-only** OpenId handlers via `using NCode.Identity.Jose.Extensions;`, so relocating
+  it (e.g. into an impl/helper package, or replacing the call sites with a local helper) is a cross-cutting change best
+  done deliberately. Revisit as a dedicated no-logic-in-abstractions cleanup. Touch points:
+  `src/NCode.Identity.Jose.Abstractions/Extensions/DictionaryExtensions.cs` and every `NCode.Identity.Jose.Extensions`
+  consumer.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. Relocated to `NCode.Json.ObjectGraphExtensions`; the real
+  object-graph callers turned out to be two impl packages (`NCode.Identity.Jose`, `NCode.Identity.JsonWebTokens`) that
+  already referenced `NCode.Json`, not the OpenId handlers (those import the namespace only for the time/date
+  extensions — now tracked as `D11`)._
+- **`D10` — Numeric claim reads couple to the exact boxed CLR type from loosely-typed deserialization.** The strict
+  `obj is T` match in `DictionaryExtensions.TryGetValue<T>` (and similar reads over an `ObjectJsonConverter` object
+  graph) assumes one specific boxed numeric width, but `ObjectJsonConverter.Default` maps integers **most-specifically**
+  (`p2c` `4096` → `int`, a larger value → `long`/`ulong`), so the width is value-dependent. Consumers already disagree:
+  `Pbes2KeyManagementAlgorithm` reads `TryGetValue<int>("p2c")` (matches the `int`-first mapping), while
+  `DefaultJsonWebTokenService.ProcessTokenLifetime` reads `TryGetValue<long>("iat")` — a deserialized `1700000000`
+  boxes as `int`, so `is long` misses and the code can re-set `iat`. The robust fix is a numeric-tolerant accessor that
+  converts across `int`/`long`/`ulong`/`BigInteger` (as `JsonElements.TryGetPropertyValue<T>` already does for the
+  `JsonElement` path) rather than relying on the exact boxed type; it pairs naturally with the `D9` relocation of that
+  extension. Deferred out of the `ObjectJsonConverter` options rework to keep that change focused. Touch points:
+  `src/NCode.Identity.Jose.Abstractions/Extensions/DictionaryExtensions.cs`,
+  `src/NCode.Identity.Jose/Algorithms/KeyManagement/Pbes2KeyManagementAlgorithm.cs`,
+  `src/NCode.Identity.JsonWebTokens/DefaultJsonWebTokenService.Encode.cs`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. Fixed as part of the `D9` relocation: the new
+  `NCode.Json.ObjectGraphExtensions.TryGetValue<T>` is numeric-width tolerant (`sbyte`…`ulong`/`BigInteger` + reals,
+  range-checked) and reads a boxed integer as an RFC 7519 `NumericDate` (`DateTimeOffset`/`DateTime`). The epoch
+  conversion is shared with the `JsonElement` path via the `NCode.Json.DateCoercion` helper so the two cannot drift._
 
 ## Feature gaps — implemented (group `F`)
 

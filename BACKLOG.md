@@ -64,7 +64,7 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D11`     | `D10`      |
+| `D` — Deferred, intentionally not-yet | `D12`     | `D11`      |
 | `F` — Feature gaps                    | `F39`     | `F38`      |
 | `T` — Conformance & interop testing   | `T9`      | `T8`       |
 | `U` — Frontend presentation platform  | `U14`     | `U13`      |
@@ -115,28 +115,19 @@ entry and/or ADR that closed it.
   the in-flight JOSE serializer refactor; do it as its own focused pass. Touch points:
   `src/NCode.Identity.JsonWebTokens/` (contract types + `IJsonWebTokenService`),
   `src/NCode.Identity.JsonWebTokens.Abstractions/`, and the OpenId.Authentication handler consumers.
-- **`D9` — `DictionaryExtensions.TryGetValue<T>` carries logic inside the `*.Abstractions` package.**
-  `NCode.Identity.Jose.Abstractions/Extensions/DictionaryExtensions.cs` exposes a C# 14 `extension(IDictionary<string,
-  object>)` member with a real method body — a typed `TryGetValue<T>` — which violates the house rule that
-  `*.Abstractions` packages hold only dumb DTOs / POCOs / interfaces / contracts (no logic). It stays for now because it
-  is consumed widely by **Abstractions-only** OpenId handlers via `using NCode.Identity.Jose.Extensions;`, so relocating
-  it (e.g. into an impl/helper package, or replacing the call sites with a local helper) is a cross-cutting change best
-  done deliberately. Revisit as a dedicated no-logic-in-abstractions cleanup. Touch points:
-  `src/NCode.Identity.Jose.Abstractions/Extensions/DictionaryExtensions.cs` and every `NCode.Identity.Jose.Extensions`
-  consumer.
-- **`D10` — Numeric claim reads couple to the exact boxed CLR type from loosely-typed deserialization.** The strict
-  `obj is T` match in `DictionaryExtensions.TryGetValue<T>` (and similar reads over an `ObjectJsonConverter` object
-  graph) assumes one specific boxed numeric width, but `ObjectJsonConverter.Default` maps integers **most-specifically**
-  (`p2c` `4096` → `int`, a larger value → `long`/`ulong`), so the width is value-dependent. Consumers already disagree:
-  `Pbes2KeyManagementAlgorithm` reads `TryGetValue<int>("p2c")` (matches the `int`-first mapping), while
-  `DefaultJsonWebTokenService.ProcessTokenLifetime` reads `TryGetValue<long>("iat")` — a deserialized `1700000000`
-  boxes as `int`, so `is long` misses and the code can re-set `iat`. The robust fix is a numeric-tolerant accessor that
-  converts across `int`/`long`/`ulong`/`BigInteger` (as `JsonElements.TryGetPropertyValue<T>` already does for the
-  `JsonElement` path) rather than relying on the exact boxed type; it pairs naturally with the `D9` relocation of that
-  extension. Deferred out of the `ObjectJsonConverter` options rework to keep that change focused. Touch points:
-  `src/NCode.Identity.Jose.Abstractions/Extensions/DictionaryExtensions.cs`,
-  `src/NCode.Identity.Jose/Algorithms/KeyManagement/Pbes2KeyManagementAlgorithm.cs`,
-  `src/NCode.Identity.JsonWebTokens/DefaultJsonWebTokenService.Encode.cs`.
+- **`D11` — Time/date extension methods carry logic inside the `*.Abstractions` package.**
+  `NCode.Identity.Jose.Abstractions/Extensions/` still holds `DateTimeExtensions`, `DateTimeOffsetExtensions`, and
+  `TimeProviderExtensions` — each a C# 14 `extension(...)` member with a real method body (`WithPrecisionInSeconds`,
+  `GetUtcNowWithPrecisionInSeconds`, `GetTimestampWithPrecisionInSeconds`) — which violates the house rule that
+  `*.Abstractions` packages hold only dumb DTOs / POCOs / interfaces / contracts (no logic). This is the same violation
+  the now-closed `D9` fixed for the dictionary accessor, but these are **general time/date helpers**, not JSON, so they
+  cannot follow `D9` into `NCode.Json`; they need a different non-abstractions home (a general NCode utility library).
+  They are consumed by ~28 OpenId handler files via `using NCode.Identity.Jose.Extensions;`
+  (`GetUtcNowWithPrecisionInSeconds`), so the relocation is a larger cross-cutting change best done as its own focused
+  pass. Touch points: `src/NCode.Identity.Jose.Abstractions/Extensions/DateTimeExtensions.cs`,
+  `src/NCode.Identity.Jose.Abstractions/Extensions/DateTimeOffsetExtensions.cs`,
+  `src/NCode.Identity.Jose.Abstractions/Extensions/TimeProviderExtensions.cs`, and every
+  `NCode.Identity.Jose.Extensions` consumer.
 
 ## Feature gaps — not yet implemented (group `F`)
 

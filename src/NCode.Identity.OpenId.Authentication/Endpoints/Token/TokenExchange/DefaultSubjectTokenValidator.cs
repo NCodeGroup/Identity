@@ -19,7 +19,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose;
-using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Models;
@@ -34,10 +34,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;
 /// and lifetime. Tokens minted by external/enterprise identity providers are intentionally rejected; a host that
 /// federates with upstream issuers replaces or decorates this service to accept them.
 /// </summary>
-internal class DefaultSubjectTokenValidator(IJsonWebTokenService jsonWebTokenService)
-    : ISubjectTokenValidator
+internal class DefaultSubjectTokenValidator(IJwtValidator jwtValidator) : ISubjectTokenValidator
 {
-    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IJwtValidator JwtValidator { get; } = jwtValidator;
 
     /// <inheritdoc />
     public async ValueTask<SubjectTokenValidationResult> ValidateAsync(
@@ -63,12 +62,12 @@ internal class DefaultSubjectTokenValidator(IJsonWebTokenService jsonWebTokenSer
 
         var openIdTenant = openIdContext.Tenant;
 
-        ValidateJwtResult validateResult;
+        JwtValidationResult validateResult;
         try
         {
             // No audience constraint here: the requester-entitlement rule (RFC 8693) is enforced by the grant handler
             // after validation, which is a token-exchange-specific policy rather than a signature/lifetime check.
-            var parameters = new ValidateJwtParameters
+            var parameters = new JwtValidationParameters
             {
                 RoleClaimType = JoseClaimNames.Payload.Role,
             }
@@ -76,11 +75,7 @@ internal class DefaultSubjectTokenValidator(IJsonWebTokenService jsonWebTokenSer
                 .ValidateIssuer(openIdTenant.Issuer)
                 .ValidateTokenLifeTime();
 
-            validateResult = await JsonWebTokenService.ValidateJwtAsync(
-                token,
-                parameters,
-                cancellationToken
-            );
+            validateResult = await JwtValidator.ValidateAsync(token, parameters, cancellationToken);
         }
         catch (Exception)
         {

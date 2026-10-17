@@ -16,12 +16,14 @@
 
 #endregion
 
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens;
@@ -44,14 +46,14 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
     private const string ManagementAudience = "urn:ncode:management";
     private const string SessionId = "session-xyz";
 
-    private Mock<IJsonWebTokenService> MockJsonWebTokenService { get; }
+    private Mock<IJwtValidator> MockJsonWebTokenService { get; }
     private Mock<IProofOfPossessionService> MockProofOfPossessionService { get; }
     private Mock<ISessionService> MockSessionService { get; }
     private DefaultAuthenticateAccessTokenHandler Handler { get; }
 
     public DefaultAuthenticateAccessTokenHandlerTests()
     {
-        MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
+        MockJsonWebTokenService = CreateStrictMock<IJwtValidator>();
         MockProofOfPossessionService = CreateStrictMock<IProofOfPossessionService>();
         MockSessionService = CreateStrictMock<ISessionService>();
         Handler = new DefaultAuthenticateAccessTokenHandler(
@@ -85,15 +87,15 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
     private void SetupInvalidJwt() =>
         MockJsonWebTokenService
             .Setup(x =>
-                x.ValidateJwtAsync(
+                x.ValidateAsync(
                     Token,
-                    It.IsAny<ValidateJwtParameters>(),
+                    It.IsAny<JwtValidationParameters>(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .ReturnsAsync(
-                ValidateJwtResult.Fail(
-                    new ValidateJwtParameters(),
+                JwtValidationResult.Fail(
+                    new JwtValidationParameters(),
                     PropertyBagFactory.Create(),
                     Token,
                     new InvalidOperationException("invalid")
@@ -118,17 +120,26 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
         var payload = JsonSerializer.SerializeToElement(payloadObject);
         var compactJwt = new CompactJwt("JWS", default, "aaa.bbb.ccc", []);
         var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey: null!);
-        var result = ValidateJwtResult.Success(
-            new ValidateJwtParameters(),
+        var result = JwtValidationResult.Success(
+            new JwtValidationParameters(),
             PropertyBagFactory.Create(),
-            decodedJwt
+            decodedJwt,
+            (decoded, _, authType, nameType, roleType, _) =>
+            {
+                var identity = new ClaimsIdentity(authType, nameType, roleType);
+                foreach (var property in decoded.Payload.EnumerateObject())
+                {
+                    identity.AddClaim(new Claim(property.Name, property.Value.ToString()));
+                }
+                return ValueTask.FromResult(identity);
+            }
         );
 
         MockJsonWebTokenService
             .Setup(x =>
-                x.ValidateJwtAsync(
+                x.ValidateAsync(
                     Token,
-                    It.IsAny<ValidateJwtParameters>(),
+                    It.IsAny<JwtValidationParameters>(),
                     It.IsAny<CancellationToken>()
                 )
             )

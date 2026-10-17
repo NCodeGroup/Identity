@@ -1,7 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -20,7 +19,7 @@
 using System.Security.Claims;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Jwt;
+namespace NCode.Identity.Jwt.Claims;
 
 /// <summary>
 /// Constants for <see cref="Claim.ValueType"/> that can be used to indicate how <see cref="Claim.Value"/> should be interpreted.

@@ -20,7 +20,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
-using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Authentication.Logging;
@@ -44,12 +44,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 /// a presented value is matched forward, never reversed (ADR-0096).
 /// </summary>
 internal class DefaultResolveEndSessionSubjectHandler(
-    IJsonWebTokenService jsonWebTokenService,
+    IJwtValidator jwtValidator,
     ISessionService sessionService,
     ILogger<DefaultResolveEndSessionSubjectHandler> logger
 ) : ICommandResponseHandler<ResolveEndSessionSubjectCommand, EndSessionSubject>
 {
-    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IJwtValidator JwtValidator { get; } = jwtValidator;
     private ISessionService SessionService { get; } = sessionService;
     private ILogger<DefaultResolveEndSessionSubjectHandler> Logger { get; } = logger;
 
@@ -140,11 +140,11 @@ internal class DefaultResolveEndSessionSubjectHandler(
         {
             // The id_token_hint is typically expired at logout time, so its lifetime is not validated; the signature
             // and issuer are, so only tokens this OP issued are trusted to identify the session.
-            var parameters = new ValidateJwtParameters()
+            var parameters = new JwtValidationParameters()
                 .UseValidationKeys(openIdTenant.SecretsProvider.Collection)
                 .ValidateIssuer(openIdTenant.Issuer);
 
-            var result = await JsonWebTokenService.ValidateJwtAsync(
+            var result = await JwtValidator.ValidateAsync(
                 idTokenHint,
                 parameters,
                 cancellationToken

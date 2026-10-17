@@ -1,7 +1,6 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,21 +18,14 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Jwt.Options;
+namespace NCode.Identity.Jwt.Validation;
 
 /// <summary>
-/// Contains configurable options for <see cref="DefaultJsonWebTokenService"/>.
+/// A requirement that asserts the <c>nbf</c> and <c>exp</c> claims in the JSON Web Token (JWT) payload are valid,
+/// allowing for the configured <see cref="ClockSkew"/>.
 /// </summary>
+/// <param name="RequireExpirationTime"><c>true</c> if the <c>exp</c> claim is required.</param>
+/// <param name="ClockSkew">The amount of time to allow for clock skew when comparing lifetime claims.</param>
 [PublicAPI]
-public sealed class JsonWebTokenServiceOptions
-{
-    /// <summary>
-    /// Gets or sets a value indicating whether generated tokens will have default values for the 'iat', 'nbf', and 'exp' claims if not specified.
-    /// </summary>
-    public bool EnsureTokenLifetime { get; set; } = true;
-
-    /// <summary>
-    /// Gets the default lifetime for generated tokens.
-    /// </summary>
-    public TimeSpan DefaultTokenLifetime { get; } = TimeSpan.FromMinutes(60);
-}
+public sealed record TokenLifetimeRequirement(bool RequireExpirationTime, TimeSpan ClockSkew)
+    : IJwtValidationRequirement;

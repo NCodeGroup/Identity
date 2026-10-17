@@ -1,7 +1,6 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,19 +20,35 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Extensions;
+using NCode.Identity.Jwt.Claims;
 using NCode.Json;
 
-namespace NCode.Identity.Jwt;
+namespace NCode.Identity.Jwt.Encoding;
 
-partial class DefaultJsonWebTokenService
+/// <summary>
+/// Provides a default implementation for the <see cref="IJwtEncoder"/> interface.
+/// </summary>
+/// <param name="optionsAccessor">An accessor that provides <see cref="JwtEncoderOptions"/>.</param>
+/// <param name="timeProvider">A <see cref="TimeProvider"/> that can be used to get the current time.</param>
+/// <param name="joseSerializer">An <see cref="IJoseSerializer"/> instance that provides the core <c>JOSE</c> implementation.</param>
+internal sealed class DefaultJwtEncoder(
+    IOptions<JwtEncoderOptions> optionsAccessor,
+    TimeProvider timeProvider,
+    IJoseSerializer joseSerializer
+) : IJwtEncoder
 {
+    private JwtEncoderOptions Options { get; } = optionsAccessor.Value;
+    private TimeProvider TimeProvider { get; } = timeProvider;
+    private IJoseSerializer JoseSerializer { get; } = joseSerializer;
+
     /// <inheritdoc />
-    public string EncodeJwt(EncodeJwtParameters parameters)
+    public string Encode(JwtEncodingParameters parameters)
     {
         string? encodedToken = null;
         object valueToEncode = GetEffectivePayload(parameters);
@@ -90,7 +105,7 @@ partial class DefaultJsonWebTokenService
         return encodedToken;
     }
 
-    private Dictionary<string, object> GetEffectivePayload(EncodeJwtParameters parameters)
+    private Dictionary<string, object> GetEffectivePayload(JwtEncodingParameters parameters)
     {
         var payload = new Dictionary<string, object>(StringComparer.Ordinal);
 
@@ -154,7 +169,7 @@ partial class DefaultJsonWebTokenService
 
     private static void ProcessRequestClaims(
         Dictionary<string, object> payload,
-        EncodeJwtParameters parameters
+        JwtEncodingParameters parameters
     )
     {
         if (!string.IsNullOrEmpty(parameters.Issuer))

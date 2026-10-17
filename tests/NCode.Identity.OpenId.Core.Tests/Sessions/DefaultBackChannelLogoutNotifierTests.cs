@@ -23,6 +23,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Sessions;
@@ -55,7 +56,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IAlgorithmCollectionProvider> MockAlgorithmCollectionProvider { get; }
     private Mock<ICredentialSelector> MockCredentialSelector { get; }
-    private Mock<IJsonWebTokenService> MockJsonWebTokenService { get; }
+    private Mock<IJwtEncoder> MockJsonWebTokenService { get; }
     private Mock<ISubjectIdentifierService> MockSubjectIdentifierService { get; }
     private Mock<IJobDispatcher> MockJobDispatcher { get; }
     private DefaultBackChannelLogoutNotifier Notifier { get; }
@@ -68,7 +69,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockAlgorithmCollectionProvider = CreateStrictMock<IAlgorithmCollectionProvider>();
         MockCredentialSelector = CreateStrictMock<ICredentialSelector>();
-        MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
+        MockJsonWebTokenService = CreateStrictMock<IJwtEncoder>();
         MockSubjectIdentifierService = CreateStrictMock<ISubjectIdentifierService>();
         MockJobDispatcher = CreateStrictMock<IJobDispatcher>();
 
@@ -155,7 +156,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             .Verifiable();
     }
 
-    private void SetupTokenGeneration(EncodeJwtParameters[] captured)
+    private void SetupTokenGeneration(JwtEncodingParameters[] captured)
     {
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         MockCryptoService
@@ -163,8 +164,8 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             .Returns("jti-value")
             .Verifiable();
         MockJsonWebTokenService
-            .Setup(x => x.EncodeJwt(It.IsAny<EncodeJwtParameters>()))
-            .Callback((EncodeJwtParameters parameters) => captured[0] = parameters)
+            .Setup(x => x.Encode(It.IsAny<JwtEncodingParameters>()))
+            .Callback((JwtEncodingParameters parameters) => captured[0] = parameters)
             .Returns(LogoutToken)
             .Verifiable();
     }
@@ -200,7 +201,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             .Setup(x => x.ProjectSubjectId(mockContext.Object, mockClient.Object, SubjectId))
             .Returns("pairwise-sub")
             .Verifiable();
-        var captured = new EncodeJwtParameters[1];
+        var captured = new JwtEncodingParameters[1];
         SetupTokenGeneration(captured);
         SetupDispatch();
 

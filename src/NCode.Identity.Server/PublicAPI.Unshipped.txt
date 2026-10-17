@@ -115,7 +115,7 @@ NCode.Identity.Server.IIdentityServerBuilder
 NCode.Identity.Server.IIdentityServerBuilder.DataProtectionBuilder.get -> Microsoft.AspNetCore.DataProtection.IDataProtectionBuilder!
 NCode.Identity.Server.IIdentityServerBuilder.IdentityLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.JoseLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!
-NCode.Identity.Server.IIdentityServerBuilder.JsonWebTokensLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JsonWebTokensLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.JwtLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.OpenIdAuthenticationLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.OpenIdCoreLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.OpenIdManagementLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!

@@ -18,6 +18,7 @@
 
 using Moq;
 using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
@@ -42,7 +43,7 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
     private const string Issuer = "https://issuer.example.com";
     private const string Token = "token-value";
 
-    private Mock<IJsonWebTokenService> MockJsonWebTokenService { get; }
+    private Mock<IJwtValidator> MockJsonWebTokenService { get; }
     private Mock<IOpenIdClientResolver> MockOpenIdClientResolver { get; }
     private Mock<ISubjectIdentifierService> MockSubjectIdentifierService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
@@ -50,7 +51,7 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
 
     public DefaultIntrospectTokenHandlerTests()
     {
-        MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
+        MockJsonWebTokenService = CreateStrictMock<IJwtValidator>();
         MockOpenIdClientResolver = CreateStrictMock<IOpenIdClientResolver>();
         MockSubjectIdentifierService = CreateStrictMock<ISubjectIdentifierService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
@@ -97,15 +98,15 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
     private void SetupInvalidJwt() =>
         MockJsonWebTokenService
             .Setup(x =>
-                x.ValidateJwtAsync(
+                x.ValidateAsync(
                     Token,
-                    It.IsAny<ValidateJwtParameters>(),
+                    It.IsAny<JwtValidationParameters>(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .ReturnsAsync(
-                ValidateJwtResult.Fail(
-                    new ValidateJwtParameters(),
+                JwtValidationResult.Fail(
+                    new JwtValidationParameters(),
                     PropertyBagFactory.Create(),
                     Token,
                     new InvalidOperationException("invalid")

@@ -18,6 +18,7 @@
 
 using Moq;
 using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;
 using NCode.Identity.OpenId.Contexts;
@@ -29,12 +30,12 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Token.TokenExchange;
 
 public class DefaultSubjectTokenValidatorTests : BaseTests
 {
-    private Mock<IJsonWebTokenService> MockJsonWebTokenService { get; }
+    private Mock<IJwtValidator> MockJsonWebTokenService { get; }
     private DefaultSubjectTokenValidator Validator { get; }
 
     public DefaultSubjectTokenValidatorTests()
     {
-        MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
+        MockJsonWebTokenService = CreateStrictMock<IJwtValidator>();
         Validator = new DefaultSubjectTokenValidator(MockJsonWebTokenService.Object);
     }
 

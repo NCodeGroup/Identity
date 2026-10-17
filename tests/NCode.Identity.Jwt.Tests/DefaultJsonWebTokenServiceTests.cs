@@ -24,7 +24,9 @@ using Microsoft.Extensions.Primitives;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
-using NCode.Identity.Jwt.Exceptions;
+using NCode.Identity.Jwt.Encoding;
+using NCode.Identity.Jwt.Validation;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -34,7 +36,8 @@ namespace NCode.Identity.Jwt;
 public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 {
     private readonly ServiceProvider _serviceProvider;
-    private readonly IJsonWebTokenService _service;
+    private readonly IJwtEncoder _encoder;
+    private readonly IJwtValidator _validator;
     private readonly SecretKey _signingKey;
     private readonly JoseSigningCredentials _signingCredentials;
     private readonly DateTimeOffset _utcNow = new(2025, 6, 15, 12, 0, 0, TimeSpan.Zero);
@@ -44,10 +47,11 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddSingleton<TimeProvider>(new TestTimeProvider(_utcNow));
-        serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddJsonWebTokensLibrary();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary();
         _serviceProvider = serviceCollection.BuildServiceProvider();
 
-        _service = _serviceProvider.GetRequiredService<IJsonWebTokenService>();
+        _encoder = _serviceProvider.GetRequiredService<IJwtEncoder>();
+        _validator = _serviceProvider.GetRequiredService<IJwtValidator>();
 
         var secretKeyFactory = _serviceProvider.GetRequiredService<ISecretKeyFactory>();
         byte[] keyBytes = new byte[32];
@@ -86,7 +90,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     )
     {
         var now = _utcNow;
-        var parameters = new EncodeJwtParameters
+        var parameters = new JwtEncodingParameters
         {
             SigningCredentials = _signingCredentials,
             Issuer = issuer,
@@ -97,7 +101,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
             SubjectClaims = subjectClaims,
             TokenType = tokenType ?? JoseTokenTypes.Jwt,
         };
-        return _service.EncodeJwt(parameters);
+        return _encoder.Encode(parameters);
     }
 
     #region EncodeJwt Tests
@@ -113,27 +117,27 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [Fact]
     public void EncodeJwt_WhenNoCredentials_ThrowsArgumentException()
     {
-        var parameters = new EncodeJwtParameters();
+        var parameters = new JwtEncodingParameters();
 
-        Assert.Throws<ArgumentException>(() => _service.EncodeJwt(parameters));
+        Assert.Throws<ArgumentException>(() => _encoder.Encode(parameters));
     }
 
     #endregion
 
-    #region ValidateJwtAsync Success Tests
+    #region ValidateAsync Success Tests
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenValidWithMatchingClaims_Succeeds()
+    public async Task ValidateAsync_WhenValidWithMatchingClaims_Succeeds()
     {
         var token = EncodeToken();
 
-        var parameters = new ValidateJwtParameters()
+        var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
             .ValidateIssuer("https://issuer.example")
             .ValidateAudience("https://audience.example")
             .ValidateTokenLifeTime();
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         Assert.True(result.IsValid);
         Assert.Null(result.Exception);
@@ -141,15 +145,15 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenSubjectClaims_ProducesClaimsIdentity()
+    public async Task ValidateAsync_WhenSubjectClaims_ProducesClaimsIdentity()
     {
         var token = EncodeToken(
             subjectClaims: [new Claim("name", "Alice"), new Claim("role", "admin")]
         );
 
-        var parameters = new ValidateJwtParameters().UseValidationKeys([_signingKey]);
+        var parameters = new JwtValidationParameters().UseValidationKeys([_signingKey]);
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         Assert.True(result.IsValid);
 
@@ -160,17 +164,17 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenMultiAudienceContainsExpected_Succeeds()
+    public async Task ValidateAsync_WhenMultiAudienceContainsExpected_Succeeds()
     {
         // A multi-audience token must validate against a resource that identifies itself with one of the audiences,
         // even though the token also carries other audiences (RFC 7519 §4.1.3).
         var token = EncodeToken(audience: ["urn:resource:api", "urn:resource:openid"]);
 
-        var parameters = new ValidateJwtParameters()
+        var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
             .ValidateAudience("urn:resource:api");
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         Assert.True(result.IsValid);
         Assert.Null(result.Exception);
@@ -178,90 +182,90 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
     #endregion
 
-    #region ValidateJwtAsync Failure Tests
+    #region ValidateAsync Failure Tests
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenIssuerMismatch_Fails()
+    public async Task ValidateAsync_WhenIssuerMismatch_Fails()
     {
         var token = EncodeToken(issuer: "https://wrong.example");
 
-        var parameters = new ValidateJwtParameters()
+        var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
             .ValidateIssuer("https://issuer.example");
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         Assert.False(result.IsValid);
-        Assert.IsType<TokenValidationException>(result.Exception);
+        Assert.IsType<JwtValidationException>(result.Exception);
     }
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenMultiAudienceMissingExpected_Fails()
+    public async Task ValidateAsync_WhenMultiAudienceMissingExpected_Fails()
     {
         // A multi-audience token must be rejected when none of its audiences identify the validating resource.
         var token = EncodeToken(audience: ["urn:resource:other", "urn:resource:openid"]);
 
-        var parameters = new ValidateJwtParameters()
+        var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
             .ValidateAudience("urn:resource:api");
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         Assert.False(result.IsValid);
-        Assert.IsType<TokenValidationException>(result.Exception);
+        Assert.IsType<JwtValidationException>(result.Exception);
     }
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenExpired_Fails()
+    public async Task ValidateAsync_WhenExpired_Fails()
     {
         var past = _utcNow.AddHours(-2);
         var token = EncodeToken(notBefore: past.AddMinutes(-1), expires: past);
 
-        var parameters = new ValidateJwtParameters()
+        var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
             .ValidateTokenLifeTime();
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         Assert.False(result.IsValid);
-        Assert.IsType<TokenValidationException>(result.Exception);
+        Assert.IsType<JwtValidationException>(result.Exception);
     }
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenNoValidationKeys_FailsWithKeyNotFound()
+    public async Task ValidateAsync_WhenNoValidationKeys_FailsWithKeyNotFound()
     {
         var token = EncodeToken();
 
-        var parameters = new ValidateJwtParameters().UseValidationKeys([]);
+        var parameters = new JwtValidationParameters().UseValidationKeys([]);
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         Assert.False(result.IsValid);
-        Assert.IsType<TokenValidationSecretKeyNotFoundException>(result.Exception);
+        Assert.IsType<JwtSecretKeyNotFoundException>(result.Exception);
     }
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenTampered_FailsWithDecodeException()
+    public async Task ValidateAsync_WhenTampered_FailsWithDecodeException()
     {
         var token = EncodeToken();
         var tampered = token[..^4] + "AAAA";
 
-        var parameters = new ValidateJwtParameters().UseValidationKeys([_signingKey]);
+        var parameters = new JwtValidationParameters().UseValidationKeys([_signingKey]);
 
-        var result = await _service.ValidateJwtAsync(tampered, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(tampered, parameters, CancellationToken.None);
 
         Assert.False(result.IsValid);
-        Assert.IsType<TokenValidationDecodeException>(result.Exception);
+        Assert.IsType<JwtDecodeException>(result.Exception);
     }
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenGetClaimsIdentityOnFailedResult_Throws()
+    public async Task ValidateAsync_WhenGetClaimsIdentityOnFailedResult_Throws()
     {
         var token = EncodeToken();
 
-        var parameters = new ValidateJwtParameters().UseValidationKeys([]);
+        var parameters = new JwtValidationParameters().UseValidationKeys([]);
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await result.GetClaimsIdentityAsync(CancellationToken.None)
@@ -273,15 +277,15 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     #region ValidateTokenType Tests
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenTokenTypeMatches_Succeeds()
+    public async Task ValidateAsync_WhenTokenTypeMatches_Succeeds()
     {
         var token = EncodeToken(tokenType: JoseTokenTypes.AccessTokenJwt);
 
-        var parameters = new ValidateJwtParameters()
+        var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
             .ValidateTokenType(JoseTokenTypes.AccessTokenJwt);
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         Assert.True(result.IsValid);
         Assert.Null(result.Exception);
@@ -291,7 +295,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     [InlineData("AT+JWT")]
     [InlineData("application/at+jwt")]
     [InlineData("Application/AT+JWT")]
-    public async Task ValidateJwtAsync_WhenTokenTypeMatchesByMediaTypeRules_Succeeds(
+    public async Task ValidateAsync_WhenTokenTypeMatchesByMediaTypeRules_Succeeds(
         string encodedTokenType
     )
     {
@@ -299,42 +303,42 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         // match the expected 'at+jwt'.
         var token = EncodeToken(tokenType: encodedTokenType);
 
-        var parameters = new ValidateJwtParameters()
+        var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
             .ValidateTokenType(JoseTokenTypes.AccessTokenJwt);
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         Assert.True(result.IsValid);
         Assert.Null(result.Exception);
     }
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenTokenTypeMismatch_Fails()
+    public async Task ValidateAsync_WhenTokenTypeMismatch_Fails()
     {
         // A plain 'JWT'-typed token must be rejected when 'at+jwt' is required (token-substitution defense).
         var token = EncodeToken(tokenType: JoseTokenTypes.Jwt);
 
-        var parameters = new ValidateJwtParameters()
+        var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
             .ValidateTokenType(JoseTokenTypes.AccessTokenJwt);
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         Assert.False(result.IsValid);
-        Assert.IsType<TokenValidationException>(result.Exception);
+        Assert.IsType<JwtValidationException>(result.Exception);
     }
 
     [Fact]
-    public async Task ValidateJwtAsync_WhenAnyOfSeveralTokenTypesMatch_Succeeds()
+    public async Task ValidateAsync_WhenAnyOfSeveralTokenTypesMatch_Succeeds()
     {
         var token = EncodeToken(tokenType: JoseTokenTypes.LogoutJwt);
 
-        var parameters = new ValidateJwtParameters()
+        var parameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
             .ValidateTokenType(JoseTokenTypes.AccessTokenJwt, JoseTokenTypes.LogoutJwt);
 
-        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
 
         Assert.True(result.IsValid);
         Assert.Null(result.Exception);

@@ -28,7 +28,7 @@ using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
 using NCode.Json;
 
-namespace NCode.Identity.Jwt;
+namespace NCode.Identity.Jwt.Validation;
 
 /// <summary>
 /// Provides a default implementation for resolving the <see cref="SecretKey"/> instances that are to be used

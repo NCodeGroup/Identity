@@ -1,7 +1,6 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -22,53 +21,54 @@ using System.Security.Claims;
 using JetBrains.Annotations;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.Jwt;
+namespace NCode.Identity.Jwt.Validation;
 
 /// <summary>
 /// Contains the result after a JSON Web Token (JWT) has been validated.
 /// </summary>
 [PublicAPI]
-public sealed class ValidateJwtResult
+public sealed class JwtValidationResult
 {
     /// <summary>
-    /// Factory method to create a <see cref="ValidateJwtResult"/> instance that represents a failed JWT validation result.
+    /// Factory method to create a <see cref="JwtValidationResult"/> instance that represents a failed JWT validation result.
     /// </summary>
-    /// <param name="parameters">A <see cref="ValidateJwtParameters"/> instance that was used to validate the JSON Web Token (JWT).</param>
+    /// <param name="parameters">A <see cref="JwtValidationParameters"/> instance that was used to validate the JSON Web Token (JWT).</param>
     /// <param name="propertyBag">An <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.</param>
     /// <param name="encodedToken">A <see cref="string"/> that contains the JSON Web Token (JWT) which failed validation.</param>
     /// <param name="exception">An <see cref="Exception"/> that contains the details why the validation failed.</param>
-    /// <returns>A <see cref="ValidateJwtResult"/> instance that represents a failed JWT validation result.</returns>
-    public static ValidateJwtResult Fail(
-        ValidateJwtParameters parameters,
+    /// <returns>A <see cref="JwtValidationResult"/> instance that represents a failed JWT validation result.</returns>
+    public static JwtValidationResult Fail(
+        JwtValidationParameters parameters,
         IPropertyBag propertyBag,
         string encodedToken,
         Exception exception
     ) => new(parameters, propertyBag, encodedToken) { Exception = exception };
 
     /// <summary>
-    /// Factory method to create a <see cref="ValidateJwtResult"/> instance that represents a successful JWT validation result.
+    /// Factory method to create a <see cref="JwtValidationResult"/> instance that represents a successful JWT validation result.
     /// </summary>
-    /// <param name="parameters">A <see cref="ValidateJwtParameters"/> instance that was used to validate the JSON Web Token (JWT).</param>
+    /// <param name="parameters">A <see cref="JwtValidationParameters"/> instance that was used to validate the JSON Web Token (JWT).</param>
     /// <param name="propertyBag">An <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.</param>
     /// <param name="decodedJwt">A <see cref="DecodedJwt"/> that contains the decoded JSON Web Token (JWT).</param>
-    /// <returns>A <see cref="ValidateJwtResult"/> instance that represents a successful JWT validation result.</returns>
-    public static ValidateJwtResult Success(
-        ValidateJwtParameters parameters,
+    /// <param name="createClaimsIdentity">The resolved delegate used to lazily create a <see cref="ClaimsIdentity"/> from the decoded token.</param>
+    /// <returns>A <see cref="JwtValidationResult"/> instance that represents a successful JWT validation result.</returns>
+    public static JwtValidationResult Success(
+        JwtValidationParameters parameters,
         IPropertyBag propertyBag,
-        DecodedJwt decodedJwt
+        DecodedJwt decodedJwt,
+        CreateClaimsIdentityAsync createClaimsIdentity
     )
     {
         // immediately capture the values from the parameters to prevent any changes
-        var createClaimsIdentityAsync = parameters.CreateClaimsIdentityAsync;
         var authenticationType = parameters.AuthenticationType;
         var nameClaimType = parameters.NameClaimType;
         var roleClaimType = parameters.RoleClaimType;
 
-        return new ValidateJwtResult(parameters, propertyBag, decodedJwt.EncodedToken)
+        return new JwtValidationResult(parameters, propertyBag, decodedJwt.EncodedToken)
         {
             DecodedJwt = decodedJwt,
             CreateClaimsIdentityAsync = async cancellationToken =>
-                await createClaimsIdentityAsync(
+                await createClaimsIdentity(
                     decodedJwt,
                     propertyBag,
                     authenticationType,
@@ -87,9 +87,9 @@ public sealed class ValidateJwtResult
     >? CreateClaimsIdentityAsync { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="ValidateJwtParameters"/> instance that was used to validate the JSON Web Token (JWT).
+    /// Gets the <see cref="JwtValidationParameters"/> instance that was used to validate the JSON Web Token (JWT).
     /// </summary>
-    public ValidateJwtParameters Parameters { get; }
+    public JwtValidationParameters Parameters { get; }
 
     /// <summary>
     /// Gets an <see cref="IPropertyBag"/> that can provide additional user-defined information about the current operation.
@@ -119,8 +119,8 @@ public sealed class ValidateJwtResult
     /// </summary>
     public DecodedJwt? DecodedJwt { get; private init; }
 
-    private ValidateJwtResult(
-        ValidateJwtParameters parameters,
+    private JwtValidationResult(
+        JwtValidationParameters parameters,
         IPropertyBag propertyBag,
         string encodedToken
     )

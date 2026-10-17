@@ -238,6 +238,17 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
+- **The JWT library is renamed `NCode.Identity.JsonWebTokens` → `NCode.Identity.Jwt` (and the paired
+  `.Abstractions` package likewise).** The package, assembly, directory, and root namespace that house the JWT
+  encode/validate service were renamed to the shorter, family-consistent `Jwt` form — pairing with the sibling
+  `NCode.Identity.Jose(.Abstractions)` and the dominant `Jwt*` type naming — and every type moved from the
+  `NCode.Identity.JsonWebTokens` namespace to `NCode.Identity.Jwt` (sub-namespaces `…Jwt.Options` / `…Jwt.Exceptions`
+  likewise). This is the first, mechanical step of the larger JWT-validation redesign tracked as backlog item `D8`
+  (service segregation into `IJwtEncoder`/`IJwtValidator` and an ASP.NET Core-style requirement/handler validation
+  model whose contracts live in `.Abstractions`); public **type** names (`IJsonWebTokenService`,
+  `JsonWebTokensLibrary`, `AddJsonWebTokensLibrary`, `EncodeJwtParameters`, `ValidateJwtParameters`,
+  `ValidateJwtResult`, …) are intentionally unchanged by this step and are reshaped by the redesign.
+
 - **`IJoseSerializer` is redesigned around a parsed `JoseToken` instead of a sprawl of `out`-header overloads.**
   The previous surface — spread across many partial files — repeated every decode / deserialize / verify operation
   once per raw-`string` entry point and threaded the JOSE header back through an `out JsonElement header` parameter.

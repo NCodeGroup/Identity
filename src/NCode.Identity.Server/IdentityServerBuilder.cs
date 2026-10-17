@@ -22,7 +22,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Dispatch;
 using NCode.Identity.Events;
 using NCode.Identity.Jose;
-using NCode.Identity.JsonWebTokens;
+using NCode.Identity.Jwt;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;

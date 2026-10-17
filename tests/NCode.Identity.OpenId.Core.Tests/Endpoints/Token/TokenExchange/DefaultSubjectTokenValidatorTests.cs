@@ -17,7 +17,7 @@
 #endregion
 
 using Moq;
-using NCode.Identity.JsonWebTokens;
+using NCode.Identity.Jwt;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;
 using NCode.Identity.OpenId.Contexts;

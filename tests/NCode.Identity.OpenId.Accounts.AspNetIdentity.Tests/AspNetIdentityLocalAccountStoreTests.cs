@@ -103,10 +103,7 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
 
     private static void SetupMapping(Mock<UserManager<IdentityUser>> userManager, IdentityUser user)
     {
-        userManager
-            .Setup(x => x.GetClaimsAsync(user))
-            .ReturnsAsync(new List<Claim> { RoleClaim })
-            .Verifiable();
+        userManager.Setup(x => x.GetClaimsAsync(user)).ReturnsAsync([RoleClaim]).Verifiable();
         userManager.SetupGet(x => x.SupportsUserLockout).Returns(true);
         userManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(false);
     }
@@ -496,9 +493,7 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         };
         userManager.SetupGet(x => x.SupportsQueryableUsers).Returns(true).Verifiable();
         userManager.SetupGet(x => x.Users).Returns(users.AsQueryable()).Verifiable();
-        userManager
-            .Setup(x => x.GetClaimsAsync(It.IsAny<IdentityUser>()))
-            .ReturnsAsync(new List<Claim>());
+        userManager.Setup(x => x.GetClaimsAsync(It.IsAny<IdentityUser>())).ReturnsAsync([]);
         userManager.SetupGet(x => x.SupportsUserLockout).Returns(true);
         userManager.Setup(x => x.IsLockedOutAsync(It.IsAny<IdentityUser>())).ReturnsAsync(false);
 

@@ -22,18 +22,18 @@ namespace NCode.Identity.Jose;
 partial interface IJoseSerializer
 {
     /// <summary>
-    /// Creates a new <see cref="JoseEncoder"/> with the specified signing credentials and options.
-    /// The returned encoder is the single entry point for encoding JWS tokens.
+    /// Creates a new <see cref="JoseEncoder"/> with the specified signing options.
+    /// The returned encoder is the single entry point for encoding JWS tokens, in any serialization format.
     /// </summary>
-    /// <param name="signingOptions">The JOSE signing credentials and options.</param>
+    /// <param name="signingOptions">The JOSE signing options.</param>
     /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
     JoseEncoder CreateEncoder(JoseSigningOptions signingOptions);
 
     /// <summary>
-    /// Creates a new <see cref="JoseEncoder"/> with the specified encrypting credentials and options.
-    /// The returned encoder is the single entry point for encrypting JWE tokens.
+    /// Creates a new <see cref="JoseEncoder"/> with the specified encryption options.
+    /// The returned encoder is the single entry point for encrypting JWE tokens, in any serialization format.
     /// </summary>
-    /// <param name="encryptionOptions">The JOSE encryption credentials and options.</param>
+    /// <param name="encryptionOptions">The JOSE encryption options.</param>
     /// <returns>The newly created <see cref="JoseEncoder"/> instance.</returns>
     JoseEncoder CreateEncoder(JoseEncryptionOptions encryptionOptions);
 }

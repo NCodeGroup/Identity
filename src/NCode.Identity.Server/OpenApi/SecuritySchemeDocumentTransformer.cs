@@ -110,15 +110,15 @@ internal sealed class SecuritySchemeDocumentTransformer : IOpenApiDocumentTransf
 
         var oauth2Requirement = new OpenApiSecurityRequirement
         {
-            [new OpenApiSecuritySchemeReference(OAuth2SchemeName, document)] = new List<string>
-            {
+            [new OpenApiSecuritySchemeReference(OAuth2SchemeName, document)] =
+            [
                 ManagementAudienceScope,
-            },
+            ],
         };
 
         var bearerRequirement = new OpenApiSecurityRequirement
         {
-            [new OpenApiSecuritySchemeReference(BearerSchemeName, document)] = new List<string>(),
+            [new OpenApiSecuritySchemeReference(BearerSchemeName, document)] = [],
         };
 
         foreach (var pathItem in document.Paths.Values)

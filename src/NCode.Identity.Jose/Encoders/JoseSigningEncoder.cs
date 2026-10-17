@@ -18,6 +18,7 @@
 #endregion
 
 using System.Buffers;
+using System.Text.Json;
 
 namespace NCode.Identity.Jose.Encoders;
 
@@ -32,7 +33,7 @@ internal class JoseSigningEncoder(JoseSerializer joseSerializer, JoseSigningOpti
     private JoseSigningOptions SigningOptions { get; } = signingOptions;
 
     /// <inheritdoc />
-    protected override JoseEncodingOptions EncodingOptions => SigningOptions;
+    protected override JsonSerializerOptions? PayloadJsonOptions => SigningOptions.JsonOptions;
 
     /// <inheritdoc />
     public override void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<byte> payload) =>

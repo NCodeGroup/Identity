@@ -34,5 +34,5 @@ public sealed class UserInfoResult
     /// Gets or sets the claims about the authenticated subject. These are flattened into the top-level JSON response.
     /// </summary>
     [JsonExtensionData]
-    public Dictionary<string, object> Claims { get; set; } = new();
+    public Dictionary<string, object> Claims { get; set; } = [];
 }

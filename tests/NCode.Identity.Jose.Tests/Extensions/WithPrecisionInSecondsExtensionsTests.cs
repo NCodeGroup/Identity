@@ -57,7 +57,7 @@ public class WithPrecisionInSecondsExtensionsTests : BaseTests
     }
 
     public static TheoryData<DateTimeOffset> DateTimeOffsetWithPrecisionInSecondsTestData =>
-        new() { DateTimeOffset.Now, DateTimeOffset.UtcNow };
+        [DateTimeOffset.Now, DateTimeOffset.UtcNow];
 
     [Theory]
     [MemberData(nameof(DateTimeOffsetWithPrecisionInSecondsTestData))]

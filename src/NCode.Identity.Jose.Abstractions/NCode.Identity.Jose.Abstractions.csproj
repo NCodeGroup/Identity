@@ -25,16 +25,19 @@
         <Compile Update="IJoseSerializer.*.cs">
             <DependentUpon>IJoseSerializer.cs</DependentUpon>
         </Compile>
-        <Compile Update="JoseEncryptionOptions.cs">
-            <DependentUpon>JoseEncodingOptions.cs</DependentUpon>
+        <Compile Update="JoseSignatureOptions.cs">
+            <DependentUpon>JoseSigningOptions.cs</DependentUpon>
         </Compile>
-        <Compile Update="JoseSigningOptions.cs">
-            <DependentUpon>JoseEncodingOptions.cs</DependentUpon>
+        <Compile Update="JoseRecipientOptions.cs">
+            <DependentUpon>JoseEncryptionOptions.cs</DependentUpon>
         </Compile>
         <Compile Update="Credentials\JoseEncryptionCredentials.cs">
             <DependentUpon>JoseCredentials.cs</DependentUpon>
         </Compile>
         <Compile Update="Credentials\JoseSigningCredentials.cs">
+            <DependentUpon>JoseCredentials.cs</DependentUpon>
+        </Compile>
+        <Compile Update="Credentials\JoseKeyManagementCredentials.cs">
             <DependentUpon>JoseCredentials.cs</DependentUpon>
         </Compile>
     </ItemGroup>

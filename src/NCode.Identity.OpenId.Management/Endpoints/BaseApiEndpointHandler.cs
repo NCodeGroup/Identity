@@ -52,10 +52,10 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
         {
             case JsonValueKind.Null:
             case JsonValueKind.Object:
-                return JsonObject.Create(element) ?? new JsonObject();
+                return JsonObject.Create(element) ?? [];
 
             default:
-                return new JsonObject();
+                return [];
         }
     }
 

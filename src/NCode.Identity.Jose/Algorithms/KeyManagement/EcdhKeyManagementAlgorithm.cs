@@ -52,10 +52,15 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
+    public override bool SupportsKeyWrapping => !IsDirectAgreement;
+
+    /// <inheritdoc />
     public override Type KeyType => typeof(EccSecretKey);
 
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KeyBitSizes => StaticKekBitSizes;
+
+    private bool IsDirectAgreement { get; }
 
     private string AlgorithmField { get; }
 
@@ -79,6 +84,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     protected EcdhKeyManagementAlgorithm(string code, bool isDirectAgreement)
     {
         Code = code;
+        IsDirectAgreement = isDirectAgreement;
         AlgorithmField = isDirectAgreement ? JoseClaimNames.Header.Enc : JoseClaimNames.Header.Alg;
     }
 

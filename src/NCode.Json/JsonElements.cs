@@ -16,8 +16,8 @@
 
 #endregion
 
+using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Text.Json;
 using JetBrains.Annotations;
 
@@ -34,6 +34,10 @@ namespace NCode.Json;
 public static class JsonElements
 {
     private static readonly JsonElement EmptyObjectValue = JsonElement.Parse("{}");
+
+    // Inclusive Unix-second bounds of DateTimeOffset.MinValue/MaxValue; guards NumericDate against overflow.
+    private const long MinNumericDateSeconds = -62_135_596_800;
+    private const long MaxNumericDateSeconds = 253_402_300_799;
 
     /// <summary>
     /// Gets a cached, immutable, detached <see cref="JsonElement"/> representing an empty JSON object (<c>{}</c>). The
@@ -60,11 +64,11 @@ public static class JsonElements
             jsonElement.IsNullOrUndefined() ? EmptyObject : jsonElement;
 
         /// <summary>
-        /// Attempts to get the value of a JSON property with the specified name.
+        /// Attempts to get the value of a JSON property with the specified name, converting it to <typeparamref name="T"/>.
         /// </summary>
         /// <param name="propertyName">The name of the JSON property to get.</param>
         /// <param name="value">When this method returns, contains the value of the JSON property if it was successfully found and converted to <typeparamref name="T"/>.</param>
-        /// <typeparam name="T">The type of the JSON property to get.</typeparam>
+        /// <typeparam name="T">The target type the JSON property value is converted to. See <see cref="TryGetValue{T}"/> for the supported types.</typeparam>
         /// <returns><c>true</c> if the operation succeeded; otherwise, <c>false</c> if the JSON property wasn't found or the value wasn't able to be converted to <typeparamref name="T"/>.</returns>
         public bool TryGetPropertyValue<T>(string propertyName, [MaybeNullWhen(false)] out T value)
         {
@@ -74,146 +78,246 @@ public static class JsonElements
                 return false;
             }
 
-            if (property is T returnValue)
+            return property.TryGetValue(out value);
+        }
+
+        /// <summary>
+        /// Attempts to convert this JSON value to <typeparamref name="T"/>.
+        /// </summary>
+        /// <param name="value">When this method returns, contains the converted value if the conversion succeeded.</param>
+        /// <typeparam name="T">
+        /// The target type the JSON value is converted to. Supported types (and their <see cref="Nullable{T}"/>
+        /// counterparts) are: <see cref="JsonElement"/> (returned as-is); <see cref="string"/>, <see cref="bool"/>,
+        /// <see cref="Guid"/>, <see cref="DateTime"/>, <see cref="DateTimeOffset"/>, <see cref="byte"/>[]; the
+        /// integer types <see cref="sbyte"/>, <see cref="byte"/>, <see cref="short"/>, <see cref="ushort"/>,
+        /// <see cref="int"/>, <see cref="uint"/>, <see cref="long"/>, <see cref="ulong"/>; and the real types
+        /// <see cref="float"/>, <see cref="double"/>, <see cref="decimal"/>. A JSON number requested as
+        /// <see cref="DateTime"/> or <see cref="DateTimeOffset"/> is interpreted as an RFC 7519 <c>NumericDate</c>
+        /// (Unix seconds, UTC). A <see cref="byte"/>[] is decoded from either base64 or base64url.
+        /// </typeparam>
+        /// <returns><c>true</c> if the value was converted to <typeparamref name="T"/>; otherwise, <c>false</c>.</returns>
+        public bool TryGetValue<T>([MaybeNullWhen(false)] out T value)
+        {
+            // JsonElement (or object) is returned as-is, including Null/Undefined kinds.
+            if (jsonElement is T self)
             {
-                value = returnValue;
+                value = self;
                 return true;
             }
 
-            if (property.ValueKind == JsonValueKind.Null)
+            switch (jsonElement.ValueKind)
             {
-                value = default;
-                return false;
-            }
+                case JsonValueKind.String:
+                    return TryConvertFromString(jsonElement, out value);
 
-            if (typeof(T) == typeof(string))
-            {
-                value = (T)(object)property.ToString();
-                return true;
-            }
+                case JsonValueKind.Number:
+                    return TryConvertFromNumber(jsonElement, out value);
 
-            var isBoolType = typeof(T) == typeof(bool) || typeof(T) == typeof(bool?);
-            if (isBoolType && property.ValueKind is JsonValueKind.True or JsonValueKind.False)
-            {
-                value = (T)(object)property.GetBoolean();
-                return true;
-            }
-
-            var isDateTimeOffsetType =
-                typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?);
-            var isDateTimeType = typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTime?);
-            if (
-                property.ValueKind == JsonValueKind.String
-                && (isDateTimeOffsetType || isDateTimeType)
-            )
-            {
-                var stringValue = property.ToString();
-
-                if (
-                    isDateTimeOffsetType
-                    && DateTimeOffset.TryParse(
-                        stringValue,
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.AssumeUniversal,
-                        out var dateTimeOffsetValue
-                    )
-                )
-                {
-                    value = (T)(object)dateTimeOffsetValue;
-                    return true;
-                }
-
-                if (
-                    isDateTimeType
-                    && DateTime.TryParse(
-                        stringValue,
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.AssumeUniversal,
-                        out var dateTimeValue
-                    )
-                )
-                {
-                    value = (T)(object)dateTimeValue;
-                    return true;
-                }
-            }
-
-            if (property.ValueKind == JsonValueKind.Number)
-            {
-                var isFloatType = typeof(T) == typeof(float) || typeof(T) == typeof(float?);
-                if (isFloatType && property.TryGetSingle(out var floatValue))
-                {
-                    value = (T)(object)floatValue;
-                    return true;
-                }
-
-                var isDoubleType = typeof(T) == typeof(double) || typeof(T) == typeof(double?);
-                if (isDoubleType && property.TryGetDouble(out var doubleValue))
-                {
-                    value = (T)(object)doubleValue;
-                    return true;
-                }
-
-                var isByteType = typeof(T) == typeof(byte) || typeof(T) == typeof(byte?);
-                if (isByteType && property.TryGetByte(out var byteValue))
-                {
-                    value = (T)(object)byteValue;
-                    return true;
-                }
-
-                var isShortType = typeof(T) == typeof(short) || typeof(T) == typeof(short?);
-                if (isShortType && property.TryGetInt16(out var shortValue))
-                {
-                    value = (T)(object)shortValue;
-                    return true;
-                }
-
-                var isIntType = typeof(T) == typeof(int) || typeof(T) == typeof(int?);
-                if (isIntType && property.TryGetInt32(out var intValue))
-                {
-                    value = (T)(object)intValue;
-                    return true;
-                }
-
-                var isLongType = typeof(T) == typeof(long) || typeof(T) == typeof(long?);
-                var isLongValue = property.TryGetInt64(out var longValue);
-                if (isLongType && isLongValue)
-                {
-                    value = (T)(object)longValue;
-                    return true;
-                }
-
-                /*
-
-                https://datatracker.ietf.org/doc/html/rfc7519#section-2
-
-                NumericDate
-                    A JSON numeric value representing the number of seconds from
-                    1970-01-01T00:00:00Z UTC until the specified UTC date/time,
-                    ignoring leap seconds.  This is equivalent to the IEEE Std 1003.1,
-                    2013 Edition [POSIX.1] definition "Seconds Since the Epoch", in
-                    which each day is accounted for by exactly 86400 seconds, other
-                    than that non-integer values can be represented.  See RFC 3339
-                    [RFC3339] for details regarding date/times in general and UTC in
-                    particular.
-
-                */
-
-                if (isDateTimeOffsetType && isLongValue)
-                {
-                    value = (T)(object)DateTimeOffset.FromUnixTimeSeconds(longValue);
-                    return true;
-                }
-
-                if (isDateTimeType && isLongValue)
-                {
-                    value = (T)(object)DateTimeOffset.FromUnixTimeSeconds(longValue).DateTime;
-                    return true;
-                }
+                case JsonValueKind.True:
+                case JsonValueKind.False:
+                    if (typeof(T) == typeof(bool) || typeof(T) == typeof(bool?))
+                    {
+                        value = (T)(object)jsonElement.GetBoolean();
+                        return true;
+                    }
+                    break;
             }
 
             value = default;
             return false;
         }
+    }
+
+    private static bool TryConvertFromString<T>(
+        JsonElement element,
+        [MaybeNullWhen(false)] out T value
+    )
+    {
+        if (typeof(T) == typeof(string))
+        {
+            var stringValue = element.GetString();
+            if (stringValue is not null)
+            {
+                value = (T)(object)stringValue;
+                return true;
+            }
+        }
+        else if (
+            (typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?))
+            && element.TryGetDateTimeOffset(out var dateTimeOffsetValue)
+        )
+        {
+            value = (T)(object)dateTimeOffsetValue;
+            return true;
+        }
+        else if (
+            (typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTime?))
+            && element.TryGetDateTime(out var dateTimeValue)
+        )
+        {
+            value = (T)(object)dateTimeValue;
+            return true;
+        }
+        else if (
+            (typeof(T) == typeof(Guid) || typeof(T) == typeof(Guid?))
+            && element.TryGetGuid(out var guidValue)
+        )
+        {
+            value = (T)(object)guidValue;
+            return true;
+        }
+        else if (typeof(T) == typeof(byte[]) && TryGetBytes(element, out var bytesValue))
+        {
+            value = (T)(object)bytesValue;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static bool TryGetBytes(JsonElement element, [NotNullWhen(true)] out byte[]? value)
+    {
+        // Standard base64 (RFC 4648 §4).
+        if (element.TryGetBytesFromBase64(out value))
+        {
+            return true;
+        }
+
+        // base64url (RFC 4648 §5), the JOSE/JWT encoding.
+        var text = element.GetString();
+        if (text is not null && Base64Url.IsValid(text))
+        {
+            value = Base64Url.DecodeFromChars(text);
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    private static bool TryConvertFromNumber<T>(
+        JsonElement element,
+        [MaybeNullWhen(false)] out T value
+    )
+    {
+        if (
+            (typeof(T) == typeof(sbyte) || typeof(T) == typeof(sbyte?))
+            && element.TryGetSByte(out var sbyteValue)
+        )
+        {
+            value = (T)(object)sbyteValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(byte) || typeof(T) == typeof(byte?))
+            && element.TryGetByte(out var byteValue)
+        )
+        {
+            value = (T)(object)byteValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(short) || typeof(T) == typeof(short?))
+            && element.TryGetInt16(out var shortValue)
+        )
+        {
+            value = (T)(object)shortValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(ushort) || typeof(T) == typeof(ushort?))
+            && element.TryGetUInt16(out var ushortValue)
+        )
+        {
+            value = (T)(object)ushortValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(int) || typeof(T) == typeof(int?))
+            && element.TryGetInt32(out var intValue)
+        )
+        {
+            value = (T)(object)intValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(uint) || typeof(T) == typeof(uint?))
+            && element.TryGetUInt32(out var uintValue)
+        )
+        {
+            value = (T)(object)uintValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(long) || typeof(T) == typeof(long?))
+            && element.TryGetInt64(out var longValue)
+        )
+        {
+            value = (T)(object)longValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(ulong) || typeof(T) == typeof(ulong?))
+            && element.TryGetUInt64(out var ulongValue)
+        )
+        {
+            value = (T)(object)ulongValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(float) || typeof(T) == typeof(float?))
+            && element.TryGetSingle(out var floatValue)
+        )
+        {
+            value = (T)(object)floatValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(double) || typeof(T) == typeof(double?))
+            && element.TryGetDouble(out var doubleValue)
+        )
+        {
+            value = (T)(object)doubleValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(decimal) || typeof(T) == typeof(decimal?))
+            && element.TryGetDecimal(out var decimalValue)
+        )
+        {
+            value = (T)(object)decimalValue;
+            return true;
+        }
+
+        // RFC 7519 NumericDate: integer seconds since the Unix epoch (UTC), range-guarded against overflow.
+        var isDateTimeOffsetType =
+            typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?);
+        var isDateTimeType = typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTime?);
+        if (
+            (isDateTimeOffsetType || isDateTimeType)
+            && element.TryGetInt64(out var epochSeconds)
+            && epochSeconds is >= MinNumericDateSeconds and <= MaxNumericDateSeconds
+        )
+        {
+            var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(epochSeconds);
+            value = isDateTimeOffsetType
+                ? (T)(object)dateTimeOffset
+                : (T)(object)dateTimeOffset.UtcDateTime;
+            return true;
+        }
+
+        value = default;
+        return false;
     }
 }

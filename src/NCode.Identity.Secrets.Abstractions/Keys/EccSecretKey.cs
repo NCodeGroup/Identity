@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 
@@ -73,5 +74,9 @@ public abstract class EccSecretKey(
     public abstract ECDiffieHellman ExportECDiffieHellman();
 
     /// <inheritdoc />
-    public override AsymmetricAlgorithm ExportAsymmetricAlgorithm() => ExportECDsa();
+    public override void ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination)
+    {
+        using var key = ExportECDsa();
+        WriteSubjectPublicKeyInfo(key, ref destination);
+    }
 }

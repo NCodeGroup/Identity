@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <RootNamespace>NCode.Identity.Jose.EdDsa</RootNamespace>
+        <Description>Clean-room EdDSA (Ed25519 / Ed448, RFC 8032 / RFC 8037) signing for NCode.Identity.Jose — an OKP secret-key type and the EdDSA JWS signature algorithm, with no third-party cryptographic dependency.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+        <PackageReference Include="NCode.Buffers" />
+        <PackageReference Include="NCode.Collections.Providers" />
+        <PackageReference Include="NCode.Collections.Providers.Abstractions" />
+        <PackageReference Include="NCode.Extensions.DataProtection" />
+    </ItemGroup>
+</Project>

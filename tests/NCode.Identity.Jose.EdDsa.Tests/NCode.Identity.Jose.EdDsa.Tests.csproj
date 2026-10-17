@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NCode.Identity.Jose.EdDsa.Tests</RootNamespace>
+    </PropertyGroup>
+
+    <!-- BouncyCastle is a TEST-ONLY differential oracle used to cross-check the clean-room RFC 8032
+         implementation against an independent implementation; it is never referenced by shipping code. -->
+    <ItemGroup>
+        <PackageReference Include="BouncyCastle.Cryptography" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="Moq" />
+        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.runner.visualstudio">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="coverlet.collector">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\NCode.Identity.Jose.EdDsa\NCode.Identity.Jose.EdDsa.csproj" />
+    </ItemGroup>
+</Project>

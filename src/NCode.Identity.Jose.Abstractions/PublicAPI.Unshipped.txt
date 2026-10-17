@@ -30,6 +30,9 @@ abstract NCode.Identity.Jose.JoseEncoder.Encode(System.ReadOnlySpan<byte> payloa
 abstract NCode.Identity.Jose.JoseEncoder.Encode(System.ReadOnlySpan<char> payload) -> string!
 abstract NCode.Identity.Jose.JoseEncoder.Encode<T>(System.Buffers.IBufferWriter<char>! tokenWriter, T payload) -> void
 abstract NCode.Identity.Jose.JoseEncoder.Encode<T>(T payload) -> string!
+abstract NCode.Identity.Jose.JoseToken.Header.get -> System.Text.Json.JsonElement
+abstract NCode.Identity.Jose.JoseToken.ProtectionType.get -> string!
+abstract NCode.Identity.Jose.JoseToken.SerializationFormat.get -> NCode.Identity.Jose.JoseSerializationFormat
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256 = "A128CBC-HS256" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.AuthenticatedEncryption.Aes128Gcm = "A128GCM" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.AuthenticatedEncryption.Aes192CbcHmacSha384 = "A192CBC-HS384" -> string!
@@ -208,12 +211,8 @@ NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.KeyManagementAlgorithm() -
 NCode.Identity.Jose.Algorithms.SignatureAlgorithm
 NCode.Identity.Jose.Algorithms.SignatureAlgorithm.SignatureAlgorithm() -> void
 NCode.Identity.Jose.CompactJwt
-NCode.Identity.Jose.CompactJwt.CompactJwt() -> void
-NCode.Identity.Jose.CompactJwt.CompactJwt(string! protectionType, NCode.Buffers.StringSegments segments, System.Text.Json.JsonElement deserializedHeader) -> void
-NCode.Identity.Jose.CompactJwt.DeserializedHeader.get -> System.Text.Json.JsonElement
-NCode.Identity.Jose.CompactJwt.EncodedHeader.get -> System.ReadOnlySpan<char>
-NCode.Identity.Jose.CompactJwt.ProtectionType.get -> string!
-NCode.Identity.Jose.CompactJwt.Segments.get -> NCode.Buffers.StringSegments
+NCode.Identity.Jose.CompactJwt.CompactJwt(string! protectionType, System.Text.Json.JsonElement header, string! encodedToken, System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<char>>! segments) -> void
+NCode.Identity.Jose.CompactJwt.Segments.get -> System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<char>>!
 NCode.Identity.Jose.Credentials.ICredentialSelector
 NCode.Identity.Jose.Credentials.ICredentialSelector.TryGetEncryptionCredentials(NCode.Identity.Jose.Algorithms.IAlgorithmCollection! candidateAlgorithms, System.Collections.Generic.IEnumerable<string!>! preferredKeyManagementAlgorithms, System.Collections.Generic.IEnumerable<string!>! preferredAuthenticatedEncryptionAlgorithms, System.Collections.Generic.IEnumerable<string!>! preferredCompressionAlgorithms, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>! candidateKeys, out NCode.Identity.Jose.Credentials.JoseEncryptionCredentials! credentials) -> bool
 NCode.Identity.Jose.Credentials.ICredentialSelector.TryGetSigningCredentials(NCode.Identity.Jose.Algorithms.IAlgorithmCollection! candidateAlgorithms, System.Collections.Generic.IEnumerable<string!>! preferredSignatureAlgorithms, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>! candidateKeys, out NCode.Identity.Jose.Credentials.JoseSigningCredentials! credentials) -> bool
@@ -275,25 +274,22 @@ NCode.Identity.Jose.Extensions.TimeProviderExtensions.extension(System.TimeProvi
 NCode.Identity.Jose.IJoseSerializer
 NCode.Identity.Jose.IJoseSerializer.CreateEncoder(NCode.Identity.Jose.JoseEncryptionOptions! encryptionOptions) -> NCode.Identity.Jose.JoseEncoder!
 NCode.Identity.Jose.IJoseSerializer.CreateEncoder(NCode.Identity.Jose.JoseSigningOptions! signingOptions) -> NCode.Identity.Jose.JoseEncoder!
-NCode.Identity.Jose.IJoseSerializer.Decode(NCode.Identity.Jose.CompactJwt compactJwt, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> string!
+NCode.Identity.Jose.IJoseSerializer.Decode(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> string!
+NCode.Identity.Jose.IJoseSerializer.Decode(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Buffers.IBufferWriter<byte>! payload) -> void
 NCode.Identity.Jose.IJoseSerializer.Decode(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> string!
-NCode.Identity.Jose.IJoseSerializer.Decode(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, out System.Text.Json.JsonElement header) -> string!
-NCode.Identity.Jose.IJoseSerializer.Deserialize<T>(NCode.Identity.Jose.CompactJwt compactJwt, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> T?
+NCode.Identity.Jose.IJoseSerializer.Deserialize<T>(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> T?
+NCode.Identity.Jose.IJoseSerializer.Deserialize<T>(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Text.Json.JsonSerializerOptions? jsonOptions) -> T?
 NCode.Identity.Jose.IJoseSerializer.Deserialize<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> T?
-NCode.Identity.Jose.IJoseSerializer.Deserialize<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, out System.Text.Json.JsonElement header) -> T?
-NCode.Identity.Jose.IJoseSerializer.ParseCompactJwt(string! token) -> NCode.Identity.Jose.CompactJwt
-NCode.Identity.Jose.IJoseSerializer.VerifyJws(NCode.Identity.Jose.CompactJwt compactJwt, NCode.Identity.Secrets.Keys.SecretKey! secretKey, string! detachedPayload) -> void
-NCode.Identity.Jose.IJoseSerializer.VerifyJws(NCode.Identity.Jose.CompactJwt compactJwt, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<byte> detachedPayload) -> void
-NCode.Identity.Jose.IJoseSerializer.VerifyJws(NCode.Identity.Jose.CompactJwt compactJwt, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<char> detachedPayload) -> void
-NCode.Identity.Jose.IJoseSerializer.VerifyJws(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, string! detachedPayload) -> void
-NCode.Identity.Jose.IJoseSerializer.VerifyJws(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, string! detachedPayload, out System.Text.Json.JsonElement header) -> void
+NCode.Identity.Jose.IJoseSerializer.Deserialize<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Text.Json.JsonSerializerOptions? jsonOptions) -> T?
+NCode.Identity.Jose.IJoseSerializer.Parse(string! token) -> NCode.Identity.Jose.JoseToken!
+NCode.Identity.Jose.IJoseSerializer.VerifyJws(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<byte> detachedPayload) -> void
+NCode.Identity.Jose.IJoseSerializer.VerifyJws(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<char> detachedPayload) -> void
 NCode.Identity.Jose.IJoseSerializer.VerifyJws(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<byte> detachedPayload) -> void
-NCode.Identity.Jose.IJoseSerializer.VerifyJws(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<byte> detachedPayload, out System.Text.Json.JsonElement header) -> void
 NCode.Identity.Jose.IJoseSerializer.VerifyJws(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<char> detachedPayload) -> void
-NCode.Identity.Jose.IJoseSerializer.VerifyJws(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<char> detachedPayload, out System.Text.Json.JsonElement header) -> void
-NCode.Identity.Jose.IJoseSerializer.VerifyJws<T>(NCode.Identity.Jose.CompactJwt compactJwt, NCode.Identity.Secrets.Keys.SecretKey! secretKey, T detachedPayload, System.Text.Json.JsonSerializerOptions? jsonOptions) -> void
+NCode.Identity.Jose.IJoseSerializer.VerifyJws<T>(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, T detachedPayload) -> void
+NCode.Identity.Jose.IJoseSerializer.VerifyJws<T>(NCode.Identity.Jose.JoseToken! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, T detachedPayload, System.Text.Json.JsonSerializerOptions? jsonOptions) -> void
+NCode.Identity.Jose.IJoseSerializer.VerifyJws<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, T detachedPayload) -> void
 NCode.Identity.Jose.IJoseSerializer.VerifyJws<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, T detachedPayload, System.Text.Json.JsonSerializerOptions? jsonOptions) -> void
-NCode.Identity.Jose.IJoseSerializer.VerifyJws<T>(string! token, NCode.Identity.Secrets.Keys.SecretKey! secretKey, T detachedPayload, System.Text.Json.JsonSerializerOptions? jsonOptions, out System.Text.Json.JsonElement header) -> void
 NCode.Identity.Jose.JoseClaimNames
 NCode.Identity.Jose.JoseClaimNames.Header
 NCode.Identity.Jose.JoseClaimNames.Json
@@ -359,15 +355,28 @@ NCode.Identity.Jose.JoseSigningOptions.JsonOptions.get -> System.Text.Json.JsonS
 NCode.Identity.Jose.JoseSigningOptions.JsonOptions.init -> void
 NCode.Identity.Jose.JoseSigningOptions.Signatures.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Jose.JoseSignatureOptions!>!
 NCode.Identity.Jose.JoseSigningOptions.Signatures.init -> void
+NCode.Identity.Jose.JoseToken
+NCode.Identity.Jose.JoseToken.JoseToken() -> void
 NCode.Identity.Jose.JoseTokenTypes
+NCode.Identity.Jose.JsonJwt
+NCode.Identity.Jose.JsonJwt.JsonJwt(string! protectionType, NCode.Identity.Jose.JoseSerializationFormat serializationFormat, string! encodedToken, System.Text.Json.JsonElement root, System.Text.Json.JsonElement header) -> void
+NCode.Identity.Jose.JsonJwt.Root.get -> System.Text.Json.JsonElement
+override abstract NCode.Identity.Jose.JoseToken.ToString() -> string!
 override NCode.Identity.Jose.Algorithms.AuthenticatedEncryptionAlgorithm.KeyType.get -> System.Type!
 override NCode.Identity.Jose.Algorithms.AuthenticatedEncryptionAlgorithm.Type.get -> NCode.Identity.Jose.Algorithms.AlgorithmType
 override NCode.Identity.Jose.Algorithms.CompressionAlgorithm.Type.get -> NCode.Identity.Jose.Algorithms.AlgorithmType
 override NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.Type.get -> NCode.Identity.Jose.Algorithms.AlgorithmType
 override NCode.Identity.Jose.Algorithms.SignatureAlgorithm.Type.get -> NCode.Identity.Jose.Algorithms.AlgorithmType
+override NCode.Identity.Jose.CompactJwt.Header.get -> System.Text.Json.JsonElement
+override NCode.Identity.Jose.CompactJwt.ProtectionType.get -> string!
+override NCode.Identity.Jose.CompactJwt.SerializationFormat.get -> NCode.Identity.Jose.JoseSerializationFormat
 override NCode.Identity.Jose.CompactJwt.ToString() -> string!
 NCode.Identity.Jose.Extensions.DictionaryExtensions.extension(System.Collections.Generic.IDictionary<string!, object!>!)
 NCode.Identity.Jose.Extensions.DictionaryExtensions.extension(System.Collections.Generic.IDictionary<string!, object!>!).TryGetValue<T>(string! key, out T value) -> bool
+override NCode.Identity.Jose.JsonJwt.Header.get -> System.Text.Json.JsonElement
+override NCode.Identity.Jose.JsonJwt.ProtectionType.get -> string!
+override NCode.Identity.Jose.JsonJwt.SerializationFormat.get -> NCode.Identity.Jose.JoseSerializationFormat
+override NCode.Identity.Jose.JsonJwt.ToString() -> string!
 static NCode.Identity.Jose.JoseTokenTypes.AreSame(string? left, string? right) -> bool
 static NCode.Identity.Jose.JoseTokenTypes.Normalize(string! tokenType) -> string!
 virtual NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.SupportsKeyWrapping.get -> bool

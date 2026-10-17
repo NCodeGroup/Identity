@@ -39,18 +39,18 @@ partial class DefaultJsonWebTokenService
         var propertyBag = parameters.PropertyBag.Clone();
         try
         {
-            var compactJwt = JoseSerializer.ParseCompactJwt(token);
+            var joseToken = JoseSerializer.Parse(token);
 
             var validationKeys = await parameters.ResolveValidationKeysAsync(
-                compactJwt,
+                joseToken,
                 propertyBag,
                 SecretKeyCollectionProvider,
                 cancellationToken
             );
 
-            var payload = DeserializePayload(compactJwt, validationKeys, out var secretKey);
+            var payload = DeserializePayload(joseToken, validationKeys, out var secretKey);
 
-            var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey);
+            var decodedJwt = new DecodedJwt(joseToken, payload, secretKey);
 
             var context = new ValidateJwtContext(
                 secretKey,
@@ -71,7 +71,7 @@ partial class DefaultJsonWebTokenService
     }
 
     private JsonElement DeserializePayload(
-        CompactJwt compactJwt,
+        JoseToken joseToken,
         IEnumerable<SecretKey> validationKeys,
         out SecretKey secretKey
     )
@@ -83,7 +83,7 @@ partial class DefaultJsonWebTokenService
         {
             try
             {
-                var payload = JoseSerializer.Deserialize<JsonElement>(compactJwt, attemptedKey);
+                var payload = JoseSerializer.Deserialize<JsonElement>(joseToken, attemptedKey);
 
                 secretKey = attemptedKey;
                 return payload;
@@ -122,7 +122,7 @@ partial class DefaultJsonWebTokenService
         // END EXAMPLE
 
         throw new TokenValidationDecodeException(
-            $"{TokenValidationDecodeException.DefaultMessage}.\n\nToken:\n{compactJwt}\n\nKeys attempted:\n{attemptedKeys}\nInner exceptions:\n{exceptions}"
+            $"{TokenValidationDecodeException.DefaultMessage}.\n\nToken:\n{joseToken}\n\nKeys attempted:\n{attemptedKeys}\nInner exceptions:\n{exceptions}"
         );
     }
 

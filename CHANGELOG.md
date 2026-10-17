@@ -181,6 +181,27 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
+- **`IJoseSerializer` is redesigned around a parsed `JoseToken` instead of a sprawl of `out`-header overloads.**
+  The previous surface — spread across many partial files — repeated every decode / deserialize / verify operation
+  once per raw-`string` entry point and threaded the JOSE header back through an `out JsonElement header` parameter.
+  It is replaced by a cohesive, token-centric model: `Parse(string)` returns a `JoseToken` **once** (exposing the JOSE
+  header via `JoseToken.Header` **before** validation/decryption), and `Decode` / `Deserialize<T>` / `VerifyJws` then
+  operate on that parsed token; the header is always read from `JoseToken.Header` rather than returned via `out`.
+  `JoseToken` is a new abstract base in `NCode.Identity.Jose.Abstractions` with a `JoseSerializationFormat` and two
+  sealed subclasses — `CompactJwt` (compact serialization) and `JsonJwt` (flattened/general JSON serialization) — and
+  one-shot overloads that accept a raw token `string` are retained for convenience. Typed `Deserialize<T>` / strongly
+  typed `VerifyJws<T>` are expressed as explicit no-options / with-options overload pairs (no optional-parameter
+  overloads, satisfying the public-API analyzer). This is a **breaking** change to `IJoseSerializer` and to
+  `NCode.Identity.JsonWebTokens.DecodedJwt` (now constructed from a `JoseToken`); it lands on `dev` as a clean cutover
+  with no compatibility shim ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
+- **`NCode.Identity.Jose.Abstractions` is trimmed to contracts-only, depending solely on
+  `NCode.Identity.Secrets.Abstractions`.** As part of the token-centric redesign the abstractions package dropped its
+  `NCode.Identity.Jwk`, `NCode.Json`, `Microsoft.Extensions.Primitives`, and `NCode.Buffers` dependencies: `CompactJwt`
+  no longer carries segment-splitting logic (`StringSegments`) and instead exposes its segments as zero-allocation
+  `ReadOnlyMemory<char>` slices computed by span-splitting the token once in the implementation, keeping the
+  `*.Abstractions` package free of logic and heavy transitive references.
+
 - **The secret-key `Logic` grab-bag namespace is split into purpose-based namespaces.** The vague
   `NCode.Identity.Secrets.Logic` (and the `NCode.Identity.Jose.EdDsa.Logic` grab-bag in the EdDsa plugin) are gone,
   replaced by cohesive, discoverable namespaces that match the family's house style (`…Keys`, `…Algorithms`):

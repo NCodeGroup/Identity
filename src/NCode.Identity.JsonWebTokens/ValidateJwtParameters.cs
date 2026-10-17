@@ -41,7 +41,7 @@ public delegate ValueTask ValidateJwtAsync(
 /// </summary>
 [PublicAPI]
 public delegate ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
-    CompactJwt compactJwt,
+    JoseToken token,
     IPropertyBag propertyBag,
     ISecretKeyCollectionProvider secretKeyCollectionProvider,
     CancellationToken cancellationToken
@@ -101,11 +101,11 @@ public class ValidateJwtParameters
     /// to validate a JSON Web Token (JWT).
     /// </summary>
     public ResolveValidationKeysAsync ResolveValidationKeysAsync { get; set; } =
-        static (compactJwt, _, secretKeyProvider, _) =>
+        static (token, _, secretKeyProvider, _) =>
             ValueTask.FromResult(
                 DefaultValidationKeyResolver.ResolveValidationKeys(
-                    compactJwt.ProtectionType,
-                    compactJwt.DeserializedHeader,
+                    token.ProtectionType,
+                    token.Header,
                     secretKeyProvider.Collection
                 )
             );

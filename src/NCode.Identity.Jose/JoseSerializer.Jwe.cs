@@ -216,20 +216,6 @@ partial class JoseSerializer
             target[key] = value;
     }
 
-    private string DecodeJwe(CompactJwt compactJwt, SecretKey secretKey)
-    {
-        using var byteBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
-        DecryptJwe(compactJwt, secretKey, byteBuffer);
-        return DecodeUtf8(byteBuffer);
-    }
-
-    private T? DeserializeJwe<T>(CompactJwt compactJwt, SecretKey secretKey)
-    {
-        using var byteBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
-        DecryptJwe(compactJwt, secretKey, byteBuffer);
-        return Deserialize<T>(byteBuffer);
-    }
-
     private void DecryptJwe(
         CompactJwt compactJwt,
         SecretKey secretKey,
@@ -245,47 +231,39 @@ partial class JoseSerializer
         */
         Debug.Assert(compactJwt.ProtectionType == JoseProtectionTypes.Jwe);
 
+        var segments = compactJwt.Segments;
+        if (segments.Count != JweSegmentCount)
+            throw new InvalidOperationException("Malformed JWE token.");
+
+        var header = compactJwt.Header;
+
         // JWE Protected Header
-        var jweProtectedHeader = compactJwt.Segments.First;
-        var header = compactJwt.DeserializedHeader;
+        var encodedProtectedHeader = segments[0].Span;
 
         // JWE Encrypted Key
-        var jweEncryptedKey =
-            jweProtectedHeader.Next ?? throw new InvalidOperationException("Malformed JWE token.");
-        var encodedEncryptedKey = jweEncryptedKey.Memory.Span;
         using var encryptedKeyLease = DecodeBase64Url(
-            encodedEncryptedKey,
+            segments[1].Span,
             isSensitive: true,
             out var encryptedKeyBytes
         );
 
         // JWE Initialization Vector
-        var jweInitializationVector =
-            jweEncryptedKey.Next ?? throw new InvalidOperationException("Malformed JWE token.");
-        var encodedInitializationVector = jweInitializationVector.Memory.Span;
         using var initializationVectorLease = DecodeBase64Url(
-            encodedInitializationVector,
+            segments[2].Span,
             isSensitive: false,
             out var initializationVectorBytes
         );
 
         // JWE Ciphertext
-        var jweCiphertext =
-            jweInitializationVector.Next
-            ?? throw new InvalidOperationException("Malformed JWE token.");
-        var encodedCiphertext = jweCiphertext.Memory.Span;
         using var cipherTextLease = DecodeBase64Url(
-            encodedCiphertext,
+            segments[3].Span,
             isSensitive: false,
             out var cipherTextBytes
         );
 
         // JWE Authentication Tag
-        var jweAuthenticationTag =
-            jweCiphertext.Next ?? throw new InvalidOperationException("Malformed JWE token.");
-        var encodedAuthenticationTag = jweAuthenticationTag.Memory.Span;
         using var authenticationTagLease = DecodeBase64Url(
-            encodedAuthenticationTag,
+            segments[4].Span,
             isSensitive: false,
             out var authenticationTagBytes
         );
@@ -351,7 +329,7 @@ partial class JoseSerializer
 
         using var associatedDataLease = Encode(
             Encoding.ASCII,
-            compactJwt.EncodedHeader,
+            encodedProtectedHeader,
             out var associatedDataBytes
         );
 

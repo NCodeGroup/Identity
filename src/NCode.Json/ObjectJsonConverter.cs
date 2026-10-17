@@ -1,7 +1,6 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -22,14 +21,17 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 
-namespace NCode.Identity.Jose.Json;
+namespace NCode.Json;
 
 /// <summary>
-/// Provides the ability to deserialize JSON into an <see cref="object"/> instance.
+/// Provides the ability to deserialize JSON into a loosely-typed <see cref="object"/> graph — JSON objects become
+/// <see cref="Dictionary{TKey,TValue}"/> of <see cref="string"/> to <see cref="object"/>, JSON arrays become
+/// <see cref="List{T}"/> of <see cref="object"/>, and scalar values are coerced to the most specific matching CLR type.
 /// </summary>
 /// <remarks>
-/// Type conversions are attempted in the following order:
+/// Scalar string/number coercions are attempted in the following order:
 /// <list type="number">
 /// <item><term><see cref="DateTimeOffset"/></term></item>
 /// <item><term><see cref="DateTime"/></term></item>
@@ -45,13 +47,18 @@ namespace NCode.Identity.Jose.Json;
 /// <item><term><see cref="Decimal"/></term></item>
 /// <item><term><see cref="Single"/></term></item>
 /// </list>
+/// Because the target type is unknown when deserializing to <see cref="object"/>, a bare JSON number is inherently
+/// ambiguous and is therefore never interpreted as an RFC 7519 <c>NumericDate</c> (Unix seconds). That interpretation
+/// only applies where the caller supplies an explicit date target type — see
+/// <see cref="JsonElements"/>.<c>TryGetPropertyValue&lt;T&gt;</c>.
 /// </remarks>
-internal sealed class JoseObjectJsonConverter : JsonConverter<object>
+[PublicAPI]
+public sealed class ObjectJsonConverter : JsonConverter<object>
 {
     /// <summary>
-    /// Gets a singleton instance for <see cref="JoseObjectJsonConverter"/>.
+    /// Gets a singleton instance for <see cref="ObjectJsonConverter"/>.
     /// </summary>
-    public static JoseObjectJsonConverter Singleton { get; } = new();
+    public static ObjectJsonConverter Singleton { get; } = new();
 
     /// <inheritdoc />
     public override object? Read(

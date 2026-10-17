@@ -93,7 +93,11 @@ public static class JsonElements
         /// <see cref="int"/>, <see cref="uint"/>, <see cref="long"/>, <see cref="ulong"/>; and the real types
         /// <see cref="float"/>, <see cref="double"/>, <see cref="decimal"/>. A JSON number requested as
         /// <see cref="DateTime"/> or <see cref="DateTimeOffset"/> is interpreted as an RFC 7519 <c>NumericDate</c>
-        /// (Unix seconds, UTC). A <see cref="byte"/>[] is decoded from either base64 or base64url.
+        /// (Unix seconds, UTC). A JSON string requested as a date/time or <see cref="Guid"/> is parsed leniently (any
+        /// format the corresponding <c>TryParse</c> accepts, invariant culture), matching <see cref="ObjectJsonConverter"/>:
+        /// a <c>Z</c>/UTC value is <see cref="DateTimeKind.Utc"/>, an explicit offset is <see cref="DateTimeKind.Local"/>,
+        /// and a zone-less value is labeled <see cref="DateTimeKind.Utc"/> (never <see cref="DateTimeKind.Unspecified"/>).
+        /// A <see cref="byte"/>[] is decoded from either base64 or base64url.
         /// </typeparam>
         /// <returns><c>true</c> if the value was converted to <typeparamref name="T"/>; otherwise, <c>false</c>.</returns>
         public bool TryGetValue<T>([MaybeNullWhen(false)] out T value)
@@ -144,7 +148,7 @@ public static class JsonElements
         }
         else if (
             (typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?))
-            && element.TryGetDateTimeOffset(out var dateTimeOffsetValue)
+            && TryGetDateTimeOffset(element, out var dateTimeOffsetValue)
         )
         {
             value = (T)(object)dateTimeOffsetValue;
@@ -152,7 +156,7 @@ public static class JsonElements
         }
         else if (
             (typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTime?))
-            && element.TryGetDateTime(out var dateTimeValue)
+            && TryGetDateTime(element, out var dateTimeValue)
         )
         {
             value = (T)(object)dateTimeValue;
@@ -160,7 +164,7 @@ public static class JsonElements
         }
         else if (
             (typeof(T) == typeof(Guid) || typeof(T) == typeof(Guid?))
-            && element.TryGetGuid(out var guidValue)
+            && TryGetGuid(element, out var guidValue)
         )
         {
             value = (T)(object)guidValue;
@@ -175,6 +179,17 @@ public static class JsonElements
         value = default;
         return false;
     }
+
+    private static bool TryGetDateTimeOffset(JsonElement element, out DateTimeOffset value) =>
+        JsonDateParsing.TryParseDateTimeOffset(element.GetString(), out value);
+
+    private static bool TryGetDateTime(JsonElement element, out DateTime value) =>
+        JsonDateParsing.TryParseDateTime(element.GetString(), out value);
+
+    private static bool TryGetGuid(JsonElement element, out Guid value) =>
+        // Guid.TryParse accepts all standard Guid formats (D/N/B/P/X), not only the hyphenated form the strict
+        // JsonElement.TryGetGuid reader allows — matching ObjectJsonConverter.
+        Guid.TryParse(element.GetString(), out value);
 
     private static bool TryGetBytes(JsonElement element, [NotNullWhen(true)] out byte[]? value)
     {

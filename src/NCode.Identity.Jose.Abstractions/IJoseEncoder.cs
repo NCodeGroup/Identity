@@ -23,8 +23,8 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Jose;
 
 /// <summary>
-/// Provides an abstraction to encode a JOSE token. An instance is created from a
-/// <see cref="JoseEncodingOptions"/> (via <see cref="IJoseSerializer.CreateEncoder(JoseSigningOptions)"/> or
+/// Provides an abstraction to encode a JOSE token. An instance is created from a set of options (via
+/// <see cref="IJoseSerializer.CreateEncoder(JoseSigningOptions)"/> or
 /// <see cref="IJoseSerializer.CreateEncoder(JoseEncryptionOptions)"/>) and carries all the credentials and options
 /// needed to encode, so the <c>Encode</c> methods only require the payload and an optional destination.
 /// </summary>

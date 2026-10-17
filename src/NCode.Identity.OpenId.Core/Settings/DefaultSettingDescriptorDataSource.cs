@@ -173,12 +173,13 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // access_token_type: token format for issued access tokens (default JWT).
+            // access_token_type: 'typ' JOSE header media type for issued JWT access tokens (RFC 9068 §2.1 mandates
+            // 'at+jwt', which enables the explicit-typing / token-substitution defense of RFC 8725 §3.11).
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AccessTokenType,
-                Default = JoseTokenTypes.Jwt,
+                Default = JoseTokenTypes.AccessTokenJwt,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,

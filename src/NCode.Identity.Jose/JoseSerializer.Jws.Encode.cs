@@ -26,6 +26,7 @@ using NCode.Disposables;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Encoders;
+using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -45,23 +46,63 @@ partial class JoseSerializer
         JoseSigningOptions signingOptions
     )
     {
+        if (signingOptions.Signatures.Count == 0)
+            throw new JoseException("At least one signature is required to encode a JWS token.");
+
+        switch (signingOptions.Format)
+        {
+            case JoseSerializationFormat.Compact:
+                EncodeCompactJws(tokenWriter, payload, signingOptions);
+                break;
+
+            case JoseSerializationFormat.Flattened:
+            case JoseSerializationFormat.General:
+                EncodeJsonJws(tokenWriter, payload, signingOptions);
+                break;
+
+            default:
+                throw new JoseException(
+                    $"The '{signingOptions.Format}' serialization format is not supported for JWS tokens."
+                );
+        }
+    }
+
+    private void EncodeCompactJws(
+        IBufferWriter<char> tokenWriter,
+        ReadOnlySpan<byte> payload,
+        JoseSigningOptions signingOptions
+    )
+    {
         /*
               BASE64URL(UTF8(JWS Protected Header)) || '.' ||
               BASE64URL(JWS Payload) || '.' ||
               BASE64URL(JWS Signature)
         */
 
-        var signatureCredentials = signingOptions.SigningCredentials;
+        if (signingOptions.Signatures.Count != 1)
+            throw new JoseException(
+                "The compact JWS serialization requires exactly one signature."
+            );
+
+        var signature = signingOptions.Signatures.First();
+        if (signature.UnprotectedHeaders is not null)
+            throw new JoseException(
+                "The compact JWS serialization cannot carry an unprotected header."
+            );
+
+        var signatureCredentials = signature.SigningCredentials;
         var (secretKey, signatureAlgorithm) = signatureCredentials;
 
-        // BASE64URL(UTF8(JWS Protected Header)) || '.'
-        EncodeJwsHeader(
+        var header = BuildJwsProtectedHeader(
+            signature,
             signatureAlgorithm.Code,
             secretKey.KeyId,
-            tokenWriter,
-            signingOptions,
-            out var encodedHeaderPart
+            signingOptions.EncodePayload
         );
+
+        // BASE64URL(UTF8(JWS Protected Header)) || '.'
+        using var headerLease = SerializeToUtf8(header, options: null, out var headerBytes);
+        var encodedHeaderPart = WriteCompactSegment(headerBytes, tokenWriter);
 
         // BASE64URL(JWS Payload) || '.'
         using var _ = EncodeJwsPayload(
@@ -81,31 +122,30 @@ partial class JoseSerializer
         );
     }
 
-    private void EncodeJwsHeader(
+    private static Dictionary<string, object> BuildJwsProtectedHeader(
+        JoseSignatureOptions signature,
         string algorithmCode,
         string? keyId,
-        IBufferWriter<char> tokenWriter,
-        JoseSigningOptions signingOptions,
-        out ReadOnlySpan<char> encodedHeaderPart
+        bool encodePayload
     )
     {
-        var extraHeaders = signingOptions.ExtraHeaders;
+        var protectedHeaders = signature.ProtectedHeaders;
         var header =
-            extraHeaders != null
-                ? new Dictionary<string, object>(extraHeaders)
+            protectedHeaders != null
+                ? new Dictionary<string, object>(protectedHeaders)
                 : new Dictionary<string, object>();
 
-        var tokenType = signingOptions.TokenType;
+        var tokenType = signature.TokenType;
         if (!string.IsNullOrEmpty(tokenType))
             header[JoseClaimNames.Header.Typ] = tokenType;
 
         if (!string.IsNullOrEmpty(algorithmCode))
             header[JoseClaimNames.Header.Alg] = algorithmCode;
 
-        if (!string.IsNullOrEmpty(keyId) && signingOptions.AddKeyIdHeader)
+        if (!string.IsNullOrEmpty(keyId) && signature.AddKeyIdHeader)
             header[JoseClaimNames.Header.Kid] = keyId;
 
-        if (!signingOptions.EncodePayload)
+        if (!encodePayload)
         {
             var critical = new HashSet<string> { JoseClaimNames.Header.B64 };
             if (
@@ -122,8 +162,7 @@ partial class JoseSerializer
             header[JoseClaimNames.Header.Crit] = critical;
         }
 
-        using var headerLease = SerializeToUtf8(header, options: null, out var headerBytes);
-        encodedHeaderPart = WriteCompactSegment(headerBytes, tokenWriter);
+        return header;
     }
 
     private static IDisposable EncodeJwsPayload(

@@ -84,6 +84,5 @@ internal sealed class LocalAccountEntity : ISupportTenantEntity, ISupportConcurr
     [ConcurrencyCheck]
     public required string ConcurrencyToken { get; set; }
 
-    public ICollection<LocalAccountClaimEntity> Claims { get; init; } =
-        new List<LocalAccountClaimEntity>();
+    public ICollection<LocalAccountClaimEntity> Claims { get; init; } = [];
 }

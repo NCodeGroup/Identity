@@ -239,7 +239,7 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
             grantTypes.Length > 0
                 ? new Dictionary<string, object> { ["grant_types_supported"] = grantTypes }
-                : new Dictionary<string, object>()
+                : []
         );
 
         var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
@@ -319,7 +319,7 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
             grantTypes.Length > 0
                 ? new Dictionary<string, object> { ["grant_types_supported"] = grantTypes }
-                : new Dictionary<string, object>()
+                : []
         );
 
         var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();

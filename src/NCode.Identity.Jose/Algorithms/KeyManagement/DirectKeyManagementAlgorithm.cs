@@ -48,6 +48,9 @@ internal class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     public override string Code => AlgorithmCodes.KeyManagement.Direct;
 
     /// <inheritdoc />
+    public override bool SupportsKeyWrapping => false;
+
+    /// <inheritdoc />
     public override Type KeyType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />

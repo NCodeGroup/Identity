@@ -81,7 +81,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         string[]? audience = null,
         DateTimeOffset? notBefore = null,
         DateTimeOffset? expires = null,
-        IEnumerable<Claim>? subjectClaims = null
+        IEnumerable<Claim>? subjectClaims = null,
+        string? tokenType = null
     )
     {
         var now = _utcNow;
@@ -94,6 +95,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
             NotBefore = notBefore ?? now.AddMinutes(-1),
             Expires = expires ?? now.AddHours(1),
             SubjectClaims = subjectClaims,
+            TokenType = tokenType ?? JoseTokenTypes.Jwt,
         };
         return _service.EncodeJwt(parameters);
     }
@@ -264,6 +266,78 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await result.GetClaimsIdentityAsync(CancellationToken.None)
         );
+    }
+
+    #endregion
+
+    #region ValidateTokenType Tests
+
+    [Fact]
+    public async Task ValidateJwtAsync_WhenTokenTypeMatches_Succeeds()
+    {
+        var token = EncodeToken(tokenType: JoseTokenTypes.AccessTokenJwt);
+
+        var parameters = new ValidateJwtParameters()
+            .UseValidationKeys([_signingKey])
+            .ValidateTokenType(JoseTokenTypes.AccessTokenJwt);
+
+        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+
+        Assert.True(result.IsValid);
+        Assert.Null(result.Exception);
+    }
+
+    [Theory]
+    [InlineData("AT+JWT")]
+    [InlineData("application/at+jwt")]
+    [InlineData("Application/AT+JWT")]
+    public async Task ValidateJwtAsync_WhenTokenTypeMatchesByMediaTypeRules_Succeeds(
+        string encodedTokenType
+    )
+    {
+        // RFC 7515 §4.1.9: the 'application/' prefix is optional and the comparison is case-insensitive, so these all
+        // match the expected 'at+jwt'.
+        var token = EncodeToken(tokenType: encodedTokenType);
+
+        var parameters = new ValidateJwtParameters()
+            .UseValidationKeys([_signingKey])
+            .ValidateTokenType(JoseTokenTypes.AccessTokenJwt);
+
+        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+
+        Assert.True(result.IsValid);
+        Assert.Null(result.Exception);
+    }
+
+    [Fact]
+    public async Task ValidateJwtAsync_WhenTokenTypeMismatch_Fails()
+    {
+        // A plain 'JWT'-typed token must be rejected when 'at+jwt' is required (token-substitution defense).
+        var token = EncodeToken(tokenType: JoseTokenTypes.Jwt);
+
+        var parameters = new ValidateJwtParameters()
+            .UseValidationKeys([_signingKey])
+            .ValidateTokenType(JoseTokenTypes.AccessTokenJwt);
+
+        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+
+        Assert.False(result.IsValid);
+        Assert.IsType<TokenValidationException>(result.Exception);
+    }
+
+    [Fact]
+    public async Task ValidateJwtAsync_WhenAnyOfSeveralTokenTypesMatch_Succeeds()
+    {
+        var token = EncodeToken(tokenType: JoseTokenTypes.LogoutJwt);
+
+        var parameters = new ValidateJwtParameters()
+            .UseValidationKeys([_signingKey])
+            .ValidateTokenType(JoseTokenTypes.AccessTokenJwt, JoseTokenTypes.LogoutJwt);
+
+        var result = await _service.ValidateJwtAsync(token, parameters, CancellationToken.None);
+
+        Assert.True(result.IsValid);
+        Assert.Null(result.Exception);
     }
 
     #endregion

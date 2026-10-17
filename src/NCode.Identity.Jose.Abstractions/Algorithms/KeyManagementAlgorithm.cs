@@ -36,6 +36,14 @@ public abstract class KeyManagementAlgorithm : KeyedAlgorithm
     public override AlgorithmType Type => AlgorithmType.KeyManagement;
 
     /// <summary>
+    /// Gets a value indicating whether this algorithm can wrap an externally-supplied content encryption key (CEK)
+    /// via <see cref="WrapKey"/>. This is <c>true</c> for key-wrapping and key-encryption algorithms and <c>false</c>
+    /// for direct key-agreement algorithms (<c>dir</c> and <c>ECDH-ES</c>) that derive the CEK themselves.
+    /// Only algorithms that support key wrapping can be used with multiple recipients in the JWE JSON serialization.
+    /// </summary>
+    public virtual bool SupportsKeyWrapping => true;
+
+    /// <summary>
     /// Gets the legal key sizes, in bytes, of the content encryption key (CEK)
     /// given the specified size, in bits, of the key encryption key (KEK).
     /// </summary>

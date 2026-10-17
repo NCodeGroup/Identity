@@ -67,29 +67,61 @@ partial class JoseSerializer
         JoseEncryptionOptions encryptionOptions
     )
     {
-        var extraHeaders = encryptionOptions.ExtraHeaders;
-        var header =
-            extraHeaders != null
-                ? new Dictionary<string, object>(extraHeaders)
-                : new Dictionary<string, object>();
+        if (encryptionOptions.Recipients.Count == 0)
+            throw new JoseException("At least one recipient is required to encode a JWE token.");
 
-        var encryptionCredentials = encryptionOptions.EncryptionCredentials;
-        var (
-            secretKey,
-            keyManagementAlgorithm,
-            authenticatedEncryptionAlgorithm,
-            compressionAlgorithm
-        ) = encryptionCredentials;
+        switch (encryptionOptions.Format)
+        {
+            case JoseSerializationFormat.Compact:
+                EncodeCompactJwe(tokenWriter, payload, encryptionOptions);
+                break;
 
+            case JoseSerializationFormat.Flattened:
+            case JoseSerializationFormat.General:
+                EncodeJsonJwe(tokenWriter, payload, encryptionOptions);
+                break;
+
+            default:
+                throw new JoseException(
+                    $"The '{encryptionOptions.Format}' serialization format is not supported for JWE tokens."
+                );
+        }
+    }
+
+    private void EncodeCompactJwe(
+        IBufferWriter<char> tokenWriter,
+        ReadOnlySpan<byte> payload,
+        JoseEncryptionOptions encryptionOptions
+    )
+    {
+        if (encryptionOptions.Recipients.Count != 1)
+            throw new JoseException(
+                "The compact JWE serialization requires exactly one recipient."
+            );
+
+        if (encryptionOptions.SharedUnprotectedHeaders is not null)
+            throw new JoseException(
+                "The compact JWE serialization cannot carry a shared unprotected header."
+            );
+
+        if (encryptionOptions.AdditionalAuthenticatedData is not null)
+            throw new JoseException(
+                "The compact JWE serialization cannot carry additional authenticated data (AAD)."
+            );
+
+        var recipient = encryptionOptions.Recipients.First();
+        var (secretKey, keyManagementAlgorithm) = recipient.KeyManagementCredentials;
+        var authenticatedEncryptionAlgorithm = encryptionOptions.EncryptionAlgorithm;
+        var compressionAlgorithm = encryptionOptions.CompressionAlgorithm;
+
+        // the compact serialization has only one header, so the shared protected header and the single
+        // recipient's key-management header are folded together
+        var header = BuildJweProtectedHeader(encryptionOptions);
+        MergeHeaders(header, recipient.Headers);
         header[JoseClaimNames.Header.Alg] = keyManagementAlgorithm.Code;
-        header[JoseClaimNames.Header.Enc] = authenticatedEncryptionAlgorithm.Code;
-
-        var tokenType = encryptionOptions.TokenType;
-        if (!string.IsNullOrEmpty(tokenType))
-            header[JoseClaimNames.Header.Typ] = tokenType;
 
         var keyId = secretKey.KeyId;
-        if (!string.IsNullOrEmpty(keyId) && encryptionOptions.AddKeyIdHeader)
+        if (!string.IsNullOrEmpty(keyId) && recipient.AddKeyIdHeader)
             header[JoseClaimNames.Header.Kid] = keyId;
 
         var cekSizeBytes = authenticatedEncryptionAlgorithm.ContentKeySizeBytes;
@@ -99,7 +131,7 @@ partial class JoseSerializer
             out Span<byte> cek
         );
 
-        using var encryptedCekBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
+        using var encryptedCekBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
 
         keyManagementAlgorithm.WrapNewKey(secretKey, header, cek, encryptedCekBuffer);
 
@@ -141,7 +173,7 @@ partial class JoseSerializer
         WriteCompactSegment(encodedHeader, tokenWriter);
 
         // BASE64URL(JWE Encrypted Key) || '.' ||
-        WriteCompactSegment(encryptedCekBuffer, tokenWriter);
+        WriteCompactSegment(encryptedCekBuffer.AsReadOnlySequence, tokenWriter);
 
         // BASE64URL(JWE Initialization Vector) || '.' ||
         WriteCompactSegment(nonce, tokenWriter);
@@ -151,6 +183,37 @@ partial class JoseSerializer
 
         // BASE64URL(JWE Authentication Tag)
         WriteCompactSegment(tag, tokenWriter, addDot: false);
+    }
+
+    private static Dictionary<string, object> BuildJweProtectedHeader(
+        JoseEncryptionOptions encryptionOptions
+    )
+    {
+        var protectedHeaders = encryptionOptions.ProtectedHeaders;
+        var header =
+            protectedHeaders != null
+                ? new Dictionary<string, object>(protectedHeaders)
+                : new Dictionary<string, object>();
+
+        header[JoseClaimNames.Header.Enc] = encryptionOptions.EncryptionAlgorithm.Code;
+
+        var tokenType = encryptionOptions.TokenType;
+        if (!string.IsNullOrEmpty(tokenType))
+            header[JoseClaimNames.Header.Typ] = tokenType;
+
+        return header;
+    }
+
+    private static void MergeHeaders(
+        Dictionary<string, object> target,
+        IEnumerable<KeyValuePair<string, object>>? source
+    )
+    {
+        if (source is null)
+            return;
+
+        foreach (var (key, value) in source)
+            target[key] = value;
     }
 
     private string DecodeJwe(CompactJwt compactJwt, SecretKey secretKey)

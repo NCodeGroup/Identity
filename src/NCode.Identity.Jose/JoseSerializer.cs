@@ -116,12 +116,14 @@ internal partial class JoseSerializer(
     }
 
     /// <inheritdoc />
-    public string Decode(string token, SecretKey secretKey) =>
-        Decode(ParseCompactJwt(token), secretKey);
+    public string Decode(string token, SecretKey secretKey) => Decode(token, secretKey, out _);
 
     /// <inheritdoc />
     public string Decode(string token, SecretKey secretKey, out JsonElement header)
     {
+        if (IsJsonSerialized(token))
+            return DecodeJson(token, secretKey, out header);
+
         var compact = ParseCompactJwt(token);
         var payload = Decode(compact, secretKey);
         header = compact.DeserializedHeader;
@@ -146,11 +148,14 @@ internal partial class JoseSerializer(
 
     /// <inheritdoc />
     public T? Deserialize<T>(string token, SecretKey secretKey) =>
-        Deserialize<T>(ParseCompactJwt(token), secretKey);
+        Deserialize<T>(token, secretKey, out _);
 
     /// <inheritdoc />
     public T? Deserialize<T>(string token, SecretKey secretKey, out JsonElement header)
     {
+        if (IsJsonSerialized(token))
+            return DeserializeJson<T>(token, secretKey, out header);
+
         var compact = ParseCompactJwt(token);
         var payload = Deserialize<T>(compact, secretKey);
         header = compact.DeserializedHeader;

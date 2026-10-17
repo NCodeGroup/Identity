@@ -19,6 +19,7 @@
 
 using System.Buffers;
 using System.Diagnostics;
+using System.Text.Json;
 using NCode.Buffers;
 using Nerdbank.Streams;
 
@@ -36,9 +37,9 @@ internal abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseE
     protected JoseSerializer JoseSerializer { get; } = joseSerializer;
 
     /// <summary>
-    /// Gets the <see cref="JoseEncodingOptions"/> that this encoder was created with.
+    /// Gets the <see cref="JsonSerializerOptions"/> used to serialize a strongly-typed payload.
     /// </summary>
-    protected abstract JoseEncodingOptions EncodingOptions { get; }
+    protected abstract JsonSerializerOptions? PayloadJsonOptions { get; }
 
     /// <inheritdoc />
     public override string Encode<T>(T payload)
@@ -47,7 +48,7 @@ internal abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseE
 
         using var _ = JoseSerializer.SerializeToUtf8(
             payload,
-            EncodingOptions.JsonOptions,
+            PayloadJsonOptions,
             out var payloadBytes
         );
 
@@ -59,11 +60,7 @@ internal abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseE
     /// <inheritdoc />
     public override void Encode<T>(IBufferWriter<char> tokenWriter, T payload)
     {
-        using var _ = JoseSerializer.SerializeToUtf8(
-            payload,
-            EncodingOptions.JsonOptions,
-            out var bytes
-        );
+        using var _ = JoseSerializer.SerializeToUtf8(payload, PayloadJsonOptions, out var bytes);
 
         Encode(tokenWriter, bytes);
     }

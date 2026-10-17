@@ -33,9 +33,10 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthenticateAccessTokenCommand"/> message. It
-/// validates a self-issued JWT access token against the resolved tenant's signing keys, issuer, lifetime, and the
-/// required audience, then — for a sender-constrained token — verifies the presented DPoP proof (RFC 9449) or
-/// client certificate (RFC 8705) matches the token's <c>cnf</c> claim, returning the authenticated principal on success.
+/// validates a self-issued JWT access token against the resolved tenant's signing keys, explicit <c>at+jwt</c> type
+/// (RFC 9068 §4), issuer, lifetime, and the required audience, then — for a sender-constrained token — verifies the
+/// presented DPoP proof (RFC 9449) or client certificate (RFC 8705) matches the token's <c>cnf</c> claim, returning
+/// the authenticated principal on success.
 /// </summary>
 internal class DefaultAuthenticateAccessTokenHandler(
     ILogger<DefaultAuthenticateAccessTokenHandler> logger,
@@ -74,6 +75,7 @@ internal class DefaultAuthenticateAccessTokenHandler(
                 RoleClaimType = JoseClaimNames.Payload.Role,
             }
                 .UseValidationKeys(openIdTenant.SecretsProvider.Collection)
+                .ValidateTokenType(JoseTokenTypes.AccessTokenJwt)
                 .ValidateIssuer(openIdTenant.Issuer)
                 .ValidateTokenLifeTime();
 

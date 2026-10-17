@@ -278,20 +278,6 @@ entry and/or ADR that closed it.
   [`src/NCode.Identity.Jose`](src/NCode.Identity.Jose),
   [`src/NCode.Identity.Jose.Abstractions`](src/NCode.Identity.Jose.Abstractions). Capture the design in an ADR.
 
-- **`F35` — Explicit `typ` / media-type validation hardening (RFC 8725 BCP + RFC 9068 `at+jwt`).** A
-  validation-policy (not algorithm) feature: enforce an explicit, expected `typ` on decode to defeat token-substitution
-  / cross-JWT-confusion, and recognize the registered application types (`at+jwt` access tokens, `dpop+jwt`,
-  `logout+jwt`, `secevent+jwt`). Extends the decode/verify options already on `IJoseSerializer`. Touch points:
-  [`src/NCode.Identity.Jose/JoseSerializer.Jws.Verify.cs`](src/NCode.Identity.Jose/JoseSerializer.Jws.Verify.cs),
-  [`src/NCode.Identity.Jose.Abstractions/JoseTokenTypes.cs`](src/NCode.Identity.Jose.Abstractions/JoseTokenTypes.cs).
-
-- **`F36` — JWS/JWE JSON serialization (General + Flattened) with multiple signatures / recipients.** The serializer is
-  compact-only; RFC 7515/7516 also define the General and Flattened **JSON** serializations, which carry **multiple
-  signatures** (JWS) / **multiple recipients** (JWE) and **unprotected** header members — the shape many
-  verifiable-credential and multi-audience scenarios require, and a prerequisite for some `F34`/`F38` use. Additive to
-  the existing encode/decode paths. Touch points: [`src/NCode.Identity.Jose`](src/NCode.Identity.Jose),
-  [`src/NCode.Identity.Jose.Abstractions`](src/NCode.Identity.Jose.Abstractions).
-
 - **`F37` — COSE / CWT (RFC 9052 / 9053 / 8392).** CBOR Object Signing and Encryption plus CBOR Web Tokens — the basis
   for ISO mdoc/mDL (18013-5) and EUDI-wallet credentials, and genuinely bleeding-edge for .NET. A large, standalone
   effort (needs a CBOR codec) that reuses the existing algorithm/`SecretKey` model but a different wire format; almost

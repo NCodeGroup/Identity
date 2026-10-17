@@ -107,7 +107,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             CreateStrictMock<OpenIdContext>().Object,
             mockClient.Object,
             tokenContext,
-            new List<Claim>()
+            []
         );
     }
 

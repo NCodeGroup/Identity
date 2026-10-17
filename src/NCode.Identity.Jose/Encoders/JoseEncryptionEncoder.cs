@@ -18,6 +18,7 @@
 #endregion
 
 using System.Buffers;
+using System.Text.Json;
 
 namespace NCode.Identity.Jose.Encoders;
 
@@ -34,7 +35,7 @@ internal class JoseEncryptionEncoder(
     private JoseEncryptionOptions EncryptionOptions { get; } = encryptionOptions;
 
     /// <inheritdoc />
-    protected override JoseEncodingOptions EncodingOptions => EncryptionOptions;
+    protected override JsonSerializerOptions? PayloadJsonOptions => EncryptionOptions.JsonOptions;
 
     /// <inheritdoc />
     public override void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<byte> payload) =>

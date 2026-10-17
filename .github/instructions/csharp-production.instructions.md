@@ -337,7 +337,11 @@ rationale.
 ## 5. Formatting & build gates
 
 - ⏳ **CSharpier** formatting (`dotnet csharpier check .`, wired into [`build/dod.ps1`](../../build/dod.ps1)). Run
-  `dotnet csharpier format .` before committing. CSharpier 1.x formats XML too; generated output is excluded via
+  `dotnet csharpier format .` before committing, but always via the **repo-pinned** tool (`dotnet tool restore` first) —
+  a globally-installed CSharpier can rewrite a constructor-initialized collection (`new T(args) { … }`) into the C# 14
+  **preview** `[with(args), …]` collection-expression-arguments form, which fails the build under `LangVersion=latest`
+  (CS8652). The gate is `dotnet csharpier check .` and it accepts the constructor form; if `format` ever emits
+  `[with(…)]`, revert to the constructor form. CSharpier 1.x formats XML too; generated output is excluded via
   [`.csharpierignore`](../../.csharpierignore). The house style CSharpier enforces: **file-scoped namespaces**,
   4-space indentation, and a **trailing comma** on every multi-line object / collection / enum member list.
 - ⏳ **Code-style analyzers run on build.** `EnforceCodeStyleInBuild` makes the `IDExxxx` rules execute during

@@ -24,6 +24,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 using NCode.Buffers;
 using NCode.Identity.Jose;
+using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Extensions;
 
 namespace NCode.Identity.JsonWebTokens;
@@ -38,12 +39,14 @@ partial class DefaultJsonWebTokenService
 
         if (parameters.SigningCredentials is not null)
         {
-            var signingOptions = new JoseSigningOptions(parameters.SigningCredentials)
-            {
-                TokenType = parameters.TokenType,
-                AddKeyIdHeader = parameters.AddKeyIdHeader,
-                ExtraHeaders = parameters.ExtraSignatureHeaderClaims,
-            };
+            var signingOptions = new JoseSigningOptions(
+                new JoseSignatureOptions(parameters.SigningCredentials)
+                {
+                    TokenType = parameters.TokenType,
+                    AddKeyIdHeader = parameters.AddKeyIdHeader,
+                    ProtectedHeaders = parameters.ExtraSignatureHeaderClaims,
+                }
+            );
 
             encodedToken = JoseSerializer.CreateEncoder(signingOptions).Encode(valueToEncode);
 
@@ -53,11 +56,25 @@ partial class DefaultJsonWebTokenService
 
         if (parameters.EncryptionCredentials is not null)
         {
-            var encryptingOptions = new JoseEncryptionOptions(parameters.EncryptionCredentials)
+            var encryptionCredentials = parameters.EncryptionCredentials;
+            var recipient = new JoseRecipientOptions(
+                new JoseKeyManagementCredentials(
+                    encryptionCredentials.SecretKey,
+                    encryptionCredentials.KeyManagementAlgorithm
+                )
+            )
             {
-                TokenType = parameters.TokenType,
                 AddKeyIdHeader = parameters.AddKeyIdHeader,
-                ExtraHeaders = parameters.ExtraEncryptionHeaderClaims,
+            };
+
+            var encryptingOptions = new JoseEncryptionOptions(
+                encryptionCredentials.AuthenticatedEncryptionAlgorithm
+            )
+            {
+                CompressionAlgorithm = encryptionCredentials.CompressionAlgorithm,
+                TokenType = parameters.TokenType,
+                ProtectedHeaders = parameters.ExtraEncryptionHeaderClaims,
+                Recipients = [recipient],
             };
 
             encodedToken = JoseSerializer.CreateEncoder(encryptingOptions).Encode(valueToEncode);

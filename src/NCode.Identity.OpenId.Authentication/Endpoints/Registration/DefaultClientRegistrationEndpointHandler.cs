@@ -972,9 +972,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     private static JsonObject ToJsonObject(JsonElement element) =>
-        element.ValueKind == JsonValueKind.Object
-            ? JsonObject.Create(element) ?? new JsonObject()
-            : new JsonObject();
+        element.ValueKind == JsonValueKind.Object ? JsonObject.Create(element) ?? [] : [];
 
     private static List<string>? ReadStringArray(JsonObject settings, string key)
     {

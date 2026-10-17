@@ -41,5 +41,5 @@ public sealed class IntrospectionResult
     /// active.
     /// </summary>
     [JsonExtensionData]
-    public Dictionary<string, object> Claims { get; set; } = new();
+    public Dictionary<string, object> Claims { get; set; } = [];
 }

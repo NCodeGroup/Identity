@@ -301,7 +301,7 @@ public class JoseSerializerTests : BaseTests
         var encryptingOptions = new JoseEncryptionOptions(encryptingCredentials)
         {
             JsonOptions = JsonSerializerOptions,
-            ExtraHeaders = originalExtraHeaders,
+            ProtectedHeaders = originalExtraHeaders,
         };
 
         var token = JoseSerializer.CreateEncoder(encryptingOptions).Encode(originalPayload);
@@ -563,12 +563,13 @@ public class JoseSerializerTests : BaseTests
 
         var signingCredentials = new JoseSigningCredentials(secretKey, signatureAlgorithm);
 
-        var signingOptions = new JoseSigningOptions(signingCredentials)
+        var signingOptions = new JoseSigningOptions(
+            new JoseSignatureOptions(signingCredentials) { ProtectedHeaders = extraHeaders }
+        )
         {
             EncodePayload = encodePayload,
             DetachPayload = detachPayload,
             JsonOptions = JsonSerializerOptions,
-            ExtraHeaders = extraHeaders,
         };
 
         var encoder = JoseSerializer.CreateEncoder(signingOptions);

@@ -454,7 +454,44 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   validator parses the embedded key into a `JsonWebKey` and calls `ComputeThumbprint()` — one representation end-to-end,
   no hand-rolled canonical form._
 
-## Conformance & interop testing (group `T`)
+- **`F35` — Explicit `typ` / media-type validation hardening (RFC 8725 BCP + RFC 9068 `at+jwt`).** A
+  validation-policy (not algorithm) feature: enforce an explicit, expected `typ` on decode to defeat token-substitution
+  / cross-JWT-confusion, and recognize the registered application types (`at+jwt` access tokens, `dpop+jwt`,
+  `logout+jwt`, `secevent+jwt`). Extends the decode/verify options already on `IJoseSerializer`. Touch points:
+  [`src/NCode.Identity.Jose/JoseSerializer.Jws.Verify.cs`](src/NCode.Identity.Jose/JoseSerializer.Jws.Verify.cs),
+  [`src/NCode.Identity.Jose.Abstractions/JoseTokenTypes.cs`](src/NCode.Identity.Jose.Abstractions/JoseTokenTypes.cs).
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. Delivered at the JWT-validation layer (the cohesive seam where
+  `ValidateIssuer` / `ValidateAudience` / `ValidateTokenLifeTime` already live) rather than as raw-JOSE decode options:
+  the `typ` header lives in the JWS protected header the JOSE serializer already deserializes, but the policy decision
+  is a JWT concern, so a new `ValidateJwtParameters.ValidateTokenType(params string[])` validator performs the check.
+  Matching follows the media-type rules of RFC 7515 §4.1.9 (optional `application/` prefix, case-insensitive), exposed
+  as reusable `JoseTokenTypes.Normalize` / `JoseTokenTypes.AreSame` helpers; the generic `ValidateClaim` was unsuitable
+  because it compares with `StringComparer.Ordinal`. `JoseTokenTypes` gained the registered application `typ` constants
+  `DPoPJwt`, `LogoutJwt`, `SecurityEventJwt`, and `AuthorizationRequestJwt` alongside `Jwt` / `AccessTokenJwt`. To make
+  the capability real, the resource-server access-token path (`DefaultAuthenticateAccessTokenHandler`) now requires
+  `at+jwt` per RFC 9068 §4 (single-valued — the generic `JWT` type is rejected to preserve the substitution defense),
+  and the `access_token_type` setting default moved from `JWT` to `at+jwt` per RFC 9068 §2.1 so issued JWT access
+  tokens are explicitly typed by default. The point-in-time backlog note that this would "extend the decode/verify
+  options already on `IJoseSerializer`" was inaccurate — no such options object existed, and the JWT-validation layer is
+  the correct home._
+
+- **`F36` — JWS/JWE JSON serialization (General + Flattened) with multiple signatures / recipients.** The serializer is
+  compact-only; RFC 7515/7516 also define the General and Flattened **JSON** serializations, which carry **multiple
+  signatures** (JWS) / **multiple recipients** (JWE) and **unprotected** header members — the shape many
+  verifiable-credential and multi-audience scenarios require, and a prerequisite for some `F34`/`F38` use. Additive to
+  the existing encode/decode paths. Touch points: [`src/NCode.Identity.Jose`](src/NCode.Identity.Jose),
+  [`src/NCode.Identity.Jose.Abstractions`](src/NCode.Identity.Jose.Abstractions).
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. Rather than bolt a second, parallel JSON-only options family
+  onto the existing compact-only one, the encode options were **unified**: `JoseSigningOptions` / `JoseEncryptionOptions`
+  now model **any** serialization via a `JoseSerializationFormat` (`Compact` / `Flattened` / `General`) property, with
+  signatures/recipients always expressed as collections (`JoseSignatureOptions` / `JoseRecipientOptions`) — compact is
+  simply the degenerate one-element, no-unprotected-header case. The old per-operation `JoseEncodingOptions` base and the
+  `ExtraHeaders` / single-credential shapes were removed (greenfield clean cutover); the shared content-encryption
+  (`enc`) + compression (`zip`) algorithms moved to the operation level while per-recipient key-management stays on
+  `JoseKeyManagementCredentials`. `KeyManagementAlgorithm.SupportsKeyWrapping` gates multi-recipient encodes (direct
+  `dir` / `ECDH-ES` agreement is single-recipient only). Decode auto-detects the JSON serialization (leading `{`) on the
+  existing `Decode` / `Deserialize` surface and verifies/decrypts against each signature/recipient until one matches the
+  supplied key. Buffers use `NCode.Buffers` pooled writers throughout._
 
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface
   implemented._ The OpenID Provider has an opt-in interactive login/consent surface

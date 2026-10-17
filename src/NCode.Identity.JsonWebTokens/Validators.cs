@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Collections.Frozen;
 using System.Diagnostics;
 using JetBrains.Annotations;
 using NCode.Identity.Jose;
@@ -51,6 +52,50 @@ public static class Validators
                 allowCollection: false,
                 validIssuers
             );
+
+        /// <summary>
+        /// Adds a validator that asserts the JSON Web Token (JWT) carries an explicit <c>typ</c> JOSE header whose
+        /// media type matches any of the specified <paramref name="validTokenTypes"/>. This is the explicit-typing
+        /// defense against token-substitution / cross-JWT-confusion attacks recommended by <c>RFC 8725</c> §3.11 and
+        /// mandated for JWT access tokens by <c>RFC 9068</c> §4. Matching follows the media-type rules of
+        /// <c>RFC 7515</c> §4.1.9 (the <c>application/</c> prefix is optional and the comparison is case-insensitive),
+        /// so <c>at+jwt</c>, <c>application/at+jwt</c>, and <c>AT+JWT</c> are treated as equal.
+        /// </summary>
+        /// <param name="validTokenTypes">The collection of allowable values for the <c>typ</c> header.</param>
+        /// <returns>The <see cref="ValidateJwtParameters"/> instance for method chaining.</returns>
+        public ValidateJwtParameters ValidateTokenType(params IEnumerable<string> validTokenTypes)
+        {
+            // Normalize the allowable media types once at configuration time: the validator closure below runs
+            // per-token, so a frozen set gives O(1) case-insensitive lookups and shields validation from later mutation.
+            var validTokenTypeSet = validTokenTypes
+                .Select(JoseTokenTypes.Normalize)
+                .ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+
+            return parameters.AddValidator(
+                (context, cancellationToken) =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var header = context.DecodedJwt.Header;
+                    if (
+                        !header.TryGetPropertyValue<string>(
+                            JoseClaimNames.Header.Typ,
+                            out var tokenType
+                        ) || string.IsNullOrEmpty(tokenType)
+                    )
+                        throw new TokenValidationException(
+                            "The 'typ' header parameter is missing."
+                        );
+
+                    if (!validTokenTypeSet.Contains(JoseTokenTypes.Normalize(tokenType)))
+                        throw new TokenValidationException(
+                            $"The 'typ' header parameter '{tokenType}' is invalid because it does not match any of the expected token types."
+                        );
+
+                    return ValueTask.CompletedTask;
+                }
+            );
+        }
 
         /// <summary>
         /// Adds a validator that asserts the <c>aud</c> claim exists in the JSON Web Token (JWT) payload with any of the

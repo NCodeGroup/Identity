@@ -168,6 +168,74 @@ public static class JoseClaimNames
     }
 
     /// <summary>
+    /// Defines the top-level member names used by the JWS and JWE JSON serializations
+    /// (<c>RFC 7515</c> §7.2 and <c>RFC 7516</c> §7.2).
+    /// </summary>
+    [PublicAPI]
+    public static class Json
+    {
+        /// <summary>
+        /// The <c>payload</c> member, carrying the base64url-encoded JWS payload.
+        /// </summary>
+        public const string Payload = "payload";
+
+        /// <summary>
+        /// The <c>signatures</c> member, carrying the array of signatures in the general JWS JSON serialization.
+        /// </summary>
+        public const string Signatures = "signatures";
+
+        /// <summary>
+        /// The <c>signature</c> member, carrying the base64url-encoded JWS signature.
+        /// </summary>
+        public const string Signature = "signature";
+
+        /// <summary>
+        /// The <c>protected</c> member, carrying the base64url-encoded JOSE Protected Header.
+        /// </summary>
+        public const string Protected = "protected";
+
+        /// <summary>
+        /// The <c>header</c> member, carrying the per-signature or per-recipient unprotected header.
+        /// </summary>
+        public const string Header = "header";
+
+        /// <summary>
+        /// The <c>unprotected</c> member, carrying the JWE Shared Unprotected Header.
+        /// </summary>
+        public const string Unprotected = "unprotected";
+
+        /// <summary>
+        /// The <c>recipients</c> member, carrying the array of recipients in the general JWE JSON serialization.
+        /// </summary>
+        public const string Recipients = "recipients";
+
+        /// <summary>
+        /// The <c>encrypted_key</c> member, carrying the base64url-encoded JWE Encrypted Key for a recipient.
+        /// </summary>
+        public const string EncryptedKey = "encrypted_key";
+
+        /// <summary>
+        /// The <c>iv</c> member, carrying the base64url-encoded JWE Initialization Vector.
+        /// </summary>
+        public const string Iv = "iv";
+
+        /// <summary>
+        /// The <c>ciphertext</c> member, carrying the base64url-encoded JWE Ciphertext.
+        /// </summary>
+        public const string Ciphertext = "ciphertext";
+
+        /// <summary>
+        /// The <c>tag</c> member, carrying the base64url-encoded JWE Authentication Tag.
+        /// </summary>
+        public const string Tag = "tag";
+
+        /// <summary>
+        /// The <c>aad</c> member, carrying the base64url-encoded JWE Additional Authenticated Data.
+        /// </summary>
+        public const string Aad = "aad";
+    }
+
+    /// <summary>
     /// Defines some of the standard claim names used in <c>JOSE</c> payloads.
     /// </summary>
     [PublicAPI]

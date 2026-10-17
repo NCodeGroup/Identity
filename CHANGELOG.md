@@ -10,6 +10,34 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **JWS/JWE JSON serialization — General + Flattened, with multiple signatures / recipients (RFC 7515 §7.2, RFC 7516
+  §7.2).** The JOSE serializer, previously compact-only, now also encodes and decodes the Flattened and General **JSON**
+  serializations, which carry **multiple signatures** (JWS) / **multiple recipients** (JWE), **unprotected** header
+  members, and JWE additional authenticated data (`aad`) — the shape many verifiable-credential and multi-audience
+  scenarios require. Rather than add a parallel JSON-only options family, the encode options are **unified**:
+  `JoseSigningOptions` / `JoseEncryptionOptions` now model any serialization through a `JoseSerializationFormat`
+  (`Compact` / `Flattened` / `General`) property, with signatures/recipients always expressed as collections
+  (`JoseSignatureOptions` / `JoseRecipientOptions`); compact is the degenerate one-element case. The shared
+  content-encryption (`enc`) and compression (`zip`) algorithms live on the operation while per-recipient key management
+  is carried by the new `JoseKeyManagementCredentials`, and `KeyManagementAlgorithm.SupportsKeyWrapping` gates
+  multi-recipient encodes (direct `dir` / `ECDH-ES` agreement remains single-recipient). Decode transparently
+  auto-detects the JSON serialization on the existing `IJoseSerializer.Decode` / `Deserialize` surface and
+  verifies/decrypts against each signature/recipient until one matches the supplied key. This is a **breaking** change
+  to the JOSE encode options: the former `JoseEncodingOptions` base and the single-credential `ExtraHeaders` shapes were
+  removed in favor of the unified model (greenfield clean cutover). Closes backlog `F36`.
+
+- **Explicit `typ` / media-type validation hardening (RFC 8725 §3.11 BCP + RFC 9068 `at+jwt`).** JWT validation can now
+  enforce an explicit, expected `typ` JOSE header to defeat token-substitution / cross-JWT-confusion, via the new
+  `ValidateJwtParameters.ValidateTokenType(params string[])` validator — cohesive with the existing
+  `ValidateIssuer` / `ValidateAudience` / `ValidateTokenLifeTime` validators. Matching follows the media-type rules of
+  RFC 7515 §4.1.9 (the `application/` prefix is optional and the comparison is case-insensitive), exposed as the reusable
+  `JoseTokenTypes.Normalize` / `JoseTokenTypes.AreSame` helpers. `JoseTokenTypes` now also carries the registered
+  application `typ` constants `DPoPJwt` (`dpop+jwt`, RFC 9449), `LogoutJwt` (`logout+jwt`, OIDC Back-Channel Logout),
+  `SecurityEventJwt` (`secevent+jwt`, RFC 8417), and `AuthorizationRequestJwt` (`oauth-authz-req+jwt`, RFC 9101)
+  alongside `Jwt` and `AccessTokenJwt`. The resource-server access-token authentication path now requires the `at+jwt`
+  type per RFC 9068 §4, and the `access_token_type` setting defaults to `at+jwt` (RFC 9068 §2.1) so issued JWT access
+  tokens are explicitly typed by default.
+
 - **First-class `JSON Web Key` / `JSON Web Key Set` types with `JWK Thumbprint` (RFC 7517 / 7638 / 9278), in the new
   `NCode.Identity.Jwk` package.** `JsonWebKey` and `JsonWebKeySet` are rich, immutable types backed by a detached
   `System.Text.Json.JsonElement` (net9+ — no backing `JsonDocument`, no cloning). `JsonWebKey` round-trips any key type

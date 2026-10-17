@@ -89,7 +89,7 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
             CreateStrictMock<OpenIdContext>().Object,
             CreateStrictMock<OpenIdClient>().Object,
             tokenContext,
-            new List<Claim>()
+            []
         );
     }
 

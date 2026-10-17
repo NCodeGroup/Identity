@@ -40,7 +40,7 @@ public sealed class RequestClaims : IRequestClaims
     /// Contains the additional data that is not captured by other properties during serialization.
     /// </summary>
     [JsonExtensionData]
-    public Dictionary<string, object?> ExtensionData { get; set; } = new();
+    public Dictionary<string, object?> ExtensionData { get; set; } = [];
 
     IReadOnlyDictionary<string, IRequestClaim?>? IRequestClaims.UserInfo => UserInfo;
 

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers.Text;
 using System.Text.Json;
 
 namespace NCode.Json.Tests;
@@ -284,11 +285,196 @@ public class JsonElementExtensionsTests
         const string key = nameof(key);
 
         // use any data type that is not supported/implemented at this time
-        var dictionary = new Dictionary<string, object> { [key] = Guid.NewGuid() };
+        var dictionary = new Dictionary<string, object> { [key] = TimeSpan.FromMinutes(5) };
         var jsonElement = JsonSerializer.SerializeToElement(dictionary);
 
-        var exists = jsonElement.TryGetPropertyValue<Guid>(key, out var value);
+        var exists = jsonElement.TryGetPropertyValue<TimeSpan>(key, out var value);
         Assert.False(exists);
         Assert.Equal(default, value);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_String_Guid()
+    {
+        const string key = nameof(key);
+
+        var expected = Guid.NewGuid();
+        var dictionary = new Dictionary<string, object?> { [key] = expected.ToString() };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<Guid?>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_String_ByteArray_Base64()
+    {
+        const string key = nameof(key);
+
+        byte[] expected = [1, 2, 3, 4, 5];
+        var dictionary = new Dictionary<string, object?>
+        {
+            [key] = Convert.ToBase64String(expected),
+        };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<byte[]>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_String_ByteArray_Base64Url()
+    {
+        const string key = nameof(key);
+
+        // 0xFB, 0xFF produce '-' and '_' under base64url, which standard base64 cannot decode.
+        byte[] expected = [0xFB, 0xFF, 0xBF];
+        var dictionary = new Dictionary<string, object?>
+        {
+            [key] = Base64Url.EncodeToString(expected),
+        };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<byte[]>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_String_WithoutOffset_DateTime_IsNotShifted()
+    {
+        const string key = nameof(key);
+
+        const string input = "2026-01-02T03:04:05";
+        var dictionary = new Dictionary<string, object?> { [key] = input };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<DateTime>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Unspecified), value);
+        Assert.Equal(DateTimeKind.Unspecified, value.Kind);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_Number_Decimal()
+    {
+        const string key = nameof(key);
+
+        const decimal expected = 12.34m;
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<decimal?>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_Number_SByte()
+    {
+        const string key = nameof(key);
+
+        const sbyte expected = -10;
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<sbyte?>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_Number_UInt()
+    {
+        const string key = nameof(key);
+
+        const uint expected = (uint)int.MaxValue + 10;
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<uint?>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_Number_ULong()
+    {
+        const string key = nameof(key);
+
+        const ulong expected = (ulong)long.MaxValue + 10;
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<ulong?>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_Number_UShort()
+    {
+        const string key = nameof(key);
+
+        const ushort expected = (ushort)short.MaxValue + 10;
+        var dictionary = new Dictionary<string, object?> { [key] = expected };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<ushort?>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_Number_NumericDate_DateTime_IsUtc()
+    {
+        const string key = nameof(key);
+
+        var expected = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000);
+        var dictionary = new Dictionary<string, object?> { [key] = expected.ToUnixTimeSeconds() };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<DateTime>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(DateTimeKind.Utc, value.Kind);
+        Assert.Equal(expected.UtcDateTime, value);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_Number_NumericDate_OutOfRange_ReturnsFalse()
+    {
+        const string key = nameof(key);
+
+        var dictionary = new Dictionary<string, object?> { [key] = long.MaxValue };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<DateTimeOffset?>(key, out var value);
+        Assert.False(exists);
+        Assert.Null(value);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_Number_RequestedAsString_ReturnsFalse()
+    {
+        const string key = nameof(key);
+
+        var dictionary = new Dictionary<string, object?> { [key] = 123 };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<string>(key, out var value);
+        Assert.False(exists);
+        Assert.Null(value);
+    }
+
+    [Fact]
+    public void TryGetValue_JsonElement_ReturnsSelf()
+    {
+        var element = JsonSerializer.SerializeToElement(new { a = 1 });
+
+        var exists = element.TryGetValue<JsonElement>(out var value);
+        Assert.True(exists);
+        Assert.Equal(JsonValueKind.Object, value.ValueKind);
     }
 }

@@ -1,7 +1,6 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,48 +18,48 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Jwt.Exceptions;
+namespace NCode.Identity.Jwt.Validation;
 
 /// <summary>
-/// Represents errors that occur when decoding <c>JSON Web Token (JWT)</c> fails.
+/// Represents errors that occur when decoding a <c>JSON Web Token (JWT)</c> fails.
 /// </summary>
 [PublicAPI]
 [Serializable]
-public class TokenValidationDecodeException : TokenValidationException
+public class JwtDecodeException : JwtValidationException
 {
     /// <summary>
-    /// Contains the default error message for the <see cref="TokenValidationDecodeException"/> class.
+    /// Contains the default error message for the <see cref="JwtDecodeException"/> class.
     /// </summary>
     public const string DefaultMessage =
         "Token validation failed. Unable to decode the token with any of the provided keys.";
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TokenValidationDecodeException"/> class with a default error message.
+    /// Initializes a new instance of the <see cref="JwtDecodeException"/> class with a default error message.
     /// </summary>
-    public TokenValidationDecodeException()
+    public JwtDecodeException()
         : base(DefaultMessage)
     {
         // nothing
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TokenValidationDecodeException"/> class with the specified error message.
+    /// Initializes a new instance of the <see cref="JwtDecodeException"/> class with the specified error message.
     /// </summary>
     /// <param name="message">The error message that explains the reason for the exception.</param>
-    public TokenValidationDecodeException(string message)
+    public JwtDecodeException(string message)
         : base(message)
     {
         // nothing
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TokenValidationDecodeException"/> class with the specified error message
+    /// Initializes a new instance of the <see cref="JwtDecodeException"/> class with the specified error message
     /// and a reference to the inner exception that is the cause of this exception.
     /// </summary>
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <param name="inner">The exception that is the cause of the current exception,
     /// or a null reference if no inner exception is specified.</param>
-    public TokenValidationDecodeException(string message, Exception inner)
+    public JwtDecodeException(string message, Exception inner)
         : base(message, inner)
     {
         // nothing

@@ -26,6 +26,7 @@ using Moq;
 using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
@@ -48,13 +49,13 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     private const string SessionId = "sid-1";
     private const string ClientId = "client-1";
 
-    private Mock<IJsonWebTokenService> MockJsonWebTokenService { get; }
+    private Mock<IJwtValidator> MockJsonWebTokenService { get; }
     private Mock<ISessionService> MockSessionService { get; }
     private DefaultResolveEndSessionSubjectHandler Handler { get; }
 
     public DefaultResolveEndSessionSubjectHandlerTests()
     {
-        MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
+        MockJsonWebTokenService = CreateStrictMock<IJwtValidator>();
         MockSessionService = CreateStrictMock<ISessionService>();
         Handler = new DefaultResolveEndSessionSubjectHandler(
             MockJsonWebTokenService.Object,
@@ -146,17 +147,18 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     {
         var compactJwt = new CompactJwt("JWS", default, "aaa.bbb.ccc", []);
         var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey: null!);
-        var result = ValidateJwtResult.Success(
-            new ValidateJwtParameters(),
+        var result = JwtValidationResult.Success(
+            new JwtValidationParameters(),
             PropertyBagFactory.Create(),
-            decodedJwt
+            decodedJwt,
+            (_, _, _, _, _, _) => ValueTask.FromResult(new ClaimsIdentity())
         );
 
         MockJsonWebTokenService
             .Setup(x =>
-                x.ValidateJwtAsync(
+                x.ValidateAsync(
                     It.IsAny<string>(),
-                    It.IsAny<ValidateJwtParameters>(),
+                    It.IsAny<JwtValidationParameters>(),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -167,15 +169,15 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     private void SetupInvalidHint() =>
         MockJsonWebTokenService
             .Setup(x =>
-                x.ValidateJwtAsync(
+                x.ValidateAsync(
                     It.IsAny<string>(),
-                    It.IsAny<ValidateJwtParameters>(),
+                    It.IsAny<JwtValidationParameters>(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .ReturnsAsync(
-                ValidateJwtResult.Fail(
-                    new ValidateJwtParameters(),
+                JwtValidationResult.Fail(
+                    new JwtValidationParameters(),
                     PropertyBagFactory.Create(),
                     "token",
                     new InvalidOperationException("invalid")

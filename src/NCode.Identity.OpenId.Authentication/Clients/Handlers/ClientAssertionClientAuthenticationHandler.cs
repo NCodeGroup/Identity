@@ -23,7 +23,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Encoders;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
-using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
@@ -49,7 +49,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
     IOpenIdClientFactory clientFactory,
     IAuditEventRecorder auditEventRecorder,
     ILogger logger,
-    IJsonWebTokenService jsonWebTokenService,
+    IJwtValidator jwtValidator,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     IClientAssertionReplayCache replayCache,
     IClientKeyResolver clientKeyResolver,
@@ -59,7 +59,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
     // The replay record is retained until the assertion can no longer be accepted (its 'exp' plus a clock-skew margin).
     private static readonly TimeSpan ReplayRetentionSkew = TimeSpan.FromMinutes(5.0);
 
-    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IJwtValidator JwtValidator { get; } = jwtValidator;
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
     private IClientAssertionReplayCache ReplayCache { get; } = replayCache;
@@ -244,10 +244,10 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
             cancellationToken
         );
 
-        ValidateJwtResult result;
+        JwtValidationResult result;
         try
         {
-            var parameters = new ValidateJwtParameters()
+            var parameters = new JwtValidationParameters()
             {
                 // Honor the client's effective clock_skew setting (the FAPI 2.0 profile tightens this to ≤ 60s via the
                 // merge-lattice ceiling); without this the JWT validator would fall back to its 5-minute default.
@@ -265,11 +265,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
                 .ValidateCertificateLifeTime()
                 .ValidateTokenLifeTime(options => options.RequireExpirationTime = true);
 
-            result = await JsonWebTokenService.ValidateJwtAsync(
-                assertion,
-                parameters,
-                cancellationToken
-            );
+            result = await JwtValidator.ValidateAsync(assertion, parameters, cancellationToken);
 
             if (!result.IsValid)
                 ExceptionDispatchInfo.Throw(result.Exception);

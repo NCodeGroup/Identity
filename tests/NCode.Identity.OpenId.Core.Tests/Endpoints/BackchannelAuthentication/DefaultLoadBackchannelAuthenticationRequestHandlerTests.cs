@@ -19,6 +19,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Handlers;
@@ -37,12 +38,12 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.BackchannelAuthentication;
 
 public class DefaultLoadBackchannelAuthenticationRequestHandlerTests : BaseTests
 {
-    private Mock<IJsonWebTokenService> MockJsonWebTokenService { get; }
+    private Mock<IJwtValidator> MockJsonWebTokenService { get; }
     private DefaultLoadBackchannelAuthenticationRequestHandler Handler { get; }
 
     public DefaultLoadBackchannelAuthenticationRequestHandlerTests()
     {
-        MockJsonWebTokenService = CreateStrictMock<IJsonWebTokenService>();
+        MockJsonWebTokenService = CreateStrictMock<IJwtValidator>();
         Handler = new DefaultLoadBackchannelAuthenticationRequestHandler(
             NullLogger<DefaultLoadBackchannelAuthenticationRequestHandler>.Instance,
             MockJsonWebTokenService.Object
@@ -93,15 +94,15 @@ public class DefaultLoadBackchannelAuthenticationRequestHandlerTests : BaseTests
 
         MockJsonWebTokenService
             .Setup(x =>
-                x.ValidateJwtAsync(
+                x.ValidateAsync(
                     It.IsAny<string>(),
-                    It.IsAny<ValidateJwtParameters>(),
+                    It.IsAny<JwtValidationParameters>(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .ReturnsAsync(
-                ValidateJwtResult.Fail(
-                    new ValidateJwtParameters(),
+                JwtValidationResult.Fail(
+                    new JwtValidationParameters(),
                     PropertyBagFactory.Create(),
                     "a.b.c",
                     new InvalidOperationException("tampered")

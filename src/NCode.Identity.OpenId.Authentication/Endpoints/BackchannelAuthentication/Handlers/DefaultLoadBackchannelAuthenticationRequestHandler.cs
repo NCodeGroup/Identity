@@ -20,7 +20,7 @@ using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
-using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages;
@@ -39,7 +39,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthenticati
 /// </summary>
 internal class DefaultLoadBackchannelAuthenticationRequestHandler(
     ILogger<DefaultLoadBackchannelAuthenticationRequestHandler> logger,
-    IJsonWebTokenService jsonWebTokenService
+    IJwtValidator jwtValidator
 )
     : ICommandResponseHandler<
         LoadBackchannelAuthenticationRequestCommand,
@@ -47,7 +47,7 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
     >
 {
     private ILogger<DefaultLoadBackchannelAuthenticationRequestHandler> Logger { get; } = logger;
-    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IJwtValidator JwtValidator { get; } = jwtValidator;
 
     /// <inheritdoc />
     public async ValueTask<IBackchannelAuthenticationRequest> HandleAsync(
@@ -69,14 +69,14 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
         JsonElement jwtHeader;
         try
         {
-            var parameters = new ValidateJwtParameters()
+            var parameters = new JwtValidationParameters()
                 .UseValidationKeys(openIdClient.SecretKeys)
                 .ValidateIssuer(openIdClient.ClientId)
                 .ValidateAudience(openIdContext.Tenant.Issuer)
                 .ValidateCertificateLifeTime()
                 .ValidateTokenLifeTime();
 
-            var result = await JsonWebTokenService.ValidateJwtAsync(
+            var result = await JwtValidator.ValidateAsync(
                 requestJwt,
                 parameters,
                 cancellationToken

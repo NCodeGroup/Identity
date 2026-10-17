@@ -20,7 +20,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
-using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Sessions;
@@ -41,13 +41,13 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// </summary>
 internal class DefaultAuthenticateAccessTokenHandler(
     ILogger<DefaultAuthenticateAccessTokenHandler> logger,
-    IJsonWebTokenService jsonWebTokenService,
+    IJwtValidator jwtValidator,
     IProofOfPossessionService proofOfPossessionService,
     ISessionService sessionService
 ) : ICommandResponseHandler<AuthenticateAccessTokenCommand, AuthenticateAccessTokenDisposition>
 {
     private ILogger<DefaultAuthenticateAccessTokenHandler> Logger { get; } = logger;
-    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IJwtValidator JwtValidator { get; } = jwtValidator;
     private IProofOfPossessionService ProofOfPossessionService { get; } = proofOfPossessionService;
     private ISessionService SessionService { get; } = sessionService;
 
@@ -66,12 +66,12 @@ internal class DefaultAuthenticateAccessTokenHandler(
 
         var openIdTenant = openIdContext.Tenant;
 
-        ValidateJwtResult validateResult;
+        JwtValidationResult validateResult;
         try
         {
             // The realm/ownership handlers read roles via ClaimsPrincipal.IsInRole, which keys off the identity's
             // role-claim type; align it with the token's 'role' claim name so a 'GlobalAdmin' role is recognized.
-            var parameters = new ValidateJwtParameters
+            var parameters = new JwtValidationParameters
             {
                 RoleClaimType = JoseClaimNames.Payload.Role,
             }
@@ -85,7 +85,7 @@ internal class DefaultAuthenticateAccessTokenHandler(
                 parameters.ValidateAudience(requiredAudiences);
             }
 
-            validateResult = await JsonWebTokenService.ValidateJwtAsync(
+            validateResult = await JwtValidator.ValidateAsync(
                 accessToken,
                 parameters,
                 cancellationToken

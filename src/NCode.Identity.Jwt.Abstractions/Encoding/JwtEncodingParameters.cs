@@ -1,7 +1,6 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -23,13 +22,13 @@ using Microsoft.Extensions.Primitives;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Credentials;
 
-namespace NCode.Identity.Jwt;
+namespace NCode.Identity.Jwt.Encoding;
 
 /// <summary>
 /// Contains the parameters used to encode a JSON Web Token (JWT) security token.
 /// </summary>
 [PublicAPI]
-public class EncodeJwtParameters
+public class JwtEncodingParameters
 {
     /// <summary>
     /// Gets the value that will be used in the <c>typ</c> header parameter.

@@ -58,7 +58,7 @@ public interface IIdentityServerBuilder : IServiceBuilder<IdentityServer>
     /// <summary>
     /// Gets the builder for configuring the JSON Web Tokens library.
     /// </summary>
-    IServiceBuilder<JsonWebTokensLibrary> JsonWebTokensLibraryBuilder { get; }
+    IServiceBuilder<JwtLibrary> JwtLibraryBuilder { get; }
 
     /// <summary>
     /// Gets the builder for configuring the identity library.

@@ -56,7 +56,7 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
     public IServiceBuilder<JoseLibrary> JoseLibraryBuilder { get; }
 
     /// <inheritdoc />
-    public IServiceBuilder<JsonWebTokensLibrary> JsonWebTokensLibraryBuilder { get; }
+    public IServiceBuilder<JwtLibrary> JwtLibraryBuilder { get; }
 
     /// <inheritdoc />
     public IServiceBuilder<IdentityLibrary> IdentityLibraryBuilder { get; }
@@ -89,7 +89,7 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
         SecretPersistenceLibraryBuilder = SecretsLibraryBuilder.AddPersistenceLibrary();
 
         JoseLibraryBuilder = SecretsLibraryBuilder.AddJoseLibrary();
-        JsonWebTokensLibraryBuilder = JoseLibraryBuilder.AddJsonWebTokensLibrary();
+        JwtLibraryBuilder = JoseLibraryBuilder.AddJwtLibrary();
 
         IdentityLibraryBuilder = serviceCollection.AddIdentityLibrary();
         OpenIdCoreLibraryBuilder = IdentityLibraryBuilder.AddOpenIdCoreLibrary();

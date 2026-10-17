@@ -18,7 +18,7 @@
 
 using System.Security.Claims;
 using System.Text.Json;
-using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Claims;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 

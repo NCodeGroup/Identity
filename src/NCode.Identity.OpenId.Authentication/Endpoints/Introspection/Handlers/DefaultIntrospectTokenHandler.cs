@@ -17,7 +17,7 @@
 #endregion
 
 using NCode.Identity.Jose;
-using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results;
@@ -36,13 +36,13 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
 /// (a persisted grant) — and contributes the token's claims. Additional handlers may enrich the response.
 /// </summary>
 internal class DefaultIntrospectTokenHandler(
-    IJsonWebTokenService jsonWebTokenService,
+    IJwtValidator jwtValidator,
     IOpenIdClientResolver openIdClientResolver,
     ISubjectIdentifierService subjectIdentifierService,
     IPersistedGrantService persistedGrantService
 ) : ICommandHandler<IntrospectTokenCommand>, ISupportMediatorPriority
 {
-    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IJwtValidator JwtValidator { get; } = jwtValidator;
     private IOpenIdClientResolver OpenIdClientResolver { get; } = openIdClientResolver;
     private ISubjectIdentifierService SubjectIdentifierService { get; } = subjectIdentifierService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
@@ -88,19 +88,15 @@ internal class DefaultIntrospectTokenHandler(
     {
         var openIdTenant = openIdContext.Tenant;
 
-        ValidateJwtResult validateResult;
+        JwtValidationResult validateResult;
         try
         {
-            var parameters = new ValidateJwtParameters()
+            var parameters = new JwtValidationParameters()
                 .UseValidationKeys(openIdTenant.SecretsProvider.Collection)
                 .ValidateIssuer(openIdTenant.Issuer)
                 .ValidateTokenLifeTime();
 
-            validateResult = await JsonWebTokenService.ValidateJwtAsync(
-                token,
-                parameters,
-                cancellationToken
-            );
+            validateResult = await JwtValidator.ValidateAsync(token, parameters, cancellationToken);
         }
         catch
         {

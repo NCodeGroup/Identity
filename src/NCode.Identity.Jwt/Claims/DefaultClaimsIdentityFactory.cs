@@ -23,7 +23,7 @@ using System.Text.Json;
 using NCode.Identity.Jose;
 using NCode.Json;
 
-namespace NCode.Identity.Jwt;
+namespace NCode.Identity.Jwt.Claims;
 
 /// <summary>
 /// Factory class that provides the ability to create a <see cref="ClaimsIdentity"/> instance from a JSON Web Token (JWT) payload.

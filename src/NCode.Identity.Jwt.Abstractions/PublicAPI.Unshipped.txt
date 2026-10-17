@@ -1,3 +1,151 @@
 #nullable enable
+const NCode.Identity.Jwt.Claims.JsonClaimValueTypes.Json = "JSON" -> string!
+const NCode.Identity.Jwt.Claims.JsonClaimValueTypes.JsonArray = "JSON_ARRAY" -> string!
+const NCode.Identity.Jwt.Claims.JsonClaimValueTypes.JsonNull = "JSON_NULL" -> string!
+const NCode.Identity.Jwt.Validation.JwtDecodeException.DefaultMessage = "Token validation failed. Unable to decode the token with any of the provided keys." -> string!
+NCode.Identity.Jwt.Claims.JsonClaimValueTypes
+NCode.Identity.Jwt.DecodedJwt
+NCode.Identity.Jwt.DecodedJwt.DecodedJwt(NCode.Identity.Jose.JoseToken! token, System.Text.Json.JsonElement payload, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> void
+NCode.Identity.Jwt.DecodedJwt.EncodedToken.get -> string!
+NCode.Identity.Jwt.DecodedJwt.Header.get -> System.Text.Json.JsonElement
+NCode.Identity.Jwt.DecodedJwt.Payload.get -> System.Text.Json.JsonElement
+NCode.Identity.Jwt.DecodedJwt.SecretKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Jwt.Encoding.IJwtEncoder
+NCode.Identity.Jwt.Encoding.IJwtEncoder.Encode(NCode.Identity.Jwt.Encoding.JwtEncodingParameters! parameters) -> string!
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.AddKeyIdHeader.get -> bool
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.AddKeyIdHeader.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.Audience.get -> Microsoft.Extensions.Primitives.StringValues
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.Audience.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.EncryptionCredentials.get -> NCode.Identity.Jose.Credentials.JoseEncryptionCredentials?
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.EncryptionCredentials.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.Expires.get -> System.DateTimeOffset?
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.Expires.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.ExtraEncryptionHeaderClaims.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object!>?
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.ExtraEncryptionHeaderClaims.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.ExtraPayloadClaims.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object!>?
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.ExtraPayloadClaims.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.ExtraSignatureHeaderClaims.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object!>?
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.ExtraSignatureHeaderClaims.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.IssuedAt.get -> System.DateTimeOffset?
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.IssuedAt.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.Issuer.get -> string?
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.Issuer.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.JwtEncodingParameters() -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.NotBefore.get -> System.DateTimeOffset?
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.NotBefore.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.SigningCredentials.get -> NCode.Identity.Jose.Credentials.JoseSigningCredentials?
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.SigningCredentials.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.SubjectClaims.get -> System.Collections.Generic.IEnumerable<System.Security.Claims.Claim!>?
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.SubjectClaims.init -> void
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.TokenType.get -> string!
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.TokenType.init -> void
 NCode.Identity.Jwt.JsonWebTokensLibrary
 NCode.Identity.Jwt.JsonWebTokensLibrary.JsonWebTokensLibrary() -> void
+NCode.Identity.Jwt.JwtLibrary
+NCode.Identity.Jwt.JwtLibrary.JwtLibrary() -> void
+NCode.Identity.Jwt.Validation.AssertionRequirement
+NCode.Identity.Jwt.Validation.AssertionRequirement.Assertion.get -> System.Func<NCode.Identity.Jwt.Validation.JwtValidationContext!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<bool>>!
+NCode.Identity.Jwt.Validation.AssertionRequirement.Assertion.init -> void
+NCode.Identity.Jwt.Validation.AssertionRequirement.AssertionRequirement(System.Func<NCode.Identity.Jwt.Validation.JwtValidationContext!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<bool>>! Assertion) -> void
+NCode.Identity.Jwt.Validation.CertificateLifetimeRequirement
+NCode.Identity.Jwt.Validation.CertificateLifetimeRequirement.CertificateLifetimeRequirement(System.TimeSpan ClockSkew) -> void
+NCode.Identity.Jwt.Validation.CertificateLifetimeRequirement.ClockSkew.get -> System.TimeSpan
+NCode.Identity.Jwt.Validation.CertificateLifetimeRequirement.ClockSkew.init -> void
+NCode.Identity.Jwt.Validation.ClaimValueRequirement
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.AllowCollection.get -> bool
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.AllowCollection.init -> void
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.ClaimName.get -> string!
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.ClaimName.init -> void
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.ClaimValueRequirement(string! ClaimName, bool UsePayload, bool AllowCollection, System.Collections.Generic.IReadOnlyCollection<string!>! ValidValues) -> void
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.UsePayload.get -> bool
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.UsePayload.init -> void
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.ValidValues.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.ValidValues.init -> void
+NCode.Identity.Jwt.Validation.CreateClaimsIdentityAsync
+NCode.Identity.Jwt.Validation.IJwtValidationHandler
+NCode.Identity.Jwt.Validation.IJwtValidationHandler.HandleAsync(NCode.Identity.Jwt.Validation.JwtValidationContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Jwt.Validation.IJwtValidationRequirement
+NCode.Identity.Jwt.Validation.IJwtValidator
+NCode.Identity.Jwt.Validation.IJwtValidator.ValidateAsync(string! token, NCode.Identity.Jwt.Validation.JwtValidationParameters! parameters, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Jwt.Validation.JwtValidationResult!>
+NCode.Identity.Jwt.Validation.JwtDecodeException
+NCode.Identity.Jwt.Validation.JwtDecodeException.JwtDecodeException() -> void
+NCode.Identity.Jwt.Validation.JwtDecodeException.JwtDecodeException(string! message) -> void
+NCode.Identity.Jwt.Validation.JwtDecodeException.JwtDecodeException(string! message, System.Exception! inner) -> void
+NCode.Identity.Jwt.Validation.JwtSecretKeyNotFoundException
+NCode.Identity.Jwt.Validation.JwtSecretKeyNotFoundException.JwtSecretKeyNotFoundException() -> void
+NCode.Identity.Jwt.Validation.JwtSecretKeyNotFoundException.JwtSecretKeyNotFoundException(string! message) -> void
+NCode.Identity.Jwt.Validation.JwtSecretKeyNotFoundException.JwtSecretKeyNotFoundException(string! message, System.Exception! inner) -> void
+NCode.Identity.Jwt.Validation.JwtValidationContext
+NCode.Identity.Jwt.Validation.JwtValidationContext.DecodedJwt.get -> NCode.Identity.Jwt.DecodedJwt!
+NCode.Identity.Jwt.Validation.JwtValidationContext.Fail(string! reason) -> void
+NCode.Identity.Jwt.Validation.JwtValidationContext.FailureReasons.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.Jwt.Validation.JwtValidationContext.HasFailed.get -> bool
+NCode.Identity.Jwt.Validation.JwtValidationContext.HasSucceeded.get -> bool
+NCode.Identity.Jwt.Validation.JwtValidationContext.JwtValidationContext(NCode.Identity.Secrets.Keys.SecretKey! secretKey, NCode.Identity.Jwt.DecodedJwt! decodedJwt, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Jwt.Validation.IJwtValidationRequirement!>! requirements, NCode.PropertyBag.IPropertyBag! propertyBag, System.IServiceProvider! serviceProvider, System.TimeProvider! timeProvider) -> void
+NCode.Identity.Jwt.Validation.JwtValidationContext.PendingRequirements.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Jwt.Validation.IJwtValidationRequirement!>!
+NCode.Identity.Jwt.Validation.JwtValidationContext.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+NCode.Identity.Jwt.Validation.JwtValidationContext.Requirements.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Jwt.Validation.IJwtValidationRequirement!>!
+NCode.Identity.Jwt.Validation.JwtValidationContext.SecretKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Jwt.Validation.JwtValidationContext.ServiceProvider.get -> System.IServiceProvider!
+NCode.Identity.Jwt.Validation.JwtValidationContext.Succeed(NCode.Identity.Jwt.Validation.IJwtValidationRequirement! requirement) -> void
+NCode.Identity.Jwt.Validation.JwtValidationContext.TimeProvider.get -> System.TimeProvider!
+NCode.Identity.Jwt.Validation.JwtValidationException
+NCode.Identity.Jwt.Validation.JwtValidationException.JwtValidationException() -> void
+NCode.Identity.Jwt.Validation.JwtValidationException.JwtValidationException(string! message) -> void
+NCode.Identity.Jwt.Validation.JwtValidationException.JwtValidationException(string! message, System.Exception! inner) -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters
+NCode.Identity.Jwt.Validation.JwtValidationParameters.AuthenticationType.get -> string!
+NCode.Identity.Jwt.Validation.JwtValidationParameters.AuthenticationType.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ClockSkew.get -> System.TimeSpan
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ClockSkew.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters.CreateClaimsIdentityAsync.get -> NCode.Identity.Jwt.Validation.CreateClaimsIdentityAsync?
+NCode.Identity.Jwt.Validation.JwtValidationParameters.CreateClaimsIdentityAsync.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters.JwtValidationParameters() -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters.NameClaimType.get -> string!
+NCode.Identity.Jwt.Validation.JwtValidationParameters.NameClaimType.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+NCode.Identity.Jwt.Validation.JwtValidationParameters.Requirements.get -> System.Collections.Generic.List<NCode.Identity.Jwt.Validation.IJwtValidationRequirement!>!
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ResolveValidationKeysAsync.get -> NCode.Identity.Jwt.Validation.ResolveValidationKeysAsync?
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ResolveValidationKeysAsync.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters.RoleClaimType.get -> string!
+NCode.Identity.Jwt.Validation.JwtValidationParameters.RoleClaimType.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ValidationKeys.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>?
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ValidationKeys.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!)
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!).AddRequirement(NCode.Identity.Jwt.Validation.IJwtValidationRequirement! requirement) -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!).RequireAssertion(System.Func<NCode.Identity.Jwt.Validation.JwtValidationContext!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<bool>>! assertion) -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!).UseValidationKeys(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Keys.SecretKey!>! secretKeys) -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!).ValidateAudience(params System.Collections.Generic.IEnumerable<string!>! validAudiences) -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!).ValidateCertificateLifeTime() -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!).ValidateClaim(string! claimName, bool usePayload, bool allowCollection, System.Collections.Generic.IEnumerable<string!>! validValues) -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!).ValidateIssuer(params System.Collections.Generic.IEnumerable<string!>! validIssuers) -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!).ValidateTokenLifeTime() -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!).ValidateTokenLifeTime(System.Action<NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions!>! configureOptions) -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!).ValidateTokenType(params System.Collections.Generic.IEnumerable<string!>! validTokenTypes) -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jwt.Validation.JwtValidationResult
+NCode.Identity.Jwt.Validation.JwtValidationResult.DecodedJwt.get -> NCode.Identity.Jwt.DecodedJwt?
+NCode.Identity.Jwt.Validation.JwtValidationResult.EncodedToken.get -> string!
+NCode.Identity.Jwt.Validation.JwtValidationResult.Exception.get -> System.Exception?
+NCode.Identity.Jwt.Validation.JwtValidationResult.GetClaimsIdentityAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsIdentity!>
+NCode.Identity.Jwt.Validation.JwtValidationResult.IsValid.get -> bool
+NCode.Identity.Jwt.Validation.JwtValidationResult.Parameters.get -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jwt.Validation.JwtValidationResult.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+NCode.Identity.Jwt.Validation.ResolveValidationKeysAsync
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.ClockSkew.get -> System.TimeSpan
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.ClockSkew.init -> void
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.RequireExpirationTime.get -> bool
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.RequireExpirationTime.init -> void
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.TokenLifetimeRequirement(bool RequireExpirationTime, System.TimeSpan ClockSkew) -> void
+NCode.Identity.Jwt.Validation.TokenTypeRequirement
+NCode.Identity.Jwt.Validation.TokenTypeRequirement.TokenTypeRequirement(System.Collections.Generic.IReadOnlyCollection<string!>! ValidTokenTypes) -> void
+NCode.Identity.Jwt.Validation.TokenTypeRequirement.ValidTokenTypes.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.Jwt.Validation.TokenTypeRequirement.ValidTokenTypes.init -> void
+NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions
+NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.RequireExpirationTime.get -> bool
+NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.RequireExpirationTime.set -> void
+NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.ValidateTokenLifeTimeOptions() -> void
+static NCode.Identity.Jwt.Validation.JwtValidationResult.Fail(NCode.Identity.Jwt.Validation.JwtValidationParameters! parameters, NCode.PropertyBag.IPropertyBag! propertyBag, string! encodedToken, System.Exception! exception) -> NCode.Identity.Jwt.Validation.JwtValidationResult!
+static NCode.Identity.Jwt.Validation.JwtValidationResult.Success(NCode.Identity.Jwt.Validation.JwtValidationParameters! parameters, NCode.PropertyBag.IPropertyBag! propertyBag, NCode.Identity.Jwt.DecodedJwt! decodedJwt, NCode.Identity.Jwt.Validation.CreateClaimsIdentityAsync! createClaimsIdentity) -> NCode.Identity.Jwt.Validation.JwtValidationResult!

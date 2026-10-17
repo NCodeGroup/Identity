@@ -23,7 +23,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.Logic;
 using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Auditing;
@@ -50,7 +50,7 @@ internal class DefaultTokenService(
     ICryptoService cryptoService,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,
-    IJsonWebTokenService jsonWebTokenService,
+    IJwtEncoder jwtEncoder,
     IPersistedGrantService persistedGrantService,
     IResourceServerCredentialResolver resourceServerCredentialResolver,
     IAuditEventRecorder auditEventRecorder
@@ -60,7 +60,7 @@ internal class DefaultTokenService(
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
-    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IJwtEncoder JwtEncoder { get; } = jwtEncoder;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private IResourceServerCredentialResolver ResourceServerCredentialResolver { get; } =
         resourceServerCredentialResolver;
@@ -287,7 +287,7 @@ internal class DefaultTokenService(
                 ? new StringValues(resolution.Audiences.ToArray())
                 : new StringValues(openIdClient.ClientId);
 
-        var parameters = new EncodeJwtParameters
+        var parameters = new JwtEncodingParameters
         {
             TokenType = settings.GetValue(OpenIdSettingKeys.AccessTokenType),
 
@@ -308,7 +308,7 @@ internal class DefaultTokenService(
             ExtraEncryptionHeaderClaims = tokenRequest.ExtraEncryptionHeaderClaims,
         };
 
-        var jwt = JsonWebTokenService.EncodeJwt(parameters);
+        var jwt = JwtEncoder.Encode(parameters);
         var securityToken = new SecurityToken
         {
             TokenType = tokenContext.TokenType,
@@ -458,7 +458,7 @@ internal class DefaultTokenService(
                 ? EnsureAuthTime(openIdContext, ticket.Value, tokenRequest, filteredClaims)
                 : filteredClaims;
 
-        var parameters = new EncodeJwtParameters
+        var parameters = new JwtEncodingParameters
         {
             SigningCredentials = signingCredentials,
             EncryptionCredentials = encryptionCredentials,
@@ -477,7 +477,7 @@ internal class DefaultTokenService(
             ExtraEncryptionHeaderClaims = tokenRequest.ExtraEncryptionHeaderClaims,
         };
 
-        var jwt = JsonWebTokenService.EncodeJwt(parameters);
+        var jwt = JwtEncoder.Encode(parameters);
         var securityToken = new SecurityToken
         {
             TokenType = tokenContext.TokenType,

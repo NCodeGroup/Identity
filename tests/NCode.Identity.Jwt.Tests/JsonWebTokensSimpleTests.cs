@@ -18,7 +18,9 @@
 #endregion
 
 using System.Security.Claims;
-using NCode.Identity.Jwt.Exceptions;
+using NCode.Identity.Jwt.Encoding;
+using NCode.Identity.Jwt.Validation;
+using NCode.Identity.Jwt.Validation;
 
 namespace NCode.Identity.Jwt;
 
@@ -27,64 +29,64 @@ public class JsonWebTokensSimpleTests
     #region Exception Tests
 
     [Fact]
-    public void TokenValidationException_DefaultConstructor_UsesDefaultMessage()
+    public void JwtValidationException_DefaultConstructor_UsesDefaultMessage()
     {
-        var exception = new TokenValidationException();
+        var exception = new JwtValidationException();
 
         Assert.Equal("Token validation failed.", exception.Message);
     }
 
     [Fact]
-    public void TokenValidationException_WithMessage_UsesMessage()
+    public void JwtValidationException_WithMessage_UsesMessage()
     {
-        var exception = new TokenValidationException("boom");
+        var exception = new JwtValidationException("boom");
 
         Assert.Equal("boom", exception.Message);
     }
 
     [Fact]
-    public void TokenValidationException_WithInner_PreservesInner()
+    public void JwtValidationException_WithInner_PreservesInner()
     {
         var inner = new InvalidOperationException("inner");
 
-        var exception = new TokenValidationException("boom", inner);
+        var exception = new JwtValidationException("boom", inner);
 
         Assert.Same(inner, exception.InnerException);
     }
 
     [Fact]
-    public void TokenValidationDecodeException_DefaultConstructor_UsesDefaultMessage()
+    public void JwtDecodeException_DefaultConstructor_UsesDefaultMessage()
     {
-        var exception = new TokenValidationDecodeException();
+        var exception = new JwtDecodeException();
 
-        Assert.Equal(TokenValidationDecodeException.DefaultMessage, exception.Message);
+        Assert.Equal(JwtDecodeException.DefaultMessage, exception.Message);
     }
 
     [Fact]
-    public void TokenValidationDecodeException_WithMessageAndInner_Preserves()
+    public void JwtDecodeException_WithMessageAndInner_Preserves()
     {
         var inner = new InvalidOperationException("inner");
 
-        var exception = new TokenValidationDecodeException("boom", inner);
+        var exception = new JwtDecodeException("boom", inner);
 
         Assert.Equal("boom", exception.Message);
         Assert.Same(inner, exception.InnerException);
     }
 
     [Fact]
-    public void TokenValidationSecretKeyNotFoundException_DefaultConstructor_HasMessage()
+    public void JwtSecretKeyNotFoundException_DefaultConstructor_HasMessage()
     {
-        var exception = new TokenValidationSecretKeyNotFoundException();
+        var exception = new JwtSecretKeyNotFoundException();
 
         Assert.Contains("No keys were provided", exception.Message);
     }
 
     [Fact]
-    public void TokenValidationSecretKeyNotFoundException_WithMessageAndInner_Preserves()
+    public void JwtSecretKeyNotFoundException_WithMessageAndInner_Preserves()
     {
         var inner = new InvalidOperationException("inner");
 
-        var exception = new TokenValidationSecretKeyNotFoundException("boom", inner);
+        var exception = new JwtSecretKeyNotFoundException("boom", inner);
 
         Assert.Equal("boom", exception.Message);
         Assert.Same(inner, exception.InnerException);
@@ -92,12 +94,12 @@ public class JsonWebTokensSimpleTests
 
     #endregion
 
-    #region EncodeJwtParameters Tests
+    #region JwtEncodingParameters Tests
 
     [Fact]
-    public void EncodeJwtParameters_Defaults_AreExpected()
+    public void JwtEncodingParameters_Defaults_AreExpected()
     {
-        var parameters = new EncodeJwtParameters();
+        var parameters = new JwtEncodingParameters();
 
         Assert.Equal("JWT", parameters.TokenType);
         Assert.True(parameters.AddKeyIdHeader);
@@ -107,35 +109,38 @@ public class JsonWebTokensSimpleTests
 
     #endregion
 
-    #region ValidateJwtParameters Tests
+    #region JwtValidationParameters Tests
 
     [Fact]
-    public void ValidateJwtParameters_Defaults_AreExpected()
+    public void JwtValidationParameters_Defaults_AreExpected()
     {
-        var parameters = new ValidateJwtParameters();
+        var parameters = new JwtValidationParameters();
 
         Assert.Equal("AuthenticationTypes.Federation", parameters.AuthenticationType);
         Assert.Equal(ClaimsIdentity.DefaultNameClaimType, parameters.NameClaimType);
         Assert.Equal(ClaimsIdentity.DefaultRoleClaimType, parameters.RoleClaimType);
-        Assert.Empty(parameters.Validators);
+        Assert.Empty(parameters.Requirements);
+        Assert.Null(parameters.ValidationKeys);
+        Assert.Null(parameters.ResolveValidationKeysAsync);
+        Assert.Null(parameters.CreateClaimsIdentityAsync);
         Assert.Equal(TimeSpan.FromMinutes(5.0), parameters.ClockSkew);
     }
 
     [Fact]
-    public void AddValidator_AppendsAndReturnsSameInstance()
+    public void RequireAssertion_AppendsAndReturnsSameInstance()
     {
-        var parameters = new ValidateJwtParameters();
+        var parameters = new JwtValidationParameters();
 
-        var result = parameters.AddValidator((_, _) => ValueTask.CompletedTask);
+        var result = parameters.RequireAssertion((_, _) => ValueTask.FromResult(true));
 
         Assert.Same(parameters, result);
-        Assert.Single(parameters.Validators);
+        Assert.Single(parameters.Requirements);
     }
 
     [Fact]
     public void UseValidationKeys_ReturnsSameInstance()
     {
-        var parameters = new ValidateJwtParameters();
+        var parameters = new JwtValidationParameters();
 
         var result = parameters.UseValidationKeys([]);
 

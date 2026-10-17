@@ -21,7 +21,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Extensions;
-using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Subject;
@@ -42,7 +42,7 @@ internal class DefaultBackChannelLogoutNotifier(
     ICryptoService cryptoService,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,
-    IJsonWebTokenService jsonWebTokenService,
+    IJwtEncoder jwtEncoder,
     ISubjectIdentifierService subjectIdentifierService,
     IJobDispatcher jobDispatcher
 ) : IBackChannelLogoutNotifier
@@ -55,7 +55,7 @@ internal class DefaultBackChannelLogoutNotifier(
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
-    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IJwtEncoder JwtEncoder { get; } = jwtEncoder;
     private ISubjectIdentifierService SubjectIdentifierService { get; } = subjectIdentifierService;
     private IJobDispatcher JobDispatcher { get; } = jobDispatcher;
 
@@ -127,7 +127,7 @@ internal class DefaultBackChannelLogoutNotifier(
             payloadClaims[JoseClaimNames.Payload.Sid] = sessionId;
         }
 
-        var parameters = new EncodeJwtParameters
+        var parameters = new JwtEncodingParameters
         {
             TokenType = OpenIdConstants.SecurityTokenTypes.LogoutToken,
             SigningCredentials = signingCredentials,
@@ -139,7 +139,7 @@ internal class DefaultBackChannelLogoutNotifier(
             ExtraPayloadClaims = payloadClaims,
         };
 
-        var logoutToken = JsonWebTokenService.EncodeJwt(parameters);
+        var logoutToken = JwtEncoder.Encode(parameters);
 
         // Delivery runs as a durable, retryable dispatch job so a failed POST is retried out of band (and can run on a
         // durable dispatcher adapter); it never fails the logout request.

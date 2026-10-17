@@ -24,7 +24,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
-using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
@@ -45,7 +45,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 internal class DefaultLoadAuthorizationRequestHandler(
     ILogger<DefaultLoadAuthorizationRequestHandler> logger,
     IJoseSerializer joseSerializer,
-    IJsonWebTokenService jsonWebTokenService,
+    IJwtValidator jwtValidator,
     IHttpClientFactory httpClientFactory,
     IOutboundHttpContentReader outboundHttpContentReader,
     IClientKeyResolver clientKeyResolver
@@ -53,7 +53,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
 {
     private ILogger<DefaultLoadAuthorizationRequestHandler> Logger { get; } = logger;
     private IJoseSerializer JoseSerializer { get; } = joseSerializer;
-    private IJsonWebTokenService JsonWebTokenService { get; } = jsonWebTokenService;
+    private IJwtValidator JwtValidator { get; } = jwtValidator;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
     private IOutboundHttpContentReader OutboundHttpContentReader { get; } =
         outboundHttpContentReader;
@@ -171,7 +171,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
                 cancellationToken
             );
 
-            var parameters = new ValidateJwtParameters()
+            var parameters = new JwtValidationParameters()
             {
                 // Honor the client's effective clock_skew setting (the FAPI 2.0 profile tightens this to ≤ 60s via the
                 // merge-lattice ceiling); without this the JWT validator would fall back to its 5-minute default.
@@ -188,7 +188,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
             if (!string.IsNullOrEmpty(expectedAudience))
                 parameters.ValidateAudience(expectedAudience);
 
-            var result = await JsonWebTokenService.ValidateJwtAsync(
+            var result = await JwtValidator.ValidateAsync(
                 requestJwt,
                 parameters,
                 cancellationToken

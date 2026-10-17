@@ -1,7 +1,6 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -19,17 +18,21 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Jwt.Options;
+namespace NCode.Identity.Jwt.Encoding;
 
 /// <summary>
-/// Provides the ability to configure the behavior when validating the lifetime of a JSON Web Token (JWT).
+/// Contains configurable options for <see cref="DefaultJwtEncoder"/>.
 /// </summary>
 [PublicAPI]
-public sealed class ValidateTokenLifeTimeOptions
+public sealed class JwtEncoderOptions
 {
     /// <summary>
-    /// Gets or sets a value indicating whether the <c>exp</c> claim is required.
-    /// The default is <c>true</c>.
+    /// Gets or sets a value indicating whether generated tokens will have default values for the 'iat', 'nbf', and 'exp' claims if not specified.
     /// </summary>
-    public bool RequireExpirationTime { get; set; } = true;
+    public bool EnsureTokenLifetime { get; set; } = true;
+
+    /// <summary>
+    /// Gets the default lifetime for generated tokens.
+    /// </summary>
+    public TimeSpan DefaultTokenLifetime { get; } = TimeSpan.FromMinutes(60);
 }

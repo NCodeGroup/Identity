@@ -18,7 +18,7 @@
 
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose.Algorithms;
-using NCode.Identity.Jwt;
+using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Keys;
@@ -37,7 +37,7 @@ internal sealed class ClientSecretJwtClientAuthenticationHandler(
     IOpenIdClientFactory clientFactory,
     IAuditEventRecorder auditEventRecorder,
     ILogger<ClientSecretJwtClientAuthenticationHandler> logger,
-    IJsonWebTokenService jsonWebTokenService,
+    IJwtValidator jwtValidator,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     IClientAssertionReplayCache replayCache,
     IClientKeyResolver clientKeyResolver,
@@ -48,7 +48,7 @@ internal sealed class ClientSecretJwtClientAuthenticationHandler(
         clientFactory,
         auditEventRecorder,
         logger,
-        jsonWebTokenService,
+        jwtValidator,
         algorithmCollectionProvider,
         replayCache,
         clientKeyResolver,

@@ -1,7 +1,6 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -18,9 +17,8 @@
 #endregion
 
 using System.Text.Json;
-using NCode.Json;
 
-namespace NCode.Identity.Jose.Tests.Json;
+namespace NCode.Json.Tests;
 
 public class JsonElementExtensionsTests
 {

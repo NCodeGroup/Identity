@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Reusable `NCode.Json.ObjectJsonConverter` for loosely-typed JSON deserialization.** The `System.Text.Json`
+  converter that reads JSON into an `object` graph (objects → `Dictionary<string, object?>`, arrays →
+  `List<object?>`, scalars coerced to the most specific matching CLR type) was promoted out of `NCode.Identity.Jose`
+  (where it was an internal `JoseObjectJsonConverter`) into the dependency-free `NCode.Json` package as the public
+  `ObjectJsonConverter` (singleton via `ObjectJsonConverter.Singleton`), co-locating it with the existing
+  `JsonElements` helpers so any package can reuse it. By design it never interprets a bare number as an RFC 7519
+  `NumericDate`, since the target type is unknown when deserializing to `object` — that interpretation remains
+  exclusive to `JsonElements.TryGetPropertyValue<T>`, where the caller supplies an explicit date target type.
+
 - **JWS/JWE JSON serialization — General + Flattened, with multiple signatures / recipients (RFC 7515 §7.2, RFC 7516
   §7.2).** The JOSE serializer, previously compact-only, now also encodes and decodes the Flattened and General **JSON**
   serializations, which carry **multiple signatures** (JWS) / **multiple recipients** (JWE), **unprotected** header

@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Errors;
+using NCode.Json;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
@@ -176,8 +177,5 @@ internal class DefaultAuthenticateAccessTokenHandler(
     }
 
     private static string? GetString(JsonElement element, string propertyName) =>
-        element.TryGetProperty(propertyName, out var property)
-        && property.ValueKind == JsonValueKind.String
-            ? property.GetString()
-            : null;
+        element.TryGetPropertyValue<string>(propertyName, out var value) ? value : null;
 }

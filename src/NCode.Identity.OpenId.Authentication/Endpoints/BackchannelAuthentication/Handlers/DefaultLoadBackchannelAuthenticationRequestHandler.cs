@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.M
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Settings;
+using NCode.Json;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Handlers;
@@ -140,8 +141,11 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
     {
         var settings = openIdClient.Settings;
 
-        var algorithm = jwtHeader.TryGetProperty(JoseClaimNames.Header.Alg, out var algElement)
-            ? algElement.GetString()
+        var algorithm = jwtHeader.TryGetPropertyValue<string>(
+            JoseClaimNames.Header.Alg,
+            out var alg
+        )
+            ? alg
             : null;
 
         // The presence of an "enc" header identifies an encrypted (JWE) request object.
@@ -168,8 +172,8 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
             );
 
             if (
-                jwtHeader.TryGetProperty(JoseClaimNames.Header.Zip, out var zipElement)
-                && zipElement.GetString() is { Length: > 0 } zip
+                jwtHeader.TryGetPropertyValue<string>(JoseClaimNames.Header.Zip, out var zip)
+                && zip is { Length: > 0 }
             )
             {
                 EnforceAdvertised(

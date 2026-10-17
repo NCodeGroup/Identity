@@ -28,6 +28,7 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 
@@ -88,7 +89,7 @@ internal class DefaultDPoPProofValidator(
 
         // typ MUST be "dpop+jwt" (RFC 9449 §4.2).
         if (
-            !TryGetString(header, JoseClaimNames.Header.Typ, out var typ)
+            !header.TryGetPropertyValue<string>(JoseClaimNames.Header.Typ, out var typ)
             || !string.Equals(typ, OpenIdConstants.DPoP.ProofJwtType, StringComparison.Ordinal)
         )
         {
@@ -97,7 +98,7 @@ internal class DefaultDPoPProofValidator(
 
         // alg MUST be an asymmetric algorithm the server accepts; never 'none' or a symmetric algorithm.
         if (
-            !TryGetString(header, JoseClaimNames.Header.Alg, out var alg)
+            !header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var alg)
             || string.IsNullOrEmpty(alg)
         )
             throw Invalid("The DPoP proof is missing the 'alg' header.");
@@ -150,7 +151,7 @@ internal class DefaultDPoPProofValidator(
 
         // htm MUST equal the request method (RFC 9449 §4.3).
         if (
-            !TryGetString(payload, OpenIdConstants.DPoP.HttpMethodClaim, out var htm)
+            !payload.TryGetPropertyValue<string>(OpenIdConstants.DPoP.HttpMethodClaim, out var htm)
             || !string.Equals(htm, request.HttpMethod, StringComparison.Ordinal)
         )
         {
@@ -159,7 +160,7 @@ internal class DefaultDPoPProofValidator(
 
         // htu MUST equal the request URI with any query and fragment removed (RFC 9449 §4.3).
         if (
-            !TryGetString(payload, OpenIdConstants.DPoP.HttpUriClaim, out var htu)
+            !payload.TryGetPropertyValue<string>(OpenIdConstants.DPoP.HttpUriClaim, out var htu)
             || !IsSameHttpUri(htu, request.HttpUri)
         )
         {
@@ -174,8 +175,10 @@ internal class DefaultDPoPProofValidator(
                 SHA256.HashData(Encoding.ASCII.GetBytes(request.AccessToken))
             );
             if (
-                !TryGetString(payload, OpenIdConstants.DPoP.AccessTokenHashClaim, out var ath)
-                || !string.Equals(ath, expectedAth, StringComparison.Ordinal)
+                !payload.TryGetPropertyValue<string>(
+                    OpenIdConstants.DPoP.AccessTokenHashClaim,
+                    out var ath
+                ) || !string.Equals(ath, expectedAth, StringComparison.Ordinal)
             )
             {
                 throw Invalid("The DPoP proof 'ath' claim does not match the access token.");
@@ -184,17 +187,13 @@ internal class DefaultDPoPProofValidator(
 
         // jti MUST be present so the proof can be tracked for replay (RFC 9449 §4.3).
         if (
-            !TryGetString(payload, JoseClaimNames.Payload.Jti, out var jti)
+            !payload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Jti, out var jti)
             || string.IsNullOrEmpty(jti)
         )
             throw Invalid("The DPoP proof is missing the 'jti' claim.");
 
         // iat MUST be present and within the acceptable freshness window (RFC 9449 §4.3, §11.1).
-        if (
-            !payload.TryGetProperty(JoseClaimNames.Payload.Iat, out var iatElement)
-            || iatElement.ValueKind != JsonValueKind.Number
-            || !iatElement.TryGetInt64(out var iatSeconds)
-        )
+        if (!payload.TryGetPropertyValue<long>(JoseClaimNames.Payload.Iat, out var iatSeconds))
         {
             throw Invalid("The DPoP proof is missing a valid 'iat' claim.");
         }
@@ -209,7 +208,10 @@ internal class DefaultDPoPProofValidator(
         // fresh nonce (RFC 9449 §8).
         if (settings.GetValue(OpenIdSettingKeys.DPoPNonceRequired))
         {
-            var hasNonce = TryGetString(payload, JoseClaimNames.Payload.Nonce, out var nonce);
+            var hasNonce = payload.TryGetPropertyValue<string>(
+                JoseClaimNames.Payload.Nonce,
+                out var nonce
+            );
             var nonceValid =
                 hasNonce
                 && !string.IsNullOrEmpty(nonce)
@@ -366,21 +368,6 @@ internal class DefaultDPoPProofValidator(
                 "The DPoP proof 'jwk' is missing members required to compute its thumbprint."
             );
         }
-    }
-
-    private static bool TryGetString(JsonElement element, string propertyName, out string? value)
-    {
-        if (
-            element.TryGetProperty(propertyName, out var property)
-            && property.ValueKind == JsonValueKind.String
-        )
-        {
-            value = property.GetString();
-            return true;
-        }
-
-        value = null;
-        return false;
     }
 
     private static byte[] DecodeBase64Url(string value)

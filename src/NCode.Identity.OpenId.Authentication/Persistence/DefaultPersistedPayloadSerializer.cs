@@ -21,6 +21,7 @@ using System.Collections.Frozen;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Persistence;
 
@@ -86,9 +87,7 @@ internal sealed class DefaultPersistedPayloadSerializer : IPersistedPayloadSeria
 
         if (
             document.ValueKind == JsonValueKind.Object
-            && document.TryGetProperty(VersionPropertyName, out var versionProperty)
-            && versionProperty.ValueKind == JsonValueKind.Number
-            && versionProperty.TryGetInt32(out storedVersion)
+            && document.TryGetPropertyValue<int>(VersionPropertyName, out storedVersion)
             && document.TryGetProperty(PayloadPropertyName, out var payloadProperty)
         )
         {

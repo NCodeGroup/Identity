@@ -30,6 +30,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Keys;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 
@@ -136,7 +137,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
 
         // The 'alg' header selects which handler owns the assertion and is never 'none' (RFC 7518 §3.6).
         if (
-            !TryGetString(header, JoseClaimNames.Header.Alg, out var alg)
+            !header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var alg)
             || string.IsNullOrEmpty(alg)
             || string.Equals(alg, AlgorithmCodes.DigitalSignature.None, StringComparison.Ordinal)
             || !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
@@ -171,8 +172,11 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         // OpenID Connect Core §9 requires iss == sub == client_id. The client id is read from the (as-yet-unverified)
         // payload only to locate the client's keys; the signature is verified against those keys below.
         if (
-            !TryGetString(unverifiedPayload, JoseClaimNames.Payload.Iss, out var iss)
-            || !TryGetString(unverifiedPayload, JoseClaimNames.Payload.Sub, out var sub)
+            !unverifiedPayload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Iss, out var iss)
+            || !unverifiedPayload.TryGetPropertyValue<string>(
+                JoseClaimNames.Payload.Sub,
+                out var sub
+            )
             || string.IsNullOrEmpty(iss)
             || string.IsNullOrEmpty(sub)
             || !string.Equals(iss, sub, StringComparison.Ordinal)
@@ -292,10 +296,12 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
 
         // A 'jti' plus an 'exp' are required so the assertion can be rejected on replay (RFC 7523 §3).
         if (
-            !TryGetString(validatedPayload, JoseClaimNames.Payload.Jti, out var jti)
+            !validatedPayload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Jti, out var jti)
             || string.IsNullOrEmpty(jti)
-            || !validatedPayload.TryGetProperty(JoseClaimNames.Payload.Exp, out var expElement)
-            || !expElement.TryGetInt64(out var expSeconds)
+            || !validatedPayload.TryGetPropertyValue<long>(
+                JoseClaimNames.Payload.Exp,
+                out var expSeconds
+            )
         )
         {
             return await FailAsync(
@@ -363,21 +369,6 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         var endpointUrl = $"{request.Scheme}://{request.Host}{request.PathBase}{request.Path}";
 
         return [issuer, endpointUrl];
-    }
-
-    private static bool TryGetString(JsonElement element, string propertyName, out string? value)
-    {
-        if (
-            element.TryGetProperty(propertyName, out var property)
-            && property.ValueKind == JsonValueKind.String
-        )
-        {
-            value = property.GetString();
-            return true;
-        }
-
-        value = null;
-        return false;
     }
 
     private static byte[] DecodeBase64Url(string value)

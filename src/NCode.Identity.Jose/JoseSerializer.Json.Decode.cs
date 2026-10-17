@@ -104,9 +104,11 @@ partial class JoseSerializer
 
         var protectedHeader =
             signature.ValueKind == JsonValueKind.Object
-            && signature.TryGetProperty(JoseClaimNames.Json.Protected, out var protectedElement)
-            && protectedElement.ValueKind == JsonValueKind.String
-                ? DeserializeHeader(protectedElement.GetString() ?? string.Empty)
+            && signature.TryGetPropertyValue<string>(
+                JoseClaimNames.Json.Protected,
+                out var encodedProtected
+            )
+                ? DeserializeHeader(encodedProtected)
                 : default;
 
         var unprotectedHeader =
@@ -120,11 +122,11 @@ partial class JoseSerializer
 
     private static JsonElement ComputeJweHeader(JsonElement root)
     {
-        var encodedProtected = root.TryGetProperty(
+        var encodedProtected = root.TryGetPropertyValue<string>(
             JoseClaimNames.Json.Protected,
-            out var protectedElement
+            out var protectedValue
         )
-            ? protectedElement.GetString() ?? string.Empty
+            ? protectedValue
             : string.Empty;
         var protectedHeader =
             encodedProtected.Length > 0 ? DeserializeHeader(encodedProtected) : default;
@@ -272,12 +274,12 @@ partial class JoseSerializer
 
     private static string GetRequiredJsonString(JsonElement element, string name)
     {
-        if (!element.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.String)
+        if (!element.TryGetPropertyValue<string>(name, out var value))
             throw new JoseException(
                 $"The JOSE JSON serialization is missing the required '{name}' member."
             );
 
-        return value.GetString() ?? string.Empty;
+        return value;
     }
 
     private void VerifyJsonJws(
@@ -286,16 +288,11 @@ partial class JoseSerializer
         IBufferWriter<byte> payloadWriter
     )
     {
-        if (
-            !root.TryGetProperty(JoseClaimNames.Json.Payload, out var payloadElement)
-            || payloadElement.ValueKind != JsonValueKind.String
-        )
+        if (!root.TryGetPropertyValue<string>(JoseClaimNames.Json.Payload, out var encodedPayload))
             throw new JoseException(
                 "The JWS JSON serialization is missing the 'payload' member; a detached payload must be "
                     + "verified via VerifyJws."
             );
-
-        var encodedPayload = payloadElement.GetString() ?? string.Empty;
 
         List<Exception>? failures = null;
         foreach (var signature in GetJwsSignatures(root))
@@ -353,11 +350,11 @@ partial class JoseSerializer
         IBufferWriter<byte> payloadWriter
     )
     {
-        var encodedProtected = root.TryGetProperty(
+        var encodedProtected = root.TryGetPropertyValue<string>(
             JoseClaimNames.Json.Protected,
-            out var protectedElement
+            out var protectedValue
         )
-            ? protectedElement.GetString() ?? string.Empty
+            ? protectedValue
             : string.Empty;
 
         var protectedHeader =
@@ -374,8 +371,8 @@ partial class JoseSerializer
         var encodedCiphertext = GetRequiredJsonString(root, JoseClaimNames.Json.Ciphertext);
         var encodedTag = GetRequiredJsonString(root, JoseClaimNames.Json.Tag);
 
-        var encodedAad = root.TryGetProperty(JoseClaimNames.Json.Aad, out var aadElement)
-            ? aadElement.GetString()
+        var encodedAad = root.TryGetPropertyValue<string>(JoseClaimNames.Json.Aad, out var aad)
+            ? aad
             : null;
 
         var recipients = new List<JsonElement>();
@@ -403,11 +400,11 @@ partial class JoseSerializer
 
             var mergedHeader = MergeHeaders(protectedHeader, sharedUnprotected, recipientHeader);
 
-            var encodedEncryptedKey = recipient.TryGetProperty(
+            var encodedEncryptedKey = recipient.TryGetPropertyValue<string>(
                 JoseClaimNames.Json.EncryptedKey,
-                out var encryptedKeyElement
+                out var encryptedKey
             )
-                ? encryptedKeyElement.GetString() ?? string.Empty
+                ? encryptedKey
                 : string.Empty;
 
             try

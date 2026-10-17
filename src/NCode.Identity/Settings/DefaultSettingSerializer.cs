@@ -17,6 +17,7 @@
 #endregion
 
 using System.Text.Json;
+using NCode.Json;
 
 namespace NCode.Identity.Settings;
 
@@ -36,7 +37,7 @@ internal class DefaultSettingSerializer(
         JsonSerializerOptions jsonOptions
     )
     {
-        if (settingsJson.ValueKind == JsonValueKind.Null)
+        if (settingsJson.IsNullOrUndefined())
         {
             return [];
         }

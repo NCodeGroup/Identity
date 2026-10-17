@@ -30,6 +30,7 @@ using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Json;
 
 namespace NCode.Identity.Jose.EdDsa.KeyTypes;
 
@@ -257,19 +258,14 @@ public sealed class OkpSecretKeyTypeDescriptor(
             );
         }
 
-        if (
-            !root.TryGetProperty("kty", out var kty)
-            || kty.ValueKind != JsonValueKind.String
-            || kty.GetString() != "OKP"
-        )
+        if (!root.TryGetPropertyValue<string>("kty", out var kty) || kty != "OKP")
         {
             throw new ArgumentException("The supplied JWK is not an 'OKP' key.");
         }
 
         if (
-            !root.TryGetProperty("crv", out var crv)
-            || crv.ValueKind != JsonValueKind.String
-            || !OkpCurves.TryGetByName(crv.GetString(), out var curve)
+            !root.TryGetPropertyValue<string>("crv", out var crv)
+            || !OkpCurves.TryGetByName(crv, out var curve)
         )
         {
             throw new ArgumentException(
@@ -277,7 +273,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
             );
         }
 
-        if (!root.TryGetProperty("x", out var x) || x.ValueKind != JsonValueKind.String)
+        if (!root.TryGetPropertyValue<string>("x", out var x))
         {
             throw new ArgumentException("The supplied OKP JWK is missing the 'x' member.");
         }
@@ -285,7 +281,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
         byte[] publicKey;
         try
         {
-            publicKey = Base64Url.DecodeFromChars(x.GetString());
+            publicKey = Base64Url.DecodeFromChars(x);
         }
         catch (FormatException exception)
         {

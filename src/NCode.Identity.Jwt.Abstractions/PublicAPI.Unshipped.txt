@@ -1,0 +1,3 @@
+#nullable enable
+NCode.Identity.Jwt.JsonWebTokensLibrary
+NCode.Identity.Jwt.JsonWebTokensLibrary.JsonWebTokensLibrary() -> void

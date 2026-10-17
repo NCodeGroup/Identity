@@ -21,7 +21,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Buffers;
 using NCode.Identity.Jose;
-using NCode.Identity.JsonWebTokens;
+using NCode.Identity.Jwt;
 using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens;

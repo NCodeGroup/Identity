@@ -9,7 +9,7 @@
         <ProjectReference Include="..\NCode.Identity.Dispatch\NCode.Identity.Dispatch.csproj" />
         <ProjectReference Include="..\NCode.Identity.Events\NCode.Identity.Events.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
-        <ProjectReference Include="..\NCode.Identity.JsonWebTokens\NCode.Identity.JsonWebTokens.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Jwt\NCode.Identity.Jwt.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Accounts.Abstractions\NCode.Identity.OpenId.Accounts.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Authentication\NCode.Identity.OpenId.Authentication.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Core\NCode.Identity.OpenId.Core.csproj" />

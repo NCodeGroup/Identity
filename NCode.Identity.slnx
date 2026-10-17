@@ -24,8 +24,8 @@
     <Project Path="src/NCode.Identity.Jose.Abstractions/NCode.Identity.Jose.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.Jose/NCode.Identity.Jose.csproj" />
     <Project Path="src/NCode.Identity.Jose.EdDsa/NCode.Identity.Jose.EdDsa.csproj" />
-    <Project Path="src/NCode.Identity.JsonWebTokens.Abstractions/NCode.Identity.JsonWebTokens.Abstractions.csproj" />
-    <Project Path="src/NCode.Identity.JsonWebTokens/NCode.Identity.JsonWebTokens.csproj" />
+    <Project Path="src/NCode.Identity.Jwt.Abstractions/NCode.Identity.Jwt.Abstractions.csproj" />
+    <Project Path="src/NCode.Identity.Jwt/NCode.Identity.Jwt.csproj" />
     <Project Path="src/NCode.Identity.OpenId.Abstractions/NCode.Identity.OpenId.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.OpenId.Accounts.Abstractions/NCode.Identity.OpenId.Accounts.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.OpenId.Accounts.AspNetIdentity/NCode.Identity.OpenId.Accounts.AspNetIdentity.csproj" />
@@ -65,7 +65,7 @@
     <Project Path="tests/NCode.Identity.Abstractions.Tests/NCode.Identity.Abstractions.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Dispatch.Tests/NCode.Identity.Dispatch.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Events.Tests/NCode.Identity.Events.Tests.csproj" />
-    <Project Path="tests/NCode.Identity.JsonWebTokens.Tests/NCode.Identity.JsonWebTokens.Tests.csproj" />
+    <Project Path="tests/NCode.Identity.Jwt.Tests/NCode.Identity.Jwt.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Jose.Tests/NCode.Identity.Jose.Tests.csproj" />
     <Project Path="tests/NCode.Identity.Jose.EdDsa.Tests/NCode.Identity.Jose.EdDsa.Tests.csproj" />
     <Project Path="tests/NCode.Identity.OpenId.Accounts.AspNetIdentity.Tests/NCode.Identity.OpenId.Accounts.AspNetIdentity.Tests.csproj" />

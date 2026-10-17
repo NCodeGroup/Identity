@@ -19,7 +19,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose;
-using NCode.Identity.JsonWebTokens;
+using NCode.Identity.Jwt;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Models;

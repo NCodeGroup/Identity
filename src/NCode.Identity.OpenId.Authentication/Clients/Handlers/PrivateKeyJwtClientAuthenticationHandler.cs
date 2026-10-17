@@ -18,7 +18,7 @@
 
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose.Algorithms;
-using NCode.Identity.JsonWebTokens;
+using NCode.Identity.Jwt;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Keys;

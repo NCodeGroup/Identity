@@ -143,6 +143,33 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
                 HashAlgorithmName.SHA512
             );
 
+            // Module-Lattice-Based Digital Signature Algorithm (ML-DSA)
+            // https://datatracker.ietf.org/doc/rfc9964/ (FIPS 204). Advertised only where the running OS provides
+            // ML-DSA, so discovery / JWKS never offer an algorithm the host cannot fulfill.
+            if (MLDsa.IsSupported)
+            {
+                // ML-DSA-44
+                yield return new MlDsaSignatureAlgorithm(
+                    AlgorithmCodes.DigitalSignature.MlDsa44,
+                    MLDsaAlgorithm.MLDsa44,
+                    HashAlgorithmName.SHA256
+                );
+
+                // ML-DSA-65
+                yield return new MlDsaSignatureAlgorithm(
+                    AlgorithmCodes.DigitalSignature.MlDsa65,
+                    MLDsaAlgorithm.MLDsa65,
+                    HashAlgorithmName.SHA384
+                );
+
+                // ML-DSA-87
+                yield return new MlDsaSignatureAlgorithm(
+                    AlgorithmCodes.DigitalSignature.MlDsa87,
+                    MLDsaAlgorithm.MLDsa87,
+                    HashAlgorithmName.SHA512
+                );
+            }
+
             #endregion
 
             #region Key Management Algorithms

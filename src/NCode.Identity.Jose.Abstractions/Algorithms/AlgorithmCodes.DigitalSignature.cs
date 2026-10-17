@@ -97,5 +97,20 @@ public partial class AlgorithmCodes
         /// (RFC 8037). The concrete curve is selected from the signing key's OKP <c>crv</c>.
         /// </summary>
         public const string EdDsa = "EdDSA";
+
+        /// <summary>
+        /// Module-Lattice-Based Digital Signature Algorithm (ML-DSA) at parameter set 44 (FIPS 204 / RFC 9964).
+        /// </summary>
+        public const string MlDsa44 = "ML-DSA-44";
+
+        /// <summary>
+        /// Module-Lattice-Based Digital Signature Algorithm (ML-DSA) at parameter set 65 (FIPS 204 / RFC 9964).
+        /// </summary>
+        public const string MlDsa65 = "ML-DSA-65";
+
+        /// <summary>
+        /// Module-Lattice-Based Digital Signature Algorithm (ML-DSA) at parameter set 87 (FIPS 204 / RFC 9964).
+        /// </summary>
+        public const string MlDsa87 = "ML-DSA-87";
     }
 }

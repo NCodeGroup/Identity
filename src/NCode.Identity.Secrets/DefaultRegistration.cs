@@ -116,6 +116,10 @@ public static class DefaultRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ISecretKeyTypeDescriptor, RsaSecretKeyTypeDescriptor>()
             );
+            // The AKP (Algorithm Key Pair) descriptor backs post-quantum ML-DSA (FIPS 204 / RFC 9964) keys.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ISecretKeyTypeDescriptor, AkpSecretKeyTypeDescriptor>()
+            );
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ISecretKeyTypeDescriptor, EccSecretKeyTypeDescriptor>()
             );

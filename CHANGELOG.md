@@ -10,6 +10,17 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Post-quantum ML-DSA signing (FIPS 204 / RFC 9964) now ships in the core libraries.** The JWA `alg` values
+  `ML-DSA-44`, `ML-DSA-65`, and `ML-DSA-87` are registered by default alongside RSA/ECC — no opt-in package — composing
+  the in-box .NET 10 `System.Security.Cryptography.MLDsa` primitive with **no** third-party cryptographic dependency. A
+  new first-class `AKP` (Algorithm Key Pair) `AsymmetricSecretKey` (`AkpSecretKey`; JWK `kty` `AKP`, `alg`
+  `ML-DSA-*`, raw `pub`, 32-byte-seed `priv`) and its `ISecretKeyTypeDescriptor` provide generate, JWK/PEM public
+  import, JWK + SPKI-PEM public export, and PKCS#8 / SPKI deserialize, with the private key held data-protected in
+  memory. The three `ML-DSA-*` signature algorithms are advertised only where `MLDsa.IsSupported` (OpenSSL 3.5+ / recent
+  Windows 11), so discovery / JWKS never offer an algorithm the running OS cannot fulfill; discovery lists them in the
+  asymmetric token-signing metadata automatically (the signing-algorithm partition keys on `AsymmetricSecretKey`). See
+  [ADR-0118](docs/adr/0118-ml-dsa-post-quantum-signatures-in-core.md).
+
 - **EdDSA (Ed25519 / Ed448) signing is now available as the opt-in `NCode.Identity.Jose.EdDsa` package.** The JWA `alg`
   value `EdDSA` (RFC 8037) over both Edwards curves is implemented **clean-room** from the specifications
   (RFC 8032 / 8037 / 7748 / 8410) — constant-time field, scalar, and group arithmetic composing only the BCL hash

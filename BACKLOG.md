@@ -226,19 +226,25 @@ entry and/or ADR that closed it.
        RFC 8032 implementation with zero third-party cryptographic dependency. The remaining EdDSA-family gap is
        key-agreement: **ECDH-ES with X25519/X448** (Montgomery curves) for JWE, which has no BCL primitive and is a
        separate future addition.
-    2. **Post-quantum (FIPS 203/204/205)** — **ML-DSA** (Dilithium) and **SLH-DSA** (SPHINCS+) signatures, **ML-KEM**
-       (Kyber) key encapsulation for JWE, and **hybrid** schemes (e.g. X25519+ML-KEM). The IETF COSE/JOSE registrations
-       are still **draft** (codes may change), so this is prototype-behind-the-draft-codes, not a stable-surface commit.
+    2. **Post-quantum (FIPS 203/204/205)** — **ML-DSA signing is done**: `ML-DSA-44`/`65`/`87` ship in the **core**
+       Jose + Secrets libraries over a new `AKP` (Algorithm Key Pair) `SecretKey`, composing the in-box .NET 10
+       `System.Security.Cryptography.MLDsa` primitive (no third-party dependency), advertised only where
+       `MLDsa.IsSupported` — its JOSE binding is the finalized **RFC 9964** (not a draft), captured in
+       [ADR-0118](docs/adr/0118-ml-dsa-post-quantum-signatures-in-core.md). The remaining PQC gaps are **SLH-DSA**
+       (SPHINCS+) signatures — blocked on **both** axes: the BCL `SlhDsa` class is `[Experimental]` and the COSE
+       SPHINCS+ draft is expired — **ML-KEM** (Kyber) key encapsulation for JWE — blocked on the **spec** axis only:
+       the BCL `MLKem` is **stable/non-experimental**, but its JOSE binding is still `draft-ietf-jose-pqc-kem` with
+       **TBD** code points and an open WG question (the `AKP` single-`alg` model doesn't yet fit KEM's Direct-Key-
+       Agreement vs Key-Wrap split), so committing core `alg`/`enc` surface would pin it to codes that will change —
+       and **hybrid** schemes (e.g. X25519+ML-KEM).
     3. **Ecosystem-specific, add-on-demand** — `ES256K`/secp256k1 (RFC 8812, blockchain/DID; deliberately discouraged
        for general OIDC), `ECDH-1PU` (RFC 9278 / draft, authenticated ECDH; DIDComm/SSI), and Brainpool curves (BSI/German
        government). ChaCha20-Poly1305 is intentionally **not** a gap — it was never standardized for JOSE `enc`.
 
-    **Pending final decision — exactly which algorithms to implement, and in which packages.** The standing secure-by-
-    default posture points at EdDSA (RFC 8037) as the clear next addition because it is finalized, broadly expected for
-    OIDC/FAPI interop, and lays the `OKP` groundwork that X25519 key-agreement and future PQC hybrids reuse; the PQC and
-    ecosystem-specific sets are not yet decided. Decide the concrete algorithm list (and whether PQC lands behind a
-    feature flag / separate package while its registrations are draft) before implementing; capture the rationale in an
-    ADR. Touch points:
+    **Pending final decision — exactly which remaining algorithms to implement, and in which packages.** EdDSA
+    (RFC 8037, delivered as `F29`) and **ML-DSA** (RFC 9964, delivered — [ADR-0118](docs/adr/0118-ml-dsa-post-quantum-signatures-in-core.md))
+    are done; the still-open PQC set (SLH-DSA, ML-KEM, hybrids) and the ecosystem-specific set are not yet decided.
+    Decide the concrete algorithm list before implementing each; capture the rationale in an ADR. Touch points:
     [`src/NCode.Identity.Jose/Algorithms/DefaultAlgorithmDataSource.cs`](src/NCode.Identity.Jose/Algorithms/DefaultAlgorithmDataSource.cs),
     [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms) (algorithm-code
     constants), and the `SecretKey` model under

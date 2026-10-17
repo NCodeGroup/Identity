@@ -2,6 +2,18 @@
 NCode.Identity.Secrets.DefaultRegistration
 NCode.Identity.Secrets.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Secrets.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddSecretsLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.AkpSecretKeyTypeDescriptor(NCode.Extensions.DataProtection.IDataProtectorFactory<NCode.Identity.Secrets.Keys.SecretKey!>! dataProtectorFactory) -> void
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.Logic.ExportedPublicKey?
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial!
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.Logic.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial!
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.IsAsymmetric.get -> bool
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.KeyType.get -> string!
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
+NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters! parameters) -> string?
 NCode.Identity.Secrets.Logic.DataProtectorExtensions
 NCode.Identity.Secrets.Logic.DataProtectorExtensions.extension(Microsoft.AspNetCore.DataProtection.IDataProtector!)
 NCode.Identity.Secrets.Logic.DataProtectorExtensions.extension(Microsoft.AspNetCore.DataProtection.IDataProtector!).ExportAsymmetricAlgorithm<T>(System.ReadOnlySpan<byte> protectedPkcs8PrivateKey, System.Func<T!>! algorithmFactory) -> T!

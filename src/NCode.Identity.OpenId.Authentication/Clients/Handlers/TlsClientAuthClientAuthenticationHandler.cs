@@ -24,8 +24,8 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Secrets.Logic;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 

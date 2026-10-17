@@ -20,10 +20,10 @@ using Microsoft.AspNetCore.DataProtection;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Jose.EdDsa.Algorithms;
 using NCode.Identity.Jose.EdDsa.Keys;
-using NCode.Identity.Jose.EdDsa.Logic;
+using NCode.Identity.Jose.EdDsa.KeyTypes;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Secrets.Logic;
 using Xunit;
 
 namespace NCode.Identity.Jose.EdDsa.Tests;

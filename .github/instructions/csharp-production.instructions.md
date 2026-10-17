@@ -213,7 +213,11 @@ rationale.
 - 👁 **A type's folder is decided by _what the type is_, organized by purpose.** Group interfaces/contracts, options,
   events, developer-facing models, extension-method classes, and internal infrastructure so a reader can find "the
   serializers" or "the endpoints" by folder. Public headline entry points a consumer uses by name live at the package
-  root. A single-purpose package (all abstractions) stays flat with no subfolders.
+  root. A single-purpose package (all abstractions) stays flat with no subfolders. **Avoid a vague catch-all folder /
+  namespace (`Logic`, `Helpers`, `Misc`, `Common`) — it is a grab-bag that grows without cohesion.** Name the group for
+  the purpose it serves (`KeyTypes`, `Collections`, `KeyMaterial`, `Algorithms`, `Stores`); if a bucket has accreted
+  several unrelated purposes, split it (as the secret-key `…Secrets.Logic` bucket was split — see
+  [`CHANGELOG.md`](../../CHANGELOG.md)).
 - ✅ **The _public_ namespace is a stable contract and does not have to mirror folders.** `IDE0130` /
   namespace-match-folder is opted out in [`.editorconfig`](../../.editorconfig), and `RootNamespace` pins a package's
   base namespace, so you can reorganize public types across folders **without churning their namespace** — the public

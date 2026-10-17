@@ -64,7 +64,7 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D7`      | `D6`       |
+| `D` — Deferred, intentionally not-yet | `D8`      | `D7`       |
 | `F` — Feature gaps                    | `F39`     | `F38`      |
 | `T` — Conformance & interop testing   | `T9`      | `T8`       |
 | `U` — Frontend presentation platform  | `U14`     | `U13`      |
@@ -94,6 +94,14 @@ entry and/or ADR that closed it.
   until a concrete need justifies the persistence/migration (or broker/scheduler) operational cost. Touch points:
   implement `NCode.Identity.Dispatch.IJobDispatcher` in a new adapter package and register it before
   `AddInProcessJobDispatcher` (or omit that call).
+- **`D7` — Sweep the remaining `…Logic` grab-bag namespaces into purpose-based names.** The secret-key `…Secrets.Logic`
+  and `…Jose.EdDsa.Logic` grab-bags were split into cohesive purpose namespaces (`…KeyTypes` / `…Collections` /
+  `…KeyMaterial` / EdDsa `…KeyTypes`; see the [`CHANGELOG.md`](CHANGELOG.md) "Changed" entry). The same vague `Logic`
+  bucket still exists elsewhere — `…OpenId.Authentication(.Abstractions).Logic`, `…OpenId.Core.Logic`,
+  `…Secrets.Persistence.Logic`, `…NCode.Identity(.Abstractions).Logic`, and the per-endpoint `Endpoints/**/Logic/`
+  folders. Each should be evaluated and, where it is a genuine grab-bag (not a legitimately-named slice), split the same
+  way for family-wide consistency with the §3 "folder/namespace by purpose" convention. Scoped out of the Secrets sweep
+  to keep that change reviewable; revisit as a dedicated cohesion pass.
 
 ## Feature gaps — not yet implemented (group `F`)
 

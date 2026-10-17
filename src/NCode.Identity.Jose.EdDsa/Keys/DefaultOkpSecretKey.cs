@@ -16,10 +16,9 @@
 
 #endregion
 
-using System.Buffers;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Extensions.DataProtection;
-using NCode.Identity.Jose.EdDsa.Logic;
+using NCode.Identity.Jose.EdDsa.KeyTypes;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose.EdDsa.Keys;

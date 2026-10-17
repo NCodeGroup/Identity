@@ -137,6 +137,17 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
+- **The secret-key `Logic` grab-bag namespace is split into purpose-based namespaces.** The vague
+  `NCode.Identity.Secrets.Logic` (and the `NCode.Identity.Jose.EdDsa.Logic` grab-bag in the EdDsa plugin) are gone,
+  replaced by cohesive, discoverable namespaces that match the family's house style (`…Keys`, `…Algorithms`):
+  `NCode.Identity.Secrets.KeyTypes` (secret-key type descriptors, the type catalog, and the ECC-curve / ML-DSA
+  reference data), `NCode.Identity.Secrets.Collections` (the `ISecretKeyCollection` family and its ordering comparer),
+  `NCode.Identity.Secrets.KeyMaterial` (the `ISecretKeyFactory`, the generate / import / export parameter + result DTOs,
+  the material protector, and the key-size / data-protector helpers), and `NCode.Identity.Jose.EdDsa.KeyTypes` (the
+  `OkpSecretKeyTypeDescriptor` and its OKP curve support). Consumers update their `using` directives accordingly; no
+  type was renamed or retyped, only moved. Pre-release, so this lands on `dev` as a clean cutover with no compatibility
+  shim ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
 - **The browser-driven Basic OP conformance plan keeps `parallel=2` — the earlier "cookie collision" concern was
   mooted, not worked around by serializing (backlog `T8`).** An earlier run observed one module's scripted login
   landing on another module's `continue` URL under `parallel=2`, which suggested dropping the plan to `parallel=1`.

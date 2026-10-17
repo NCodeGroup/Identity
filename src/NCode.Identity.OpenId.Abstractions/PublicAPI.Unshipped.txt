@@ -21,7 +21,7 @@ abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.KnownParameters.ge
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 abstract NCode.Identity.OpenId.Messages.Parameters.KnownParameter.ValueType.get -> System.Type!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
-abstract NCode.Identity.OpenId.Servers.OpenIdServer.SecretsProvider.get -> NCode.Identity.Secrets.Logic.ISecretKeyCollectionProvider!
+abstract NCode.Identity.OpenId.Servers.OpenIdServer.SecretsProvider.get -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.ServerId.get -> string!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.BaseAddress.get -> NCode.Identity.Models.UriDescriptor
@@ -29,7 +29,7 @@ abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.DisplayName.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.DisposeAsyncCore() -> System.Threading.Tasks.ValueTask
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.Issuer.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
-abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SecretsProvider.get -> NCode.Identity.Secrets.Logic.ISecretKeyCollectionProvider!
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SecretsProvider.get -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.TenantId.get -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferencePrefixes.IdentityProvider = "idp:" -> string!

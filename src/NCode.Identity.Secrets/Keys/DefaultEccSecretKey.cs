@@ -19,7 +19,7 @@
 
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.KeyMaterial;
 
 namespace NCode.Identity.Secrets.Keys;
 

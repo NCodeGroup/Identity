@@ -26,7 +26,6 @@ using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.JsonWebTokens;
 using NCode.Identity.Logic;
 using NCode.Identity.Models;
-using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
@@ -39,7 +38,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens;

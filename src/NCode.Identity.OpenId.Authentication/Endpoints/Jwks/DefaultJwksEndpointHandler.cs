@@ -23,7 +23,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.KeyTypes;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Jwks;

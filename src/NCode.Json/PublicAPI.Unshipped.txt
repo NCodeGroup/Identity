@@ -1,5 +1,10 @@
 #nullable enable
 NCode.Json.JsonElements
+NCode.Json.ObjectJsonConverter
+NCode.Json.ObjectJsonConverter.ObjectJsonConverter() -> void
+override NCode.Json.ObjectJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> object?
+override NCode.Json.ObjectJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, object! value, System.Text.Json.JsonSerializerOptions! options) -> void
+static NCode.Json.ObjectJsonConverter.Singleton.get -> NCode.Json.ObjectJsonConverter!
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement)
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).IsNullOrUndefined() -> bool
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).OrEmptyObject() -> System.Text.Json.JsonElement

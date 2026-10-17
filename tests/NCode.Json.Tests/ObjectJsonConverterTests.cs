@@ -1,7 +1,6 @@
 #region Copyright Preamble
 
-//
-//    Copyright @ 2023 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -17,18 +16,17 @@
 
 #endregion
 
+using System.Text;
 using System.Text.Json;
-using NCode.Buffers;
-using NCode.Identity.Jose.Json;
 
-namespace NCode.Identity.Jose.Tests.Json;
+namespace NCode.Json.Tests;
 
-public class JoseObjectJsonConverterTests
+public class ObjectJsonConverterTests
 {
     [Fact]
     public void RoundTrip_SerializeDeserializeVariousTypes_ProducesEqualJson()
     {
-        var converter = JoseObjectJsonConverter.Singleton;
+        var converter = ObjectJsonConverter.Singleton;
 
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
@@ -57,7 +55,7 @@ public class JoseObjectJsonConverterTests
         converter.Write(writer, input, options);
 
         var bytes = stream.ToArray();
-        var json = SecureEncoding.UTF8.GetString(bytes);
+        var json = Encoding.UTF8.GetString(bytes);
         Assert.Equal(expected, json);
 
         var reader = new Utf8JsonReader(bytes);

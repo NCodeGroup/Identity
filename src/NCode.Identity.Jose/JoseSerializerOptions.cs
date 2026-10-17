@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -19,7 +19,7 @@
 
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.Jose.Json;
+using NCode.Json;
 
 namespace NCode.Identity.Jose;
 
@@ -38,5 +38,5 @@ public sealed class JoseSerializerOptions
     /// Gets the <see cref="JsonSerializerOptions"/> that is used for JSON serialization.
     /// </summary>
     public JsonSerializerOptions JsonSerializerOptions { get; } =
-        new(JsonSerializerDefaults.Web) { Converters = { JoseObjectJsonConverter.Singleton } };
+        new(JsonSerializerDefaults.Web) { Converters = { ObjectJsonConverter.Singleton } };
 }

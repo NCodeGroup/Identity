@@ -13,6 +13,7 @@
     </Folder>
     <Folder Name="/tests/">
         <Project Path="tests/NCode.Identity.Jwk.Tests/NCode.Identity.Jwk.Tests.csproj" />
+        <Project Path="tests/NCode.Json.Tests/NCode.Json.Tests.csproj" />
     </Folder>
     <Project Path="src/NCode.Identity.Abstractions/NCode.Identity.Abstractions.csproj" />
     <Project Path="src/NCode.Identity.AspNetCore.Abstractions/NCode.Identity.AspNetCore.Abstractions.csproj" />

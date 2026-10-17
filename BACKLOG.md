@@ -183,17 +183,6 @@ entry and/or ADR that closed it.
     response modes are a hardcoded switch in `DefaultAuthorizationResultExecutor` today); **FAPI 1.0 Advanced**; and **S3**
     BYOK static public-key import (secondary to `jwks_uri`).
 
-- **`F29` — EdDSA (Ed25519 / Ed448) signing algorithm support.** The JOSE library implements RSA (`RS*`/`PS*`) and ECDSA
-  (`ES*`) signatures but not **EdDSA** (the JWA `alg` value `EdDSA`, RFC 8037), the modern Edwards-curve signature scheme
-  FAPI 2.0 permits. The algorithm code constant exists (`AlgorithmCodes.DigitalSignature.EdDsa`) and the FAPI security
-  profile already lists `EdDSA` in its signing-algorithm ceiling, so it is **advertised/permitted the moment the
-  implementation lands** (the ceiling intersects with the server's actually-supported set). Deliverables: an
-  `Ed25519`/`Ed448` `SignatureAlgorithm` (sign + verify) registered in `DefaultAlgorithmDataSource`, an `OKP`-family
-  `SecretKey` / key-type descriptor (`crv` = `Ed25519`/`Ed448`, the JWK `OKP` key type) with JWK/PEM import and export,
-  and coverage in the JOSE round-trip tests. Touch points: `src/NCode.Identity.Jose/Algorithms/`,
-  `src/NCode.Identity.Secrets/Logic/` (a new OKP descriptor alongside the RSA/ECC ones),
-  `src/NCode.Identity.Jose/Algorithms/DefaultAlgorithmDataSource.cs`.
-
 - **`F27` — JARM (JWT Secured Authorization Response Mode) + response-mode extensibility seam.** Signed/encrypted
   authorization responses (`query.jwt`, `fragment.jwt`, `form_post.jwt`, `jwt`). **Not required by FAPI 2.0** (which
   reduces the response to `code`+`iss`), so this was spun out of `F16`; it **is** required by FAPI 1.0 Advanced and is
@@ -232,9 +221,11 @@ entry and/or ADR that closed it.
   [`src/NCode.Identity.Jose/Algorithms/DefaultAlgorithmDataSource.cs`](src/NCode.Identity.Jose/Algorithms/DefaultAlgorithmDataSource.cs)
   over three `SecretKey` types (`Symmetric`, `Rsa`, `Ecc` with NIST P-256/384/521 only). Everything standardized **after**
   RFC 7518 is absent. Candidate additions, in rough priority order:
-    1. **EdDSA (RFC 8037)** — the only _ratified_ standards-track gap: `EdDSA` signatures over **Ed25519**/**Ed448**,
-       **ECDH-ES with X25519/X448** (Montgomery curves), and a new **`OKP` (Octet Key Pair) `SecretKey`** type alongside
-       `Ecc`. .NET 10 provides native Ed25519/ML-DSA primitives, so this no longer requires BouncyCastle.
+    1. **EdDSA (RFC 8037)** — **signing is done** (see completed `F29`): `EdDSA` over **Ed25519**/**Ed448** and a new
+       **`OKP` (Octet Key Pair) `SecretKey`** type ship as the opt-in `NCode.Identity.Jose.EdDsa` package, a clean-room
+       RFC 8032 implementation with zero third-party cryptographic dependency. The remaining EdDSA-family gap is
+       key-agreement: **ECDH-ES with X25519/X448** (Montgomery curves) for JWE, which has no BCL primitive and is a
+       separate future addition.
     2. **Post-quantum (FIPS 203/204/205)** — **ML-DSA** (Dilithium) and **SLH-DSA** (SPHINCS+) signatures, **ML-KEM**
        (Kyber) key encapsulation for JWE, and **hybrid** schemes (e.g. X25519+ML-KEM). The IETF COSE/JOSE registrations
        are still **draft** (codes may change), so this is prototype-behind-the-draft-codes, not a stable-surface commit.

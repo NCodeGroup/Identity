@@ -111,5 +111,7 @@
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="JunitXml.TestLogger" Version="8.0.0" />
     <PackageVersion Include="jose-jwt" Version="5.3.0" />
+    <!-- Test-only differential oracle for the clean-room EdDSA implementation; never referenced by shipping code. -->
+    <PackageVersion Include="BouncyCastle.Cryptography" Version="2.7.0" />
   </ItemGroup>
 </Project>

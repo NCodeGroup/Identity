@@ -18,8 +18,7 @@
 #endregion
 
 using System.Security.Cryptography;
-using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.KeyMaterial;
 
 namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 

@@ -22,8 +22,9 @@ using System.Buffers.Text;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Extensions.DataProtection;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence.Logic;

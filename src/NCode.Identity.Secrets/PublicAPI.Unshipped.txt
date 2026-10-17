@@ -2,46 +2,46 @@
 NCode.Identity.Secrets.DefaultRegistration
 NCode.Identity.Secrets.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Secrets.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddSecretsLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.AkpSecretKeyTypeDescriptor(NCode.Extensions.DataProtection.IDataProtectorFactory<NCode.Identity.Secrets.Keys.SecretKey!>! dataProtectorFactory) -> void
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.Logic.ExportedPublicKey?
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial!
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.Logic.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial!
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.IsAsymmetric.get -> bool
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.KeyType.get -> string!
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
-NCode.Identity.Secrets.Logic.AkpSecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters! parameters) -> string?
-NCode.Identity.Secrets.Logic.DataProtectorExtensions
-NCode.Identity.Secrets.Logic.DataProtectorExtensions.extension(Microsoft.AspNetCore.DataProtection.IDataProtector!)
-NCode.Identity.Secrets.Logic.DataProtectorExtensions.extension(Microsoft.AspNetCore.DataProtection.IDataProtector!).ExportAsymmetricAlgorithm<T>(System.ReadOnlySpan<byte> protectedPkcs8PrivateKey, System.Func<T!>! algorithmFactory) -> T!
-NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor
-NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.SecretKeyTypeDescriptor() -> void
-NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.SecretKeyFactory.get -> NCode.Identity.Secrets.Logic.ISecretKeyFactory!
-NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.IsAsymmetric.get -> bool
-abstract NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
-abstract NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.KeyType.get -> string!
-virtual NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
-virtual NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
-abstract NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters! parameters) -> string?
-abstract NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial!
-virtual NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.Logic.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial!
-abstract NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!
-static NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.ExportProtectedPkcs8(System.Security.Cryptography.AsymmetricAlgorithm! algorithm, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial!
-static NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.RejectCurveIfPresent(NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters! parameters) -> string?
-NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor
-NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.AsymmetricSecretKeyTypeDescriptor(NCode.Identity.Secrets.Logic.ISecretKeyFactory! secretKeyFactory) -> void
-abstract NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.ExpectedJwkKeyType.get -> string!
-override NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.Logic.ExportedPublicKey?
-abstract NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.WritePublicKeyJwk(NCode.Identity.Secrets.Keys.AsymmetricSecretKey! secretKey) -> System.Text.Json.Nodes.JsonObject?
-virtual NCode.Identity.Secrets.Logic.SecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.Logic.ExportedPublicKey?
-override NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.Logic.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial!
-override NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!
-abstract NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.ParseJwkPublicKey(System.Text.Json.JsonElement root) -> (byte[]! SubjectPublicKeyInfo, int KeySizeBits)
-abstract NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.ImportPublicKeyPem(string! pem) -> (byte[]! SubjectPublicKeyInfo, int KeySizeBits)
-abstract NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.TryGetCertificateKeySizeBits(System.Security.Cryptography.X509Certificates.X509Certificate2! certificate, out int keySizeBits) -> bool
-abstract NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.CreatePrivateKeyFromPkcs8(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> pkcs8) -> NCode.Identity.Secrets.Keys.SecretKey!
-abstract NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.CreatePublicKeyFromSpki(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> subjectPublicKeyInfo) -> NCode.Identity.Secrets.Keys.SecretKey!
-static NCode.Identity.Secrets.Logic.AsymmetricSecretKeyTypeDescriptor.GetRequiredBase64UrlMember(System.Text.Json.JsonElement root, string! memberName) -> byte[]!
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.AkpSecretKeyTypeDescriptor(NCode.Extensions.DataProtection.IDataProtectorFactory<NCode.Identity.Secrets.Keys.SecretKey!>! dataProtectorFactory) -> void
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey?
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial!
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial!
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.IsAsymmetric.get -> bool
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.KeyType.get -> string!
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters) -> string?
+NCode.Identity.Secrets.KeyMaterial.DataProtectorExtensions
+NCode.Identity.Secrets.KeyMaterial.DataProtectorExtensions.extension(Microsoft.AspNetCore.DataProtection.IDataProtector!)
+NCode.Identity.Secrets.KeyMaterial.DataProtectorExtensions.extension(Microsoft.AspNetCore.DataProtection.IDataProtector!).ExportAsymmetricAlgorithm<T>(System.ReadOnlySpan<byte> protectedPkcs8PrivateKey, System.Func<T!>! algorithmFactory) -> T!
+NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor
+NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.SecretKeyTypeDescriptor() -> void
+NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.SecretKeyFactory.get -> NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory!
+NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.IsAsymmetric.get -> bool
+abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
+abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.KeyType.get -> string!
+virtual NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
+virtual NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
+abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters) -> string?
+abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial!
+virtual NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial!
+abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!
+static NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.ExportProtectedPkcs8(System.Security.Cryptography.AsymmetricAlgorithm! algorithm, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial!
+static NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.RejectCurveIfPresent(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters) -> string?
+NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor
+NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.AsymmetricSecretKeyTypeDescriptor(NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory! secretKeyFactory) -> void
+abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.ExpectedJwkKeyType.get -> string!
+override NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey?
+abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.WritePublicKeyJwk(NCode.Identity.Secrets.Keys.AsymmetricSecretKey! secretKey) -> System.Text.Json.Nodes.JsonObject?
+virtual NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey?
+override NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial!
+override NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!
+abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.ParseJwkPublicKey(System.Text.Json.JsonElement root) -> (byte[]! SubjectPublicKeyInfo, int KeySizeBits)
+abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.ImportPublicKeyPem(string! pem) -> (byte[]! SubjectPublicKeyInfo, int KeySizeBits)
+abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.TryGetCertificateKeySizeBits(System.Security.Cryptography.X509Certificates.X509Certificate2! certificate, out int keySizeBits) -> bool
+abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.CreatePrivateKeyFromPkcs8(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> pkcs8) -> NCode.Identity.Secrets.Keys.SecretKey!
+abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.CreatePublicKeyFromSpki(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> subjectPublicKeyInfo) -> NCode.Identity.Secrets.Keys.SecretKey!
+static NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.GetRequiredBase64UrlMember(System.Text.Json.JsonElement root, string! memberName) -> byte[]!

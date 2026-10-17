@@ -22,8 +22,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.EdDsa.Algorithms;
-using NCode.Identity.Jose.EdDsa.Logic;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Jose.EdDsa.KeyTypes;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.Jose.EdDsa;
 

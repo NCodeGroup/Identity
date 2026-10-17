@@ -17,7 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.Collections;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 

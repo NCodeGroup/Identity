@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -37,7 +36,7 @@ using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;

@@ -25,9 +25,9 @@ using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Collections;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.Logic;
 

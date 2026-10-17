@@ -18,7 +18,6 @@
 
 using System.Globalization;
 using Moq;
-using NCode.Identity;
 using NCode.Identity.Dispatch;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
@@ -31,8 +30,8 @@ using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Secrets.Logic;
 using NCode.Identity.Settings;
 using Xunit;
 

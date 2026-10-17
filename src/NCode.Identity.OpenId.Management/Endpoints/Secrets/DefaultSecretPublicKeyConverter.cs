@@ -18,7 +18,7 @@
 
 using System.Text.Json;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 

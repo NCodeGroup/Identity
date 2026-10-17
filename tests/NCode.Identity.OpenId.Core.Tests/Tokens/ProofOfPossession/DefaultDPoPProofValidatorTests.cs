@@ -29,7 +29,7 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Settings;
 using Xunit;
 

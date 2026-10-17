@@ -21,9 +21,9 @@ using Microsoft.AspNetCore.DataProtection;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Jose.Algorithms.Signature;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Secrets.Logic;
-using Xunit;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.Jose.Tests.Algorithms.Signature;
 

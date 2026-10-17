@@ -18,9 +18,8 @@
 #endregion
 
 
-using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Secrets.Logic;
 
 namespace NCode.Identity.Jose.Tests.SecretKeys;
 

@@ -21,7 +21,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Settings;

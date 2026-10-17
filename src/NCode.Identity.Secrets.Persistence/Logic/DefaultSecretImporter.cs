@@ -20,7 +20,8 @@ using System.Buffers;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Encoders;
 using NCode.Extensions.DataProtection;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence.Logic;

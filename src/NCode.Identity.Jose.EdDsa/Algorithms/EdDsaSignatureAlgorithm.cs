@@ -20,10 +20,9 @@ using System.Security.Cryptography;
 using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.EdDsa.Keys;
-using NCode.Identity.Jose.EdDsa.Logic;
-using NCode.Identity.Secrets;
+using NCode.Identity.Jose.EdDsa.KeyTypes;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Secrets.Logic;
 
 namespace NCode.Identity.Jose.EdDsa.Algorithms;
 

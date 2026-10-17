@@ -22,7 +22,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Capabilities;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 

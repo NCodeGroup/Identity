@@ -173,6 +173,12 @@ rationale.
   `….<Type>() -> void` entry. Entries are a **set**, so exact sort order is not required for the build, though the file
   is kept sorted. A C# 14 `extension(Receiver)` member needs **two** entries — the `….extension(Receiver!)` container
   line **and** the member line — so when hand-editing (every `DefaultRegistration` method is such a member), add both.
+- ⏳ **At most one overload per method name may carry optional parameters (`RS0026`).** The public-API analyzer fails
+  the build when two overloads of the same name each declare a defaulted parameter (even when their other parameters
+  differ in type, so there is no call ambiguity). When a family of overloads needs an optional tail argument (e.g. a
+  `JsonSerializerOptions? jsonOptions`), do **not** give several of them `= null` defaults; express them as explicit
+  no-argument / with-argument overload pairs (the trailing parameter is present but **not** defaulted), which reads
+  unambiguously and satisfies the analyzer. `IJoseSerializer.Deserialize<T>` / `VerifyJws<T>` follow this shape.
 - 👁 **Required inputs are constructor parameters; optional inputs are `init` properties.** Never add an optional value
   as a new constructor parameter — once shipped that is a binary-breaking signature change. Add it as an `init`
   property, model "unspecified" as nullable, and resolve the default **inside the library**.

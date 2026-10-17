@@ -346,18 +346,21 @@ public class JoseSerializerTests : BaseTests
             Assert.DoesNotContain("kid", deserializedHeaders);
         }
 
-        var decodedPayload = JoseSerializer.Decode(token, secretKey, out var decodedHeaders);
+        var decodedToken = JoseSerializer.Parse(token);
+        var decodedPayload = JoseSerializer.Decode(decodedToken, secretKey);
+        var decodedHeaders = decodedToken.Header;
         Assert.Equal(JsonSerializer.Serialize(originalPayload), decodedPayload);
         Assert.Equal(
             JsonSerializer.Serialize(deserializedHeaders),
             JsonSerializer.Serialize(decodedHeaders)
         );
 
+        var deserializedToken = JoseSerializer.Parse(token);
         var deserializedPayload = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(
-            token,
-            secretKey,
-            out var deserializedHeaders2
+            deserializedToken,
+            secretKey
         );
+        var deserializedHeaders2 = deserializedToken.Header;
         Assert.Equal(
             JsonSerializer.Serialize(originalPayload),
             JsonSerializer.Serialize(deserializedPayload)
@@ -408,11 +411,12 @@ public class JoseSerializerTests : BaseTests
         var jsonPayload = JWT.Decode(originalToken, controlKey, jwtSettings);
         Assert.Equal(JsonSerializer.Serialize(originalPayload), jsonPayload);
 
+        var parsedToken = JoseSerializer.Parse(originalToken);
         var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(
-            originalToken,
-            secretKey,
-            out var header
+            parsedToken,
+            secretKey
         );
+        var header = parsedToken.Header;
         Assert.Equal(originalPayload, actualPayload);
 
         var headerToVerify = header.Deserialize<Dictionary<string, object?>>(
@@ -504,24 +508,25 @@ public class JoseSerializerTests : BaseTests
         var jsonPayload = JWT.Decode(originalToken, controlKey, jwtSettings, detachedPayload);
         Assert.Equal(JsonSerializer.Serialize(originalPayload), jsonPayload);
 
+        var parsedToken = JoseSerializer.Parse(originalToken);
         JsonElement header;
         if (detachPayload)
         {
             JoseSerializer.VerifyJws(
-                originalToken,
+                parsedToken,
                 secretKey,
                 originalPayload,
-                JsonSerializerOptions,
-                out header
+                JsonSerializerOptions
             );
+            header = parsedToken.Header;
         }
         else
         {
             var actualPayload = JoseSerializer.Deserialize<Dictionary<string, object>>(
-                originalToken,
-                secretKey,
-                out header
+                parsedToken,
+                secretKey
             );
+            header = parsedToken.Header;
             Assert.Equal(originalPayload, actualPayload);
         }
 
@@ -578,26 +583,20 @@ public class JoseSerializerTests : BaseTests
         var json = JsonSerializer.Serialize(payload, JoseSerializerOptions.JsonSerializerOptions);
         var token2 = encoder.Encode(json);
 
+        var parsedToken = JoseSerializer.Parse(token);
+        var parsedToken2 = JoseSerializer.Parse(token2);
         JsonElement deserializedHeaders;
         if (detachPayload)
         {
-            JoseSerializer.VerifyJws(
-                token,
-                secretKey,
-                payload,
-                JsonSerializerOptions,
-                out deserializedHeaders
-            );
-            JoseSerializer.VerifyJws(token, secretKey, json, out var deserializedHeaders2);
+            JoseSerializer.VerifyJws(parsedToken, secretKey, payload, JsonSerializerOptions);
+            deserializedHeaders = parsedToken.Header;
+            JoseSerializer.VerifyJws(parsedToken, secretKey, json);
+            var deserializedHeaders2 = parsedToken.Header;
 
-            JoseSerializer.VerifyJws(
-                token2,
-                secretKey,
-                payload,
-                JsonSerializerOptions,
-                out var deserializedHeaders3
-            );
-            JoseSerializer.VerifyJws(token2, secretKey, json, out var deserializedHeaders4);
+            JoseSerializer.VerifyJws(parsedToken2, secretKey, payload, JsonSerializerOptions);
+            var deserializedHeaders3 = parsedToken2.Header;
+            JoseSerializer.VerifyJws(parsedToken2, secretKey, json);
+            var deserializedHeaders4 = parsedToken2.Header;
 
             Assert.Equal(
                 JsonSerializer.Serialize(deserializedHeaders),
@@ -615,17 +614,17 @@ public class JoseSerializerTests : BaseTests
         else
         {
             var deserialized = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(
-                token,
-                secretKey,
-                out deserializedHeaders
+                parsedToken,
+                secretKey
             );
+            deserializedHeaders = parsedToken.Header;
             Assert.Equal(JsonSerializer.Serialize(payload), JsonSerializer.Serialize(deserialized));
 
             var deserialized2 = JoseSerializer.Deserialize<IReadOnlyDictionary<string, object>>(
-                token2,
-                secretKey,
-                out var deserializedHeaders2
+                parsedToken2,
+                secretKey
             );
+            var deserializedHeaders2 = parsedToken2.Header;
             Assert.Equal(
                 JsonSerializer.Serialize(payload),
                 JsonSerializer.Serialize(deserialized2)

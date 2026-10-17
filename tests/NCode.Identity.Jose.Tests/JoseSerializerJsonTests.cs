@@ -122,7 +122,9 @@ public class JoseSerializerJsonTests : BaseTests
         Assert.True(root.TryGetProperty("signature", out _));
         Assert.False(root.TryGetProperty("signatures", out _));
 
-        var decoded = JoseSerializer.Decode(token, credentials.SecretKey, out var header);
+        var parsed = JoseSerializer.Parse(token);
+        var decoded = JoseSerializer.Decode(parsed, credentials.SecretKey);
+        var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.Equal("RS256", header.GetProperty("alg").GetString());
     }
@@ -188,7 +190,9 @@ public class JoseSerializerJsonTests : BaseTests
         var unprotected = document.RootElement.GetProperty("header");
         Assert.Equal("rsa-1", unprotected.GetProperty("kid").GetString());
 
-        var decoded = JoseSerializer.Decode(token, credentials.SecretKey, out var header);
+        var parsed = JoseSerializer.Parse(token);
+        var decoded = JoseSerializer.Decode(parsed, credentials.SecretKey);
+        var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.Equal("rsa-1", header.GetProperty("kid").GetString());
     }
@@ -221,7 +225,9 @@ public class JoseSerializerJsonTests : BaseTests
 
         var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
 
-        var decoded = JoseSerializer.Decode(token, credentials.SecretKey, out var header);
+        var parsed = JoseSerializer.Parse(token);
+        var decoded = JoseSerializer.Decode(parsed, credentials.SecretKey);
+        var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.False(header.GetProperty("b64").GetBoolean());
     }
@@ -316,11 +322,9 @@ public class JoseSerializerJsonTests : BaseTests
         Assert.True(root.TryGetProperty("tag", out _));
         Assert.False(root.TryGetProperty("recipients", out _));
 
-        var decoded = JoseSerializer.Decode(
-            token,
-            recipient.KeyManagementCredentials.SecretKey,
-            out var header
-        );
+        var parsed = JoseSerializer.Parse(token);
+        var decoded = JoseSerializer.Decode(parsed, recipient.KeyManagementCredentials.SecretKey);
+        var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.Equal("RSA-OAEP", header.GetProperty("alg").GetString());
         Assert.Equal("A256GCM", header.GetProperty("enc").GetString());
@@ -372,11 +376,9 @@ public class JoseSerializerJsonTests : BaseTests
             document.RootElement.GetProperty("unprotected").GetProperty("foo").GetString()
         );
 
-        var decoded = JoseSerializer.Decode(
-            token,
-            recipient.KeyManagementCredentials.SecretKey,
-            out var header
-        );
+        var parsed = JoseSerializer.Parse(token);
+        var decoded = JoseSerializer.Decode(parsed, recipient.KeyManagementCredentials.SecretKey);
+        var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.Equal("bar", header.GetProperty("foo").GetString());
     }
@@ -396,11 +398,9 @@ public class JoseSerializerJsonTests : BaseTests
 
         var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
 
-        var decoded = JoseSerializer.Decode(
-            token,
-            recipient.KeyManagementCredentials.SecretKey,
-            out var header
-        );
+        var parsed = JoseSerializer.Parse(token);
+        var decoded = JoseSerializer.Decode(parsed, recipient.KeyManagementCredentials.SecretKey);
+        var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.Equal("DEF", header.GetProperty("zip").GetString());
     }

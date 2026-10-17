@@ -233,16 +233,13 @@ internal class DefaultLoadAuthorizationRequestHandler(
     {
         try
         {
-            var compactJwt = JoseSerializer.ParseCompactJwt(requestJwt);
-            if (compactJwt.ProtectionType != JoseProtectionTypes.Jws)
+            var joseToken = JoseSerializer.Parse(requestJwt);
+            if (joseToken.ProtectionType != JoseProtectionTypes.Jws)
             {
                 return false;
             }
 
-            return compactJwt.DeserializedHeader.TryGetProperty(
-                    JoseClaimNames.Header.Alg,
-                    out var algElement
-                )
+            return joseToken.Header.TryGetProperty(JoseClaimNames.Header.Alg, out var algElement)
                 && algElement.ValueKind == JsonValueKind.String
                 && string.Equals(
                     algElement.GetString(),

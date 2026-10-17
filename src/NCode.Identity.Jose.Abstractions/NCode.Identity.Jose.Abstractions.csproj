@@ -7,23 +7,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NCode.Identity.Jwk\NCode.Identity.Jwk.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
-        <PackageReference Include="Microsoft.Extensions.Primitives" />
-        <PackageReference Include="NCode.Buffers" />
     </ItemGroup>
 
     <ItemGroup>
         <Compile Update="Algorithms\AlgorithmCodes.*.cs">
             <DependentUpon>AlgorithmCodes.cs</DependentUpon>
-        </Compile>
-        <Compile Update="IJoseSerializer.*.cs">
-            <DependentUpon>IJoseSerializer.cs</DependentUpon>
         </Compile>
         <Compile Update="JoseSignatureOptions.cs">
             <DependentUpon>JoseSigningOptions.cs</DependentUpon>

@@ -9,13 +9,13 @@ NCode.Identity.Secrets.Keys.AkpSecretKey.Algorithm.get -> System.Security.Crypto
 NCode.Identity.Secrets.Keys.AkpSecretKey.AlgorithmName.get -> string!
 NCode.Identity.Secrets.Keys.AkpSecretKey.ExportPublicKey<TWriter>(ref TWriter destination) -> void
 NCode.Identity.Secrets.Keys.AkpSecretKey.RawPublicKey.get -> System.ReadOnlyMemory<byte>
-NCode.Identity.Secrets.Logic.ExportedPublicKey
-NCode.Identity.Secrets.Logic.ExportedPublicKey.ExportedPublicKey() -> void
-NCode.Identity.Secrets.Logic.ExportedPublicKey.Jwk.get -> System.Text.Json.Nodes.JsonObject!
-NCode.Identity.Secrets.Logic.ExportedPublicKey.Jwk.init -> void
-NCode.Identity.Secrets.Logic.ExportedPublicKey.Pem.get -> string!
-NCode.Identity.Secrets.Logic.ExportedPublicKey.Pem.init -> void
-NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.Logic.ExportedPublicKey?
+NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey
+NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey.ExportedPublicKey() -> void
+NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey.Jwk.get -> System.Text.Json.Nodes.JsonObject!
+NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey.Jwk.init -> void
+NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey.Pem.get -> string!
+NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey.Pem.init -> void
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.ExportPublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> NCode.Identity.Secrets.KeyMaterial.ExportedPublicKey?
 abstract NCode.Identity.Secrets.Keys.AsymmetricSecretKey.ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination) -> void
 NCode.Identity.Secrets.Keys.AsymmetricSecretKey.ExportCertificate() -> System.Security.Cryptography.X509Certificates.X509Certificate2?
 NCode.Identity.Secrets.Keys.AsymmetricSecretKey.CertificateRawData.get -> System.ReadOnlyMemory<byte>?
@@ -61,75 +61,75 @@ NCode.Identity.Secrets.Keys.SecretKey
 NCode.Identity.Secrets.Keys.SecretKey.SecretKey() -> void
 NCode.Identity.Secrets.Keys.SymmetricSecretKey
 NCode.Identity.Secrets.Keys.SymmetricSecretKey.SymmetricSecretKey() -> void
-NCode.Identity.Secrets.Logic.EccCurveSpecification
-NCode.Identity.Secrets.Logic.EccCurveSpecification.Curve.get -> System.Security.Cryptography.ECCurve
-NCode.Identity.Secrets.Logic.EccCurveSpecification.Curve.init -> void
-NCode.Identity.Secrets.Logic.EccCurveSpecification.CurveName.get -> string!
-NCode.Identity.Secrets.Logic.EccCurveSpecification.CurveName.init -> void
-NCode.Identity.Secrets.Logic.EccCurveSpecification.CurveSizeBits.get -> int
-NCode.Identity.Secrets.Logic.EccCurveSpecification.CurveSizeBits.init -> void
-NCode.Identity.Secrets.Logic.EccCurveSpecification.EccCurveSpecification() -> void
-NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial
-NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial.GeneratedSecretKeyMaterial() -> void
-NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial.KeySizeBits.get -> int
-NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial.KeySizeBits.init -> void
-NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial.ProtectedKeyMaterial.get -> string!
-NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial.ProtectedKeyMaterial.init -> void
-NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial.SecretMaterial.get -> string?
-NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial.SecretMaterial.init -> void
-NCode.Identity.Secrets.Logic.IEccCurveCatalog
-NCode.Identity.Secrets.Logic.IEccCurveCatalog.Curves.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Logic.EccCurveSpecification!>!
-NCode.Identity.Secrets.Logic.IEccCurveCatalog.TryGetByCurve(System.Security.Cryptography.ECCurve curve, out NCode.Identity.Secrets.Logic.EccCurveSpecification? specification) -> bool
-NCode.Identity.Secrets.Logic.IEccCurveCatalog.TryGetByCurveSizeBits(int curveSizeBits, out NCode.Identity.Secrets.Logic.EccCurveSpecification? specification) -> bool
-NCode.Identity.Secrets.Logic.IEccCurveCatalog.TryGetByName(string! curveName, out NCode.Identity.Secrets.Logic.EccCurveSpecification? specification) -> bool
-NCode.Identity.Secrets.Logic.ISecretKeyCollection
-NCode.Identity.Secrets.Logic.ISecretKeyCollection.TryGetByKeyId(string! keyId, out NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool
-NCode.Identity.Secrets.Logic.ISecretKeyCollectionFactory
-NCode.Identity.Secrets.Logic.ISecretKeyCollectionFactory.Create(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Keys.SecretKey!>! items) -> NCode.Identity.Secrets.Logic.ISecretKeyCollection!
-NCode.Identity.Secrets.Logic.ISecretKeyCollectionProvider
-NCode.Identity.Secrets.Logic.ISecretKeyCollectionProviderFactory
-NCode.Identity.Secrets.Logic.ISecretKeyCollectionProviderFactory.Create(NCode.Collections.Providers.ICollectionDataSource<NCode.Identity.Secrets.Keys.SecretKey!>! dataSource, bool owns) -> NCode.Identity.Secrets.Logic.ISecretKeyCollectionProvider!
-NCode.Identity.Secrets.Logic.ISecretKeyCollectionProviderFactory.Create(System.Collections.Generic.IEnumerable<NCode.Collections.Providers.ICollectionDataSource<NCode.Identity.Secrets.Keys.SecretKey!>!>! dataSources, bool owns) -> NCode.Identity.Secrets.Logic.ISecretKeyCollectionProvider!
-NCode.Identity.Secrets.Logic.ISecretKeyCollectionProviderFactory.CreateStatic(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Keys.SecretKey!>! secretKeys) -> NCode.Identity.Secrets.Logic.ISecretKeyCollectionProvider!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.Create(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.X509Certificates.X509Certificate2! certificate) -> NCode.Identity.Secrets.Keys.AsymmetricSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateEcc(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.ECAlgorithm! key, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateEccPem(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<char> chars, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateEccPkcs8(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateEccPublicKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.ECAlgorithm! publicKey, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateEccSpki(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateRsa(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.RSA! key, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateRsaPem(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<char> chars, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateRsaPkcs8(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateRsaPublicKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.RSA! publicKey, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateRsaSpki(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateSymmetric(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes) -> NCode.Identity.Secrets.Keys.SymmetricSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.CreateSymmetric(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<char> password) -> NCode.Identity.Secrets.Keys.SymmetricSecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyFactory.Empty.get -> NCode.Identity.Secrets.Keys.SecretKey!
-NCode.Identity.Secrets.Logic.ISecretKeyTypeCatalog
-NCode.Identity.Secrets.Logic.ISecretKeyTypeCatalog.Descriptors.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor!>!
-NCode.Identity.Secrets.Logic.ISecretKeyTypeCatalog.TryGet(string! keyType, out NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor? descriptor) -> bool
-NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor
-NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial!
-NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.IsAsymmetric.get -> bool
-NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
-NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.KeyType.get -> string!
-NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
-NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters! parameters) -> string?
-NCode.Identity.Secrets.Logic.KeySizesUtility
-NCode.Identity.Secrets.Logic.SecretKeyExpiresWhenComparer
-NCode.Identity.Secrets.Logic.SecretKeyExpiresWhenComparer.Compare(NCode.Identity.Secrets.Keys.SecretKey? x, NCode.Identity.Secrets.Keys.SecretKey? y) -> int
-NCode.Identity.Secrets.Logic.SecretKeyExpiresWhenComparer.SecretKeyExpiresWhenComparer() -> void
-NCode.Identity.Secrets.Logic.SecretKeyExtensions
-NCode.Identity.Secrets.Logic.SecretKeyExtensions.extension(NCode.Identity.Secrets.Keys.SecretKey!)
-NCode.Identity.Secrets.Logic.SecretKeyExtensions.extension(NCode.Identity.Secrets.Keys.SecretKey!).Validate<T>(System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>! legalKeyBitSizes) -> T!
-NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters
-NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters.Curve.get -> string?
-NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters.Curve.init -> void
-NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters.KeySizeBits.get -> int
-NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters.KeySizeBits.init -> void
-NCode.Identity.Secrets.Logic.SecretKeyGenerationParameters.SecretKeyGenerationParameters() -> void
-NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.Curve.get -> System.Security.Cryptography.ECCurve
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.Curve.init -> void
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.CurveName.get -> string!
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.CurveName.init -> void
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.CurveSizeBits.get -> int
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.CurveSizeBits.init -> void
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.EccCurveSpecification() -> void
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.GeneratedSecretKeyMaterial() -> void
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.KeySizeBits.get -> int
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.KeySizeBits.init -> void
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.ProtectedKeyMaterial.get -> string!
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.ProtectedKeyMaterial.init -> void
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretMaterial.get -> string?
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretMaterial.init -> void
+NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog
+NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.Curves.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!>!
+NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.TryGetByCurve(System.Security.Cryptography.ECCurve curve, out NCode.Identity.Secrets.KeyTypes.EccCurveSpecification? specification) -> bool
+NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.TryGetByCurveSizeBits(int curveSizeBits, out NCode.Identity.Secrets.KeyTypes.EccCurveSpecification? specification) -> bool
+NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.TryGetByName(string! curveName, out NCode.Identity.Secrets.KeyTypes.EccCurveSpecification? specification) -> bool
+NCode.Identity.Secrets.Collections.ISecretKeyCollection
+NCode.Identity.Secrets.Collections.ISecretKeyCollection.TryGetByKeyId(string! keyId, out NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool
+NCode.Identity.Secrets.Collections.ISecretKeyCollectionFactory
+NCode.Identity.Secrets.Collections.ISecretKeyCollectionFactory.Create(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Keys.SecretKey!>! items) -> NCode.Identity.Secrets.Collections.ISecretKeyCollection!
+NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider
+NCode.Identity.Secrets.Collections.ISecretKeyCollectionProviderFactory
+NCode.Identity.Secrets.Collections.ISecretKeyCollectionProviderFactory.Create(NCode.Collections.Providers.ICollectionDataSource<NCode.Identity.Secrets.Keys.SecretKey!>! dataSource, bool owns) -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
+NCode.Identity.Secrets.Collections.ISecretKeyCollectionProviderFactory.Create(System.Collections.Generic.IEnumerable<NCode.Collections.Providers.ICollectionDataSource<NCode.Identity.Secrets.Keys.SecretKey!>!>! dataSources, bool owns) -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
+NCode.Identity.Secrets.Collections.ISecretKeyCollectionProviderFactory.CreateStatic(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Keys.SecretKey!>! secretKeys) -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.Create(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.X509Certificates.X509Certificate2! certificate) -> NCode.Identity.Secrets.Keys.AsymmetricSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateEcc(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.ECAlgorithm! key, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateEccPem(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<char> chars, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateEccPkcs8(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateEccPublicKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.ECAlgorithm! publicKey, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateEccSpki(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.EccSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateRsa(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.RSA! key, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateRsaPem(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<char> chars, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateRsaPkcs8(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateRsaPublicKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.RSA! publicKey, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateRsaSpki(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes, System.Security.Cryptography.X509Certificates.X509Certificate2? certificate = null) -> NCode.Identity.Secrets.Keys.RsaSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateSymmetric(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> bytes) -> NCode.Identity.Secrets.Keys.SymmetricSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.CreateSymmetric(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<char> password) -> NCode.Identity.Secrets.Keys.SymmetricSecretKey!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.Empty.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeCatalog
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeCatalog.Descriptors.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor!>!
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeCatalog.TryGet(string! keyType, out NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor? descriptor) -> bool
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial!
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.IsAsymmetric.get -> bool
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.KeyType.get -> string!
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters) -> string?
+NCode.Identity.Secrets.KeyMaterial.KeySizesUtility
+NCode.Identity.Secrets.Collections.SecretKeyExpiresWhenComparer
+NCode.Identity.Secrets.Collections.SecretKeyExpiresWhenComparer.Compare(NCode.Identity.Secrets.Keys.SecretKey? x, NCode.Identity.Secrets.Keys.SecretKey? y) -> int
+NCode.Identity.Secrets.Collections.SecretKeyExpiresWhenComparer.SecretKeyExpiresWhenComparer() -> void
+NCode.Identity.Secrets.KeyMaterial.SecretKeyExtensions
+NCode.Identity.Secrets.KeyMaterial.SecretKeyExtensions.extension(NCode.Identity.Secrets.Keys.SecretKey!)
+NCode.Identity.Secrets.KeyMaterial.SecretKeyExtensions.extension(NCode.Identity.Secrets.Keys.SecretKey!).Validate<T>(System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>! legalKeyBitSizes) -> T!
+NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters
+NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters.Curve.get -> string?
+NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters.Curve.init -> void
+NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters.KeySizeBits.get -> int
+NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters.KeySizeBits.init -> void
+NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters.SecretKeyGenerationParameters() -> void
+NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector
 NCode.Identity.Secrets.SecretKeyTypes
 NCode.Identity.Secrets.SecretKeyUses
 NCode.Identity.Secrets.SecretsLibrary
@@ -139,38 +139,38 @@ override NCode.Identity.Secrets.Keys.RsaSecretKey.KeyType.get -> string!
 override NCode.Identity.Secrets.Keys.SecretKey.ToString() -> string!
 override NCode.Identity.Secrets.Keys.SymmetricSecretKey.KeyType.get -> string!
 static NCode.Identity.Secrets.Keys.SecretKey.QuoteOrNull(string? value) -> string!
-static NCode.Identity.Secrets.Logic.KeySizesUtility.IsLegalSize(System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>! legalSizes, int size) -> bool
-static NCode.Identity.Secrets.Logic.KeySizesUtility.IsLegalSize(System.Security.Cryptography.KeySizes! legalSize, int size) -> bool
-static NCode.Identity.Secrets.Logic.SecretKeyExpiresWhenComparer.Singleton.get -> NCode.Identity.Secrets.Logic.SecretKeyExpiresWhenComparer!
+static NCode.Identity.Secrets.KeyMaterial.KeySizesUtility.IsLegalSize(System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>! legalSizes, int size) -> bool
+static NCode.Identity.Secrets.KeyMaterial.KeySizesUtility.IsLegalSize(System.Security.Cryptography.KeySizes! legalSize, int size) -> bool
+static NCode.Identity.Secrets.Collections.SecretKeyExpiresWhenComparer.Singleton.get -> NCode.Identity.Secrets.Collections.SecretKeyExpiresWhenComparer!
 virtual NCode.Identity.Secrets.Keys.AsymmetricSecretKey.ExportSubjectPublicKeyInfoPem() -> string!
 const NCode.Identity.Secrets.SecretEncodings.Pkcs8 = "pkcs8" -> string!
 const NCode.Identity.Secrets.SecretEncodings.Spki = "spki" -> string!
 const NCode.Identity.Secrets.SecretEncodings.SymmetricRaw = "symmetric_raw" -> string!
 const NCode.Identity.Secrets.SecretEncodings.X509 = "x509" -> string!
 NCode.Identity.Secrets.SecretEncodings
-NCode.Identity.Secrets.Logic.SecretKeyImportFormat
-NCode.Identity.Secrets.Logic.SecretKeyImportFormat.Certificate = 2 -> NCode.Identity.Secrets.Logic.SecretKeyImportFormat
-NCode.Identity.Secrets.Logic.SecretKeyImportFormat.Jwk = 0 -> NCode.Identity.Secrets.Logic.SecretKeyImportFormat
-NCode.Identity.Secrets.Logic.SecretKeyImportFormat.Pem = 1 -> NCode.Identity.Secrets.Logic.SecretKeyImportFormat
-NCode.Identity.Secrets.Logic.SecretKeyImportParameters
-NCode.Identity.Secrets.Logic.SecretKeyImportParameters.Format.get -> NCode.Identity.Secrets.Logic.SecretKeyImportFormat
-NCode.Identity.Secrets.Logic.SecretKeyImportParameters.Format.init -> void
-NCode.Identity.Secrets.Logic.SecretKeyImportParameters.KeyMaterial.get -> string!
-NCode.Identity.Secrets.Logic.SecretKeyImportParameters.KeyMaterial.init -> void
-NCode.Identity.Secrets.Logic.SecretKeyImportParameters.SecretKeyImportParameters() -> void
-NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial
-NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial.ImportedSecretKeyMaterial() -> void
-NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial.KeySizeBits.get -> int
-NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial.KeySizeBits.init -> void
-NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial.ProtectedKeyMaterial.get -> string!
-NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial.ProtectedKeyMaterial.init -> void
-NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial.SecretEncoding.get -> string!
-NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial.SecretEncoding.init -> void
-NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial.SecretEncoding.get -> string!
-NCode.Identity.Secrets.Logic.GeneratedSecretKeyMaterial.SecretEncoding.init -> void
-NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
-NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.Logic.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.Logic.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.Logic.ImportedSecretKeyMaterial!
-NCode.Identity.Secrets.Logic.ISecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat.Certificate = 2 -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat.Jwk = 0 -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat.Pem = 1 -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.Format.get -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.Format.init -> void
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.KeyMaterial.get -> string!
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.KeyMaterial.init -> void
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.SecretKeyImportParameters() -> void
+NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial
+NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial.ImportedSecretKeyMaterial() -> void
+NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial.KeySizeBits.get -> int
+NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial.KeySizeBits.init -> void
+NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial.ProtectedKeyMaterial.get -> string!
+NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial.ProtectedKeyMaterial.init -> void
+NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial.SecretEncoding.get -> string!
+NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial.SecretEncoding.init -> void
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretEncoding.get -> string!
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretEncoding.init -> void
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial!
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!
 virtual NCode.Identity.Secrets.Keys.SecretKey.FormatToString() -> string!
 virtual NCode.Identity.Secrets.Keys.SecretKey.KeyId.get -> string?
 virtual NCode.Identity.Secrets.Keys.SecretKey.KeySizeBytes.get -> int

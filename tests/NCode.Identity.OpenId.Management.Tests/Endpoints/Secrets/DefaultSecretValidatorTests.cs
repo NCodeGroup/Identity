@@ -22,8 +22,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Logic;
-using Xunit;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 

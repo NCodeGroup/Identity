@@ -20,7 +20,8 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Logic;
+using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 

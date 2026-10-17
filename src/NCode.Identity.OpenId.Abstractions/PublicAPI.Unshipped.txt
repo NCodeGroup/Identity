@@ -709,10 +709,6 @@ NCode.Identity.OpenId.Results.OpenIdResult<T>
 NCode.Identity.OpenId.Results.OpenIdResult<T>.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext) -> System.Threading.Tasks.Task!
 NCode.Identity.OpenId.Results.OpenIdResult<T>.OpenIdResult(T! response) -> void
 NCode.Identity.OpenId.Results.OpenIdResult<T>.Response.get -> T!
-NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>
-NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.DelegatingJsonConverter() -> void
-NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.get -> bool
-NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.set -> void
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider.GetJsonConverters(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.JsonConverter!>!
 NCode.Identity.OpenId.Servers.IOpenIdServerFactory
@@ -778,9 +774,6 @@ NCode.Identity.OpenId.Tenants.TenantResolutionOptions.TenantResolutionOptions() 
 override NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>.ValueType.get -> System.Type!
 override NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.Equals(object? obj) -> bool
 override NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.GetHashCode() -> int
-override NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.CanConvert(System.Type! typeToConvert) -> bool
-override NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> TInterface?
-override NCode.Identity.OpenId.Serialization.DelegatingJsonConverter<TInterface, TImplementation>.Write(System.Text.Json.Utf8JsonWriter! writer, TInterface value, System.Text.Json.JsonSerializerOptions! options) -> void
 static NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>.implicit operator NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T>(NCode.Identity.OpenId.Messages.Parameters.KnownParameter<T>! knownParameter) -> NCode.Identity.OpenId.Messages.Parameters.ParameterKey<T>
 static NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.operator !=(NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor left, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor right) -> bool
 static NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor.operator ==(NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor left, NCode.Identity.OpenId.Messages.Parameters.ParameterDescriptor right) -> bool

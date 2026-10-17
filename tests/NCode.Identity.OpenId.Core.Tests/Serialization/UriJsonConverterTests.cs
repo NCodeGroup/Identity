@@ -18,7 +18,7 @@
 #endregion
 
 using System.Text.Json;
-using NCode.Identity.OpenId.Serialization;
+using NCode.Json;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Serialization;

@@ -20,6 +20,7 @@ using System.Text.Json.Serialization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Serialization;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization;
 

@@ -265,19 +265,10 @@ entry and/or ADR that closed it.
   claims, the `ath` access-token hash, the `nonce` challenge/replay flow, and the `jkt` (JWK SHA-256 thumbprint)
   confirmation that binds a token to the proof key. This is the JOSE primitive the OpenId authentication stack then
   consumes to issue and validate DPoP-bound access/refresh tokens; it complements the shipped `private_key_jwt`
-  client-authentication work ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)). Depends on `F33`
-  (JWK thumbprint). Touch points: [`src/NCode.Identity.Jose`](src/NCode.Identity.Jose),
+  client-authentication work ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)). The `F33` JWK thumbprint
+  (`jkt`) it needs is delivered. Touch points: [`src/NCode.Identity.Jose`](src/NCode.Identity.Jose),
   [`src/NCode.Identity.Jose.Abstractions`](src/NCode.Identity.Jose.Abstractions),
   [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication). Capture the design in an ADR.
-
-- **`F33` — First-class JWK / JWKS types + JWK Thumbprint (RFC 7517 / 7638 / 9278).** Keys live today only as
-  `SecretKey`; a modern JOSE surface also exposes **JWK** parse/serialize, **JWK Set** documents, and the
-  **JWK Thumbprint (RFC 7638)** + **Thumbprint URI (RFC 9278)**. This underpins `kid` derivation, `jwks_uri`
-  publishing/fetching, and the `jkt` confirmation that `F32` (DPoP) and mTLS-bound tokens need. A natural bridge
-  between the `SecretKey` model and the wire JWK representation. Touch points:
-  [`src/NCode.Identity.Jose.Abstractions`](src/NCode.Identity.Jose.Abstractions),
-  [`src/NCode.Identity.Secrets.Abstractions/Keys`](src/NCode.Identity.Secrets.Abstractions/Keys),
-  [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets).
 
 - **`F34` — SD-JWT + SD-JWT VC (selective disclosure).** The hottest bleeding-edge JOSE area (verifiable credentials,
   EUDI wallet). Issuer signs over salted-hash claim digests; the holder discloses a chosen subset plus a key-binding
@@ -408,8 +399,8 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
 
 - **`S8` — Key lifecycle / rotation primitives.** First-class signing-key rollover: overlapping validity windows,
   activation/retirement grace periods, automatic rotation, and a published JWKS that reflects active **and** retiring
-  keys (so verifiers accept both across a rotation) — analogous to the ASP.NET Core Data Protection key ring. Pairs with
-  `F33` (JWKS publishing) and the `S1` rotate endpoint. Touch points:
+  keys (so verifiers accept both across a rotation) — analogous to the ASP.NET Core Data Protection key ring. Builds on
+  the delivered `F33` JWK/JWKS types and the `S1` rotate endpoint. Touch points:
   [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets),
   `src/NCode.Identity.Secrets.Persistence`. Capture the design in an ADR.
 

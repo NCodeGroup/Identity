@@ -16,12 +16,11 @@
 
 #endregion
 
-using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using NCode.Identity.OpenId.Authentication.Endpoints.Jwks.Results;
+using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Registration.AspNetCore;
@@ -46,7 +45,7 @@ internal class DefaultJwksEndpointHandler(ISecretKeyTypeCatalog secretKeyTypeCat
             .MapGet(OpenIdConstants.EndpointPaths.Jwks, HandleRouteAsync)
             .WithName(OpenIdConstants.EndpointNames.Jwks)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
-            .Produces<JsonWebKeySetResult>(StatusCodes.Status200OK)
+            .Produces<JsonWebKeySet>(StatusCodes.Status200OK)
             .WithOpenIdDiscoverable();
 
     /// <summary>
@@ -59,7 +58,7 @@ internal class DefaultJwksEndpointHandler(ISecretKeyTypeCatalog secretKeyTypeCat
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's public signing keys as a JSON Web Key Set.</response>
-    internal async ValueTask<JsonHttpResult<JsonWebKeySetResult>> HandleRouteAsync(
+    internal async ValueTask<JsonHttpResult<JsonWebKeySet>> HandleRouteAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
@@ -71,7 +70,7 @@ internal class DefaultJwksEndpointHandler(ISecretKeyTypeCatalog secretKeyTypeCat
 
         // Each key's descriptor (the single extensibility seam, ADR-0104) produces its public JWK; keys with no
         // exportable public material (for example symmetric keys) are omitted.
-        var keys = new List<JsonObject>();
+        var keys = new List<JsonWebKey>();
         foreach (var secretKey in secretKeys)
         {
             if (!SecretKeyTypeCatalog.TryGet(secretKey.KeyType, out var descriptor))
@@ -86,7 +85,7 @@ internal class DefaultJwksEndpointHandler(ISecretKeyTypeCatalog secretKeyTypeCat
             }
         }
 
-        var result = new JsonWebKeySetResult { Keys = keys };
+        var result = new JsonWebKeySet(keys);
 
         return TypedResults.Json(result, openIdEnvironment.JsonSerializerOptions);
     }

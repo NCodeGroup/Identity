@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NCode.Identity.Jwk</RootNamespace>
+        <Description>First-class JSON Web Key (JWK) and JSON Web Key Set (JWKS) types for NCode.Identity, with JWK Thumbprint (RFC 7517 / 7638 / 9278) — a rich, serializable key model shared by the JOSE and Secrets libraries.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+    </ItemGroup>
+</Project>

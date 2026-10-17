@@ -22,6 +22,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using JetBrains.Annotations;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 
@@ -98,7 +99,7 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
 
         return new ExportedPublicKey
         {
-            Jwk = jwk,
+            Jwk = new JsonWebKey(jwk),
             Pem = asymmetricSecretKey.ExportSubjectPublicKeyInfoPem(),
         };
     }

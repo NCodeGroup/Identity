@@ -10,6 +10,22 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **First-class `JSON Web Key` / `JSON Web Key Set` types with `JWK Thumbprint` (RFC 7517 / 7638 / 9278), in the new
+  `NCode.Identity.Jwk` package.** `JsonWebKey` and `JsonWebKeySet` are rich, immutable types backed by a detached
+  `System.Text.Json.JsonElement` (net9+ — no backing `JsonDocument`, no cloning). `JsonWebKey` round-trips any key type
+  (`RSA`/`EC`/`OKP`/`oct`/`AKP`/…) with full member fidelity, surfaces the standard members as typed accessors, exposes
+  key-type-specific members by name (`GetMember`), detects/strips private material (`ContainsPrivateKeyMaterial` /
+  `ToPublicKey`), and computes the RFC 7638 thumbprint and RFC 9278 thumbprint URI as instance methods
+  (`ComputeThumbprint` / `ComputeThumbprintUri`) — the `jkt` fingerprint DPoP and mutual-TLS bind tokens to. The
+  package is referenced by `NCode.Identity.Secrets.Abstractions` and `NCode.Identity.Jose.Abstractions`, so JWK is
+  first-class in both the Secrets and JOSE stacks without any `*.Abstractions` package carrying logic. Construction is
+  cohesive: public `JsonWebKey(JsonElement)` / `JsonWebKey(JsonObject)` constructors for in-memory nodes and
+  `JsonWebKey.Parse(string)` for JSON text. The descriptor seam
+  ([ADR-0105](docs/adr/0105-secret-key-type-descriptor-first-class-seam.md)) still owns per-key-type member production;
+  `ExportedPublicKey.Jwk` is now a `JsonWebKey`, the JWKS endpoint returns a `JsonWebKeySet`, and the DPoP proof
+  validator parses the embedded key into a `JsonWebKey` and uses `ComputeThumbprint()` instead of a hand-rolled
+  canonical form. See [ADR-0119](docs/adr/0119-first-class-jwk-jwks-and-thumbprint.md).
+
 - **Post-quantum ML-DSA signing (FIPS 204 / RFC 9964) now ships in the core libraries.** The JWA `alg` values
   `ML-DSA-44`, `ML-DSA-65`, and `ML-DSA-87` are registered by default alongside RSA/ECC — no opt-in package — composing
   the in-box .NET 10 `System.Security.Cryptography.MLDsa` primitive with **no** third-party cryptographic dependency. A

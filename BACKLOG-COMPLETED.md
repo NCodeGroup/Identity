@@ -436,6 +436,24 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   and `src/NCode.Identity.Secrets/Logic/` were superseded by the standalone package so the core JOSE library gains no new
   dependency and no always-on algorithm._
 
+- **`F33` — First-class JWK / JWKS types + JWK Thumbprint (RFC 7517 / 7638 / 9278).** Keys lived only as `SecretKey`,
+  the JWK form existed only as a raw `JsonObject` produced by the descriptor seam, the JWKS endpoint hand-assembled a
+  result of `JsonObject` keys, and the DPoP validator computed the `jkt` from a hand-rolled canonical JSON string —
+  three duplicative treatments of one concept.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0119](docs/adr/0119-first-class-jwk-jwks-and-thumbprint.md). Delivered as the new **`NCode.Identity.Jwk`**
+  package holding rich, immutable `JsonWebKey` / `JsonWebKeySet` types backed by a detached `JsonElement` (net9+, no
+  `JsonDocument`/clone), with typed standard-member accessors, `GetMember` for key-type-specific material,
+  `ContainsPrivateKeyMaterial` / `ToPublicKey`, and `ComputeThumbprint` / `ComputeThumbprintUri` (RFC 7638 / 9278) as
+  instance methods. Construction is cohesive: public `JsonWebKey(JsonElement)` / `JsonWebKey(JsonObject)` constructors
+  and `Parse(string)` for text. Both `NCode.Identity.Secrets.Abstractions` and `NCode.Identity.Jose.Abstractions`
+  reference it, so JWK is first-class in both stacks while every `*.Abstractions` package stays logic-free. The
+  descriptor seam ([ADR-0105](docs/adr/0105-secret-key-type-descriptor-first-class-seam.md)) still owns per-key-type
+  member production; `ExportedPublicKey.Jwk` is now a `JsonWebKey`, the JWKS endpoint returns a `JsonWebKeySet` (the old
+  `JsonWebKeySetResult` is retired), the management public-key path exposes `JsonWebKey.AsElement()`, and the DPoP proof
+  validator parses the embedded key into a `JsonWebKey` and calls `ComputeThumbprint()` — one representation end-to-end,
+  no hand-rolled canonical form._
+
 ## Conformance & interop testing (group `T`)
 
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface

@@ -1,0 +1,158 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Buffers;
+using System.Collections.Immutable;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using JetBrains.Annotations;
+
+namespace NCode.Identity.Jwk;
+
+/// <summary>
+/// A first-class, immutable <c>JSON Web Key Set</c> (RFC 7517 §5): the <c>keys</c> document published at a
+/// <c>jwks_uri</c> and fetched to verify signatures or encrypt payloads.
+/// </summary>
+/// <seealso href="https://datatracker.ietf.org/doc/html/rfc7517#section-5">RFC 7517 Section 5 - JWK Set Format</seealso>
+[PublicAPI]
+[JsonConverter(typeof(JsonWebKeySetJsonConverter))]
+public sealed class JsonWebKeySet
+{
+    /// <summary>
+    /// An empty <see cref="JsonWebKeySet"/>.
+    /// </summary>
+    public static JsonWebKeySet Empty { get; } = new([]);
+
+    /// <summary>
+    /// Gets the keys that make up the set (RFC 7517 §5.1).
+    /// </summary>
+    public ImmutableArray<JsonWebKey> Keys { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonWebKeySet"/> class with the specified keys.
+    /// </summary>
+    /// <param name="keys">The keys that make up the set.</param>
+    public JsonWebKeySet(IEnumerable<JsonWebKey> keys)
+    {
+        ArgumentNullException.ThrowIfNull(keys);
+        Keys = [.. keys];
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonWebKeySet"/> class from the supplied <see cref="JsonElement"/>,
+    /// which must be a JSON object carrying a <c>keys</c> array (RFC 7517 §5.1). Array members that are not valid JWKs
+    /// are skipped so one malformed key cannot poison the whole set.
+    /// </summary>
+    /// <param name="element">The JWK Set document as a JSON object.</param>
+    public JsonWebKeySet(JsonElement element)
+        : this(ReadKeys(element)) { }
+
+    /// <summary>
+    /// Parses a <see cref="JsonWebKeySet"/> from its JSON text representation.
+    /// </summary>
+    /// <param name="json">The JWK Set JSON text.</param>
+    /// <returns>The parsed <see cref="JsonWebKeySet"/>.</returns>
+    public static JsonWebKeySet Parse(string json)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        return new JsonWebKeySet(JsonElement.Parse(json));
+    }
+
+    private static List<JsonWebKey> ReadKeys(JsonElement root)
+    {
+        // RFC 7517 §5.1: the "keys" member is REQUIRED and is an array of JWK objects.
+        if (
+            root.ValueKind != JsonValueKind.Object
+            || !root.TryGetProperty("keys", out var keys)
+            || keys.ValueKind != JsonValueKind.Array
+        )
+        {
+            throw new ArgumentException("The JWK Set is missing its 'keys' array.", nameof(root));
+        }
+
+        var list = new List<JsonWebKey>(keys.GetArrayLength());
+        foreach (var item in keys.EnumerateArray())
+        {
+            // Members with a missing or malformed 'kty' are skipped so one bad key cannot poison the whole set.
+            if (
+                item.ValueKind == JsonValueKind.Object
+                && item.TryGetProperty(JsonWebKeyParameterNames.KeyType, out var kty)
+                && kty.ValueKind == JsonValueKind.String
+            )
+            {
+                list.Add(new JsonWebKey(item));
+            }
+        }
+
+        return list;
+    }
+
+    /// <summary>
+    /// Attempts to find the key with the specified <c>kid</c>.
+    /// </summary>
+    /// <param name="keyId">The <c>kid</c> to match.</param>
+    /// <param name="key">When this method returns <c>true</c>, the matching key.</param>
+    /// <returns><c>true</c> when a matching key was found; otherwise <c>false</c>.</returns>
+    public bool TryGetKey(string keyId, out JsonWebKey? key)
+    {
+        foreach (var candidate in Keys)
+        {
+            if (string.Equals(candidate.KeyId, keyId, StringComparison.Ordinal))
+            {
+                key = candidate;
+                return true;
+            }
+        }
+
+        key = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the JSON text representation of this set.
+    /// </summary>
+    /// <returns>The JWK Set JSON text.</returns>
+    public string ToJsonString()
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            WriteTo(writer);
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    internal void WriteTo(Utf8JsonWriter writer)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("keys");
+        writer.WriteStartArray();
+        foreach (var key in Keys)
+        {
+            key.WriteTo(writer);
+        }
+
+        writer.WriteEndArray();
+        writer.WriteEndObject();
+    }
+
+    /// <inheritdoc />
+    public override string ToString() => ToJsonString();
+}

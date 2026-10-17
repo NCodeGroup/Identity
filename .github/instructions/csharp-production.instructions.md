@@ -256,6 +256,14 @@ rationale.
   (`extension(IServiceBuilder<IdentityLibrary> builder) { … }`).
 - ✅ **One receiver-type per static class.** Multiple `extension(...)` blocks with different receiver types in one class
   trip `CA1708` — split them (which also fits one-type-per-file).
+- 👁 **When two receiver interfaces are unrelated but a concrete type implements both, target their common base — do
+  not write one overload per interface.** `IDictionary<,>` and `IReadOnlyDictionary<,>` don't derive from one another,
+  yet a concrete `Dictionary<,>` implements both, so an overload on each makes every concrete-dictionary call site
+  **`CS0121` ambiguous** — and splitting the two into separate classes does **not** help, because the ambiguity is
+  between the methods, not their containers. Provide a **single** member on the common base
+  (`extension(IEnumerable<KeyValuePair<TKey,TValue>>)`) and fast-path the dictionary receivers to an O(1) lookup inside
+  (`switch` on `IReadOnlyDictionary<,>` / `IDictionary<,>`, else scan). Exemplar:
+  `NCode.Json.ObjectGraphExtensions.TryGetValue<T>`.
 - 👁 Keep null-guards on the receiver (extension members can be invoked on `null`).
 - 👁 **Name the receiver in a receiver-argument exception even though `CA2208` objects.** When an `extension(...)` member
   throws `ArgumentException` about its receiver, still pass `nameof(receiver)` — the receiver _is_ the offending argument.

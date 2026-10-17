@@ -29,7 +29,7 @@ change to the public API is a **major** version bump.
   interpreted as an RFC 7519 `NumericDate` (the target type is unknown when deserializing to `object`) — that
   interpretation remains exclusive to `JsonElements.TryGetValue<T>`, where the caller supplies an explicit date
   target type. To keep the two helpers consistent, both share the same lenient, invariant-culture date/time parsing
-  (`JsonDateParsing`) — so they recognize the same broad set of string formats (e.g. date-only values and
+  (`DateCoercion`) — so they recognize the same broad set of string formats (e.g. date-only values and
   non-hyphenated `Guid`s) and normalize kind identically: a `Z`/UTC value is `Utc`, an explicit offset is `Local`,
   and a zone-less value is labeled `Utc` (never `Unspecified`), so a parsed `DateTime` is never ambiguously treated
   as machine-local downstream.
@@ -215,6 +215,26 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   materialized zero/default without hand-rolling a `TryGetValue` dance — the reusable replacement for the
   `settings.TryGetValue(key, out var v) ? v : (TValue?)null` pattern at freshness/limit call sites. **Public surface:**
   the new `GetValueOrNull` extension in `NCode.Identity.Settings`.
+
+- **Numeric-tolerant `NCode.Json.ObjectGraphExtensions.TryGetValue<T>` for loosely-typed object graphs.** The typed
+  dictionary accessor that reads a value out of a loosely-typed object graph (the kind `ObjectJsonConverter` produces)
+  moved out of the `NCode.Identity.Jose.Abstractions` package — where it was
+  `NCode.Identity.Jose.Extensions.DictionaryExtensions.TryGetValue<T>`, logic that violated the no-logic-in-abstractions
+  rule — into the dependency-free `NCode.Json` package as `ObjectGraphExtensions.TryGetValue<T>`, co-located with
+  `JsonElements` and `ObjectJsonConverter`. The receiver is the common `IEnumerable<KeyValuePair<string, object>>` base
+  that both `IDictionary<string, object>` and `IReadOnlyDictionary<string, object>` derive from (the two are otherwise
+  unrelated), so a **single** overload serves both interface-typed callers — and any concrete dictionary that implements
+  both — without an ambiguous call; dictionary receivers are fast-pathed to an O(1) lookup. Unlike the old strict
+  `obj is T` match, which required the value to be read back as the exact CLR width it happened to box as, the new
+  accessor is **numeric-width tolerant** — a boxed integer converts across `sbyte`…`ulong`/`System.Numerics.BigInteger`
+  and the real types (range-checked, so an out-of-range read fails rather than wraps) — and interprets a boxed integer
+  requested as `DateTimeOffset`/`DateTime` as an RFC 7519 `NumericDate` (Unix seconds, UTC), matching the `JsonElement`
+  path. The epoch conversion is shared with that path via a new internal `DateCoercion` helper (the former
+  `JsonDateParsing`, broadened to cover both the string and NumericDate paths) so the two cannot drift. This also
+  **fixes** a latent bug where `DefaultJsonWebTokenService` read a caller-supplied `iat` as `long` while a subject-claim
+  `iat` boxed as `int` (`ClaimValueTypes.Integer`), so the strict match missed it and the token's `iat`/`nbf`/`exp`
+  were silently re-stamped to "now". **Public surface:** adds `NCode.Json.ObjectGraphExtensions`; removes
+  `NCode.Identity.Jose.Extensions.DictionaryExtensions`.
 
 ### Changed
 

@@ -26,6 +26,7 @@ using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Extensions;
+using NCode.Json;
 
 namespace NCode.Identity.JsonWebTokens;
 

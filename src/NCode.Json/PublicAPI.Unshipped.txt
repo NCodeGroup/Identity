@@ -4,6 +4,7 @@ NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.DelegatingJsonCo
 NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.get -> bool
 NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.set -> void
 NCode.Json.JsonElements
+NCode.Json.ObjectGraphExtensions
 NCode.Json.ObjectJsonConverter
 NCode.Json.ObjectJsonConverter.ObjectJsonConverter(NCode.Json.ObjectJsonConverterOptions! options) -> void
 NCode.Json.ObjectJsonConverterOptions
@@ -48,4 +49,6 @@ NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).IsNullOrUndefine
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).OrEmptyObject() -> System.Text.Json.JsonElement
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetPropertyValue<T>(string! propertyName, out T value) -> bool
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetValue<T>(out T value) -> bool
+NCode.Json.ObjectGraphExtensions.extension(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object!>>!)
+NCode.Json.ObjectGraphExtensions.extension(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object!>>!).TryGetValue<T>(string! key, out T value) -> bool
 static NCode.Json.JsonElements.EmptyObject.get -> System.Text.Json.JsonElement

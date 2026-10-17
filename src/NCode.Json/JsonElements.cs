@@ -35,10 +35,6 @@ public static class JsonElements
 {
     private static readonly JsonElement EmptyObjectValue = JsonElement.Parse("{}");
 
-    // Inclusive Unix-second bounds of DateTimeOffset.MinValue/MaxValue; guards NumericDate against overflow.
-    private const long MinNumericDateSeconds = -62_135_596_800;
-    private const long MaxNumericDateSeconds = 253_402_300_799;
-
     /// <summary>
     /// Gets a cached, immutable, detached <see cref="JsonElement"/> representing an empty JSON object (<c>{}</c>). The
     /// value is safe to share and re-use because it is cloned free of its owning <see cref="JsonDocument"/>.
@@ -181,10 +177,10 @@ public static class JsonElements
     }
 
     private static bool TryGetDateTimeOffset(JsonElement element, out DateTimeOffset value) =>
-        JsonDateParsing.TryParseDateTimeOffset(element.GetString(), out value);
+        DateCoercion.TryParseDateTimeOffset(element.GetString(), out value);
 
     private static bool TryGetDateTime(JsonElement element, out DateTime value) =>
-        JsonDateParsing.TryParseDateTime(element.GetString(), out value);
+        DateCoercion.TryParseDateTime(element.GetString(), out value);
 
     private static bool TryGetGuid(JsonElement element, out Guid value) =>
         // Guid.TryParse accepts all standard Guid formats (D/N/B/P/X), not only the hyphenated form the strict
@@ -316,19 +312,11 @@ public static class JsonElements
         }
 
         // RFC 7519 NumericDate: integer seconds since the Unix epoch (UTC), range-guarded against overflow.
-        var isDateTimeOffsetType =
-            typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?);
-        var isDateTimeType = typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTime?);
         if (
-            (isDateTimeOffsetType || isDateTimeType)
-            && element.TryGetInt64(out var epochSeconds)
-            && epochSeconds is >= MinNumericDateSeconds and <= MaxNumericDateSeconds
+            element.TryGetInt64(out var epochSeconds)
+            && DateCoercion.TryFromNumericDate(epochSeconds, out value)
         )
         {
-            var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(epochSeconds);
-            value = isDateTimeOffsetType
-                ? (T)(object)dateTimeOffset
-                : (T)(object)dateTimeOffset.UtcDateTime;
             return true;
         }
 

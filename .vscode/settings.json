@@ -9,5 +9,9 @@
   "[csharp]": {
     "editor.defaultFormatter": "csharpier.csharpier-vscode"
   },
+  "[markdown]": {
+    "editor.formatOnSave": false,
+    "editor.defaultFormatter": null
+  },
   "dotnet.defaultSolution": "NCode.Identity.slnx"
 }

@@ -238,16 +238,27 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
-- **The JWT library is renamed `NCode.Identity.JsonWebTokens` → `NCode.Identity.Jwt` (and the paired
-  `.Abstractions` package likewise).** The package, assembly, directory, and root namespace that house the JWT
-  encode/validate service were renamed to the shorter, family-consistent `Jwt` form — pairing with the sibling
-  `NCode.Identity.Jose(.Abstractions)` and the dominant `Jwt*` type naming — and every type moved from the
-  `NCode.Identity.JsonWebTokens` namespace to `NCode.Identity.Jwt` (sub-namespaces `…Jwt.Options` / `…Jwt.Exceptions`
-  likewise). This is the first, mechanical step of the larger JWT-validation redesign tracked as backlog item `D8`
-  (service segregation into `IJwtEncoder`/`IJwtValidator` and an ASP.NET Core-style requirement/handler validation
-  model whose contracts live in `.Abstractions`); public **type** names (`IJsonWebTokenService`,
-  `JsonWebTokensLibrary`, `AddJsonWebTokensLibrary`, `EncodeJwtParameters`, `ValidateJwtParameters`,
-  `ValidateJwtResult`, …) are intentionally unchanged by this step and are reshaped by the redesign.
+- **The JWT library is renamed `NCode.Identity.JsonWebTokens` → `NCode.Identity.Jwt` (and the paired `.Abstractions`
+  package likewise), its service is segregated, and validation is redesigned as ASP.NET Core-style
+  requirements/handlers.** (`D8`, [ADR-0120](docs/adr/0120-jwt-validation-requirements-and-handlers.md).) The package,
+  assembly, directory, and root namespace were renamed to the shorter, family-consistent `Jwt` form — pairing with the
+  sibling `NCode.Identity.Jose(.Abstractions)` and the dominant `Jwt*` type naming. The dual-purpose
+  `IJsonWebTokenService` is **split** into `IJwtEncoder` (`Encode`) and `IJwtValidator` (`ValidateAsync`); of the OpenID
+  consumers, validation-only and encode-only usage is disjoint, so interface segregation decouples each side.
+  Built-in validators are no longer an imperative fluent DSL but **pure-data `IJwtValidationRequirement` records**
+  (`ClaimValueRequirement` — with `ValidateIssuer`/`ValidateAudience` as sugar over it — plus `TokenTypeRequirement`,
+  `TokenLifetimeRequirement`, `CertificateLifetimeRequirement`, and the inline `AssertionRequirement`) carried on
+  `JwtValidationParameters.Requirements` and executed by `IJwtValidationHandler` / `JwtValidationHandler<TRequirement>`
+  strategies resolved from DI; external code contributes its own validators via `AddJwtValidationHandler<T>()`. Handlers
+  vote on a shared `JwtValidationContext` (`Succeed`/`Fail`) instead of throwing, and the validator aggregates failures
+  into a single `JwtValidationException` on the result (so `result.IsValid`/`result.Exception` consumers are
+  unaffected). All contracts, requirement records, fluent builders, exceptions, and `JsonClaimValueTypes` moved into the
+  `.Abstractions` package under purpose namespaces (`…Jwt.Encoding` / `…Jwt.Validation` / `…Jwt.Claims`), leaving the
+  evaluator, handlers, key resolver, and claims factory in the implementation package; `NCode.Identity.OpenId.Authentication`
+  now references `NCode.Identity.Jwt.Abstractions` only. Types were renamed uniformly to `Jwt*`
+  (`ValidateJwtParameters`→`JwtValidationParameters`, `ValidateJwtResult`→`JwtValidationResult`,
+  `ValidateJwtContext`→`JwtValidationContext`, `EncodeJwtParameters`→`JwtEncodingParameters`,
+  `JsonWebTokensLibrary`→`JwtLibrary`, `AddJsonWebTokensLibrary`→`AddJwtLibrary`, `TokenValidation*Exception`→`Jwt*Exception`).
 
 - **`IJoseSerializer` is redesigned around a parsed `JoseToken` instead of a sprawl of `out`-header overloads.**
   The previous surface — spread across many partial files — repeated every decode / deserialize / verify operation

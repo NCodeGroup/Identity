@@ -66,6 +66,21 @@ group heading in ID order, preserve the original wording verbatim, and add a tra
   signatures. Deferred: the pair has not churned, so the value is low today and the change touches every store +
   implementation + call site + test. Do it as one mechanical sweep before GA if pagination needs to grow.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0099](docs/adr/0099-forward-compatible-evolving-parameters.md)._
+- **`D8` — Redesign JWT validation as ASP.NET Core-style requirements/handlers and move the JWT contracts into
+  `.Abstractions`.** The library was renamed `NCode.Identity.JsonWebTokens(.Abstractions)` →
+  `NCode.Identity.Jwt(.Abstractions)` (package/assembly/namespace); the dual-purpose `IJsonWebTokenService` was
+  **segregated** into `IJwtEncoder` + `IJwtValidator` (with `DefaultJwtEncoder` / `DefaultJwtValidator` impls);
+  built-in validators became **pure-data requirement records** (`IJwtValidationRequirement`:
+  `ClaimValueRequirement` — with `Issuer`/`Audience`/`TokenType`/`TokenLifetime`/`CertificateLifetime`/`Assertion`
+  requirements) carried on `JwtValidationParameters.Requirements`, executed by `IJwtValidationHandler` /
+  `JwtValidationHandler<TRequirement>` strategies resolved from DI and **externally contributable** via
+  `AddJwtValidationHandler<T>()`, voting through `JwtValidationContext.Succeed(req)`/`Fail(reason)` (replacing the
+  throw-based validators). The family was renamed uniformly to `Jwt*` (`JwtValidationParameters`/`Result`/`Context`,
+  `JwtEncodingParameters`, `JwtLibrary`, `AddJwtLibrary`, `Jwt*Exception`), and all contracts + requirement records +
+  fluent builders + exceptions + `JsonClaimValueTypes` moved into `.Abstractions` under purpose namespaces
+  (`…Jwt.Encoding` / `…Jwt.Validation` / `…Jwt.Claims`), leaving the executor, handlers, key resolver, and claims
+  factory in impl; `NCode.Identity.OpenId.Authentication` now references `NCode.Identity.Jwt.Abstractions` only.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0120](docs/adr/0120-jwt-validation-requirements-and-handlers.md)._
 - **`D9` — `DictionaryExtensions.TryGetValue<T>` carries logic inside the `*.Abstractions` package.**
   `NCode.Identity.Jose.Abstractions/Extensions/DictionaryExtensions.cs` exposes a C# 14 `extension(IDictionary<string,
   object>)` member with a real method body — a typed `TryGetValue<T>` — which violates the house rule that

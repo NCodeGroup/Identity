@@ -64,7 +64,7 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D12`     | `D11`      |
+| `D` — Deferred, intentionally not-yet | `D13`     | `D12`      |
 | `F` — Feature gaps                    | `F39`     | `F38`      |
 | `T` — Conformance & interop testing   | `T9`      | `T8`       |
 | `U` — Frontend presentation platform  | `U14`     | `U13`      |
@@ -102,36 +102,18 @@ entry and/or ADR that closed it.
   folders. Each should be evaluated and, where it is a genuine grab-bag (not a legitimately-named slice), split the same
   way for family-wide consistency with the §3 "folder/namespace by purpose" convention. Scoped out of the Secrets sweep
   to keep that change reviewable; revisit as a dedicated cohesion pass.
-- **`D8` — Redesign JWT validation as ASP.NET Core-style requirements/handlers and move the JWT contracts into
-  `.Abstractions`.** _Step 1 (done): the library was renamed `NCode.Identity.JsonWebTokens(.Abstractions)` →
-  `NCode.Identity.Jwt(.Abstractions)` (package/assembly/namespace), see the [`CHANGELOG.md`](CHANGELOG.md) "Changed"
-  entry._ The remaining redesign: today the entire JWT service surface — `IJsonWebTokenService` plus its contract DTOs
-  `DecodedJwt`, `ValidateJwtResult`, `EncodeJwtParameters`, `ValidateJwtContext`, and the data-only shape of
-  `ValidateJwtParameters` — lives in the **impl** package `NCode.Identity.Jwt`, while `NCode.Identity.Jwt.Abstractions`
-  holds only the `JsonWebTokensLibrary` marker. Merely moving the DTOs is **low value** because the fluent validator
-  DSL (`ValidateIssuer`/`ValidateAudience`/`ValidateTokenType`/`ValidateTokenLifeTime`/`ValidateClaim`, in
-  `Validators`/`ValidateJwtParametersExtensions`) is _logic_ that would stay in impl, so consumers that configure
-  validation (every OpenId.Authentication handler) would still reference impl. The cohesive long-term design, modeled
-  on ASP.NET Core authorization, is: (a) **segregate the service** `IJsonWebTokenService` → `IJwtEncoder` +
-  `IJwtValidator` (7 validate-only consumers, 2 encode-only; none use both) with `DefaultJwtEncoder`/`DefaultJwtValidator`
-  impls; (b) express built-in validators as **pure-data requirement records** (`IJwtValidationRequirement`:
-  `IssuerRequirement`/`AudienceRequirement`/`TokenTypeRequirement`/`TokenLifetimeRequirement`/
-  `CertificateLifetimeRequirement`/`ClaimValueRequirement`/`AssertionRequirement`) carried on a data-only
-  `JwtValidationParameters.Requirements`; (c) execute them via `IJwtValidationHandler` /
-  `JwtValidationHandler<TRequirement>` strategies keyed by requirement CLR type, resolved from DI and **externally
-  contributable** via `AddJwtValidationHandler<T>()`, voting through a `JwtValidationContext.Succeed(req)`/`Fail(reason)`
-  (replacing throw-based validators); (d) rename the family uniformly to `Jwt*`
-  (`ValidateJwtParameters`→`JwtValidationParameters`, `ValidateJwtResult`→`JwtValidationResult`,
-  `ValidateJwtContext`→`JwtValidationContext`, `EncodeJwtParameters`→`JwtEncodingParameters`,
-  `JsonWebTokensLibrary`→`JwtLibrary`, `AddJsonWebTokensLibrary`→`AddJwtLibrary`, `TokenValidation*Exception`→`Jwt*Exception`);
-  (e) move all contracts + requirement records + fluent builders (which only _construct and append_ requirement DTOs) +
-  exceptions + `JsonClaimValueTypes` into `.Abstractions` under purpose namespaces (`…Jwt.Encoding` / `…Jwt.Validation` /
-  `…Jwt.Claims`), leaving the executor, handlers, key resolver, and claims factory in impl; then flip
-  OpenId.Authentication to reference `NCode.Identity.Jwt.Abstractions` only. A sizable but mostly-mechanical breaking
-  change (acceptable under the greenfield posture); do it as a focused pass with a new ADR capturing the model. Touch
-  points: `src/NCode.Identity.Jwt/`, `src/NCode.Identity.Jwt.Abstractions/`, the OpenId.Authentication handler
-  consumers (split `IJwtEncoder`/`IJwtValidator` injections), `NCode.Identity.Server`
-  (`JsonWebTokensLibrary`→`JwtLibrary`), and the JWT + OpenId.Core test projects.
+- **`D12` — Consolidate claim-string date parsing in `ConvertClaimToNativeValue` onto `DateCoercion`.** The JWT
+  encoder's `DefaultJwtEncoder.ConvertClaimToNativeValue` (which maps a `Claim`'s string value to a native CLR value by
+  `Claim.ValueType` before serialization) parses a `ClaimValueTypes.DateTime` claim with its own
+  `DateTimeOffset.TryParse(..., AssumeUniversal)` / `DateTime.TryParse(..., AssumeUniversal).ToUniversalTime()` logic.
+  The `DateTimeOffset` branch already matches `NCode.Json.DateCoercion.TryParseDateTimeOffset` exactly, but the
+  `DateTime` fallback branch diverges from `DateCoercion.TryParseDateTime` (which uses `RoundtripKind` and labels a
+  zone-less value `Utc`), so an explicit-offset value is UTC-normalized here yet offset-preserved there. The branch is
+  rarely reached — the `DateTimeOffset` branch wins for almost any date string — so this is latent rather than live,
+  but it duplicates the date-parsing policy the `DateCoercion` consolidation deliberately centralized. Folding it in
+  requires exposing `DateCoercion` (currently `internal` to `NCode.Json`) as public API, so it is a small cross-cutting
+  change best done deliberately. Touch points: `src/NCode.Json/DateCoercion.cs` (make public) and
+  `src/NCode.Identity.Jwt/Encoding/DefaultJwtEncoder.cs` (`ConvertClaimToNativeValue`).
 - **`D11` — Time/date extension methods carry logic inside the `*.Abstractions` package.**
   `NCode.Identity.Jose.Abstractions/Extensions/` still holds `DateTimeExtensions`, `DateTimeOffsetExtensions`, and
   `TimeProviderExtensions` — each a C# 14 `extension(...)` member with a real method body (`WithPrecisionInSeconds`,

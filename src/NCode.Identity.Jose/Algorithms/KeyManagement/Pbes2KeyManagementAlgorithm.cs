@@ -24,7 +24,6 @@ using System.Text.Json;
 using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Json;

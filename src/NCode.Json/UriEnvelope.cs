@@ -16,7 +16,7 @@
 
 #endregion
 
-namespace NCode.Identity.OpenId.Serialization;
+namespace NCode.Json;
 
 /// <summary>
 /// Represents the serialized JSON shape of a <see cref="Uri"/> — its escaped value plus whether it is absolute.

@@ -343,7 +343,7 @@ public class JsonElementExtensionsTests
     }
 
     [Fact]
-    public void TryGetPropertyValue_String_WithoutOffset_DateTime_IsNotShifted()
+    public void TryGetPropertyValue_String_WithoutOffset_DateTime_IsUnshiftedUtc()
     {
         const string key = nameof(key);
 
@@ -353,8 +353,9 @@ public class JsonElementExtensionsTests
 
         var exists = jsonElement.TryGetPropertyValue<DateTime>(key, out var value);
         Assert.True(exists);
-        Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Unspecified), value);
-        Assert.Equal(DateTimeKind.Unspecified, value.Kind);
+        // The wall-clock time is preserved (unshifted) and a zone-less value is labeled UTC, never Unspecified.
+        Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc), value);
+        Assert.Equal(DateTimeKind.Utc, value.Kind);
     }
 
     [Fact]
@@ -476,5 +477,47 @@ public class JsonElementExtensionsTests
         var exists = element.TryGetValue<JsonElement>(out var value);
         Assert.True(exists);
         Assert.Equal(JsonValueKind.Object, value.ValueKind);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_String_DateOnly_DateTime_ParsedLeniently()
+    {
+        const string key = nameof(key);
+
+        const string input = "2024-01-02";
+        var dictionary = new Dictionary<string, object?> { [key] = input };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<DateTime>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(new DateTime(2024, 1, 2), value.Date);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_String_DateOnly_DateTimeOffset_ParsedLeniently()
+    {
+        const string key = nameof(key);
+
+        const string input = "2024-01-02";
+        var dictionary = new Dictionary<string, object?> { [key] = input };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<DateTimeOffset>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(new DateTime(2024, 1, 2), value.UtcDateTime.Date);
+    }
+
+    [Fact]
+    public void TryGetPropertyValue_String_Guid_NoHyphens_ParsedLeniently()
+    {
+        const string key = nameof(key);
+
+        var expected = Guid.NewGuid();
+        var dictionary = new Dictionary<string, object?> { [key] = expected.ToString("N") };
+        var jsonElement = JsonSerializer.SerializeToElement(dictionary);
+
+        var exists = jsonElement.TryGetPropertyValue<Guid?>(key, out var value);
+        Assert.True(exists);
+        Assert.Equal(expected, value);
     }
 }

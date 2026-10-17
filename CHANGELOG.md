@@ -19,6 +19,19 @@ change to the public API is a **major** version bump.
   `NumericDate`, since the target type is unknown when deserializing to `object` — that interpretation remains
   exclusive to `JsonElements.TryGetPropertyValue<T>`, where the caller supplies an explicit date target type.
 
+- **Reusable `NCode.Json.UriJsonConverter` and `NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>`.**
+  Two framework-free `System.Text.Json` converters were promoted into the dependency-free `NCode.Json` package,
+  co-locating them with `ObjectJsonConverter` / `JsonElements` so any package can reuse them. `UriJsonConverter`
+  (round-trips `System.Uri` with absolute/relative fidelity) moved out of `NCode.Identity.OpenId.Core` — where it was
+  an internal converter — and is now public with a shared `UriJsonConverter.Singleton` (mirroring
+  `ObjectJsonConverter.Singleton`, since it is stateless); `DelegatingJsonConverter<TInterface, TImplementation>`
+  (serializes an interface by delegating to a concrete implementation) moved out of
+  `NCode.Identity.OpenId.Abstractions` — it keeps no singleton because it carries mutable `MatchExact` state per
+  interface/implementation pair. Neither carried any OpenID-specific coupling, so the move keeps `NCode.Json`
+  dependency-free. The OpenID-coupled
+  `StringValuesJsonConverter` (which relies on `OpenIdConstants.ParameterSeparatorChar`) and the claims/message/JWK
+  converters deliberately remain in their domain packages.
+
 - **JWS/JWE JSON serialization — General + Flattened, with multiple signatures / recipients (RFC 7515 §7.2, RFC 7516
   §7.2).** The JOSE serializer, previously compact-only, now also encodes and decodes the Flattened and General **JSON**
   serializations, which carry **multiple signatures** (JWS) / **multiple recipients** (JWE), **unprotected** header

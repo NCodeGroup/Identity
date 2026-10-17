@@ -1,10 +1,22 @@
 #nullable enable
+NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>
+NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.DelegatingJsonConverter() -> void
+NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.get -> bool
+NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.MatchExact.set -> void
 NCode.Json.JsonElements
 NCode.Json.ObjectJsonConverter
 NCode.Json.ObjectJsonConverter.ObjectJsonConverter() -> void
 override NCode.Json.ObjectJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> object?
 override NCode.Json.ObjectJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, object! value, System.Text.Json.JsonSerializerOptions! options) -> void
+NCode.Json.UriJsonConverter
+NCode.Json.UriJsonConverter.UriJsonConverter() -> void
+override NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.CanConvert(System.Type! typeToConvert) -> bool
+override NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> TInterface?
+override NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.Write(System.Text.Json.Utf8JsonWriter! writer, TInterface value, System.Text.Json.JsonSerializerOptions! options) -> void
+override NCode.Json.UriJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> System.Uri?
+override NCode.Json.UriJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, System.Uri? value, System.Text.Json.JsonSerializerOptions! options) -> void
 static NCode.Json.ObjectJsonConverter.Singleton.get -> NCode.Json.ObjectJsonConverter!
+static NCode.Json.UriJsonConverter.Singleton.get -> NCode.Json.UriJsonConverter!
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement)
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).IsNullOrUndefined() -> bool
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).OrEmptyObject() -> System.Text.Json.JsonElement

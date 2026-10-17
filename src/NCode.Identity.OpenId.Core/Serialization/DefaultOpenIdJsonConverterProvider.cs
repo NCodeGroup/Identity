@@ -21,6 +21,7 @@ using System.Text.Json.Serialization;
 using NCode.Identity.Claims;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Serialization;
 
@@ -41,7 +42,7 @@ internal class DefaultOpenIdJsonConverterProvider(IClaimsSerializer claimsSerial
     {
         return
         [
-            new UriJsonConverter(),
+            UriJsonConverter.Singleton,
             new StringValuesJsonConverter(),
             new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower),
             new OpenIdMessageJsonConverterFactory(openIdEnvironment),

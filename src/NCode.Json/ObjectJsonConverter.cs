@@ -16,9 +16,11 @@
 
 #endregion
 
-using System.Diagnostics;
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Numerics;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
@@ -28,377 +30,262 @@ namespace NCode.Json;
 /// <summary>
 /// Provides the ability to deserialize JSON into a loosely-typed <see cref="object"/> graph — JSON objects become
 /// <see cref="Dictionary{TKey,TValue}"/> of <see cref="string"/> to <see cref="object"/>, JSON arrays become
-/// <see cref="List{T}"/> of <see cref="object"/>, and scalar values are coerced to the most specific matching CLR type.
+/// <see cref="List{T}"/> of <see cref="object"/>, and scalar values are mapped to a CLR type according to the
+/// configured <see cref="ObjectJsonConverterOptions"/>.
 /// </summary>
 /// <remarks>
-/// Scalar string/number coercions are attempted in the following order:
-/// <list type="number">
-/// <item><term><see cref="DateTimeOffset"/></term></item>
-/// <item><term><see cref="DateTime"/></term></item>
-/// <item><term><see cref="Guid"/></term></item>
-/// <item><term><see cref="Int32"/></term></item>
-/// <item><term><see cref="Byte"/></term></item>
-/// <item><term><see cref="Int16"/></term></item>
-/// <item><term><see cref="Int64"/></term></item>
-/// <item><term><see cref="UInt32"/></term></item>
-/// <item><term><see cref="UInt16"/></term></item>
-/// <item><term><see cref="UInt64"/></term></item>
-/// <item><term><see cref="Double"/></term></item>
-/// <item><term><see cref="Decimal"/></term></item>
-/// <item><term><see cref="Single"/></term></item>
+/// Scalar mapping, with the defaults from <see cref="ObjectJsonConverterOptions.Default"/>:
+/// <list type="bullet">
+/// <item><description><c>null</c> → <see langword="null"/>; <c>true</c>/<c>false</c> → <see cref="bool"/>.</description></item>
+/// <item><description>Integer numbers → the narrowest of <see cref="int"/>, <see cref="long"/>, <see cref="ulong"/>,
+/// then <see cref="BigInteger"/> (see <see cref="ObjectJsonConverterOptions.Integer"/> /
+/// <see cref="ObjectJsonConverterOptions.AllowBigInteger"/>).</description></item>
+/// <item><description>Real numbers → <see cref="double"/> (see <see cref="ObjectJsonConverterOptions.Real"/>).</description></item>
+/// <item><description>Strings are coerced to the most specific matching CLR type — <see cref="DateTimeOffset"/>,
+/// <see cref="Guid"/>, or a numeric type — falling back to <see cref="string"/> (see
+/// <see cref="ObjectJsonConverterOptions.DateString"/>, <see cref="ObjectJsonConverterOptions.CoerceStringToGuid"/>,
+/// and <see cref="ObjectJsonConverterOptions.CoerceStringToNumber"/>). Each coercion can be disabled for strict
+/// round-trip fidelity.</description></item>
 /// </list>
+/// <para>
 /// Because the target type is unknown when deserializing to <see cref="object"/>, a bare JSON number is inherently
 /// ambiguous and is therefore never interpreted as an RFC 7519 <c>NumericDate</c> (Unix seconds). That interpretation
 /// only applies where the caller supplies an explicit date target type — see
 /// <see cref="JsonElements"/>.<c>TryGetPropertyValue&lt;T&gt;</c>.
+/// </para>
 /// </remarks>
+/// <param name="options">The options that control how JSON scalar values are mapped to CLR types.</param>
 [PublicAPI]
-public sealed class ObjectJsonConverter : JsonConverter<object>
+public sealed class ObjectJsonConverter(ObjectJsonConverterOptions options) : JsonConverter<object>
 {
     /// <summary>
-    /// Gets a singleton instance for <see cref="ObjectJsonConverter"/>.
+    /// Gets a shared instance of <see cref="ObjectJsonConverter"/> configured with
+    /// <see cref="ObjectJsonConverterOptions.Default"/>.
     /// </summary>
-    public static ObjectJsonConverter Singleton { get; } = new();
+    public static ObjectJsonConverter Default { get; } = new(ObjectJsonConverterOptions.Default);
+
+    private ObjectJsonConverterOptions Options { get; } = options;
 
     /// <inheritdoc />
     public override object? Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options
-    )
-    {
-        if (typeToConvert == typeof(JsonDocument) || typeToConvert == typeof(JsonElement))
-            return JsonSerializer.Deserialize(ref reader, typeToConvert, options);
-
-        var type = typeToConvert;
-        switch (reader.TokenType)
+    ) =>
+        reader.TokenType switch
         {
-            case JsonTokenType.Null:
-                return null;
+            JsonTokenType.Null => null,
+            JsonTokenType.True or JsonTokenType.False => reader.GetBoolean(),
+            JsonTokenType.Number => ReadNumber(ref reader),
+            JsonTokenType.String => ReadString(ref reader),
+            // Deserializing to the concrete container types (rather than object) routes through the built-in
+            // dictionary/list converters, so this converter never re-enters itself with an unadvanced reader.
+            JsonTokenType.StartObject => JsonSerializer.Deserialize<Dictionary<string, object?>>(
+                ref reader,
+                options
+            ),
+            JsonTokenType.StartArray => JsonSerializer.Deserialize<List<object?>>(
+                ref reader,
+                options
+            ),
+            _ => throw new JsonException(
+                $"Unexpected JSON token '{reader.TokenType}' when reading an object value."
+            ),
+        };
 
-            case JsonTokenType.True when TryReadBoolean(ref reader, typeToConvert, out var value):
-                return value;
-
-            case JsonTokenType.False when TryReadBoolean(ref reader, typeToConvert, out var value):
-                return value;
-
-            case JsonTokenType.Number when TryReadNumber(ref reader, typeToConvert, out var value):
-                return value;
-
-            case JsonTokenType.String when TryReadString(ref reader, typeToConvert, out var value):
-                return value;
-
-            case JsonTokenType.StartObject:
-                type = typeof(Dictionary<string, object?>);
-                break;
-
-            case JsonTokenType.StartArray:
-                type = typeof(List<object?>);
-                break;
+    private object ReadNumber(ref Utf8JsonReader reader)
+    {
+        if (
+            Options.Integer == ObjectJsonIntegerHandling.MostSpecific
+            && reader.TryGetInt32(out var intValue)
+        )
+        {
+            return intValue;
         }
 
-        return JsonSerializer.Deserialize(ref reader, type, options);
+        if (reader.TryGetInt64(out var longValue))
+        {
+            return longValue;
+        }
+
+        if (reader.TryGetUInt64(out var ulongValue))
+        {
+            return ulongValue;
+        }
+
+        if (Options.AllowBigInteger && TryGetBigInteger(ref reader, out var bigValue))
+        {
+            return bigValue;
+        }
+
+        return ReadReal(ref reader);
     }
 
-    private static bool TryReadBoolean(
-        ref Utf8JsonReader reader,
-        Type typeToConvert,
-        [MaybeNullWhen(false)] out object baseValue
-    )
+    private object ReadReal(ref Utf8JsonReader reader)
     {
-        Debug.Assert(reader.TokenType is JsonTokenType.True or JsonTokenType.False);
-
-        var boolValue = reader.GetBoolean();
-
-        if (typeof(bool).IsAssignableTo(typeToConvert))
+        if (
+            Options.Real == ObjectJsonRealHandling.Decimal
+            && reader.TryGetDecimal(out var decValue)
+        )
         {
-            baseValue = boolValue;
-            return true;
+            return decValue;
         }
 
-        baseValue = null;
-        return false;
+        if (reader.TryGetDouble(out var doubleValue))
+        {
+            return doubleValue;
+        }
+
+        if (reader.TryGetDecimal(out var decFallback))
+        {
+            return decFallback;
+        }
+
+        throw new JsonException("Unable to read the JSON number as a CLR numeric type.");
     }
 
-    private static bool TryReadNumber(
-        ref Utf8JsonReader reader,
-        Type typeToConvert,
-        [MaybeNullWhen(false)] out object baseValue
-    )
+    private static bool TryGetBigInteger(ref Utf8JsonReader reader, out BigInteger value)
     {
-        Debug.Assert(reader.TokenType == JsonTokenType.Number);
+        ReadOnlySpan<byte> utf8 = reader.HasValueSequence
+            ? reader.ValueSequence.ToArray()
+            : reader.ValueSpan;
 
-        if (typeof(int).IsAssignableTo(typeToConvert) && reader.TryGetInt32(out var intValue))
+        // A real number (fraction or exponent) is not a BigInteger.
+        foreach (var b in utf8)
         {
-            baseValue = intValue;
-            return true;
+            if (b is (byte)'.' or (byte)'e' or (byte)'E')
+            {
+                value = default;
+                return false;
+            }
         }
 
-        if (typeof(byte).IsAssignableTo(typeToConvert) && reader.TryGetByte(out var byteValue))
-        {
-            baseValue = byteValue;
-            return true;
-        }
-
-        if (typeof(short).IsAssignableTo(typeToConvert) && reader.TryGetInt16(out var shortValue))
-        {
-            baseValue = shortValue;
-            return true;
-        }
-
-        if (typeof(long).IsAssignableTo(typeToConvert) && reader.TryGetInt64(out var longValue))
-        {
-            baseValue = longValue;
-            return true;
-        }
-
-        if (typeof(uint).IsAssignableTo(typeToConvert) && reader.TryGetUInt32(out var uintValue))
-        {
-            baseValue = uintValue;
-            return true;
-        }
-
-        if (
-            typeof(ushort).IsAssignableTo(typeToConvert) && reader.TryGetUInt16(out var ushortValue)
-        )
-        {
-            baseValue = ushortValue;
-            return true;
-        }
-
-        if (typeof(ulong).IsAssignableTo(typeToConvert) && reader.TryGetUInt64(out var ulongValue))
-        {
-            baseValue = ulongValue;
-            return true;
-        }
-
-        if (
-            typeof(double).IsAssignableTo(typeToConvert) && reader.TryGetDouble(out var doubleValue)
-        )
-        {
-            baseValue = doubleValue;
-            return true;
-        }
-
-        if (
-            typeof(decimal).IsAssignableTo(typeToConvert)
-            && reader.TryGetDecimal(out var decimalValue)
-        )
-        {
-            baseValue = decimalValue;
-            return true;
-        }
-
-        if (typeof(float).IsAssignableTo(typeToConvert) && reader.TryGetSingle(out var floatValue))
-        {
-            baseValue = floatValue;
-            return true;
-        }
-
-        baseValue = null;
-        return false;
+        var text = Encoding.UTF8.GetString(utf8);
+        return BigInteger.TryParse(
+            text,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out value
+        );
     }
 
-    private static bool TryReadString(
-        ref Utf8JsonReader reader,
-        Type typeToConvert,
-        [MaybeNullWhen(false)] out object baseValue
-    )
+    private object ReadString(ref Utf8JsonReader reader)
     {
-        Debug.Assert(reader.TokenType == JsonTokenType.String);
+        var value =
+            reader.GetString()
+            ?? throw new JsonException("Unexpected null value for a JSON string token.");
 
-        var stringValue = reader.GetString();
+        switch (Options.DateString)
+        {
+            case ObjectJsonDateStringHandling.DateTimeOffset
+                when DateTimeOffset.TryParse(
+                    value,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal,
+                    out var dateTimeOffset
+                ):
+                return dateTimeOffset;
 
-        Debug.Assert(stringValue != null);
+            case ObjectJsonDateStringHandling.DateTime
+                when DateTime.TryParse(
+                    value,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal,
+                    out var dateTime
+                ):
+                return dateTime;
+        }
+
+        if (Options.CoerceStringToGuid && Guid.TryParse(value, out var guid))
+        {
+            return guid;
+        }
+
+        if (Options.CoerceStringToNumber && TryCoerceStringToNumber(value, out var number))
+        {
+            return number;
+        }
+
+        return value;
+    }
+
+    private bool TryCoerceStringToNumber(string value, [MaybeNullWhen(false)] out object number)
+    {
+        const NumberStyles integerStyles = NumberStyles.Integer | NumberStyles.AllowThousands;
+        const NumberStyles realStyles = NumberStyles.Float | NumberStyles.AllowThousands;
+        const NumberStyles decimalStyles = NumberStyles.Number | NumberStyles.AllowThousands;
+        var culture = CultureInfo.InvariantCulture;
 
         if (
-            typeof(DateTimeOffset).IsAssignableTo(typeToConvert)
-            && DateTimeOffset.TryParse(
-                stringValue,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal,
-                out var dateTimeOffset
-            )
+            Options.Integer == ObjectJsonIntegerHandling.MostSpecific
+            && int.TryParse(value, integerStyles, culture, out var intValue)
         )
         {
-            baseValue = dateTimeOffset;
+            number = intValue;
             return true;
         }
 
-        if (
-            typeof(DateTime).IsAssignableTo(typeToConvert)
-            && DateTime.TryParse(
-                stringValue,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal,
-                out var dateTime
-            )
-        )
+        if (long.TryParse(value, integerStyles, culture, out var longValue))
         {
-            baseValue = dateTime;
+            number = longValue;
             return true;
         }
 
-        if (typeof(Guid).IsAssignableTo(typeToConvert) && Guid.TryParse(stringValue, out var guid))
+        if (ulong.TryParse(value, integerStyles, culture, out var ulongValue))
         {
-            baseValue = guid;
-            return true;
-        }
-
-        if (
-            typeof(int).IsAssignableTo(typeToConvert)
-            && int.TryParse(
-                stringValue,
-                NumberStyles.Integer | NumberStyles.AllowThousands,
-                CultureInfo.InvariantCulture,
-                out var intValue
-            )
-        )
-        {
-            baseValue = intValue;
-            return true;
-        }
-
-        if (
-            typeof(byte).IsAssignableTo(typeToConvert)
-            && byte.TryParse(
-                stringValue,
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out var byteValue
-            )
-        )
-        {
-            baseValue = byteValue;
+            number = ulongValue;
             return true;
         }
 
         if (
-            typeof(short).IsAssignableTo(typeToConvert)
-            && short.TryParse(
-                stringValue,
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out var shortValue
-            )
+            Options.AllowBigInteger
+            && BigInteger.TryParse(value, NumberStyles.Integer, culture, out var bigValue)
         )
         {
-            baseValue = shortValue;
+            number = bigValue;
             return true;
         }
 
         if (
-            typeof(long).IsAssignableTo(typeToConvert)
-            && long.TryParse(
-                stringValue,
-                NumberStyles.Integer | NumberStyles.AllowThousands,
-                CultureInfo.InvariantCulture,
-                out var longValue
-            )
+            Options.Real == ObjectJsonRealHandling.Decimal
+            && decimal.TryParse(value, decimalStyles, culture, out var decValue)
         )
         {
-            baseValue = longValue;
+            number = decValue;
             return true;
         }
 
-        if (
-            typeof(uint).IsAssignableTo(typeToConvert)
-            && uint.TryParse(
-                stringValue,
-                NumberStyles.Integer | NumberStyles.AllowThousands,
-                CultureInfo.InvariantCulture,
-                out var uintValue
-            )
-        )
+        if (double.TryParse(value, realStyles, culture, out var doubleValue))
         {
-            baseValue = uintValue;
+            number = doubleValue;
             return true;
         }
 
-        if (
-            typeof(ushort).IsAssignableTo(typeToConvert)
-            && ushort.TryParse(
-                stringValue,
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out var ushortValue
-            )
-        )
+        if (decimal.TryParse(value, decimalStyles, culture, out var decFallback))
         {
-            baseValue = ushortValue;
+            number = decFallback;
             return true;
         }
 
-        if (
-            typeof(ulong).IsAssignableTo(typeToConvert)
-            && ulong.TryParse(
-                stringValue,
-                NumberStyles.Integer | NumberStyles.AllowThousands,
-                CultureInfo.InvariantCulture,
-                out var ulongValue
-            )
-        )
-        {
-            baseValue = ulongValue;
-            return true;
-        }
-
-        if (
-            typeof(double).IsAssignableTo(typeToConvert)
-            && double.TryParse(
-                stringValue,
-                NumberStyles.Float | NumberStyles.AllowThousands,
-                CultureInfo.InvariantCulture,
-                out var doubleValue
-            )
-        )
-        {
-            baseValue = doubleValue;
-            return true;
-        }
-
-        if (
-            typeof(decimal).IsAssignableTo(typeToConvert)
-            && decimal.TryParse(
-                stringValue,
-                NumberStyles.Number | NumberStyles.AllowThousands,
-                CultureInfo.InvariantCulture,
-                out var decimalValue
-            )
-        )
-        {
-            baseValue = decimalValue;
-            return true;
-        }
-
-        if (
-            typeof(float).IsAssignableTo(typeToConvert)
-            && float.TryParse(
-                stringValue,
-                NumberStyles.Float | NumberStyles.AllowThousands,
-                CultureInfo.InvariantCulture,
-                out var floatValue
-            )
-        )
-        {
-            baseValue = floatValue;
-            return true;
-        }
-
-        if (typeof(string).IsAssignableTo(typeToConvert))
-        {
-            baseValue = stringValue;
-            return true;
-        }
-
-        baseValue = null;
+        number = null;
         return false;
     }
 
     /// <inheritdoc />
-    public override void Write(
-        Utf8JsonWriter writer,
-        object value,
-        JsonSerializerOptions options
-    ) => JsonSerializer.Serialize(writer, value, value.GetType(), options);
+    public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+    {
+        var type = value.GetType();
+
+        // A bare System.Object has no members; serializing it by its own type would re-enter this converter
+        // indefinitely, so emit an empty object — matching the built-in and Newtonsoft.Json behavior.
+        if (type == typeof(object))
+        {
+            writer.WriteStartObject();
+            writer.WriteEndObject();
+            return;
+        }
+
+        // Serializing by the concrete runtime type dispatches to that type's converter (built-in or custom).
+        JsonSerializer.Serialize(writer, value, type, options);
+    }
 }

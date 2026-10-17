@@ -616,15 +616,10 @@ internal class DefaultTokenExchangeGrantHandler(
             StringComparison.Ordinal
         );
 
-    private static DateTimeOffset? ReadAuthTime(JsonElement payload)
-    {
-        if (payload.TryGetPropertyValue<long>(JoseClaimNames.Payload.AuthTime, out var seconds))
-        {
-            return DateTimeOffset.FromUnixTimeSeconds(seconds);
-        }
-
-        return null;
-    }
+    private static DateTimeOffset? ReadAuthTime(JsonElement payload) =>
+        payload.TryGetPropertyNumericDate(JoseClaimNames.Payload.AuthTime, out var authTime)
+            ? authTime
+            : null;
 
     private static string? GetStringClaim(JsonElement element, string name) =>
         element.TryGetPropertyValue<string>(name, out var value) ? value : null;

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Json;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Extensions;
 using NCode.Json;
@@ -24,6 +25,8 @@ namespace NCode.Identity.Jwt.Validation;
 
 /// <summary>
 /// Handles <see cref="TokenLifetimeRequirement"/> by asserting the <c>nbf</c> and <c>exp</c> payload claims are valid.
+/// Each claim, when present, must be an RFC 7519 <c>NumericDate</c>; a present claim that is not fails validation rather
+/// than being treated as absent.
 /// </summary>
 internal sealed class TokenLifetimeRequirementHandler
     : JwtValidationHandler<TokenLifetimeRequirement>
@@ -40,23 +43,27 @@ internal sealed class TokenLifetimeRequirementHandler
         var clockSkewTicks = requirement.ClockSkew.Ticks;
 
         var payload = context.DecodedJwt.Payload;
-        var hasNotBefore = payload.TryGetPropertyValue<DateTime>(
-            JoseClaimNames.Payload.Nbf,
-            out var notBefore
-        );
-        var hasExpires = payload.TryGetPropertyValue<DateTime>(
-            JoseClaimNames.Payload.Exp,
-            out var expires
-        );
+        if (!TryGetOptionalNumericDate(payload, JoseClaimNames.Payload.Nbf, out var notBefore))
+        {
+            context.Fail("The token's 'nbf' claim is not a valid NumericDate.");
+            return ValueTask.CompletedTask;
+        }
+
+        if (!TryGetOptionalNumericDate(payload, JoseClaimNames.Payload.Exp, out var expires))
+        {
+            context.Fail("The token's 'exp' claim is not a valid NumericDate.");
+            return ValueTask.CompletedTask;
+        }
+
         var nowTicks = context.TimeProvider.GetTimestampWithPrecisionInSeconds();
 
-        if (!hasExpires && requirement.RequireExpirationTime)
+        if (expires is null && requirement.RequireExpirationTime)
         {
             context.Fail("The token is missing an expiration time.");
             return ValueTask.CompletedTask;
         }
 
-        if (hasNotBefore && hasExpires && notBefore > expires)
+        if (notBefore > expires)
         {
             context.Fail(
                 $"The NotBefore value '{notBefore:O}' cannot be after the Expires value '{expires:O}'."
@@ -64,13 +71,13 @@ internal sealed class TokenLifetimeRequirementHandler
             return ValueTask.CompletedTask;
         }
 
-        if (hasNotBefore && notBefore.Ticks > nowTicks + clockSkewTicks)
+        if (notBefore?.UtcTicks > nowTicks + clockSkewTicks)
         {
             context.Fail($"The token is not valid before '{notBefore:O}'.");
             return ValueTask.CompletedTask;
         }
 
-        if (hasExpires && expires.Ticks < nowTicks - clockSkewTicks)
+        if (expires?.UtcTicks < nowTicks - clockSkewTicks)
         {
             context.Fail($"The token is not valid after '{expires:O}'.");
             return ValueTask.CompletedTask;
@@ -78,5 +85,28 @@ internal sealed class TokenLifetimeRequirementHandler
 
         context.Succeed(requirement);
         return ValueTask.CompletedTask;
+    }
+
+    // An absent claim yields null; a present claim must be a valid NumericDate or the read fails.
+    private static bool TryGetOptionalNumericDate(
+        JsonElement payload,
+        string claimName,
+        out DateTimeOffset? value
+    )
+    {
+        if (!payload.TryGetProperty(claimName, out var element))
+        {
+            value = null;
+            return true;
+        }
+
+        if (element.TryGetNumericDate(out var instant))
+        {
+            value = instant;
+            return true;
+        }
+
+        value = null;
+        return false;
     }
 }

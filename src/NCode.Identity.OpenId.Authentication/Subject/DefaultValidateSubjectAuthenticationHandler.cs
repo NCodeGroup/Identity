@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
+using NCode.Json;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Subject;
@@ -282,13 +283,8 @@ internal class DefaultValidateSubjectAuthenticationHandler(
 
     private static DateTimeOffset? GetAuthTime(ClaimsPrincipal subject)
     {
-        var authTimeClaim = subject.FindFirst(JoseClaimNames.Payload.AuthTime);
-        if (authTimeClaim is null || !long.TryParse(authTimeClaim.Value, out var authTimeSeconds))
-        {
-            return null;
-        }
-
-        return DateTimeOffset.FromUnixTimeSeconds(authTimeSeconds);
+        var authTimeValue = subject.FindFirstValue(JoseClaimNames.Payload.AuthTime);
+        return DateCoercion.TryParseNumericDate(authTimeValue, out var authTime) ? authTime : null;
     }
 
     private bool ValidateMaxAge(DateTimeOffset? authTime, TimeSpan? maxAge)

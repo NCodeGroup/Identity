@@ -52,9 +52,9 @@ public static class ObjectGraphExtensions
         /// Beyond an exact runtime-type match, a boxed numeric value is converted across the integer widths
         /// (<see cref="sbyte"/>…<see cref="ulong"/>, <see cref="BigInteger"/>) and real types
         /// (<see cref="float"/>/<see cref="double"/>/<see cref="decimal"/>) with range checks — so a value does not have
-        /// to be read back as the exact CLR width it happened to box as. A boxed integer requested as
+        /// to be read back as the exact CLR width it happened to box as. A boxed number requested as
         /// <see cref="DateTimeOffset"/> or <see cref="DateTime"/> is interpreted as an RFC 7519 <c>NumericDate</c>
-        /// (Unix seconds, UTC).
+        /// (integer or fractional Unix seconds, UTC; see <see cref="DateCoercion.TryFromNumericDate(double, out DateTimeOffset)"/>).
         /// </remarks>
         public bool TryGetValue<T>(string key, [MaybeNullWhen(false)] out T value)
         {
@@ -168,11 +168,12 @@ public static class ObjectGraphExtensions
 
         // RFC 7519 NumericDate (integer seconds since the Unix epoch, UTC); skipped unless a date is requested.
         if (
-            (IsType<T, DateTimeOffset>() || IsType<T, DateTime>())
-            && source >= DateCoercion.MinNumericDateSeconds
-            && source <= DateCoercion.MaxNumericDateSeconds
+            IsDateType<T>()
+            && source >= long.MinValue
+            && source <= long.MaxValue
+            && DateCoercion.TryFromNumericDate((long)source, out var instant)
         )
-            return DateCoercion.TryFromNumericDate((long)source, out value);
+            return DateCoercion.TryConvertInstant(instant, out value);
 
         value = default;
         return false;
@@ -198,9 +199,19 @@ public static class ObjectGraphExtensions
             }
         }
 
+        // RFC 7519 NumericDate with a fraction of a second; skipped unless a date is requested.
+        if (IsDateType<T>())
+        {
+            var seconds = Convert.ToDouble(source, CultureInfo.InvariantCulture);
+            if (DateCoercion.TryFromNumericDate(seconds, out var instant))
+                return DateCoercion.TryConvertInstant(instant, out value);
+        }
+
         value = default;
         return false;
     }
+
+    private static bool IsDateType<T>() => IsType<T, DateTimeOffset>() || IsType<T, DateTime>();
 
     private static bool IsType<T, TTarget>()
         where TTarget : struct => typeof(T) == typeof(TTarget) || typeof(T) == typeof(TTarget?);

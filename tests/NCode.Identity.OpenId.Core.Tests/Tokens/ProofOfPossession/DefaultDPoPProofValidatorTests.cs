@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -104,7 +105,8 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         DateTimeOffset? iat = null,
         string? jti = null,
         string typ = "dpop+jwt",
-        string alg = "ES256"
+        string alg = "ES256",
+        object? iatClaim = null
     )
     {
         var parameters = ecdsa.ExportParameters(includePrivateParameters: false);
@@ -125,7 +127,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         {
             ["htm"] = htm,
             ["htu"] = htu,
-            ["iat"] = (iat ?? DateTimeOffset.UtcNow).ToUnixTimeSeconds(),
+            ["iat"] = iatClaim ?? (iat ?? DateTimeOffset.UtcNow).ToUnixTimeSeconds(),
             ["jti"] = jti ?? Guid.NewGuid().ToString("N"),
         };
 
@@ -226,6 +228,53 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         var proof = BuildProof(ecdsa, iat: DateTimeOffset.UtcNow.AddMinutes(-10));
 
         await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
+    }
+
+    [Theory]
+    [InlineData(99_999_999_999_999L)]
+    [InlineData(long.MinValue)]
+    public async Task ValidateAsync_WhenIatOutOfRange_ThrowsInvalidProof(long iat)
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        SetupCurveCatalog(ecdsa);
+        var proof = BuildProof(ecdsa, iatClaim: iat);
+
+        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenIatIsString_ThrowsInvalidProof()
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        SetupCurveCatalog(ecdsa);
+        var iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
+        var proof = BuildProof(ecdsa, iatClaim: iat);
+
+        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenIatIsFractional_ReturnsJwkThumbprint()
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        SetupCurveCatalog(ecdsa);
+        MockReplayCache
+            .Setup(x =>
+                x.TryRecordAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var proof = BuildProof(ecdsa, iatClaim: DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 0.5);
+
+        var thumbprint = await InvokeValidateAsync(proof);
+
+        Assert.Equal(ComputeExpectedThumbprint(ecdsa), thumbprint);
     }
 
     [Fact]

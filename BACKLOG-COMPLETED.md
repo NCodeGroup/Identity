@@ -111,6 +111,79 @@ group heading in ID order, preserve the original wording verbatim, and add a tra
   `NCode.Json.ObjectGraphExtensions.TryGetValue<T>` is numeric-width tolerant (`sbyte`…`ulong`/`BigInteger` + reals,
   range-checked) and reads a boxed integer as an RFC 7519 `NumericDate` (`DateTimeOffset`/`DateTime`). The epoch
   conversion is shared with the `JsonElement` path via the `NCode.Json.DateCoercion` helper so the two cannot drift._
+- **`D12` — Consolidate claim-string date parsing in `ConvertClaimToNativeValue` onto `DateCoercion`.** The JWT
+  encoder's `DefaultJwtEncoder.ConvertClaimToNativeValue` (which maps a `Claim`'s string value to a native CLR value by
+  `Claim.ValueType` before serialization) parses a `ClaimValueTypes.DateTime` claim with its own
+  `DateTimeOffset.TryParse(..., AssumeUniversal)` / `DateTime.TryParse(..., AssumeUniversal).ToUniversalTime()` logic.
+  The `DateTimeOffset` branch already matches `NCode.Json.DateCoercion.TryParseDateTimeOffset` exactly, but the
+  `DateTime` fallback branch diverges from `DateCoercion.TryParseDateTime` (which uses `RoundtripKind` and labels a
+  zone-less value `Utc`), so an explicit-offset value is UTC-normalized here yet offset-preserved there. The branch is
+  rarely reached — the `DateTimeOffset` branch wins for almost any date string — so this is latent rather than live,
+  but it duplicates the date-parsing policy the `DateCoercion` consolidation deliberately centralized. Folding it in
+  requires exposing `DateCoercion` (currently `internal` to `NCode.Json`) as public API, so it is a small cross-cutting
+  change best done deliberately. Touch points: `src/NCode.Json/DateCoercion.cs` (make public) and
+  `src/NCode.Identity.Jwt/Encoding/DefaultJwtEncoder.cs` (`ConvertClaimToNativeValue`).
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0121](docs/adr/0121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md). `DateCoercion` is
+  public (`TryParseDateTimeOffset` / `TryParseDateTime`); the encoder parses a declared `ClaimValueTypes.DateTime`
+  claim through it and drops the `DateTime` fallback (reachable only for out-of-range instants, where it clamped to a
+  wrong machine-local value). The claims-identity factory's second, divergent date policy — sniffing every JSON string
+  and rewriting date-looking values (`"1.2"`, `"10:30"`, `birthdate`) — is retired: a JSON string decodes verbatim as
+  `ClaimValueTypes.String`. Follow-ups surfaced during the work are tracked as `D13` and `D14`._
+- **`D13` — Route wire-supplied `NumericDate` conversions through a range-guarded `DateCoercion` helper.** Several
+  sites read an RFC 7519 `NumericDate` (or a Unix-seconds parameter) as a raw `long` and call
+  `DateTimeOffset.FromUnixTimeSeconds` directly, which **throws** `ArgumentOutOfRangeException` for a value outside the
+  representable range (below `-62135596800` or above `253402300799`) instead of failing validation. The DPoP proof `iat`
+  is the sharpest case: the proof is signed by a client-chosen key, so any caller can submit `iat: 99999999999999` and
+  turn an `invalid_dpop_proof` rejection into an unhandled exception; a Unix-seconds request parameter parsed by
+  `DateTimeOffsetParser` is likewise caller-controlled. `NCode.Json.DateCoercion` already range-guards the identical
+  conversion internally (`TryFromNumericDate<T>`, used by `JsonElements` / `ObjectGraphExtensions`) and is public for
+  string parsing per [ADR-0121](docs/adr/0121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md),
+  which keeps the `NumericDate` helper internal until a cross-assembly consumer exists — these sites are that consumer.
+  Expose a public, non-generic range-guarded `NumericDate` conversion on `DateCoercion` (or read via
+  `TryGetPropertyValue<DateTimeOffset>` where the source is a `JsonElement`) and route each site through it, mapping an
+  out-of-range value to that site's invalid/absent outcome. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultDPoPProofValidator.cs` (`iat`),
+  `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/ClientAssertionClientAuthenticationHandler.cs` (`exp`),
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/TokenExchange/DefaultTokenExchangeGrantHandler.cs`
+  (`ReadAuthTime`), `src/NCode.Identity.OpenId.Authentication/Subject/DefaultValidateSubjectAuthenticationHandler.cs`
+  (`auth_time`), `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs`
+  (`ReadAuthTime`), `src/NCode.Identity.OpenId.Messages.Abstractions/Parsers/DateTimeOffsetParser.cs`, and
+  `src/NCode.Identity.Jwt/Encoding/DefaultJwtEncoder.cs` (`ProcessTokenLifetime` `iat`).
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0123](docs/adr/0123-numeric-date-is-read-strictly-and-range-guarded.md). `DateCoercion` exposes public,
+  non-throwing `TryFromNumericDate(long)` / `TryFromNumericDate(double)` / `TryParseNumericDate(string?)`, and
+  `JsonElements` adds the strict `TryGetNumericDate` / `TryGetPropertyNumericDate` (a JSON number only, integer or
+  fractional per RFC 7519). Every listed site routes through them — rejecting an out-of-range value with the endpoint's
+  own error — and the suggested `TryGetPropertyValue<DateTimeOffset>` route was **not** taken because it also parses date
+  strings. The pass also covered the JWT lifetime handler, which read `nbf`/`exp` leniently and **failed open** on a
+  present-but-unreadable value; it now fails closed and rejects date-string `exp`/`nbf`. The client-assertion replay
+  retention saturates instead of overflowing for an `exp` at the top of the range, and
+  `DateTimeOffset.FromUnixTimeSeconds` / `FromUnixTimeMilliseconds` are banned (`RS0030`). Capping far-future assertion
+  lifetimes is tracked as `F39`._
+- **`D14` — JWT claim ⇄ JSON numeric and extra-claim fidelity in `NCode.Identity.Jwt`.** The claim mapping is
+  date-correct per [ADR-0121](docs/adr/0121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md), but
+  three non-date defects remain in the same encode/decode pair. (1) `DefaultClaimsIdentityFactory.CreateNumberClaim`
+  probes widths narrow → wide with each later probe **overwriting** the earlier one, so every JSON number ends up typed
+  `ClaimValueTypes.Double` (any finite number satisfies `TryGetDouble`); re-encoding such a claim goes through `double`
+  and silently loses precision for integers above 2^53. It should pick the **most specific** type (first match wins),
+  matching `ObjectJsonConverter`'s most-specific integer mapping, and drop its empty `catch` (the `TryGet*` probes on a
+  `Number` element cannot throw). (2) `DefaultJwtEncoder.ConvertClaimToNativeValue` has no `UInteger32` /
+  `UInteger64` branch, so such claims are re-emitted as JSON **strings**. (3) `DefaultJwtEncoder.ProcessExtraPayloadClaims`
+  returns early unless `ExtraPayloadClaims.Count > 1`, silently **dropping** a lone extra payload claim. This is live:
+  an ID token whose only payload claim is `azp` (no `nonce`, `c_hash`/`at_hash`/`s_hash`, or `sid` — e.g. one issued by
+  token exchange without a session) loses `azp`. The guard should be `Count > 0`. Add a decode →
+  encode round-trip test over every JSON scalar kind so the pair cannot drift again. Touch points:
+  `src/NCode.Identity.Jwt/Claims/DefaultClaimsIdentityFactory.cs`, `src/NCode.Identity.Jwt/Encoding/DefaultJwtEncoder.cs`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0122](docs/adr/0122-jwt-claim-values-map-to-json-by-declared-type.md). Both directions of the claim-value
+  mapping moved into one internal `ClaimValueMapper`: decode keeps each number's exact literal and types it most
+  specific first (`#integer32` → `#integer64` → `#uinteger64` → unbounded `#integer` → `#double`); encode parses each
+  declared type in its XML Schema lexical space (adding `#uinteger32` / `#uinteger64` and unbounded `#integer`, exact
+  beyond 64 bits), and emits a value outside it — including `NaN`/`Infinity` and malformed or wrong-kind `JSON` — as its
+  verbatim string instead of throwing. The same pass fixed two further round-trip defects: `JSON_NULL` now encodes as
+  JSON `null` (not `""`), and lenient `NumberStyles.Any` parsing (`"1,000"` → `1000`) is gone. A lone extra payload
+  claim is emitted. A decode → encode round-trip test over every JSON scalar kind guards the pair._
 
 ## Feature gaps — implemented (group `F`)
 

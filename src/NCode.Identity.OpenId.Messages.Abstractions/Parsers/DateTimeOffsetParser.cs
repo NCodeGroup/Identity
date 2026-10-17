@@ -16,12 +16,12 @@
 
 #endregion
 
-using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Messages.Parsers;
 
@@ -60,23 +60,13 @@ public class DateTimeOffsetParser : ParameterParser<DateTimeOffset>
                     .AsException();
         }
 
-        var stringValue = stringValues[0];
-        Debug.Assert(stringValue is not null);
-
-        if (
-            !long.TryParse(
-                stringValues[0],
-                NumberStyles.None,
-                CultureInfo.InvariantCulture,
-                out var unixTimeSeconds
-            )
-        )
+        if (!DateCoercion.TryParseNumericDate(stringValues[0], out var parsedValue))
         {
             throw openIdEnvironment
                 .ErrorFactory.InvalidParameterValue(descriptor.ParameterName)
                 .AsException();
         }
 
-        return DateTimeOffset.FromUnixTimeSeconds(unixTimeSeconds);
+        return parsedValue;
     }
 }

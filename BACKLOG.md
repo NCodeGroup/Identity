@@ -66,10 +66,10 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
-| `F` — Feature gaps                    | `F43`     | `F42`      |
-| `T` — Conformance & interop testing   | `T9`      | `T8`       |
+| `F` — Feature gaps                    | `F48`     | `F47`      |
+| `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U15`     | `U14`      |
-| `S` — Secrets management              | `S10`     | `S9`       |
+| `S` — Secrets management              | `S11`     | `S10`      |
 | `X` — Tooling & agent customization   | `X4`      | `X3`       |
 
 ---
@@ -324,6 +324,63 @@ entry and/or ADR that closed it.
   no error. Decide which key is canonical, make the other fail loudly (or bind), and add a test that a configured
   non-default tenant path is actually honored.
 
+- **`F43` — Validate `tls_client_auth` certificate chains in the server against configured trust anchors.**
+  `tls_client_auth` ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)) assumes the TLS terminator already
+  PKI-validated the certificate; the handler only matches subject DN / SAN. That forces the proxy to
+  `RequireAndVerifyClientCert` against a CA bundle, which (a) rejects `self_signed_tls_client_auth` certificates on the
+  same host, (b) cannot select a per-tenant CA when tenants share a hostname (TLS options bind per SNI, before the tenant
+  is known), and (c) becomes an **authentication bypass** if the proxy only requests the certificate
+  (`RequireAnyClientCert`) — a self-signed certificate carrying the registered subject DN would match. Add
+  tenant/client-scoped trust-anchor settings (CA bundle, optional intermediates from the forwarded chain, revocation
+  policy) and build the chain with `X509Chain` (custom root trust, `clientAuth` EKU, validity) before the identity match,
+  so the proxy only needs to request and forward the certificate. Found during the
+  [hosting analysis](docs/hosting-analysis.md#8-traefik-mtls-and-tenant-pki). Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/TlsClientAuthClientAuthenticationHandler.cs`,
+  `MutualTlsClientAuthenticationHandler`, `IClientCertificateResolver` (surface the chain), `OpenIdSettingKeys`. Capture
+  the design in an ADR.
+
+- **`F44` — Accept Traefik's `X-Forwarded-Tls-Client-Cert` encoding.** Traefik's `passTLSClientCert` (`pem: true`)
+  forwards each certificate as base64 DER (PEM delimiters and newlines stripped) and comma-separates the chain when the
+  client presents one. `MutualTlsClientCertificateFormat.Base64Der` decodes a single certificate only, so a presented
+  chain fails to parse and `DefaultClientCertificateResolver` silently falls back to "no certificate". Make the base64-DER
+  format list-aware (leaf first; expose the rest as intermediates for `F43`) or add a dedicated format. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultClientCertificateResolver.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Abstractions/Tokens/MutualTlsClientCertificateFormat.cs`.
+
+- **`F45` — Per-tenant rate limits and quotas.** Customers run their dev, test, and prod environments as separate
+  tenants on the one production platform ([hosting analysis](docs/hosting-analysis.md#environment-model)), so a
+  customer's load test against a `-dev` tenant shares hardware with every other tenant's production. Nothing limits a
+  tenant's request rate today. Add tenant-partitioned rate limiting (ASP.NET Core rate limiting, partitioned by the
+  resolved tenant and, within it, by client) with limits as tenant settings bounded by the merge lattice, a shared store
+  (Valkey) so limits hold across replicas, and RFC 6585 `429` + `Retry-After` responses; consider per-tenant quotas
+  (requests/day, token issuances) for plan tiers. Capture the design in an ADR.
+
+- **`F46` — Kubernetes deployment artifacts for the host.** `NCode.Identity.OpenId.Host` is the deployable
+  ([ADR-0130](docs/adr/0130-distinct-names-for-host-local-dev-orchestrator-and-library.md)); it already trusts forwarded
+  headers only from configured proxies (`ReverseProxy:KnownNetworks` — set it to the cluster's pod CIDR) and refuses
+  development-only settings in Production (`AddProductionSafety`). Still missing for a rolling deployment behind
+  Traefik: the [`Dockerfile`](src/NCode.Identity.OpenId.Host/Dockerfile) is development-shaped (copies the whole repo,
+  exposes 80/443 although .NET listens on 8080, runs as root, amd64 only); `/health` has no checks registered, so
+  readiness (database, Valkey) is not separated from liveness; no Helm chart (probes, `preStop` drain, PodDisruptionBudget,
+  restricted security context); and `Host.MigrationService` should run as a pre-deploy Job with expand/contract schema
+  changes so a rolling update never breaks the running version. The production-safety gate should also refuse a
+  tenant with no configured issuer (the [ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)
+  follow-up) and an unprotected Data Protection key ring (`S10`). Plus the OpenTofu modules and GitHub Actions workflows
+  from the [hosting analysis](docs/hosting-analysis.md#11-iac-and-delivery). Touch points:
+  `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.OpenId.Host/Dockerfile`,
+  `src/NCode.Identity.OpenId.Host.MigrationService`, `src/NCode.Identity.Server/ProductionSafety`.
+
+- **`F47` — Route a tenant's mTLS endpoint-alias host.** `mtls_endpoint_alias_authority` publishes the RFC 8705 §5
+  `mtls_endpoint_aliases` on a separate authority (for example `https://acme.mtls.example`), but `DynamicByHost` routes
+  only on the host component of the tenant's issuer
+  ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), so a request to the alias host
+  resolves no tenant. Multi-tenant mTLS on per-tenant hostnames therefore cannot work today. Derive the alias host into
+  the routing lookup the same way as the issuer host (never independently writable), decide whether the alias authority
+  becomes a first-class tenant property like the issuer, and enforce host uniqueness across issuer and alias hosts under
+  the host strategy. Found during the [hosting analysis](docs/hosting-analysis.md#domain-and-dns--nidentityio). Touch
+  points: `src/NCode.Identity.OpenId.Core/Tenants/Strategies/DynamicByHostTenantStrategy.cs`, the tenant store's
+  issuer-host index, `DefaultDiscoverMetadataHandler`.
+
 ## Conformance & interop testing (group `T`)
 
 - **`T1` (subsumes `T6`) — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite,
@@ -351,6 +408,15 @@ failures, 0 warnings`); the **Basic OP** (browser-driven) plan runs end-to-end u
   [`src/frontend/apps/conformance`](src/frontend/apps/conformance),
   [`src/frontend/apps/conformance-runner`](src/frontend/apps/conformance-runner),
   [`src/frontend/packages/conformance-core`](src/frontend/packages/conformance-core).
+- **`T9` — Ephemeral Azure dev/test environment for hosted-suite certification and topology tests.** The local `T1`
+  harness cannot exercise what only a deployed, publicly reachable OP can: the OpenID Foundation's hosted conformance
+  suite (official certification), the production-shaped path (L4 LB → Traefik → forwarded client certificate, multiple
+  replicas sharing Valkey, networked Postgres — including the mTLS/FAPI plans and `F43` / `F44` / `F47`), k6 load
+  tests for sizing, and Key Vault remote signing (`S7`). Build an OpenTofu (`azurerm`) + GitHub Actions workflow on the
+  Visual Studio Professional Azure credit (dev/test only; instances may be suspended after 120 h continuous run) that
+  applies, deploys, runs, uploads results, and always destroys, authenticated by GitHub OIDC federation. Costs and
+  constraints are in [`docs/hosting-analysis.md`](docs/hosting-analysis.md#10-devtest-and-conformance-on-azure-visual-studio-credit).
+  Depends on the CI bootstrap noted under `T1`.
 - **`T6` — Spec-coverage conformance harness (folded into `T1`).** The in-house measurement harness and the committed
   `run-conformance.ps1` automation that drives the external certified suite are the mechanism by which `T1`'s
   independent-oracle goal was delivered; they are tracked together under `T1` above. See there for status, the lone
@@ -436,6 +502,16 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   external-keystore providers. Touch points:
   `src/NCode.Identity.Secrets.Persistence/DefaultSecretSerializer.cs`,
   `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`. Capture the design in an ADR.
+
+- **`S10` — Encrypt the Data Protection key ring at rest.** The host persists the ASP.NET Core Data Protection key ring
+  to the same Postgres database as the secrets it protects (`PersistKeysToDbContext<DeveloperDataProtectionDbContext>`,
+  unconditionally and with no `ProtectKeysWith…`), so a database backup or dump contains both the protected secret
+  material and the keys that unprotect it. Production must wrap the ring with a key held outside the database — a cloud
+  KMS / HSM key (Azure Key Vault, OCI Vault) or a certificate from the secret store — the server composition should
+  make that the secure default rather than an opt-in, and `AddProductionSafety` should refuse an unprotected ring.
+  Complements `S9` (envelope encryption of stored secrets) and `S7` (external-keystore providers). Touch points:
+  `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.Server/IdentityServerBuilder.cs`,
+  `src/NCode.Identity.Server/ProductionSafety`, `src/NCode.Identity.Secrets/DefaultRegistration.cs`.
 
 ## Tooling & agent customization (group `X`)
 

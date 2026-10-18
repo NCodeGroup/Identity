@@ -51,6 +51,14 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   straight to assertion helpers, which stay inline (`CA1861` is off for tests).
 - 👁 **Prefer the size-specific xUnit assertions**: `Assert.Empty(x)` for count 0 and `Assert.Single(x)` for count 1,
   not `Assert.Equal(0/1, x.Count)`. `Assert.Equal(n, x.Count)` is fine for n > 1.
+- 👁 **Assert on the exception type the contract guarantees, not the one a platform happens to throw.**
+  `Assert.Throws<T>` demands an **exact** type match, so it fails on a derived exception. When the concrete type is an
+  implementation detail that varies by platform or provider, assert the documented base type with
+  `Assert.ThrowsAny<T>`. Signing with a public-only RSA key is the canonical case: Windows raises
+  `CryptographicException` itself, while OpenSSL-backed platforms raise a derived
+  `Interop+Crypto+OpenSslCryptographicException`, so only `Assert.ThrowsAny<CryptographicException>` holds on both.
+  Keep `Assert.Throws<T>` where the exact type **is** the contract (a library's own
+  `JoseException`/`OpenIdException`, `ArgumentNullException`, and similar).
 
 ## Isolation & mocking
 

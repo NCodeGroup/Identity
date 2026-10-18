@@ -20,7 +20,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence;
-using NCode.Identity.Persistence;
 
 namespace NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 

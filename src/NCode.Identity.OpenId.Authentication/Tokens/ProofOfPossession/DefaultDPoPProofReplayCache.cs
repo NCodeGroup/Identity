@@ -17,7 +17,6 @@
 #endregion
 
 using Microsoft.Extensions.Caching.Distributed;
-using NCode.Identity.OpenId.Authentication.Tokens;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 

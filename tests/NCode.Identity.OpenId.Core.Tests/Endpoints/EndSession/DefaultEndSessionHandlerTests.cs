@@ -159,8 +159,9 @@ public class DefaultEndSessionHandlerTests : BaseTests
             .ReturnsAsync(mockClient.Object)
             .Verifiable();
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+        IReadOnlyCollection<string>? configuredUris = allowedUris;
         mockSettings
-            .Setup(x => x.TryGetValue(OpenIdSettingKeys.PostLogoutRedirectUris, out allowedUris))
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.PostLogoutRedirectUris, out configuredUris))
             .Returns(true)
             .Verifiable();
     }
@@ -281,7 +282,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
 
         var mockClient = CreateStrictMock<OpenIdClient>();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        IReadOnlyCollection<string> allowed = [uriWithQuery];
+        IReadOnlyCollection<string>? allowed = [uriWithQuery];
         MockClientResolver
             .Setup(x =>
                 x.ResolveClientOrDefaultAsync(

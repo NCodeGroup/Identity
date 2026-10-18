@@ -17,7 +17,6 @@
 #endregion
 
 using System.Globalization;
-using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;

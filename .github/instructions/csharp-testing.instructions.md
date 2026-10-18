@@ -21,8 +21,19 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 
 - 👁 **Test method names use the `Method_State_Expected` underscore idiom**
   (`Encode_WhenGivenValidPayload_ReturnsCompactJws`). The analyzer rules that are legitimate on shipping code but noise
-  in tests (`CA1707`, `CA1816`, `CA1859`, `CA1861`, `CA2012`, `IDE0005`) are disabled for test projects in
+  in tests (`CA1707`, `CA1816`, `CA1859`, `CA1861`, `CA1869`, `CA2012`, `CA2215`) are disabled for test projects in
   [`.editorconfig`](../../.editorconfig); they stay active on production code.
+- ⏳ **Warnings are errors in test projects too**, inherited from the root `TreatWarningsAsErrors`
+  ([ADR-0127](../../docs/adr/0127-warnings-are-errors-in-every-project.md)). The criterion is "code we maintain", not
+  "code we ship" — and the `xunit.analyzers` rules in particular report real defects *in the tests themselves*, which
+  is the worst class of warning to ignore. To relax a rule that is genuine noise in tests, add it to the
+  `[tests/**/*.cs]` block in [`.editorconfig`](../../.editorconfig) **with a one-line justification**; for a single
+  isolated site, use a tight `#pragma warning disable/restore` with a reason instead. 🚫 Never reintroduce
+  `TreatWarningsAsErrors=false` or reach for a project-level `NoWarn`.
+- ✅ **Prefer a real fix over a suppression for nullable warnings.** Test projects are exempt from the production ban on
+  the null-forgiving operator (`Nullable.Extended.Analyzer` is gated on `IsPackable != false`), so `null!` is available
+  — but a `[MaybeNullWhen(false)]` `out` argument should be given a **nullable local** (`IReadOnlyCollection<string>?
+  supported = …`) and a maybe-null result should be narrowed with `Assert.NotNull(x)` before dereferencing.
 - 👁 **Organize tests with `#region` directives** grouping tests by the member under test:
     - `Constructor Tests` for constructors
     - `{MethodName} Tests` for methods (e.g. `Dispose Tests`)

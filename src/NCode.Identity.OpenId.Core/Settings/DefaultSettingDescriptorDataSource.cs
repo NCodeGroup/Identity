@@ -20,7 +20,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
-using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using static NCode.Identity.Settings.SettingMerge;
 

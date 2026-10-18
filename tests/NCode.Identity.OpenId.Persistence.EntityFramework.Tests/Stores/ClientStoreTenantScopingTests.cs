@@ -26,7 +26,6 @@ using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
-using Xunit;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 

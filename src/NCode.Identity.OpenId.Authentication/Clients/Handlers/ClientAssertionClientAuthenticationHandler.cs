@@ -27,9 +27,7 @@ using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.Keys;
 using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;

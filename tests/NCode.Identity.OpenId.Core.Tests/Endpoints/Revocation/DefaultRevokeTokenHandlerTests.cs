@@ -29,7 +29,6 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Mediator;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Revocation;

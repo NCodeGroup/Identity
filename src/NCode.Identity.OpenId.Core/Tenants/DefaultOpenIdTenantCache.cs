@@ -20,10 +20,6 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using NCode.Disposables;
-using NCode.Identity.OpenId;
-using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Servers;
-using NCode.Identity.OpenId.Tenants;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants;

@@ -19,7 +19,6 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using NCode.Identity.Dispatch.InProcess;
 using NCode.Identity.Dispatch.Options;
 using NCode.Registration;

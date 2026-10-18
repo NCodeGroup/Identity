@@ -981,3 +981,17 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   without archaeology. Touch points: [`BACKLOG.md`](BACKLOG.md), [`CHANGELOG.md`](CHANGELOG.md),
   [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md).
   _Closed: this archive; the going-forward process is documented in [`BACKLOG.md`](BACKLOG.md)._
+- **`X3` — Unused `using` directives are not enforced in production code.** `IDE0005` is explicitly off for tests in
+  [`.editorconfig`](.editorconfig), but nothing turns it on for `src/`: under `AnalysisLevel` `latest-recommended` it
+  stays at its default hidden severity, so warnings-as-errors never sees it. Raising it to `warning` for `src/` (found
+  during the `D7` sweep) flags unused usings in roughly 80 production files (e.g. `NCode.Identity.Jose`,
+  `NCode.Identity.OpenId.Authentication.Interactive`, the Management endpoint groups). Clean them with
+  `dotnet format style --diagnostics IDE0005`, then set `dotnet_diagnostic.IDE0005.severity = warning` under `[*.cs]` so
+  the build keeps them out. Touch points: [`.editorconfig`](.editorconfig) and the flagged `src/` files.
+  _Closed by [ADR-0127](docs/adr/0127-warnings-are-errors-in-every-project.md), which unified the warning gate across
+  the whole repository. `IDE0005` was raised solution-wide under `[*.cs]` — not just `src/` — and the tests-only
+  `IDE0005 = none` override was removed, so the rule now covers both trees; `dotnet format style --diagnostics IDE0005`
+  cleaned 182 files. Two Roslyn quirks were discovered and recorded in the ADR: the rule is hidden by default under
+  `latest-recommended`, and it requires `GenerateDocumentationFile=true`, hard-erroring with
+  `EnableGenerateDocumentationFile` otherwise (dotnet/roslyn#41640) — which is why test projects now generate (and
+  discard) an XML documentation file and suppress `CS1591`._

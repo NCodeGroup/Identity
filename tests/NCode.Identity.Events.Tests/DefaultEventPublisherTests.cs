@@ -17,7 +17,6 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using NCode.Identity.Events.Audit;
 using Xunit;
 

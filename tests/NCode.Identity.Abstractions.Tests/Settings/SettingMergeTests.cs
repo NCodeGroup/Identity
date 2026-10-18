@@ -16,8 +16,6 @@
 
 #endregion
 
-using Xunit;
-
 namespace NCode.Identity.Settings;
 
 public class SettingMergeTests

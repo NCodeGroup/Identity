@@ -23,7 +23,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Identity.Jose;
-using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
@@ -138,7 +137,10 @@ public class DefaultAuthenticateHandlerTests : BaseTests
         // A present-but-invalid session cookie self-heals: it is treated as "no session" so the authorize flow prompts
         // for interactive login, rather than dead-ending the end-user with access_denied.
         var (command, mockAuthService, _) = CreateScaffold();
-        SetupAuthenticate(mockAuthService, AuthenticateResult.Fail(new Exception("boom")));
+        SetupAuthenticate(
+            mockAuthService,
+            AuthenticateResult.Fail(new InvalidOperationException("boom"))
+        );
 
         var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
 

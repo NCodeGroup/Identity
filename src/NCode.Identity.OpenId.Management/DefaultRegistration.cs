@@ -17,18 +17,12 @@
 #endregion
 
 using JetBrains.Annotations;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Endpoints;
-using NCode.Identity.OpenId.Management.Endpoints.Clients;
-using NCode.Identity.OpenId.Management.Endpoints.Grants;
-using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
-using NCode.Identity.OpenId.Management.Endpoints.Servers;
-using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Identity.OpenId.Management.OpenApi;
 using NCode.Identity.OpenId.Management.ResourceServers;
 using NCode.Identity.OpenId.Tenants;

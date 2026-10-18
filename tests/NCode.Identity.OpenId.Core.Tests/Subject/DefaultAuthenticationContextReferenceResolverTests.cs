@@ -16,7 +16,6 @@
 
 #endregion
 
-using Moq;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;

@@ -149,7 +149,7 @@ public class ParameterParserHappyPathTests : BaseTests
 
         var result = parser.GetStringValues(_environment, descriptor, ["c", "a", "b"]);
 
-        Assert.Equal(["a", "b", "c"], result);
+        Assert.Equal(new StringValues(["a", "b", "c"]), result);
     }
 
     [Fact]

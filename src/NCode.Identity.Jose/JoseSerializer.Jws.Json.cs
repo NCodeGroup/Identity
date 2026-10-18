@@ -24,7 +24,6 @@ using NCode.Buffers;
 using NCode.Disposables;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose;

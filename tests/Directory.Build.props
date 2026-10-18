@@ -6,9 +6,16 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <!-- Test projects are never shipped: no XML documentation, and warnings must not fail the build. -->
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- Test projects are NOT exempt from the warning gate: warnings-as-errors is inherited from the root.
+         See ADR-0127 — the criterion is "code we maintain", not "code we ship", and the xunit.analyzers rules
+         in particular report real defects in the tests themselves. Relax an individual rule via the justified
+         [tests/**/*.cs] block in .editorconfig; never by reintroducing TreatWarningsAsErrors=false. -->
+    <!-- Roslyn only runs IDE0005 (unnecessary usings) when a documentation file is generated, and hard-errors
+         with 'EnableGenerateDocumentationFile' if the rule is raised without it (dotnet/roslyn#41640). Test
+         assemblies are never shipped, so the generated XML is discarded and CS1591 (missing XML comment on a
+         public member) is suppressed here — turning it on buys IDE0005 coverage over the test tree. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <!-- The Definition of Done (dod.ps1) writes JUnit test reports via the JUnit test logger. -->

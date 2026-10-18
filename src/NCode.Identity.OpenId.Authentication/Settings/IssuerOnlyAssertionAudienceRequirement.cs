@@ -19,7 +19,6 @@
 using System.Text.Json;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Exceptions;
 using NCode.Json;
 
 namespace NCode.Identity.OpenId.Settings;

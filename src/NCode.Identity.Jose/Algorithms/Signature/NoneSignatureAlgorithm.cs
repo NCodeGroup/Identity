@@ -18,7 +18,6 @@
 #endregion
 
 using System.Security.Cryptography;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose.Algorithms.Signature;

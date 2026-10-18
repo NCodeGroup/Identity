@@ -125,7 +125,10 @@ public class DefaultCryptoServiceTests
 
         byte[] expected = hashAlgorithmType switch
         {
+            // SHA-1 is a supported algorithm of the service under test, so the oracle must name it too.
+#pragma warning disable CA5350
             HashAlgorithmType.Sha1 => SHA1.HashData(data),
+#pragma warning restore CA5350
             HashAlgorithmType.Sha256 => SHA256.HashData(data),
             _ => SHA512.HashData(data),
         };

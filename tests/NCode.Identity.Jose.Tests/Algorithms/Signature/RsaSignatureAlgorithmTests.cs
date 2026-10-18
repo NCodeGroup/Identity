@@ -21,7 +21,6 @@ using System.Security.Cryptography;
 using Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.Signature;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose.Tests.Algorithms.Signature;

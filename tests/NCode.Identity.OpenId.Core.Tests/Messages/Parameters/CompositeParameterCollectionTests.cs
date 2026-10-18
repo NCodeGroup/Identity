@@ -17,7 +17,6 @@
 
 #endregion
 
-using Moq;
 using NCode.Identity.OpenId.Messages.Parameters;
 using Xunit;
 

@@ -16,7 +16,6 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Authentication.Interactive;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;

@@ -69,6 +69,10 @@ dotnet_diagnostic.CA1720.severity = none
 # CA1852: internal implementations are deliberately left unsealed so unit tests can subclass/mock them
 # (via InternalsVisibleTo + DynamicProxyGenAssembly2). Mockability outranks the micro devirtualization win.
 dotnet_diagnostic.CA1852.severity = none
+# Unused using directives rot the same in every tree, so IDE0005 is enforced solution-wide. It is hidden by
+# default under AnalysisLevel 'latest-recommended', so it must be raised explicitly to reach the build gate.
+# Clean violations with: dotnet format style --diagnostics IDE0005
+dotnet_diagnostic.IDE0005.severity = warning
 
 # ── Test projects only ──────────────────────────────────────────────────────
 # The following rules are legitimate on shipping code but pure noise in xUnit tests.
@@ -83,12 +87,13 @@ dotnet_diagnostic.CA1822.severity = none
 dotnet_diagnostic.CA1859.severity = none
 # Tests pass inline array literals straight to assertion helpers; hoisting each to a field hurts readability.
 dotnet_diagnostic.CA1861.severity = none
+# Each test builds its own JsonSerializerOptions: the type becomes immutable on first use, so sharing one
+# across tests would couple them and block per-test converter setup. The caching win is irrelevant here.
+dotnet_diagnostic.CA1869.severity = none
 # Moq setups return already-completed ValueTasks; CA2012's "await once" rule is a false positive when arranging.
 dotnet_diagnostic.CA2012.severity = none
 # Short-lived test fixtures need not chain base Dispose.
 dotnet_diagnostic.CA2215.severity = none
-# Unused usings in tests are low-value and cleaned by `dotnet format`; keep IDE0005 off there.
-dotnet_diagnostic.IDE0005.severity = none
 
 # ── EF Core generated migrations ────────────────────────────────────────────
 # Migrations are scaffolded by `dotnet ef`, not hand-edited; treat them as generated code so the

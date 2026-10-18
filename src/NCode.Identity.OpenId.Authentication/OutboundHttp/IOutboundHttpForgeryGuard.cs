@@ -17,7 +17,6 @@
 #endregion
 
 using System.Net;
-using System.Net.Http;
 
 namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 

@@ -89,6 +89,7 @@ public class DefaultSettingCollectionTests : BaseTests
         var found = collection.TryGet(new SettingKey<string>("a"), out var setting);
 
         Assert.True(found);
+        Assert.NotNull(setting);
         Assert.Equal("1", setting.Value);
     }
 

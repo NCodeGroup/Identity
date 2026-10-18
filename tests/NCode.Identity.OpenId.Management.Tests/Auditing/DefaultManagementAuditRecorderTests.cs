@@ -19,11 +19,9 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
-using Moq;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Environments;
-using Xunit;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
 

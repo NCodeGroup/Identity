@@ -19,7 +19,6 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Persistence;
 using NCode.Persistence.Stores;

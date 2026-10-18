@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Data;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parsers;

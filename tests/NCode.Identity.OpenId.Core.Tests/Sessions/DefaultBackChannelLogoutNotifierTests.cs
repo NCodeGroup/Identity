@@ -23,7 +23,6 @@ using NCode.Identity.Dispatch;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
-using NCode.Identity.Jwt;
 using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Sessions;
@@ -137,12 +136,12 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             .Returns(mockAlgorithms.Object)
             .Verifiable();
 
-        JoseSigningCredentials credentials = found
+        JoseSigningCredentials? credentials = found
             ? new JoseSigningCredentials(
                 CreateLooseMock<SecretKey>().Object,
                 CreateLooseMock<SignatureAlgorithm>().Object
             )
-            : null!;
+            : null;
         MockCredentialSelector
             .Setup(x =>
                 x.TryGetSigningCredentials(

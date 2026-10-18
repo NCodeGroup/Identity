@@ -22,9 +22,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Persistence.Stores;
-using Xunit;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 

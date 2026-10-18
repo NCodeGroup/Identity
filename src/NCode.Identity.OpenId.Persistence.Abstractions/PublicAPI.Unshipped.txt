@@ -15,7 +15,6 @@ const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.PrincipalId = 300 -> in
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.RoleName = 100 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.SessionId = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.SubjectId = 300 -> int
-const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.TenantDomainName = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.UrlType = 100 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.UrlValue = 1000 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.Description = 1000 -> int
@@ -234,8 +233,6 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedServerSettings.Persiste
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.DisplayName.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.DisplayName.set -> void
-NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.DomainName.get -> string?
-NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.DomainName.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.IsDisabled.get -> bool
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.IsDisabled.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.PersistedTenant() -> void
@@ -361,7 +358,6 @@ NCode.Identity.OpenId.Persistence.Stores.IServerStore.UpdateSettingsAsync(NCode.
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.AddSecretAsync(string! tenantId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetOrDefaultAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant?>
-NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetOrDefaultByDomainNameAsync(string! domainName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant?>
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetPageAsync(NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>!>
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetSecretOrDefaultAsync(string! tenantId, string! secretId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret?>
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetSecretsAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSecrets!>
@@ -400,3 +396,6 @@ virtual NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedServerResou
 virtual NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTenantResource.ResourceId.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.Issuer.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.Issuer.set -> void
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.TenantIssuerHost = 300 -> int
+NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetOrDefaultByIssuerAsync(string! issuer, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant?>
+NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetOrDefaultByIssuerHostAsync(string! host, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant?>

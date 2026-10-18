@@ -36,7 +36,6 @@ public sealed class ManagementResourceServerSeedHandlerTests
                 Tenant = new PersistedTenant
                 {
                     TenantId = TenantId,
-                    DomainName = null,
                     Issuer = null,
                     ConcurrencyToken = "token",
                     IsDisabled = false,

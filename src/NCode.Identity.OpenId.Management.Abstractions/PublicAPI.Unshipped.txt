@@ -459,8 +459,6 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.CreateTenantRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.DisplayName.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.DisplayName.init -> void
-NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.DomainName.get -> string?
-NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.DomainName.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.IsDisabled.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Settings.get -> System.Text.Json.JsonElement
@@ -470,8 +468,6 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.ConcurrencyTok
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.ConcurrencyToken.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.DisplayName.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.DisplayName.init -> void
-NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.DomainName.get -> string?
-NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.DomainName.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.IsDisabled.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.TenantId.get -> string!
@@ -502,8 +498,6 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.TenantSettingsResource.Tenant
 NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest
 NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.DisplayName.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.DisplayName.set -> void
-NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.DomainName.get -> string?
-NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.DomainName.set -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.IsDisabled.set -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.UpdateTenantRequest() -> void

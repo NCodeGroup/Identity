@@ -50,15 +50,25 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
         modelBuilder.Entity<FederatedPrincipalEntity>().ToTable("FederatedPrincipals");
         modelBuilder.Entity<FederatedIdentityEntity>().ToTable("FederatedIdentities");
 
-        // A tenant's domain name is optional; enforce uniqueness only over non-null values (a filtered index) so
-        // that multiple tenants may omit it. The in-memory provider ignores the filter and does not enforce indexes.
-        // Quote the column so the raw filter is portable: Postgres folds unquoted identifiers to lower case (the column
-        // is PascalCase), while SQLite treats the quoted name as the same identifier.
+        // A tenant's issuer is optional (a tenant without one derives its origin from the request), so enforce
+        // uniqueness only over non-null values (a filtered index). Two tenants sharing an issuer is a protocol-level
+        // collision: the issuer IS the tenant's identity, and every token it mints asserts it. The in-memory provider
+        // ignores the filter and does not enforce indexes. Quote the column so the raw filter is portable: Postgres
+        // folds unquoted identifiers to lower case (the column is PascalCase), while SQLite treats the quoted name as
+        // the same identifier.
         modelBuilder
             .Entity<TenantEntity>()
             .ToTable("Tenants")
-            .HasIndex(entity => entity.NormalizedDomainName)
+            .HasIndex(entity => entity.NormalizedIssuer)
             .IsUnique()
-            .HasFilter("\"NormalizedDomainName\" IS NOT NULL");
+            .HasFilter("\"NormalizedIssuer\" IS NOT NULL");
+
+        // The routing key for the host-based strategy. NOT unique: path-based tenants legitimately share a host
+        // (https://op.example/tenant-a, https://op.example/tenant-b). Host uniqueness is a requirement of the
+        // host-based strategy only, so it is enforced by validation rather than by the schema.
+        modelBuilder
+            .Entity<TenantEntity>()
+            .HasIndex(entity => entity.NormalizedIssuerHost)
+            .HasFilter("\"NormalizedIssuerHost\" IS NOT NULL");
     }
 }

@@ -170,7 +170,6 @@ internal class TenantApiEndpointHandler(
         {
             TenantId = tenant.TenantId,
             ConcurrencyToken = tenant.ConcurrencyToken,
-            DomainName = tenant.DomainName,
             Issuer = tenant.Issuer,
             IsDisabled = tenant.IsDisabled,
             DisplayName = tenant.DisplayName,
@@ -314,7 +313,6 @@ internal class TenantApiEndpointHandler(
         {
             TenantId = tenantId,
             ConcurrencyToken = string.Empty,
-            DomainName = request.DomainName,
             Issuer = request.Issuer,
             IsDisabled = request.IsDisabled,
             DisplayName = request.DisplayName,
@@ -400,7 +398,6 @@ internal class TenantApiEndpointHandler(
 
         var model = new UpdateTenantRequest
         {
-            DomainName = tenant.DomainName,
             Issuer = tenant.Issuer,
             DisplayName = tenant.DisplayName,
             IsDisabled = tenant.IsDisabled,
@@ -434,7 +431,6 @@ internal class TenantApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        tenant.DomainName = model.DomainName;
         tenant.Issuer = model.Issuer;
         tenant.IsDisabled = model.IsDisabled;
         tenant.DisplayName = model.DisplayName;

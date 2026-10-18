@@ -1003,11 +1003,6 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
                         .IsUnicode(true)
                         .HasColumnType("text");
 
-                    b.Property<string>("DomainName")
-                        .HasMaxLength(300)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(300)");
-
                     b.Property<bool>("IsDisabled")
                         .HasColumnType("boolean");
 
@@ -1016,7 +1011,12 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<string>("NormalizedDomainName")
+                    b.Property<string>("NormalizedIssuer")
+                        .HasMaxLength(1000)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("NormalizedIssuerHost")
                         .HasMaxLength(300)
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
@@ -1051,9 +1051,12 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedDomainName")
+                    b.HasIndex("NormalizedIssuer")
                         .IsUnique()
-                        .HasFilter("\"NormalizedDomainName\" IS NOT NULL");
+                        .HasFilter("\"NormalizedIssuer\" IS NOT NULL");
+
+                    b.HasIndex("NormalizedIssuerHost")
+                        .HasFilter("\"NormalizedIssuerHost\" IS NOT NULL");
 
                     b.HasIndex("NormalizedTenantId")
                         .IsUnique();

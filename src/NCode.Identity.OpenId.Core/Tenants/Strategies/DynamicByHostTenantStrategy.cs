@@ -35,7 +35,7 @@ internal class DynamicByHostTenantStrategy(
     IOptions<TenantResolutionOptions> optionsAccessor
 ) : TenantStrategy(storeManagerFactory)
 {
-    private Regex? DomainNameRegex { get; set; }
+    private Regex? IssuerHostRegex { get; set; }
 
     private DynamicByHostTenantOptions Options =>
         optionsAccessor.Value.DynamicByHost ?? new DynamicByHostTenantOptions();
@@ -54,40 +54,42 @@ internal class DynamicByHostTenantStrategy(
     {
         var options = Options;
 
-        var regex = DomainNameRegex ??= new Regex(
+        var regex = IssuerHostRegex ??= new Regex(
             options.RegexPattern,
             RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Singleline
         );
 
         var host = httpContext.Request.Host.Host;
         var match = regex.Match(host);
-        var domainName = match.Success ? match.Value : host;
+        var issuerHost = match.Success ? match.Value : host;
 
-        return await GetTenantByDomainAsync(domainName, cancellationToken);
+        return await GetTenantByIssuerHostAsync(issuerHost, cancellationToken);
     }
 
-    private async ValueTask<PersistedTenant> GetTenantByDomainAsync(
-        string domainName,
+    // The host is matched against the host component of each tenant's issuer, which is derived from that issuer rather
+    // than stored alongside it — so the value routed on cannot drift from the identity the tenant publishes.
+    private async ValueTask<PersistedTenant> GetTenantByIssuerHostAsync(
+        string issuerHost,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var persistedTenant = await store.GetOrDefaultByDomainNameAsync(
-            domainName,
+        var persistedTenant = await store.GetOrDefaultByIssuerHostAsync(
+            issuerHost,
             cancellationToken
         );
 
         if (persistedTenant is null)
             throw TypedResults
                 .NotFound()
-                .AsException($"A tenant with domain '{domainName}' could not be found.");
+                .AsException($"A tenant with issuer host '{issuerHost}' could not be found.");
 
         if (persistedTenant.IsDisabled)
             throw TypedResults
                 .NotFound()
-                .AsException($"The tenant with domain '{domainName}' is disabled.");
+                .AsException($"The tenant with issuer host '{issuerHost}' is disabled.");
 
         return persistedTenant;
     }

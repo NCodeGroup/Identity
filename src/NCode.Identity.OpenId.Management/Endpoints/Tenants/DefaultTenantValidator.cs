@@ -66,19 +66,19 @@ internal class DefaultTenantValidator(IAuthorizationService authorizationService
             };
         }
 
-        // the domain name is optional; the unique constraint only applies when one is supplied
-        if (!string.IsNullOrEmpty(tenant.DomainName))
+        // the issuer is optional; the unique constraint only applies when one is supplied
+        if (!string.IsNullOrEmpty(tenant.Issuer))
         {
-            var existingByDomain = await store.GetOrDefaultByDomainNameAsync(
-                tenant.DomainName,
+            var existingByIssuer = await store.GetOrDefaultByIssuerAsync(
+                tenant.Issuer,
                 cancellationToken
             );
-            if (existingByDomain is not null)
+            if (existingByIssuer is not null)
             {
                 return new ManagementError
                 {
                     StatusCode = StatusCodes.Status409Conflict,
-                    Detail = "A tenant with the specified domain name already exists.",
+                    Detail = "A tenant with the specified issuer already exists.",
                 };
             }
         }
@@ -129,21 +129,21 @@ internal class DefaultTenantValidator(IAuthorizationService authorizationService
             };
         }
 
-        // check domain uniqueness only when it actually changed, excluding this same tenant
+        // check issuer uniqueness only when it actually changed, excluding this same tenant
         if (
-            !string.IsNullOrEmpty(model.DomainName)
-            && !string.Equals(model.DomainName, tenant.DomainName, StringComparison.Ordinal)
+            !string.IsNullOrEmpty(model.Issuer)
+            && !string.Equals(model.Issuer, tenant.Issuer, StringComparison.Ordinal)
         )
         {
             var store = storeManager.GetStore<ITenantStore>();
-            var existingByDomain = await store.GetOrDefaultByDomainNameAsync(
-                model.DomainName,
+            var existingByIssuer = await store.GetOrDefaultByIssuerAsync(
+                model.Issuer,
                 cancellationToken
             );
             if (
-                existingByDomain is not null
+                existingByIssuer is not null
                 && !string.Equals(
-                    existingByDomain.TenantId,
+                    existingByIssuer.TenantId,
                     tenant.TenantId,
                     StringComparison.Ordinal
                 )
@@ -152,7 +152,7 @@ internal class DefaultTenantValidator(IAuthorizationService authorizationService
                 return new ManagementError
                 {
                     StatusCode = StatusCodes.Status409Conflict,
-                    Detail = "A tenant with the specified domain name already exists.",
+                    Detail = "A tenant with the specified issuer already exists.",
                 };
             }
         }

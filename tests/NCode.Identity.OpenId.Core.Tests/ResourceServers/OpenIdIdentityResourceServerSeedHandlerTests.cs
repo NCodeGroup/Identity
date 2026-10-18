@@ -39,7 +39,6 @@ public sealed class OpenIdIdentityResourceServerSeedHandlerTests
                 Tenant = new PersistedTenant
                 {
                     TenantId = TenantId,
-                    DomainName = null,
                     Issuer = null,
                     ConcurrencyToken = "token",
                     IsDisabled = false,

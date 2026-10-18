@@ -366,14 +366,10 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Con
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.ConcurrencyToken.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.DisplayName.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.DisplayName.set -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.DomainName.get -> string?
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.DomainName.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Id.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Id.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.IsDisabled.get -> bool
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.IsDisabled.set -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedDomainName.get -> string?
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedDomainName.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedTenantId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedTenantId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Secrets.get -> System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantSecretEntity!>!
@@ -403,3 +399,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantSecretEnti
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantSecretEntity.TenantSecretEntity() -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Issuer.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Issuer.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedIssuer.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedIssuer.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedIssuerHost.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedIssuerHost.set -> void

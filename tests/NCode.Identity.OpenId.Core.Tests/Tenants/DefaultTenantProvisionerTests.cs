@@ -48,7 +48,6 @@ public sealed class DefaultTenantProvisionerTests
         new()
         {
             TenantId = tenantId,
-            DomainName = null,
             Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,

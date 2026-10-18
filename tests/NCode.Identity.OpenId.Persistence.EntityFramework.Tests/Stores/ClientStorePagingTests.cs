@@ -83,7 +83,6 @@ public sealed class ClientStorePagingTests : IDisposable
         {
             TenantId = TenantId,
             ConcurrencyToken = string.Empty,
-            DomainName = null,
             Issuer = null,
             IsDisabled = false,
             DisplayName = TenantId,

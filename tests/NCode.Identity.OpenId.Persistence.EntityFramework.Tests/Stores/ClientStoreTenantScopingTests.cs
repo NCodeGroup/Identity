@@ -123,7 +123,6 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
         {
             TenantId = tenantId,
             ConcurrencyToken = string.Empty,
-            DomainName = null,
             Issuer = null,
             IsDisabled = false,
             DisplayName = tenantId,

@@ -36,16 +36,10 @@ public sealed class PersistedTenant : BasePersistedTenantResource
     public override string ResourceType => ResourceTypePrefix;
 
     /// <summary>
-    /// Gets or sets the domain name for this entity.
-    /// This value is optional and can be used to find tenants by domain name.
-    /// </summary>
-    [MaxLength(OpenIdMaxLengths.TenantDomainName)]
-    public required string? DomainName { get; set; }
-
-    /// <summary>
     /// Gets or sets the issuer identifier for this tenant — its request-independent identity, and therefore also the
     /// origin of every absolute URL the server publishes for it (the discovery endpoint URLs, the RFC 7592
-    /// <c>registration_client_uri</c>, the device <c>verification_uri</c>, the <c>check_session_iframe</c>).
+    /// <c>registration_client_uri</c>, the device <c>verification_uri</c>, the <c>check_session_iframe</c>). It is
+    /// also what the host-based tenant strategy routes on, via the host component.
     /// </summary>
     /// <remarks>
     /// Optional. When <c>null</c>, the origin is derived from the incoming request, which is a development-only

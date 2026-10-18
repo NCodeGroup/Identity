@@ -56,14 +56,35 @@ public interface ITenantStore : IStore<PersistedTenant>
     );
 
     /// <summary>
-    /// Attempts to get a <see cref="PersistedTenant"/> instance from the store with the specified domain name.
+    /// Attempts to get a <see cref="PersistedTenant"/> instance from the store with the specified issuer.
     /// </summary>
-    /// <param name="domainName">The domain name of the <see cref="PersistedTenant"/> instance to retrieve.</param>
+    /// <remarks>
+    /// An issuer identifies a tenant, so at most one tenant can hold a given value; this is the lookup that enforces
+    /// it on write.
+    /// </remarks>
+    /// <param name="issuer">The issuer of the <see cref="PersistedTenant"/> instance to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="PersistedTenant"/> instance matching the specified entity if it exists.</returns>
-    ValueTask<PersistedTenant?> GetOrDefaultByDomainNameAsync(
-        string domainName,
+    ValueTask<PersistedTenant?> GetOrDefaultByIssuerAsync(
+        string issuer,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Attempts to get a <see cref="PersistedTenant"/> instance from the store whose issuer has the specified host.
+    /// </summary>
+    /// <remarks>
+    /// The host is derived from the tenant's issuer rather than stored independently, so the value routed on cannot
+    /// drift from the identity published to clients. More than one tenant may share a host (path-based tenants do), so
+    /// a host-based deployment is responsible for keeping its issuer hosts distinct.
+    /// </remarks>
+    /// <param name="host">The issuer host of the <see cref="PersistedTenant"/> instance to retrieve.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedTenant"/> instance matching the specified entity if it exists.</returns>
+    ValueTask<PersistedTenant?> GetOrDefaultByIssuerHostAsync(
+        string host,
         CancellationToken cancellationToken
     );
 

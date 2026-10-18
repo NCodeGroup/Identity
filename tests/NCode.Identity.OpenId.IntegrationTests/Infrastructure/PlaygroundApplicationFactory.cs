@@ -794,7 +794,6 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         new()
         {
             TenantId = tenantId,
-            DomainName = null,
             Issuer = null,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             IsDisabled = false,

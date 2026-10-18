@@ -315,21 +315,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/Handlers/DefaultLoadBackchannelAuthenticationRequestHandler.cs`,
   `OpenIdSettingKeys`, `Fapi2SecurityProfile`.
 
-- **`F41` — Make the tenant's issuer the single source of the routing host, retiring `DomainName`.** The tenant now
-  carries a first-class `Issuer` (its request-independent identity, and the origin of every absolute URL the server
-  publishes). `DomainName` overlaps it: the issuer URL already embeds a host, and `DomainName` exists only as the
-  routing key for `DynamicByHostTenantStrategy`. Nothing keeps the two in step, so a tenant can be reachable at
-  `op.example` while advertising `https://other.example` — and OIDC Discovery §4.3 requires the returned `issuer` to
-  match the prefix the document was fetched from, so a drifted tenant is rejected by conforming clients. Derive the
-  routing host from the issuer instead and drop `DomainName`. **Two constraints discovered while scoping it:** the
-  derived host index must be **non-unique**, because `DynamicByPath` tenants legitimately share a host
-  (`https://op.example/tenant-a`, `…/tenant-b`); and the uniqueness that *should* be enforced — and currently is not
-  anywhere — is on the **full normalized issuer**, since two tenants sharing an issuer is a far worse collision than a
-  duplicate domain name. Host uniqueness becomes a validator rule applied only when the host strategy is configured,
-  because it is not a universal invariant. Touch points: `PersistedTenant`, `TenantEntity`, `CoreModelContributor`,
-  `TenantStore`, `DynamicByHostTenantStrategy`, `DefaultTenantValidator`, the management tenant contracts, and a
-  migration.
-
 - **`F42` — The host's tenant configuration section binds to nothing.** `AddConfiguration` binds tenant resolution from
   `{section}:TenantResolution` (so `OpenId:TenantResolution`), but the Playground's
   [`appsettings.json`](src/NCode.Identity.OpenId.Playground/appsettings.json) configures `OpenId:Tenant` — which binds

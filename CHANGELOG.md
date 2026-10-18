@@ -10,6 +10,30 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **A tenant's routing host and its published issuer could drift apart.** `DomainName` was the routing key for the
+  host-based tenant strategy while `Issuer` carried the identity the tenant publishes — and nothing kept the two in
+  step, so a tenant could be reachable at `op.example` while advertising `https://other.example`.
+  [OIDC Discovery §4.3](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationValidation)
+  requires the returned `issuer` to be identical to the prefix the document was fetched from, so a drifted tenant is
+  rejected outright by conforming clients.
+
+  `DomainName` is removed. The host-based strategy now routes on the **host component of the issuer**, derived on
+  write and never set independently, so the value routed on cannot diverge from the identity published. Two indexes
+  replace the single one: a **filtered unique** index on the normalized issuer, and a deliberately **non-unique**
+  index on the derived host.
+
+  The non-uniqueness is required, not a concession: path-based tenants legitimately share a host
+  (`https://op.example/tenant-a`, `…/tenant-b`), so a unique host index would make that strategy unusable beyond one
+  tenant. Host uniqueness is a requirement of the host-based strategy alone and is therefore enforced by validation
+  rather than by the schema. Conversely the issuer index enforces an invariant **nothing previously enforced**: two
+  tenants sharing an issuer is a protocol-level collision, because the issuer is the tenant's identity and is asserted
+  in every token it mints.
+
+  **Breaking:** `PersistedTenant.DomainName` and the `DomainName` field on the management tenant contracts are
+  removed; `ITenantStore.GetOrDefaultByDomainNameAsync` becomes `GetOrDefaultByIssuerHostAsync`, joined by a new
+  `GetOrDefaultByIssuerAsync`. A migration drops the column, re-points the index, and clears the carried-over values
+  so no tenant is routable by a host it does not claim.
+
 - **The server published its endpoint URLs from the incoming request, so a spoofed `Host` could redirect client
   credentials.** Discovery, the RFC 7592 `registration_client_uri`, the device `verification_uri`, the
   `check_session_iframe`, and the continue URL were all generated from the live `HttpContext`. A request carrying a

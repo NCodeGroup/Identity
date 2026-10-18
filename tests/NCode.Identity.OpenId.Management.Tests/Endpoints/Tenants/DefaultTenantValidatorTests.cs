@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 public sealed class DefaultTenantValidatorTests : IDisposable
 {
     private const string TenantId = "tenant-1";
-    private const string DomainName = "example.test";
+    private const string Issuer = "https://example.test";
 
     private MockRepository MockRepository { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
@@ -69,14 +69,13 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     private static PersistedTenant CreateTenant(
         string tenantId = TenantId,
         string concurrencyToken = "tenant-ct",
-        string? domainName = DomainName
+        string? issuer = Issuer
     ) =>
         new()
         {
             TenantId = tenantId,
             ConcurrencyToken = concurrencyToken,
-            DomainName = domainName,
-            Issuer = null,
+            Issuer = issuer,
             IsDisabled = false,
             DisplayName = "Tenant One",
             Settings = new PersistedTenantSettings
@@ -173,7 +172,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenDomainNameExists_Returns409()
+    public async Task ValidateCreateAsync_WhenIssuerExists_Returns409()
     {
         SetupAuthorization(AuthorizationResult.Success());
         SetupTenantStore();
@@ -182,7 +181,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
             .ReturnsAsync((PersistedTenant?)null)
             .Verifiable();
         MockTenantStore
-            .Setup(x => x.GetOrDefaultByDomainNameAsync(DomainName, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultByIssuerAsync(Issuer, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenant(tenantId: "other-tenant"))
             .Verifiable();
 
@@ -198,7 +197,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenDomainNameNull_SkipsDomainCheckAndReturnsNull()
+    public async Task ValidateCreateAsync_WhenIssuerNull_SkipsIssuerCheckAndReturnsNull()
     {
         SetupAuthorization(AuthorizationResult.Success());
         SetupTenantStore();
@@ -209,7 +208,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
-            CreateTenant(domainName: null),
+            CreateTenant(issuer: null),
             MockStoreManager.Object,
             CancellationToken.None
         );
@@ -227,7 +226,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
             .ReturnsAsync((PersistedTenant?)null)
             .Verifiable();
         MockTenantStore
-            .Setup(x => x.GetOrDefaultByDomainNameAsync(DomainName, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultByIssuerAsync(Issuer, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedTenant?)null)
             .Verifiable();
 
@@ -300,19 +299,21 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateUpdateAsync_WhenDomainNameChangedAndTakenByOther_Returns409()
+    public async Task ValidateUpdateAsync_WhenIssuerChangedAndTakenByOther_Returns409()
     {
         SetupAuthorization(AuthorizationResult.Success());
         SetupTenantStore();
         MockTenantStore
-            .Setup(x => x.GetOrDefaultByDomainNameAsync("new.test", It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.GetOrDefaultByIssuerAsync("https://new.test", It.IsAny<CancellationToken>())
+            )
             .ReturnsAsync(CreateTenant(tenantId: "other-tenant"))
             .Verifiable();
 
         var error = await Validator.ValidateUpdateAsync(
             CreateUser(authenticated: true),
             CreateTenant(),
-            new UpdateTenantRequest { DisplayName = "New Name", DomainName = "new.test" },
+            new UpdateTenantRequest { DisplayName = "New Name", Issuer = "https://new.test" },
             ifMatch: null,
             MockStoreManager.Object,
             CancellationToken.None
@@ -323,19 +324,21 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateUpdateAsync_WhenDomainNameChangedButOwnedBySameTenant_ReturnsNull()
+    public async Task ValidateUpdateAsync_WhenIssuerChangedButOwnedBySameTenant_ReturnsNull()
     {
         SetupAuthorization(AuthorizationResult.Success());
         SetupTenantStore();
         MockTenantStore
-            .Setup(x => x.GetOrDefaultByDomainNameAsync("new.test", It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.GetOrDefaultByIssuerAsync("https://new.test", It.IsAny<CancellationToken>())
+            )
             .ReturnsAsync(CreateTenant(tenantId: TenantId))
             .Verifiable();
 
         var error = await Validator.ValidateUpdateAsync(
             CreateUser(authenticated: true),
             CreateTenant(),
-            new UpdateTenantRequest { DisplayName = "New Name", DomainName = "new.test" },
+            new UpdateTenantRequest { DisplayName = "New Name", Issuer = "https://new.test" },
             ifMatch: null,
             MockStoreManager.Object,
             CancellationToken.None
@@ -345,14 +348,14 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateUpdateAsync_WhenDomainNameUnchanged_SkipsDomainCheckAndReturnsNull()
+    public async Task ValidateUpdateAsync_WhenIssuerUnchanged_SkipsIssuerCheckAndReturnsNull()
     {
         SetupAuthorization(AuthorizationResult.Success());
 
         var error = await Validator.ValidateUpdateAsync(
             CreateUser(authenticated: true),
-            CreateTenant(domainName: DomainName),
-            new UpdateTenantRequest { DisplayName = "New Name", DomainName = DomainName },
+            CreateTenant(issuer: Issuer),
+            new UpdateTenantRequest { DisplayName = "New Name", Issuer = Issuer },
             ifMatch: null,
             MockStoreManager.Object,
             CancellationToken.None

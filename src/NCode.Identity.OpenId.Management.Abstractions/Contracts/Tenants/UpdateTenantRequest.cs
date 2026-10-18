@@ -31,12 +31,6 @@ namespace NCode.Identity.OpenId.Management.Contracts.Tenants;
 public sealed class UpdateTenantRequest
 {
     /// <summary>
-    /// Gets or sets the optional domain name used to locate the tenant, or <c>null</c> when not applicable.
-    /// </summary>
-    [JsonPropertyName("domainName")]
-    public string? DomainName { get; set; }
-
-    /// <summary>
     /// Gets or sets the optional issuer identifier for the tenant — its request-independent identity, and therefore
     /// the origin of every absolute URL the server publishes for it. When <c>null</c>, that origin is derived from the
     /// incoming request, which is a development-only convenience.

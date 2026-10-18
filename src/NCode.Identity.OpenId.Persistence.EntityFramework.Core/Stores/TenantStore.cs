@@ -96,7 +96,6 @@ internal class TenantStore(
         return new PersistedTenant
         {
             TenantId = tenantEntity.TenantId,
-            DomainName = tenantEntity.DomainName,
             Issuer = tenantEntity.Issuer,
             ConcurrencyToken = tenantEntity.ConcurrencyToken,
             IsDisabled = tenantEntity.IsDisabled,
@@ -156,17 +155,38 @@ internal class TenantStore(
     protected override long GetSortKey(TenantEntity entity) => entity.Id;
 
     /// <inheritdoc />
-    public async ValueTask<PersistedTenant?> GetOrDefaultByDomainNameAsync(
-        string domainName,
+    public async ValueTask<PersistedTenant?> GetOrDefaultByIssuerAsync(
+        string issuer,
         CancellationToken cancellationToken
     )
     {
-        var normalizedDomainName = Normalize(domainName);
+        var normalizedIssuer = Normalize(issuer);
         return await GetOrDefaultAsync(
-            entity => entity.NormalizedDomainName == normalizedDomainName,
+            entity => entity.NormalizedIssuer == normalizedIssuer,
             cancellationToken
         );
     }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedTenant?> GetOrDefaultByIssuerHostAsync(
+        string host,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedHost = Normalize(host);
+        return await GetOrDefaultAsync(
+            entity => entity.NormalizedIssuerHost == normalizedHost,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Extracts the host component of an issuer and normalizes it for a sargable lookup. Returns <c>null</c> when the
+    /// tenant has no issuer, or when the issuer is not an absolute URI — in which case the tenant simply is not
+    /// routable by host, rather than the write failing.
+    /// </summary>
+    private static string? NormalizeIssuerHost(string? issuer) =>
+        Uri.TryCreate(issuer, UriKind.Absolute, out var uri) ? Normalize(uri.Host) : null;
 
     /// <inheritdoc />
     public async ValueTask<PersistedTenantSettings> GetSettingsAsync(
@@ -207,9 +227,9 @@ internal class TenantStore(
             Id = NextId(),
             TenantId = persistedTenant.TenantId,
             NormalizedTenantId = Normalize(persistedTenant.TenantId),
-            DomainName = persistedTenant.DomainName,
             Issuer = persistedTenant.Issuer,
-            NormalizedDomainName = Normalize(persistedTenant.DomainName),
+            NormalizedIssuer = Normalize(persistedTenant.Issuer),
+            NormalizedIssuerHost = NormalizeIssuerHost(persistedTenant.Issuer),
             ConcurrencyToken = persistedTenant.ConcurrencyToken,
             SettingsConcurrencyToken = persistedTenant.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedTenant.Secrets.ConcurrencyToken,
@@ -271,9 +291,9 @@ internal class TenantStore(
         tenantEntity.IsDisabled = persistedTenant.IsDisabled;
         tenantEntity.DisplayName = persistedTenant.DisplayName;
 
-        tenantEntity.DomainName = persistedTenant.DomainName;
         tenantEntity.Issuer = persistedTenant.Issuer;
-        tenantEntity.NormalizedDomainName = Normalize(persistedTenant.DomainName);
+        tenantEntity.NormalizedIssuer = Normalize(persistedTenant.Issuer);
+        tenantEntity.NormalizedIssuerHost = NormalizeIssuerHost(persistedTenant.Issuer);
 
         DbContext.Tenants.Update(tenantEntity);
     }

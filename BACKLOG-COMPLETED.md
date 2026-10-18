@@ -743,6 +743,23 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
     [`src/NCode.Identity.OpenId.Authentication.Interactive`](src/NCode.Identity.OpenId.Authentication.Interactive), and
     the SPA consent form under [`src/frontend/apps/auth`](src/frontend/apps/auth).
     _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)._
+- **`F41` — Make the tenant's issuer the single source of the routing host, retiring `DomainName`.** The tenant now
+  carries a first-class `Issuer` (its request-independent identity, and the origin of every absolute URL the server
+  publishes). `DomainName` overlaps it: the issuer URL already embeds a host, and `DomainName` exists only as the
+  routing key for `DynamicByHostTenantStrategy`. Nothing keeps the two in step, so a tenant can be reachable at
+  `op.example` while advertising `https://other.example` — and OIDC Discovery §4.3 requires the returned `issuer` to
+  match the prefix the document was fetched from, so a drifted tenant is rejected by conforming clients. Derive the
+  routing host from the issuer instead and drop `DomainName`. **Two constraints discovered while scoping it:** the
+  derived host index must be **non-unique**, because `DynamicByPath` tenants legitimately share a host
+  (`https://op.example/tenant-a`, `…/tenant-b`); and the uniqueness that *should* be enforced — and currently is not
+  anywhere — is on the **full normalized issuer**, since two tenants sharing an issuer is a far worse collision than a
+  duplicate domain name. Host uniqueness becomes a validator rule applied only when the host strategy is configured,
+  because it is not a universal invariant. Touch points: `PersistedTenant`, `TenantEntity`, `CoreModelContributor`,
+  `TenantStore`, `DynamicByHostTenantStrategy`, `DefaultTenantValidator`, the management tenant contracts, and a
+  migration.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. The derived host index is non-unique as scoped, and the
+  new filtered UNIQUE index on the normalized issuer enforces an invariant nothing previously enforced._
 
 ## Frontend presentation platform (group `U`)
 

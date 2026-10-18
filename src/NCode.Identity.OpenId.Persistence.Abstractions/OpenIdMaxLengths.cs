@@ -29,9 +29,9 @@ namespace NCode.Identity.OpenId.Persistence;
 public static class OpenIdMaxLengths
 {
     /// <summary>
-    /// Specifies the maximum length of a tenant's <c>DomainName</c>.
+    /// Specifies the maximum length of the host component of a tenant's <c>Issuer</c>.
     /// </summary>
-    public const int TenantDomainName = 300;
+    public const int TenantIssuerHost = 300;
 
     /// <summary>
     /// Specifies the maximum length of a <c>SubjectId</c>: the upstream subject value carried by an external

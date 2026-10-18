@@ -120,7 +120,6 @@ internal sealed class DefaultTenantProvisioner(
         return new PersistedTenant
         {
             TenantId = tenantId,
-            DomainName = null,
             // The tenant's request-independent identity. When absent, its origin is derived from the request it is
             // materialized for, which is a development-only convenience.
             Issuer = issuer,

@@ -57,24 +57,6 @@ public sealed class TenantEntity : ISupportConcurrencyToken
     //
 
     /// <summary>
-    /// Gets or sets the domain name for this entity.
-    /// This value is optional and can be used to find tenants by domain name.
-    /// </summary>
-    [Unicode(false)]
-    [MaxLength(OpenIdMaxLengths.TenantDomainName)]
-    public required string? DomainName { get; set; }
-
-    /// <summary>
-    /// Gets or sets the value of <see cref="DomainName"/> in uppercase so that lookups can be sargable for DBMS
-    /// engines that don't support case-insensitive indices.
-    /// </summary>
-    [Unicode(false)]
-    [MaxLength(OpenIdMaxLengths.TenantDomainName)]
-    public required string? NormalizedDomainName { get; set; }
-
-    //
-
-    /// <summary>
     /// Gets or sets the issuer identifier for this tenant — its request-independent identity, and therefore also the
     /// origin of every absolute URL the server publishes for it. Optional; when <c>null</c> the origin is derived from
     /// the incoming request, which is a development-only convenience.
@@ -82,6 +64,28 @@ public sealed class TenantEntity : ISupportConcurrencyToken
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.Issuer)]
     public required string? Issuer { get; set; }
+
+    /// <summary>
+    /// Gets or sets the value of <see cref="Issuer"/> in uppercase so that lookups can be sargable for DBMS engines
+    /// that don't support case-insensitive indices. Uniquely indexed: two tenants must never share an issuer.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(OpenIdMaxLengths.Issuer)]
+    public required string? NormalizedIssuer { get; set; }
+
+    /// <summary>
+    /// Gets or sets the host component of <see cref="Issuer"/> in uppercase, which is the routing key for the
+    /// host-based tenant strategy.
+    /// </summary>
+    /// <remarks>
+    /// Derived from <see cref="Issuer"/> and never set independently, so it cannot drift from it. Its index is
+    /// deliberately <b>not</b> unique: path-based tenants legitimately share a host
+    /// (<c>https://op.example/tenant-a</c>, <c>https://op.example/tenant-b</c>). Host uniqueness is a requirement only
+    /// of the host-based strategy, so it is enforced by validation rather than by the schema.
+    /// </remarks>
+    [Unicode(false)]
+    [MaxLength(OpenIdMaxLengths.TenantIssuerHost)]
+    public required string? NormalizedIssuerHost { get; set; }
 
     //
 

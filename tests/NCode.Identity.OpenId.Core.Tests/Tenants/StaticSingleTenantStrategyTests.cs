@@ -82,7 +82,6 @@ public sealed class StaticSingleTenantStrategyTests
         var persistedTenant = new PersistedTenant
         {
             TenantId = "tenant-1",
-            DomainName = null,
             Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,

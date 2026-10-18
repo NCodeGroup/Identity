@@ -225,7 +225,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         {
             TenantId = TenantId,
             ConcurrencyToken = concurrencyToken,
-            DomainName = "example.test",
             Issuer = null,
             IsDisabled = false,
             DisplayName = "Tenant One",
@@ -1146,7 +1145,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private static CreateTenantRequest CreateTenantRequest() =>
         new()
         {
-            DomainName = null,
             Issuer = null,
             DisplayName = "Tenant One",
             IsDisabled = false,

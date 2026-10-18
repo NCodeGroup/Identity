@@ -35,6 +35,13 @@ public sealed class CreateTenantRequest
     public string? DomainName { get; init; }
 
     /// <summary>
+    /// Gets the optional issuer identifier for the tenant — its request-independent identity, and therefore the origin
+    /// of every absolute URL the server publishes for it. When <c>null</c>, that origin is derived from the incoming
+    /// request, which is a development-only convenience.
+    /// </summary>
+    public string? Issuer { get; init; }
+
+    /// <summary>
     /// Gets the display name for the tenant.
     /// </summary>
     public required string DisplayName { get; init; }

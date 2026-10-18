@@ -37,6 +37,14 @@ public sealed class UpdateTenantRequest
     public string? DomainName { get; set; }
 
     /// <summary>
+    /// Gets or sets the optional issuer identifier for the tenant — its request-independent identity, and therefore
+    /// the origin of every absolute URL the server publishes for it. When <c>null</c>, that origin is derived from the
+    /// incoming request, which is a development-only convenience.
+    /// </summary>
+    [JsonPropertyName("issuer")]
+    public string? Issuer { get; set; }
+
+    /// <summary>
     /// Gets or sets the display name for the tenant.
     /// </summary>
     [JsonPropertyName("displayName")]

@@ -790,11 +790,12 @@ public class PlaygroundApplicationFactory : WebApplicationFactory<PlaygroundApiM
         return localAccountId;
     }
 
-    private static PersistedTenant CreateEmptyTenant(string tenantId) =>
+    private PersistedTenant CreateEmptyTenant(string tenantId) =>
         new()
         {
             TenantId = tenantId,
             DomainName = null,
+            Issuer = null,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             IsDisabled = false,
             DisplayName = tenantId,

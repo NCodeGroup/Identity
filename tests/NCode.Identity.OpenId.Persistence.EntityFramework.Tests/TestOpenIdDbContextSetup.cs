@@ -67,6 +67,7 @@ internal static class TestOpenIdDbContextSetup
             TenantId = tenantId,
             NormalizedTenantId = tenantId.ToLowerInvariant(),
             DomainName = null,
+            Issuer = null,
             NormalizedDomainName = null,
             ConcurrencyToken = string.Empty,
             SettingsConcurrencyToken = string.Empty,

@@ -85,6 +85,7 @@ public sealed class ClientGrantStoreTests : IDisposable
                 TenantId = TenantId,
                 ConcurrencyToken = string.Empty,
                 DomainName = null,
+                Issuer = null,
                 IsDisabled = false,
                 DisplayName = "Tenant One",
                 Settings = new PersistedTenantSettings

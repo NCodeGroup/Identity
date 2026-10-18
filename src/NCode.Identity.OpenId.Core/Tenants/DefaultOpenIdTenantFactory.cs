@@ -245,9 +245,9 @@ public class DefaultOpenIdTenantFactory(
             cancellationToken
         );
 
-        // The tenant's own configured issuer is its request-independent identity; it is both the issuer and the base
-        // address for an admin materialization, so the tenant must have one configured.
-        var tenantIssuer = GetConfiguredTenantIssuer(persistedTenant.TenantId, tenantSettings);
+        // The tenant's own issuer is its request-independent identity; it is both the issuer and the base address for
+        // an admin materialization, so the tenant must have one.
+        var tenantIssuer = GetConfiguredTenantIssuer(persistedTenant);
         var tenantBaseAddress = ParseBaseAddress(tenantIssuer);
 
         await using var tenantSecrets = await GetTenantSecretsAsync(
@@ -298,22 +298,16 @@ public class DefaultOpenIdTenantFactory(
         return persistedTenant;
     }
 
-    private static string GetConfiguredTenantIssuer(
-        string tenantId,
-        AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> tenantSettings
-    )
+    private static string GetConfiguredTenantIssuer(PersistedTenant persistedTenant)
     {
-        var settings = tenantSettings.Value.Collection;
-        if (
-            settings.TryGetValue(OpenIdSettingKeys.TenantIssuer, out var tenantIssuer)
-            && !string.IsNullOrEmpty(tenantIssuer)
-        )
+        var tenantIssuer = persistedTenant.Issuer;
+        if (!string.IsNullOrEmpty(tenantIssuer))
         {
             return tenantIssuer;
         }
 
         throw new InvalidOperationException(
-            $"The tenant with id '{tenantId}' has no configured issuer and cannot be materialized "
+            $"The tenant with id '{persistedTenant.TenantId}' has no issuer and cannot be materialized "
                 + "outside of an inbound request addressed to it."
         );
     }
@@ -424,7 +418,33 @@ public class DefaultOpenIdTenantFactory(
     )
     {
         var httpRequest = httpContext.Request;
-        var basePath = httpRequest.PathBase;
+
+        // The tenant's base address is what every absolute URL the server publishes is built from — the issuer, the
+        // discovery endpoint URLs, the registration_client_uri, the device verification_uri. A configured origin is
+        // therefore preferred over anything the caller sent: deriving it from the request lets a Host header decide
+        // where the server tells clients to send their credentials, which is only acceptable on a developer's machine.
+        // The tenant's own issuer is its request-independent identity — the explicit-tenant path above already treats
+        // it as BOTH the issuer and the base address. Do the same for a request-materialized tenant, so the origin of
+        // every published URL is the tenant's own rather than whatever Host the caller supplied. Deriving it from the
+        // request is a development convenience, and the only case where a tenant has no issuer.
+        UriDescriptor origin;
+        if (!string.IsNullOrEmpty(persistedTenant.Issuer))
+        {
+            origin = ParseBaseAddress(persistedTenant.Issuer);
+        }
+        else
+        {
+            origin = new UriDescriptor
+            {
+                Scheme = httpRequest.Scheme,
+                Host = httpRequest.Host,
+                Path = httpRequest.PathBase,
+            };
+        }
+
+        // The per-tenant route segment is appended either way: it identifies the tenant within the origin rather than
+        // being part of the origin itself.
+        var basePath = origin.Path;
 
         var tenantRoute = TenantResolver.GetTenantRoute();
         var templateBinder = TemplateBinderFactory.Create(tenantRoute);
@@ -436,8 +456,8 @@ public class DefaultOpenIdTenantFactory(
 
         var baseAddress = new UriDescriptor
         {
-            Scheme = httpRequest.Scheme,
-            Host = httpRequest.Host,
+            Scheme = origin.Scheme,
+            Host = origin.Host,
             Path = basePath,
         };
 
@@ -463,17 +483,13 @@ public class DefaultOpenIdTenantFactory(
         CancellationToken cancellationToken
     )
     {
-        var settings = tenantSettings.Value.Collection;
+        // The tenant's own issuer is its request-independent identity; the base address (which is derived from that
+        // issuer when one is set) is the development-only fallback.
+        var tenantIssuer = persistedTenant.Issuer;
 
-        if (
-            settings.TryGetValue(OpenIdSettingKeys.TenantIssuer, out var tenantIssuer)
-            && !string.IsNullOrEmpty(tenantIssuer)
-        )
-        {
-            return ValueTask.FromResult(tenantIssuer);
-        }
-
-        return ValueTask.FromResult(tenantBaseAddress.ToString());
+        return ValueTask.FromResult(
+            string.IsNullOrEmpty(tenantIssuer) ? tenantBaseAddress.ToString() : tenantIssuer
+        );
     }
 
     /// <summary>

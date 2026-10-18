@@ -43,6 +43,19 @@ public sealed class PersistedTenant : BasePersistedTenantResource
     public required string? DomainName { get; set; }
 
     /// <summary>
+    /// Gets or sets the issuer identifier for this tenant — its request-independent identity, and therefore also the
+    /// origin of every absolute URL the server publishes for it (the discovery endpoint URLs, the RFC 7592
+    /// <c>registration_client_uri</c>, the device <c>verification_uri</c>, the <c>check_session_iframe</c>).
+    /// </summary>
+    /// <remarks>
+    /// Optional. When <c>null</c>, the origin is derived from the incoming request, which is a development-only
+    /// convenience: it lets a caller's <c>Host</c> header choose where the server tells clients to send their
+    /// credentials. Any deployment reachable by someone other than its developer must set this.
+    /// </remarks>
+    [MaxLength(OpenIdMaxLengths.Issuer)]
+    public required string? Issuer { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the tenant is disabled.
     /// </summary>
     public required bool IsDisabled { get; set; }

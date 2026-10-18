@@ -401,3 +401,5 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantSecretEnti
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantSecretEntity.TenantId.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantSecretEntity.TenantId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantSecretEntity.TenantSecretEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Issuer.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Issuer.set -> void

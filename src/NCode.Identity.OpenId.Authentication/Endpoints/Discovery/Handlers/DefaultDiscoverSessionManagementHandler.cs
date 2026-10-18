@@ -54,8 +54,8 @@ internal class DefaultDiscoverSessionManagementHandler(LinkGenerator linkGenerat
             return ValueTask.CompletedTask;
         }
 
-        var checkSessionIframeUrl = LinkGenerator.GetUriByName(
-            openIdContext.Http,
+        var checkSessionIframeUrl = LinkGenerator.GetTenantUriByName(
+            openIdContext,
             OpenIdConstants.EndpointNames.CheckSessionIframe,
             new { }
         );

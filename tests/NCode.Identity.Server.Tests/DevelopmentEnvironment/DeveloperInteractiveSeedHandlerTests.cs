@@ -41,6 +41,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         {
             TenantId = tenantId,
             DomainName = null,
+            Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,
             DisplayName = tenantId,

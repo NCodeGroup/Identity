@@ -40,6 +40,9 @@ public sealed class TenantResource : ISupportTenantId, ISupportConcurrencyToken
     /// <inheritdoc cref="PersistedTenant.DomainName"/>
     public required string? DomainName { get; init; }
 
+    /// <inheritdoc cref="PersistedTenant.Issuer"/>
+    public required string? Issuer { get; init; }
+
     /// <inheritdoc cref="PersistedTenant.IsDisabled"/>
     public required bool IsDisabled { get; init; }
 

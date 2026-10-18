@@ -58,6 +58,7 @@ public class BootstrapAdminSeedHandlerTests : BaseTests
         {
             TenantId = tenantId,
             DomainName = null,
+            Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,
             DisplayName = tenantId,

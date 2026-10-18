@@ -49,6 +49,19 @@ public sealed class StaticSingleTenantOptions
     public string DisplayName { get; set; } = DefaultDisplayName;
 
     /// <summary>
+    /// Gets or sets the issuer identifier for the tenant — its request-independent identity, and therefore the origin
+    /// of every absolute URL the server publishes (the discovery endpoint URLs, the RFC 7592
+    /// <c>registration_client_uri</c>, the device <c>verification_uri</c>, the <c>check_session_iframe</c>).
+    /// </summary>
+    /// <remarks>
+    /// Applied when the tenant is first provisioned; it does not update an existing tenant. When unset, the origin is
+    /// derived from the incoming request, which is a development-only convenience: it lets a caller's <c>Host</c>
+    /// header choose where the server tells clients to send their credentials. Any deployment reachable by someone
+    /// other than its developer must set this.
+    /// </remarks>
+    public string? Issuer { get; set; }
+
+    /// <summary>
     /// Gets or sets the relative base path for the tenant.
     /// When specified, this value must include a leading slash.
     /// The default value is undefined (empty).

@@ -37,6 +37,7 @@ public sealed class ManagementResourceServerSeedHandlerTests
                 {
                     TenantId = TenantId,
                     DomainName = null,
+                    Issuer = null,
                     ConcurrencyToken = "token",
                     IsDisabled = false,
                     DisplayName = "Tenant One",

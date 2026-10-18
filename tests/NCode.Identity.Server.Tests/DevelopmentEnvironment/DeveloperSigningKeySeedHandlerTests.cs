@@ -236,6 +236,7 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
         {
             TenantId = tenantId,
             DomainName = null,
+            Issuer = null,
             IsDisabled = false,
             DisplayName = "Test Tenant",
             Settings = new PersistedTenantSettings { TenantId = tenantId, Value = default },

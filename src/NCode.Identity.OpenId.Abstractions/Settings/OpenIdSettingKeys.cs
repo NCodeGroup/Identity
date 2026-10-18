@@ -744,11 +744,6 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.SubjectTypesSupported);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tenant_issuer' setting.
-    /// </summary>
-    public static SettingKey<string> TenantIssuer => new(OpenIdSettingNames.TenantIssuer);
-
-    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'token_endpoint_auth_methods_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> TokenEndpointAuthMethodsSupported =>

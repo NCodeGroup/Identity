@@ -585,3 +585,9 @@ virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessListAsync<TItem, TResource>(Microsoft.AspNetCore.Http.HttpContext! httpContext, object? authorizationResource, System.Func<System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<TItem>!>>! fetchPageAsync, System.Func<TItem, TResource>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ToErrorResult(NCode.Identity.OpenId.Management.ManagementError! error) -> Microsoft.AspNetCore.Http.IResult!
+NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Issuer.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Issuer.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.Issuer.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.Issuer.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.Issuer.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.Issuer.set -> void

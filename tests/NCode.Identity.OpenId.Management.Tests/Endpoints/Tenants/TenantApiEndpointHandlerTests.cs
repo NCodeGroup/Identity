@@ -226,6 +226,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             TenantId = TenantId,
             ConcurrencyToken = concurrencyToken,
             DomainName = "example.test",
+            Issuer = null,
             IsDisabled = false,
             DisplayName = "Tenant One",
             Settings = CreateSettings("settings-ct"),
@@ -1146,6 +1147,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         new()
         {
             DomainName = null,
+            Issuer = null,
             DisplayName = "Tenant One",
             IsDisabled = false,
             Settings = EmptyObject(),

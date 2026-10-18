@@ -59,8 +59,8 @@ internal class DefaultContinueService(
 
         // the continue endpoint has a single 'state' query string parameter that contains a one-time use grant key
         var grantKey = CryptoService.GenerateUrlSafeKey();
-        var continueUrl = LinkGenerator.GetUriByName(
-            httpContext,
+        var continueUrl = LinkGenerator.GetTenantUriByName(
+            openIdContext,
             OpenIdConstants.EndpointNames.Continue,
             new { state = grantKey }
         );

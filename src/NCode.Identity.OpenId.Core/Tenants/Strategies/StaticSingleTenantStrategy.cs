@@ -81,6 +81,11 @@ internal class StaticSingleTenantStrategy(
         // is request-scoped, so the provisioner is resolved from the request's service provider.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
 
-        return await provisioner.ProvisionAsync(tenantId, displayName, cancellationToken);
+        return await provisioner.ProvisionAsync(
+            tenantId,
+            displayName,
+            options.Issuer,
+            cancellationToken
+        );
     }
 }

@@ -10,6 +10,28 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **The server published its endpoint URLs from the incoming request, so a spoofed `Host` could redirect client
+  credentials.** Discovery, the RFC 7592 `registration_client_uri`, the device `verification_uri`, the
+  `check_session_iframe`, and the continue URL were all generated from the live `HttpContext`. A request carrying a
+  foreign `Host` therefore produced a discovery document whose `issuer` was correct while its `token_endpoint`,
+  `authorization_endpoint`, and `jwks_uri` pointed at the attacker — and a conforming client posts its client secret
+  and authorization code to the advertised `token_endpoint`. Every absolute URL the server publishes is now anchored
+  to the tenant's base address instead.
+
+  **The tenant's issuer is now a first-class property rather than a setting.** `tenant_issuer` had to opt out of the
+  settings merge lattice entirely (it was the only descriptor using the parent-wins `Keep` projection), and a
+  server-level value would have forced every tenant to share one issuer with no way to override it. It is now
+  `PersistedTenant.Issuer` — alongside `DomainName`, `DisplayName`, and `IsDisabled` — which is where tenant identity
+  already lived. The setting existed only because it predated the tenant entity by five months.
+
+  **Breaking:** the `tenant_issuer` setting is removed; configure `PersistedTenant.Issuer` (via the management API,
+  or `OpenId:TenantResolution:StaticSingle:Issuer` for a single-tenant host) instead.
+  `ITenantProvisioner.ProvisionAsync` takes an `issuer` argument. The management tenant contracts
+  (`TenantResource`, `CreateTenantRequest`, `UpdateTenantRequest`) gain `Issuer`. A migration adds the column.
+
+  A tenant with no issuer still derives its origin from the request — the development convenience that lets a
+  developer's machine answer under any host, and the behaviour a deployment must not rely on.
+
 - **ECDH-ES key derivation on P-384 and P-521 violated RFC 7518 and produced non-interoperable tokens.**
   `NCode.Identity.Jose.Algorithms.KeyManagement.EcdhKeyManagementAlgorithm` selected the Concat KDF digest from the
   key's curve size — SHA-256 for P-256, **SHA-384 for P-384, SHA-512 for P-521**. [RFC 7518
@@ -31,6 +53,14 @@ change to the public API is a **major** version bump.
   `ECDiffieHellman`), which disagrees with CNG on exactly P-384 and P-521 and so turns the defect into a failing test.
 
 ### Added
+
+- **Forwarded-header support for deployments behind a reverse proxy
+  (`AddReverseProxy` / `UseReverseProxy`).** When TLS terminates at a proxy, the connection the application sees is
+  plaintext HTTP to an internal address. The framework defaults are wrong in both directions here — they trust
+  loopback, so a proxy in another container is not trusted, while the usual workaround of clearing the allow-lists
+  trusts every peer. Trust is therefore granted only to the proxies and CIDR networks named in the `ReverseProxy`
+  configuration section, and no middleware is added at all when none are configured, which is the correct posture for
+  a direct-TLS deployment. `ForwardLimit` defaults to a single hop so a client cannot prepend its own entries.
 
 - **Reusable `NCode.Json.ObjectJsonConverter` for loosely-typed JSON deserialization.** The `System.Text.Json`
   converter that reads JSON into an `object` graph (objects → `Dictionary<string, object?>`, arrays →

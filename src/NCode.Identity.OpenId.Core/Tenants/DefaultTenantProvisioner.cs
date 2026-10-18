@@ -50,6 +50,7 @@ internal sealed class DefaultTenantProvisioner(
     public async ValueTask<PersistedTenant> ProvisionAsync(
         string tenantId,
         string displayName,
+        string? issuer,
         CancellationToken cancellationToken
     )
     {
@@ -57,10 +58,10 @@ internal sealed class DefaultTenantProvisioner(
 
         // The root (control-plane) tenant must exist so that its control-plane data is seeded, even when the target
         // tenant differs from it (ADR-0024). Provision it first, on this same path, so root and workload tenants are
-        // provisioned and seeded identically.
+        // provisioned and seeded identically. It is not addressed by clients, so it carries no issuer of its own.
         if (!isRootTenant)
         {
-            await ProvisionAsync(RootTenantId, RootDisplayName, cancellationToken);
+            await ProvisionAsync(RootTenantId, RootDisplayName, issuer: null, cancellationToken);
         }
 
         // Scope the whole provision+seed to this tenant so every seed handler's tenant-bound queries resolve to it.
@@ -72,7 +73,7 @@ internal sealed class DefaultTenantProvisioner(
         var isNewlyProvisioned = persistedTenant is null;
         if (persistedTenant is null)
         {
-            persistedTenant = CreateEmptyPersistedTenant(tenantId, displayName);
+            persistedTenant = CreateEmptyPersistedTenant(tenantId, displayName, issuer);
             await store.AddAsync(persistedTenant, cancellationToken);
 
             // Commit the tenant row before seeding so seed handlers can attach child rows (resource servers,
@@ -96,7 +97,11 @@ internal sealed class DefaultTenantProvisioner(
         return persistedTenant;
     }
 
-    private static PersistedTenant CreateEmptyPersistedTenant(string tenantId, string displayName)
+    private static PersistedTenant CreateEmptyPersistedTenant(
+        string tenantId,
+        string displayName,
+        string? issuer
+    )
     {
         var settings = new PersistedTenantSettings
         {
@@ -116,6 +121,9 @@ internal sealed class DefaultTenantProvisioner(
         {
             TenantId = tenantId,
             DomainName = null,
+            // The tenant's request-independent identity. When absent, its origin is derived from the request it is
+            // materialized for, which is a development-only convenience.
+            Issuer = issuer,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             IsDisabled = false,
             DisplayName = displayName,

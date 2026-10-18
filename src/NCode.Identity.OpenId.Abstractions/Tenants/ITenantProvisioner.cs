@@ -36,12 +36,16 @@ public interface ITenantProvisioner
     /// </summary>
     /// <param name="tenantId">The identifier of the tenant to provision.</param>
     /// <param name="displayName">The display name applied when the tenant is created for the first time.</param>
+    /// <param name="issuer">The issuer identifier applied when the tenant is created for the first time, or
+    /// <c>null</c> to leave the tenant without one (so its origin is derived from the request it is materialized for).
+    /// Applied on creation only; it does not update an existing tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the provisioned
     /// <see cref="PersistedTenant"/>.</returns>
     ValueTask<PersistedTenant> ProvisionAsync(
         string tenantId,
         string displayName,
+        string? issuer,
         CancellationToken cancellationToken
     );
 }

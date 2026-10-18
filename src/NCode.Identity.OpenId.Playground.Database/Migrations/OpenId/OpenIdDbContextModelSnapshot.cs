@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -1010,6 +1010,11 @@ namespace NCode.Identity.OpenId.Playground.Database.Migrations.OpenId
 
                     b.Property<bool>("IsDisabled")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Issuer")
+                        .HasMaxLength(1000)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("NormalizedDomainName")
                         .HasMaxLength(300)

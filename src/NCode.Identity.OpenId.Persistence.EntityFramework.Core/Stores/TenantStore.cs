@@ -97,6 +97,7 @@ internal class TenantStore(
         {
             TenantId = tenantEntity.TenantId,
             DomainName = tenantEntity.DomainName,
+            Issuer = tenantEntity.Issuer,
             ConcurrencyToken = tenantEntity.ConcurrencyToken,
             IsDisabled = tenantEntity.IsDisabled,
             DisplayName = tenantEntity.DisplayName,
@@ -207,6 +208,7 @@ internal class TenantStore(
             TenantId = persistedTenant.TenantId,
             NormalizedTenantId = Normalize(persistedTenant.TenantId),
             DomainName = persistedTenant.DomainName,
+            Issuer = persistedTenant.Issuer,
             NormalizedDomainName = Normalize(persistedTenant.DomainName),
             ConcurrencyToken = persistedTenant.ConcurrencyToken,
             SettingsConcurrencyToken = persistedTenant.Settings.ConcurrencyToken,
@@ -270,6 +272,7 @@ internal class TenantStore(
         tenantEntity.DisplayName = persistedTenant.DisplayName;
 
         tenantEntity.DomainName = persistedTenant.DomainName;
+        tenantEntity.Issuer = persistedTenant.Issuer;
         tenantEntity.NormalizedDomainName = Normalize(persistedTenant.DomainName);
 
         DbContext.Tenants.Update(tenantEntity);

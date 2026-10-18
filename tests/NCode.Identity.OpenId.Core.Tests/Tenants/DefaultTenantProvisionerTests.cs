@@ -49,6 +49,7 @@ public sealed class DefaultTenantProvisionerTests
         {
             TenantId = tenantId,
             DomainName = null,
+            Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,
             DisplayName = tenantId,
@@ -100,6 +101,7 @@ public sealed class DefaultTenantProvisionerTests
         var result = await provisioner.ProvisionAsync(
             RootTenantId,
             "Root Tenant",
+            issuer: null,
             CancellationToken.None
         );
 
@@ -151,6 +153,7 @@ public sealed class DefaultTenantProvisionerTests
         var result = await provisioner.ProvisionAsync(
             RootTenantId,
             "Root Tenant",
+            issuer: null,
             CancellationToken.None
         );
 
@@ -197,6 +200,7 @@ public sealed class DefaultTenantProvisionerTests
         var result = await provisioner.ProvisionAsync(
             workloadTenantId,
             "Default",
+            issuer: null,
             CancellationToken.None
         );
 

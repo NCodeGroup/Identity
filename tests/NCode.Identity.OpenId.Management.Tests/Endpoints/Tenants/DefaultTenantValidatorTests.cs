@@ -76,6 +76,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
             TenantId = tenantId,
             ConcurrencyToken = concurrencyToken,
             DomainName = domainName,
+            Issuer = null,
             IsDisabled = false,
             DisplayName = "Tenant One",
             Settings = new PersistedTenantSettings

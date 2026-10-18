@@ -398,3 +398,5 @@ virtual NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedClientResou
 virtual NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedResourceServerResource.ResourceId.get -> string!
 virtual NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedServerResource.ResourceId.get -> string!
 virtual NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTenantResource.ResourceId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.Issuer.get -> string?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.Issuer.set -> void

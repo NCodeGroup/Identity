@@ -1485,16 +1485,6 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
-            // tenant_issuer: the tenant's issuer identifier; the tenant base address is used when unset.
-            // Parent-owned (Keep): a child scope cannot override it. Not advertised in discovery.
-            yield return new SettingDescriptor<string>
-            {
-                Name = OpenIdSettingNames.TenantIssuer,
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Keep,
-            };
-
             // token_endpoint_auth_signing_alg_values_supported: permitted "alg" values for private_key_jwt / client_secret_jwt client auth.
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>

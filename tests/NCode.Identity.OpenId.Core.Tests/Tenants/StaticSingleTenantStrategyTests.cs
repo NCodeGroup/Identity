@@ -83,6 +83,7 @@ public sealed class StaticSingleTenantStrategyTests
         {
             TenantId = "tenant-1",
             DomainName = null,
+            Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,
             DisplayName = "Tenant One",
@@ -91,7 +92,9 @@ public sealed class StaticSingleTenantStrategyTests
         };
 
         provisioner
-            .Setup(x => x.ProvisionAsync("tenant-1", "Tenant One", It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.ProvisionAsync("tenant-1", "Tenant One", null, It.IsAny<CancellationToken>())
+            )
             .ReturnsAsync(persistedTenant)
             .Verifiable();
 

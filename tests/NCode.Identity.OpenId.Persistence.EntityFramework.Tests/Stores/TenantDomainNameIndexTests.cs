@@ -72,6 +72,7 @@ public sealed class TenantDomainNameIndexTests : IDisposable
             TenantId = tenantId,
             ConcurrencyToken = string.Empty,
             DomainName = domainName,
+            Issuer = null,
             IsDisabled = false,
             DisplayName = "Tenant",
             Settings = new PersistedTenantSettings

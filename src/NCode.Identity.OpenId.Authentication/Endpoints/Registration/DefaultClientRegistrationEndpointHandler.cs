@@ -298,7 +298,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             cancellationToken
         );
 
-        var registrationClientUri = GetRegistrationClientUri(httpContext, clientId);
+        var registrationClientUri = GetRegistrationClientUri(openIdContext, clientId);
 
         var response = ToResponse(client);
         response = response with
@@ -415,7 +415,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         var response = ToResponse(client) with
         {
-            RegistrationClientUri = GetRegistrationClientUri(httpContext, clientId),
+            RegistrationClientUri = GetRegistrationClientUri(openIdContext, clientId),
         };
 
         return TypedResults.Json(response, openIdContext.Environment.JsonSerializerOptions);
@@ -484,7 +484,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         var response = ToResponse(client) with
         {
-            RegistrationClientUri = GetRegistrationClientUri(httpContext, clientId),
+            RegistrationClientUri = GetRegistrationClientUri(openIdContext, clientId),
         };
 
         return TypedResults.Json(response, openIdContext.Environment.JsonSerializerOptions);
@@ -572,9 +572,9 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
     }
 
-    private string GetRegistrationClientUri(HttpContext httpContext, string clientId) =>
-        LinkGenerator.GetUriByName(
-            httpContext,
+    private string GetRegistrationClientUri(OpenIdContext openIdContext, string clientId) =>
+        LinkGenerator.GetTenantUriByName(
+            openIdContext,
             OpenIdConstants.EndpointNames.RegistrationManagement,
             new { client_id = clientId }
         )

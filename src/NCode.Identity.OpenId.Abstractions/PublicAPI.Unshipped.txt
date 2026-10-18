@@ -398,7 +398,6 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectMaxAge = "subject
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectType = "subject_type" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.UserCodeLength = "user_code_length" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectTypesSupported = "subject_types_supported" -> string!
-const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantIssuer = "tenant_issuer" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenEndpointAuthMethodsSupported = "token_endpoint_auth_methods_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenEndpointAuthMethod = "token_endpoint_auth_method" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported = "token_endpoint_auth_signing_alg_values_supported" -> string!
@@ -443,7 +442,7 @@ NCode.Identity.OpenId.Settings.ISecurityProfileRequirement
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>.EvaluateAsync(TContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.ITenantProvisioner
-NCode.Identity.OpenId.Tenants.ITenantProvisioner.ProvisionAsync(string! tenantId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
+NCode.Identity.OpenId.Tenants.ITenantProvisioner.ProvisionAsync(string! tenantId, string! displayName, string? issuer, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.SeedTenantCommand
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.get -> NCode.Identity.OpenId.Tenants.TenantSeedContext!
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.init -> void
@@ -897,7 +896,6 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SecurityProfile.get -> N
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectMaxAge.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectType.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
-static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantIssuer.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TokenEndpointAuthMethodsSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TokenEndpointAuthMethod.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
@@ -970,3 +968,5 @@ const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuedTokenType = "issued
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.NotApplicable = "N_A" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenExchangeAllowRefreshToken = "token_exchange_allow_refresh_token" -> string!
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TokenExchangeAllowRefreshToken.get -> NCode.Identity.Settings.SettingKey<bool>
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.Issuer.get -> string?
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.Issuer.set -> void

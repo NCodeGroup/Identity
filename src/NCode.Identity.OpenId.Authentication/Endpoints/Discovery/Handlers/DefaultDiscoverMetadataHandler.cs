@@ -109,7 +109,11 @@ internal class DefaultDiscoverMetadataHandler(
             if (string.IsNullOrEmpty(endpointName))
                 continue;
 
-            var endpointUrl = LinkGenerator.GetUriByName(httpContext, endpointName, routeValues);
+            var endpointUrl = LinkGenerator.GetTenantUriByName(
+                openIdContext,
+                endpointName,
+                routeValues
+            );
             if (string.IsNullOrEmpty(endpointUrl))
                 continue;
 

@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Moq;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands;
@@ -39,6 +40,14 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.DeviceAuthorization;
 public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
 {
     private const string TenantId = "tenant-1";
+
+    // The handler anchors the published verification_uri to the tenant's base address rather than the request.
+    private static readonly UriDescriptor BaseAddress = new()
+    {
+        Scheme = "https",
+        Host = new HostString("server"),
+        Path = PathString.Empty,
+    };
 
     private static readonly DateTimeOffset UtcNow = DateTimeOffset.Parse(
         "2026-01-01T00:00:00Z",
@@ -81,6 +90,7 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
         mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
         mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+        mockTenant.SetupGet(x => x.BaseAddress).Returns(BaseAddress).Verifiable();
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
         mockClient.SetupGet(x => x.ClientId).Returns("client-1").Verifiable();
 
@@ -241,6 +251,7 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
         mockContext.SetupGet(x => x.Http).Returns(httpContext);
         mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
         mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
+        mockTenant.SetupGet(x => x.BaseAddress).Returns(BaseAddress);
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
         mockClient.SetupGet(x => x.ClientId).Returns("client-1");
 
@@ -350,6 +361,7 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
         mockContext.SetupGet(x => x.Http).Returns(httpContext);
         mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
         mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
+        mockTenant.SetupGet(x => x.BaseAddress).Returns(BaseAddress);
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
         mockClient.SetupGet(x => x.ClientId).Returns("client-1");
 

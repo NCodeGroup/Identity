@@ -123,8 +123,8 @@ internal class DefaultCreateDeviceAuthorizationRequestHandler(
             cancellationToken
         );
 
-        var verificationUri = LinkGenerator.GetUriByName(
-            httpContext,
+        var verificationUri = LinkGenerator.GetTenantUriByName(
+            openIdContext,
             OpenIdConstants.EndpointNames.DeviceVerification,
             values: null
         );
@@ -132,8 +132,8 @@ internal class DefaultCreateDeviceAuthorizationRequestHandler(
         if (string.IsNullOrEmpty(verificationUri))
             throw new InvalidOperationException("Unable to determine the device verification URI.");
 
-        var verificationUriComplete = LinkGenerator.GetUriByName(
-            httpContext,
+        var verificationUriComplete = LinkGenerator.GetTenantUriByName(
+            openIdContext,
             OpenIdConstants.EndpointNames.DeviceVerification,
             new { user_code = userCodeDisplay }
         );

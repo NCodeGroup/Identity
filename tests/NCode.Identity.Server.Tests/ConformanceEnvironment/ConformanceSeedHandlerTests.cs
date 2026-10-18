@@ -63,6 +63,7 @@ public class ConformanceSeedHandlerTests : BaseTests
         {
             TenantId = tenantId,
             DomainName = null,
+            Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,
             DisplayName = tenantId,

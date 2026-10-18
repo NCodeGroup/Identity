@@ -26,7 +26,7 @@ using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
-using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Mediator;

@@ -9,7 +9,7 @@
 `NCode.Identity.Abstractions` had grown to mix three dependency tiers in one assembly, surfaced by the
 [ADR-0055](0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) deep-dive:
 
-- **Pure BCL primitives** — `Claims`, `Logic/ICryptoService`, the encoding/hash enums, `Models/TimePeriod`,
+- **Pure BCL primitives** — `Claims`, `Cryptography/ICryptoService` and its encoding/hash enums, `Models/TimePeriod`,
   `IsActiveResult*`, `ISupportClone`, `IdentityLibrary`. These need nothing beyond the base class library (plus the
   `NCode.Registration` marker).
 - **A self-contained Settings subsystem** — the 16 `NCode.Identity.Settings.*` types, which depend on

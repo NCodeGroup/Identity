@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Serialization;
@@ -66,16 +67,16 @@ internal static class DefaultRegistration
                     {
                         AllowAutoRedirect = false,
                         ConnectCallback = serviceProvider
-                            .GetRequiredService<Logic.IOutboundHttpForgeryGuard>()
+                            .GetRequiredService<IOutboundHttpForgeryGuard>()
                             .ConnectAsync,
                         AutomaticDecompression = System.Net.DecompressionMethods.All,
                     }
                 );
 
-            // Logic
+            // Request processing
             serviceCollection.TryAddSingleton<
-                IAuthorizationEndpointLogic,
-                DefaultAuthorizationEndpointLogic
+                IAuthorizationRequestProcessor,
+                DefaultAuthorizationRequestProcessor
             >();
             serviceCollection.TryAddSingleton<
                 IResultExecutor<AuthorizationResult>,

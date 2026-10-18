@@ -29,7 +29,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
-using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
@@ -269,7 +269,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
         var settings = openIdClient.Settings;
 
         // The OP fetches this client-supplied URL, so it must be https and (when configured) pass the host allow-list;
-        // the always-on private/loopback/link-local address block in OutboundHttpForgeryGuard applies regardless.
+        // the always-on private/loopback/link-local address block in DefaultOutboundHttpForgeryGuard applies regardless.
         if (!string.Equals(requestUri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal))
             throw errorFactory
                 .InvalidRequestUri("The 'request_uri' must be an absolute https URI.")

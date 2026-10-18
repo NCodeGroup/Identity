@@ -24,7 +24,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
-using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Tokens;

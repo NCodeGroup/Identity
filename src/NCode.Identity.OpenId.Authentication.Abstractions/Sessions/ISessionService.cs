@@ -17,7 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
 
 namespace NCode.Identity.OpenId.Authentication.Sessions;

@@ -20,7 +20,7 @@ using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Logic;
+using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.Persistence;
 using NCode.Persistence.Stores;

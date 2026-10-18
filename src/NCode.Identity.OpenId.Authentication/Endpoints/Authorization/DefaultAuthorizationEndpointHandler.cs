@@ -27,7 +27,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Models;
-using NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Logic;
+using NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Messages;
 using NCode.Identity.OpenId.Authentication.Messages.Commands;
@@ -47,7 +47,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 internal class DefaultAuthorizationEndpointHandler(
     ILogger<DefaultAuthorizationEndpointHandler> logger,
     IClientAuthenticationService clientAuthenticationService,
-    IAuthorizationEndpointLogic authorizationEndpointLogic,
+    IAuthorizationRequestProcessor authorizationRequestProcessor,
     IPushedAuthorizationRequestService pushedAuthorizationRequestService,
     IKnownParameterCollectionProvider knownParameterCollectionProvider
 ) : IEndpointProvider
@@ -55,8 +55,8 @@ internal class DefaultAuthorizationEndpointHandler(
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
     private IClientAuthenticationService ClientAuthenticationService { get; } =
         clientAuthenticationService;
-    private IAuthorizationEndpointLogic AuthorizationEndpointLogic { get; } =
-        authorizationEndpointLogic;
+    private IAuthorizationRequestProcessor AuthorizationRequestProcessor { get; } =
+        authorizationRequestProcessor;
     private IPushedAuthorizationRequestService PushedAuthorizationRequestService { get; } =
         pushedAuthorizationRequestService;
     private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
@@ -149,7 +149,7 @@ internal class DefaultAuthorizationEndpointHandler(
             cancellationToken
         );
 
-        var disposition = await AuthorizationEndpointLogic.ProcessRequestAsync(
+        var disposition = await AuthorizationRequestProcessor.ProcessRequestAsync(
             openIdContext,
             openIdClient,
             authorizationRequest,

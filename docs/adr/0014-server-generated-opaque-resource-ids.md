@@ -89,6 +89,6 @@ are removed from the public DTOs.
   on insert alongside it.
 - [ADR-0015](0015-management-core-validation-via-validators.md) — the core validators that assert uniqueness
   (among other preconditions) as a safety net.
-- `NCode.Identity.Logic.ICryptoService` / `CryptoServiceExtensions.GenerateUrlSafeKey` — the id-generation facade.
+- `NCode.Identity.Cryptography.ICryptoService` / `CryptoServiceExtensions.GenerateUrlSafeKey` — the id-generation facade.
 - `NCode.Identity.OpenId.Persistence.EntityFramework.IdValueGenerator` — the internal surrogate-key generator
   that is unaffected by this decision.

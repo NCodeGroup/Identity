@@ -18,13 +18,13 @@
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
-using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Server.ConformanceEnvironment;
 using NCode.Persistence.Stores;
 using Xunit;

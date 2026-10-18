@@ -21,8 +21,6 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
-using NCode.Identity.OpenId.Authentication.Endpoints.Token.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 

@@ -141,5 +141,5 @@ client entities are tenant-scoped (`ISupportTenantId` / `TenantOwnedResource`), 
   token is generated.
 - [ADR-0015](0015-management-core-validation-via-validators.md) — the entity validators that
   authorize and validate every management create/update/delete (including the owner lifecycle above).
-- `NCode.Identity.Secrets.Persistence.Logic.DefaultSecretSerializer` — the inverse unprotect path.
+- `NCode.Identity.Secrets.Persistence.DefaultSecretSerializer` — the inverse unprotect path.
 - `NCode.Identity.OpenId.Persistence.Stores.IServerStore` — the extended store contract.

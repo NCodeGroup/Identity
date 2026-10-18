@@ -19,7 +19,6 @@
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
-using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;

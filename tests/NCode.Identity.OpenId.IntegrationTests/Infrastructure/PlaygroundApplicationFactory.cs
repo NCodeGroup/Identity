@@ -39,7 +39,6 @@ using NCode.Identity.OpenId.Playground;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;

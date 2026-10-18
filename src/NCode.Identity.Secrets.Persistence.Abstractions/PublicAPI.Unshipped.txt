@@ -35,49 +35,49 @@ NCode.Identity.Secrets.Persistence.ISupportPersistedSecretCollection
 NCode.Identity.Secrets.Persistence.ISupportPersistedSecretCollection.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>!
 NCode.Identity.Secrets.Persistence.ISupportSecretId
 NCode.Identity.Secrets.Persistence.ISupportSecretId.SecretId.get -> string!
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Algorithm.get -> string?
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Algorithm.init -> void
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.CreatedWhen.get -> System.DateTimeOffset
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.CreatedWhen.init -> void
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Curve.get -> string?
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Curve.init -> void
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.ExpiresWhen.init -> void
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.GenerateSecretRequest() -> void
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.KeySizeBits.get -> int
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.KeySizeBits.init -> void
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.SecretId.get -> string!
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.SecretId.init -> void
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.SecretType.get -> string!
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.SecretType.init -> void
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Use.get -> string?
-NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest.Use.init -> void
-NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret
-NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret.GeneratedSecret() -> void
-NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret.Secret.get -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
-NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret.Secret.init -> void
-NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret.SecretMaterial.get -> string?
-NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret.SecretMaterial.init -> void
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest.Algorithm.get -> string?
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest.Algorithm.init -> void
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest.CreatedWhen.get -> System.DateTimeOffset
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest.CreatedWhen.init -> void
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest.ExpiresWhen.init -> void
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest.ImportSharedSecretRequest() -> void
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest.SecretId.get -> string!
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest.SecretId.init -> void
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest.Use.get -> string?
-NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest.Use.init -> void
-NCode.Identity.Secrets.Persistence.Logic.ISecretGenerator
-NCode.Identity.Secrets.Persistence.Logic.ISecretGenerator.GenerateSecret(NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret!
-NCode.Identity.Secrets.Persistence.Logic.ISecretGenerator.GenerateSharedSecret(NCode.Identity.Secrets.Persistence.Logic.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.Logic.GeneratedSecret!
-NCode.Identity.Secrets.Persistence.Logic.ISecretGenerator.ImportSharedSecret(NCode.Identity.Secrets.Persistence.Logic.ImportSharedSecretRequest! request, System.ReadOnlySpan<byte> secretValue) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
-NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer
-NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer.DeserializeSecret(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret) -> NCode.Identity.Secrets.Keys.SecretKey!
-NCode.Identity.Secrets.Persistence.Logic.ISecretSerializer.DeserializeSecrets(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! persistedSecrets) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Algorithm.get -> string?
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Algorithm.init -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.CreatedWhen.init -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Curve.get -> string?
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Curve.init -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.ExpiresWhen.init -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.GenerateSecretRequest() -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.KeySizeBits.get -> int
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.KeySizeBits.init -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.SecretId.get -> string!
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.SecretId.init -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.SecretType.get -> string!
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.SecretType.init -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Use.get -> string?
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Use.init -> void
+NCode.Identity.Secrets.Persistence.GeneratedSecret
+NCode.Identity.Secrets.Persistence.GeneratedSecret.GeneratedSecret() -> void
+NCode.Identity.Secrets.Persistence.GeneratedSecret.Secret.get -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+NCode.Identity.Secrets.Persistence.GeneratedSecret.Secret.init -> void
+NCode.Identity.Secrets.Persistence.GeneratedSecret.SecretMaterial.get -> string?
+NCode.Identity.Secrets.Persistence.GeneratedSecret.SecretMaterial.init -> void
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.Algorithm.get -> string?
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.Algorithm.init -> void
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.CreatedWhen.init -> void
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.ExpiresWhen.init -> void
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.ImportSharedSecretRequest() -> void
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.SecretId.get -> string!
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.SecretId.init -> void
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.Use.get -> string?
+NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.Use.init -> void
+NCode.Identity.Secrets.Persistence.ISecretGenerator
+NCode.Identity.Secrets.Persistence.ISecretGenerator.GenerateSecret(NCode.Identity.Secrets.Persistence.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.GeneratedSecret!
+NCode.Identity.Secrets.Persistence.ISecretGenerator.GenerateSharedSecret(NCode.Identity.Secrets.Persistence.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.GeneratedSecret!
+NCode.Identity.Secrets.Persistence.ISecretGenerator.ImportSharedSecret(NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest! request, System.ReadOnlySpan<byte> secretValue) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+NCode.Identity.Secrets.Persistence.ISecretSerializer
+NCode.Identity.Secrets.Persistence.ISecretSerializer.DeserializeSecret(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Secrets.Persistence.ISecretSerializer.DeserializeSecrets(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! persistedSecrets) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
 NCode.Identity.Secrets.Persistence.SecretMaxLengths
 NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary
 NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary.SecretPersistenceLibrary() -> void
@@ -86,23 +86,23 @@ NCode.Identity.Secrets.Persistence.SecretTypes
 const NCode.Identity.Secrets.Persistence.SecretMaxLengths.SecretEncoding = 100 -> int
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretEncoding.get -> string!
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretEncoding.init -> void
-NCode.Identity.Secrets.Persistence.Logic.ISecretImporter
-NCode.Identity.Secrets.Persistence.Logic.ISecretImporter.ImportSecret(NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest! request) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Algorithm.get -> string?
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Algorithm.init -> void
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.CreatedWhen.get -> System.DateTimeOffset
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.CreatedWhen.init -> void
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.ExpiresWhen.get -> System.DateTimeOffset
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.ExpiresWhen.init -> void
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Format.get -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Format.init -> void
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.KeyMaterial.get -> string!
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.KeyMaterial.init -> void
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.SecretId.get -> string!
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.SecretId.init -> void
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.SecretKeyImportRequest() -> void
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.SecretType.get -> string!
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.SecretType.init -> void
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Use.get -> string?
-NCode.Identity.Secrets.Persistence.Logic.SecretKeyImportRequest.Use.init -> void
+NCode.Identity.Secrets.Persistence.ISecretImporter
+NCode.Identity.Secrets.Persistence.ISecretImporter.ImportSecret(NCode.Identity.Secrets.Persistence.SecretKeyImportRequest! request) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Algorithm.get -> string?
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Algorithm.init -> void
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.CreatedWhen.init -> void
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.ExpiresWhen.init -> void
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Format.get -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Format.init -> void
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.KeyMaterial.get -> string!
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.KeyMaterial.init -> void
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.SecretId.get -> string!
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.SecretId.init -> void
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.SecretKeyImportRequest() -> void
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.SecretType.get -> string!
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.SecretType.init -> void
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Use.get -> string?
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Use.init -> void

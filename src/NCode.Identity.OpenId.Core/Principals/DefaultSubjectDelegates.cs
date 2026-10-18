@@ -1,0 +1,95 @@
+#region Copyright Preamble
+
+// Copyright @ 2025 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Security.Claims;
+
+namespace NCode.Identity.OpenId.Principals;
+
+/// <summary>
+/// Provides the default subject delegates (<see cref="GetSubjectIdentityDelegate"/>, <see cref="GetSubjectIdDelegate"/>,
+/// and <see cref="NormalizeSubjectIdDelegate"/>) that <see cref="OpenIdOptions"/> starts with.
+/// </summary>
+internal static class DefaultSubjectDelegates
+{
+    extension(ClaimsPrincipal subject)
+    {
+        /// <summary>
+        /// Returns the default implementation of <see cref="GetSubjectIdentityDelegate"/> that extracts the primary <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/>.
+        /// </summary>
+        /// <returns>The <see cref="ClaimsIdentity"/> from the <see cref="ClaimsPrincipal"/>.</returns>
+        public ClaimsIdentity GetSubjectIdentity() =>
+            subject.Identity as ClaimsIdentity ?? subject.Identities.First();
+    }
+
+    /// <summary>
+    /// The default <see cref="GetSubjectIdDelegate"/>: returns the value of the first non-empty claim whose type matches
+    /// one of the supplied claim types, honoring the order of the supplied claim types (so an earlier claim type takes
+    /// precedence over a later one).
+    /// </summary>
+    public static GetSubjectIdDelegate GetSubjectId { get; } =
+        static (subject, subjectClaimTypes) =>
+        {
+            foreach (var claimType in subjectClaimTypes)
+            {
+                foreach (var claim in subject.Claims)
+                {
+                    if (claim.Type == claimType && !string.IsNullOrEmpty(claim.Value))
+                    {
+                        return claim.Value;
+                    }
+                }
+            }
+
+            return null;
+        };
+
+    /// <summary>
+    /// The default <see cref="NormalizeSubjectIdDelegate"/>: strips every subject-type claim from the principal and
+    /// stamps a single claim of the primary subject claim type (the first of the supplied claim types) holding
+    /// <c>subjectId</c> onto the primary identity, preserving its authentication type and name/role claim types and all
+    /// of its other claims. The result round-trips through <see cref="GetSubjectId"/> to <c>subjectId</c>, which is the
+    /// <c>Subject.sub == PrincipalId</c> invariant every ticket-construction site relies on.
+    /// </summary>
+    public static NormalizeSubjectIdDelegate NormalizeSubjectId { get; } =
+        static (subject, subjectId, subjectClaimTypes) =>
+        {
+            var primaryClaimType = subjectClaimTypes.First();
+            var primaryIdentity = subject.GetSubjectIdentity();
+
+            var identities = subject.Identities.Select(identity =>
+            {
+                var claims = identity.Claims.Where(claim =>
+                    !subjectClaimTypes.Contains(claim.Type)
+                );
+
+                if (ReferenceEquals(identity, primaryIdentity))
+                {
+                    claims = claims.Append(new Claim(primaryClaimType, subjectId));
+                }
+
+                return new ClaimsIdentity(
+                    claims,
+                    identity.AuthenticationType,
+                    identity.NameClaimType,
+                    identity.RoleClaimType
+                );
+            });
+
+            return new ClaimsPrincipal(identities);
+        };
+}

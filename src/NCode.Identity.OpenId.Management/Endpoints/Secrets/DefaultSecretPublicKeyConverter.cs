@@ -18,8 +18,8 @@
 
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.Logic;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 

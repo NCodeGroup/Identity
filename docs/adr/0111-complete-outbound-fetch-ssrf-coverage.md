@@ -37,7 +37,7 @@ through SSRF-guarded named clients, and extract the capped reader into one share
   (optional SSRF host allow-list, ceiling/`Intersect`), `request_uri_fetch_timeout` (default 10s, ceiling/`Min`), and
   `request_uri_max_size_bytes` (default 100 KB, ceiling/`Min`). All three are non-discoverable per-client ceilings.
 - The fetch now requires an absolute `https` URI, enforces the optional host allow-list (the always-on
-  private/loopback/link-local floor in `OutboundHttpForgeryGuard` still applies regardless), bounds the request with a
+  private/loopback/link-local floor in `DefaultOutboundHttpForgeryGuard` still applies regardless), bounds the request with a
   linked timeout `CancellationTokenSource`, and reads the body through the shared capped reader. A response that
   exceeds the cap, uses a non-`https` scheme, or fails the allow-list is rejected as `invalid_request_uri`.
 - A specific validation failure (status code, content type, or size) is surfaced as-is rather than masked as the
@@ -58,7 +58,7 @@ through SSRF-guarded named clients, and extract the capped reader into one share
 
 ### Extract the shared capped reader as a replaceable, buffer-aware seam
 
-- `IOutboundHttpContentReader` (public, in `…Authentication.Abstractions.Logic`, `TryAddSingleton`-registered and
+- `IOutboundHttpContentReader` (public, in `…Authentication.OutboundHttp`, `TryAddSingleton`-registered and
   DI-overridable) is the single implementation of the "read the response body under a hard byte cap" primitive,
   consumed by the `jwks_uri`, `sector_identifier_uri`, and `request_uri` fetches. It folds in the early
   `Content-Length` reject (used only as a hint) and enforces the cap while streaming, so an unset or lying length

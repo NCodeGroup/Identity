@@ -18,13 +18,13 @@
 
 using System.Globalization;
 using Moq;
+using NCode.Identity.Cryptography;
 using NCode.Identity.Dispatch;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jwt;
 using NCode.Identity.Jwt.Encoding;
-using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Subject;

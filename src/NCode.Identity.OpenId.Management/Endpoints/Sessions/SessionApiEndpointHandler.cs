@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.Logic;
+using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;

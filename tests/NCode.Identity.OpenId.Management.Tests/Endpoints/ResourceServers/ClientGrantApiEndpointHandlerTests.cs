@@ -20,7 +20,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using NCode.Identity.Logic;
+using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;

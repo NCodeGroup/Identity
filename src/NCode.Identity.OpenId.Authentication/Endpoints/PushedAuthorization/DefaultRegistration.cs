@@ -18,7 +18,6 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Logic;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization;

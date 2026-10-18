@@ -19,7 +19,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Logic;
+using NCode.Identity.OpenId.Principals;
 
 namespace NCode.Identity.OpenId;
 
@@ -53,7 +53,7 @@ public sealed class OpenIdOptions
     /// Gets or sets a delegate that extracts a <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/>.
     /// </summary>
     public GetSubjectIdentityDelegate GetSubjectIdentity { get; set; } =
-        DefaultClaimsPrincipalLogic.GetSubjectIdentity;
+        DefaultSubjectDelegates.GetSubjectIdentity;
 
     /// <summary>
     /// Gets or sets a delegate that extracts the subject id from a <see cref="ClaimsPrincipal"/> given an ordered list
@@ -61,8 +61,7 @@ public sealed class OpenIdOptions
     /// honoring the order of the supplied claim types. The claim types are supplied per request (per-tenant for the
     /// end-user, or the server default for app-level callers).
     /// </summary>
-    public GetSubjectIdDelegate GetSubjectId { get; set; } =
-        DefaultClaimsPrincipalLogic.GetSubjectId;
+    public GetSubjectIdDelegate GetSubjectId { get; set; } = DefaultSubjectDelegates.GetSubjectId;
 
     /// <summary>
     /// Gets or sets a delegate that rewrites the subject claims of a <see cref="ClaimsPrincipal"/> so its authoritative
@@ -71,7 +70,7 @@ public sealed class OpenIdOptions
     /// claim types are supplied per request (per-tenant for the end-user, or the server default for app-level callers).
     /// </summary>
     public NormalizeSubjectIdDelegate NormalizeSubjectId { get; set; } =
-        DefaultClaimsPrincipalLogic.NormalizeSubjectId;
+        DefaultSubjectDelegates.NormalizeSubjectId;
 
     /// <summary>
     /// Gets a list of delegates that can configure the <see cref="JsonSerializerOptions"/> used by OpenID.

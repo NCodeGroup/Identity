@@ -34,7 +34,7 @@ using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;

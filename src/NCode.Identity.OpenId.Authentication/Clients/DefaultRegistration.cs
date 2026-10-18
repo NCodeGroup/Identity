@@ -21,7 +21,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
-using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;

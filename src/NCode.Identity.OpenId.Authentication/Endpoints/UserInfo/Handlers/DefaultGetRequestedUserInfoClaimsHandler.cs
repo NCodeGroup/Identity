@@ -20,7 +20,7 @@ using System.Security.Claims;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
-using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Handlers;

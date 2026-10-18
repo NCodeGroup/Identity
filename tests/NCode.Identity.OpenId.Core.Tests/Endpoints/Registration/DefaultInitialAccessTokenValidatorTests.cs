@@ -17,10 +17,9 @@
 #endregion
 
 using Moq;
+using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants;
-using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
-using NCode.Identity.OpenId.Authentication.Logic;
-using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Tenants;
 using Xunit;

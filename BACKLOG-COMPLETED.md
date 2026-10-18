@@ -66,6 +66,21 @@ group heading in ID order, preserve the original wording verbatim, and add a tra
   signatures. Deferred: the pair has not churned, so the value is low today and the change touches every store +
   implementation + call site + test. Do it as one mechanical sweep before GA if pagination needs to grow.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0099](docs/adr/0099-forward-compatible-evolving-parameters.md)._
+- **`D7` — Sweep the remaining `…Logic` grab-bag namespaces into purpose-based names.** The secret-key `…Secrets.Logic`
+  and `…Jose.EdDsa.Logic` grab-bags were split into cohesive purpose namespaces (`…KeyTypes` / `…Collections` /
+  `…KeyMaterial` / EdDsa `…KeyTypes`; see the [`CHANGELOG.md`](CHANGELOG.md) "Changed" entry). The same vague `Logic`
+  bucket still exists elsewhere — `…OpenId.Authentication(.Abstractions).Logic`, `…OpenId.Core.Logic`,
+  `…Secrets.Persistence.Logic`, `…NCode.Identity(.Abstractions).Logic`, and the per-endpoint `Endpoints/**/Logic/`
+  folders. Each should be evaluated and, where it is a genuine grab-bag (not a legitimately-named slice), split the same
+  way for family-wide consistency with the §3 "folder/namespace by purpose" convention. Scoped out of the Secrets sweep
+  to keep that change reviewable; revisit as a dedicated cohesion pass.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased] ("Every remaining `Logic` grab-bag namespace is split…"). Every
+  bucket was a genuine grab-bag and was split: `NCode.Identity.Cryptography`; the `NCode.Identity.Secrets.Persistence`
+  package root; `NCode.Identity.OpenId.Principals`; and `…Authentication.Pkce` / `.OutboundHttp` / `.ResourceServers`
+  / `.Persistence` / `.Tokens` (which also absorbed the `…Authentication.Models` and `…Endpoints.Token.Models`
+  buckets); per-endpoint services moved to their endpoint's root namespace. The catch-all `AddLogicServices()`
+  registration became one registration per purpose folder, and the rule is codified in
+  [`csharp-production.instructions.md`](.github/instructions/csharp-production.instructions.md) §3._
 - **`D8` — Redesign JWT validation as ASP.NET Core-style requirements/handlers and move the JWT contracts into
   `.Abstractions`.** The library was renamed `NCode.Identity.JsonWebTokens(.Abstractions)` →
   `NCode.Identity.Jwt(.Abstractions)` (package/assembly/namespace); the dual-purpose `IJsonWebTokenService` was

@@ -24,9 +24,8 @@ using NCode.Extensions.DataProtection;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Secrets.KeyTypes;
 
-namespace NCode.Identity.Secrets.Tests.Logic;
+namespace NCode.Identity.Secrets.KeyTypes;
 
 // See ADR-0104 (public-key import) and ADR-0105 (descriptor first-class seam).
 public class AsymmetricSecretKeyImportExportTests : BaseTests

@@ -22,10 +22,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Logic;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
+using NCode.Identity.OpenId.Principals;
 using NCode.Identity.OpenId.Serialization;
 using NCode.PropertyBag;
 

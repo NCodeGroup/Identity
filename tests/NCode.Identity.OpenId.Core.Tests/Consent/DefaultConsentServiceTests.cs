@@ -19,7 +19,8 @@
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Consent;
-using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;

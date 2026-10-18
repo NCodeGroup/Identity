@@ -22,7 +22,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Logging;
-using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;

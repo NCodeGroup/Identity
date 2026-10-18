@@ -22,10 +22,14 @@ on:
 permissions:
   contents: read
 
-# Supersede in-flight runs for the same ref while iterating on a branch, but never cancel a run on the trunk: every
-# commit on main keeps its own verdict, because that verdict is what branch protection and the badge report.
+# Supersede in-flight runs for the same ref while iterating on a branch, but give every trunk commit its own verdict.
+#
+# On main the group includes the SHA, so two trunk commits never share a group. That matters because
+# `cancel-in-progress: false` alone does NOT achieve it: GitHub still cancels any previously *pending* run in a group,
+# keeping only the newest. Under rapid pushes that silently leaves trunk commits unverified — a commit that broke
+# something, followed by one that fixed it, would never report the break.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: dotnet-ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'head' }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:

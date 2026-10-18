@@ -33,6 +33,7 @@ change to the public API is a **major** version bump.
   removed; `ITenantStore.GetOrDefaultByDomainNameAsync` becomes `GetOrDefaultByIssuerHostAsync`, joined by a new
   `GetOrDefaultByIssuerAsync`. A migration drops the column, re-points the index, and clears the carried-over values
   so no tenant is routable by a host it does not claim.
+  ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md))
 
 - **The server published its endpoint URLs from the incoming request, so a spoofed `Host` could redirect client
   credentials.** Discovery, the RFC 7592 `registration_client_uri`, the device `verification_uri`, the

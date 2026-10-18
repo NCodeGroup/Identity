@@ -758,7 +758,9 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `TenantStore`, `DynamicByHostTenantStrategy`, `DefaultTenantValidator`, the management tenant contracts, and a
   migration.
 
-  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. The derived host index is non-unique as scoped, and the
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md). The derived host index is
+  non-unique as scoped, and the
   new filtered UNIQUE index on the normalized issuer enforces an invariant nothing previously enforced._
 
 ## Frontend presentation platform (group `U`)

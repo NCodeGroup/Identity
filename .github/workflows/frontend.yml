@@ -25,8 +25,10 @@ on:
 permissions:
   contents: read
 
+# See the note in ci.yml: on main the group includes the SHA so every trunk commit keeps its own verdict, because
+# `cancel-in-progress: false` alone still lets GitHub cancel previously pending runs in the same group.
 concurrency:
-  group: frontend-ci-${{ github.ref }}
+  group: frontend-ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'head' }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 defaults:

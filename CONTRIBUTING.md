@@ -30,6 +30,9 @@ dotnet build NCode.Identity.slnx
 dotnet test NCode.Identity.slnx
 ```
 
+When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**` and `/tests/`
+for `tests/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`) — never at the solution root.
+
 ## Coding standards
 
 **The coding-convention instruction files are the authoritative checklist** — auto-applied by scope

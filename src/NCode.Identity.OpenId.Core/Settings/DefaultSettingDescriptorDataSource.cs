@@ -353,6 +353,18 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Intersect,
             };
 
+            // client_assertion_max_lifetime: longest lifetime accepted for a private_key_jwt / client_secret_jwt
+            // assertion, from its earliest 'iat'/'nbf' to its 'exp' (RFC 7523 §3; default 5 minutes, ADR-0124).
+            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.ClientAssertionMaxLifetime,
+                Default = TimeSpan.FromMinutes(5),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
             // clock_skew: allowed leeway when validating token time claims (default 5 minutes).
             // Ceiling (Min): a child may only reduce the tolerance; raise the server value to allow more.
             yield return new SettingDescriptor<TimeSpan>

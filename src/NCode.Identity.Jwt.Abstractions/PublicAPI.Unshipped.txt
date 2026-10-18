@@ -134,6 +134,8 @@ NCode.Identity.Jwt.Validation.ResolveValidationKeysAsync
 NCode.Identity.Jwt.Validation.TokenLifetimeRequirement
 NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.ClockSkew.get -> System.TimeSpan
 NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.ClockSkew.init -> void
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.MaxLifetime.get -> System.TimeSpan?
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.MaxLifetime.init -> void
 NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.RequireExpirationTime.get -> bool
 NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.RequireExpirationTime.init -> void
 NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.TokenLifetimeRequirement(bool RequireExpirationTime, System.TimeSpan ClockSkew) -> void
@@ -142,6 +144,8 @@ NCode.Identity.Jwt.Validation.TokenTypeRequirement.TokenTypeRequirement(System.C
 NCode.Identity.Jwt.Validation.TokenTypeRequirement.ValidTokenTypes.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 NCode.Identity.Jwt.Validation.TokenTypeRequirement.ValidTokenTypes.init -> void
 NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions
+NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.MaxLifetime.get -> System.TimeSpan?
+NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.MaxLifetime.set -> void
 NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.RequireExpirationTime.get -> bool
 NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.RequireExpirationTime.set -> void
 NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.ValidateTokenLifeTimeOptions() -> void

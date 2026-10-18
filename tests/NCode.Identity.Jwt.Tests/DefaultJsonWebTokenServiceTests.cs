@@ -38,6 +38,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     private readonly ServiceProvider _serviceProvider;
     private readonly IJwtEncoder _encoder;
     private readonly IJwtValidator _validator;
+    private readonly IJoseSerializer _joseSerializer;
     private readonly SecretKey _signingKey;
     private readonly JoseSigningCredentials _signingCredentials;
     private readonly DateTimeOffset _utcNow = new(2025, 6, 15, 12, 0, 0, TimeSpan.Zero);
@@ -52,6 +53,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         _encoder = _serviceProvider.GetRequiredService<IJwtEncoder>();
         _validator = _serviceProvider.GetRequiredService<IJwtValidator>();
+        _joseSerializer = _serviceProvider.GetRequiredService<IJoseSerializer>();
 
         var secretKeyFactory = _serviceProvider.GetRequiredService<ISecretKeyFactory>();
         byte[] keyBytes = new byte[32];
@@ -124,22 +126,22 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
     private async Task<JwtValidationResult> EncodeAndValidateLifetimeAsync(
         IReadOnlyDictionary<string, object> lifetimeClaims,
-        bool requireExpirationTime = true
+        bool requireExpirationTime = true,
+        TimeSpan? maxLifetime = null
     )
     {
-        var encodingParameters = new JwtEncodingParameters
-        {
-            SigningCredentials = _signingCredentials,
-            ExtraPayloadClaims = lifetimeClaims,
-            TokenType = JoseTokenTypes.Jwt,
-        };
-        var token = _encoder.Encode(encodingParameters);
+        // Encode through the JOSE serializer so the JWT encoder cannot add default 'iat'/'nbf'/'exp' claims.
+        var signingOptions = new JoseSigningOptions(_signingCredentials);
+        var encoder = _joseSerializer.CreateEncoder(signingOptions);
+        var token = encoder.Encode(lifetimeClaims);
 
         var validationParameters = new JwtValidationParameters()
             .UseValidationKeys([_signingKey])
             .ValidateTokenLifeTime(options =>
-                options.RequireExpirationTime = requireExpirationTime
-            );
+            {
+                options.RequireExpirationTime = requireExpirationTime;
+                options.MaxLifetime = maxLifetime;
+            });
 
         return await _validator.ValidateAsync(token, validationParameters, CancellationToken.None);
     }
@@ -452,6 +454,170 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     {
         var result = await EncodeAndValidateLifetimeAsync(
             new Dictionary<string, object> { ["nbf"] = "soon" }
+        );
+
+        Assert.False(result.IsValid);
+        Assert.IsType<JwtValidationException>(result.Exception);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenIatIsNotANumericDate_Fails()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["iat"] = "earlier", ["exp"] = now + 60 }
+        );
+
+        Assert.False(result.IsValid);
+        var exception = Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Contains("'iat'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenIatIsInFutureWithinClockSkew_Succeeds()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["iat"] = now + 300, ["exp"] = now + 600 }
+        );
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenIatIsInFutureBeyondClockSkew_Fails()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["iat"] = now + 301, ["exp"] = now + 600 }
+        );
+
+        Assert.False(result.IsValid);
+        var exception = Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Contains("issued in the future", exception.Message, StringComparison.Ordinal);
+    }
+
+    #endregion
+
+    #region ValidateTokenLifeTime MaxLifetime Tests
+
+    [Fact]
+    public async Task ValidateAsync_WhenLifetimeEqualsMaximum_Succeeds()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["iat"] = now, ["exp"] = now + 300 },
+            maxLifetime: TimeSpan.FromMinutes(5)
+        );
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenLifetimeExceedsMaximum_Fails()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["iat"] = now, ["exp"] = now + 301 },
+            maxLifetime: TimeSpan.FromMinutes(5)
+        );
+
+        Assert.False(result.IsValid);
+        var exception = Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Contains("exceeds the maximum", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenIssuedLongerAgoThanMaximum_Fails()
+    {
+        // Only a minute of validity remains, but the token has been valid since it was issued ten minutes ago.
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["iat"] = now - 600, ["exp"] = now + 60 },
+            maxLifetime: TimeSpan.FromMinutes(5)
+        );
+
+        Assert.False(result.IsValid);
+        Assert.IsType<JwtValidationException>(result.Exception);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenNbfPrecedesIatBeyondMaximum_Fails()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object>
+            {
+                ["iat"] = now,
+                ["nbf"] = now - 600,
+                ["exp"] = now + 60,
+            },
+            maxLifetime: TimeSpan.FromMinutes(5)
+        );
+
+        Assert.False(result.IsValid);
+        Assert.IsType<JwtValidationException>(result.Exception);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenNoIatOrNbfAndExpWithinMaximumPlusClockSkew_Succeeds()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["exp"] = now + 600 },
+            maxLifetime: TimeSpan.FromMinutes(5)
+        );
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenNoIatOrNbfAndExpBeyondMaximumPlusClockSkew_Fails()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["exp"] = now + 601 },
+            maxLifetime: TimeSpan.FromMinutes(5)
+        );
+
+        Assert.False(result.IsValid);
+        Assert.IsType<JwtValidationException>(result.Exception);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenMaximumSetAndExpAbsent_FailsEvenIfExpirationNotRequired()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["iat"] = now },
+            requireExpirationTime: false,
+            maxLifetime: TimeSpan.FromMinutes(5)
+        );
+
+        Assert.False(result.IsValid);
+        var exception = Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Contains("missing an expiration time", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenExpAtMaxNumericDateAndMaximumSet_Fails()
+    {
+        const long maxNumericDate = 253_402_300_799L;
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["iat"] = now, ["exp"] = maxNumericDate },
+            maxLifetime: TimeSpan.FromMinutes(5)
         );
 
         Assert.False(result.IsValid);

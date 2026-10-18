@@ -56,9 +56,6 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
     ISecurityProfileCatalog securityProfileCatalog
 ) : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger)
 {
-    // The replay record is retained until the assertion can no longer be accepted (its 'exp' plus a clock-skew margin).
-    private static readonly TimeSpan ReplayRetentionSkew = TimeSpan.FromMinutes(5.0);
-
     private IJwtValidator JwtValidator { get; } = jwtValidator;
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
@@ -238,6 +235,16 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
 
         var validAudiences = GetValidAudiences(openIdContext);
 
+        // Honor the client's effective clock_skew setting (the FAPI 2.0 profile tightens this to ≤ 60s via the
+        // merge-lattice ceiling); without this the JWT validator would fall back to its 5-minute default.
+        var clockSkew = publicClient.Settings.GetValue(OpenIdSettingKeys.ClockSkew);
+
+        // RFC 7523 §3 lets the server reject an assertion valid unreasonably far into the future; the cap also bounds
+        // how long its 'jti' occupies the replay cache.
+        var maxLifetime = publicClient.Settings.GetValue(
+            OpenIdSettingKeys.ClientAssertionMaxLifetime
+        );
+
         // The effective key set includes keys resolved at runtime from the client's jwks_uri (when configured).
         var validationKeys = await ClientKeyResolver.ResolveSecretKeysAsync(
             publicClient,
@@ -247,12 +254,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         JwtValidationResult result;
         try
         {
-            var parameters = new JwtValidationParameters()
-            {
-                // Honor the client's effective clock_skew setting (the FAPI 2.0 profile tightens this to ≤ 60s via the
-                // merge-lattice ceiling); without this the JWT validator would fall back to its 5-minute default.
-                ClockSkew = publicClient.Settings.GetValue(OpenIdSettingKeys.ClockSkew),
-            }
+            var parameters = new JwtValidationParameters() { ClockSkew = clockSkew }
                 .UseValidationKeys(validationKeys)
                 .ValidateIssuer(clientId)
                 .ValidateClaim(
@@ -263,7 +265,11 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
                 )
                 .ValidateAudience(validAudiences)
                 .ValidateCertificateLifeTime()
-                .ValidateTokenLifeTime(options => options.RequireExpirationTime = true);
+                .ValidateTokenLifeTime(options =>
+                {
+                    options.RequireExpirationTime = true;
+                    options.MaxLifetime = maxLifetime;
+                });
 
             result = await JwtValidator.ValidateAsync(assertion, parameters, cancellationToken);
 
@@ -308,11 +314,13 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
             );
         }
 
-        // Saturate rather than overflow when 'exp' sits at the edge of the representable range.
+        // Retain the replay record until the assertion can no longer be accepted ('exp' plus the clock skew), saturating
+        // rather than overflowing at the edge of the representable range.
+        var retentionMargin = clockSkew > TimeSpan.Zero ? clockSkew : TimeSpan.Zero;
         var expiresWhen =
-            expiresAt > DateTimeOffset.MaxValue - ReplayRetentionSkew
+            expiresAt > DateTimeOffset.MaxValue - retentionMargin
                 ? DateTimeOffset.MaxValue
-                : expiresAt + ReplayRetentionSkew;
+                : expiresAt + retentionMargin;
 
         var recorded = await ReplayCache.TryRecordAsync(
             clientId,

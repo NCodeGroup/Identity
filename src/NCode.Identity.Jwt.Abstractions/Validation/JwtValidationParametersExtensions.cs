@@ -142,15 +142,16 @@ public static class JwtValidationParametersExtensions
             parameters.AddRequirement(new CertificateLifetimeRequirement(parameters.ClockSkew));
 
         /// <summary>
-        /// Adds a <see cref="TokenLifetimeRequirement"/> that asserts the <c>nbf</c> and <c>exp</c> claims are valid
-        /// (capturing the current <see cref="JwtValidationParameters.ClockSkew"/>).
+        /// Adds a <see cref="TokenLifetimeRequirement"/> that asserts the <c>nbf</c>, <c>iat</c>, and <c>exp</c> claims
+        /// are valid (capturing the current <see cref="JwtValidationParameters.ClockSkew"/>).
         /// </summary>
         /// <returns>The <see cref="JwtValidationParameters"/> instance for method chaining.</returns>
         public JwtValidationParameters ValidateTokenLifeTime() =>
             parameters.ValidateTokenLifeTime(static _ => { });
 
         /// <summary>
-        /// Adds a <see cref="TokenLifetimeRequirement"/> that asserts the <c>nbf</c> and <c>exp</c> claims are valid.
+        /// Adds a <see cref="TokenLifetimeRequirement"/> that asserts the <c>nbf</c>, <c>iat</c>, and <c>exp</c> claims
+        /// are valid (capturing the current <see cref="JwtValidationParameters.ClockSkew"/>).
         /// </summary>
         /// <param name="configureOptions">A callback to configure validation options.</param>
         /// <returns>The <see cref="JwtValidationParameters"/> instance for method chaining.</returns>
@@ -162,6 +163,9 @@ public static class JwtValidationParametersExtensions
             configureOptions(options);
             return parameters.AddRequirement(
                 new TokenLifetimeRequirement(options.RequireExpirationTime, parameters.ClockSkew)
+                {
+                    MaxLifetime = options.MaxLifetime,
+                }
             );
         }
     }

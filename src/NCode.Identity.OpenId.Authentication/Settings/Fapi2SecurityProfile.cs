@@ -94,5 +94,9 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         // Tight clock skew for signed request objects / client assertions (Min ceiling): FAPI 2.0 allows at most a
         // 60-second future tolerance when validating token time claims, so a child may only reduce it further.
         ceiling.Set(OpenIdSettingKeys.ClockSkew, TimeSpan.FromSeconds(60));
+
+        // Pin the client-assertion lifetime at the secure default (Min ceiling) so raising the server-wide value for
+        // other clients never extends to a FAPI client (ADR-0124).
+        ceiling.Set(OpenIdSettingKeys.ClientAssertionMaxLifetime, TimeSpan.FromMinutes(5));
     }
 }

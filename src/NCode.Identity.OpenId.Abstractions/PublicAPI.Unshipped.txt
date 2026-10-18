@@ -317,6 +317,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsParameterSupported
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsSupported = "claims_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimsSupportedIsStrict = "claims_supported_is_strict" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClaimTypesSupported = "claim_types_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientAssertionMaxLifetime = "client_assertion_max_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClockSkew = "clock_skew" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.CodeChallengeMethodsSupported = "code_challenge_methods_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ContinueAuthorizationLifetime = "continue_authorization_lifetime" -> string!
@@ -805,6 +806,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsParameterSupported
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsSupportedIsStrict.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAssertionMaxLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClockSkew.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.CodeChallengeMethodsSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ContinueAuthorizationLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>

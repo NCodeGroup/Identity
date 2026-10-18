@@ -31,4 +31,10 @@ public sealed class ValidateTokenLifeTimeOptions
     /// The default is <c>true</c>.
     /// </summary>
     public bool RequireExpirationTime { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the longest lifetime the token may have, or <see langword="null"/> (the default) for no maximum.
+    /// See <see cref="TokenLifetimeRequirement.MaxLifetime"/> for how the lifetime is measured.
+    /// </summary>
+    public TimeSpan? MaxLifetime { get; set; }
 }

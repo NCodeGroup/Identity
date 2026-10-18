@@ -60,7 +60,8 @@ fails closed.**
 - A token with an unreadable `nbf`/`exp` is rejected, and a date-string `exp` is no longer honored.
 - A fractional `NumericDate` is accepted everywhere, with sub-second precision preserved.
 - A client assertion whose `exp` is far in the future is still accepted (only the overflow is fixed); capping assertion
-  lifetime, which RFC 7523 §3 permits, is a separate hardening item (backlog `F39`).
+  lifetime, which RFC 7523 §3 permits, is a separate hardening item (backlog `F39`) — since delivered by
+  [ADR-0124](0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md).
 
 ## References
 

@@ -195,6 +195,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.ClaimTypesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'client_assertion_max_lifetime' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> ClientAssertionMaxLifetime =>
+        new(OpenIdSettingNames.ClientAssertionMaxLifetime);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'clock_skew' setting.
     /// </summary>
     public static SettingKey<TimeSpan> ClockSkew => new(OpenIdSettingNames.ClockSkew);

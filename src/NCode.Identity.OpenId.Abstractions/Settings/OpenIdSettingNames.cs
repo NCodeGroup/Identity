@@ -184,6 +184,12 @@ public static class OpenIdSettingNames
     public const string ClaimTypesSupported = "claim_types_supported";
 
     /// <summary>
+    /// Contains the name of <c>client_assertion_max_lifetime</c> setting (the longest lifetime accepted for a
+    /// <c>private_key_jwt</c> / <c>client_secret_jwt</c> client assertion, RFC 7523 §3).
+    /// </summary>
+    public const string ClientAssertionMaxLifetime = "client_assertion_max_lifetime";
+
+    /// <summary>
     /// Contains the name of <c>clock_skew</c> setting.
     /// </summary>
     public const string ClockSkew = "clock_skew";

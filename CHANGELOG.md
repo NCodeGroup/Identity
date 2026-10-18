@@ -10,6 +10,19 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Every development-only convenience is now behind one self-gating call.** `AddDevelopmentEnvironment(configuration,
+  hostEnvironment)` registers the developer CORS policy, the developer and conformance seeders, and the developer
+  signing keys, and does nothing at all in Production.
+
+  These were four separate calls, each gated only by its own configuration section, which spread the decision "is this
+  a development host?" across four places in the composition root — and meant a fifth convenience had to remember to
+  gate itself the same way. Each piece remains individually inert when its own section is absent, so this narrows
+  behaviour without removing any opt-in.
+
+  This is a second line of defence, not the primary one: `AddProductionSafety` already refuses to start such a
+  deployment and reports the problem, rather than silently changing what gets registered. The environment gate
+  matters for a host that has not called it.
+
 - **The server refuses to start in Production with development-only settings still enabled.**
   `AddProductionSafety(configuration, hostEnvironment)` validates configuration during composition and throws before
   the port is bound. It checks the signing-key source, `AllowedHosts`, loopback CORS origins, and the two seeders

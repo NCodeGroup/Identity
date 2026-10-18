@@ -55,10 +55,6 @@ serviceCollection.AddHttpLogging(options =>
     options.LoggingFields = HttpLoggingFields.All;
 });
 
-// DEVELOPMENT CONVENIENCE: let the local SPA dev server (Vite) call discovery and the management API
-// cross-origin. Origins come from 'Cors:AllowedOrigins'; Development defaults to the Vite ports.
-serviceCollection.AddDeveloperCors(configuration, hostEnvironment);
-
 // Trust a reverse proxy's X-Forwarded-* headers, but only the proxies named in the 'ReverseProxy' configuration
 // section. Inert when none are configured, which is the correct posture for a direct-TLS deployment.
 serviceCollection.AddReverseProxy(configuration);
@@ -97,21 +93,10 @@ identityServer
 // group). The account stack provides this capability; the Management slice itself does not depend on accounts.
 identityServer.OpenIdManagementLibraryBuilder.AddLocalAccountManagement(localAccountStore);
 
-// DEVELOPMENT CONVENIENCE: seed a public SPA client + administrator user so the management console can sign in.
-identityServer.AddDeveloperInteractiveSeed(configuration);
-
-// CONFORMANCE CONVENIENCE: seed the confidential clients and deterministic test user the OpenID Foundation
-// conformance suite drives (T4). Inert unless the 'ConformanceSeed' section is configured (the Conformance
-// environment overlay supplies it); must not be used in production.
-identityServer.AddConformanceSeed(configuration);
-
-// DEVELOPMENT ONLY: choose how signing keys are provided (see ADR-0002). The default is ephemeral,
-// in-memory keys (hermetic, ideal for tests). Local running can opt into persistent developer keys —
-// seeded through the store and surviving restarts — via 'DeveloperKeys:Mode=PersistentSigningKey' (set
-// in launchSettings.json, so test hosts keep the ephemeral default). Production must supply a stable,
-// securely-managed signing key instead.
-var developerKeyMode = configuration.GetDeveloperKeyMode();
-identityServer.AddDeveloperKeys(developerKeyMode);
+// DEVELOPMENT CONVENIENCE: everything that is only correct on a developer's machine — the Vite CORS policy, the
+// developer and conformance seeders, and the developer signing keys — behind one self-gating call that does nothing
+// in Production. Each piece also stays inert unless its own configuration section is present.
+identityServer.AddDevelopmentEnvironment(configuration, hostEnvironment);
 
 serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 

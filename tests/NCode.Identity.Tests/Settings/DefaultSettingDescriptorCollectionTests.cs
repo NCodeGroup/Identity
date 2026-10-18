@@ -53,6 +53,7 @@ public class DefaultSettingDescriptorCollectionTests
         var found = CreateCollection().TryGet("a", out var descriptor);
 
         Assert.True(found);
+        Assert.NotNull(descriptor);
         Assert.Equal("a", descriptor.Name);
     }
 
@@ -68,6 +69,7 @@ public class DefaultSettingDescriptorCollectionTests
         var found = CreateCollection().TryGet(new SettingKey<string>("a"), out var descriptor);
 
         Assert.True(found);
+        Assert.NotNull(descriptor);
         Assert.Equal("a", descriptor.Name);
     }
 

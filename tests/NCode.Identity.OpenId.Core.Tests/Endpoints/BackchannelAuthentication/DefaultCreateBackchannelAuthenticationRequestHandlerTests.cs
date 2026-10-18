@@ -20,7 +20,6 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Moq;
-using NCode.Identity;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication;

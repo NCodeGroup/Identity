@@ -17,8 +17,6 @@
 #endregion
 
 using IdGen;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;

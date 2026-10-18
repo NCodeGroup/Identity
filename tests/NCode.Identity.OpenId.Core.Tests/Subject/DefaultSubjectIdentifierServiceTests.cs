@@ -18,7 +18,6 @@
 
 using System.Text;
 using Moq;
-using NCode.Identity;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Subject;

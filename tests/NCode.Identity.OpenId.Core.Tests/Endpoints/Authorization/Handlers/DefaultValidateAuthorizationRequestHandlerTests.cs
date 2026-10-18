@@ -115,7 +115,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     {
         var (mockSettings, mockRequest) = CreateScaffold();
 
-        IReadOnlyCollection<string> acrSupported = ["supported-acr"];
+        IReadOnlyCollection<string>? acrSupported = ["supported-acr"];
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.AcrValuesSupported, out acrSupported))
             .Returns(true);
@@ -133,7 +133,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     {
         var (mockSettings, mockRequest) = CreateScaffold();
 
-        IReadOnlyCollection<string> acrSupported = ["acr-1", "acr-2"];
+        IReadOnlyCollection<string>? acrSupported = ["acr-1", "acr-2"];
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.AcrValuesSupported, out acrSupported))
             .Returns(true);
@@ -156,7 +156,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     {
         var (mockSettings, mockRequest) = CreateScaffold();
 
-        IReadOnlyCollection<string> claimsLocalesSupported = ["en-US"];
+        IReadOnlyCollection<string>? claimsLocalesSupported = ["en-US"];
         mockSettings
             .Setup(x =>
                 x.TryGetValue(OpenIdSettingKeys.ClaimsLocalesSupported, out claimsLocalesSupported)
@@ -176,7 +176,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     {
         var (mockSettings, mockRequest) = CreateScaffold();
 
-        IReadOnlyCollection<string> claimsLocalesSupported = ["en-US", "fr-FR"];
+        IReadOnlyCollection<string>? claimsLocalesSupported = ["en-US", "fr-FR"];
         mockSettings
             .Setup(x =>
                 x.TryGetValue(OpenIdSettingKeys.ClaimsLocalesSupported, out claimsLocalesSupported)

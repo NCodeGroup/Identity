@@ -57,6 +57,7 @@ public class DefaultKnownParameterCollectionTests
         var found = CreateCollection().TryGet("a", out var knownParameter);
 
         Assert.True(found);
+        Assert.NotNull(knownParameter);
         Assert.Equal("a", knownParameter.Name);
     }
 

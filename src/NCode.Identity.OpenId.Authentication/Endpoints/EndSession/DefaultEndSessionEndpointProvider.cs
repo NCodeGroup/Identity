@@ -24,7 +24,6 @@ using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Mediator;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession;

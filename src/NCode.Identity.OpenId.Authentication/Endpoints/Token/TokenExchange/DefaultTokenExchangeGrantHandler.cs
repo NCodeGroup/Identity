@@ -35,7 +35,6 @@ using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Settings;
 using NCode.Json;
-using NCode.Mediator;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;

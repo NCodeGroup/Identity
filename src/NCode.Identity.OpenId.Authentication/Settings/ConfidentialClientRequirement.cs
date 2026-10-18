@@ -17,7 +17,6 @@
 #endregion
 
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Exceptions;
 
 namespace NCode.Identity.OpenId.Settings;
 

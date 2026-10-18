@@ -36,7 +36,6 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
-using NCode.Mediator;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;

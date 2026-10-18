@@ -366,11 +366,19 @@ rationale.
 - ⏳ **Code-style analyzers run on build.** `EnforceCodeStyleInBuild` makes the `IDExxxx` rules execute during
   `dotnet build`; combined with warnings-as-errors, rules set to `warning` in [`.editorconfig`](../../.editorconfig)
   become build errors on shipping code.
+- ✅ **No unused `using` directives** — `IDE0005` is raised to `warning` solution-wide in
+  [`.editorconfig`](../../.editorconfig), so an unused `using` fails the build. It is hidden by default under
+  `AnalysisLevel` `latest-recommended`, and Roslyn only evaluates it when `GenerateDocumentationFile` is `true`
+  (dotnet/roslyn#41640). Clean violations with `dotnet format style --diagnostics IDE0005`, then re-run CSharpier.
 - ✅ **Banned APIs** (`Microsoft.CodeAnalysis.BannedApiAnalyzers`, `RS0030`) from
   [`BannedSymbols.txt`](../../BannedSymbols.txt) — no `Newtonsoft.Json` (use `System.Text.Json`), no legacy
   `JwtSecurityTokenHandler` / `JwtSecurityToken` (use `JsonWebTokenHandler`), and no
   sync-over-async. Add house rules to that file as they emerge.
-- ⏳ **Warnings-as-errors**, and **NuGet vulnerability advisories (`NU190x`) as errors in CI**.
+- ⏳ **Warnings-as-errors in _every_ project — including tests and the Playground** — and **NuGet vulnerability
+  advisories (`NU190x`) as errors in CI**. See
+  [ADR-0127](../../docs/adr/0127-warnings-are-errors-in-every-project.md): the criterion is "code we maintain", not
+  "code we ship". Relax an individual rule via a justified [`.editorconfig`](../../.editorconfig) entry or a tight
+  `#pragma`; 🚫 never by setting `TreatWarningsAsErrors=false`.
 - ✅ **EF Core model changes ship with their migration.** Any edit to an entity, an `IEntityTypeConfiguration`, or a
   model contributor that changes a Playground context model (`OpenIdDbContext` or `DeveloperDataProtectionDbContext`)
   MUST be accompanied by a new migration (`dotnet ef migrations add <Name>` into the
@@ -385,6 +393,10 @@ rationale.
   uses PascalCase), so an unquoted fragment compiles and passes the SQLite tests but fails at runtime against Postgres
   (`column "…" does not exist`). The drift gate cannot catch this — only applying the migration to Postgres does.
 - ✅ The whole gate is [`build/dod.ps1`](../../build/dod.ps1) — the single Definition of Done that CI runs.
+- 👁 **`dod.ps1` prints its stage markers and the final `Definition of Done: PASSED` verdict via `Write-Host`,** which
+  bypasses the PowerShell pipeline. `./build/dod.ps1 2>&1 | Out-File run.log` therefore captures the nested tool output
+  but **silently drops the verdict line**, making a passing run look inconclusive. To capture everything, tee the
+  console stream (`./build/dod.ps1 *>&1 | Tee-Object run.log`) or just read the verdict off the console.
 - ⏳ **Local inner loop: `./build/dod.ps1 -Fast`.** It parallelizes project builds and test assemblies and skips the
   non-correctness stages (coverage collection + packing) for a quicker edit-run cycle, while keeping CSharpier,
   analyzers, and compile warnings-as-errors. It is the **local pre-push gate** (the push protocol's final check); the

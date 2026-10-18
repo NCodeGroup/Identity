@@ -28,7 +28,6 @@ using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 using NCode.Identity.OpenId.Playground.Database;
 using NCode.Identity.Server;
-using NCode.Registration;
 using NCode.Registration.AspNetCore;
 
 // COMPOSITION-ONLY HOST: this file is a flat list of turnkey Add*/Use*/Map* calls. Reusable or

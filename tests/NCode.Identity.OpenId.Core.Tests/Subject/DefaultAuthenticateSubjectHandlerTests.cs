@@ -22,7 +22,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Moq;
-using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
@@ -168,7 +167,10 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
     public async Task HandleAsync_WhenAuthenticationFailed_ReturnsFailedError()
     {
         var (command, mockAuthService, mockError) = CreateScaffold();
-        SetupAuthenticate(mockAuthService, AuthenticateResult.Fail(new Exception("boom")));
+        SetupAuthenticate(
+            mockAuthService,
+            AuthenticateResult.Fail(new InvalidOperationException("boom"))
+        );
 
         var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
 

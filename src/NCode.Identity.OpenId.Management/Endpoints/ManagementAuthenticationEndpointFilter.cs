@@ -19,7 +19,6 @@
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Data;
 using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;

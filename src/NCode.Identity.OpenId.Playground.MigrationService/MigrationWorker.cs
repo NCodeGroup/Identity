@@ -16,9 +16,6 @@
 
 #endregion
 
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Playground.Database;
 
 namespace NCode.Identity.OpenId.Playground.MigrationService;

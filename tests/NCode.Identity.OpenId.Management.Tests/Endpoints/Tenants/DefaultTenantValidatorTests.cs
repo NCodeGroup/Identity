@@ -25,7 +25,6 @@ using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
-using Xunit;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 

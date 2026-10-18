@@ -21,7 +21,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
-using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Tenants;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework;

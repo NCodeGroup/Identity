@@ -25,7 +25,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
@@ -41,7 +40,6 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
-using Xunit;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 

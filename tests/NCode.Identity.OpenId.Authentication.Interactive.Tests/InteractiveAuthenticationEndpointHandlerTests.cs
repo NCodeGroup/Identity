@@ -18,7 +18,6 @@
 
 using System.Security.Claims;
 using NCode.Identity.Jose;
-using NCode.Identity.OpenId.Authentication.Interactive;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;

@@ -20,7 +20,6 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using NCode.Identity.OpenId.Authentication.Tokens;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 

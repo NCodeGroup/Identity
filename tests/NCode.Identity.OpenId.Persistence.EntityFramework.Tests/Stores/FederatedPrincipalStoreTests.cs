@@ -20,7 +20,6 @@ using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;

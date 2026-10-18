@@ -450,10 +450,3 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   both for now — the prompt still serves VS Code chat via its `agent:` frontmatter, and `disable-model-invocation: true`
   is intended to return once github/copilot-cli#4438 is fixed (restoring explicit-only semantics). If kept, edits must be
   mirrored across both files to avoid drift.
-- **`X3` — Unused `using` directives are not enforced in production code.** `IDE0005` is explicitly off for tests in
-  [`.editorconfig`](.editorconfig), but nothing turns it on for `src/`: under `AnalysisLevel` `latest-recommended` it
-  stays at its default hidden severity, so warnings-as-errors never sees it. Raising it to `warning` for `src/` (found
-  during the `D7` sweep) flags unused usings in roughly 80 production files (e.g. `NCode.Identity.Jose`,
-  `NCode.Identity.OpenId.Authentication.Interactive`, the Management endpoint groups). Clean them with
-  `dotnet format style --diagnostics IDE0005`, then set `dotnet_diagnostic.IDE0005.severity = warning` under `[*.cs]` so
-  the build keeps them out. Touch points: [`.editorconfig`](.editorconfig) and the flagged `src/` files.

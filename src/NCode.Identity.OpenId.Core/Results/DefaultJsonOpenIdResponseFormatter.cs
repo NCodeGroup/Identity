@@ -16,7 +16,6 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Messages;
 using HttpResults = Microsoft.AspNetCore.Http.Results;
 

@@ -19,7 +19,6 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using NCode.Registration;
 
 namespace NCode.Identity.Events;

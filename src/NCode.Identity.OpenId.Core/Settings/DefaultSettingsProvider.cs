@@ -16,7 +16,6 @@
 
 #endregion
 
-using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Settings;

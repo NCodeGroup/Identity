@@ -20,7 +20,6 @@ using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Moq;
-using NCode.Identity;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization;

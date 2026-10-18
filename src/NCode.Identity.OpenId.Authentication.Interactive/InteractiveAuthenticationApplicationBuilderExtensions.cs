@@ -18,7 +18,6 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 

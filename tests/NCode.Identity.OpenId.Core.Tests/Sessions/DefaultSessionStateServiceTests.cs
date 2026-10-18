@@ -19,7 +19,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Moq;
-using NCode.Identity;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;

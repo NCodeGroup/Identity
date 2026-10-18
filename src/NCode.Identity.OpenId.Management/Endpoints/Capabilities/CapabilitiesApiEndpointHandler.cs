@@ -21,7 +21,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts.Capabilities;
-using NCode.Mediator;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;

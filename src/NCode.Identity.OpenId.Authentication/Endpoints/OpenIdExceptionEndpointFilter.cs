@@ -20,7 +20,6 @@ using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;

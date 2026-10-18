@@ -78,7 +78,7 @@ public class DefaultSelectTokenGrantHandlerHandlerTests : BaseTests
         params string[] grantTypes
     )
     {
-        IReadOnlyCollection<string> supported = grantTypes;
+        IReadOnlyCollection<string>? supported = grantTypes;
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out supported))
             .Returns(true);

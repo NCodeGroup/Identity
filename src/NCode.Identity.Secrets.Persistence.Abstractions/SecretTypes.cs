@@ -19,7 +19,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence;

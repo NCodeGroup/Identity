@@ -5,7 +5,8 @@
 # locally mean the same thing. It deliberately runs the FULL gate (Release, coverage + packing, NuGet vulnerability
 # advisories as errors) rather than the -Fast local pre-push accelerator.
 #
-# The repository is public, so standard-runner minutes are unmetered — the gate runs on every push to every branch.
+# The repository is public, so standard-runner minutes are unmetered — the gate runs on every branch, via push for
+# human branches and via the pull request for bot branches.
 #
 # Named for the tier it gates, pairing with "Frontend CI"; the JOB below keeps the repository's own term, so the
 # required status check reads "Definition of Done".
@@ -13,7 +14,10 @@ name: .NET CI
 
 on:
   push:
-    branches: ['**']
+    # Every branch is gated on push. Bot branches are the one exception: they always carry an open pull request, so a
+    # push trigger here would run the whole gate a second time against the same tree — four checks on one Dependabot
+    # pull request instead of two. Human branches keep their push run, because a branch may have no pull request yet.
+    branches-ignore: ['dependabot/**']
   pull_request:
     branches: [main]
   workflow_dispatch:

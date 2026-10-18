@@ -11,7 +11,9 @@ name: Frontend CI
 
 on:
   push:
-    branches: ['**']
+    # See the note in ci.yml: bot branches always carry an open pull request, so a push trigger would duplicate the
+    # whole run against the same tree.
+    branches-ignore: ['dependabot/**']
     paths:
       - 'src/frontend/**'
       - '.github/workflows/frontend.yml'

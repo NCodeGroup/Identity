@@ -2026,6 +2026,14 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Security
 
+- **Dependencies move to the .NET 10.0.13 servicing band, and `MessagePack` is pinned to 2.5.307, clearing newly
+  published advisories.** Every `Microsoft.AspNetCore.*`, `Microsoft.EntityFrameworkCore.*`, `Microsoft.Extensions.*`,
+  `System.Text.Json`, and `System.Security.Cryptography.Xml` pin (and the `dotnet-ef` tool) moves from 10.0.12 to
+  10.0.13, which pulls `System.Security.Cryptography.Pkcs` 10.0.13 transitively, clearing GHSA-2fmv-rv2c-59x7 and
+  GHSA-846f-f764-76mx (`Pkcs`) and GHSA-7hqp-7c5m-4vq6, GHSA-c399-9853-6jmj, and GHSA-r955-8q5j-3h83 (`Xml`). A new
+  transitive pin moves `MessagePack` (pulled into the Aspire-only `Playground.AppHost` by `Aspire.Hosting` /
+  `StreamJsonRpc`) from 2.5.302 to 2.5.307, clearing GHSA-qhrr-8q5h-9q3h.
+
 - Removed the undocumented `showAll` query-string override from the discovery endpoint
   (`/.well-known/openid-configuration`). It was unauthenticated and, when set, bypassed both the per-setting
   `IsDiscoverable` filter and the per-endpoint discoverability filter, letting any anonymous caller enumerate every

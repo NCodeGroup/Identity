@@ -128,7 +128,12 @@ Prerequisites, roughly in dependency order:
 
 ### Windows developer notes
 
-- Add `127.0.0.1  localhost.emobix.co.uk` to `C:\Windows\System32\drivers\etc\hosts`.
+- Add `127.0.0.1  localhost.emobix.co.uk` and `127.0.0.1  host.docker.internal` to
+  `C:\Windows\System32\drivers\etc\hosts` (a fresh Docker Desktop install may not write the latter, and the
+  host-side readiness probe / pre-flight reach the OP issuer through it).
+- Install a real Python 3 via the Python install manager (see
+  [`build/conformance/README.md`](../build/conformance/README.md)) — the Microsoft Store `python` alias is on
+  PATH but fails when run.
 - MongoDB bind-mounts are unreliable on Windows; use a named Docker volume (per the suite's Windows
   compose snippet).
 - If a profile needs port 443, map it with `netsh interface portproxy add v4tov4 listenport=443
@@ -415,7 +420,7 @@ volumes:
 
 Also required on Windows:
 
-- `hosts` entry: `127.0.0.1  localhost.emobix.co.uk`.
+- `hosts` entries: `127.0.0.1  localhost.emobix.co.uk` and `127.0.0.1  host.docker.internal`.
 - The suite (in Docker) reaches the OP via `host.docker.internal`; ensure Playground listens on a port
   mapped/visible to the container and issues discovery with that host.
 

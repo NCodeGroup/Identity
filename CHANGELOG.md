@@ -387,6 +387,17 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   freshly-cloned upstream ships. This is harness-only (not a library/API change); details in
   [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md) § "Open follow-ups".
 
+- **The conformance harness checks its machine prerequisites up front instead of timing out opaquely.** On a fresh
+  machine, [`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1) waited the full 120 s for
+  the OP discovery document and then reported only a timeout, because a fresh Docker Desktop install had not written
+  `host.docker.internal` into the Windows hosts file, so the host-side readiness probe could not resolve the issuer. The
+  script now fails immediately with the exact fix when the issuer or suite hostname does not resolve. It also rejects
+  the Microsoft Store `python` alias, which is on PATH but fails when run. The pnpm check now runs after the frontend
+  bootstrap puts the NVS-managed Node 22 on PATH. A readiness timeout now includes the last probe error. The one-time
+  Windows setup (Python install manager, per-user NVS, both hosts entries) is documented in
+  [`build/conformance/README.md`](build/conformance/README.md), and persisting `nvs auto on` in the pwsh / Git Bash
+  profiles in [`src/frontend/README.md`](src/frontend/README.md). Harness-only (not a library/API change).
+
     ([ADR-0111](docs/adr/0111-complete-outbound-fetch-ssrf-coverage.md)).** Every server-initiated outbound HTTP call to a
     client-controlled URL is now SSRF-guarded uniformly. The JAR `request_uri` fetch (RFC 9101) gains the same bound set
     as the `jwks_uri` / `sector_identifier_uri` fetches: it now requires an absolute `https` URI, enforces an optional

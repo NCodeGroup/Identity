@@ -35,7 +35,20 @@ zero-installs: PnP needs patches for the Vite + Storybook + emotion/MUI stack an
 bloat the repo (see [ADR-0064](../../docs/adr/0064-frontend-presentation-platform.md)).
 
 The Node major version is pinned in [`.node-version`](.node-version) (Node 22), honored by NVS, nvm,
-and fnm, so each repo selects its own Node. With NVS: `nvs auto on` switches automatically on `cd`.
+and fnm, so each repo selects its own Node. With NVS: `nvs auto on` switches automatically on `cd`; it only
+lasts for the current shell, so persist it in your shell profile:
+
+```powershell
+# pwsh — $PROFILE.CurrentUserAllHosts (profile.ps1; covers the terminal and the VS Code PowerShell host)
+if (Get-Command nvs -ErrorAction SilentlyContinue) { nvs auto on }
+```
+
+```sh
+# Git Bash — ~/.bashrc (and have ~/.bash_profile source ~/.bashrc, since Git Bash starts a login shell)
+export NVS_HOME="$HOME/AppData/Local/nvs"
+[ -s "$NVS_HOME/nvs.sh" ] && . "$NVS_HOME/nvs.sh"
+command -v nvs >/dev/null 2>&1 && nvs auto on
+```
 
 ## Layout
 

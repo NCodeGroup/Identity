@@ -23,9 +23,11 @@
     as an opt-in / nightly gate, keeping the `dod.ps1` inner loop fast and hermetic.
 
 .NOTES
-    Prerequisites (see `docs/conformance-testing.md`):
-      - Docker (Compose v2) and Python 3 on PATH; the .NET SDK and pnpm (for the pre-flight).
-      - A hosts-file entry: `127.0.0.1  localhost.emobix.co.uk` (the suite's external base URL).
+    Prerequisites (see `build/conformance/README.md`):
+      - Docker (Compose v2) and a real Python 3 on PATH (not the Windows Store alias); the .NET SDK and Node 22 via
+        NVS (`nvs add 22`; Corepack provides the pinned pnpm) for the pre-flight.
+      - Hosts-file entries `127.0.0.1  localhost.emobix.co.uk` (the suite's external base URL) and
+        `127.0.0.1  host.docker.internal` (the OP issuer, probed from the host).
       - The seeded conformance clients / test user from `appsettings.Conformance.json` (backlog `T4`).
 
 .EXAMPLE
@@ -104,8 +106,29 @@ function Test-Command([string] $Name) {
     }
 }
 
+function Assert-Python {
+    # Windows' Microsoft Store 'python' alias is on PATH but fails when run, so probe it instead of trusting Get-Command.
+    $version = try { & python --version 2>&1 } catch { $null }
+    if ("$version" -notmatch '^Python 3\.') {
+        throw "Python 3 was not found on PATH (the Microsoft Store 'python' alias does not count). Install the Python " +
+        "install manager and a runtime, then open a new terminal — see build/conformance/README.md."
+    }
+}
+
+function Assert-HostResolves([string] $HostName) {
+    try {
+        $null = [System.Net.Dns]::GetHostAddresses($HostName)
+    }
+    catch {
+        $hostsFile = $IsWindows ? "$env:SystemRoot\System32\drivers\etc\hosts" : '/etc/hosts'
+        throw "'$HostName' does not resolve on this machine. Add '127.0.0.1  $HostName' to $hostsFile (elevated). " +
+        'See build/conformance/README.md.'
+    }
+}
+
 function Wait-ForUrl([string] $Url, [string] $Label, [int] $TimeoutSeconds) {
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $lastError = $null
     while ((Get-Date) -lt $deadline) {
         try {
             # Dev certs on both ends; -SkipCertificateCheck tolerates the snake-oil / dev TLS.
@@ -114,10 +137,11 @@ function Wait-ForUrl([string] $Url, [string] $Label, [int] $TimeoutSeconds) {
             return
         }
         catch {
+            $lastError = $_.Exception.Message
             Start-Sleep -Seconds 2
         }
     }
-    throw "$Label did not become ready within $TimeoutSeconds seconds ($Url)."
+    throw "$Label did not become ready within $TimeoutSeconds seconds ($Url). Last error: $lastError"
 }
 
 function Assert-IssuerMatches([string] $DiscoveryUrl, [string] $ExpectedIssuer) {
@@ -192,9 +216,11 @@ $failed = $false
 $OriginalLocation = Get-Location
 
 try {
+    Assert-HostResolves ([uri] $IssuerUrl).Host
     if (-not $PreflightOnly) {
         Test-Command 'docker'
-        Test-Command 'python'
+        Assert-Python
+        Assert-HostResolves ([uri] $SuiteBase).Host
     }
 
     # --- 1) Launch the Playground OP on the reachable HTTPS origin. --------------------------------
@@ -222,14 +248,15 @@ try {
     }
     else {
         Write-Step 'Running the in-house probe-runner pre-flight.'
-        Test-Command 'pnpm'
         if (-not $SkipFrontendInstall) {
             # The pnpm workspace must be installed for vite-node to resolve; the bootstrap is idempotent and also
-            # self-heals a partially-installed node_modules (a present root but missing per-app links).
+            # self-heals a partially-installed node_modules (a present root but missing per-app links). It also puts the
+            # NVS-managed Node 22 (and Corepack's pnpm shim) on this process's PATH, so pnpm is checked only afterwards.
             Write-Host '    Ensuring the frontend workspace is installed.' -ForegroundColor Gray
             & (Join-Path $RepoRoot 'build/frontend-install.ps1')
             if ($LASTEXITCODE -ne 0) { throw 'Frontend workspace install failed; cannot run the pre-flight.' }
         }
+        Test-Command 'pnpm'
         Push-Location $FrontendDir
         try {
             # Dev TLS on the OP; let Node's fetch accept it for this local pre-flight only.

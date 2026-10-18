@@ -41,10 +41,10 @@ $solution = Join-Path $repoRoot 'NCode.Identity.slnx'
 
 # Enforce the strict gate: warnings-as-errors and NuGet vulnerability advisories (NU1901-1904) fail the build.
 # -Fast is a genuine local build: leaving CI unset keeps compile warnings-as-errors (unconditional in the props) but
-# demotes vulnerability advisories to warnings, matching the local non-CI experience.
-if (-not $Fast) {
-    $env:CI = 'true'
-}
+# demotes vulnerability advisories to warnings, matching the local non-CI experience. The caller's CI value is restored
+# on exit so a full run cannot leak CI mode into a later -Fast run in the same shell.
+$originalCi = $env:CI
+$env:CI = if ($Fast) { $null } else { 'true' }
 
 function Invoke-Step {
     param([string]$Name, [scriptblock]$Action)
@@ -143,5 +143,6 @@ try {
     Write-Host "`nDefinition of Done: PASSED" -ForegroundColor Green
 }
 finally {
+    $env:CI = $originalCi
     Pop-Location
 }

@@ -157,7 +157,10 @@ The domain is registered at **Porkbun** (expires 2027-04-11). Registration stays
 **Manual steps** — the only ones outside IaC, each done once:
 
 1. **Porkbun:** account 2FA (passkey / hardware key if offered), auto-renew, and registrar lock. Registrar changes stay
-   manual on purpose even though Porkbun has an API: a leaked registrar key hands over the whole domain.
+   manual on purpose even though Porkbun has an API: a leaked registrar key hands over the whole domain. For the same
+   reason, leave API access off for the domain, don't keep Porkbun's Cloudflare integration connected (it stores a
+   standing Cloudflare credential at the registrar), and turn **off** Afternic fast-transfer opt-ins so third-party
+   attempts to list the domain for sale are rejected automatically.
 2. **Cloudflare:** create the account with 2FA, plus one short-lived bootstrap API token.
 3. **After the bootstrap stack runs:** paste its two nameservers and its DNSSEC DS record into Porkbun, and click the
    Email Routing destination-verification link.

@@ -43,9 +43,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Corepack activates the pnpm version pinned by the workspace's "packageManager" field, so CI and a developer
-      # machine run byte-identical tooling. It must run BEFORE setup-node, because setup-node's pnpm cache resolution
-      # shells out to pnpm to locate the store.
+      # Corepack ships with Node and provides the `pnpm` shim. Enabling it is what lets the workspace's
+      # "packageManager" pin decide the pnpm version, so CI and a developer machine run identical tooling.
       - name: Enable Corepack
         run: corepack enable
         working-directory: .
@@ -56,8 +55,28 @@ jobs:
           # Matches the Node major the Aspire AppHost expects locally (ADR-0071) and satisfies the workspace's
           # "engines" floor.
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: src/frontend/pnpm-lock.yaml
+
+      # Materialize the pnpm version pinned by the workspace's "packageManager" field, so `pnpm` is a real binary
+      # before anything asks it for a path.
+      #
+      # setup-node's built-in `cache: pnpm` deliberately is NOT used: it resolves the store location during its own
+      # setup step, which runs before Corepack has downloaded pnpm, so it registers a path that never comes into
+      # existence and then fails the job at post-job cleanup with "Path Validation Error: Path(s) specified in the
+      # action for caching do(es) not exist" — after every check has already passed. Resolving the store ourselves,
+      # once pnpm genuinely exists, is what makes the cache real.
+      - name: Activate pnpm
+        run: corepack prepare --activate
+
+      - name: Resolve the pnpm store
+        run: echo "PNPM_STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - name: Cache the pnpm store
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.PNPM_STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('src/frontend/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
 
       # --frozen-lockfile makes the lockfile authoritative: CI fails rather than silently resolving a different tree
       # when a manifest and the lockfile disagree.

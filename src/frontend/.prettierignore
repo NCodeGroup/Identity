@@ -4,3 +4,7 @@ coverage
 node_modules
 pnpm-lock.yaml
 CHANGELOG.md
+
+# Turborepo's local task cache. It is gitignored build output whose manifests are
+# machine-written JSON, so formatting it is both meaningless and nondeterministic.
+.turbo

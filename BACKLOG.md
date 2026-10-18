@@ -352,10 +352,6 @@ failures, 0 warnings`); the **Basic OP** (browser-driven) plan runs end-to-end u
 The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
 ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
 
-- **`U5` — Frontend CI job.** The frontend toolchain is intentionally outside `dod.ps1`. Add a separate CI job
-  (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
-  The .NET gate now runs on GitHub Actions ([ADR-0125](docs/adr/0125-trunk-based-development-on-main.md),
-  [`.github/workflows/ci.yml`](.github/workflows/ci.yml)), so this is the remaining untested tier.
 - **`U14` — Frontend dev-dependency security advisories.** `pnpm audit` reports 10 advisories (3 critical, 1 high,
   6 moderate) against [`src/frontend/pnpm-lock.yaml`](src/frontend/pnpm-lock.yaml); GitHub Dependabot counts the same
   advisories per workspace path and reports them as 47 alerts on the default branch. Every one is a **`devDependency`

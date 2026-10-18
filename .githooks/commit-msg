@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# commit-msg - strip agent co-author trailers from the commit message.
+#
+# Commits in this repository are attributed to the people who authored them.
+# A `Co-authored-by: Copilot <...>` trailer makes the repository host count the
+# agent account as a contributor, which misreports authorship and can only be
+# undone afterwards by rewriting published history.
+#
+# See docs/adr/0128-commits-are-attributed-to-people-not-agents.md
+#
+# Enable per clone (see CONTRIBUTING.md):
+#     git config core.hooksPath .githooks
+
+set -eu
+
+msg_file="$1"
+
+# The agent identities that appear in co-author trailers: the `Copilot` user
+# account and the `copilot-swe-agent[bot]` coding-agent account.
+agent_trailer='^[[:space:]]*Co-authored-by:[[:space:]]*(Copilot|copilot-swe-agent)(\[bot\])?[[:space:]]*<'
+
+if ! grep -qiE "$agent_trailer" "$msg_file"; then
+    exit 0
+fi
+
+# `git stripspace` collapses the blank line the removed trailer leaves behind,
+# matching git's own message cleanup. Comment lines are preserved so the editor
+# flow still works; git strips those itself afterwards.
+stripped="$msg_file.no-agent-trailer"
+grep -ivE "$agent_trailer" "$msg_file" | git stripspace >"$stripped"
+mv "$stripped" "$msg_file"
+
+echo "commit-msg: removed a Co-authored-by trailer for an agent account." >&2

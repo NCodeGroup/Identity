@@ -395,6 +395,12 @@ entry and/or ADR that closed it.
   Kustomize bases, and release notes; the member-rule CI check that rejects local sources under `live/` and
   `clusters/`; and a self-hosting guide stating the support tiers. Keep releases `0.x` and unannounced until the lab
   and production run them by released version.
+  _Progress:_ the first components (`tags`, `aws-state-backend`, `aws-backup-bucket`, `aws-kms-key`, `aws-github-oidc`,
+  `cloudflare-zone`, `github-repository`), the `live/bootstrap` root, and the `validate` CI workflow exist. Until the
+  first release is tagged, `live/bootstrap` references components by relative path; switching it to the released
+  version lands together with the member-rule check. Next: `live/global` (DNS records — including the lab's, so the lab
+  never holds a zone token — email routing, and zone settings) and `live/lab` on OCI OKE; each root that manages AWS
+  resources adds exactly those permissions to its apply role, which today can reach only its state and secrets.
 
 ## Conformance & interop testing (group `T`)
 

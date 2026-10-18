@@ -68,9 +68,10 @@ Decided in [ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-sc
   (management API), not infrastructure.
 - **The platform itself has two environments:** **production** — every customer tenant, plus internal `canary` and
   `conformance` tenants for post-deploy smoke tests and OpenID certification runs — and the **lab**, the platform
-  owner's private development / sandbox / conformance infrastructure, which never hosts a customer tenant. Lab hosts
-  carry a `lab` label (`auth.lab.nidentity.io`) so a platform environment can't be confused with a customer's `-dev`
-  tenant.
+  owner's private proving ground for platform changes, upgrades, and conformance experiments, which never hosts a
+  customer tenant. Lab hosts carry a `lab` label (`auth.lab.nidentity.io`) so a platform environment can't be confused
+  with a customer's `-dev` tenant; `dev`, `test`, and `staging` are reserved for customers' tenants and never name a
+  platform environment ([ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-scheme.md)).
 - **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits and quotas keep one
   tenant's load test from starving another (backlog `F45`).
 
@@ -233,7 +234,8 @@ All identity hosts are **DNS-only** in Cloudflare (no proxy), so TLS reaches Tra
 - **CAA:** `0 issue "letsencrypt.org"` and `0 issuewild "letsencrypt.org"` (optionally pinned to the ACME account
   with `accounturi=`) — no other CA may issue for the domain.
 - **Inbound mail only:** Cloudflare Email Routing (free, receive-only; `cloudflare_email_routing_settings` / `_dns` /
-  `_address` / `_rule`) forwards per-purpose addresses — `security@` for `security.txt`, and one per vendor account
+  `_address` / `_rule`) forwards per-purpose addresses — `security@` for `security.txt`, `platform@` as the owner of
+  every cloud resource ([ADR-0135](adr/0135-one-resource-tagging-strategy-across-every-vendor.md)), and one per vendor account
   such as `npm@`, `gitlab@`, `docker-ncodegroup@` — to the owner's personal mailbox; no catch-all. Its MX and SPF
   records replace a null MX; DMARC stays `v=DMARC1; p=reject` because nothing sends as the domain yet — an identity
   domain is a prime phishing target.

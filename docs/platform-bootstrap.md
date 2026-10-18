@@ -31,7 +31,9 @@ region to Denver and has three availability domains to spread the lab's nodes ac
 - **Recovery email rule:** the registrar, DNS, cloud, and GitHub owner accounts use `<recovery-email>` — **never** an
   address at `<domain>`. If the domain or its DNS breaks, those are the accounts you need to fix it. Other vendor
   accounts may use per-purpose `@<domain>` routing addresses.
-- **Local tools:** `git`; OpenTofu at the version in the infrastructure repository's `.opentofu-version`; AWS CLI v2;
+- **Local tools:** `git`; OpenTofu through [tenv](https://github.com/tofuutils/tenv) (`scoop install tenv` /
+  `brew install tenv`), which picks the version in the infrastructure repository's `.opentofu-version` (`tenv tofu
+  install` in the repository) and verifies its signature; AWS CLI v2;
   OCI CLI (lab); `kubectl`, Flux CLI, Helm; `gitleaks` (pre-commit). Optional: GitHub CLI `gh`.
 - **Expected cost:** see the [hosting analysis](hosting-analysis.md#2-summary-and-ranked-recommendations) — the lab is
   within OCI's free allowance (~$0–4/month); the AWS account costs cents per month.
@@ -70,9 +72,10 @@ settings declaratively.
 3. **Harden it before the first push** (the bootstrap stack takes these over afterwards):
    - Settings → Actions → General:
      - **Actions permissions** → *Allow `<github-org>`, and select non-`<github-org>`, actions and reusable workflows*,
-       with *Allow actions created by GitHub* and *Allow actions by Marketplace verified creators* checked (the bootstrap
-       stack adds any other allowed actions explicitly), and **Require actions to be pinned to a full-length commit
-       SHA** on — a moved tag can't swap in different code.
+       with *Allow actions created by GitHub* and *Allow actions by Marketplace verified creators* checked, and
+       `opentofu/setup-opentofu@*` in *Allow or block specified actions* (the CI workflow needs it and its publisher
+       isn't a verified creator; the bootstrap stack manages this list afterwards). Turn on **Require actions to be
+       pinned to a full-length commit SHA** — a moved tag can't swap in different code.
      - **Approval for running fork pull request workflows from contributors** → *Require approval for all external
        contributors*.
      - **Workflow permissions** → *Read repository contents and packages permissions*; leave *Allow GitHub Actions to
@@ -149,21 +152,36 @@ Manual because tenancy sign-up requires identity and card verification, and the 
 
 ## 6. Run the bootstrap stack
 
-The bootstrap stack lives in the infrastructure repository (`live/bootstrap`). It is run **once** from your machine with
-the short-lived credentials above; everything after it runs from GitHub Actions.
+The bootstrap stack lives in the infrastructure repository (`live/bootstrap`); its
+[README](https://github.com/NCodeGroup/identity-platform/tree/main/live/bootstrap) has the exact commands. It is the
+one root run by hand, from your machine, with the short-lived credentials above: it creates the identity CI uses, so CI
+can't create it. Everything after it runs from GitHub Actions.
 
-1. Export credentials for this shell only: `$env:AWS_PROFILE = 'nidentity-platform-admin'`,
-   `$env:CLOUDFLARE_API_TOKEN`, and a fine-grained GitHub token in `$env:GITHUB_TOKEN` (resource owner `<github-org>`,
-   only `<infra-repo>`, permissions *Administration*, *Environments*, and *Variables* read/write, expiry 1 day).
-2. `tofu init` and `tofu apply` in `live/bootstrap`. It creates the S3 state and backup buckets, the GitHub OIDC
-   provider and roles, the SSM parameters, the Cloudflare zone, DNSSEC, and scoped tokens, and the repository's
-   rulesets and `lab` / `production` environments.
-3. Migrate the bootstrap's own state into the bucket it created: enable the S3 backend and run
-   `tofu init -migrate-state`; then delete the local state file.
-4. **Revoke** the Cloudflare bootstrap token and the GitHub token; let the AWS session expire.
+1. **Prepare.** Commit the member account ID as `aws_account_id` in `live/bootstrap/terraform.tfvars` (not a secret;
+   the AWS provider refuses any other account). Generate a **state passphrase** of at least 32 random characters and
+   keep it in your password manager — it encrypts this root's state and plans, and the same passphrase is needed on
+   every later run.
+2. **Credentials for this shell only:** `$env:AWS_PROFILE = 'nidentity-platform-admin'`, the Cloudflare bootstrap
+   token in `$env:CLOUDFLARE_API_TOKEN`, a fine-grained GitHub token in `$env:GITHUB_TOKEN` (resource owner
+   `<github-org>`, only `<infra-repo>`, permissions *Administration*, *Environments*, and *Variables* read/write, expiry
+   1 day), and the passphrase in `$env:TF_VAR_state_passphrase` — enter secrets with `Read-Host -MaskInput` so they
+   never reach shell history.
+3. **First apply on local state.** The state bucket can't hold this root's state before this root creates it, so the
+   first run uses a local backend: create the git-ignored `backend_override.tf` (`terraform { backend "local" {} }`),
+   then `tofu init` and `tofu apply`. The local state file is already encrypted with the passphrase. The apply creates
+   the S3 state and backup buckets, the KMS keys, the GitHub OIDC provider and roles, the Cloudflare zone, DNSSEC, and
+   scoped tokens (stored as SSM SecureStrings), the budget alert, and the repository's rulesets and `lab` /
+   `production` environments — importing the repository from step 2 rather than creating it. If DNSSEC fails because
+   the zone is still pending, continue and re-run `tofu apply` after step 7.
+4. **Move the state into the bucket it created:** delete `backend_override.tf`, run `tofu init -migrate-state`
+   (answer `yes`), then delete the local `terraform.tfstate` and `terraform.tfstate.backup`.
+5. **Revoke** the Cloudflare bootstrap token and the GitHub token; let the AWS session expire.
 
 **Verify:** `tofu plan` (with fresh credentials) shows no changes; the state object exists in the bucket with
 versioning enabled.
+
+**Re-run it at least every 90 days** with fresh credentials (no override file) to rotate the CI Cloudflare tokens; they
+expire 30 days after their scheduled rotation. Re-run it too whenever `live/bootstrap` changes.
 
 ## 7. Delegate the domain
 

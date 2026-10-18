@@ -33,8 +33,12 @@ apex domain.**
      `acme`). Promotion between them is tenant configuration, not infrastructure.
    - The platform runs exactly one customer-facing environment, **production**, which also hosts internal `canary`
      (post-deploy verification) and `conformance` (OpenID certification) tenants.
-   - The platform owner's private **lab** (development, sandbox, conformance experiments) and ephemeral CI environments
-     never host a customer tenant.
+   - The platform owner's private **lab** (where platform changes, upgrades, and conformance experiments are proven
+     before production) and ephemeral **ci** environments never host a customer tenant.
+   - **Platform environments and tenant environments never share a word.** The platform's environments are exactly
+     `production`, `lab`, and `ci`; `dev`, `test`, and `staging` describe customers' tenants and never name a platform
+     environment, host, tag, or root. In a hostname a tenant is always the leftmost label (`acme-dev.auth.<apex>`) and a
+     platform environment always follows the function (`auth.lab.<apex>`).
 
 2. **Hostname scheme** (`<apex>` is `nidentity.io`):
 
@@ -64,6 +68,12 @@ scheme is otherwise unchanged; after that point the apex is permanent.
 - **Customer-facing staging or dev platform environments.** Gives customers a "safe" place to test, but their
   non-production then runs on different hardware, versions, and configuration than their production — incidents get
   blamed on drift — and it multiplies the platform's cost. Auth0 does not do this. Rejected.
+- **Calling the lab `dev`, `staging`, `sandbox`, or `playground`.** `dev` collides with customers' `-dev` tenants in
+  every conversation and support ticket; `staging` promises production parity the lab deliberately lacks; `sandbox`
+  (like `preview`) is what Stripe, PayPal, Salesforce, and Okta call their customer-facing test environments, so a
+  `sandbox` host would invite the integrations this decision forbids and would take the word from a possible future
+  customer feature; `playground` already names the flow explorer
+  ([ADR-0082](0082-playground-and-conformance-surfaces.md)). Rejected for `lab`.
 - **Tenants directly under the apex** (`acme.<apex>`). Shorter, but a tenant name can collide with a service host
   (`www`, `manage`, `mtls`, `status`, `docs`, …), which needs a reserved-name list forever. Rejected.
 - **mTLS aliases nested under the tenant** (`mtls.{tenant}.auth.<apex>`). Reads naturally, but a wildcard covers one
@@ -82,8 +92,8 @@ scheme is otherwise unchanged; after that point the apex is permanent.
   are a launch prerequisite.
 - Per-tenant mTLS alias hosts need host-strategy routing for the alias authority (`F47`), in-app chain validation
   (`F43`), and Traefik's forwarded-chain format (`F44`).
-- The lab is cheaper and differs from production (k3s, arm64, in-cluster Postgres vs. managed Kubernetes, x86, managed
-  Postgres); every release is verified on the production `canary` tenant before customers see it.
+- The lab is cheaper and differs from production (OKE Basic, arm64, in-cluster CloudNativePG vs. managed Kubernetes,
+  x86, managed Postgres); every release is verified on the production `canary` tenant before customers see it.
 - Each function gets one wildcard certificate, and the management plane can carry its own CORS, rate-limit, and
   IP-allow-list policy at the proxy.
 - The `.io` ccTLD's long-term status is an accepted risk; owning a fallback domain mitigates it.

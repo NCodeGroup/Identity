@@ -29,6 +29,10 @@ evidence of intent, not a constraint: do not preserve an insecure or outdated sh
 there. Correct it to the modern best-practice design (greenfield posture above), and update the surrounding
 comments/docs/ADRs in the same change so the repository — not chat history — carries the correction.
 
+**Pin what is current upstream, not what happens to be installed.** When choosing or pinning a version of a tool,
+package, provider, or action, read the latest release from its upstream source (release feed or registry) at that
+moment; a locally installed or remembered version says nothing about what is current.
+
 ## Orientation
 
 Repo orientation and the build / contributing workflow are in [`AGENTS.md`](../AGENTS.md). All coding conventions are

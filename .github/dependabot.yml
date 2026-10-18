@@ -1,0 +1,52 @@
+# Automated dependency updates.
+#
+# Dependabot is the free, built-in counterpart to the Definition of Done: the gate proves a change is safe, this keeps
+# the inputs current so the gate has something honest to prove. Every ecosystem the repository actually ships or builds
+# from is covered; updates land as pull requests against the single `main` trunk (ADR-0125) and are gated by CI.
+#
+# Updates are GROUPED per ecosystem. Ungrouped, a repository this size opens a pull request per package and buries the
+# trunk in noise; grouped, a week's updates arrive as one reviewable change that CI verifies as a unit.
+version: 2
+
+updates:
+  # The .NET family. Versions are centrally managed in Directory.Packages.props (ADR-0003), which Dependabot reads and
+  # edits in place, so a bump stays lockstep across every project instead of drifting per-csproj.
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Patch/minor servicing moves together — this is the stream that clears NuGet advisories, which the full
+      # Definition of Done treats as build errors (NU1901-1904), so leaving it to rot eventually breaks CI outright.
+      nuget-minor-and-patch:
+        update-types: [minor, patch]
+      # Majors are separated: each one is a deliberate, individually-reviewed change.
+      nuget-major:
+        update-types: [major]
+
+  # The frontend pnpm workspace (ADR-0064). Its root is src/frontend, not the repository root — that is where
+  # pnpm-workspace.yaml and the lockfile live, and pointing Dependabot anywhere else finds no manifest.
+  - package-ecosystem: npm
+    directory: /src/frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # The toolchain (vitest/vite/esbuild and friends) is where the current advisories sit (backlog U14); every one is
+      # a devDependency that never reaches the shipped bundle, so they are safe to move as a single group.
+      frontend-dev-toolchain:
+        dependency-type: development
+      frontend-production:
+        dependency-type: production
+
+  # The workflows themselves. Pinned action majors go stale silently and surface as runner deprecation warnings rather
+  # than failures, so they need the same automation as package dependencies.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ['*']

@@ -1,6 +1,6 @@
 # NCode.Identity
 
-[![CI](https://github.com/NCodeGroup/Identity/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NCodeGroup/Identity/actions/workflows/ci.yml)
+[![.NET CI](https://github.com/NCodeGroup/Identity/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NCodeGroup/Identity/actions/workflows/ci.yml)
 [![Frontend CI](https://github.com/NCodeGroup/Identity/actions/workflows/frontend.yml/badge.svg?branch=main)](https://github.com/NCodeGroup/Identity/actions/workflows/frontend.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](global.json)

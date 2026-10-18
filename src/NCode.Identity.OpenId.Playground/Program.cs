@@ -53,6 +53,10 @@ serviceCollection.AddHttpLogging(options =>
 // cross-origin. Origins come from 'Cors:AllowedOrigins'; Development defaults to the Vite ports.
 serviceCollection.AddDeveloperCors(configuration, hostEnvironment);
 
+// Trust a reverse proxy's X-Forwarded-* headers, but only the proxies named in the 'ReverseProxy' configuration
+// section. Inert when none are configured, which is the correct posture for a direct-TLS deployment.
+serviceCollection.AddReverseProxy(configuration);
+
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
 
 // TODO
@@ -133,6 +137,11 @@ else
 }
 
 await using var app = builder.Build();
+
+// MUST be the first middleware: everything downstream that reads the scheme or host — the HTTPS redirect, request
+// logging's client IP, and the tenant's base address — has to observe the original request rather than the
+// proxy-to-application hop. A no-op unless 'ReverseProxy' names a trusted proxy.
+app.UseReverseProxy();
 
 if (app.Environment.IsDevelopment())
 {

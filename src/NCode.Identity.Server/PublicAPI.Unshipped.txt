@@ -161,3 +161,19 @@ NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Features.set -> void
 NCode.Identity.Server.Frontend.FrontendSurfaceOptions.FrontendSurfaceOptions() -> void
 NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Scopes.get -> string![]?
 NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Scopes.set -> void
+NCode.Identity.Server.ReverseProxyApplicationBuilderExtensions
+NCode.Identity.Server.ReverseProxyApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
+NCode.Identity.Server.ReverseProxyApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseReverseProxy() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+NCode.Identity.Server.ReverseProxyRegistration
+NCode.Identity.Server.ReverseProxyRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Server.ReverseProxyRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddReverseProxy(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Server.ReverseProxy.ReverseProxyOptions
+NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.ForwardLimit.get -> int
+NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.ForwardLimit.set -> void
+NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.HasTrustedProxy.get -> bool
+NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.KnownNetworks.get -> string![]!
+NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.KnownNetworks.set -> void
+NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.KnownProxies.get -> string![]!
+NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.KnownProxies.set -> void
+NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.ReverseProxyOptions() -> void
+const NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.DefaultSectionName = "ReverseProxy" -> string!

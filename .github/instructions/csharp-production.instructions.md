@@ -349,6 +349,11 @@ rationale.
   later request reuse it regardless of its credentials). Memoize per-request state on the **request** instead
   (`HttpContext.Items`, the `OpenIdContext`), or keep the service genuinely stateless. Making the service scoped is not
   a fix when a singleton consumer captures it (captive dependency re-singletons it), so prefer request-scoped storage.
+- 👁 **Correctness never depends on process-local state.** The host runs as several interchangeable, disposable
+  replicas ([ADR-0134](../../docs/adr/0134-cloud-native-operating-principles.md)), and any replica may serve the next
+  request. State that must outlive a request or be seen by another replica goes to the database or `IDistributedCache`;
+  in-memory state (`IMemoryCache`, static or singleton fields) is only for data that can be rebuilt on a miss, and must
+  tolerate eviction and restarts. Never write durable data to the local filesystem.
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.

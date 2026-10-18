@@ -66,7 +66,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
-| `F` — Feature gaps                    | `F48`     | `F47`      |
+| `F` — Feature gaps                    | `F49`     | `F48`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U15`     | `U14`      |
 | `S` — Secrets management              | `S11`     | `S10`      |
@@ -365,8 +365,10 @@ entry and/or ADR that closed it.
   restricted security context); and `Host.MigrationService` should run as a pre-deploy Job with expand/contract schema
   changes so a rolling update never breaks the running version. The production-safety gate should also refuse a
   tenant with no configured issuer (the [ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)
-  follow-up) and an unprotected Data Protection key ring (`S10`). Plus the OpenTofu modules and GitHub Actions workflows
-  from the [hosting analysis](docs/hosting-analysis.md#11-iac-and-delivery). Touch points:
+  follow-up) and an unprotected Data Protection key ring (`S10`). Plus the OpenTofu modules, bootstrap stack, and GitHub
+  Actions workflows in the public `NCodeGroup/identity-platform` repository
+  ([ADR-0132](docs/adr/0132-platform-infrastructure-as-code-is-public-on-github.md); see the
+  [hosting analysis](docs/hosting-analysis.md#11-iac-and-delivery)). Touch points:
   `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.OpenId.Host/Dockerfile`,
   `src/NCode.Identity.OpenId.Host.MigrationService`, `src/NCode.Identity.Server/ProductionSafety`.
 
@@ -380,6 +382,19 @@ entry and/or ADR that closed it.
   the host strategy. Found during the [hosting analysis](docs/hosting-analysis.md#domain-and-dns--nidentityio). Touch
   points: `src/NCode.Identity.OpenId.Core/Tenants/Strategies/DynamicByHostTenantStrategy.cs`, the tenant store's
   issuer-host index, `DefaultDiscoverMetadataHandler`.
+
+- **`F48` — Publish the deployment artifacts the platform runs.** Per
+  [ADR-0133](docs/adr/0133-we-ship-and-run-the-same-deployment-artifacts.md), the hosted platform consumes only the
+  artifacts offered to self-hosters. Deliver: the host's Helm chart in this repository (built on `F46`), released with
+  the host image as a signed OCI chart on GHCR with provenance and chart tests; in `NCodeGroup/identity-platform`, the
+  layered building blocks — OpenTofu component modules (`modules/`: Cloudflare zone and email routing, AWS state backend,
+  backup bucket and GitHub OIDC, Akamai LKE and Postgres, OCI k3s, Flux bootstrap), in-cluster components
+  (`kubernetes/components/`: Traefik, cert-manager, Valkey, `identity`), and the `akamai` and `oci` stacks that compose
+  them — with `tofu test` tests, one lockstep semver version per release (breaking = interface change or forced
+  resource replacement; `moved` blocks for refactors), protected tags, signed OCI artifacts on GHCR for the modules and
+  Kustomize bases, and release notes; the member-rule CI check that rejects local sources under `live/` and
+  `clusters/`; and a self-hosting guide stating the support tiers. Keep releases `0.x` and unannounced until the lab
+  and production run them by released version.
 
 ## Conformance & interop testing (group `T`)
 

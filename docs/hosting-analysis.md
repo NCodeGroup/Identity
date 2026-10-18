@@ -17,6 +17,10 @@
 | Entry-level, shared CPU OK, monthly billing                               |                                                                 |
 | Backing services: **PostgreSQL** (EF Core / Npgsql) and **Valkey** (cache) | Remote keys (Azure Key Vault et al.) — backlog `S7`             |
 
+Every option is judged against the platform's operating principles — cattle not pets, immutable artifacts, everything as
+code, stateless services, redundancy by default, proven recoverability, and secure by default
+([ADR-0134](adr/0134-cloud-native-operating-principles.md)).
+
 ## 2. Summary and ranked recommendations
 
 **Goal:** the most reliability and capacity per dollar for an **all-in budget of about $100/month** — always-on, dev/test
@@ -30,7 +34,7 @@ first — it is the system of record), how much of that is managed, capacity, la
 | Rank  | Topology                                   | What runs where                                                                                                                                                                                                                         | Monthly total                                                    | What the money buys                                                                                     | Trade-offs                                                                                                                                                       |
 | ----- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **1** | **Akamai Dallas — managed HA**             | **Kubernetes:** LKE, 4 × Linode 2 GB (4 vCPU / 8 GB, workers only — control plane is managed) · **LB:** NodeBalancer · **Postgres:** Akamai managed, **3-node HA**, same DC · **Valkey:** in-cluster, primary + replica + Sentinel · **Keys:** Azure Key Vault, South Central US (federated identity) | 4 × $12 + NB $10 + PG $37 = **$95**                              | HA in every tier except the free, non-HA control plane; managed failover, backups, and patching for the database; ~15–20 ms | x86; 2 GB nodes leave modest headroom. Variants: 3 × 4 GB + HA DB = $119, or 3 × 4 GB + single-node DB = $98.                                                   |
-| **2** | **OCI Phoenix — maximum capacity**         | **Kubernetes:** k3s HA (3 servers, embedded etcd) on 3 × Ampere A1 (2 OCPU / 12 GB each = 6 vCPU / 36 GB), one per availability domain · **LB:** OCI Network LB (free) · **Postgres:** CloudNativePG, 3 instances, backups → R2 or OCI Object Storage · **Valkey:** in-cluster HA · **Keys:** OCI Vault (instance principal, no secret) | A1 beyond the free allowance $27.74 + block storage ~$4 = **~$32** | ~3× rank 1's capacity; HA in every tier **including** the control plane, spread across 3 availability domains; 10 TB free egress | You operate k3s and Postgres; arm64 images; A1 capacity can be scarce; home region fixed at sign-up. A 3 × 1 OCPU / 8 GB cluster fits the free allowance (~$4). |
+| **2** | **OCI Phoenix — maximum capacity**         | **Kubernetes:** k3s HA (3 servers, embedded etcd) on 3 × Ampere A1 (2 OCPU / 12 GB each = 6 vCPU / 36 GB), one per availability domain · **LB:** OCI Network LB (free) · **Postgres:** CloudNativePG, 3 instances, backups → S3 (Object Lock) or OCI Object Storage · **Valkey:** in-cluster HA · **Keys:** OCI Vault (instance principal, no secret) | A1 beyond the free allowance $27.74 + block storage ~$4 = **~$32** | ~3× rank 1's capacity; HA in every tier **including** the control plane, spread across 3 availability domains; 10 TB free egress | You operate k3s and Postgres; arm64 images; A1 capacity can be scarce; home region fixed at sign-up. A 3 × 1 OCPU / 8 GB cluster fits the free allowance (~$4). |
 | **3** | **Vultr Dallas — lean nodes, HA DB**       | **Kubernetes:** VKE, 3 × 1 vCPU / 2 GB · **LB:** Vultr LB · **Postgres:** Vultr managed, 2 GB + 1 replica · **Valkey:** in-cluster · **Keys:** Azure Key Vault, South Central US                                                                 | $30 + LB $10 + PG $50 = **$90**                                  | Managed control plane and HA database                                                                  | One fewer node and a 2-node (not 3-node) database vs. rank 1 for about the same money; VKE HA control-plane price unpublished. Variant: k3s on 3 × 2 vCPU / 4 GB + single-node DB = $97.    |
 | **4** | **DigitalOcean Kansas City — closest**     | **Kubernetes:** DOKS, 3 × 2 GiB Premium Intel · **LB:** DO LB · **Postgres:** DO managed, 1 GiB single node · **Valkey:** in-cluster · **Keys:** Azure Key Vault, Central US                                                                     | $48 + LB $12 + PG $15.15 = **~$75**                              | Lowest latency (~10–15 ms); managed control plane and database                                         | **No database HA within budget** (2 GiB + standby is $60.90 → ~$121); MKC1 offers Premium-Intel droplets and limited DB plans only _(verify)_.                 |
 | **5** | **Civo NYC1 — free egress**                | **Kubernetes:** Civo managed k3s, 3 × 4 GB · **LB:** Civo LB · **Postgres:** CloudNativePG in-cluster · **Valkey:** in-cluster · **Keys:** Azure Key Vault, East US                                                                              | $65.19 + LB $10.86 = **~$76**                                    | 6 cores / 12 GB; unlimited free egress                                                                  | You operate Postgres (Civo's managed PG starts at $43.45 → ~$119); east-coast latency (35–45 ms); no published HA control plane.                                |
@@ -91,10 +95,10 @@ control plane (+$60).
 
 | Concern                                        | Service                                       | Free allowance (verified 2026-10-18 unless noted)                                                                        |
 | ---------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Source, CI, container images                   | GitHub Actions + GitHub Container Registry    | Free for public repositories and public packages _(verify current limits)_                                               |
+| Source, infrastructure code, CI, images        | GitHub Actions + GitHub Container Registry    | Free for public repositories and public packages, including environments with required reviewers ([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)) |
 | DNS                                            | Cloudflare DNS                                | Free plan, incl. DNSSEC; registrar stays at Porkbun. Keep identity hosts **DNS-only** — proxying would terminate TLS at Cloudflare and drop the client certificate |
 | Server certificates                            | Let's Encrypt via cert-manager                | Free                                                                                                                     |
-| OpenTofu state, Postgres backups               | Cloudflare R2                                 | 10 GB-month, 1M write + 10M read operations/month, free egress                                                           |
+| OpenTofu state, Postgres backups, vendor tokens | AWS S3 + SSM Parameter Store (dedicated account) | **Not free — cents/month at this size:** S3 Standard $0.023/GB-month, $5/M writes, $0.40/M reads; SSM standard parameters free |
 | Metrics, logs, traces, synthetics, load tests  | Grafana Cloud Free                            | 10k active series, 50 GB logs, 50 GB traces, 14-day retention, 3 users, 100k synthetic API checks, 500 k6 VU-hours       |
 | Uptime alerts (alternative)                    | UptimeRobot Free                              | 50 monitors, 5-minute interval (positioned for hobby / non-profit use)                                                   |
 | Signing keys on OCI (production-capable)       | OCI Vault                                     | Software keys free; first 20 HSM key versions free, then $0.5334/version/month                                           |
@@ -162,19 +166,25 @@ The domain is registered at **Porkbun** (expires 2027-04-11). Registration stays
    standing Cloudflare credential at the registrar), and turn **off** Afternic fast-transfer opt-ins so third-party
    attempts to list the domain for sale are rejected automatically.
 2. **Cloudflare:** create the account with 2FA, plus one short-lived bootstrap API token.
-3. **After the bootstrap stack runs:** paste its two nameservers and its DNSSEC DS record into Porkbun, and click the
+3. **AWS:** create a dedicated member account under AWS Organizations for the platform (root MFA, an administrator
+   role through IAM Identity Center, no IAM users), and use short-lived credentials for the bootstrap.
+4. **After the bootstrap stack runs:** paste its two nameservers and its DNSSEC DS record into Porkbun, and click the
    Email Routing destination-verification link.
 
-**Bootstrap stack** — OpenTofu run once from the owner's machine with the bootstrap token (local state, then migrated
-into R2): the zone (`cloudflare_zone`, which outputs the nameservers), DNSSEC (`cloudflare_zone_dnssec`, which outputs
-the DS record), the R2 state bucket (`cloudflare_r2_bucket` with lifecycle and lock), and the scoped CI tokens
-(`cloudflare_account_token`) written to GitHub environment secrets by `integrations/github` — which also owns the
-environments with required reviewers and the repository rulesets. Revoke the bootstrap token afterwards.
+**Bootstrap stack** ([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)) — OpenTofu run once
+from the owner's machine with those short-lived credentials (local state, then migrated into the bucket it creates):
+the S3 **state bucket** (versioning, encryption, public-access block, TLS-only policy) and **backup bucket** (Object
+Lock in compliance mode, archive lifecycle); the GitHub OIDC provider with a read-only **plan** role and an **apply**
+role that trusts only the repository's protected `production` environment; the zone (`cloudflare_zone`, which outputs
+the nameservers) and DNSSEC (`cloudflare_zone_dnssec`, which outputs the DS record); scoped Cloudflare tokens
+(`cloudflare_account_token`) stored as SSM `SecureString`s; and, through `integrations/github`, the repository's
+environments and rulesets. Revoke the bootstrap token afterwards.
 
-**Everything else is OpenTofu** (official `cloudflare/cloudflare` provider) from GitHub Actions, with zone-scoped API
-tokens — one for OpenTofu, a separate DNS-edit-only token for certificate issuance: DNS records
-(`cloudflare_dns_record`), zone settings (`cloudflare_zone_setting`), Email Routing, and notification policies. Records
-that track cluster IPs can alternatively be owned by external-dns in-cluster.
+**Everything else is OpenTofu** (official `cloudflare/cloudflare` provider) from GitHub Actions in the public
+`NCodeGroup/identity-platform` repository, with zone-scoped tokens read from SSM — one for OpenTofu, a separate
+DNS-edit-only token for certificate issuance: DNS records (`cloudflare_dns_record`), zone settings
+(`cloudflare_zone_setting`), Email Routing, and notification policies. Records that track cluster IPs can alternatively
+be owned by external-dns in-cluster.
 
 **Certificates:** cert-manager with the Cloudflare DNS-01 solver issues Let's Encrypt certificates (wildcards included)
 into Kubernetes Secrets that Traefik serves. Traefik's built-in ACME client keeps state per instance and doesn't share
@@ -256,7 +266,8 @@ URIBL; no MX record; nameservers point at Spaceship, so the listing is controlle
 GitHub organization `nidentity` belongs to an unrelated party (created 2021-10-17, no public repositories); repositories
 and container images stay under `NCodeGroup` (`ghcr.io/ncodegroup/…`), which doesn't need to match the product domain.
 The GitLab group [`gitlab.com/nidentity`](https://gitlab.com/nidentity) is held defensively (public, 2FA required,
-no code — it points to GitHub); GitHub remains the single home for source, CI, and packages. On npm the `@ncode` scope
+no code — it points to GitHub); GitHub remains the single home for source, infrastructure code, CI, and packages
+([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)). On npm the `@ncode` scope
 belongs to an unrelated party, so JavaScript packages publish under the org-owned `@ncodegroup` scope (matching the
 GitHub organization and GitHub Packages' scope rule), and `@nidentity` is held defensively (both orgs enforce 2FA); the
 frontend's `@ncode/*`
@@ -350,7 +361,7 @@ Notes:
 | Option                          | Smallest single node                              | Smallest HA                                  | Region / latency fit                                   | Notes                                                       |
 | ------------------------------- | ------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------- |
 | **In-cluster (CloudNativePG)**  | $0 + node RAM/disk                                | $0 (2 instances)                             | Same cluster — best                                    | You own backups (object storage; e.g. Vultr $18/mo for 1 TB), upgrades, failover |
-| **Akamai managed**              | 1 GB **$16**                                      | **3 × 1 GB $37**                             | Same DC as LKE _(verify region list)_                  | Cheapest managed HA found                                   |
+| **Akamai managed**              | 1 GB **$16**                                      | **3 × 1 GB $37**                             | Same DC as LKE _(verify region list)_                  | Cheapest managed HA found; powered by Aiven; daily backups kept 14 days with point-in-time recovery, restored into a new cluster (backups can't be downloaded) |
 | **Vultr managed**               | 1 GB / 25 GB **$15**                              | 2 GB + 1 replica **$50**                     | Same DC as cluster                                     | High-Perf 1 GB $18                                          |
 | **DigitalOcean managed**        | 1 GiB **$15.15**                                  | 2 GiB + standby **$60.90**                   | Same DC (MKC1: limited plans, Premium Intel _(verify)_) | 1 GiB tier has no standby option                            |
 | **Civo managed**                | 4 GB / 2 cores **$43.45**                         | + 1 node **$76.04**                          | NYC1                                                   | No small tier                                               |
@@ -371,7 +382,7 @@ cluster). Neon and Aiven Free/Developer are fine for dev/staging, not for a prod
 | **DigitalOcean managed**        | 1 GiB **$15**                      | Standby node via "additional nodes" _(verify)_ | Same DC as DOKS                                                |
 | **Vultr managed**               | 1 GB **$15**                       | 2 GB + 1 replica **$60**             |                                                                    |
 | **Aiven**                       | **Free** (1 GB, no region choice)  | Business from **$70**                | Hobbyist $19                                                       |
-| **Akamai managed**              | 4 GB dedicated **$59**             | 3-node **$176**                      | Dedicated plans only — not entry-level                             |
+| **Akamai managed**              | 4 GB dedicated **$59**             | 3-node **$176**                      | Not entry-level; Valkey is in limited availability (Akamai docs, 2026-10-14) — re-verify plans |
 
 **Self-hosting is the recommended default.** Valkey backs the `IDistributedCache` used by the DPoP replay cache and
 nonce service ([ADR-0097](adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)); losing it on restart only
@@ -537,15 +548,29 @@ janitor that destroys anything older than a few hours — that also keeps every 
 ## 11. IaC and delivery
 
 - **Terraform/OpenTofu providers** exist for every shortlisted vendor (see §6) plus `aiven/aiven`, `hashicorp/azurerm`,
-  and `cloudflare/cloudflare` (DNS, Email Routing, R2). Manual steps are limited to account creation and 2FA, one
-  bootstrap token, and the registrar delegation; a bootstrap stack creates the zone, state bucket, and CI tokens (§3).
-  Prefer **OpenTofu** for client-side **state encryption** (state contains connection strings and keys).
-- **State backend:** Cloudflare R2 (created by the bootstrap stack; free tier), with locking.
-- **GitHub Actions:** DigitalOcean / Vultr / Akamai / Civo use scoped API tokens stored as **environment secrets** with
-  required reviewers on the production environment; Azure uses GitHub OIDC federation (no stored secret).
-- **Layering:** Terraform owns cloud resources (VMs or managed cluster, LB, firewall, managed DBs, DNS); in-cluster
-  state (Traefik, cert-manager, Valkey, CloudNativePG, the identity server) is applied by Helm/Kustomize from the same
-  pipeline or a GitOps controller (Flux / Argo CD).
+  `hashicorp/aws`, `cloudflare/cloudflare` (DNS, Email Routing), and `integrations/github`. Manual steps are limited to
+  account creation and 2FA, short-lived bootstrap credentials, and the registrar delegation; a bootstrap stack creates
+  the buckets, OIDC roles, zone, and vendor tokens (§3). Prefer **OpenTofu** for client-side **state and plan
+  encryption** (state and plans contain connection strings and keys).
+- **Repository:** the public `NCodeGroup/identity-platform`, with the guardrails in
+  [ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md) — no secrets in Git (push protection,
+  `gitleaks`), no credentials for untrusted pull requests, no plans in public logs or artifacts, operator-specific values
+  in SSM.
+- **Same artifacts as self-hosters** ([ADR-0133](adr/0133-we-ship-and-run-the-same-deployment-artifacts.md)): the host's
+  Helm chart ships from the library repository as a signed OCI chart. `NCodeGroup/identity-platform` layers small
+  **component modules** (`modules/`: e.g. `cloudflare-zone`, `aws-state-backend`, `akamai-lke`, `akamai-postgres`,
+  `oci-k3s`, `flux-bootstrap`) and **in-cluster components** (`kubernetes/components/`: `traefik`, `cert-manager`,
+  `valkey`, `identity`) under opinionated **stacks** (`stacks/akamai`, `stacks/oci`) — pick a component, a whole stack,
+  or fork a stack. Releases are semver-versioned and immutable (protected tags, signed OCI artifacts on GHCR); the
+  platform's `live/` and `clusters/` consume them only by released version, and a CI check rejects local sources there.
+- **State backend:** S3 in the platform's AWS account — versioned, encrypted, with OpenTofu's native lockfile locking.
+- **GitHub Actions:** authenticate to AWS through **GitHub OIDC** (no stored cloud credential): a read-only plan role,
+  and an apply role trusted only for the protected `production` environment (required reviewers are free on public
+  repositories). Vendor API tokens (Cloudflare, Akamai, …) are SSM `SecureString`s read through those roles; Azure also
+  uses OIDC federation.
+- **Layering:** OpenTofu owns cloud resources (VMs or managed cluster, LB, firewall, managed DBs, DNS); in-cluster
+  state (Traefik, cert-manager, Valkey, CloudNativePG, the identity server) is reconciled by **Flux** from the same
+  repository, pulling signed images by digest from GHCR — so no deploy credential flows from the library repository.
 
 ## 12. Latency from Denver (estimates — measure before deciding)
 
@@ -582,8 +607,11 @@ speed-test endpoint from the Denver network the users are on.
 
 **Operations:**
 
-- **Backups and disaster recovery:** managed-Postgres point-in-time recovery plus a nightly logical dump, encrypted
-  client-side (it contains key material), to Cloudflare R2 as an off-vendor copy; a restore drill before launch and
+- **Backups and disaster recovery:** the managed database's point-in-time recovery (Akamai: daily backups kept 14 days)
+  is the primary restore path, but it lives in the same vendor account. A nightly `pg_dump`, encrypted client-side with
+  `age` (it contains signing keys and the Data Protection key ring), goes off-vendor to the AWS backup bucket — Object
+  Lock in compliance mode, write-only credentials, 14 daily + 12 monthly copies with monthly ones moved to an archive
+  tier ([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)). A restore drill before launch and
   quarterly; written RPO / RTO targets.
 - **Cluster secrets** never sit in Git as plaintext: SOPS + age (free) or External Secrets Operator syncing from the
   key vault.
@@ -602,8 +630,8 @@ speed-test endpoint from the Denver network the users are on.
   Postgres / Valkey / key vault), read-only root filesystems, the Kubernetes API reachable only from the pipeline, no
   SSH.
 - **Management plane:** `manage.` behind an IP allow-list or operator mTLS in addition to OAuth.
-- **Accounts:** passkeys / hardware 2FA on every vendor account (Porkbun, Cloudflare, Akamai, OCI, GitHub, GitLab, npm,
-  Spaceship, Azure, Grafana), least-privilege API tokens, recovery codes stored offline, and a second trusted admin.
+- **Accounts:** passkeys / hardware 2FA on every vendor account (Porkbun, Cloudflare, Akamai, OCI, AWS, GitHub, GitLab,
+  npm, Spaceship, Azure, Grafana), least-privilege API tokens, recovery codes stored offline, and a second trusted admin.
 - **Web:** HSTS with `includeSubDomains` (HSTS preload for `nidentity.io` once stable) and an RFC 9116
   `/.well-known/security.txt` pointing to [`SECURITY.md`](../SECURITY.md).
 

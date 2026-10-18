@@ -13,7 +13,7 @@ retained as the field-by-field reference and rationale. Parent design:
 - The cross-trust-boundary token-signing fields (`id_token`/`userinfo`/`access_token`) advertise asymmetric algorithms
   only (never symmetric `HS256`); `request_object` / `token_endpoint_auth` signing keep the full set for
   `client_secret_jwt`.
-- The Playground `appsettings.json` no longer over-advertises `implicit`.
+- The host `appsettings.json` no longer over-advertises `implicit`.
 - Because advertisement and request-time enforcement share one settings source, these flows are fail-closed by default;
   an operator re-enables (and simultaneously re-advertises) any of them by widening the setting in host configuration.
   Integration tests cover both the secure default and the operator-override path.
@@ -37,7 +37,7 @@ OP cannot deliver**, so over-advertising is a certification blocker, not a warni
   ([`DefaultSettingsProvider`](../../src/NCode.Identity.OpenId.Core/Settings/DefaultSettingsProvider.cs)),
   and may be overridden per host via configuration.
 - **A known over-advertisement already exists.**
-  [`appsettings.json`](../../src/NCode.Identity.OpenId.Playground/appsettings.json) advertises
+  [`appsettings.json`](../../src/NCode.Identity.OpenId.Host/appsettings.json) advertises
   `grant_types_supported` including **`implicit`**, and the response-type default set includes implicit/
   hybrid types — but those flows are **not** verified end-to-end. Advertising them will fail Config OP
   unless corrected or deliberately scoped out.

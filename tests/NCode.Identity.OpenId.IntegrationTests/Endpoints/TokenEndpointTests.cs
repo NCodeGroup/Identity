@@ -25,12 +25,12 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
-public class TokenEndpointTests(PlaygroundApplicationFactory factory)
-    : IClassFixture<PlaygroundApplicationFactory>
+public class TokenEndpointTests(HostApplicationFactory factory)
+    : IClassFixture<HostApplicationFactory>
 {
     private const string TokenPath = "/oauth2/token";
 
-    private PlaygroundApplicationFactory Factory { get; } = factory;
+    private HostApplicationFactory Factory { get; } = factory;
 
     private HttpClient CreateClient() =>
         Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });

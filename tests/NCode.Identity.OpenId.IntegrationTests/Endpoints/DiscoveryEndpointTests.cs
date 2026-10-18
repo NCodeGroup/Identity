@@ -24,10 +24,10 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
-public class DiscoveryEndpointTests(PlaygroundApplicationFactory factory)
-    : IClassFixture<PlaygroundApplicationFactory>
+public class DiscoveryEndpointTests(HostApplicationFactory factory)
+    : IClassFixture<HostApplicationFactory>
 {
-    private PlaygroundApplicationFactory Factory { get; } = factory;
+    private HostApplicationFactory Factory { get; } = factory;
 
     [Fact]
     public async Task GetDiscovery_ReturnsMetadataWithIssuerAndJwksUri()

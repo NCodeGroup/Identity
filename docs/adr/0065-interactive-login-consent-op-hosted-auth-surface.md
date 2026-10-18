@@ -134,5 +134,5 @@ Concretely:
   [ADR-0030](0030-userinfo-endpoint-and-subject-authentication-seam.md) (subject-authentication seam).
 - Backlog: `U1`, `U7`, `T2`, `U3` in [`BACKLOG.md`](../../BACKLOG.md); plan
   [`login-consent-ui.md`](../conformance/login-consent-ui.md).
-- Code: [`Playground/Program.cs`](../../src/NCode.Identity.OpenId.Playground/Program.cs),
+- Code: [`Host/Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs),
   [`BootstrapAdminSeedHandler`](../../src/NCode.Identity.Server/BootstrapAdminSeedHandler.cs).

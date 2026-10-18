@@ -32,7 +32,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_WithUnknownToken_ReturnsInactive()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
 
         var client = factory.CreateClient(
@@ -59,7 +59,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_WithoutToken_ReturnsInvalidRequest()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
 
         var client = factory.CreateClient(
@@ -85,7 +85,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_WithoutClientAuthentication_IsRejected()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
 
         var client = factory.CreateClient(
@@ -104,7 +104,7 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_WithActiveAccessToken_ReturnsActiveWithClaims()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,

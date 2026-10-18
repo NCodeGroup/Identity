@@ -33,6 +33,10 @@
         <Project Path="src/NCode.Identity.OpenId.Authentication.Interactive/NCode.Identity.OpenId.Authentication.Interactive.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Authentication/NCode.Identity.OpenId.Authentication.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Core/NCode.Identity.OpenId.Core.csproj" />
+        <Project Path="src/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj" />
+        <Project Path="src/NCode.Identity.OpenId.Host.MigrationService/NCode.Identity.OpenId.Host.MigrationService.csproj" />
+        <Project Path="src/NCode.Identity.OpenId.Host/NCode.Identity.OpenId.Host.csproj" />
+        <Project Path="src/NCode.Identity.OpenId.LocalDev/NCode.Identity.OpenId.LocalDev.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Management.Abstractions/NCode.Identity.OpenId.Management.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Management/NCode.Identity.OpenId.Management.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Messages.Abstractions/NCode.Identity.OpenId.Messages.Abstractions.csproj" />
@@ -41,10 +45,6 @@
         <Project Path="src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/NCode.Identity.OpenId.Persistence.EntityFramework.Core.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Persistence.EntityFramework/NCode.Identity.OpenId.Persistence.EntityFramework.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Persistence/NCode.Identity.OpenId.Persistence.csproj" />
-        <Project Path="src/NCode.Identity.OpenId.Playground.AppHost/NCode.Identity.OpenId.Playground.AppHost.csproj" />
-        <Project Path="src/NCode.Identity.OpenId.Playground.Database/NCode.Identity.OpenId.Playground.Database.csproj" />
-        <Project Path="src/NCode.Identity.OpenId.Playground.MigrationService/NCode.Identity.OpenId.Playground.MigrationService.csproj" />
-        <Project Path="src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj" />
         <Project Path="src/NCode.Identity.Persistence.Abstractions/NCode.Identity.Persistence.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Secrets.Abstractions/NCode.Identity.Secrets.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Secrets.Persistence.Abstractions/NCode.Identity.Secrets.Persistence.Abstractions.csproj" />

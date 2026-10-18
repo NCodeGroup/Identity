@@ -47,7 +47,7 @@ Two explicit, development-only opt-ins:
     - **Self-healing.** If the persisted secret cannot be unprotected (for example, the key ring was purged), it is
       treated as absent and regenerated, so the server stays runnable. Purging the database always recovers on restart.
 - **Opt-in selection is out of band of shared configuration.** The persistent mode is selected by
-  `DeveloperKeys:Mode=PersistentSigningKey`, set in the Playground's `launchSettings.json` (which test hosts do not
+  `DeveloperKeys:Mode=PersistentSigningKey`, set in the host's `launchSettings.json` (which test hosts do not
   load), so the test default remains ephemeral with no special-casing in the test host.
 
 The ADR-0002 decision is unchanged: keys are still an explicit opt-in, never created by the default registrations. This
@@ -86,5 +86,5 @@ ADR only changes **how** the developer key is realized — from intercepting the
   secrets) are not query-scoped, so seeding and reading the tenant secret is unaffected by the ambient tenant filter.
 - Code: `NCode.Identity.Server.DeveloperSigningKeyOpenIdTenantFactory`,
   `NCode.Identity.Server.DeveloperKeysRegistration.AddDeveloperSigningKey`,
-  `NCode.Identity.OpenId.Playground.Program` (mode selection; the host owns the Postgres provider and the
+  `NCode.Identity.OpenId.Host.Program` (mode selection; the host owns the Postgres provider and the
   database-backed Data Protection key ring, see [ADR-0073](0073-postgres-dev-database-and-aspire-migration-worker.md)).

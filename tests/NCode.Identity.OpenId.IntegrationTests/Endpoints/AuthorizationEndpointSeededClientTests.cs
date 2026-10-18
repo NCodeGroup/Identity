@@ -24,13 +24,13 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
-public class AuthorizationEndpointSeededClientTests(PlaygroundApplicationFactory factory)
-    : IClassFixture<PlaygroundApplicationFactory>
+public class AuthorizationEndpointSeededClientTests(HostApplicationFactory factory)
+    : IClassFixture<HostApplicationFactory>
 {
     private const string ClientId = "it-authorize-client";
     private const string RedirectUri = "https://client.example/callback";
 
-    private PlaygroundApplicationFactory Factory { get; } = factory;
+    private HostApplicationFactory Factory { get; } = factory;
 
     [Fact]
     public async Task GetAuthorize_WithSeededClient_ResolvesClientAndProcessesRequest()

@@ -51,7 +51,7 @@ public class TokenEndpointMutualTlsTests
         );
     }
 
-    private static HttpClient CreateClient(PlaygroundApplicationFactory factory) =>
+    private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
     private static HttpRequestMessage BuildTokenRequest(
@@ -77,7 +77,7 @@ public class TokenEndpointMutualTlsTests
                 forwardedCertificate.Export(X509ContentType.Cert)
             );
             request.Headers.TryAddWithoutValidation(
-                PlaygroundApplicationFactory.MutualTlsCertificateHeaderName,
+                HostApplicationFactory.MutualTlsCertificateHeaderName,
                 base64Der
             );
         }
@@ -91,7 +91,7 @@ public class TokenEndpointMutualTlsTests
         const string clientId = "it-mtls-self-signed";
         using var certificate = CreateCertificate(clientId);
 
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
@@ -123,7 +123,7 @@ public class TokenEndpointMutualTlsTests
         using var registeredCertificate = CreateCertificate(clientId);
         using var presentedCertificate = CreateCertificate(clientId);
 
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             registeredCertificate,
@@ -157,7 +157,7 @@ public class TokenEndpointMutualTlsTests
         using var certificate = CreateCertificate(clientId);
         var subjectDn = certificate.SubjectName.Name;
 
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedTlsClientAuthSubjectDnClientAsync(
             clientId,
             subjectDn,
@@ -188,7 +188,7 @@ public class TokenEndpointMutualTlsTests
         const string clientId = "it-mtls-pki-nocert";
         using var certificate = CreateCertificate(clientId);
 
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedTlsClientAuthSubjectDnClientAsync(
             clientId,
             certificate.SubjectName.Name,
@@ -212,7 +212,7 @@ public class TokenEndpointMutualTlsTests
     [Fact]
     public async Task Discovery_AdvertisesMutualTlsAuthMethods()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");

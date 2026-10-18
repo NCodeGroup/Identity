@@ -33,7 +33,7 @@ public class TokenEndpointClientCredentialsTests
     [Fact]
     public async Task PostToken_WithClientCredentials_ReturnsAccessToken()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
@@ -84,7 +84,7 @@ public class TokenEndpointClientCredentialsTests
     [Fact]
     public async Task PostToken_WithWrongClientSecret_DoesNotReturnAccessToken()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
 
         var client = factory.CreateClient(
@@ -112,7 +112,7 @@ public class TokenEndpointClientCredentialsTests
     [Fact]
     public async Task PostToken_ClientAuthenticationResult_IsScopedPerRequest()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,

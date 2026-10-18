@@ -43,7 +43,7 @@ public class TokenEndpointBootstrapAdminTests
     [Fact]
     public async Task PostToken_WithConfiguredBootstrapAdmin_SelfSeedsAndIssuesGlobalAdminToken()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
 
         // The bootstrap credential is supplied out of band (ADR-0044); nothing is pre-seeded.
         using var configured = factory.WithWebHostBuilder(builder =>
@@ -102,7 +102,7 @@ public class TokenEndpointBootstrapAdminTests
     [Fact]
     public async Task PostToken_WhenBootstrapNotConfigured_DoesNotIssueTokenForBootstrapClient()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -172,7 +172,7 @@ public class TokenEndpointBootstrapAdminTests
     /// A factory that supplies the bootstrap administrator credential through configuration, so both the direct
     /// seeding helpers and the configured bootstrap feature operate on the same host and in-memory database.
     /// </summary>
-    private sealed class BootstrapConfiguredFactory : PlaygroundApplicationFactory
+    private sealed class BootstrapConfiguredFactory : HostApplicationFactory
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {

@@ -41,7 +41,7 @@ opt-in conveniences, never defaults.
 - Because both token signing and the JWKS endpoint read the tenant's `SecretsProvider`, this single
   seed makes the whole server runnable (sign tokens, publish JWKS) with no configured or persisted
   secrets and no external dependencies.
-- The Playground calls `AddEphemeralDeveloperKeys()`; the integration tests boot the Playground and
+- The host calls `AddEphemeralDeveloperKeys()`; the integration tests boot the host and
   therefore inherit the same fully-valid environment.
 
 ## Options considered
@@ -64,7 +64,7 @@ opt-in conveniences, never defaults.
 ### Follow-ups
 
 - Done: the opt-in now lives in the `NCode.Identity.Server` composition root (a development extension) so any
-  host can consume it, rather than each app re-implementing it. The Playground is just the EXE host that wires it in.
+  host can consume it, rather than each app re-implementing it. The host is just the EXE host that wires it in.
 - Provide first-class production key-management registration and guidance.
 - A related latent issue was discovered while building the harness: the server/tenant
   "create-if-missing" path is **not idempotent under concurrency** (a duplicate-key race when two
@@ -75,6 +75,6 @@ opt-in conveniences, never defaults.
 
 - `NCode.Identity.Server/DevelopmentEnvironment/EphemeralOpenIdTenantFactory.cs`
 - `NCode.Identity.Server/DevelopmentEnvironment/DeveloperKeysRegistration.cs`
-- `NCode.Identity.OpenId.Playground/Program.cs` (opt-in wired in by the EXE host)
+- `NCode.Identity.OpenId.Host/Program.cs` (opt-in wired in by the EXE host)
 - `NCode.Identity.OpenId.Authentication/Tokens/DefaultTokenService.cs` (signing key source = tenant secrets)
 - `NCode.Identity.OpenId.IntegrationTests/` (asserts JWKS publishes the ephemeral signing key over HTTP)

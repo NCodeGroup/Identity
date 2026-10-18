@@ -316,8 +316,8 @@ entry and/or ADR that closed it.
   `OpenIdSettingKeys`, `Fapi2SecurityProfile`.
 
 - **`F42` — The host's tenant configuration section binds to nothing.** `AddConfiguration` binds tenant resolution from
-  `{section}:TenantResolution` (so `OpenId:TenantResolution`), but the Playground's
-  [`appsettings.json`](src/NCode.Identity.OpenId.Playground/appsettings.json) configures `OpenId:Tenant` — which binds
+  `{section}:TenantResolution` (so `OpenId:TenantResolution`), but the host's
+  [`appsettings.json`](src/NCode.Identity.OpenId.Host/appsettings.json) configures `OpenId:Tenant` — which binds
   to no options type at all. The host therefore silently ignores its own `Mode` and `TenantPath`, and only works
   because the defaults coincide (`StrategyCode` already defaults to `StaticSingle`, and an empty tenant path is
   equivalent to the configured `/`). Any operator copying that shape would find their tenant configuration ignored with
@@ -331,7 +331,7 @@ entry and/or ADR that closed it.
   oracle to catch misreadings our own integration tests share, driven by an **in-house measurement harness** (the
   spec-coverage matrix + the headless probe-runner pre-flight) **and** the committed automation
   ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1)) that drives the external certified
-  suite. Everything runs **locally in Docker** against the Playground OP over `host.docker.internal:5001` — nothing is
+  suite. Everything runs **locally in Docker** against the OpenID host over `host.docker.internal:5001` — nothing is
   exposed publicly; `T8` (complete, archived in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)) triaged the module
   verdicts a run produces. Built: all prerequisites (DCR, reachable HTTPS host, browser-automatable login/consent,
   deterministic seeding, discovery-metadata alignment); the spec-coverage matrix (OP vs the full published

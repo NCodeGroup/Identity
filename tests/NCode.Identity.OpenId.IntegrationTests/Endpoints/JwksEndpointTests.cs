@@ -24,10 +24,10 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
-public class JwksEndpointTests(PlaygroundApplicationFactory factory)
-    : IClassFixture<PlaygroundApplicationFactory>
+public class JwksEndpointTests(HostApplicationFactory factory)
+    : IClassFixture<HostApplicationFactory>
 {
-    private PlaygroundApplicationFactory Factory { get; } = factory;
+    private HostApplicationFactory Factory { get; } = factory;
 
     [Fact]
     public async Task GetJwks_WithEphemeralDeveloperKeys_PublishesRsaSigningKey()
@@ -47,7 +47,7 @@ public class JwksEndpointTests(PlaygroundApplicationFactory factory)
         Assert.Equal(JsonValueKind.Array, keys.ValueKind);
         Assert.True(keys.GetArrayLength() >= 1);
 
-        // The Playground opts into an ephemeral RSA signing key, so a valid public JWK must be published.
+        // The host opts into an ephemeral RSA signing key, so a valid public JWK must be published.
         var key = keys[0];
         Assert.Equal("RSA", key.GetProperty("kty").GetString());
         Assert.Equal("sig", key.GetProperty("use").GetString());

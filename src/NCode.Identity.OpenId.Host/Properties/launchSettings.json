@@ -1,0 +1,78 @@
+{
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:54035",
+      "sslPort": 44369
+    }
+  },
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "scalar/v1",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DeveloperKeys__Mode": "PersistentSigningKey",
+        "BootstrapAdmin__ClientId": "bootstrap-admin",
+        "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
+        "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
+        "DeveloperInteractiveSeed__AdminPassword": "dev-password"
+      }
+    },
+    "NCode.Identity.OpenId.Host": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "scalar/v1",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ReadyToRun": "0",
+        "DeveloperKeys__Mode": "PersistentSigningKey",
+        "BootstrapAdmin__ClientId": "bootstrap-admin",
+        "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
+        "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
+        "DeveloperInteractiveSeed__AdminPassword": "dev-password"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:5001;http://localhost:5000"
+    },
+    "Conformance": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Conformance",
+        "DOTNET_ReadyToRun": "0",
+        "DeveloperKeys__Mode": "PersistentSigningKey",
+        "BootstrapAdmin__ClientId": "bootstrap-admin",
+        "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
+        "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
+        "OpenId__Server__Settings__tenant_issuer": "https://host.docker.internal:5001"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://0.0.0.0:5001;http://0.0.0.0:5000"
+    },
+    "ConformanceAspire": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Conformance",
+        "DOTNET_ReadyToRun": "0",
+        "DeveloperKeys__Mode": "PersistentSigningKey",
+        "BootstrapAdmin__ClientId": "bootstrap-admin",
+        "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
+        "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:5003;http://localhost:5002"
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "launchBrowser": true,
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/scalar/v1",
+      "publishAllPorts": true,
+      "useSSL": true
+    }
+  }
+}

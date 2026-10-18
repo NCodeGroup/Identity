@@ -52,7 +52,7 @@ mechanism is introduced.
   for `id_token`, `userinfo`, and `access_token` signing. `request_object_signing_alg_values_supported` and
   `token_endpoint_auth_signing_alg_values_supported` keep the full set, because `client_secret_jwt` legitimately
   uses a symmetric key on the client→server leg.
-- **Playground host no longer over-advertises.** The Playground `appsettings.json` grant-types override (which
+- **host no longer over-advertises.** The host `appsettings.json` grant-types override (which
   re-added `implicit`) is removed.
 
 ## Consequences

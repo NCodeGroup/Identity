@@ -37,7 +37,7 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 
 /// <summary>
 /// A <strong>conformance-only</strong> seed handler that provisions the confidential clients and the deterministic
-/// test user that the OpenID Foundation conformance suite drives, into each workload tenant, so a launched Playground
+/// test user that the OpenID Foundation conformance suite drives, into each workload tenant, so a launched OpenID
 /// host always exposes the same identities with no manual API calls. It is idempotent, inert unless its inputs are
 /// configured, and never targets the control-plane root tenant. It must not be used in production.
 /// </summary>

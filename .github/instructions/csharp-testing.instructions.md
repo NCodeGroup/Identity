@@ -150,9 +150,9 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **Data-protection integration tests are not hermetic under a shared host.** A `WebApplicationFactory`
   `IClassFixture` that protects/unprotects secrets (confidential clients, encrypted key material) leaks
   keyring/serializer state between tests, and the second run fails (`invalid_client`). Give each such test its own
-  `using var factory = new PlaygroundApplicationFactory();`.
+  `using var factory = new HostApplicationFactory();`.
 - 👁 **Each factory instance owns an isolated in-memory database, and `WithWebHostBuilder` builds a _separate_ host with
-  its _own_ database.** `PlaygroundApplicationFactory.ConfigureWebHost` creates a fresh `InMemoryDatabaseRoot` per host,
+  its _own_ database.** `HostApplicationFactory.ConfigureWebHost` creates a fresh `InMemoryDatabaseRoot` per host,
   so `factory` and `factory.WithWebHostBuilder(…)` do **not** share data. A test that both **seeds** data and
   **configures** the host must do both on the **same** instance: configure through a subclass that overrides
   `ConfigureWebHost` (calling `base` first), then seed via that instance's helpers — never seed one instance and request

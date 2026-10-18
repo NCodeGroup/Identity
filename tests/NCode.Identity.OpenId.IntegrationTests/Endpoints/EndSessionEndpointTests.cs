@@ -44,7 +44,7 @@ public class EndSessionEndpointTests
     [Fact]
     public async Task GetEndSession_WhenAuthenticated_ClearsSessionCookieAndRendersLoggedOut()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password);
 
         var client = factory.CreateClient(

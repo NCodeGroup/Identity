@@ -9,7 +9,7 @@
 
 ## Context
 
-The Playground reference host bootstrapped its database **in-process** on startup, selecting one of three providers:
+The reference host bootstrapped its database **in-process** on startup, selecting one of three providers:
 a disposable **SQLite** file (persistent developer keys), a developer-supplied **SQL Server**, or an **in-memory**
 store. [ADR-0072](0072-self-healing-dev-database-and-model-drift-gate.md) made the SQLite file self-healing to keep the
 inner loop from crashing on un-migrated model edits. The SQLite provider was a convenience added early to "have
@@ -34,7 +34,7 @@ The standing posture is a single, cohesive local-dev story — not provider spra
 Make the local developer database **PostgreSQL**, orchestrated by the Aspire AppHost, with a dedicated migration
 worker; and persist the **Data Protection key ring in that same database** so all developer state lives in one place.
 
-- **One provider: Postgres.** The Playground's SQLite, SQL Server, and in-memory provider branches are removed. The
+- **One provider: Postgres.** The host's SQLite, SQL Server, and in-memory provider branches are removed. The
   `api` reads an `openiddb` connection string (injected by Aspire via `WithReference`) and uses Npgsql. With no
   connection string (hermetic tests that boot the composition root and override the context), it falls back to an
   in-memory store — the only remaining non-Postgres path, and it never touches the developer-state wiring.
@@ -42,13 +42,13 @@ worker; and persist the **Data Protection key ring in that same database** so al
   (`ncode-identity-openiddb-data`), so data **survives restarts** by default. A single
   [`build/dev-db-reset.ps1`](../../build/dev-db-reset.ps1) removes that volume for an **on-demand purge**; the next run
   rebuilds the schema and re-seeds. The script auto-detects Docker or Podman, matching Aspire's own runtime detection.
-- **Dedicated migration worker (U12).** A new `NCode.Identity.OpenId.Playground.MigrationService` worker applies the
+- **Dedicated migration worker (U12).** A new `NCode.Identity.OpenId.Host.MigrationService` worker applies the
   migrations and exits. The `api` `WaitForCompletion`s on it, so a migration failure is a **failed dashboard resource**
   that blocks the `api` instead of crashing it. Schema application leaves the `api`; **seeding** (admin, SPA client,
   signing key) stays in the `api` as idempotent seed handlers.
-- **Shared database project.** A new host-owned `NCode.Identity.OpenId.Playground.Database` project owns the Npgsql
+- **Shared database project.** A new host-owned `NCode.Identity.OpenId.Host.Database` project owns the Npgsql
   wiring, the design-time factories, and the migrations, so the `api` and the worker consume one source of truth.
-  Migrations move here from the Playground host (amending [ADR-0041](0041-host-owned-ef-migrations-deliberate-outside-development.md),
+  Migrations move here from the host (amending [ADR-0041](0041-host-owned-ef-migrations-deliberate-outside-development.md),
   whose "host owns migrations, applied deliberately outside Development" policy otherwise stands).
 - **Data Protection keys in the database.** The key ring is persisted with `PersistKeysToDbContext` into a small
   host-owned `DeveloperDataProtectionDbContext` (its own migrations-history table) targeting the **same** Postgres
@@ -81,9 +81,9 @@ worker; and persist the **Data Protection key ring in that same database** so al
   visible, isolated dashboard resource; the drift gate keeps migrations authoritative.
 - **Harder / watch for:** a **container runtime (Docker or Podman) is now required** to run the AppHost — this reverses
   the "no container-runtime prerequisite" note in [ADR-0071](0071-aspire-local-dev-orchestrator.md). Running the
-  Playground **standalone** (without the AppHost) now uses an ephemeral in-memory database, so persistent local state
+  The host **standalone** (without the local-dev orchestrator) now uses an ephemeral in-memory database, so persistent local state
   requires the AppHost. Postgres major-version upgrades can strand an old data volume (purge it with the reset script).
-- **Smells that mean you chose wrong:** a provider branch (SQLite/SQL Server) creeping back into the Playground host; a
+- **Smells that mean you chose wrong:** a provider branch (SQLite/SQL Server) creeping back into the host; a
   `DataProtectionKeys` table appearing in the shared `OpenIdDbContext`; or developer state reappearing under
   `App_Data/` so that a purge no longer resets everything in one action.
 
@@ -92,7 +92,7 @@ worker; and persist the **Data Protection key ring in that same database** so al
 - [ADR-0072](0072-self-healing-dev-database-and-model-drift-gate.md) — the self-healing SQLite model this supersedes.
 - [ADR-0071](0071-aspire-local-dev-orchestrator.md) — the AppHost this adds the database + worker resources to.
 - [ADR-0041](0041-host-owned-ef-migrations-deliberate-outside-development.md) — host-owned migrations (now in the
-  Playground database project).
+  host database project).
 - [ADR-0021](0021-developer-signing-keys-seeded-through-persistence.md) — persistent developer signing keys (key ring
   now in the database).
 - Npgsql EF Core provider; `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore` `PersistKeysToDbContext`;

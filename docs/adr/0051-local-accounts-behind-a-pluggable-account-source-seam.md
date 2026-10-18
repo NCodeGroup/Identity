@@ -195,7 +195,7 @@ Any other store (LDAP, a bespoke table, an external API) is a third implementati
 - Lockout, two-factor, and password-reset are pre-shaped as optional capability interfaces but not shipped; adding them
   later extends the surface additively without touching the core seam.
 - Known follow-ups deferred to [`BACKLOG.md`](../../BACKLOG.md): lockout/throttling policy, password-reset and
-  verification flows, and whether the no-op default or the EF reference becomes the Playground's wired default.
+  verification flows, and whether the no-op default or the EF reference becomes the host's wired default.
 
 ## References
 

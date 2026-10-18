@@ -170,7 +170,7 @@ registration on `IdentityServerBuilder`), and the host configures the renderer.
   management token and configures the server, and the realm/ownership handlers run behind real authentication.
 - The published packages gain a management authentication environment step (reusing the introspection validation path),
   an OpenAPI security scheme, and a bootstrap seeder; the existing imperative authorization is unchanged, and the
-  Playground selects configuration and renders the Scalar auth affordance. New configuration options (bootstrap client
+  host selects configuration and renders the Scalar auth affordance. New configuration options (bootstrap client
   id/secret, their presence as the opt-in) and their public API join the surface
   ([ADR-0005](0005-public-api-surface-is-tracked-and-evolves-compatibly.md)).
 - The bootstrap credential is durable, rotatable, and idempotent across restarts and replicas; it is never logged and is

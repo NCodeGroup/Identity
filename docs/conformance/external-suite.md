@@ -18,7 +18,7 @@ D–H out of the doc and into version-controlled, executable infrastructure.
 The committed harness is [`build/conformance/`](../../build/conformance):
 
 - **[`run-conformance.ps1`](../../build/conformance/run-conformance.ps1)** — the orchestration (Phase D). It
-  launches the Playground OP on the reachable HTTPS origin (`host.docker.internal:5001`, the `Conformance`
+  launches the OpenID host on the reachable HTTPS origin (`host.docker.internal:5001`, the `Conformance`
   launch profile — `T3`), asserts the discovery `issuer` byte-matches that origin, runs the in-house probe
   runner as a **fast pre-flight** that fails early before the slow external suite is started, brings the suite
   up from **prebuilt Docker images** (no Java build), drives the Config OP + Basic OP plans headlessly via the

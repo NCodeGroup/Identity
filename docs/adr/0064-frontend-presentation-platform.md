@@ -49,7 +49,7 @@ services/logic — so every layer is independently testable.** Concretely:
   pnpm with no global install. The frontend toolchain stays **out of the hermetic `dod.ps1` inner
   loop**; it has its own `pnpm` scripts and (later) its own CI job.
 - **Full-stack dev launch is health-ordered and per-app self-describing.** The `Aspire: Full stack (F5)`
-  launch ([ADR-0071](0071-aspire-local-dev-orchestrator.md)) orchestrates the Playground API plus each app as
+  launch ([ADR-0071](0071-aspire-local-dev-orchestrator.md)) orchestrates the host API plus each app as
   one .NET Aspire resource graph, gating the UIs on the API being healthy so they cannot race it. Each app's
   **`dev` script still encodes its own serving model**: a **backend-served** bundle (served by the .NET host
   from static `dist`, e.g. `apps/auth` through the interactive-login endpoint) uses `vite build --watch` to keep

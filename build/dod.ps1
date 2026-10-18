@@ -116,7 +116,7 @@ try {
         }
     }
 
-    # EF model-drift gate: fail if either Playground context has model changes no migration captures. The dev database
+    # EF model-drift gate: fail if either host context has model changes no migration captures. The dev database
     # is Postgres, applied by the migration worker (ADR-0073), so migrations are authoritative — an un-migrated model
     # edit must fail pre-push and in CI, when the feature is added. Both contexts share the dev database (OpenID data +
     # the developer DataProtection key ring), so both are checked. Reuses the build output (--no-build); exit code 1 =
@@ -125,8 +125,8 @@ try {
         dotnet ef migrations has-pending-model-changes `
             --no-build `
             --configuration $Configuration `
-            --project src/NCode.Identity.OpenId.Playground.Database/NCode.Identity.OpenId.Playground.Database.csproj `
-            --startup-project src/NCode.Identity.OpenId.Playground.Database/NCode.Identity.OpenId.Playground.Database.csproj `
+            --project src/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
+            --startup-project src/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
             --context OpenIdDbContext
         if ($LASTEXITCODE -ne 0) {
             throw "ef model drift (OpenIdDbContext) failed with exit code $LASTEXITCODE."
@@ -134,8 +134,8 @@ try {
         dotnet ef migrations has-pending-model-changes `
             --no-build `
             --configuration $Configuration `
-            --project src/NCode.Identity.OpenId.Playground.Database/NCode.Identity.OpenId.Playground.Database.csproj `
-            --startup-project src/NCode.Identity.OpenId.Playground.Database/NCode.Identity.OpenId.Playground.Database.csproj `
+            --project src/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
+            --startup-project src/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj `
             --context DeveloperDataProtectionDbContext
     }
 

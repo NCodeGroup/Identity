@@ -2,7 +2,7 @@
 
 An open-source **OpenID Connect + OAuth 2.0** library family and reference server for .NET (net10). It produces a set
 of independently-published NuGet packages — JOSE/JWT, cryptographic secrets, the OpenID protocol model, persistence
-abstractions, and DI composition — plus a runnable `Playground` reference host.
+abstractions, and DI composition — plus a runnable `NCode.Identity.OpenId.Host` reference host.
 
 ## Layout
 
@@ -16,8 +16,8 @@ Production projects live under `src/`; test projects (the `*Tests` projects) liv
   `.Messages.Abstractions`, `.Persistence(.Abstractions)`, `.Persistence.EntityFramework`
 - **Persistence** — `NCode.Persistence.Abstractions`, `NCode.Identity.Persistence.Abstractions`
 - **Composition / host** — `NCode.Registration` (the `IServiceBuilder<TMarker>` builder), `NCode.Identity`,
-  `NCode.Identity.Server` (`AddIdentityServer()`), `NCode.Identity.OpenId.Playground` (ASP.NET Core reference host),
-  `NCode.Identity.OpenId.Playground.AppHost` (.NET Aspire local-dev orchestrator — [ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md))
+  `NCode.Identity.Server` (`AddIdentityServer()`), `NCode.Identity.OpenId.Host` (ASP.NET Core reference host),
+  `NCode.Identity.OpenId.LocalDev` (.NET Aspire local-dev orchestrator — [ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md))
 
 The central extensibility model — **service** vs **strategy collection** vs **mediator** — is captured in
 [ADR-0001](docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md).

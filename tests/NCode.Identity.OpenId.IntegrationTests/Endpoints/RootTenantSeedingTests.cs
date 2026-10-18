@@ -25,10 +25,10 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
-public class RootTenantSeedingTests(PlaygroundApplicationFactory factory)
-    : IClassFixture<PlaygroundApplicationFactory>
+public class RootTenantSeedingTests(HostApplicationFactory factory)
+    : IClassFixture<HostApplicationFactory>
 {
-    private PlaygroundApplicationFactory Factory { get; } = factory;
+    private HostApplicationFactory Factory { get; } = factory;
 
     [Fact]
     public async Task ResolvingWorkloadTenant_AlsoProvisionsTheRootTenant()

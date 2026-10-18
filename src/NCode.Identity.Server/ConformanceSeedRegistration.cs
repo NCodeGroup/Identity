@@ -30,7 +30,7 @@ namespace NCode.Identity.Server;
 /// <summary>
 /// Provides an explicit, <strong>conformance-only</strong> opt-in that seeds the confidential clients and the
 /// deterministic test user the OpenID Foundation conformance suite drives, into each workload tenant, so a launched
-/// Playground host exposes the same identities with no manual API calls. It is intentionally NOT part of the default
+/// host exposes the same identities with no manual API calls. It is intentionally NOT part of the default
 /// registrations and must not be used in production.
 /// </summary>
 [PublicAPI]

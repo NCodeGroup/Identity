@@ -23,6 +23,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Playground\NCode.Identity.OpenId.Playground.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Host\NCode.Identity.OpenId.Host.csproj" />
     </ItemGroup>
 </Project>

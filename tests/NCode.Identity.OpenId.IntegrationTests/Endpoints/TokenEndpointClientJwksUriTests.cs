@@ -110,7 +110,7 @@ public class TokenEndpointClientJwksUriTests
         using var rsa = RSA.Create(2048);
         var jwks = BuildJwks(rsa);
 
-        using var factory = new PlaygroundApplicationFactory { ClientJwksResponder = _ => jwks };
+        using var factory = new HostApplicationFactory { ClientJwksResponder = _ => jwks };
 
         await factory.SeedConfidentialClientWithJwksUriAsync(
             ClientId,
@@ -148,7 +148,7 @@ public class TokenEndpointClientJwksUriTests
         using var wrongKey = RSA.Create(2048);
         var jwks = BuildJwks(rsa);
 
-        using var factory = new PlaygroundApplicationFactory { ClientJwksResponder = _ => jwks };
+        using var factory = new HostApplicationFactory { ClientJwksResponder = _ => jwks };
 
         await factory.SeedConfidentialClientWithJwksUriAsync(
             ClientId,

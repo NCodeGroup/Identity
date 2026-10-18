@@ -22,7 +22,7 @@ using Microsoft.Extensions.Configuration;
 namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// A <see cref="PlaygroundApplicationFactory"/> that re-enables — purely through host configuration — the
+/// A <see cref="HostApplicationFactory"/> that re-enables — purely through host configuration — the
 /// insecure/not-recommended capabilities the library omits from its secure defaults
 /// ([ADR-0083](../../../docs/adr/0083-secure-by-default-discovery-metadata.md)): the implicit/hybrid response
 /// types and <c>implicit</c> grant, PKCE <c>plain</c>, and symmetric (<c>HS256</c>) id-token signing.
@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 /// operator widens a ceiling simply by configuring it — this fixture proves that operator override path and that
 /// the widened values are then advertised in discovery and accepted by the authorization endpoint.
 /// </remarks>
-public sealed class InsecureConfigApplicationFactory : PlaygroundApplicationFactory
+public sealed class InsecureConfigApplicationFactory : HostApplicationFactory
 {
     /// <inheritdoc />
     protected override void ConfigureWebHost(IWebHostBuilder builder)

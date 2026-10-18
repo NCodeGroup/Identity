@@ -39,7 +39,7 @@ public class TokenEndpointClientAssertionTests
     private const string ClientSecret = "confidential-secret-value-0123456789";
     private const string TokenPath = "/oauth2/token";
 
-    private static HttpClient CreateClient(PlaygroundApplicationFactory factory) =>
+    private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
     private static async Task<string> GetIssuerAsync(HttpClient client)
@@ -134,9 +134,9 @@ public class TokenEndpointClientAssertionTests
         );
     }
 
-    private static async Task<PlaygroundApplicationFactory> CreateSeededFactoryAsync()
+    private static async Task<HostApplicationFactory> CreateSeededFactoryAsync()
     {
-        var factory = new PlaygroundApplicationFactory();
+        var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
@@ -318,7 +318,7 @@ public class TokenEndpointClientAssertionTests
     {
         const string privateKeyClientId = "it-assert-pk-client";
 
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest(
             $"CN={privateKeyClientId}",

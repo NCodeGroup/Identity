@@ -93,21 +93,21 @@ Production projects are under `src/`, tests under `tests/`.
 | Management API       | `NCode.Identity.OpenId.Management(.Abstractions)`                                                                                  |
 | Accounts             | `NCode.Identity.OpenId.Accounts*` (local-account store, ASP.NET Core Identity adapter, management)                                 |
 | Persistence          | `NCode.Persistence.Abstractions`, `NCode.Identity.Persistence.Abstractions`, `NCode.Identity.OpenId.Persistence*(.EntityFramework)` |
-| Composition and host | `NCode.Registration(.AspNetCore)`, `NCode.Identity`, `NCode.Identity.Server`, `NCode.Identity.OpenId.Playground*`                   |
+| Composition and host | `NCode.Registration(.AspNetCore)`, `NCode.Identity`, `NCode.Identity.Server`, `NCode.Identity.OpenId.Host*`                   |
 
 The extensibility model — **service** vs **strategy collection** vs **mediator** — is
 [ADR-0001](docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md).
 
 ## Running the reference server
 
-The `Playground` is a complete OpenID Provider host used as the reference composition and the local test bed.
+The `NCode.Identity.OpenId.Host` project is a complete OpenID Provider used as the reference composition and the local test bed.
 [.NET Aspire](docs/adr/0071-aspire-local-dev-orchestrator.md) orchestrates the whole stack — the provider, a
 PostgreSQL container, the schema migration worker, and the frontend apps — with deterministic startup ordering:
 
 ```pwsh
 dotnet tool restore                      # once per clone
 ./build/frontend-install.ps1             # once per clone (Node 22 via NVS + pnpm workspace)
-dotnet run --project src/NCode.Identity.OpenId.Playground.AppHost
+dotnet run --project src/NCode.Identity.OpenId.LocalDev
 ```
 
 That brings up the provider at `https://localhost:5001` plus the management console, the flow explorer, and the

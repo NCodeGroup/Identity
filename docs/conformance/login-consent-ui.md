@@ -25,8 +25,8 @@ served same-origin under `/account/*`, exposing the Appendix B locators (`userna
 `InteractiveAuthenticationEndpointHandler` server-renders a working no-JavaScript `<form>` (the same locators) via
 [`InteractiveAuthenticationPageRenderer`](../../src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs),
 injected into the bundle's `#root` so the SPA replaces it on mount — so the surface is driveable by the conformance
-suite's no-JS `HtmlUnitDriver` without user-agent sniffing. The Playground opts in
-([`Program.cs`](../../src/NCode.Identity.OpenId.Playground/Program.cs)) and the endpoints are covered by
+suite's no-JS `HtmlUnitDriver` without user-agent sniffing. The host opts in
+([`Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs)) and the endpoints are covered by
 integration and unit tests
 ([`InteractiveLoginAntiforgeryTests`](../../tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLoginAntiforgeryTests.cs),
 [`InteractiveLogoutTests`](../../tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLogoutTests.cs),
@@ -62,7 +62,7 @@ the wire protocol is correct.
       `authorization_challenge_scheme` setting (same default).
     - Scheme defaults are declared in
       [`DefaultSettingDescriptorDataSource`](../../src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs).
-- **The Playground never registers an authentication scheme.** [`Program.cs`](../../src/NCode.Identity.OpenId.Playground/Program.cs)
+- **The host never registers an authentication scheme.** [`Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs)
   calls `app.UseAuthentication()` / `app.UseAuthorization()` but has **no `AddAuthentication(...)`
   registration**, so a challenge today has no cookie handler and no `LoginPath` to redirect to.
 - **Integration tests bypass the UI.** Tests use
@@ -76,13 +76,13 @@ the wire protocol is correct.
 ## Approach
 
 Add a **minimal, opt-in, dev-grade interactive authentication module** (cookie scheme + login page +
-consent page) that the Playground enables and that satisfies the Appendix B locator contract. Keep it
+consent page) that the host enables and that satisfies the Appendix B locator contract. Keep it
 self-contained and clearly dev/conformance-oriented; it is not a production login experience.
 
 Recommended placement: a small reusable opt-in extension (e.g. `AddInteractiveDevAuthentication()`)
-surfaced from the composition/server layer so the Playground opts in with one call, rather than
-hand-rolled pages buried in the Playground. (If the reusable surface proves heavier than the payoff, a
-Playground-local implementation is an acceptable fallback — the locator contract and behavior are what
+surfaced from the composition/server layer so the host opts in with one call, rather than
+hand-rolled pages buried in the host. (If the reusable surface proves heavier than the payoff, a
+host-local implementation is an acceptable fallback — the locator contract and behavior are what
 conformance depends on, not the package boundary.)
 
 ### UI stack
@@ -114,12 +114,12 @@ introduced, keep it dev/conformance-scoped and out of the hermetic `dod.ps1` inn
 
 - Render a minimal HTML form with the **exact locators** from Appendix B: `id=username`, `id=password`,
   and a submit control locatable as `id=login` (keep `name=login` too). Include the ASP.NET Core
-  antiforgery hidden field (the Playground already calls `AddAntiforgery()` / `UseAntiforgery()`); the
+  antiforgery hidden field (the host already calls `AddAntiforgery()` / `UseAntiforgery()`); the
   rendered form carries the token so Selenium's form POST passes.
 - On POST, **verify credentials against the local-account store** — reuse the same credential path the
   resource-owner password grant already uses (the account stack registered via
   `AddLocalAccountAuthentication()` / `AddLocalAccountEntityFramework()` in
-  [`Program.cs`](../../src/NCode.Identity.OpenId.Playground/Program.cs)). Do not introduce a second
+  [`Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs)). Do not introduce a second
   credential verifier.
 - On success, `HttpContext.SignInAsync("Identity.Application", principal)` with the subject claim the OP
   expects, then redirect to the validated local `ReturnUrl`. Reject non-local `ReturnUrl` values (open
@@ -145,7 +145,7 @@ conformance tenant) and must not re-seed independently.
 
 ## Work breakdown
 
-1. Add the opt-in interactive-auth registration (cookie scheme + endpoints) and wire the Playground to
+1. Add the opt-in interactive-auth registration (cookie scheme + endpoints) and wire the host to
    call it under Development/conformance only.
 2. Implement `GET/POST /account/login` with the Appendix B locators, antiforgery, local-account
    credential verification, cookie sign-in, and local-`ReturnUrl` validation.

@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 /// <summary>
 /// Guards the request-pipeline ordering the interactive login surface depends on: ASP.NET Core
 /// antiforgery tokens are claims-bound, so <c>UseAntiforgery</c> must run AFTER
-/// <c>UseAuthentication</c>/<c>UseAuthorization</c>. The Playground registers a single cookie scheme,
+/// <c>UseAuthentication</c>/<c>UseAuthorization</c>. The host registers a single cookie scheme,
 /// which ASP.NET Core promotes to the default authenticate scheme — so once an interactive session
 /// cookie exists, every request (including the login page) authenticates the user and the login form's
 /// antiforgery token is minted bound to that user. If antiforgery validation runs before
@@ -47,7 +47,7 @@ public class InteractiveLoginAntiforgeryTests
     [Fact]
     public async Task PostLogin_WhenAntiforgeryTokenMintedUnderAnExistingSessionCookie_Succeeds()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password);
 
         var client = factory.CreateClient(

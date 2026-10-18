@@ -34,7 +34,7 @@ public class TokenEndpointSecurityProfileTests
     private const string ClientSecret = "confidential-secret-value-0123456789";
     private const string TokenPath = "/oauth2/token";
 
-    private static HttpClient CreateClient(PlaygroundApplicationFactory factory) =>
+    private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
     private static FormUrlEncodedContent ClientSecretPostBody(string clientId) =>
@@ -53,7 +53,7 @@ public class TokenEndpointSecurityProfileTests
     {
         const string clientId = "it-profile-baseline";
 
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientWithSecurityProfileAsync(
             clientId,
             ClientSecret,
@@ -79,7 +79,7 @@ public class TokenEndpointSecurityProfileTests
     {
         const string clientId = "it-profile-fapi2";
 
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientWithSecurityProfileAsync(
             clientId,
             ClientSecret,

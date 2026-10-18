@@ -48,7 +48,7 @@ public class InteractiveLogoutTests
     [Fact]
     public async Task GetMe_WhenAnonymous_ReturnsUnauthorized()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password);
 
         var client = factory.CreateClient(
@@ -63,7 +63,7 @@ public class InteractiveLogoutTests
     [Fact]
     public async Task InteractiveLogout_WhenAuthenticated_ReturnsSessionThenClearsCookie()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password);
 
         var client = factory.CreateClient(
@@ -112,7 +112,7 @@ public class InteractiveLogoutTests
         const string clientId = "it-concurrent-prompt-none";
         const string redirectUri = "https://client.example/cb";
 
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password);
         await factory.SeedPublicClientAsync(clientId, redirectUri);
 

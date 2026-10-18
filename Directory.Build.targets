@@ -1,5 +1,5 @@
 <Project>
-  <!-- These settings are gated on IsPackable. Test projects and the Playground set <IsPackable>false</IsPackable>
+  <!-- These settings are gated on IsPackable. Test projects and the host projects set <IsPackable>false</IsPackable>
        in their body (visible here, since Directory.Build.targets is imported after the project body); shipping
        libraries leave it unset. The SDK defaults an unset IsPackable to 'true' only later in evaluation, so we gate
        on "not explicitly false" rather than "== true" — otherwise shipping projects (still empty here) are skipped. -->

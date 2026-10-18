@@ -2,7 +2,7 @@
 
 Committed, runnable realization of backlog `T6` Phase 4 / `T1` Phase D: it wires the external **OpenID
 Foundation Conformance Suite** (the certified oracle) behind the in-house probe-runner **pre-flight**, so one
-command drives both against the Playground OP. Design and the manual-triage plan live in
+command drives both against the OpenID host. Design and the manual-triage plan live in
 [`docs/conformance-testing.md`](../../docs/conformance-testing.md) and
 [`docs/conformance/external-suite.md`](../../docs/conformance/external-suite.md).
 
@@ -22,7 +22,7 @@ is slow, so it runs as an opt-in / nightly gate while the `dod.ps1` inner loop s
 
 The `conformance-user` login identity in the configs and the `client` credentials the pre-flight uses match the
 deterministic seed in
-[`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Playground/appsettings.Conformance.json)
+[`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Host/appsettings.Conformance.json)
 (`AddConformanceSeed`, backlog `T4`); the Basic OP plan registers its own client per module via Dynamic Client
 Registration. Secrets are the dev-only conformance credentials — this is a local test harness, never production.
 

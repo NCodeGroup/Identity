@@ -22,7 +22,7 @@ using Microsoft.Extensions.Configuration;
 namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// A <see cref="PlaygroundApplicationFactory"/> whose tenant has a pinned issuer, the way a deployment is configured.
+/// A <see cref="HostApplicationFactory"/> whose tenant has a pinned issuer, the way a deployment is configured.
 /// </summary>
 /// <remarks>
 /// The issuer is the tenant's request-independent identity and therefore also its base address, so this is what lets a
@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 /// caller supplied. The base fixture deliberately leaves it unset, because a developer's machine is reached under many
 /// hosts.
 /// </remarks>
-public sealed class PinnedIssuerApplicationFactory : PlaygroundApplicationFactory
+public sealed class PinnedIssuerApplicationFactory : HostApplicationFactory
 {
     /// <summary>
     /// The issuer seeded onto the tenant, and therefore the origin every published URL must use.

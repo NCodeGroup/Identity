@@ -1,4 +1,4 @@
-# T3 — Reachable HTTPS Playground host for the external harness
+# T3 — Reachable HTTPS host for the external harness
 
 Status: **implemented** (the `Conformance` launch profile). Detailed plan for backlog item `T3`. Parent
 design: [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #1, #5, and the "Windows
@@ -6,13 +6,13 @@ developer notes"). Catalog entry: [`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLET
 
 ## Goal
 
-Run the Playground OP as a **real, externally reachable HTTPS process** whose discovery document's
+Run the OpenID host as a **real, externally reachable HTTPS process** whose discovery document's
 `issuer` **byte-matches** the origin the conformance suite uses to reach it — so the suite's nginx/Selenium
 front end and its direct token/userinfo/jwks/discovery calls all target one consistent origin.
 
 ## What was implemented
 
-The [`Conformance` launch profile](../../src/NCode.Identity.OpenId.Playground/Properties/launchSettings.json)
+The [`Conformance` launch profile](../../src/NCode.Identity.OpenId.Host/Properties/launchSettings.json)
 is the single "run the OP for the external suite" entry point:
 
 - **Binds all interfaces on the stable port.** `applicationUrl = https://0.0.0.0:5001;http://0.0.0.0:5000`,
@@ -30,14 +30,14 @@ Conformance` loads `appsettings.Conformance.json` (the `ConformanceSeed` section
   and `InteractiveAuthentication__BundleRootPath` serves the `apps/auth` login/consent bundle under
   `/account/*`.
 
-Run it with `dotnet run --project src/NCode.Identity.OpenId.Playground --launch-profile Conformance` (the
+Run it with `dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance` (the
 full orchestration script that also brings the suite up/down is `T1` Phase D, not T3).
 
 ## Current state (verified)
 
 - **The integration-test host is in-process only.**
-  [`PlaygroundApplicationFactory`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/PlaygroundApplicationFactory.cs)
-  boots the Playground through `WebApplicationFactory`/`TestServer` — not a socket the suite's containers
+  [`HostApplicationFactory`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/HostApplicationFactory.cs)
+  boots the host through `WebApplicationFactory`/`TestServer` — not a socket the suite's containers
   can reach. The `Conformance` launch profile is the reachable-host answer to that gap.
 - **Issuer is request-derived, with a pin available.** In
   [`DefaultOpenIdTenantFactory`](../../src/NCode.Identity.OpenId.Core/Tenants/DefaultOpenIdTenantFactory.cs):
@@ -51,7 +51,7 @@ full orchestration script that also brings the suite up/down is `T1` Phase D, no
 
 ## Approach
 
-Expose the Playground on a single origin the suite containers can reach — on Windows/Docker that is
+Expose the host on a single origin the suite containers can reach — on Windows/Docker that is
 `https://host.docker.internal:<port>` — and make `issuer` equal that exact origin.
 
 ### Reachability
@@ -108,7 +108,7 @@ Expose the Playground on a single origin the suite containers can reach — on W
 - ✅ The discovery `issuer` equals the origin the suite uses (`server.discoveryUrl` origin) — pinned to an
   exact byte match via `tenant_issuer`.
 - The suite (in Docker) can fetch `/.well-known/openid-configuration` and `/oauth2/jwks` from the
-  Playground over HTTPS — exercised end-to-end when the suite stack lands in `T1` Phase C.
+  the host over HTTPS — exercised end-to-end when the suite stack lands in `T1` Phase C.
 
 ## Dependencies & links
 

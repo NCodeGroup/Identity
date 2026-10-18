@@ -22,7 +22,7 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 
 /// <summary>
 /// Configures the <strong>conformance-only</strong> seeding of the confidential clients and the deterministic test
-/// user that the OpenID Foundation conformance suite drives against a launched Playground host, so the suite always
+/// user that the OpenID Foundation conformance suite drives against a launched OpenID host, so the suite always
 /// sees the same identities with no manual API calls. Each half is inert unless its inputs are configured; this is a
 /// development/conformance convenience and must not be used in production.
 /// </summary>

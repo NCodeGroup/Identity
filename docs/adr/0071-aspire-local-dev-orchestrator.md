@@ -8,14 +8,14 @@
 
 ## Context
 
-Running the family locally is a **multi-process** exercise: the Playground reference OpenID Provider host
+Running the family locally is a **multi-process** exercise: the reference OpenID Provider host
 (`api`) plus the frontend surfaces — the Management console Vite dev server (`apps/mgmt`) and the
-interactive login/consent build-watcher (`apps/auth`), whose `dist` the Playground serves under `/account/*`
+interactive login/consent build-watcher (`apps/auth`), whose `dist` the host serves under `/account/*`
 ([ADR-0065](0065-interactive-login-consent-op-hosted-auth-surface.md)). The frontend platform
 ([ADR-0064](0064-frontend-presentation-platform.md)) is a pnpm + Turborepo workspace with its own toolchain,
 deliberately outside the hermetic [`dod.ps1`](../../build/dod.ps1) inner loop.
 
-The prior "one-key" developer experience paired, in a VS Code **compound** launch, the Playground debug
+The prior "one-key" developer experience paired, in a VS Code **compound** launch, the host debug
 profile with a PowerShell script (`build/dev-ui.ps1`) that ran `pnpm dev` (`turbo run dev`) across every app.
 A compound launch starts its members **concurrently with no dependency ordering**. The browser UIs therefore
 boot before the API is listening: the Management console's runtime discovery and first management call race
@@ -31,24 +31,24 @@ orchestration must preserve those ports, not allocate them dynamically.
 ## Decision
 
 Adopt **.NET Aspire** as the local dev orchestrator through a new **sibling** AppHost project,
-[`NCode.Identity.OpenId.Playground.AppHost`](../../src/NCode.Identity.OpenId.Playground.AppHost/). It models
+[`NCode.Identity.OpenId.LocalDev`](../../src/NCode.Identity.OpenId.LocalDev/). It models
 the whole local stack as one resource graph and becomes the single one-stop entry to build, run, and debug
 everything (the `Aspire: Full stack (F5)` launch).
 
 Rules:
 
-- **The AppHost is a sibling, never nested in the Playground.** The Playground stays a single reference OP
+- **The AppHost is a sibling, never nested in the host.** The host stays a single reference OP
   **process**; Aspire is a separate orchestration host (one `DistributedApplication`) that _references_ it.
 - **UI resources are gated on API _health_, not "process started."** `api` exposes `WithHttpHealthCheck("/health")`
   (the host already maps `/health`); `mgmt` declares `.WaitFor(api)`, so Aspire holds the UI until `/health`
   returns `200`. This deterministically removes the UI-before-API race — the root symptom that motivated this ADR.
-- **Ports stay pinned to preserve the dev contract.** `api` keeps the Playground launch profile's
+- **Ports stay pinned to preserve the dev contract.** `api` keeps the host launch profile's
   `https://localhost:5001` / `http://localhost:5000`; `mgmt` is pinned to `http://localhost:5173`, direct and
   un-proxied (`IsProxied = false`) so Vite HMR and the OAuth authorization-code callback work and the seed/CORS
   origins stay valid. Determinism is chosen over Aspire's default dynamic port allocation precisely because the
   seed, CORS, and bootstrap document assume those ports.
 - **`apps/auth` is a build-watcher, not a dev server.** Its `dev` script is `vite build --watch`; it is modeled
-  with `AddJavaScriptApp` (no HTTP endpoint) so Aspire runs the watcher and the Playground serves the resulting
+  with `AddJavaScriptApp` (no HTTP endpoint) so Aspire runs the watcher and the host serves the resulting
   `dist`. Only `apps/mgmt` (a true dev server) uses `AddViteApp`.
 - **Per-app dependency auto-install is disabled; the workspace is installed once out-of-band.** Both JS resources
   use `WithPnpm(install: false)` and rely on `build/frontend-install.ps1` having installed the pnpm workspace.
@@ -66,7 +66,7 @@ rename ...`) and fail the losing installer, which in turn fails its dependent re
   (`msbuild-sdks`) and the `Aspire.Hosting.*` packages in [`Directory.Packages.props`](../../Directory.Packages.props)
   ([ADR-0003](0003-central-package-management-and-lockstep-versioning.md)).
 - **Backing services (SQL Server, Redis) are opt-in, modeled later as containers.** The default keeps the
-  Playground's zero-setup SQLite/in-memory story so there is **no hard container-runtime prerequisite** just to run
+  host's zero-setup SQLite/in-memory story so there is **no hard container-runtime prerequisite** just to run
   the stack.
 
 `WithReference(api)` also exposes Aspire service discovery to the `mgmt` process; the browser SPA continues to
@@ -84,7 +84,7 @@ a static dev copy — so local dev consumes the real runtime bootstrap endpoint 
   ordering) with none of the dashboard, log/trace aggregation, service discovery, or future container modeling, and
   becomes per-app bespoke glue the moment a surface is added. Rejected.
 - **Docker Compose.** Orders startup, but imposes a container-runtime prerequisite on every developer and containers
-  the .NET host, which is heavier than the SQLite/in-memory inner loop the Playground deliberately offers. Deferred
+  the .NET host, which is heavier than the SQLite/in-memory inner loop the host deliberately offers. Deferred
   as a possible _publish_ target, not the local inner loop.
 - **.NET Aspire sibling AppHost (chosen).** `WaitFor` + ASP.NET Core health-check integration gives deterministic,
   health-gated ordering; the dashboard is one place for ordered startup, logs, and traces; first-class JavaScript

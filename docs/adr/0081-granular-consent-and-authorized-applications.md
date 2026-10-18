@@ -37,7 +37,7 @@ Concretely:
 
 - **The consent record carries a decided set and a granted set.** `PersistedConsent` gains `RequestedScopes` (the
   decided universe) alongside the existing `GrantedScopes`; the `ConsentEntity` gains a `RequestedScopesJson` column
-  (an `AddConsentRequestedScopes` migration ships in the Playground database). `GrantConsentAsync(requestedScopes,
+  (an `AddConsentRequestedScopes` migration ships in the host database). `GrantConsentAsync(requestedScopes,
 grantedScopes)` grows the decided set monotonically (`decided ∪ requested`) and replaces the granted subset **within
   the requested set** (`(granted \ requested) ∪ granted`), so re-consenting can **revoke** a previously-granted scope
   while decisions about scopes outside the current request are preserved. A granted scope that was not part of what was

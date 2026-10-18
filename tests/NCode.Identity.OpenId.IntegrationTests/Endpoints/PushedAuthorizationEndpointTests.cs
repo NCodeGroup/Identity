@@ -24,14 +24,14 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
-public class PushedAuthorizationEndpointTests(PlaygroundApplicationFactory factory)
-    : IClassFixture<PlaygroundApplicationFactory>
+public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
+    : IClassFixture<HostApplicationFactory>
 {
     private const string ClientId = "it-par-client";
     private const string RedirectUri = "https://client.example/callback";
     private const string RequestUriPrefix = "urn:ietf:params:oauth:request_uri:";
 
-    private PlaygroundApplicationFactory Factory { get; } = factory;
+    private HostApplicationFactory Factory { get; } = factory;
 
     private static FormUrlEncodedContent BuildAuthorizationForm(
         IEnumerable<KeyValuePair<string, string>> extra

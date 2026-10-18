@@ -8,6 +8,29 @@ change to the public API is a **major** version bump.
 
 ## [Unreleased]
 
+### Changed
+
+- **The reference host is no longer called "Playground".** `NCode.Identity.OpenId.Playground` is now
+  `NCode.Identity.OpenId.Host`, and its two companions are `NCode.Identity.OpenId.Host.Database` and
+  `NCode.Identity.OpenId.Host.MigrationService`. The Aspire orchestrator, previously
+  `NCode.Identity.OpenId.Playground.AppHost`, is now `NCode.Identity.OpenId.LocalDev`.
+
+  "Playground" said "toy, for experimenting" about the process that is going to be deployed and face the internet —
+  a name that invites the "it's only the playground" reasoning that leaves ephemeral signing keys, wildcard
+  `AllowedHosts`, and dev seeding switched on in something publicly reachable. Separately, `Server` / `Host` /
+  `AppHost` read as synonyms while being a shipped package, a deployable process, and a developer-only tool; Aspire
+  is local-development only here, so the dev-only project should never have carried the most authoritative-sounding
+  name. `LocalDev` names the purpose rather than the technology, and is safe because Aspire discovers the
+  orchestrator through `<IsAspireHost>` and its SDK, not the project name.
+
+  `NCode.Identity.Server` is unchanged — it is the one that ships. The frontend `apps/playground` flow explorer and
+  its `playground-spa` client also keep their names: that one genuinely is a playground.
+  ([ADR-0130](docs/adr/0130-distinct-names-for-host-local-dev-orchestrator-and-library.md))
+
+  **Breaking (source/tooling, not packages — every renamed project is `IsPackable=false`):** project paths,
+  namespaces and Aspire `Projects.*` references moved; `PlaygroundApiMarker`, `PlaygroundDatabase` and
+  `PlaygroundApplicationFactory` became `HostApiMarker`, `HostDatabase` and `HostApplicationFactory`.
+
 ### Fixed
 
 - **A tenant's routing host and its published issuer could drift apart.** `DomainName` was the routing key for the
@@ -604,7 +627,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 - **External conformance suite wired as the certified oracle behind the in-house pre-flight — advances backlog `T6`
   (Phase 4 / `T1` Phase D), [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md).** A committed, runnable
   harness under [`build/conformance/`](build/conformance) drives the **OpenID Foundation Conformance Suite** against the
-  Playground OP end to end: `run-conformance.ps1` launches the OP on the reachable HTTPS origin (the `Conformance`
+  OpenID host end to end: `run-conformance.ps1` launches the OP on the reachable HTTPS origin (the `Conformance`
   launch profile), runs the headless `@ncode/app-conformance-runner` probe runner as a fast pre-flight that fails early,
   brings the suite up from prebuilt Docker images (no Java build), drives the Config OP + Basic OP plans headlessly via
   `run-test-plan.py` gated on the committed `expected-failures.json` / `expected-skips.json` baselines, and tears
@@ -812,8 +835,8 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `mtls_endpoint_alias_authority` setting. Design and rationale:
   [ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md).
 
-- **Reachable HTTPS Playground host for the external conformance suite (completes backlog `T3`).** A dedicated
-  `Conformance` launch profile turns the Playground OP into a real, externally reachable HTTPS process for the OpenID
+- **Reachable HTTPS host for the external conformance suite (completes backlog `T3`).** A dedicated
+  `Conformance` launch profile turns the OpenID host into a real, externally reachable HTTPS process for the OpenID
   Foundation Conformance Suite. It binds all interfaces on the stable port (`https://0.0.0.0:5001;http://0.0.0.0:5000`)
   so the suite's Docker containers reach it via `host.docker.internal:5001` (a `localhost`-only bind is unreachable
   through `host.docker.internal`), and pins the discovery `issuer` to that exact origin
@@ -823,7 +846,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `appsettings.Conformance.json`) so the Aspire-orchestrated `ConformanceAspire` dashboard instance on `:5003` keeps its
   own request-derived issuer. The profile reuses the conformance tenant/seed (`T4` — `AddConformanceSeed`) and the
   interactive login/consent UI (`T2`). Run with
-  `dotnet run --project src/NCode.Identity.OpenId.Playground --launch-profile Conformance`. Detailed plan:
+  `dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance`. Detailed plan:
   [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
 
 - **Registration-time `sector_identifier_uri` fetch + validation with an SSRF-guarded client (completes backlog
@@ -906,7 +929,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   [ADR-0088](docs/adr/0088-opt-in-front-channel-logout-and-session-management.md); `client_credentials` is excluded from
   the secure-default `grant_types_supported`). Rather than weaken the stock secure defaults, the local-dev Aspire graph
   ([ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)) now runs a **second, dedicated conformance OP instance**
-  (`conformanceapi`) — the same Playground project launched under the Conformance environment on its own ports
+  (`conformanceapi`) — the same host project launched under the Conformance environment on its own ports
   (`https://localhost:5003`), sharing the one Postgres — and the conformance dashboard reads **its** discovery instead of
   the locked-down `api`. That instance's `appsettings.Conformance.json` defines its own `OpenId:Server:Settings` root
   ceiling (the operator ceiling that widens what downstream tenant/client scopes inherit) enabling
@@ -1082,7 +1105,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 - **Deterministic conformance tenant, clients, and test-user seeding — completes backlog `T4`.** A new
   **conformance-only**, config-driven startup seeder provisions the confidential clients and a fixed test user the
-  OpenID Foundation conformance suite drives, into each workload tenant, so a launched Playground host always exposes
+  OpenID Foundation conformance suite drives, into each workload tenant, so a launched host always exposes
   the same identities with **no manual API calls**. `AddConformanceSeed(IConfiguration)` (chained off
   `AddIdentityServer()`) registers an idempotent `SeedTenantCommand` handler modeled on the bootstrap-admin seeder: it
   is inert unless the `ConformanceSeed` configuration section is supplied, re-running never duplicates, and it never
@@ -1212,14 +1235,14 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   and `ResourceServerSecretChangedAuditEvent` carry the non-sensitive snapshots.
 
 - **PostgreSQL developer database orchestrated by Aspire, with a dedicated migration worker — completes backlog `U12`.**
-  The Playground's local database is now **PostgreSQL** run by the Aspire AppHost
+  The host's local database is now **PostgreSQL** run by the Aspire AppHost
   ([ADR-0073](docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md)), replacing the in-process
   SQLite/SQL Server/in-memory provider selection. A stable **named data volume** makes data persist across restarts; a
   new `build/dev-db-reset.ps1` (auto-detecting Docker or Podman) purges it **on demand**. A dedicated
-  `NCode.Identity.OpenId.Playground.MigrationService` worker applies the EF Core migrations and exits, and the `api`
+  `NCode.Identity.OpenId.Host.MigrationService` worker applies the EF Core migrations and exits, and the `api`
   `WaitForCompletion`s on it — so a migration failure surfaces as a **failed dashboard resource** that blocks the `api`
   instead of crashing it. The migrations and Npgsql wiring move into a new host-owned
-  `NCode.Identity.OpenId.Playground.Database` project shared by the `api` and the worker. The developer **Data
+  `NCode.Identity.OpenId.Host.Database` project shared by the `api` and the worker. The developer **Data
   Protection key ring** is now persisted in the **same** database (`PersistKeysToDbContext`) rather than a file under
   `App_Data/dp-keys`, so one purge resets the OpenID data, the seeded signing key, and the ring that protects it
   together, with nothing left on the filesystem. A container runtime (Docker or Podman) is now required to run the
@@ -1264,9 +1287,9 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   document (API base, issuer, client id, scopes, feature flags, branding) — so the host's single `MapEndpointGroups()`
   call maps it alongside every other endpoint. The document falls back to the serving request's own origin for the API
   base and issuer when they are unset, so a single-origin host serves every tier from one bundle with no configuration.
-  The Playground opts in (`AddFrontendBootstrap`) and publishes the dev document (`mgmt-spa`, `dcr` feature flag, dev
+  The host opts in (`AddFrontendBootstrap`) and publishes the dev document (`mgmt-spa`, `dcr` feature flag, dev
   branding). For local development the standalone Management Vite dev server no longer ships a static copy: it
-  **proxies** `/config/bootstrap.json` to the Playground host (the Aspire service-discovery target injected via
+  **proxies** `/config/bootstrap.json` to the host (the Aspire service-discovery target injected via
   `WithReference(api)`, [ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)), so local dev consumes the real
   runtime endpoint and cannot drift.
 - **Algorithm capabilities discovery drives the create-secret form — completes backlog `S6`.** The management
@@ -1423,14 +1446,14 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   sign-in screen to start the flow; when no client id is discovered it runs open (local dev). The SPA's public client
   id and login scopes are discovered at runtime via the bootstrap document (tier-agnostic). Backlog `U1`.
 - **One-stop full-stack dev launch via .NET Aspire ([ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)).** A
-  sibling AppHost project (`NCode.Identity.OpenId.Playground.AppHost`) orchestrates the whole local stack — the
-  Playground OP host (`api`), the interactive-login build-watcher (`auth`), and the Management console Vite dev server
+  sibling AppHost project (`NCode.Identity.OpenId.LocalDev`) orchestrates the whole local stack — the
+  OpenID host host (`api`), the interactive-login build-watcher (`auth`), and the Management console Vite dev server
   (`mgmt`) — as one Aspire resource graph behind the `Aspire: Full stack (F5)` launch. Aspire gates each UI resource on
   the API being **healthy** (`WithHttpHealthCheck("/health")` + `WaitFor`), deterministically eliminating the previous
   compound launch's UI-before-API race, and its dashboard is one place for ordered startup, logs, and traces. Ports
   stay pinned (`api` on `https://localhost:5001`, `mgmt` on `http://localhost:5173`, un-proxied) so the developer seed
   redirect URI, developer CORS origins, and the browser bootstrap document stay valid; `apps/auth` is modeled as a
-  build-watcher (no endpoint) whose `dist` the Playground serves. The AppHost is never packed. This replaces the VS
+  build-watcher (no endpoint) whose `dist` the host serves. The AppHost is never packed. This replaces the VS
   Code `API + UI (F5)` compound; the old `build/dev-ui.ps1` is relegated to `build/frontend-install.ps1`, a one-time
   pnpm-workspace bootstrap, now that Aspire owns `pnpm dev`. Backing SQL Server/Redis remain opt-in (SQLite/in-memory
   stays the default, so there is no container-runtime prerequisite). Backlog `U11`.
@@ -1438,7 +1461,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   development-oriented registration (in `NCode.Identity.Server`, beside `AddDeveloperKeys`) lets a local SPA dev server
   read discovery and call the management API cross-origin. Allowed origins come from the `Cors:AllowedOrigins`
   configuration array, defaulting to the local Vite dev/preview origins in Development; it is a no-op otherwise. The
-  Playground opts in with a single call.
+  host opts in with a single call.
 
 - **Frontend presentation platform (`src/frontend`).** Introduced a single cohesive TypeScript UI platform shared by
   every surface (Management, Auth/Consent/Login, Playground, OIDC conformance): React + Material UI, Redux Toolkit +
@@ -1689,7 +1712,7 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
   was persisted as the authorization request alone, but the token endpoint resumes it as an authorization _grant_
   (request **plus** authenticated subject); the shape mismatch deserialized the request to `null` (a server error on
   exchange) and discarded the subject. The grant is now persisted in the shape the token endpoint consumes.
-- **Repeated interactive logins no longer fail antiforgery validation.** The Playground ordered `UseAntiforgery` before
+- **Repeated interactive logins no longer fail antiforgery validation.** The host ordered `UseAntiforgery` before
   `UseAuthentication`/`UseAuthorization`. Because the interactive surface registers a single cookie scheme — which
   ASP.NET Core promotes to the default authenticate scheme — the login page authenticates the user once a session
   cookie exists and mints a claims-bound antiforgery token, but the middleware validated the POST before authentication
@@ -1726,16 +1749,16 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
   (`request_object` and `token_endpoint_auth` signing keep the full set for `client_secret_jwt`). Because discovery and
   request-time enforcement share one settings source, the implicit/hybrid authorization code paths are **fail-closed**
   by default; a deployment re-enables any of these — and simultaneously re-advertises them — by widening the setting in
-  configuration (host `OpenId:Server:Settings` overrides are applied last and overwrite the baseline). The Playground
+  configuration (host `OpenId:Server:Settings` overrides are applied last and overwrite the baseline). The host
   `appsettings.json` no longer over-advertises `implicit`. Greenfield, pre-release — no compatibility shims
   ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
 - **Developer-key registration no longer owns the Data Protection key-ring location (breaking,
   `NCode.Identity.Server`).** `AddDeveloperKeys(DeveloperKeyMode)` drops its `IHostEnvironment` parameter and
   `AddDeveloperSigningKey()` drops its `DirectoryInfo keyRingDirectory` parameter — the library now only seeds the
-  signing key, and the **host** owns where Data Protection keys are persisted (the Playground persists them in its dev
+  signing key, and the **host** owns where Data Protection keys are persisted (the host persists them in its dev
   database, [ADR-0073](docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md)). The `App_Data/dp-keys`
-  file key ring and the `Microsoft.EntityFrameworkCore.SqlServer`/`.Sqlite` Playground provider references are removed.
+  file key ring and the `Microsoft.EntityFrameworkCore.SqlServer`/`.Sqlite` host provider references are removed.
 
 - **Opt-in framework capabilities now register through compile-time marker builders
   ([ADR-0069](docs/adr/0069-registration-library-compile-time-marker-nesting.md)).** The registration library's
@@ -1896,22 +1919,22 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
   [ADR-0035](docs/adr/0035-federated-principals-and-identity-resolution.md) (amended) and
   [ADR-0018](docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md).
 
-- The `NCode.Identity.OpenId.Playground` host adopted the first-party .NET 10 OpenAPI stack: `Swashbuckle.AspNetCore`
+- The `NCode.Identity.OpenId.Host` host adopted the first-party .NET 10 OpenAPI stack: `Swashbuckle.AspNetCore`
   was replaced by `Microsoft.AspNetCore.OpenApi` (`AddOpenApi()`/`MapOpenApi()`) for document generation and
   `Scalar.AspNetCore` (`MapScalarApiReference()`) for the UI. `Microsoft.OpenApi` was aligned to the 2.x line that the
   net10 OpenAPI stack targets, and the two OpenID endpoint operation builders (`DefaultAuthorizationEndpointHandler`,
   `DefaultTokenEndpointProvider`) now use the 2.x `OpenApiMediaType` model.
-- The `NCode.Identity.OpenId.Playground` host migrated to the modern ASP.NET Core minimal-hosting model: the
+- The `NCode.Identity.OpenId.Host` host migrated to the modern ASP.NET Core minimal-hosting model: the
   `Startup` class and the `Host.CreateDefaultBuilder`/`UseStartup` bootstrap were replaced by a single top-level
   `Program.cs` using `WebApplication.CreateBuilder(...)`. The integration tests are unaffected — they still boot
-  through `WebApplicationFactory<PlaygroundApiMarker>`.
+  through `WebApplicationFactory<HostApiMarker>`.
 - The **bootstrap administrator** `ClientSecret` is now supplied **Base64Url-encoded** rather than as plaintext: the
   seed handler decodes it into a pinned, zeroed buffer (threaded as `ReadOnlyMemory<byte>`) so the plaintext is not left
   on the GC heap, and the OpenAPI example and Scalar prefill that surface the presentable secret are gated to the
   development environment. See [ADR-0044](docs/adr/0044-management-api-authentication-and-globaladmin-bootstrap.md).
-- The development-only signing-key opt-ins moved out of the `NCode.Identity.OpenId.Playground` host and into the
+- The development-only signing-key opt-ins moved out of the `NCode.Identity.OpenId.Host` host and into the
   `NCode.Identity.Server` composition root, so any host can consume them rather than each app re-implementing them
-  (the Playground is just the EXE host that wires them in). `AddEphemeralDeveloperKeys()`,
+  (the host is just the EXE host that wires them in). `AddEphemeralDeveloperKeys()`,
   `AddDeveloperSigningKey(DirectoryInfo)`, and the `EphemeralOpenIdTenantFactory` /
   `DeveloperSigningKeyOpenIdTenantFactory` types now live under the `NCode.Identity.Server` namespace. See
   [ADR-0002](docs/adr/0002-ephemeral-development-keys.md) and
@@ -2059,7 +2082,7 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   (servers, tenants) are intentionally excluded and belong to the root tenant's control plane. System
   resource servers and scopes cannot be deleted. See [ADR-0023](docs/adr/0023-scopes-and-resources-management-model.md)
   and [ADR-0024](docs/adr/0024-control-plane-and-per-tenant-planes.md).
-- A persistent developer-keys opt-in for the Playground, `AddDeveloperSigningKey(...)`, that seeds an `RSA` signing key
+- A persistent developer-keys opt-in for the host, `AddDeveloperSigningKey(...)`, that seeds an `RSA` signing key
   through the tenant secret store (so the runtime, the JWKS endpoint, and the management API share one source of truth)
   instead of overriding the read path. Paired with a local SQLite database and a persistent Data Protection key ring
   (DPAPI-protected on Windows), the key survives restarts and self-heals if the key ring is lost; the existing
@@ -2137,7 +2160,7 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   `System.Text.Json`, and `System.Security.Cryptography.Xml` pin (and the `dotnet-ef` tool) moves from 10.0.12 to
   10.0.13, which pulls `System.Security.Cryptography.Pkcs` 10.0.13 transitively, clearing GHSA-2fmv-rv2c-59x7 and
   GHSA-846f-f764-76mx (`Pkcs`) and GHSA-7hqp-7c5m-4vq6, GHSA-c399-9853-6jmj, and GHSA-r955-8q5j-3h83 (`Xml`). A new
-  transitive pin moves `MessagePack` (pulled into the Aspire-only `Playground.AppHost` by `Aspire.Hosting` /
+  transitive pin moves `MessagePack` (pulled into the Aspire-only `LocalDev` by `Aspire.Hosting` /
   `StreamJsonRpc`) from 2.5.302 to 2.5.307, clearing GHSA-qhrr-8q5h-9q3h.
 
 - Removed the undocumented `showAll` query-string override from the discovery endpoint

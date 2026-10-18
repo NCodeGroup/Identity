@@ -22,8 +22,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
-using NCode.Identity.OpenId.Playground;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
@@ -32,8 +32,8 @@ public class UserInfoEndpointTests
 {
     private const string UserInfoPath = "/oauth2/userinfo";
 
-    private static WebApplicationFactory<PlaygroundApiMarker> WithTestAuthentication(
-        PlaygroundApplicationFactory factory
+    private static WebApplicationFactory<HostApiMarker> WithTestAuthentication(
+        HostApplicationFactory factory
     ) =>
         factory.WithWebHostBuilder(builder =>
             builder.ConfigureTestServices(serviceCollection =>
@@ -49,7 +49,7 @@ public class UserInfoEndpointTests
     [Fact]
     public async Task GetUserInfo_WithoutAuthenticatedSubject_ReturnsUnauthorized()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         using var authFactory = WithTestAuthentication(factory);
 
         var client = authFactory.CreateClient(
@@ -64,7 +64,7 @@ public class UserInfoEndpointTests
     [Fact]
     public async Task GetUserInfo_WithAuthenticatedSubject_ReturnsSubClaim()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         using var authFactory = WithTestAuthentication(factory);
 
         var client = authFactory.CreateClient(
@@ -86,7 +86,7 @@ public class UserInfoEndpointTests
     [Fact]
     public async Task PostUserInfo_WithAuthenticatedSubject_ReturnsSubClaim()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         using var authFactory = WithTestAuthentication(factory);
 
         var client = authFactory.CreateClient(
@@ -111,7 +111,7 @@ public class UserInfoEndpointTests
     [Fact]
     public async Task GetUserInfo_WithLocalAccountAndScope_ReturnsAccountSourcedScopeClaims()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
 
         // Seed the local account and its self-issued federated identity (what a real login provisions), then present a
         // subject whose id is the provisioned principal id and whose 'scope' grants profile+email (OpenID Connect
@@ -153,7 +153,7 @@ public class UserInfoEndpointTests
     [Fact]
     public async Task Discovery_AdvertisesUserInfoEndpoint()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
 
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }

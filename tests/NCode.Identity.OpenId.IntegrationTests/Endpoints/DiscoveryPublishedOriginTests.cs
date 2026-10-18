@@ -19,8 +19,8 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
-using NCode.Identity.OpenId.Playground;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
@@ -35,13 +35,13 @@ namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 /// <c>token_endpoint</c> points elsewhere — and a conforming client would post its client secret and authorization
 /// code there.
 /// </remarks>
-public class DiscoveryPublishedOriginTests(PlaygroundApplicationFactory factory)
-    : IClassFixture<PlaygroundApplicationFactory>
+public class DiscoveryPublishedOriginTests(HostApplicationFactory factory)
+    : IClassFixture<HostApplicationFactory>
 {
     private const string ConfiguredIssuer = PinnedIssuerApplicationFactory.Issuer;
     private const string DiscoveryPath = "/.well-known/openid-configuration";
 
-    private PlaygroundApplicationFactory Factory { get; } = factory;
+    private HostApplicationFactory Factory { get; } = factory;
 
     private static readonly string[] CredentialBearingEndpoints =
     [
@@ -59,7 +59,7 @@ public class DiscoveryPublishedOriginTests(PlaygroundApplicationFactory factory)
     }
 
     private static async Task<string> GetDiscoveryAsync(
-        WebApplicationFactory<PlaygroundApiMarker> applicationFactory,
+        WebApplicationFactory<HostApiMarker> applicationFactory,
         string host
     )
     {

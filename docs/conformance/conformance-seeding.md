@@ -9,23 +9,23 @@ The config-driven startup seeder landed as `AddConformanceSeed(IConfiguration)` 
 [`ConformanceSeedHandler`](../../src/NCode.Identity.Server/ConformanceEnvironment/ConformanceSeedHandler.cs),
 [`ConformanceSeedOptions`](../../src/NCode.Identity.Server/ConformanceEnvironment/ConformanceSeedOptions.cs),
 [`ConformanceClientSeed`](../../src/NCode.Identity.Server/ConformanceEnvironment/ConformanceClientSeed.cs)). It is
-wired into the Playground
-([`Program.cs`](../../src/NCode.Identity.OpenId.Playground/Program.cs)) and activated by the `Conformance`
+wired into the host
+([`Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs)) and activated by the `Conformance`
 launch profile plus the
-[`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Playground/appsettings.Conformance.json)
+[`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Host/appsettings.Conformance.json)
 overlay, which seeds the three Basic-OP clients and the `conformance-user`. The remaining conformance
 prerequisite is the reachable HTTPS host with a byte-matched `issuer` (`T3`).
 
 ## Goal
 
-Make a running Playground start up with a **deterministic conformance tenant**, the **client
+Make a running host start up with a **deterministic conformance tenant**, the **client
 registrations** the Basic OP plan needs, and a **fixed test user** — reproducibly, with no manual API
 calls — so the suite and the login UI (`T2`) always see the same identities.
 
 ## Current state (verified)
 
 - **Seeding exists only in test infrastructure.**
-  [`PlaygroundApplicationFactory`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/PlaygroundApplicationFactory.cs)
+  [`HostApplicationFactory`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/HostApplicationFactory.cs)
   exposes `SeedPublicClientAsync`, `SeedConfidentialClientAsync(clientId, secret, grantTypes…)`,
   `SeedLocalAccountAsync(userName, password, email?, emailVerified?)`, and
   `SeedResourceServerWithClientGrantAsync(…)`. These run in-process against a per-test in-memory database
@@ -33,11 +33,11 @@ calls — so the suite and the login UI (`T2`) always see the same identities.
 - **The only startup seeding is the bootstrap admin client.**
   [`BootstrapAdminSeedHandler`](../../src/NCode.Identity.Server/BootstrapAdminSeedHandler.cs) seeds a
   `bootstrap-admin` client from configuration
-  ([`launchSettings.json`](../../src/NCode.Identity.OpenId.Playground/Properties/launchSettings.json):
+  ([`launchSettings.json`](../../src/NCode.Identity.OpenId.Host/Properties/launchSettings.json):
   `BootstrapAdmin__ClientId` / `BootstrapAdmin__ClientSecret`). There is **no** startup seeding of a
   conformance tenant, end-user clients, or a test user.
-- **Tenant default.** The Playground runs a `StaticSingle` tenant (`TenantPath: "/"`,
-  [`appsettings.json`](../../src/NCode.Identity.OpenId.Playground/appsettings.json)); the test factory
+- **Tenant default.** The host runs a `StaticSingle` tenant (`TenantPath: "/"`,
+  [`appsettings.json`](../../src/NCode.Identity.OpenId.Host/appsettings.json)); the test factory
   uses tenant id `"default"`.
 
 ## Required registrations (Basic OP, manual/non-DCR path)

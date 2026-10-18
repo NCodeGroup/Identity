@@ -6,7 +6,7 @@
   "configurations": [
     {
       // ONE-STOP FULL-STACK LAUNCH (ADR-0071). Starts the .NET Aspire AppHost, which orchestrates the whole local
-      // stack as one resource graph: the Playground OP host ("api"), the interactive-login build-watcher ("auth"),
+      // stack as one resource graph: the OpenID host ("api"), the interactive-login build-watcher ("auth"),
       // and the Management console Vite dev server ("mgmt"). Aspire gates each UI resource on the API being HEALTHY
       // (WaitFor + /health), deterministically eliminating the old UI-before-API race, and the Aspire dashboard is the
       // single place for ordered startup, logs, and traces. Prerequisite: run `pnpm install` once under src/frontend
@@ -20,7 +20,7 @@
       "name": "Aspire: Full stack (F5)",
       "type": "dotnet",
       "request": "launch",
-      "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.Playground.AppHost/NCode.Identity.OpenId.Playground.AppHost.csproj",
+      "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.LocalDev/NCode.Identity.OpenId.LocalDev.csproj",
       "launchSettingsProfile": "https",
       // Step into framework code when debugging.
       "justMyCode": false,
@@ -30,12 +30,12 @@
       }
     },
     {
-      // Debug ONLY the Playground OP host, without the frontend apps or Aspire orchestration.
-      "name": "C#: NCode.Identity.OpenId.Playground Debug",
+      // Debug ONLY the OpenID host, without the frontend apps or Aspire orchestration.
+      "name": "C#: NCode.Identity.OpenId.Host Debug",
       "type": "dotnet",
       "request": "launch",
-      "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.Playground/NCode.Identity.OpenId.Playground.csproj",
-      "launchSettingsProfile": "NCode.Identity.OpenId.Playground",
+      "projectPath": "${workspaceFolder}/src/NCode.Identity.OpenId.Host/NCode.Identity.OpenId.Host.csproj",
+      "launchSettingsProfile": "NCode.Identity.OpenId.Host",
       // Step into framework code when debugging.
       "justMyCode": false,
       "logging": {

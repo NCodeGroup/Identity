@@ -1,7 +1,7 @@
 # 41. The reference host owns schema with EF Core migrations, applied deliberately outside Development
 
 - **Status:** Accepted (amended by [ADR-0073](0073-postgres-dev-database-and-aspire-migration-worker.md): the
-  migrations now live in the host-owned `NCode.Identity.OpenId.Playground.Database` project and are applied by the
+  migrations now live in the host-owned `NCode.Identity.OpenId.Host.Database` project and are applied by the
   Aspire migration worker; the policy that the host owns schema, applied deliberately outside Development, stands)
 - **Date:** 2026-10-03
 - **Deciders:** NCode Group
@@ -9,7 +9,7 @@
 ## Context
 
 The persistence layer is Entity Framework Core (`OpenIdDbContext` in the published
-`NCode.Identity.OpenId.Persistence.EntityFramework` package). The `Playground` reference host previously created its
+`NCode.Identity.OpenId.Persistence.EntityFramework` package). The `Host` reference host previously created its
 schema with `DbContext.Database.EnsureCreated()`. `EnsureCreated()` is all-or-nothing: it builds the full schema only
 when the database is absent and **never evolves an existing one**. During pre-release development (ADR-0025) the EF model
 churns constantly — a newly-added entity (for example `ResourceServerEntity`) silently fails at runtime with
@@ -21,7 +21,7 @@ local state. `EnsureCreated()` and migrations are also mutually exclusive: a dat
 
 **Adopt EF Core migrations, owned by the host, and apply them deliberately everywhere except local Development.**
 
-- **Migrations live in the reference host (`Playground`), not the published persistence library.** The library ships the
+- **Migrations live in the reference host (`Host`), not the published persistence library.** The library ships the
   model only; migrations are provider-specific SQL, and real consumers own their provider and schema lifecycle. Shipping
   migrations in the package would couple it to one provider and to consumers' deployment cadence.
 - **Development auto-applies pending migrations on startup** (`Database.Migrate()`), so the local developer database
@@ -52,7 +52,7 @@ finds them.
 ## Consequences
 
 - The local developer database evolves without data loss; adding an entity or column is `dotnet ef migrations add
-<Name> --project src/NCode.Identity.OpenId.Playground --startup-project src/NCode.Identity.OpenId.Playground`, applied
+<Name> --project src/NCode.Identity.OpenId.Host --startup-project src/NCode.Identity.OpenId.Host`, applied
   on the next Development startup.
 - **One-time switchover cost:** a database previously built by `EnsureCreated()` has no migrations history and must be
   deleted once so the baseline migration can create it cleanly. Development startup detects this (a relational database
@@ -65,7 +65,7 @@ finds them.
 
 ## References
 
-- Code: `NCode.Identity.OpenId.Playground` — `Program` (host wiring, `MigrationsAssembly`, and `InitializeDatabase`),
+- Code: `NCode.Identity.OpenId.Host` — `Program` (host wiring, `MigrationsAssembly`, and `InitializeDatabase`),
   `OpenIdDbContextDesignTimeFactory`, `Migrations/`; `OpenIdDbContext`.
 - Prior art: [ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md) (pre-release churn),
   [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) (decisions live in the repo).

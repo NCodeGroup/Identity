@@ -8,10 +8,10 @@
 
 ## Context
 
-The Playground reference host bootstraps its database on startup (`InitializeDatabaseAsync`). For the zero-setup
+The reference host bootstraps its database on startup (`InitializeDatabaseAsync`). For the zero-setup
 local inner loop it uses a disposable **SQLite** file (`App_Data/openid-dev.db*`) when persistent developer keys are
 enabled, or an in-memory database otherwise; a developer may also point it at a real **SQL Server** via a connection
-string. EF Core migrations (the snapshot + migration classes) live in the Playground project.
+string. EF Core migrations (the snapshot + migration classes) live in the host project.
 
 Two recurring friction points motivated this decision:
 
@@ -29,7 +29,7 @@ Two recurring friction points motivated this decision:
 Treat the local developer database as **disposable and self-healing**, and add a **drift gate** to the Definition of
 Done so migrations stay authoritative for real databases.
 
-**Self-healing (Playground `InitializeDatabaseAsync`, `Development` only):**
+**Self-healing (host `InitializeDatabaseAsync`, `Development` only):**
 
 - **SQLite dev file — always reconciled to the live model, no manual intervention:**
     - **Pending model changes** (mid-feature, no migration yet) → rebuild the disposable DB directly from the model
@@ -43,7 +43,7 @@ Done so migrations stay authoritative for real databases.
   script).
 
 **Drift gate ([`dod.ps1`](../../build/dod.ps1)):** after the build, run
-`dotnet ef migrations has-pending-model-changes` (with `--no-build`, reusing the build output) against the Playground.
+`dotnet ef migrations has-pending-model-changes` (with `--no-build`, reusing the build output) against the host.
 Exit code 1 (pending changes) fails the Definition of Done, so an un-migrated model edit fails pre-push (`-Fast`) and in
 CI, at the moment the feature is added.
 
@@ -55,7 +55,7 @@ the file), and the drift gate guarantees a migration exists before the change **
 - **Migrate-on-startup only (status quo).** Simple, but crashes the local run on every un-migrated edit and catches
   drift only at runtime. Rejected.
 - **`HasPendingModelChanges()` unit test in the EF test project.** The test project builds the model from contributors
-  but holds **no migrations snapshot** (migrations live in the Playground host), so the test would have to reference the
+  but holds **no migrations snapshot** (migrations live in the host), so the test would have to reference the
   executable host — an ugly layering inversion. Rejected in favor of the CLI gate, which targets the project that owns
   the snapshot.
 - **An Aspire migration-worker resource.** Aspire ([ADR-0071](0071-aspire-local-dev-orchestrator.md)) is a runtime

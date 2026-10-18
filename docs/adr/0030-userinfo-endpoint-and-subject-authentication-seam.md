@@ -73,7 +73,7 @@ Two naming consequences of introducing a second subject-authentication path were
 - A host that configures an authentication scheme (for example, JWT bearer validating this server's access tokens) gets
   a working UserInfo endpoint that returns at least `sub`; richer claims arrive by registering enricher handlers. With no
   scheme configured, every request is anonymous and the endpoint returns `401` (and `httpContext.AuthenticateAsync()`
-  requires _some_ default scheme to be registered — the reference `Playground` host does not yet configure one).
+  requires _some_ default scheme to be registered — the reference `Host` host does not yet configure one).
 - The subject-authentication seam is reusable: any future resource endpoint authenticates the caller by dispatching the
   same `AuthenticateSubjectCommand`, rather than re-implementing credential handling.
 - The UserInfo response is extensible and consistent with discovery/introspection; new claims are additive handler

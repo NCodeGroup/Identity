@@ -35,7 +35,7 @@ public class TokenEndpointPasswordTests
     [Fact]
     public async Task PostToken_WithResourceOwnerPassword_ReturnsAccessToken()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
@@ -101,7 +101,7 @@ public class TokenEndpointPasswordTests
     [Fact]
     public async Task PostToken_WithWrongPassword_DoesNotReturnAccessToken()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,

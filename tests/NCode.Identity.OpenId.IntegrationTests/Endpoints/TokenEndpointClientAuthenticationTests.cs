@@ -37,7 +37,7 @@ public class TokenEndpointClientAuthenticationTests
     private const string ClientSecret = "confidential-secret-value";
     private const string TokenPath = "/oauth2/token";
 
-    private static HttpClient CreateClient(PlaygroundApplicationFactory factory) =>
+    private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
     private static AuthenticationHeaderValue BasicHeader(string clientId, string clientSecret)
@@ -59,7 +59,7 @@ public class TokenEndpointClientAuthenticationTests
     [Fact]
     public async Task PostToken_BasicAuthWithWrongSecret_Returns401WithChallenge()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
 
         var client = CreateClient(factory);
@@ -88,7 +88,7 @@ public class TokenEndpointClientAuthenticationTests
     [Fact]
     public async Task PostToken_BasicAuthWithUnknownClient_Returns401WithChallenge()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         // Warm up the tenant so the request reaches client authentication.
         using (var warmup = CreateClient(factory))
         {
@@ -112,7 +112,7 @@ public class TokenEndpointClientAuthenticationTests
     [Fact]
     public async Task PostToken_BasicAuthWithCorrectSecret_ReturnsAccessToken()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
@@ -143,7 +143,7 @@ public class TokenEndpointClientAuthenticationTests
     [Fact]
     public async Task PostToken_PostAuthWithWrongSecret_Returns400WithoutChallenge()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
 
         var client = CreateClient(factory);

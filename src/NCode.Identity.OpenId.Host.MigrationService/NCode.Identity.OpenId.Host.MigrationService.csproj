@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+    <!-- Dedicated Aspire migration resource for the host dev database (ADR-0073). It applies the Npgsql
+         migrations for the OpenID context and the developer DataProtection context, then exits, so a migration failure
+         surfaces as a failed dashboard resource that blocks the `api`/`mgmt` resources (WaitForCompletion) rather than
+         crashing the api host. Never packed. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IsPackable>false</IsPackable>
+        <UserSecretsId>b7f3a0d2-5c84-4e19-9a6f-2d1e7c4b8a30</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.OpenId.Host.Database\NCode.Identity.OpenId.Host.Database.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="IdGen" />
+    </ItemGroup>
+</Project>

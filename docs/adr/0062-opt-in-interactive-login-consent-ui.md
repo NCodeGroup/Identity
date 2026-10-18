@@ -16,7 +16,7 @@ calls `httpContext.ChallengeAsync(scheme)`, where `scheme` resolves from the
 `authorization_authenticate_scheme` / `authorization_challenge_scheme` settings (default
 `IdentityConstants.ApplicationScheme`, `"Identity.Application"`, declared in
 [`DefaultSettingDescriptorDataSource`](../../src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs)).
-The reference [`Playground`](../../src/NCode.Identity.OpenId.Playground/Program.cs) calls
+The reference [`Host`](../../src/NCode.Identity.OpenId.Host/Program.cs) calls
 `UseAuthentication()` / `UseAuthorization()` but registers **no** authentication scheme, so a challenge
 today has nowhere to redirect. Integration tests sidestep this entirely with
 [`TestSubjectAuthenticationHandler`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/TestSubjectAuthenticationHandler.cs),
@@ -70,7 +70,7 @@ is the invariant; the rendering technology is an implementation choice behind it
   `// TODO: check consent` in `DefaultAuthorizeHandler`); when `F2` lands, this screen becomes a thin
   front-end over the persisted decision rather than a parallel mechanism.
 - **Opt-in and dev-scoped.** The module is a single opt-in registration (e.g.
-  `AddInteractiveDevAuthentication()`) the Playground enables under the conformance profile; it is not a
+  `AddInteractiveDevAuthentication()`) the host enables under the conformance profile; it is not a
   production login experience and is never wired by default.
 
 The remaining conformance prerequisites — a reachable HTTPS host with a byte-matched `issuer`
@@ -91,8 +91,8 @@ seeder, the data-driven discovery handler) and need no architectural decision of
 - **Full production ASP.NET Core Identity UI.** Over-scoped for the goal and duplicative: the local-account
   store already owns credentials ([ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).
   A production identity UI is a separate concern, not a conformance prerequisite.
-- **Placement — Playground-local pages vs. a reusable opt-in module.** A reusable module wins: it gives
-  adopters a turnkey dev login, keeps the Playground thin, and localizes the locator contract. Playground-local
+- **Placement — host-local pages vs. a reusable opt-in module.** A reusable module wins: it gives
+  adopters a turnkey dev login, keeps the host thin, and localizes the locator contract. host-local
   pages remain an acceptable fallback if the reusable surface proves heavier than its payoff — the contract,
   not the package boundary, is what conformance depends on.
 - **Rendering — server-rendered HTML vs. React + MUI.** Left open deliberately; both satisfy the suite.
@@ -129,4 +129,4 @@ seeder, the data-driven discovery handler) and need no architectural decision of
   [ADR-0030](0030-userinfo-endpoint-and-subject-authentication-seam.md) (subject-authentication seam).
 - Code: [`DefaultAuthenticateHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultAuthenticateHandler.cs),
   [`DefaultChallengeHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultChallengeHandler.cs),
-  [`Playground/Program.cs`](../../src/NCode.Identity.OpenId.Playground/Program.cs).
+  [`Host/Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs).

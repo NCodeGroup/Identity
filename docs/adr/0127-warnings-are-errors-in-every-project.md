@@ -13,8 +13,8 @@ therefore carried a standing pile of warnings that nobody read.
 
 Three facts make that exemption indefensible:
 
-1. **"Never shipped" is not the repository's actual criterion.** `NCode.Identity.OpenId.Playground`,
-   `.Playground.Database`, `.Playground.MigrationService`, and `.Playground.AppHost` all set `IsPackable=false` and are
+1. **"Never shipped" is not the repository's actual criterion.** `NCode.Identity.OpenId.Host`,
+   `.Host.Database`, `.Host.MigrationService`, and `.AppHost` all set `IsPackable=false` and are
    equally never shipped — yet all of them inherit the gate and hold at zero warnings. `AppHost` suppresses exactly one
    rule (`NoWarn=ASPIRE010`) rather than dropping the gate wholesale. Test projects were the single exception, which
    makes the exemption an accident rather than a policy.

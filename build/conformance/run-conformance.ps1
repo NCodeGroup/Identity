@@ -9,7 +9,7 @@
     This is the committed, runnable realization of the full-automation plan in
     `docs/conformance-testing.md` (Phase D) and `docs/conformance/external-suite.md`. It:
 
-      1. launches the Playground OP on the reachable HTTPS host the suite drives (`host.docker.internal:5001`,
+      1. launches the OpenID host on the reachable HTTPS host the suite drives (`host.docker.internal:5001`,
          the `Conformance` launch profile — backlog `T3`);
       2. runs the in-house headless probe runner (`@ncode/app-conformance-runner`) as a fast pre-flight that
          exercises the confidential / server-initiated legs a browser cannot, failing early before the slower
@@ -92,7 +92,7 @@ Set-StrictMode -Version Latest
 
 $RepoRoot = (Resolve-Path "$PSScriptRoot/../..").Path
 $FrontendDir = Join-Path $RepoRoot 'src/frontend'
-$PlaygroundProject = Join-Path $RepoRoot 'src/NCode.Identity.OpenId.Playground'
+$HostProject = Join-Path $RepoRoot 'src/NCode.Identity.OpenId.Host'
 $ComposeFile = Join-Path $SuiteRepo 'docker-compose-prebuilt.yml'
 
 function Write-Step([string] $Message) {
@@ -223,19 +223,19 @@ try {
         Assert-HostResolves ([uri] $SuiteBase).Host
     }
 
-    # --- 1) Launch the Playground OP on the reachable HTTPS origin. --------------------------------
+    # --- 1) Launch the OpenID host on the reachable HTTPS origin. --------------------------------
     $discoveryUrl = "$IssuerUrl/.well-known/openid-configuration"
     if ($UseRunningOp) {
         Write-Step "Using an already-running OP at $IssuerUrl."
     }
     else {
-        Write-Step "Launching the Playground OP ($IssuerUrl, Conformance launch profile)."
+        Write-Step "Launching the OpenID host ($IssuerUrl, Conformance launch profile)."
         Test-Command 'dotnet'
         # Clear any orphaned OP still holding the port so the fresh 'dotnet run' build is what actually serves the suite.
         Clear-OpPort ([uri] $IssuerUrl).Port
         $opProcess = Start-Process -FilePath 'dotnet' -PassThru -NoNewWindow -ArgumentList @(
             'run',
-            '--project', $PlaygroundProject,
+            '--project', $HostProject,
             '--launch-profile', 'Conformance'
         )
     }
@@ -404,7 +404,7 @@ finally {
         docker compose -f $ComposeFile down 2>$null
     }
     if ($opProcess) {
-        Write-Step 'Stopping the Playground OP.'
+        Write-Step 'Stopping the OpenID host.'
         # Tree-kill: 'dotnet run' spawns the OP as a child, so Stop-Process on the wrapper alone would orphan it.
         Stop-ProcessTree $opProcess.Id
     }

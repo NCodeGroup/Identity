@@ -76,7 +76,7 @@ NormalizedSubjectId)` index for subject enumeration. `SaveAsync` **upserts** (wi
 ## Consequences
 
 - **A new table and migration.** `Consents` is added to the core model and a `AddConsents` migration ships in the
-  Playground database project. This is the deliberate cost of treating consent as its own aggregate; the dev database is
+  host database project. This is the deliberate cost of treating consent as its own aggregate; the dev database is
   volume-reset ([ADR-0073](0073-postgres-dev-database-and-aspire-migration-worker.md)), so no data migration is needed.
 - **Consent survives logout by construction.** Because consent is not a grant, the end-session bulk-revoke never
   touches it — the correct semantics (logout ends the session, not standing authorizations) fall out for free, and the

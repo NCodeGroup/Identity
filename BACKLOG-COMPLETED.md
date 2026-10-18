@@ -321,7 +321,7 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   (a potential cartesian-explosion / slow-query risk on relational providers). Decide the default: configure
   `UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)` at the provider (or `AsSplitQuery()` on the specific
   multi-collection query), or deliberately suppress the advisory where `SingleQuery` is intended. Touch points: the
-  relational provider configuration (`src/NCode.Identity.OpenId.Playground/Program.cs` `UseSqlServer`/`UseSqlite`) and
+  relational provider configuration (`src/NCode.Identity.OpenId.Host/Program.cs` `UseSqlServer`/`UseSqlite`) and
   the multi-collection load in `src/NCode.Identity.OpenId.Persistence.EntityFramework*`.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]._
 - **`F15` — Test coverage for the logout endpoint + back-channel delivery.** `DefaultSessionService` has unit tests
@@ -482,7 +482,7 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   for _generating_ a presented secret (stored as the UTF-8 bytes of its opaque string). The complementary operation —
   persisting a **caller-supplied** shared-secret string in that same shape — was duplicated inline in three places
   (`ConformanceSeedHandler.CreatePersistedSecret`, `BootstrapAdminSeedHandler.CreatePersistedSecret`, and the
-  integration-test `PlaygroundApplicationFactory`), each re-implementing the data-protect-and-wrap logic.
+  integration-test `HostApplicationFactory`), each re-implementing the data-protect-and-wrap logic.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md). Added
   `ISecretGenerator.ImportSharedSecret(ImportSharedSecretRequest, ReadOnlySpan<byte>)` — the complement to
@@ -564,7 +564,7 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   differential tests that cross-check the output byte-for-byte against an independent implementation used solely as a
   test oracle (never referenced by shipping code). The curve catalog is deliberately `internal` (RFC 8032 defines a
   closed set of exactly two curves — unlike the open, public ECC curve catalog). Not wired into the reference host by
-  default (it stays opt-in to avoid changing the conformance discovery baseline); enabling it in the Playground and
+  default (it stays opt-in to avoid changing the conformance discovery baseline); enabling it in the host and
   seeding an OKP developer signing key is a follow-up. The planned touch points in `src/NCode.Identity.Jose/Algorithms/`
   and `src/NCode.Identity.Secrets/Logic/` were superseded by the standalone package so the core JOSE library gains no new
   dependency and no always-on algorithm._
@@ -664,10 +664,10 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md),
   [ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md)._
-- **`T3` — Reachable HTTPS Playground host for the external harness.** _Done._ The only launchable host used to be
+- **`T3` — Reachable HTTPS host for the external harness.** _Done._ The only launchable host used to be
   the in-process `TestServer`; the external OpenID Foundation suite needs a real HTTPS origin whose discovery
   `issuer` byte-matches that origin. Delivered as the dedicated **`Conformance` launch profile**
-  ([`launchSettings.json`](src/NCode.Identity.OpenId.Playground/Properties/launchSettings.json)): it binds all
+  ([`launchSettings.json`](src/NCode.Identity.OpenId.Host/Properties/launchSettings.json)): it binds all
   interfaces on the stable port (`applicationUrl = https://0.0.0.0:5001;http://0.0.0.0:5000`) so the suite's Docker
   containers reach it via `host.docker.internal:5001` (a `localhost`-only bind is not reachable through
   `host.docker.internal`, which maps to the host network, not loopback), and pins the discovery `issuer` to the reached
@@ -679,7 +679,7 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   must keep its own request-derived issuer. The profile reuses the conformance tenant/seed (`T4` — `AddConformanceSeed`,
   via `ASPNETCORE_ENVIRONMENT=Conformance` → `appsettings.Conformance.json`) and the interactive login/consent UI (`T2`
   — the `apps/auth` bundle served under `/account/*`). Run recipe:
-  `dotnet run --project src/NCode.Identity.OpenId.Playground --launch-profile Conformance`. The live
+  `dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance`. The live
   container-reachability + discovery byte-match re-confirmation and the launch→compose-up→run-test-plan→teardown
   orchestration script are `T1` Phase C/D, not this item. Detailed plan:
   [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
@@ -770,7 +770,7 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   back to interactive sign-in on failure), driven by the console's `AuthGate` while signed in. The interactive login
   surface (`T2`, [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md)) and the seeded public
   SPA client + administrator user (`AddDeveloperInteractiveSeed`) let the auth-code-with-PKCE flow complete end to end
-  against the Playground. **Verified live:** authorize → interactive login → code → token issues a
+  against the host. **Verified live:** authorize → interactive login → code → token issues a
   `urn:ncode:management` access token whose `GlobalAdmin` role (projected by `DeveloperInteractiveSubjectClaimsHandler`,
   ADR-0055) authorizes management reads/writes (`GET /api/servers`, `/api/tenants`, `/api/tenants/{id}/clients` all
   return `200`). Three latent bugs surfaced and were fixed to get there: the auth-code grant was persisted in the wrong
@@ -874,7 +874,7 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
     [`src/NCode.Identity.Server/InteractiveAuthentication/`](src/NCode.Identity.Server/InteractiveAuthentication)
     (`InteractiveAuthenticationRegistration.cs`, `…ApplicationBuilderExtensions.cs`, `…EndpointRouteBuilderExtensions.cs`,
     `…EndpointHandler.cs`, `…Options.cs`, `…Defaults.cs`); wiring to repoint in
-    [`src/NCode.Identity.OpenId.Playground/Program.cs`](src/NCode.Identity.OpenId.Playground/Program.cs) (lines ~30, 78,
+    [`src/NCode.Identity.OpenId.Host/Program.cs`](src/NCode.Identity.OpenId.Host/Program.cs) (lines ~30, 78,
     135, 156) and `launchSettings.json` (`InteractiveAuthentication__BundleRootPath`).
 
     **Actionable #2 — invert the credential verifier behind an interface (latent gap).** The real UI extensibility seam is
@@ -897,7 +897,7 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
       ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md) #5) and is the textbook CDN/static-host workload, not a
       .NET-runtime concern. So production serving is **both, by purpose**: CDN-first for the console; OP-hosted (or
       same-origin CDN path) for auth.
-    - _Dev orchestrator already exists._ The VS Code `API + UI (F5)` compound launch runs the Playground plus
+    - _Dev orchestrator already exists._ The VS Code `API + UI (F5)` compound launch runs the host plus
       [`build/dev-ui.ps1`](build/dev-ui.ps1) → `pnpm dev` → `turbo run dev` across every app; each app's `dev` script
       self-describes its serving model and new surfaces join automatically. Accepted cost: `apps/auth` gets build-watch
       (`vite build --watch`), **not** HMR, _because_ the OP serves it same-origin (ADR-0065). If the auth inner loop
@@ -914,9 +914,9 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
     `NCode.Identity.OpenId.Authentication.Interactive(.Abstractions)` leaf packages._
 
 - **`U11` — Adopt .NET Aspire as the local dev orchestrator (needs its own ADR).** **Decided (2026-10-11):** adopt
-  Aspire to realize the Playground's intended purpose — a single one-stop entry to build/run/debug the entire stack
-  locally. Aspire is **not** added _inside_ the Playground (the Playground is the reference OP host — one process); it
-  is a new **sibling AppHost project** (`NCode.Identity.OpenId.Playground.AppHost`) that orchestrates the Playground +
+  Aspire to realize the host's intended purpose — a single one-stop entry to build/run/debug the entire stack
+  locally. Aspire is **not** added _inside_ the host (the host is the reference OP host — one process); it
+  is a new **sibling AppHost project** (`NCode.Identity.OpenId.LocalDev`) that orchestrates the host +
   the frontend apps (+ optional backing services) as one resource graph. This closes the orchestration fork left open
   by the (now-complete) interactive-auth extraction and
   [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md) and supersedes the
@@ -927,7 +927,7 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   provides service discovery that feeds `@ncode/config`'s runtime-discovery model
   ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)); the dashboard gives one place for ordered startup,
   logs, and traces. **Topology:**
-  `builder.AddProject<Projects.NCode_Identity_OpenId_Playground>("api")`, then
+  `builder.AddProject<Projects.NCode_Identity_OpenId_Host>("api")`, then
   `builder.AddViteApp("auth", …).WithReference(api).WaitFor(api)` and the same for `"mgmt"`; backing SQL Server/Redis
   modeled as containers is **opt-in** (keep SQLite/in-memory to avoid a hard container-runtime prerequisite). **Scope:**
   new `*.AppHost` project (`IsPackable=false`, excluded from `dod.ps1` packing) + Aspire SDK/hosting packages pinned in
@@ -936,15 +936,15 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   [`build/dev-ui.ps1`](build/dev-ui.ps1). **Sequencing:** its own ADR'd change — a toolchain-wide
   orchestration change on a different axis than the completed interactive-auth package extraction; keep the two
   separate. Touch points: new
-  `src/NCode.Identity.OpenId.Playground.AppHost/`, [`Directory.Packages.props`](Directory.Packages.props),
+  `src/NCode.Identity.OpenId.LocalDev/`, [`Directory.Packages.props`](Directory.Packages.props),
   [`build/dev-ui.ps1`](build/dev-ui.ps1), `.vscode/launch.json` (the `API + UI (F5)` compound), `NCode.Identity.slnx`.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)._
 - **`U12` — Aspire migration-worker resource (optional runtime polish).** [ADR-0072](docs/adr/0072-self-healing-dev-database-and-model-drift-gate.md)
-  keeps database bootstrap inside the Playground `api` process. The Aspire-idiomatic alternative is a dedicated
+  keeps database bootstrap inside the host `api` process. The Aspire-idiomatic alternative is a dedicated
   migration/initializer resource in the AppHost graph that other resources `WaitFor`, so a migration failure surfaces
   as a failed dashboard resource rather than an `api` crash. This only relocates the failure (the self-healing +
   Definition-of-Done drift gate already prevent drift), and costs a new project, so it is deferred.
-  Touch points: `src/NCode.Identity.OpenId.Playground.AppHost/Program.cs`.
+  Touch points: `src/NCode.Identity.OpenId.LocalDev/Program.cs`.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0072](docs/adr/0072-self-healing-dev-database-and-model-drift-gate.md)._
 

@@ -40,7 +40,7 @@ PKCE, 8414 metadata, 7009 revocation, 7662 introspection, 8628 device).
   Prebuilt images exist (`docker-compose-prebuilt.yml`) so **no Java build is required** — this is the
   path we use. Default external base URL is `https://localhost.emobix.co.uk:8443` (a hostname that
   resolves to `127.0.0.1`; it must be added to the hosts file).
-- **Role reversal:** for OP testing the **suite acts as the Relying Party / client**; our Playground is
+- **Role reversal:** for OP testing the **suite acts as the Relying Party / client**; our host is
   the **OP under test**. The suite drives the browser through the authorize flow, then calls our token /
   userinfo / jwks / discovery endpoints directly and asserts on every response.
 - **Redirect URI:** the suite's RP callback the OP must accept is
@@ -94,9 +94,9 @@ Selected under "Test an OpenID Provider" in the suite:
 
 Prerequisites, roughly in dependency order:
 
-1. **Reachable HTTPS host.** Run Playground on a real Kestrel HTTPS endpoint the suite's Selenium/nginx
+1. **Reachable HTTPS host.** Run the host on a real Kestrel HTTPS endpoint the suite's Selenium/nginx
    can reach (not `TestServer`). The existing
-   [`PlaygroundApplicationFactory`](../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/PlaygroundApplicationFactory.cs)
+   [`HostApplicationFactory`](../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/HostApplicationFactory.cs)
    is in-process only; CI needs a launched process (Docker container or `dotnet run`) addressable from
    the suite. On Windows/Docker, the suite reaches the host via `host.docker.internal`.
 2. **Automatable login + consent UI** with stable selectors and a **seeded deterministic conformance
@@ -116,7 +116,7 @@ Prerequisites, roughly in dependency order:
 5. **TLS trust.** The suite calls our OP over TLS (dev cert) and uses a snake-oil cert itself;
    `--fintechlabs.devmode=true` / `DISABLE_SSL_VERIFY` relax verification for local runs.
 6. **Config templates** (one per profile) with the `browser` automation block and our alias.
-7. **Orchestration script** (PowerShell) that: launches Playground on the reachable URL → `docker compose
+7. **Orchestration script** (PowerShell) that: launches the host on the reachable URL → `docker compose
 -f docker-compose-prebuilt.yml up` → waits for readiness → runs `run-test-plan.py` with the config(s)
    and the expected-failures/-skips baseline → exports result zips → tears everything down → surfaces the
    exit code.
@@ -151,8 +151,8 @@ connectaddress=localhost connectport=8443` (reset with `netsh interface portprox
 ## Proposed work breakdown
 
 - **Phase A — Local harness:** stand up the suite via prebuilt Docker images; confirm it reaches the
-  Playground discovery + jwks endpoints.
-- **Phase B — Conformance-ready Playground:** reachable HTTPS host; seeded tenant/clients + test user;
+  host discovery + jwks endpoints.
+- **Phase B — Conformance-ready host:** reachable HTTPS host; seeded tenant/clients + test user;
   automatable login/consent; discovery metadata aligned.
 - **Phase C — First plans (manual trigger):** run Basic OP + Config OP; triage every result into
   _bug-to-fix_ vs _documented non-support_.
@@ -206,7 +206,7 @@ and the backing settings in
 
 ## Appendix B — Login/consent automation contract
 
-For `BrowserControl` to drive the flow headlessly, the Playground login and consent pages must expose
+For `BrowserControl` to drive the flow headlessly, the host login and consent pages must expose
 **stable element locators** and there must be a **seeded deterministic test user**. Treat the locators
 below as a contract the UI must satisfy (ids are suggestions — keep whatever the config in Appendix D
 references in sync with the actual markup).
@@ -246,7 +246,7 @@ methods). All must register the suite callback as a redirect URI.
 ## Appendix D — Config template: Basic OP (`oidcc-basic.json`)
 
 Issuer must match the host the suite reaches. Running the suite in Docker, the OP is reached at
-`host.docker.internal`; the Playground must therefore **issue discovery with that same host** (configure
+`host.docker.internal`; the host must therefore **issue discovery with that same host** (configure
 the issuer/public origin accordingly) so `issuer` byte-matches `server.discoveryUrl`'s origin.
 
 ```json
@@ -366,7 +366,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
-# 1) Launch the Playground OP on a host-reachable HTTPS URL (host.docker.internal:5001).
+# 1) Launch the OpenID host on a host-reachable HTTPS URL (host.docker.internal:5001).
 #    TODO: start via `dotnet run` or a container; capture the process/container id for teardown.
 
 # 2) Bring up the conformance suite (prebuilt images; no Java build).
@@ -392,7 +392,7 @@ for ($i = 0; $i -lt $Plans.Count; $i++) {
 
 # 5) Teardown.
 docker compose -f "$SuiteRepo/docker-compose-prebuilt.yml" down
-# TODO: stop the Playground OP started in step 1.
+# TODO: stop the OpenID host started in step 1.
 
 if ($failed) { throw 'Conformance run failed — see exported results and log-detail links above.' }
 Write-Host 'Conformance run passed.'
@@ -421,7 +421,7 @@ volumes:
 Also required on Windows:
 
 - `hosts` entries: `127.0.0.1  localhost.emobix.co.uk` and `127.0.0.1  host.docker.internal`.
-- The suite (in Docker) reaches the OP via `host.docker.internal`; ensure Playground listens on a port
+- The suite (in Docker) reaches the OP via `host.docker.internal`; ensure the host listens on a port
   mapped/visible to the container and issues discovery with that host.
 
 ## Appendix I — First run, step by step
@@ -440,6 +440,6 @@ Also required on Windows:
 **Local suite, fully automated:**
 
 1. Clone the suite; run `docker compose -f docker-compose-prebuilt.yml up` (Appendix H on Windows).
-2. Start Playground on `host.docker.internal:5001` with issuer set to match.
+2. Start the host on `host.docker.internal:5001` with issuer set to match.
 3. Fill the Appendix D/E configs + baseline files; run `run-conformance.ps1` (Appendix G).
 4. Inspect exit code and the exported result zips / `log-detail` links.

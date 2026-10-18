@@ -32,7 +32,7 @@ public class TokenRevocationEndpointTests
     [Fact]
     public async Task PostRevoke_WithUnknownToken_ReturnsOk()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
 
         var client = factory.CreateClient(
@@ -58,7 +58,7 @@ public class TokenRevocationEndpointTests
     [Fact]
     public async Task PostRevoke_WithoutToken_ReturnsInvalidRequest()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
 
         var client = factory.CreateClient(
@@ -84,7 +84,7 @@ public class TokenRevocationEndpointTests
     [Fact]
     public async Task PostRevoke_WithoutClientAuthentication_IsRejected()
     {
-        using var factory = new PlaygroundApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
 
         var client = factory.CreateClient(

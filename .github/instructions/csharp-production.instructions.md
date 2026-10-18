@@ -245,7 +245,7 @@ rationale.
 ## 4. Extension methods & DI registration
 
 - 👁 **A host `Program.cs` is composition-only — reusable or developer-only startup code never lives there.** This is
-  the single most-repeated review miss, so treat it as a hard rule. The `Playground` and every reference host must read
+  the single most-repeated review miss, so treat it as a hard rule. The reference host and every other host must read
   as a flat list of turnkey calls (`serviceCollection.AddX(...)`, `app.UseX()`, `app.MapX()`) — **no** reusable logic,
   policy builders, config-section parsing, `new`-ing of options, loops, consts, or dev/test helpers inline. **Tripwire:**
   the moment host startup needs more than a single wiring call — an `if`, a `foreach`, a CORS/auth policy builder, a
@@ -374,15 +374,15 @@ rationale.
   [`BannedSymbols.txt`](../../BannedSymbols.txt) — no `Newtonsoft.Json` (use `System.Text.Json`), no legacy
   `JwtSecurityTokenHandler` / `JwtSecurityToken` (use `JsonWebTokenHandler`), and no
   sync-over-async. Add house rules to that file as they emerge.
-- ⏳ **Warnings-as-errors in _every_ project — including tests and the Playground** — and **NuGet vulnerability
+- ⏳ **Warnings-as-errors in _every_ project — including tests and the host projects** — and **NuGet vulnerability
   advisories (`NU190x`) as errors in CI**. See
   [ADR-0127](../../docs/adr/0127-warnings-are-errors-in-every-project.md): the criterion is "code we maintain", not
   "code we ship". Relax an individual rule via a justified [`.editorconfig`](../../.editorconfig) entry or a tight
   `#pragma`; 🚫 never by setting `TreatWarningsAsErrors=false`.
 - ✅ **EF Core model changes ship with their migration.** Any edit to an entity, an `IEntityTypeConfiguration`, or a
-  model contributor that changes a Playground context model (`OpenIdDbContext` or `DeveloperDataProtectionDbContext`)
+  model contributor that changes a host context model (`OpenIdDbContext` or `DeveloperDataProtectionDbContext`)
   MUST be accompanied by a new migration (`dotnet ef migrations add <Name>` into the
-  `NCode.Identity.OpenId.Playground.Database` project). The Definition of Done runs
+  `NCode.Identity.OpenId.Host.Database` project). The Definition of Done runs
   `dotnet ef migrations has-pending-model-changes` for both contexts and fails on un-migrated model drift, so it is
   caught pre-push and in CI, not at runtime. The dev database is Postgres applied by the migration worker, so migrations
   are authoritative — the gate is the reminder. See
@@ -668,7 +668,7 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
     | `10000`–`10999` | `NCode.Identity`                                    |
     | `11000`–`11999` | `NCode.Registration`                                |
     | `12000`–`12999` | `NCode.Identity.Server`                             |
-    | `13000`–`13999` | `NCode.Identity.OpenId.Playground`                  |
+    | `13000`–`13999` | `NCode.Identity.OpenId.Host`                  |
     | `14000`–`14999` | `NCode.Identity.Events`                             |
 
 ## 12. Configuration & options

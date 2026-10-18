@@ -388,7 +388,7 @@ entry and/or ADR that closed it.
   artifacts offered to self-hosters. Deliver: the host's Helm chart in this repository (built on `F46`), released with
   the host image as a signed OCI chart on GHCR with provenance and chart tests; in `NCodeGroup/identity-platform`, the
   layered building blocks — OpenTofu component modules (`modules/`: Cloudflare zone and email routing, AWS state backend,
-  backup bucket and GitHub OIDC, Akamai LKE and Postgres, OCI k3s, Flux bootstrap), in-cluster components
+  backup bucket and GitHub OIDC, Akamai LKE and Postgres, OCI OKE, Flux bootstrap), in-cluster components
   (`kubernetes/components/`: Traefik, cert-manager, Valkey, `identity`), and the `akamai` and `oci` stacks that compose
   them — with `tofu test` tests, one lockstep semver version per release (breaking = interface change or forced
   resource replacement; `moved` blocks for refactors), protected tags, signed OCI artifacts on GHCR for the modules and

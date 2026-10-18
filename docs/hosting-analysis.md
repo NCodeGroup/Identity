@@ -76,8 +76,10 @@ Decided in [ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-sc
 
 ### Recommended plan
 
-1. **Now — the lab:** run it on OCI's Pay-As-You-Go A1 allowance (rank 2 at 3 × 1 OCPU / 8 GB, **~$4/month**), plus
-   ephemeral load-test and topology runs on the Azure Visual Studio credit
+1. **Now — the lab:** run it on OCI's Pay-As-You-Go A1 allowance in Phoenix as an **OKE Basic** cluster (free managed
+   control plane) with a 3 × 1 OCPU / 8 GB node pool spread across the region's three availability domains
+   (**~$0–4/month**) — managed node pools keep the lab disposable ([ADR-0134](adr/0134-cloud-native-operating-principles.md))
+   — plus ephemeral load-test and topology runs on the Azure Visual Studio credit
    ([§10](#10-devtest-and-conformance-on-azure-visual-studio-credit), $0). The Kubernetes layer (Traefik, charts, app)
    is identical to production; only the cluster, LB, and database modules differ — acceptable because no customer
    tenant runs there. Publish multi-arch (amd64 + arm64) images.
@@ -85,7 +87,7 @@ Decided in [ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-sc
    single-node 1 GB Postgres = **$62/month**) to burn in deployments, then grow it in place to the **$95** configuration
    (4th node, 3-node HA database) at launch. Gate the production GitHub environment with required reviewers, and verify
    every release on the production `canary` tenant before customers see it — that is where any lab-vs-production
-   platform difference (k3s/arm64/CloudNativePG vs. LKE/x86/managed Postgres) surfaces.
+   platform difference (OKE/arm64/CloudNativePG vs. LKE/x86/managed Postgres) surfaces.
 
 **All-in: ~$4 now; ~$66 during burn-in; at launch ~$95 (production) + ~$4 (lab) + $0 (Azure credit, free services) ≈
 $99/month.** The next dollars, in order of value: 3 × 4 GB nodes (+$24), a 2 GB 3-node database (+$37), the LKE HA
@@ -158,18 +160,11 @@ flowchart LR
 The domain is registered at **Porkbun** (expires 2027-04-11). Registration stays there; DNS hosting moves to
 **Cloudflare DNS (free)** — Porkbun's managed DNS is not used.
 
-**Manual steps** — the only ones outside IaC, each done once:
-
-1. **Porkbun:** account 2FA (passkey / hardware key if offered), auto-renew, and registrar lock. Registrar changes stay
-   manual on purpose even though Porkbun has an API: a leaked registrar key hands over the whole domain. For the same
-   reason, leave API access off for the domain, don't keep Porkbun's Cloudflare integration connected (it stores a
-   standing Cloudflare credential at the registrar), and turn **off** Afternic fast-transfer opt-ins so third-party
-   attempts to list the domain for sale are rejected automatically.
-2. **Cloudflare:** create the account with 2FA, plus one short-lived bootstrap API token.
-3. **AWS:** create a dedicated member account under AWS Organizations for the platform (root MFA, an administrator
-   role through IAM Identity Center, no IAM users), and use short-lived credentials for the bootstrap.
-4. **After the bootstrap stack runs:** paste its two nameservers and its DNSSEC DS record into Porkbun, and click the
-   Email Routing destination-verification link.
+**Manual steps** — the only ones outside IaC, each done once — are written step by step, with verification, in the
+[platform bootstrap runbook](platform-bootstrap.md): registrar hardening at Porkbun, the GitHub organization and the
+public infrastructure repository, the Cloudflare account and a short-lived bootstrap token, the AWS member account with
+IAM Identity Center (home region `us-west-2`), the OCI tenancy for the lab (home region Phoenix), running the bootstrap
+stack, the registrar delegation, and the email-routing verification.
 
 **Bootstrap stack** ([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)) — OpenTofu run once
 from the owner's machine with those short-lived credentials (local state, then migrated into the bucket it creates):
@@ -563,7 +558,8 @@ janitor that destroys anything older than a few hours — that also keeps every 
   `valkey`, `identity`) under opinionated **stacks** (`stacks/akamai`, `stacks/oci`) — pick a component, a whole stack,
   or fork a stack. Releases are semver-versioned and immutable (protected tags, signed OCI artifacts on GHCR); the
   platform's `live/` and `clusters/` consume them only by released version, and a CI check rejects local sources there.
-- **State backend:** S3 in the platform's AWS account — versioned, encrypted, with OpenTofu's native lockfile locking.
+- **State backend:** S3 in the platform's AWS account (home region `us-west-2`, a different geography from the Dallas
+  production cluster) — versioned, encrypted, with OpenTofu's native lockfile locking.
 - **GitHub Actions:** authenticate to AWS through **GitHub OIDC** (no stored cloud credential): a read-only plan role,
   and an apply role trusted only for the protected `production` environment (required reviewers are free on public
   repositories). Vendor API tokens (Cloudflare, Akamai, …) are SSM `SecureString`s read through those roles; Azure also

@@ -6,7 +6,10 @@
 # advisories as errors) rather than the -Fast local pre-push accelerator.
 #
 # The repository is public, so standard-runner minutes are unmetered — the gate runs on every push to every branch.
-name: CI
+#
+# Named for the tier it gates, pairing with "Frontend CI"; the JOB below keeps the repository's own term, so the
+# required status check reads "Definition of Done".
+name: .NET CI
 
 on:
   push:

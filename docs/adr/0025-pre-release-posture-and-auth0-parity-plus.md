@@ -1,4 +1,4 @@
-# 25. Pre-release posture: greenfield on `dev`, and an Auth0-parity-plus design philosophy
+# 25. Pre-release posture: greenfield, and an Auth0-parity-plus design philosophy
 
 - **Status:** Accepted
 - **Date:** 2026-09-30
@@ -7,7 +7,8 @@
 ## Context
 
 The family is a greenfield **OpenID Connect + OAuth 2.0** server built from the ground up. It is pre-1.0 and has not
-had a stable release; all work lands on the `dev` branch until the feature set is complete. Two recurring forces shape
+had a stable release; all work lands on the trunk until the feature set is complete
+([ADR-0125](0125-trunk-based-development-on-main.md)). Two recurring forces shape
 day-to-day design decisions and are worth recording once so each feature need not re-litigate them:
 
 1. **How much backward compatibility is owed while the product is unreleased.** The public-API surface is tracked and,
@@ -21,7 +22,7 @@ day-to-day design decisions and are worth recording once so each feature need no
 
 Two standing stances govern design while the family is pre-release.
 
-**1. Greenfield pre-release posture.** Until the first stable release, a **breaking change is acceptable on `dev`** when
+**1. Greenfield pre-release posture.** Until the first stable release, a **breaking change is acceptable** when
 it yields a cleaner, more coherent design. Prefer a **clean cutover over compatibility shims or dual code paths**: there
 are no released consumers to protect, so a deprecation cycle buys nothing and a half-migrated "two sources of truth"
 state is the worse outcome. Public-API tracking still runs, so expect **frequent `PublicAPI.Unshipped.txt` churn** — that
@@ -49,14 +50,14 @@ than a hardcoded OIDC special case — so the same mechanism can later bless any
 
 ## Consequences
 
-- Breaking changes on `dev` (renames, removed settings, non-nullable tightening, reshaped contracts) are expected and
+- Breaking changes (renames, removed settings, non-nullable tightening, reshaped contracts) are expected and
   need no migration path until the first stable release; `PublicAPI.Unshipped.txt` churn is routine.
 - Once a stable version is tagged, this latitude is spent and
   [ADR-0005](0005-public-api-surface-is-tracked-and-evolves-compatibly.md) applies without exception; a note in this ADR
   should mark that transition.
 - Feature work cites Auth0 as the baseline and justifies each deliberate deviation as "parity-plus" — a concrete control
   Auth0 lacks, added at low complexity — which keeps divergence intentional rather than accidental.
-- Reviewers evaluate a breaking change on `dev` by design quality alone, not by compatibility cost.
+- Reviewers evaluate a breaking change by design quality alone, not by compatibility cost.
 
 ## References
 
@@ -66,4 +67,6 @@ than a hardcoded OIDC special case — so the same mechanism can later bless any
   repository, which is why these are recorded here rather than left implicit.
 - [ADR-0023](0023-scopes-and-resources-management-model.md) — the Auth0-style resource-server / scope / client-grant
   model that this philosophy extends with implicit system-resource-server grants.
+- [ADR-0125](0125-trunk-based-development-on-main.md) — the trunk-based branching model that carries this posture's
+  "no released consumers" premise into the repository's branch and review policy.
 - [`AGENTS.md`](../../AGENTS.md) — the contributor/agent guide that points here for the pre-release workflow.

@@ -57,10 +57,13 @@ marked tool-enforced or review-only. The highlights:
 1. Open (or find) a GitHub issue describing the problem or proposal. A change that affects the **public outcome**
    (semantics, public surface, validation/security posture) should reach agreement on the issue — and be recorded as an
    ADR under [`docs/adr/`](docs/adr/) — before the pull request.
-2. Branch from `dev`. Keep the public surface deliberate; a breaking change to the public API is a **major** version bump.
+2. Work on `main`, or open a short-lived branch from it when the change warrants review on a pull request. Keep the
+   public surface deliberate; a breaking change to the public API is a **major** version bump.
 3. Record any consumer-visible change in [`CHANGELOG.md`](CHANGELOG.md) under `## [Unreleased]`.
 4. Ensure `./build/dod.ps1` passes locally before opening a pull request.
-5. Open a PR; a maintainer reviews and approves. `main` is protected — no direct pushes, no self-approval.
+5. Push to `main`, or open a PR against it for review. `main` is protected by a **required status check** (the
+   Definition of Done), not by a required approval — see
+   [ADR-0125](docs/adr/0125-trunk-based-development-on-main.md).
 
 See [GOVERNANCE.md](GOVERNANCE.md) for ownership, the release lifecycle, and how versions map onto tags.
 

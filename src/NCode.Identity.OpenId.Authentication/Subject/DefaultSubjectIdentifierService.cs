@@ -16,7 +16,7 @@
 
 #endregion
 
-using NCode.Identity.Logic;
+using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;

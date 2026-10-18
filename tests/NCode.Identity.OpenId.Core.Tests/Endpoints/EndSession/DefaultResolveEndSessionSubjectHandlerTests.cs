@@ -30,7 +30,7 @@ using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
-using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Tenants;

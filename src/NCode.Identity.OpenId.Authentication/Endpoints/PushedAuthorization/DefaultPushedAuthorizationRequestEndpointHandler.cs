@@ -23,7 +23,6 @@ using Microsoft.Net.Http.Headers;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Results;
 using NCode.Identity.OpenId.Authentication.Messages;
 using NCode.Identity.OpenId.Contexts;

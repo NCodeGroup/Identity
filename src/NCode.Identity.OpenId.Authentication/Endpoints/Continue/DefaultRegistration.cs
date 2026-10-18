@@ -17,7 +17,6 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Logic;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;

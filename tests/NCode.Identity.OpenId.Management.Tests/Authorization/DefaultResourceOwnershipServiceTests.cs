@@ -18,7 +18,7 @@
 
 using System.Security.Claims;
 using NCode.Identity;
-using NCode.Identity.Logic;
+using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Persistence.DataContracts;

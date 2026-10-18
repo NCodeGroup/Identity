@@ -18,9 +18,9 @@
 
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Handlers;
-using NCode.Identity.OpenId.Authentication.Endpoints.Token.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;

@@ -221,9 +221,14 @@ rationale.
   serializers" or "the endpoints" by folder. Public headline entry points a consumer uses by name live at the package
   root. A single-purpose package (all abstractions) stays flat with no subfolders. **Avoid a vague catch-all folder /
   namespace (`Logic`, `Helpers`, `Misc`, `Common`) — it is a grab-bag that grows without cohesion.** Name the group for
-  the purpose it serves (`KeyTypes`, `Collections`, `KeyMaterial`, `Algorithms`, `Stores`); if a bucket has accreted
-  several unrelated purposes, split it (as the secret-key `…Secrets.Logic` bucket was split — see
-  [`CHANGELOG.md`](../../CHANGELOG.md)).
+  the purpose it serves (`KeyTypes`, `Collections`, `KeyMaterial`, `Algorithms`, `Stores`, `Pkce`, `OutboundHttp`,
+  `ResourceServers`, `Cryptography`); if a bucket has accreted several unrelated purposes, split it (no `Logic`
+  namespace remains in the family — see the backlog `D7` entry in [`CHANGELOG.md`](../../CHANGELOG.md)). A contract,
+  its DTOs, and its `Default*` implementation share one purpose namespace across the `.Abstractions`/implementation
+  pair, and that folder registers its own services (`AddPkceServices()`), never a catch-all registration. **An
+  endpoint's own replaceable services live at that endpoint's root namespace** (`…Endpoints.Registration`, beside its
+  handler and `DefaultRegistration`), and a service used by a single grant lives with that grant
+  (`…Endpoints.Token.TokenExchange`) — never in a per-endpoint sub-bucket.
 - ✅ **The _public_ namespace is a stable contract and does not have to mirror folders.** `IDE0130` /
   namespace-match-folder is opted out in [`.editorconfig`](../../.editorconfig), and `RootNamespace` pins a package's
   base namespace, so you can reorganize public types across folders **without churning their namespace** — the public

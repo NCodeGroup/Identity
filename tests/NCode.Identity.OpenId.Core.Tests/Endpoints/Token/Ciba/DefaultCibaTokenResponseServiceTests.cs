@@ -24,7 +24,6 @@ using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Ciba;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
-using NCode.Identity.OpenId.Authentication.Models;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;

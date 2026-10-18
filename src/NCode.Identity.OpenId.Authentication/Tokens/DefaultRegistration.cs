@@ -19,7 +19,6 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 using NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
@@ -46,8 +45,10 @@ internal static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddSingleton<ITokenService, DefaultTokenService>();
-
-            serviceCollection.TryAddSingleton<IAuditEventRecorder, DefaultAuditEventRecorder>();
+            serviceCollection.TryAddSingleton<
+                IAuthorizationCodeService,
+                DefaultAuthorizationCodeService
+            >();
 
             // Sender-constrained tokens (DPoP — RFC 9449, mutual-TLS — RFC 8705). The replay and nonce stores run over
             // IDistributedCache; an in-memory provider is registered by default (single node) and a cluster swaps in a

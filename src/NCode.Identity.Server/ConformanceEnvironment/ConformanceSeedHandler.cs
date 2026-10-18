@@ -20,16 +20,16 @@ using System.Buffers.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Buffers;
+using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
-using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Server.Logging;
 using NCode.Mediator;
 

@@ -20,7 +20,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Handlers;
-using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Results;
 using NCode.Identity.OpenId.Messages;

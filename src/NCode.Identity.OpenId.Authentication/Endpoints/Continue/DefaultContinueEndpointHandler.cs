@@ -26,8 +26,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models;
 using NCode.Identity.OpenId.Authentication.Logging;
-using NCode.Identity.OpenId.Authentication.Logic;
-using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Registration.AspNetCore;
 

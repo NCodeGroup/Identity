@@ -238,6 +238,32 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
+- **Every remaining `Logic` grab-bag namespace is split into purpose-based namespaces (backlog `D7`).** No `Logic`
+  namespace or folder remains in the family. A contract, its DTOs, and its default implementation now share one purpose
+  namespace across each `.Abstractions`/implementation pair: `NCode.Identity.Cryptography` (`ICryptoService`,
+  `CryptoServiceExtensions`, and the `BinaryEncodingType` / `HashAlgorithmType` enums it takes, which move out of the
+  `NCode.Identity` root); `NCode.Identity.Secrets.Persistence` (the package root now holds `ISecretSerializer`,
+  `ISecretGenerator`, `ISecretImporter`, and their request/result DTOs, since the package serves one purpose);
+  `NCode.Identity.OpenId.Principals` (the `GetSubjectIdDelegate` / `GetSubjectIdentityDelegate` /
+  `NormalizeSubjectIdDelegate` hooks on `OpenIdOptions`); and, in `NCode.Identity.OpenId.Authentication`, `…Pkce`
+  (`ICodeChallengeMethod`, `ICodeChallengeMethodCollectionProvider`), `…OutboundHttp` (`IOutboundAddressFilter`,
+  `IOutboundHttpContentReader`, `OutboundHttpReadResult`), `…ResourceServers` (`IClientScopeService`,
+  `IScopeDescriptionService`, `IResourceServerCredentialResolver`, `ResolvedResourceServer`,
+  `ResourceServerCredentialResolution`), `…Persistence` (`IPersistedGrantService`, `PersistedGrant<TPayload>`,
+  `PersistedGrantId`, `PersistedGrantStatus`, beside the payload serializer), and `…Tokens`
+  (`IAuthorizationCodeService`, beside `ITokenService`). The `…Authentication.Models` and `…Endpoints.Token.Models`
+  namespaces are gone with them. An endpoint's own services now live at that endpoint's root namespace instead of an
+  `Endpoints.*.Logic` sub-bucket (`ICibaRequestService`, `ICibaNotificationService`, `IUserCodeGenerator`,
+  `IPushedAuthorizationRequestService`, `IInitialAccessTokenValidator`, `ISectorIdentifierValidator`, and
+  `ITokenGrantHandler` in `…Endpoints.Token`), and the token-exchange `ISubjectTokenValidator` /
+  `SubjectTokenValidationResult` pair moves to `…Endpoints.Token.TokenExchange`. Two vaguely named types are renamed:
+  `IAuthorizationEndpointLogic` → `IAuthorizationRequestProcessor`, and the internal `OutboundHttpForgeryGuard` →
+  `DefaultOutboundHttpForgeryGuard` (the canonical `DefaultFoo` name). The catch-all internal `AddLogicServices()`
+  registration is replaced by one registration per purpose folder (auditing, consent, outbound HTTP, persistence, PKCE,
+  resource servers, sessions, tokens). Consumers update their `using` directives; no behavior changes. Pre-release, so
+  this lands on `dev` as a clean cutover with no compatibility shim
+  ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
+
 - **Claim dates parse only by declared type, through the now-public `NCode.Json.DateCoercion` (backlog `D12`,
   [ADR-0121](docs/adr/0121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md)).** `DateCoercion` —
   the date/time policy shared by `ObjectJsonConverter`, `JsonElements`, and `ObjectGraphExtensions` — is public, exposing

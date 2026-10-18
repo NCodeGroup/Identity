@@ -18,13 +18,13 @@
 
 using System.Security.Cryptography;
 using Moq;
-using NCode.Identity.Logic;
+using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Persistence.Stores;
 using Xunit;

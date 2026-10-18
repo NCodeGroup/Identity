@@ -20,7 +20,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
-using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
 

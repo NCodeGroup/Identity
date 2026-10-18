@@ -22,9 +22,9 @@ using NCode.Identity.Dispatch;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Delivery;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Handlers;
-using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Results;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Messages;
 using NCode.Mediator;
@@ -109,7 +109,7 @@ internal static class DefaultRegistration
                     {
                         AllowAutoRedirect = false,
                         ConnectCallback = serviceProvider
-                            .GetRequiredService<NCode.Identity.OpenId.Authentication.Logic.IOutboundHttpForgeryGuard>()
+                            .GetRequiredService<IOutboundHttpForgeryGuard>()
                             .ConnectAsync,
                         AutomaticDecompression = System.Net.DecompressionMethods.All,
                     }

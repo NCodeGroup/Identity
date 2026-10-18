@@ -952,7 +952,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
 
             // request_uri_allowed_hosts: SSRF allow-list for the JAR request_uri fetch (RFC 9101). When set, the
             // request_uri host must appear in this list; unset = no host allow-list, though the always-on private/
-            // loopback/link-local address block in OutboundHttpForgeryGuard still applies. Not advertised.
+            // loopback/link-local address block in DefaultOutboundHttpForgeryGuard still applies. Not advertised.
             // Ceiling (Intersect): a child narrows the parent's set.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {

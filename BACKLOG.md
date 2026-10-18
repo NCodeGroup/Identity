@@ -69,7 +69,7 @@ entry and/or ADR that closed it.
 | `T` — Conformance & interop testing   | `T9`      | `T8`       |
 | `U` — Frontend presentation platform  | `U14`     | `U13`      |
 | `S` — Secrets management              | `S10`     | `S9`       |
-| `X` — Tooling & agent customization   | `X3`      | `X2`       |
+| `X` — Tooling & agent customization   | `X4`      | `X3`       |
 
 ---
 
@@ -94,14 +94,6 @@ entry and/or ADR that closed it.
   until a concrete need justifies the persistence/migration (or broker/scheduler) operational cost. Touch points:
   implement `NCode.Identity.Dispatch.IJobDispatcher` in a new adapter package and register it before
   `AddInProcessJobDispatcher` (or omit that call).
-- **`D7` — Sweep the remaining `…Logic` grab-bag namespaces into purpose-based names.** The secret-key `…Secrets.Logic`
-  and `…Jose.EdDsa.Logic` grab-bags were split into cohesive purpose namespaces (`…KeyTypes` / `…Collections` /
-  `…KeyMaterial` / EdDsa `…KeyTypes`; see the [`CHANGELOG.md`](CHANGELOG.md) "Changed" entry). The same vague `Logic`
-  bucket still exists elsewhere — `…OpenId.Authentication(.Abstractions).Logic`, `…OpenId.Core.Logic`,
-  `…Secrets.Persistence.Logic`, `…NCode.Identity(.Abstractions).Logic`, and the per-endpoint `Endpoints/**/Logic/`
-  folders. Each should be evaluated and, where it is a genuine grab-bag (not a legitimately-named slice), split the same
-  way for family-wide consistency with the §3 "folder/namespace by purpose" convention. Scoped out of the Secrets sweep
-  to keep that change reviewable; revisit as a dedicated cohesion pass.
 - **`D11` — Time/date extension methods carry logic inside the `*.Abstractions` package.**
   `NCode.Identity.Jose.Abstractions/Extensions/` still holds `DateTimeExtensions`, `DateTimeOffsetExtensions`, and
   `TimeProviderExtensions` — each a C# 14 `extension(...)` member with a real method body (`WithPrecisionInSeconds`,
@@ -395,8 +387,8 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   symmetric secrets used as actual signing keys (`HS256`) require reversible material. The
   authentication-secret vs signing-key fork deserves an ADR before changing storage.
   Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`,
-  `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretGenerator.cs`,
-  `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`.
+  `src/NCode.Identity.Secrets.Persistence/DefaultSecretGenerator.cs`,
+  `src/NCode.Identity.Secrets.Persistence/DefaultSecretSerializer.cs`.
 
 - **`S7` — HSM / KMS / keyless-signing `SecretKey` providers.** The biggest production-modern gap for the secrets
   library: back an asymmetric `SecretKey` with an external keystore — Azure Key Vault, AWS KMS, PKCS#11 HSM, TPM 2.0,
@@ -419,7 +411,7 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   envelope encryption (a KMS/HSM-held root key wrapping per-secret data keys) rather than the single data-protection
   key today, and allow hardware-backed root keys. Ties into the `S5` hash-at-rest-vs-reversible fork and the `S7`
   external-keystore providers. Touch points:
-  `src/NCode.Identity.Secrets.Persistence/Logic/DefaultSecretSerializer.cs`,
+  `src/NCode.Identity.Secrets.Persistence/DefaultSecretSerializer.cs`,
   `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`. Capture the design in an ADR.
 
 ## Tooling & agent customization (group `X`)
@@ -440,3 +432,10 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   both for now — the prompt still serves VS Code chat via its `agent:` frontmatter, and `disable-model-invocation: true`
   is intended to return once github/copilot-cli#4438 is fixed (restoring explicit-only semantics). If kept, edits must be
   mirrored across both files to avoid drift.
+- **`X3` — Unused `using` directives are not enforced in production code.** `IDE0005` is explicitly off for tests in
+  [`.editorconfig`](.editorconfig), but nothing turns it on for `src/`: under `AnalysisLevel` `latest-recommended` it
+  stays at its default hidden severity, so warnings-as-errors never sees it. Raising it to `warning` for `src/` (found
+  during the `D7` sweep) flags unused usings in roughly 80 production files (e.g. `NCode.Identity.Jose`,
+  `NCode.Identity.OpenId.Authentication.Interactive`, the Management endpoint groups). Clean them with
+  `dotnet format style --diagnostics IDE0005`, then set `dotnet_diagnostic.IDE0005.severity = warning` under `[*.cs]` so
+  the build keeps them out. Touch points: [`.editorconfig`](.editorconfig) and the flagged `src/` files.

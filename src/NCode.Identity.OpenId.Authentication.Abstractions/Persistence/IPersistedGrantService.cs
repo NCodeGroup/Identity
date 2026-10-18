@@ -1,0 +1,172 @@
+#region Copyright Preamble
+
+//
+//    Copyright @ 2023 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using JetBrains.Annotations;
+using NCode.Identity.OpenId.Contexts;
+
+namespace NCode.Identity.OpenId.Authentication.Persistence;
+
+/// <summary>
+/// Provides an abstraction for persisting any type of grant and their payloads to storage.
+/// </summary>
+[PublicAPI]
+public interface IPersistedGrantService
+{
+    /// <summary>
+    /// Factory method to create a persisted grant identifier with the specified details.
+    /// </summary>
+    /// <param name="tenantId">The tenant identifier that scopes the grant.</param>
+    /// <param name="grantType">The type of the grant.</param>
+    /// <param name="grantKey">The identifier of the resource associated with the grant.</param>
+    /// <returns>The <see cref="PersistedGrantId"/> that represents the persisted grant identifier.</returns>
+    PersistedGrantId CreateGrantId(string tenantId, string grantType, string grantKey);
+
+    /// <summary>
+    /// Persists a grant with the specified details to storage.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
+    /// <param name="grant">Contains the payload of the persisted grant.</param>
+    /// <param name="createdWhen">The <see cref="DateTimeOffset"/> when the grant was created.</param>
+    /// <param name="lifetime">The optional lifetime of the persisted grant. If <c>null</c>, the grant does not expire.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the opaque,
+    /// server-generated public identifier of the persisted grant.</returns>
+    ValueTask<string> AddAsync<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        PersistedGrant<TPayload> grant,
+        DateTimeOffset createdWhen,
+        TimeSpan? lifetime,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Attempts to retrieve a persisted grant from storage with the specified identifiers.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the payload from the persisted grant.</returns>
+    ValueTask<PersistedGrant<TPayload>?> GetOrDefaultAsync<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Attempts to retrieve and consume a persisted grant from storage with the specified identifiers, if not already consumed.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the payload from the persisted grant.</returns>
+    ValueTask<PersistedGrant<TPayload>?> ConsumeOnceOrDefault<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Updates a grant as being revoked if it is still active.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
+    /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask SetRevokedOnceAsync(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Revokes every active grant belonging to the specified refresh-token rotation family. Used by refresh-token
+    /// reuse detection to revoke the whole family when a replayed token is presented.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="refreshTokenLineageId">The opaque identifier of the refresh-token rotation family to revoke.</param>
+    /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
+    /// grants that were revoked.</returns>
+    ValueTask<long> RevokeByRefreshTokenLineageAsync(
+        OpenIdContext openIdContext,
+        string refreshTokenLineageId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Revokes every active grant belonging to the specified end-user session — the <c>session</c> grant itself plus
+    /// the access- and refresh-token grants issued under it. Used by authorization-code replay detection to revoke the
+    /// tokens previously issued from a reused code (RFC 6749 §4.1.2); it performs the revocation only, without the
+    /// back-channel-logout or audit side effects of a user-initiated logout.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="sessionId">The opaque end-user session identifier (<c>sid</c>) whose grants to revoke.</param>
+    /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
+    /// grants that were revoked.</returns>
+    ValueTask<long> RevokeBySessionAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Updates the expiration of a grant if it is still active.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
+    /// <param name="expiresWhen">The <see cref="DateTimeOffset"/> to set the expiration time to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask UpdateExpirationAsync(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        DateTimeOffset expiresWhen,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Replaces the payload of a grant if it is still active. This supports grants whose payload carries a mutable
+    /// state (for example, a pending device authorization request that transitions from pending to approved or denied).
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
+    /// <param name="payload">The new payload to persist for the grant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> if an
+    /// active grant was found and updated; otherwise, <c>false</c>.</returns>
+    ValueTask<bool> UpdatePayloadAsync<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        TPayload payload,
+        CancellationToken cancellationToken
+    );
+}

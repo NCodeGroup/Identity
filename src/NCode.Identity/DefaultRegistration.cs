@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2023 NCode Group
 //
@@ -21,7 +21,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Claims;
-using NCode.Identity.Logic;
+using NCode.Identity.Cryptography;
 using NCode.Identity.Settings;
 using NCode.Registration;
 using NCode.Registration.AspNetCore;
@@ -55,7 +55,7 @@ public static class DefaultRegistration
             // Endpoints
             serviceCollection.AddEndpointGroupRouting();
 
-            // Logic
+            // Cryptography
             serviceCollection.TryAddSingleton<ICryptoService, DefaultCryptoService>();
 
             // Settings

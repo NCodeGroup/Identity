@@ -16,8 +16,8 @@
 
 #endregion
 
+using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
-using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Mediator;
 

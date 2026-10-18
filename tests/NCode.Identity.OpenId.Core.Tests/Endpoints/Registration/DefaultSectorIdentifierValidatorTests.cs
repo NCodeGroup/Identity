@@ -19,8 +19,8 @@
 using System.Net;
 using System.Text;
 using Moq;
-using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
-using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;

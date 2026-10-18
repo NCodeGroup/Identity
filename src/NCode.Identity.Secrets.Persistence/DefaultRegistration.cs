@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -18,7 +18,6 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Identity.Secrets.Persistence.Logic;
 using NCode.Registration;
 
 namespace NCode.Identity.Secrets.Persistence;

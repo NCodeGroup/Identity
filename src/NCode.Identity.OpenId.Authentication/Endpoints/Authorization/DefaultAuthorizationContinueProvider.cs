@@ -34,12 +34,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 /// </summary>
 internal class DefaultAuthorizationContinueProvider(
     IOpenIdClientResolver clientResolver,
-    IAuthorizationEndpointLogic authorizationEndpointLogic
+    IAuthorizationRequestProcessor authorizationRequestProcessor
 ) : IContinueProvider
 {
     private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
-    private IAuthorizationEndpointLogic AuthorizationEndpointLogic { get; } =
-        authorizationEndpointLogic;
+    private IAuthorizationRequestProcessor AuthorizationRequestProcessor { get; } =
+        authorizationRequestProcessor;
 
     /// <inheritdoc />
     public string ContinueCode => OpenIdConstants.ContinueCodes.Authorization;
@@ -83,7 +83,7 @@ internal class DefaultAuthorizationContinueProvider(
             authorizationRequest.State
         );
 
-        var disposition = await AuthorizationEndpointLogic.ProcessRequestAsync(
+        var disposition = await AuthorizationRequestProcessor.ProcessRequestAsync(
             openIdContext,
             openIdClient,
             authorizationRequest,

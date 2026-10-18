@@ -17,14 +17,12 @@
 #endregion
 
 using Microsoft.AspNetCore.Routing;
+using NCode.Identity.Cryptography;
 using NCode.Identity.Jose.Extensions;
-using NCode.Identity.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Commands;
-using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
-using NCode.Identity.OpenId.Authentication.Logic;
-using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 

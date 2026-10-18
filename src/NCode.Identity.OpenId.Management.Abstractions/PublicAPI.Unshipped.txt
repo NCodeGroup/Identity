@@ -1,6 +1,6 @@
 #nullable enable
 abstract NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.AuthorizationService.get -> Microsoft.AspNetCore.Authorization.IAuthorizationService!
-abstract NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.CryptoService.get -> NCode.Identity.Logic.ICryptoService!
+abstract NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.CryptoService.get -> NCode.Identity.Cryptography.ICryptoService!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Client = "client" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ClientSecret = "client.secret" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.InitialAccessToken = "initial_access_token" -> string!

@@ -17,9 +17,8 @@
 #endregion
 
 using System.Security.Cryptography;
-using NCode.Identity.Secrets.KeyTypes;
 
-namespace NCode.Identity.Secrets.Tests.Logic;
+namespace NCode.Identity.Secrets.KeyTypes;
 
 public class DefaultEccCurveCatalogTests
 {

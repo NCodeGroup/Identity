@@ -19,10 +19,16 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints;
-using NCode.Identity.OpenId.Authentication.Logic;
 using NCode.Identity.OpenId.Authentication.Messages;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
+using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.Pkce;
+using NCode.Identity.OpenId.Authentication.ResourceServers;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens;
@@ -65,11 +71,17 @@ public static class DefaultRegistration
             var newBuilder = builder.NewBuilder<OpenIdAuthenticationLibrary>();
 
             newBuilder
+                .AddAuditingServices()
                 .AddClientServices()
                 .AddClientSettingServices()
+                .AddConsentServices()
                 .AddEndpoints()
-                .AddLogicServices()
                 .AddMessageServices()
+                .AddOutboundHttpServices()
+                .AddPersistenceServices()
+                .AddPkceServices()
+                .AddResourceServerServices()
+                .AddSessionServices()
                 .AddSubjectServices()
                 .AddTokenServices();
 

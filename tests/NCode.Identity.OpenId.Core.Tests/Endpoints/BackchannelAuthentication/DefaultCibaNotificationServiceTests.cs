@@ -17,7 +17,7 @@
 #endregion
 
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Logic;
+using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Contexts;
 using Xunit;

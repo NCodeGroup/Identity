@@ -18,7 +18,7 @@
 
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
-using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
 

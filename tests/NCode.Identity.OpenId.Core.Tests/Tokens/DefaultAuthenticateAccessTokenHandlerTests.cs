@@ -24,7 +24,7 @@ using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
 using NCode.Identity.Jwt.Validation;
-using NCode.Identity.OpenId.Authentication.Models;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;

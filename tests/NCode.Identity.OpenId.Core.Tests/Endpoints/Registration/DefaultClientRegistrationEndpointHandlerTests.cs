@@ -19,16 +19,15 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Routing;
 using Moq;
-using NCode.Identity.Logic;
+using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
-using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Logic;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages;
-using NCode.Identity.OpenId.Authentication.Logic;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.Persistence.Logic;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Persistence.Stores;
 using Xunit;
 

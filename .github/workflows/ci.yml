@@ -33,21 +33,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # Nerdbank.GitVersioning computes the version from commit height and FAILS on a shallow clone, which is the
           # actions/checkout default. The full history is required, not an optimization to trim.
           fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
       # No lock files are committed, so setup-dotnet's built-in cache cannot key itself. Key on the central package
       # manifest plus every project file: those are exactly the inputs that change the restore graph (ADR-0003).
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props', 'global.json', '.config/dotnet-tools.json', '**/*.csproj') }}
@@ -62,7 +62,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: '**/*.junit.xml'
@@ -71,7 +71,7 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: artifacts/coverage/
@@ -82,7 +82,7 @@ jobs:
       # reproduce what a release would publish, without granting this workflow any publish permission.
       - name: Upload packages
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: packages
           path: artifacts/packages/

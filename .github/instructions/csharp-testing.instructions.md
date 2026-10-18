@@ -141,3 +141,7 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **Validate new tests in Release before running `dod.ps1`.** The gate builds and tests in **Release**, where
   `Debug.Assert` and `#if DEBUG` blocks disappear; run `dotnet test <proj> --configuration Release` first to catch
   Debug-vs-Release differences fast (a `#if DEBUG` auth bypass, a stripped assertion).
+- 👁 **Build a JWT with exact time claims through `IJoseSerializer`, not `IJwtEncoder`.** The JWT encoder
+  (`JwtEncoderOptions.EnsureTokenLifetime`, on by default) injects a default `iat` / `nbf` / `exp` and overwrites a
+  non-integer `iat`, so a test of lifetime validation (an absent, malformed, or far-off time claim) must encode its
+  payload with `IJoseSerializer.CreateEncoder(new JoseSigningOptions(credentials)).Encode(payload)`.

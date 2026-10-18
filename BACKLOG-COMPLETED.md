@@ -626,6 +626,31 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   existing `Decode` / `Deserialize` surface and verifies/decrypts against each signature/recipient until one matches the
   supplied key. Buffers use `NCode.Buffers` pooled writers throughout._
 
+- **`F39` — Cap the accepted lifetime of client assertions (RFC 7523 §3).** A `private_key_jwt` / `client_secret_jwt`
+  assertion is accepted for any `exp` that has not yet passed — including one at the top of the `NumericDate` range
+  (year 9999), whose `jti` is then held in the replay cache effectively forever. RFC 7523 §3 lets the server reject an
+  assertion whose `exp` is "unreasonably far in the future", and mainstream providers bound assertion lifetime. Add a
+  per-client/tenant maximum assertion lifetime setting (bounded by the merge lattice, tightened by the FAPI 2.0
+  security profile) enforced against `exp - iat` (or `exp - now` when `iat` is absent), rejecting with
+  `invalid_client`; this also bounds replay-cache retention. The overflow on such an `exp` is already fixed
+  ([ADR-0123](docs/adr/0123-numeric-date-is-read-strictly-and-range-guarded.md)); the integration test
+  `PostToken_ClientSecretJwt_WhenExpAtMaxNumericDate_ReturnsAccessToken` flips to a rejection when this lands. Touch
+  points: `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/ClientAssertionClientAuthenticationHandler.cs`,
+  `OpenIdSettingKeys`, the FAPI security profile.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0124](docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md). Delivered as a general JWT-validation
+  capability rather than a handler-local check: `TokenLifetimeRequirement.MaxLifetime` (via
+  `ValidateTokenLifeTimeOptions.MaxLifetime`) bounds `exp` minus the earlier of `iat` and `nbf` — or the validation time
+  plus the clock skew when neither is asserted — and a set maximum requires `exp`. The sketched `exp - iat` rule was
+  gameable while `iat` went unvalidated, so the lifetime requirement now also validates `iat` for every token (a valid
+  `NumericDate`, not beyond the clock skew in the future — the `iat` half of FAPI 2.0 §5.3.2.1). The new
+  `client_assertion_max_lifetime` setting defaults to five minutes (Auth0's maximum) as a `Min` ceiling; the FAPI 2.0
+  profile pins it at five minutes rather than tightening further, because FAPI defines no assertion lifetime. The
+  replay record is now retained for `exp` plus the client's effective `clock_skew` instead of a fixed five minutes,
+  closing a replay window under a larger configured skew. The integration test is now
+  `PostToken_ClientSecretJwt_WhenExpAtMaxNumericDate_Returns400`. Capping signed request objects with the same
+  primitive is tracked as `F40`._
+
 - **`T2` — Browser-automatable login + consent UI with a seeded conformance identity.** _Login/consent surface
   implemented._ The OpenID Provider has an opt-in interactive login/consent surface
   ([ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md)): a cookie scheme the authorize

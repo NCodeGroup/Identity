@@ -54,7 +54,8 @@ public class TokenEndpointClientAssertionTests
         string clientSecret,
         string audience,
         string? jti = null,
-        DateTimeOffset? expires = null
+        DateTimeOffset? expires = null,
+        DateTimeOffset? issuedAt = null
     )
     {
         var now = DateTimeOffset.UtcNow;
@@ -65,7 +66,7 @@ public class TokenEndpointClientAssertionTests
             ["sub"] = clientId,
             ["aud"] = audience,
             ["jti"] = jti ?? Guid.NewGuid().ToString("N"),
-            ["iat"] = now.ToUnixTimeSeconds(),
+            ["iat"] = (issuedAt ?? now).ToUnixTimeSeconds(),
             ["exp"] = (expires ?? now.AddMinutes(5)).ToUnixTimeSeconds(),
         };
 
@@ -122,6 +123,17 @@ public class TokenEndpointClientAssertionTests
             }
         );
 
+    private static async Task AssertInvalidClientAsync(HttpResponseMessage response)
+    {
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidClient,
+            document.RootElement.GetProperty("error").GetString()
+        );
+    }
+
     private static async Task<PlaygroundApplicationFactory> CreateSeededFactoryAsync()
     {
         var factory = new PlaygroundApplicationFactory();
@@ -160,9 +172,8 @@ public class TokenEndpointClientAssertionTests
     }
 
     [Fact]
-    public async Task PostToken_ClientSecretJwt_WhenExpAtMaxNumericDate_ReturnsAccessToken()
+    public async Task PostToken_ClientSecretJwt_WhenExpAtMaxNumericDate_Returns400()
     {
-        // The replay record's retention (exp plus a skew margin) saturates instead of overflowing.
         using var factory = await CreateSeededFactoryAsync();
         var client = CreateClient(factory);
 
@@ -176,8 +187,50 @@ public class TokenEndpointClientAssertionTests
 
         using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
 
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        await AssertInvalidClientAsync(response);
+    }
+
+    [Fact]
+    public async Task PostToken_ClientSecretJwt_WhenLifetimeExceedsMaximum_Returns400()
+    {
+        // The default client_assertion_max_lifetime is five minutes.
+        using var factory = await CreateSeededFactoryAsync();
+        var client = CreateClient(factory);
+
+        var issuer = await GetIssuerAsync(client);
+        var now = DateTimeOffset.UtcNow;
+        var assertion = BuildClientSecretJwt(
+            ClientId,
+            ClientSecret,
+            issuer,
+            expires: now.AddMinutes(6),
+            issuedAt: now
+        );
+
+        using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
+
+        await AssertInvalidClientAsync(response);
+    }
+
+    [Fact]
+    public async Task PostToken_ClientSecretJwt_WhenIssuedLongerAgoThanMaximum_Returns400()
+    {
+        using var factory = await CreateSeededFactoryAsync();
+        var client = CreateClient(factory);
+
+        var issuer = await GetIssuerAsync(client);
+        var now = DateTimeOffset.UtcNow;
+        var assertion = BuildClientSecretJwt(
+            ClientId,
+            ClientSecret,
+            issuer,
+            expires: now.AddMinutes(1),
+            issuedAt: now.AddMinutes(-10)
+        );
+
+        using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
+
+        await AssertInvalidClientAsync(response);
     }
 
     [Fact]

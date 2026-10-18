@@ -311,6 +311,24 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   banned in shipping code (`RS0030`). **Public surface:** adds `DateCoercion.TryFromNumericDate` (two overloads),
   `DateCoercion.TryParseNumericDate`, `JsonElements.TryGetNumericDate`, and `JsonElements.TryGetPropertyNumericDate`.
 
+- **Client assertions have a bounded lifetime, and JWT lifetime validation reads `iat` (backlog `F39`,
+  [ADR-0124](docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)).** A `private_key_jwt` /
+  `client_secret_jwt` assertion was accepted for any `exp` that had not passed — up to the top of the `NumericDate`
+  range, holding its `jti` in the replay cache effectively forever. It is now rejected with `invalid_client` when its
+  lifetime exceeds the new non-discoverable `client_assertion_max_lifetime` setting (default **five minutes**, Auth0's
+  maximum). The setting is a `Min` ceiling, so a tenant or client may only shorten it, and the FAPI 2.0 security profile
+  pins it at five minutes so a raised server-wide value never reaches a FAPI client. The lifetime runs from the earlier
+  of the assertion's `iat` and `nbf` to its `exp` — or, when it carries neither, from the validation time plus the clock
+  skew — so it bounds both how long an assertion stays usable and how stale a pre-minted one may be (RFC 7523 §3). The
+  cap is a general JWT-validation capability: `ValidateTokenLifeTimeOptions.MaxLifetime` sets
+  `TokenLifetimeRequirement.MaxLifetime`, and a set maximum also requires `exp`. **Behavior change:** the lifetime
+  requirement now validates `iat` for every token — a present `iat` must be a valid `NumericDate` and may not be later
+  than the clock skew in the future, matching `nbf` (FAPI 2.0 §5.3.2.1). **Fixed:** the client-assertion replay record
+  was retained for `exp` plus a fixed five minutes regardless of the configured `clock_skew`, so a server-wide skew above
+  five minutes left a replay window; it is now retained for `exp` plus the effective clock skew. **Public surface:** adds
+  `ValidateTokenLifeTimeOptions.MaxLifetime`, `TokenLifetimeRequirement.MaxLifetime`,
+  `OpenIdSettingNames.ClientAssertionMaxLifetime`, and `OpenIdSettingKeys.ClientAssertionMaxLifetime`.
+
 - **The JWT library is renamed `NCode.Identity.JsonWebTokens` → `NCode.Identity.Jwt` (and the paired `.Abstractions`
   package likewise), its service is segregated, and validation is redesigned as ASP.NET Core-style
   requirements/handlers.** (`D8`, [ADR-0120](docs/adr/0120-jwt-validation-requirements-and-handlers.md).) The package,

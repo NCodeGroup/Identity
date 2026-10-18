@@ -65,7 +65,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
-| `F` — Feature gaps                    | `F40`     | `F39`      |
+| `F` — Feature gaps                    | `F41`     | `F40`      |
 | `T` — Conformance & interop testing   | `T9`      | `T8`       |
 | `U` — Frontend presentation platform  | `U14`     | `U13`      |
 | `S` — Secrets management              | `S10`     | `S9`       |
@@ -158,7 +158,8 @@ entry and/or ADR that closed it.
     **The FAPI security-profile mechanism** is **done**: a `security_profile=fapi2` setting resolved through an
     extensible **profile registry** (`ISecurityProfileCatalog` over `ISecurityProfile` definitions) that injects the
     FAPI 2.0 ceilings into the merge lattice (algorithms `PS256`/`ES256`/`EdDSA`, strong-client-auth-only,
-    `response_type=code`, PKCE `S256`, require PKCE + PAR, short code/PAR lifetimes, and a ≤ 60s `clock_skew` ceiling),
+    `response_type=code`, PKCE `S256`, require PKCE + PAR, short code/PAR lifetimes, a ≤ 60s `clock_skew` ceiling, and a
+    pinned five-minute `client_assertion_max_lifetime` ceiling ([ADR-0124](docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md))),
     plus permitted-`token_endpoint_auth_methods_supported` enforcement in the client-auth service (rejecting weak/public
     auth under `fapi2`) ([ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
     **The FAPI behavioral rules and discovery/validation details** are **done**
@@ -169,8 +170,8 @@ entry and/or ADR that closed it.
     `client_assertion` audience rule — so a new requirement kind or a whole new profile is additive. The OP also
     advertises `authorization_response_iss_parameter_supported` (RFC 9207), uses **303 See Other** for the authorization
     response (FAPI §5.2.2 / OAuth 2.1), honors the operator-configured `clock_skew` when validating signed request
-    objects / client assertions, and enforces single-use authorization codes with an exact-matched, required
-    `redirect_uri`.
+    objects / client assertions (rejecting an `iat` or `nbf` beyond it, FAPI 2.0 §5.3.2.1), and enforces single-use
+    authorization codes with an exact-matched, required `redirect_uri`.
 
     **Remaining work.** The OP-side FAPI 2.0 implementation is **complete** (the building blocks plus the security-profile
     mechanism, behavioral rules, and discovery/validation details above); what is left is conformance wiring and one
@@ -296,17 +297,22 @@ entry and/or ADR that closed it.
   [`src/NCode.Identity.Jose/Algorithms/KeyManagement`](src/NCode.Identity.Jose/Algorithms/KeyManagement),
   [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms).
 
-- **`F39` — Cap the accepted lifetime of client assertions (RFC 7523 §3).** A `private_key_jwt` / `client_secret_jwt`
-  assertion is accepted for any `exp` that has not yet passed — including one at the top of the `NumericDate` range
-  (year 9999), whose `jti` is then held in the replay cache effectively forever. RFC 7523 §3 lets the server reject an
-  assertion whose `exp` is "unreasonably far in the future", and mainstream providers bound assertion lifetime. Add a
-  per-client/tenant maximum assertion lifetime setting (bounded by the merge lattice, tightened by the FAPI 2.0
-  security profile) enforced against `exp - iat` (or `exp - now` when `iat` is absent), rejecting with
-  `invalid_client`; this also bounds replay-cache retention. The overflow on such an `exp` is already fixed
-  ([ADR-0123](docs/adr/0123-numeric-date-is-read-strictly-and-range-guarded.md)); the integration test
-  `PostToken_ClientSecretJwt_WhenExpAtMaxNumericDate_ReturnsAccessToken` flips to a rejection when this lands. Touch
-  points: `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/ClientAssertionClientAuthenticationHandler.cs`,
-  `OpenIdSettingKeys`, the FAPI security profile.
+- **`F40` — Bound the lifetime of signed request objects (JAR, CIBA, FAPI Message Signing).** Signed request objects —
+  the authorization endpoint's inline `request` / `request_uri` (RFC 9101) and CIBA signed authentication requests —
+  have their `nbf` / `iat` / `exp` validated (and `exp` required) but no lifetime cap, so a pre-generated request object
+  stays usable until an arbitrarily distant `exp`. FAPI 1.0 Advanced and FAPI 2.0 Message Signing
+  require a request object to carry `nbf` and `exp`, with `exp` no more than 60 minutes after `nbf` and `nbf` no more
+  than 60 minutes in the past; CIBA Core §7.1.1 requires `iat`, `nbf`, `exp`, and `jti` on a signed authentication
+  request. The general `TokenLifetimeRequirement.MaxLifetime` cap built for `F39`
+  ([ADR-0124](docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)) provides the lifetime half: add a
+  `request_object_max_lifetime` setting (`Min` ceiling, pinned by the FAPI profile), require the claims each profile
+  demands (`nbf`, and CIBA's `iat` / `jti`) in both loaders, and decide the default. The CIBA loader also still
+  validates with the JWT library's default 5-minute clock skew rather than the client's `clock_skew` setting, and with
+  only the client's stored keys rather than `IClientKeyResolver` (runtime `jwks_uri`); align it with the JAR loader in
+  the same pass. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/Handlers/DefaultLoadBackchannelAuthenticationRequestHandler.cs`,
+  `OpenIdSettingKeys`, `Fapi2SecurityProfile`.
 
 ## Conformance & interop testing (group `T`)
 

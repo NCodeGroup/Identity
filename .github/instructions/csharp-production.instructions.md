@@ -452,6 +452,11 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   because they throw on out-of-range input. A time claim that is **present but invalid fails closed** — never read it
   as absent. Saturate (don't overflow) when adding a margin to an instant near `DateTimeOffset.MaxValue`. See
   [ADR-0123](../../docs/adr/0123-numeric-date-is-read-strictly-and-range-guarded.md).
+- **Bound a received JWT's lifetime through the lifetime requirement, never with ad-hoc `exp` arithmetic.** Cap a
+  client-supplied JWT (assertion, request object) with `ValidateTokenLifeTime(o => o.MaxLifetime = …)`, fed from a
+  `Min`-merged `*_max_lifetime` setting; it measures from the earliest asserted `iat`/`nbf` (or now plus skew), so the
+  client cannot game it. A replay record for such a JWT is retained until `exp` plus the **effective** `clock_skew`, not
+  a fixed margin. See [ADR-0124](../../docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md).
 - **Give a typed `Claim` its value in the declared type's XML Schema lexical form** — numbers via
   `value.ToString(CultureInfo.InvariantCulture)`, never culture-formatted (`"1,000"`). The JWT claim ⇄ JSON mapping
   (`ClaimValueMapper`, the single place a `Claim.ValueType` is interpreted) parses each value strictly in its declared

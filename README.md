@@ -138,41 +138,65 @@ green run means the same thing in both places. It prints `Definition of Done: PA
 
 ## References
 
-Core specifications this family implements:
+The specifications this family implements, grouped by area.
 
-- [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) ·
-  [Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html) ·
-  [Dynamic Registration](https://openid.net/specs/openid-connect-registration-1_0.html) ·
-  [RP-Initiated Logout](https://openid.net/specs/openid-connect-rpinitiated-1_0.html) ·
-  [Session Management](https://openid.net/specs/openid-connect-session-1_0.html) ·
-  [Front-Channel](https://openid.net/specs/openid-connect-frontchannel-1_0.html) /
-  [Back-Channel Logout](https://openid.net/specs/openid-connect-backchannel-1_0.html) ·
-  [CIBA](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html) ·
-  [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0-final.html)
-- [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749) — The OAuth 2.0 Authorization Framework ·
-  [RFC 6750](https://datatracker.ietf.org/doc/html/rfc6750) — Bearer Token Usage ·
-  [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009) — Token Revocation ·
-  [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662) — Token Introspection
-- [RFC 7515](https://datatracker.ietf.org/doc/html/rfc7515) — JWS ·
-  [RFC 7516](https://datatracker.ietf.org/doc/html/rfc7516) — JWE ·
-  [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517) — JWK ·
-  [RFC 7518](https://datatracker.ietf.org/doc/html/rfc7518) — JWA ·
-  [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519) — JWT ·
-  [RFC 7638](https://datatracker.ietf.org/doc/html/rfc7638) — JWK Thumbprint
-- [RFC 7521](https://datatracker.ietf.org/doc/html/rfc7521) — Assertion Framework ·
-  [RFC 7523](https://datatracker.ietf.org/doc/html/rfc7523) — JWT Client Authentication ·
-  [RFC 7591](https://datatracker.ietf.org/doc/html/rfc7591) /
-  [RFC 7592](https://datatracker.ietf.org/doc/html/rfc7592) — Dynamic Client Registration ·
-  [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636) — PKCE
-- [RFC 8414](https://datatracker.ietf.org/doc/html/rfc8414) — Authorization Server Metadata ·
-  [RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628) — Device Authorization Grant ·
-  [RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693) — Token Exchange ·
-  [RFC 8705](https://datatracker.ietf.org/doc/html/rfc8705) — Mutual-TLS Client Authentication ·
-  [RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707) — Resource Indicators
-- [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068) — JWT Access Tokens ·
-  [RFC 9126](https://datatracker.ietf.org/doc/html/rfc9126) — Pushed Authorization Requests ·
-  [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449) — DPoP ·
-  [RFC 9700](https://datatracker.ietf.org/doc/html/rfc9700) — OAuth 2.0 Security Best Current Practice
+### OpenID Connect
+
+| Specification                                                                                                     | Purpose                                            |
+| ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)                                   | Identity layer on OAuth 2.0: flows, ID tokens, UserInfo |
+| [Discovery 1.0](https://openid.net/specs/openid-connect-discovery-1_0.html)                                        | Provider metadata and issuer discovery             |
+| [Dynamic Registration 1.0](https://openid.net/specs/openid-connect-registration-1_0.html)                          | Client registration over the protocol              |
+| [RP-Initiated Logout 1.0](https://openid.net/specs/openid-connect-rpinitiated-1_0.html)                            | Relying-party initiated end-session                |
+| [Session Management 1.0](https://openid.net/specs/openid-connect-session-1_0.html)                                 | Session state and change notification (opt-in)     |
+| [Front-Channel Logout 1.0](https://openid.net/specs/openid-connect-frontchannel-1_0.html)                          | Browser-based logout propagation (opt-in)          |
+| [Back-Channel Logout 1.0](https://openid.net/specs/openid-connect-backchannel-1_0.html)                            | Server-to-server logout propagation                |
+| [CIBA Core 1.0](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)         | Decoupled authentication without a browser redirect |
+| [FAPI 2.0 Security Profile](https://openid.net/specs/fapi-security-profile-2_0-final.html)                         | Financial-grade hardening applied as a settings ceiling |
+
+### OAuth 2.x core
+
+| RFC                                                        | Purpose                           |
+| ---------------------------------------------------------- | --------------------------------- |
+| [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749)  | The OAuth 2.0 Authorization Framework |
+| [RFC 6750](https://datatracker.ietf.org/doc/html/rfc6750)  | Bearer token usage                |
+| [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009)  | Token revocation                  |
+| [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662)  | Token introspection               |
+| [RFC 8414](https://datatracker.ietf.org/doc/html/rfc8414)  | Authorization server metadata     |
+| [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068)  | JWT profile for access tokens     |
+| [RFC 9700](https://datatracker.ietf.org/doc/html/rfc9700)  | OAuth 2.0 Security Best Current Practice |
+
+### JOSE — signing, encryption, keys
+
+| RFC                                                        | Purpose                      |
+| ---------------------------------------------------------- | ---------------------------- |
+| [RFC 7515](https://datatracker.ietf.org/doc/html/rfc7515)  | JSON Web Signature (JWS)     |
+| [RFC 7516](https://datatracker.ietf.org/doc/html/rfc7516)  | JSON Web Encryption (JWE)    |
+| [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517)  | JSON Web Key (JWK)           |
+| [RFC 7518](https://datatracker.ietf.org/doc/html/rfc7518)  | JSON Web Algorithms (JWA)    |
+| [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519)  | JSON Web Token (JWT)         |
+| [RFC 7638](https://datatracker.ietf.org/doc/html/rfc7638)  | JWK thumbprint               |
+
+### Client authentication and registration
+
+| RFC                                                        | Purpose                                        |
+| ---------------------------------------------------------- | ---------------------------------------------- |
+| [RFC 7521](https://datatracker.ietf.org/doc/html/rfc7521)  | Assertion framework for client authentication  |
+| [RFC 7523](https://datatracker.ietf.org/doc/html/rfc7523)  | JWT client authentication (`private_key_jwt`)  |
+| [RFC 7591](https://datatracker.ietf.org/doc/html/rfc7591)  | Dynamic client registration                    |
+| [RFC 7592](https://datatracker.ietf.org/doc/html/rfc7592)  | Dynamic client registration management         |
+| [RFC 8705](https://datatracker.ietf.org/doc/html/rfc8705)  | Mutual-TLS client authentication and certificate-bound tokens |
+
+### Flows and token hardening
+
+| RFC                                                        | Purpose                                   |
+| ---------------------------------------------------------- | ----------------------------------------- |
+| [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636)  | PKCE                                      |
+| [RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628)  | Device authorization grant                |
+| [RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693)  | Token exchange                            |
+| [RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707)  | Resource indicators                       |
+| [RFC 9126](https://datatracker.ietf.org/doc/html/rfc9126)  | Pushed authorization requests (PAR)       |
+| [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449)  | DPoP — sender-constrained tokens          |
 
 ## License
 

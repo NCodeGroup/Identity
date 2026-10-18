@@ -23,8 +23,11 @@ repository is owned, changed, versioned, and released. Governance is enforced in
   features, the public API/surface, or the validation/security posture — anything a consumer could observe) should
   reach agreement on the issue and be recorded as an **ADR** under [`docs/adr/`](docs/adr/) before the pull request.
   Bug fixes, patches, and small changes go straight to a PR that references the issue.
-- `main` is protected: changes land via pull request only, requiring at least one maintainer approval. No self-approval;
-  stale approvals are dismissed on new pushes. Day-to-day work happens on `dev` and short-lived feature branches.
+- `main` is the single trunk and is protected by a **required status check** — the scripted Definition of Done must
+  pass ([ADR-0125](docs/adr/0125-trunk-based-development-on-main.md)). Work lands on `main` directly, or through a
+  short-lived branch opened when a change warrants review on a pull request. A required **approval** is deliberately
+  not enforced while the maintainer set is one person (a gate that cannot be satisfied is not a gate); it returns with
+  the second maintainer.
 - The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint invoked identically by CI
   and locally. See [CONTRIBUTING](CONTRIBUTING.md).
 - Versioning is **lockstep** across the whole family via Nerdbank.GitVersioning (one root `version.json`,
@@ -35,8 +38,9 @@ repository is owned, changed, versioned, and released. Governance is enforced in
 
 ## Releases, branches & tags
 
-- **Trunk.** `main` is the released line; `dev` is the integration branch for in-progress work. Until the first stable
-  release the version is an `-alpha` prerelease.
+- **Trunk.** `main` is the single trunk and the released line; there is no long-lived integration branch
+  ([ADR-0125](docs/adr/0125-trunk-based-development-on-main.md)). Until the first stable release the version is an
+  `-alpha` prerelease.
 - **Release lines.** Each shipped `major.minor` is serviced from a long-lived `release/vX.Y` branch, cut with
   `nbgv prepare-release` (which creates the branch and bumps the trunk to the next prerelease). These branches match
   `publicReleaseRefSpec`, so their builds carry a clean version with no commit-height suffix.

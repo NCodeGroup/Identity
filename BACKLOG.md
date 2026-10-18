@@ -39,7 +39,8 @@ in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md) — allocate strictly above th
 
 ## Standing design posture (read first)
 
-This family is **greenfield and pre-release** — everything lands on `dev`, nothing is shipped, and there is **no
+This family is **greenfield and pre-release** — everything lands on the single `main` trunk
+([ADR-0125](docs/adr/0125-trunk-based-development-on-main.md)), nothing is shipped, and there is **no
 backward-compatibility to preserve** ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
 **Default to the best long-term design.** When a change has a fork between a minimal, compatibility-preserving patch and

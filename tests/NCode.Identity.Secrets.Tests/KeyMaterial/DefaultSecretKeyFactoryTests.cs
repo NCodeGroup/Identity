@@ -315,7 +315,10 @@ public class DefaultSecretKeyFactoryTests : BaseTests
                 RSASignaturePadding.Pkcs1
             )
         );
-        Assert.Throws<CryptographicException>(() =>
+        // ThrowsAny, not Throws: the concrete exception type is a platform implementation detail. Windows throws
+        // CryptographicException itself, while OpenSSL-backed platforms throw a derived
+        // Interop+Crypto+OpenSslCryptographicException, and Assert.Throws demands an exact type match.
+        Assert.ThrowsAny<CryptographicException>(() =>
             exported.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
         );
     }

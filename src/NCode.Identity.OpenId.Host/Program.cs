@@ -41,6 +41,12 @@ var configuration = builder.Configuration;
 var hostEnvironment = builder.Environment;
 var serviceCollection = builder.Services;
 
+// SAFETY GATE: refuse to start a Production deployment that still has development-only conveniences enabled
+// (developer signing keys, a wildcard host filter, loopback CORS origins, seeded accounts). Every one of them is
+// silent — the server would start, serve traffic, and look healthy — so this fails before the port is bound.
+// Inert in every non-Production environment.
+serviceCollection.AddProductionSafety(configuration, hostEnvironment);
+
 serviceCollection.AddAntiforgery();
 
 serviceCollection.AddHealthChecks();

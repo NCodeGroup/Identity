@@ -177,3 +177,17 @@ NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.KnownProxies.get -> strin
 NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.KnownProxies.set -> void
 NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.ReverseProxyOptions() -> void
 const NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.DefaultSectionName = "ReverseProxy" -> string!
+NCode.Identity.Server.ProductionSafetyRegistration
+NCode.Identity.Server.ProductionSafetyRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Server.ProductionSafetyRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddProductionSafety(Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation
+NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.ConfigurationKey.get -> string!
+NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.ConfigurationKey.init -> void
+NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.Problem.get -> string!
+NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.Problem.init -> void
+NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.Resolution.get -> string!
+NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.Resolution.init -> void
+NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.ProductionSafetyViolation(string! ConfigurationKey, string! Problem, string! Resolution) -> void
+override NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.ToString() -> string!
+static NCode.Identity.Server.ProductionSafetyRegistration.FindViolations(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation!>!
+NCode.Identity.Server.DeveloperKeyMode.None = 2 -> NCode.Identity.Server.DeveloperKeyMode

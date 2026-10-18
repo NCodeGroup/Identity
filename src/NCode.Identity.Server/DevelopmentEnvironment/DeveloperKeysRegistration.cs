@@ -51,9 +51,12 @@ public static class DeveloperKeysRegistration
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<IdentityServer> AddDeveloperKeys(DeveloperKeyMode mode)
         {
-            return mode is DeveloperKeyMode.PersistentSigningKey
-                ? builder.AddDeveloperSigningKey()
-                : builder.AddEphemeralDeveloperKeys();
+            return mode switch
+            {
+                DeveloperKeyMode.None => builder,
+                DeveloperKeyMode.PersistentSigningKey => builder.AddDeveloperSigningKey(),
+                _ => builder.AddEphemeralDeveloperKeys(),
+            };
         }
 
         /// <summary>

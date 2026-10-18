@@ -38,4 +38,15 @@ public enum DeveloperKeyMode
     /// persistent database and data-protection key ring. Intended for local running.
     /// </summary>
     PersistentSigningKey = 1,
+
+    /// <summary>
+    /// No developer keys at all: the host supplies its own stable, operator-managed signing key. This is the only
+    /// mode that is safe to expose publicly, and the one a Production deployment must select.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not the zero value. The default must stay <see cref="Ephemeral"/> so a developer who has
+    /// configured nothing still gets a working, hermetic, zero-setup host; making "no keys" the default would
+    /// instead break every local run and test. Production states its intent explicitly rather than inheriting it.
+    /// </remarks>
+    None = 2,
 }

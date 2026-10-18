@@ -8,6 +8,25 @@ change to the public API is a **major** version bump.
 
 ## [Unreleased]
 
+### Added
+
+- **The server refuses to start in Production with development-only settings still enabled.**
+  `AddProductionSafety(configuration, hostEnvironment)` validates configuration during composition and throws before
+  the port is bound. It checks the signing-key source, `AllowedHosts`, loopback CORS origins, and the two seeders
+  (`DeveloperInteractiveSeed`, `ConformanceSeed`), and reports **every** finding in one message so a misconfigured
+  deployment is fixed in a single pass rather than one restart per problem. It is inert in every non-Production
+  environment, so local, test, and conformance hosts keep their conveniences.
+
+  Each setting checked is a convenience that is correct in Development and dangerous on a public origin, and each is
+  **silent** — a deployment that forgets to override it starts, serves traffic, and looks healthy. That is why these
+  are startup failures rather than log warnings.
+
+  `DeveloperKeyMode` gains `None`, which is how a host states that it supplies its own stable, operator-managed
+  signing key; `AddDeveloperKeys(None)` registers nothing. `None` is deliberately **not** the zero value: the default
+  must stay `Ephemeral` so a developer who has configured nothing still gets a working, hermetic, zero-setup host.
+  A Production deployment therefore has to state its intent explicitly rather than inherit it, and an unset
+  `DeveloperKeys:Mode` is reported as a violation precisely because it silently means `Ephemeral`.
+
 ### Changed
 
 - **The reference host is no longer called "Playground".** `NCode.Identity.OpenId.Playground` is now

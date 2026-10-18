@@ -8,6 +8,28 @@ change to the public API is a **major** version bump.
 
 ## [Unreleased]
 
+### Fixed
+
+- **ECDH-ES key derivation on P-384 and P-521 violated RFC 7518 and produced non-interoperable tokens.**
+  `NCode.Identity.Jose.Algorithms.KeyManagement.EcdhKeyManagementAlgorithm` selected the Concat KDF digest from the
+  key's curve size — SHA-256 for P-256, **SHA-384 for P-384, SHA-512 for P-521**. [RFC 7518
+  §4.6.2](https://datatracker.ietf.org/doc/html/rfc7518#section-4.6.2) fixes the Digest Method at **SHA-256 for every
+  curve**: the digest is a property of the JWE key-agreement algorithm, not of the key. The result was that `ECDH-ES`
+  and `ECDH-ES+A{128,192,256}KW` with a P-384 or P-521 key derived a content encryption key that **no conforming JOSE
+  implementation would reproduce** — tokens this library produced on those curves could not be decrypted by anyone
+  else, and tokens produced by anyone else could not be decrypted by this library. P-256 was unaffected and remains
+  byte-for-byte identical. **This is a breaking change to token compatibility:** a JWE previously issued by this
+  library using ECDH-ES over P-384 or P-521 can no longer be decrypted by it. Pre-release, so this lands as a clean
+  cutover with no compatibility shim ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)); the
+  reasoning and the testing rule that let the defect hide are recorded in
+  [ADR-0126](docs/adr/0126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md).
+
+  The defect was invisible because the cross-check tests asserted against the **Windows CNG** oracle
+  (`EcdhKeyManagementWin` + `CngKey`), whose `SP800_56A_CONCAT` KDF has the same curve-dependent behavior —
+  jose-jwt's own source documents CNG as "unusable on NIST-384 and NIST-521 curves due to broken key derivation".
+  The tests now drive jose-jwt's RFC-conforming managed implementation (`EcdhKeyManagementUnix`, backed by the BCL
+  `ECDiffieHellman`), which disagrees with CNG on exactly P-384 and P-521 and so turns the defect into a failing test.
+
 ### Added
 
 - **Reusable `NCode.Json.ObjectJsonConverter` for loosely-typed JSON deserialization.** The `System.Text.Json`

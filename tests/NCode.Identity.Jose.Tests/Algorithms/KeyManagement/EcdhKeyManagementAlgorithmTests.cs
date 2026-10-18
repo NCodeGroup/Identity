@@ -23,7 +23,6 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Jose;
-using Jose.keys;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -607,16 +606,15 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         Assert.Equal(cek1, cek2);
 
         // control
+        //
+        // EcdhKeyManagementUnix is the BCL-backed (ECDiffieHellman) control implementation; despite the name it is the
+        // cross-platform one jose-jwt uses on every platform for managed keys. The CNG-backed EcdhKeyManagementWin
+        // delegates straight to it whenever the key is an ECDiffieHellman/ECDsa/Jwk, so driving it directly keeps the
+        // same third-party oracle without a Windows-only key type.
 
         var keySizeBits = keySizeBytes << 3;
-        var controlKey = EccKey.New(
-            parameters2.Q.X,
-            parameters2.Q.Y,
-            parameters2.D,
-            CngKeyUsages.KeyAgreement
-        );
-        var controlAlgorithm = new EcdhKeyManagementWin(true, new EcdhKeyManagementUnix(true));
-        var controlResult = controlAlgorithm.Unwrap([], controlKey, keySizeBits, header2);
+        var controlAlgorithm = new EcdhKeyManagementUnix(true);
+        var controlResult = controlAlgorithm.Unwrap([], key2, keySizeBits, header2);
         Assert.Equal(controlResult, cek1);
     }
 }

@@ -20,7 +20,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Jose;
-using Jose.keys;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
@@ -75,25 +74,33 @@ public class JoseSerializerTests : BaseTests
         return (nativeKey, secretKey);
     }
 
-    private static (object controlKey, SecretKey secretKey) CreateRandomEccKey(
+    // The ECC control key is handed to jose-jwt, which needs the BCL type matching the operation: an ECDsa to sign a
+    // JWS, an ECDiffieHellman to agree a JWE content key. Both are returned live (the caller disposes them), because
+    // CreateEcc exports the key material rather than taking ownership, so one instance safely backs both sides.
+
+    private static (object controlKey, SecretKey secretKey) CreateRandomEcdsaKey(
         string keyId,
         ECCurve curve
     )
     {
         var metadata = new KeyMetadata { KeyId = keyId };
-        using var eccKey = ECDiffieHellman.Create(curve);
+        var eccKey = ECDsa.Create(curve);
         var secretKey = SecretKeyFactory.CreateEcc(metadata, eccKey);
-        var parameters = eccKey.ExportParameters(true);
-        var nativeKey = EccKey.New(
-            parameters.Q.X,
-            parameters.Q.Y,
-            parameters.D,
-            CngKeyUsages.KeyAgreement
-        );
-        return (nativeKey, secretKey);
+        return (eccKey, secretKey);
     }
 
-    private (object controlKey, SecretKey secretKey) CreateRandomEccKey(
+    private static (object controlKey, SecretKey secretKey) CreateRandomEcdhKey(
+        string keyId,
+        ECCurve curve
+    )
+    {
+        var metadata = new KeyMetadata { KeyId = keyId };
+        var eccKey = ECDiffieHellman.Create(curve);
+        var secretKey = SecretKeyFactory.CreateEcc(metadata, eccKey);
+        return (eccKey, secretKey);
+    }
+
+    private (object controlKey, SecretKey secretKey) CreateRandomEcdhKey(
         string keyId,
         JweEncryption jweEncryption
     )
@@ -108,7 +115,7 @@ public class JoseSerializerTests : BaseTests
             JweEncryption.A256CBC_HS512 => ECCurve.NamedCurves.nistP521,
             _ => throw new ArgumentOutOfRangeException(nameof(jweEncryption), jweEncryption, null),
         };
-        return CreateRandomEccKey(keyId, curve);
+        return CreateRandomEcdhKey(keyId, curve);
     }
 
     private static (object controlKey, SecretKey secretKey) CreateRandomSymmetricKey(
@@ -161,13 +168,13 @@ public class JoseSerializerTests : BaseTests
                 return CreateRandomRsaKey(keyId);
 
             case JwsAlgorithm.ES256:
-                return CreateRandomEccKey(keyId, ECCurve.NamedCurves.nistP256);
+                return CreateRandomEcdsaKey(keyId, ECCurve.NamedCurves.nistP256);
 
             case JwsAlgorithm.ES384:
-                return CreateRandomEccKey(keyId, ECCurve.NamedCurves.nistP384);
+                return CreateRandomEcdsaKey(keyId, ECCurve.NamedCurves.nistP384);
 
             case JwsAlgorithm.ES512:
-                return CreateRandomEccKey(keyId, ECCurve.NamedCurves.nistP521);
+                return CreateRandomEcdsaKey(keyId, ECCurve.NamedCurves.nistP521);
 
             default:
                 throw new ArgumentOutOfRangeException(nameof(jwsAlgorithm), jwsAlgorithm, null);
@@ -187,10 +194,10 @@ public class JoseSerializerTests : BaseTests
             JweAlgorithm.RSA_OAEP_256 => CreateRandomRsaKey(keyId),
             JweAlgorithm.RSA_OAEP_384 => CreateRandomRsaKey(keyId),
             JweAlgorithm.RSA_OAEP_512 => CreateRandomRsaKey(keyId),
-            JweAlgorithm.ECDH_ES => CreateRandomEccKey(keyId, jweEncryption),
-            JweAlgorithm.ECDH_ES_A128KW => CreateRandomEccKey(keyId, jweEncryption),
-            JweAlgorithm.ECDH_ES_A192KW => CreateRandomEccKey(keyId, jweEncryption),
-            JweAlgorithm.ECDH_ES_A256KW => CreateRandomEccKey(keyId, jweEncryption),
+            JweAlgorithm.ECDH_ES => CreateRandomEcdhKey(keyId, jweEncryption),
+            JweAlgorithm.ECDH_ES_A128KW => CreateRandomEcdhKey(keyId, jweEncryption),
+            JweAlgorithm.ECDH_ES_A192KW => CreateRandomEcdhKey(keyId, jweEncryption),
+            JweAlgorithm.ECDH_ES_A256KW => CreateRandomEcdhKey(keyId, jweEncryption),
             JweAlgorithm.PBES2_HS256_A128KW => CreateRandomPassword(keyId),
             JweAlgorithm.PBES2_HS384_A192KW => CreateRandomPassword(keyId),
             JweAlgorithm.PBES2_HS512_A256KW => CreateRandomPassword(keyId),

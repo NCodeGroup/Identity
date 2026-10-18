@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Jose;
-using Jose.keys;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
@@ -98,7 +97,6 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
             cekSizeBits,
             cekSizeBytes
         );
-        var parameters = key.ExportParameters(includePrivateParameters: true);
 
         Span<byte> apu = new byte[32];
         Span<byte> apv = new byte[32];
@@ -120,16 +118,10 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         algorithm.WrapKey(secretKey, header, cek, encryptedCekWriter);
         Assert.Equal(encryptedCekSizeBytes, encryptedCekWriter.WrittenCount);
 
-        using var controlKey = EccKey.New(
-            parameters.Q.X,
-            parameters.Q.Y,
-            parameters.D,
-            CngKeyUsages.KeyAgreement
-        );
         var controlAlgorithm = CreateControlAlgorithm(cekSizeBits);
         var controlResult = controlAlgorithm.Unwrap(
             encryptedCekWriter.WrittenSpan.ToArray(),
-            controlKey,
+            key,
             cekSizeBits,
             header
         );
@@ -148,10 +140,11 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         Assert.Equal(controlResult, decryptedCek.ToArray());
     }
 
-    private static EcdhKeyManagementWinWithAesKeyWrap CreateControlAlgorithm(int cekSizeBits)
+    // The BCL-backed (ECDiffieHellman) control implementation; despite the name it is the cross-platform one jose-jwt
+    // uses on every platform for managed keys, and the CNG-backed Win variant delegates straight to it for such keys.
+    private static EcdhKeyManagementUnixWithAesKeyWrap CreateControlAlgorithm(int cekSizeBits)
     {
         var aesKw = new AesKeyWrapManagement(cekSizeBits);
-        var unix = new EcdhKeyManagementUnixWithAesKeyWrap(cekSizeBits, aesKw);
-        return new EcdhKeyManagementWinWithAesKeyWrap(cekSizeBits, aesKw, unix);
+        return new EcdhKeyManagementUnixWithAesKeyWrap(cekSizeBits, aesKw);
     }
 }

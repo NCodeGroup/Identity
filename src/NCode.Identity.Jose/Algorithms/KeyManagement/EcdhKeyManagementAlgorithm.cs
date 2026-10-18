@@ -214,7 +214,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         using var senderKey = ephemeralKey.PublicKey;
 
-        DeriveKey(algorithm, apu, apv, curveSizeBits, recipientKey, senderKey, contentKey);
+        DeriveKey(algorithm, apu, apv, recipientKey, senderKey, contentKey);
     }
 
     /// <inheritdoc />
@@ -274,7 +274,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         );
         using var senderKey = ephemeralKey.PublicKey;
 
-        DeriveKey(algorithm, apu, apv, curveSizeBits, recipientKey, senderKey, contentKey);
+        DeriveKey(algorithm, apu, apv, recipientKey, senderKey, contentKey);
 
         bytesWritten = contentKey.Length;
         return true;
@@ -284,7 +284,6 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         string algorithm,
         string? apu,
         string? apv,
-        int curveSizeBits,
         ECDiffieHellman recipientKey,
         ECDiffieHellmanPublicKey senderKey,
         Span<byte> destination
@@ -293,26 +292,11 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var keySizeBytes = destination.Length;
         var keySizeBits = keySizeBytes << 3;
 
-        int hashSizeBits;
-        HashAlgorithmName hashAlgorithmName;
-
-        switch (curveSizeBits)
-        {
-            case <= 256:
-                hashSizeBits = 256;
-                hashAlgorithmName = HashAlgorithmName.SHA256;
-                break;
-
-            case <= 384:
-                hashSizeBits = 384;
-                hashAlgorithmName = HashAlgorithmName.SHA384;
-                break;
-
-            default:
-                hashSizeBits = 512;
-                hashAlgorithmName = HashAlgorithmName.SHA512;
-                break;
-        }
+        // RFC 7518 §4.6.2: the Concat KDF Digest Method is SHA-256 for EVERY curve — the digest is fixed by the JWE
+        // algorithm, not chosen from the key's curve. Selecting it from the curve size instead (SHA-384 for P-384,
+        // SHA-512 for P-521) is what the Windows CNG SP800_56A_CONCAT KDF does, and it derives a different content
+        // encryption key than every conforming JOSE implementation on those curves.
+        const int hashSizeBits = 256;
 
         // can't use span/stackalloc because DeriveKeyFromHash doesn't
         var secretPrependBytes = GC.AllocateUninitializedArray<byte>(sizeof(int), pinned: false);
@@ -326,7 +310,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             // too bad this API doesn't support Span<T> :(
             var partialKey = recipientKey.DeriveKeyFromHash(
                 senderKey,
-                hashAlgorithmName,
+                HashAlgorithmName.SHA256,
                 secretPrependBytes,
                 secretAppendBytes
             );

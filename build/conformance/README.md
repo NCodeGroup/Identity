@@ -16,25 +16,60 @@ is slow, so it runs as an opt-in / nightly gate while the `dod.ps1` inner loop s
 | [`run-conformance.ps1`](run-conformance.ps1)         | Orchestration: launch OP → pre-flight → suite up → run plans → report → teardown. |
 | [`New-ConformanceReport.ps1`](New-ConformanceReport.ps1) | Renders a self-contained HTML report (pass / warn / skip / fail) from the result zips. |
 | [`oidcc-config.json`](oidcc-config.json)             | Config OP plan config (discovery-metadata only).                              |
-| [`oidcc-basic.json`](oidcc-basic.json)               | Basic OP plan config, with the `browser` automation block and seeded clients. |
+| [`oidcc-basic.json`](oidcc-basic.json)               | Basic OP plan config, with the `browser` automation block (clients registered per module via DCR). |
 | [`expected-failures.json`](expected-failures.json)   | Baseline of documented, intentional failures (starts empty).                  |
 | [`expected-skips.json`](expected-skips.json)         | Baseline of documented, intentional skips (starts empty).                     |
 
-The config values (alias `ncode-basic`, clients `client` / `client2`, the `conformance-user` identity) match
-the deterministic seed in
+The `conformance-user` login identity in the configs and the `client` credentials the pre-flight uses match the
+deterministic seed in
 [`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Playground/appsettings.Conformance.json)
-(`AddConformanceSeed`, backlog `T4`). Secrets are the dev-only conformance credentials — this is a local test
-harness, never production.
+(`AddConformanceSeed`, backlog `T4`); the Basic OP plan registers its own client per module via Dynamic Client
+Registration. Secrets are the dev-only conformance credentials — this is a local test harness, never production.
 
 ## Prerequisites
 
-1. **Docker** (Compose v2) and **Python 3** on PATH; the **.NET SDK** and **pnpm** for the OP + pre-flight.
-2. A hosts-file entry so the suite's external base URL resolves to loopback:
+1. **Docker** (Compose v2) running; the **.NET SDK** pinned in [`global.json`](../../global.json).
+2. A real **Python 3** on PATH. The Windows Microsoft Store `python` alias is on PATH but fails when run, so it
+   does not count.
+3. **Node 22 via [NVS](https://github.com/jasongin/nvs)** for the pre-flight;
+   [`build/frontend-install.ps1`](../frontend-install.ps1) puts it on PATH and enables Corepack's pinned pnpm.
+4. Hosts-file entries so both origins resolve to loopback from the host:
     ```
     127.0.0.1  localhost.emobix.co.uk
+    127.0.0.1  host.docker.internal
     ```
-3. On Windows, MongoDB bind-mounts are unreliable; use the suite's named-volume compose snippet if needed
+    `localhost.emobix.co.uk` is the suite's external base URL; `host.docker.internal` is the OP issuer, which the
+    harness's readiness probe and the pre-flight reach from the host. Docker Desktop usually writes
+    `host.docker.internal` itself, but a fresh install may not. Containers resolve it through Docker's internal
+    DNS either way, so the loopback entry only affects host-side callers. The script fails fast if either name
+    does not resolve.
+5. On Windows, MongoDB bind-mounts are unreliable; use the suite's named-volume compose snippet if needed
    (see [`docs/conformance-testing.md`](../../docs/conformance-testing.md) Appendix H).
+
+### One-time Windows machine setup
+
+```powershell
+# Python 3 via the Python install manager: python.org's current Windows installer (the per-version
+# full installer is deprecated since 3.14). It provides the global `python` / `py` commands.
+winget install 9NQ7512CXL7T -e --accept-package-agreements --disable-interactivity
+py install default
+python --version   # new terminal; must print "Python 3.x", not the Store "Python was not found" stub
+
+# Node 22 via NVS, per-user (no admin): clone into %LOCALAPPDATA%\nvs and add it to the user PATH.
+$env:NVS_HOME = "$env:LOCALAPPDATA\nvs"
+git clone https://github.com/jasongin/nvs "$env:NVS_HOME"
+. "$env:NVS_HOME\nvs.ps1" install
+nvs add 22
+
+# Hosts entries — run from an ELEVATED PowerShell; appends only the missing ones.
+$hostsFile = "$env:SystemRoot\System32\drivers\etc\hosts"
+$missing = 'localhost.emobix.co.uk', 'host.docker.internal' | Where-Object {
+    -not (Select-String -Path $hostsFile -Pattern "^\s*127\.0\.0\.1\s+$([regex]::Escape($_))\b" -Quiet) }
+if ($missing) { Add-Content -Path $hostsFile -Value (@('') + ($missing | ForEach-Object { "127.0.0.1  $_" })) }
+```
+
+To have NVS switch to the pinned Node automatically on `cd` (optional; the harness does not need it), see the
+shell-profile snippets in [`src/frontend/README.md`](../../src/frontend/README.md).
 
 ## Run
 
@@ -42,7 +77,7 @@ harness, never production.
 # Default: launch the OP, pre-flight, bring up the suite, run the Config OP profile, tear down.
 ./build/conformance/run-conformance.ps1
 
-# Also run the browser-driven Basic OP profile (currently blocked — see below):
+# Also run the browser-driven Basic OP profile:
 ./build/conformance/run-conformance.ps1 -IncludeBrowserPlans
 
 # Against an OP you already started (e.g. the Conformance launch profile in another terminal):
@@ -52,12 +87,11 @@ harness, never production.
 ./build/conformance/run-conformance.ps1 -PreflightOnly
 ```
 
-**Default profile scope.** The default run gates on the **Config OP** profile, which passes today. The
-browser-driven **Basic OP** profile is opt-in (`-IncludeBrowserPlans`) because it is **blocked**: the suite's
-default `BrowserControl` is a no-JavaScript **HtmlUnitDriver**, but the OP-hosted `apps/auth` login is a
-client-rendered React SPA, so the `username` field never renders and every interactive module interrupts.
-Resolving that (server-rendered / no-JS login+consent, or a real JS browser) is tracked in
-[`docs/conformance/external-suite.md`](../../docs/conformance/external-suite.md) and needs its own ADR.
+**Default profile scope.** The default run gates on the **Config OP** profile only. The browser-driven **Basic OP**
+profile is opt-in (`-IncludeBrowserPlans`) because it is slower: the suite's headless, no-JavaScript
+**HtmlUnitDriver** drives the OP's interactive login and consent through the server-rendered no-JS form, under Dynamic
+Client Registration. It runs green; status and triage history are in
+[`docs/conformance/external-suite.md`](../../docs/conformance/external-suite.md).
 
 The pre-flight step bootstraps the frontend pnpm workspace via
 [`build/frontend-install.ps1`](../frontend-install.ps1) (idempotent; also self-heals a partially-installed

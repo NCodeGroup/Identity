@@ -8,6 +8,9 @@ enforced quality bar.
 - The .NET SDK pinned in [`global.json`](global.json) (10.0.x). The net10 targeting pack restores automatically.
 - PowerShell 7+ (`pwsh`) to run the Definition-of-Done script.
 - Local tools: run `dotnet tool restore` once after cloning to install the repo-pinned **CSharpier** formatter.
+- Frontend / full-stack (Aspire F5): **Node 22 via NVS** — see [`src/frontend/README.md`](src/frontend/README.md).
+- Conformance harness only: Docker, Python 3, and hosts-file entries — see
+  [`build/conformance/README.md`](build/conformance/README.md).
 
 ## Build and test
 

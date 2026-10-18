@@ -61,8 +61,10 @@ Expose the Playground on a single origin the suite containers can reach — on W
 - From the suite's Docker network, the host is reachable at `host.docker.internal`. Keep the bound port
   stable (the templates in [`conformance-testing.md`](../conformance-testing.md) Appendix D assume
   `:5001`).
-- Add the suite hostname to the hosts file where required (`127.0.0.1 localhost.emobix.co.uk`), per the
-  parent doc's Windows notes; port-proxy only if a profile needs `443`.
+- Add the suite hostname and the issuer hostname to the hosts file (`127.0.0.1 localhost.emobix.co.uk`,
+  `127.0.0.1 host.docker.internal`), per the parent doc's Windows notes — host-side callers (the harness
+  readiness probe, the pre-flight) need the latter, and a fresh Docker Desktop install may not write it;
+  port-proxy only if a profile needs `443`.
 
 ### Issuer byte-match (chosen: pin)
 

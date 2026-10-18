@@ -8,6 +8,8 @@ enforced quality bar.
 - The .NET SDK pinned in [`global.json`](global.json) (10.0.x). The net10 targeting pack restores automatically.
 - PowerShell 7+ (`pwsh`) to run the Definition-of-Done script.
 - Local tools: run `dotnet tool restore` once after cloning to install the repo-pinned **CSharpier** formatter.
+- Git hooks: run `git config core.hooksPath .githooks` once after cloning to enable the repo-versioned hooks (see
+  [Commit attribution](#commit-attribution)).
 - Frontend / full-stack (Aspire F5): **Node 22 via NVS** — see [`src/frontend/README.md`](src/frontend/README.md).
 - Conformance harness only: Docker, Python 3, and hosts-file entries — see
   [`build/conformance/README.md`](build/conformance/README.md).
@@ -17,6 +19,9 @@ enforced quality bar.
 ```pwsh
 # One-time after cloning — installs pinned local tools (CSharpier).
 dotnet tool restore
+
+# One-time after cloning — enables the repo-versioned git hooks.
+git config core.hooksPath .githooks
 
 # From the repo root — the single Definition-of-Done entrypoint CI also runs
 # (CSharpier check + restore + build + pack + tests + coverage):
@@ -66,6 +71,18 @@ marked tool-enforced or review-only. The highlights:
    [ADR-0125](docs/adr/0125-trunk-based-development-on-main.md).
 
 See [GOVERNANCE.md](GOVERNANCE.md) for ownership, the release lifecycle, and how versions map onto tags.
+
+## Commit attribution
+
+A commit records the **people** who authored it. **Never add a `Co-authored-by:` trailer naming an agent account**
+(`Copilot`, `copilot-swe-agent[bot]`, or any other tooling identity): the repository host reads that trailer as
+authorship and lists the agent in the contributor graph, which can only be undone by rewriting published history. Which
+tools produced a change belongs in the pull request, not in the commit's authorship record.
+
+The repo-versioned [`.githooks/commit-msg`](.githooks/commit-msg) hook strips such trailers automatically once hooks
+are enabled (`git config core.hooksPath .githooks` — see [Prerequisites](#prerequisites)). Hooks are client-side only,
+so this is a safety net, not a guarantee; don't write the trailer in the first place. See
+[ADR-0128](docs/adr/0128-commits-are-attributed-to-people-not-agents.md).
 
 ## Code formatting — CSharpier
 

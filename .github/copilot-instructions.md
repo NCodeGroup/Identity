@@ -50,6 +50,15 @@ backlog (pending items only). Record pending items there, not in chat history or
 done, **move** its text to the completed-items archive [`BACKLOG-COMPLETED.md`](../BACKLOG-COMPLETED.md) (don't just
 delete it) so completed work stays discoverable.
 
+## Commit attribution
+
+**Never add a `Co-authored-by:` trailer naming an agent account** (`Copilot`, `copilot-swe-agent[bot]`, or any other
+tooling identity) to a commit message. A commit records the **people** who authored it; the repository host reads that
+trailer as authorship and lists the agent in the contributor graph, which can only be undone by rewriting published
+history. The versioned [`.githooks/commit-msg`](../.githooks/commit-msg) hook strips such trailers as a safety net, but
+it is enabled per clone and must not be relied on — do not generate the trailer in the first place. See
+[ADR-0128](../docs/adr/0128-commits-are-attributed-to-people-not-agents.md).
+
 ## Push protocol
 
 When the user authorizes a push (says "push"), run these gates **before** pushing:

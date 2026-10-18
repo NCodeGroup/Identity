@@ -34,10 +34,16 @@ a **short-lived** branch opened when a change benefits from review on a pull req
 is deleted on merge. The prior default branch (`master`) is an ancestor of the trunk and is fully contained in it, so it
 is deleted rather than maintained or renamed.
 
-**Protect the trunk with checks, not approvals.** Branch protection on `main` requires the
-[Definition of Done](../../build/dod.ps1) to pass as a required status check. It does **not** require a human approval,
-because a quality gate that cannot be satisfied is not a gate. The approval requirement returns when a second
-maintainer exists.
+**Leave the trunk unprotected while pre-release.** `main` carries no branch protection: no required status check and
+no required approval. CI reports a verdict on every commit, but nothing blocks a push. Two reasons. First, the gate
+that would be required cannot be satisfied anyway — a single maintainer cannot produce an approval — and a required
+status check on a repository where every push is made by the person who ran the same gate locally only adds latency to
+a verdict already known. Second, and decisively, protection exists to stop a broken trunk reaching **consumers**;
+nothing is published, so a broken commit costs one person one fix-forward commit.
+
+Protection is adopted at the **first stable release**, not before: a required `Definition of Done` check, and an
+approval requirement once a second maintainer exists. That is the same trigger that ends the pre-release latitude in
+[ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md), so the two move together.
 
 **Gate deployment with an environment, not a branch.** A branch is a poor deployment gate: it conveys no approval
 and no audit record. Promotion to a hosted environment is gated by a deployment environment with its own required
@@ -55,7 +61,7 @@ others depend on.
   two branches whose roles are indistinguishable while unreleased, and still fails `publicReleaseRefSpec`, so builds keep
   a commit-height suffix for no reason.
 - **Keep requiring pull-request approval on the trunk.** Rejected as written: a single maintainer cannot satisfy it.
-  Required status checks give an enforceable gate; the approval requirement is deferred until it can be met.
+  Nor is a required status check adopted in its place while pre-release — see the decision above.
 - **Trunk-based development on `main` (chosen).** Matches the actual team size and release state, aligns the default
   branch with the version-stamping and host reporting, and removes a merge step that protects nothing.
 
@@ -65,8 +71,8 @@ others depend on.
   image tags and package versions derive from the trunk without a hash suffix.
 - Continuous integration triggers on `main` and on pull requests targeting it; a deployment workflow promotes from
   `main` through an environment gate.
-- Governance and the contributor guide describe a process the repository can actually follow: the "no self-approval"
-  rule is withdrawn until a second maintainer exists, and the required status check becomes the enforced gate.
+- Governance and the contributor guide describe a process the repository can actually follow: the trunk is unprotected
+  while pre-release, and the enforced gate is the one a contributor runs locally before pushing.
 - Release lines are unaffected: a shipped `major.minor` is still serviced from a long-lived `release/vX.Y` branch cut
   with `nbgv prepare-release`, and a release is still an annotated tag. This ADR removes only the *integration* branch,
   not the release-line model.

@@ -102,12 +102,16 @@ Manual because account creation and the first API token can't be created by an A
 1. Create the account with `<recovery-email>` and 2FA (security key). No payment method is needed.
 2. Note the **account ID** (the long hex value in the dashboard URL, or Account home → ⋯ → *Copy account ID*). It is an
    identifier, not a secret.
-3. Create a short-lived **bootstrap token**: My Profile → API Tokens → *Create Custom Token*:
+3. Create a short-lived **bootstrap token** on the day you run the bootstrap stack (it expires tomorrow): My Profile →
+   API Tokens → *Create Custom Token*, named `<infra-repo>-bootstrap-<yyyy-mm-dd>`:
    - Permissions: Account → *Account API Tokens* → Edit (to mint the scoped CI tokens); Account → *Email Routing
      Addresses* → Edit; Zone → *Zone* → Edit; Zone → *DNS* → Edit; Zone → *Zone Settings* → Edit; Zone → *Email Routing
      Rules* → Edit. _(Cloudflare renames permission groups occasionally — match by meaning.)_
-   - Account resources: only your account. Zone resources: all zones from that account.
-   - Client IP filtering: your current public IP. TTL: **expires tomorrow**.
+   - Account resources: only your account. Zone resources: *All zones from an account* → your account (not *All
+     zones*, which spans every account you can access).
+   - Client IP filtering: your current public IPv4 **and** IPv6 address, if you have one
+     (`Invoke-RestMethod https://api64.ipify.org`) — requests leave over IPv6 when it's available. TTL: **expires
+     tomorrow**.
 4. Keep the token only in an environment variable for the bootstrap run (`$env:CLOUDFLARE_API_TOKEN`); never write it to
    a file in the repository.
 
@@ -120,19 +124,46 @@ returns `status: active`.
 Manual because AWS accounts and the identity used to administer them must exist before any automation can authenticate.
 
 1. **Organization:** in your existing AWS account (it becomes the *management* account), open AWS Organizations →
-   *Create an organization*. Make sure its root user has MFA.
+   *Create an organization*. Make sure its root user has MFA. Signing in as root is acceptable for this one-time setup
+   if no IAM administrator exists yet; once IAM Identity Center is set up (item 4), stop using the root user.
 2. **Member account:** Organizations → *Add an AWS account* → *Create an AWS account*: name `nidentity-platform`, email
    a unique alias of `<recovery-email>` (for example a `+aws-platform` sub-address), IAM role name left as
-   `OrganizationAccountAccessRole`. It is billed to the management account — no new payment method.
-3. **Root credentials:** in IAM (management account) enable **centralized root access** for member accounts and remove
-   the new account's root credentials, so it has no root password to steal. _(If unavailable, set a strong root
-   password through "Forgot password" and enable MFA instead.)_
-4. **IAM Identity Center** in `<aws-region>` (its home region is hard to change later): enable it, create your user with
-   **MFA required**, create a permission set `AdministratorAccess` with a **1-hour** session, and assign it to you on
-   the `nidentity-platform` account. Create **no IAM users or access keys** — CI uses GitHub OIDC
-   ([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)).
-5. **Local profile:** `aws configure sso` → profile `nidentity-platform-admin`, region `<aws-region>`; then
-   `aws sso login --profile nidentity-platform-admin`.
+   `OrganizationAccountAccessRole`, tags `application` = `ncode-identity` and `owner_email` = `platform@<domain>`
+   ([ADR-0135](adr/0135-one-resource-tagging-strategy-across-every-vendor.md)). Leave it directly under *Root* — one
+   workload account needs no organizational units. It is billed to the management account — no new payment method.
+   Record its account ID: it goes into `live/bootstrap/terraform.tfvars` as `aws_account_id`.
+3. **Root access management:** in IAM (management account) → *Root access management* → **Enable** both capabilities,
+   with **no** delegated administrator (that would hand organization-wide root actions to the workload account). The
+   root user can enable it but can't use it — privileged actions run through `sts:AssumeRoot`, which refuses root — so
+   the new account's root credentials are checked at the end of item 4.
+4. **IAM Identity Center** — switch the console to `<aws-region>` **first**; the instance stays in the region it is
+   enabled in.
+   - *Enable* → organization instance, **Single-Region** (AWS-owned key). A multi-Region instance adds a
+     customer-managed KMS key whose loss locks everyone out, to keep human sign-in alive through a regional outage —
+     not worth it when CI uses GitHub OIDC and the management root user remains the break-glass.
+   - *Settings → Authentication → Multi-factor authentication*: **every time they sign in**; security keys and built-in
+     authenticators plus authenticator apps; users without a device must **register one at sign-in**.
+   - *Groups* → `platform-admins`; *Users* → your user (password by email), member of `platform-admins`.
+   - *Permission sets* → predefined `AdministratorAccess` with a **1-hour** session.
+   - *AWS accounts* → select `nidentity-platform` **and** the management account → assign the **group**
+     `platform-admins` with `AdministratorAccess`. Permissions go to the group, never the user, so adding or removing an
+     administrator is one membership change. The management-account assignment covers organization and billing work,
+     so the management account's root user (which centralized root access can't remove) goes back in the drawer with
+     its MFA device.
+   - Accept the invitation, set the password and MFA device, and note the **AWS access portal URL** from the
+     dashboard.
+
+   Create **no IAM users or access keys** — CI uses GitHub OIDC
+   ([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)). Then sign out of root, sign in
+   through the access portal to the management account, and in IAM → *Root access management* confirm that
+   `nidentity-platform` shows root user credentials **Not present** — an account created through Organizations never
+   had any, so *Delete root user credentials* is greyed out — and that password recovery is **not** allowed for it.
+   (Delete them with *Take privileged action* only if any are present.)
+5. **Local profile:** `aws configure sso` — session name `nidentity`, start URL = the access portal URL, SSO region
+   `<aws-region>`, default scopes; approve in the browser; account `nidentity-platform`, role `AdministratorAccess`,
+   client region `<aws-region>`, output `json`, profile name `nidentity-platform-admin`. Later sessions start with
+   `aws sso login --profile nidentity-platform-admin`. Ignore the portal's *Access keys* links — the profile fetches
+   short-lived credentials itself.
 
 **Verify:** `aws sts get-caller-identity --profile nidentity-platform-admin` returns the member account ID and an
 `AWSReservedSSO_AdministratorAccess_…` role.

@@ -794,6 +794,12 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   the serving host; only a dev copy exists (`apps/mgmt/public/config/bootstrap.json`). Add a host endpoint that emits
   the bootstrap document (API base, issuer, feature flags, branding) per deployment so one bundle serves every tier.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]._
+- **`U5` — Frontend CI job.** The frontend toolchain is intentionally outside `dod.ps1`. Add a separate CI job
+  (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
+  _Closed: [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml) — a path-filtered workflow running
+  Corepack-pinned pnpm on Node 22, then `format:check`, `lint`, `typecheck`, `test`, and `build` as separate steps so a
+  failure names its stage. Landing it also uncovered and fixed a `.prettierignore` gap: Prettier walked the gitignored
+  `.turbo/cache` build output, so `format:check` reported 122 false "code style issues" and could never pass._
 - **`U7` — Runtime consumption + auditing of resource-server secrets/settings.** [ADR-0066](docs/adr/0066-resource-server-settings-and-secret-owner.md)
   delivers resource-server settings/secrets **management** only. Two follow-ups remain: (1) **runtime consumption** —
   resource servers have no runtime domain object and are not resolved at token-issuance time, so the stored per-audience

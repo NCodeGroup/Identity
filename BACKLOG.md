@@ -68,7 +68,7 @@ entry and/or ADR that closed it.
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
 | `F` — Feature gaps                    | `F41`     | `F40`      |
 | `T` — Conformance & interop testing   | `T9`      | `T8`       |
-| `U` — Frontend presentation platform  | `U14`     | `U13`      |
+| `U` — Frontend presentation platform  | `U15`     | `U14`      |
 | `S` — Secrets management              | `S10`     | `S9`       |
 | `X` — Tooling & agent customization   | `X4`      | `X3`       |
 
@@ -354,6 +354,17 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
 
 - **`U5` — Frontend CI job.** The frontend toolchain is intentionally outside `dod.ps1`. Add a separate CI job
   (`corepack` + `pnpm install` + `turbo run lint typecheck test build`) so the platform is gated independently.
+  The .NET gate now runs on GitHub Actions ([ADR-0125](docs/adr/0125-trunk-based-development-on-main.md),
+  [`.github/workflows/ci.yml`](.github/workflows/ci.yml)), so this is the remaining untested tier.
+- **`U14` — Frontend dev-dependency security advisories.** `pnpm audit` reports 10 advisories (3 critical, 1 high,
+  6 moderate) against [`src/frontend/pnpm-lock.yaml`](src/frontend/pnpm-lock.yaml); GitHub Dependabot counts the same
+  advisories per workspace path and reports them as 47 alerts on the default branch. Every one is a **`devDependency`
+  of the test/dev toolchain** — `vitest` 2.1.9 and `@vitest/mocker`, `vite`, `esbuild`, `tinypool`, `launch-editor`,
+  `uuid` — reachable only when the Vitest UI server or the Vite dev server is running locally. **None ship**: the
+  `apps/auth` bundle served by the OP host is static build output, and no NuGet package is affected
+  (`dotnet list package --vulnerable --include-transitive` is clean). Clearing them means a `vitest` 2 → 4 major
+  upgrade across every app plus the matching `vite`/`esbuild` bumps; do it with `U5` so the new CI job proves the
+  upgrade rather than discovering it later.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
 - **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML

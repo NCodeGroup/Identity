@@ -458,15 +458,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Abstractions/Settings/ISecurityProfile.cs`. Capture the design in an ADR (amending
   [ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
 
-- **`F59` — Let configuration replace the developer seed's default SPA clients.**
-  `DeveloperInteractiveSeedOptions.SpaClients` starts with the `mgmt-spa` and `playground-spa` entries, and the
-  configuration binder appends configured entries to a list that already holds some, so configuring
-  `DeveloperInteractiveSeed:SpaClients` adds clients but can never remove or replace the defaults (the convention:
-  a bound collection starts empty and its default applies only when nothing is configured). Start the list empty and
-  apply the two defaults when none are configured. Touch points:
-  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperInteractiveSeedOptions.cs`,
-  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperInteractiveSeedHandler.cs`.
-
 ## Conformance & interop testing (group `T`)
 
 - **`T1` (subsumes `T6`) — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite,

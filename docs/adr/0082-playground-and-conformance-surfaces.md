@@ -1,6 +1,8 @@
 # 82. Playground flow explorer, conformance posture dashboard, and surface-aware bootstrap
 
-- **Status:** Accepted
+- **Status:** Accepted (developer SPA client seeding amended by
+  [ADR-0146](0146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md): the seed has no
+  built-in clients, and the host declares them beside the client ids it publishes)
 - **Date:** 2026-10-12
 - **Deciders:** NCode Group
 

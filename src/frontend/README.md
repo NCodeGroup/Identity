@@ -171,9 +171,13 @@ scope binds the audience — see [ADR-0044](../../docs/adr/0044-management-api-a
   screen to start the flow. **When no `clientId` is discovered it runs open** (local dev), so the
   console renders without a login.
 - The SPA's public `clientId` and `scopes` come from the runtime bootstrap document — nothing is baked
-  in. End-to-end sign-in additionally needs a registered public SPA client (seeded in development by
-  `AddDeveloperInteractiveSeed`) and the OP-hosted interactive login surface (`apps/auth`); both now exist
-  (backlog `T2`, done).
+  in. End-to-end sign-in additionally needs a registered public SPA client and the OP-hosted interactive login
+  surface (`apps/auth`). In development the host declares each surface's client under
+  `DeveloperInteractiveSeed:SpaClients` (seeded by `AddDeveloperInteractiveSeed`), beside the `Frontend` section that
+  publishes the same client id; the reference host does both in its `appsettings.Development.json`, where
+  `playground-spa` requires consent so the flow explorer exercises the consent surface. The seed has no built-in
+  clients ([ADR-0146](../../docs/adr/0146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)),
+  so a surface you add needs both entries.
 
 ## Running the full stack (VS Code F5)
 

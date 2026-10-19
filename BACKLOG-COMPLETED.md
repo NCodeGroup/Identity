@@ -944,6 +944,25 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `RegisterClientAuthenticationMethod` migration (verified against Postgres, including rollback and idempotent re-apply)
   turns a single-method ceiling into a registration and removes empty registrations._
 
+- **`F59` — Let configuration replace the developer seed's default SPA clients.**
+  `DeveloperInteractiveSeedOptions.SpaClients` starts with the `mgmt-spa` and `playground-spa` entries, and the
+  configuration binder appends configured entries to a list that already holds some, so configuring
+  `DeveloperInteractiveSeed:SpaClients` adds clients but can never remove or replace the defaults (the convention:
+  a bound collection starts empty and its default applies only when nothing is configured). Start the list empty and
+  apply the two defaults when none are configured. Touch points:
+  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperInteractiveSeedOptions.cs`,
+  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperInteractiveSeedHandler.cs`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0146](docs/adr/0146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md). The list
+  starts empty, but the two clients were not kept as a library default applied when none are configured. The seed now
+  has no built-in clients and registers exactly what configuration declares, so it is inert in a host that does not
+  ask for it (the Conformance environment had been persisting both loopback clients). The reference host declares
+  `mgmt-spa` and `playground-spa` in `appsettings.Development.json`, beside the `Frontend` section that publishes the
+  same client ids. An integration test (`DeveloperSpaClientSeedingTests`) fails if a published client id is not
+  seeded, or if a seeded client does not resolve at the authorization endpoint with each of its redirect URIs. The
+  handler needed no change._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

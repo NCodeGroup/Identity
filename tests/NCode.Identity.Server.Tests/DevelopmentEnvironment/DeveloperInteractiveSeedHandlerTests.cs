@@ -75,14 +75,16 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         );
     }
 
+    private static DeveloperSpaClientSeed CreateSpaClient() =>
+        new() { ClientId = "spa", RedirectUris = ["https://spa.example/callback"] };
+
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_WhenNothingConfiguredToSeed_DoesNothing()
+    public async Task HandleAsync_WhenNothingConfigured_DoesNothing()
     {
-        var handler = CreateHandler(
-            new DeveloperInteractiveSeedOptions { SpaClients = [], AdminPassword = null }
-        );
+        // There are no built-in clients and no default password, so the default options seed nothing.
+        var handler = CreateHandler(new DeveloperInteractiveSeedOptions());
 
         await handler.HandleAsync(
             CreateCommand(WorkloadTenantId, TenantPlane.Workload),
@@ -94,7 +96,11 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
     public async Task HandleAsync_WhenRootPlane_DoesNothing()
     {
         var handler = CreateHandler(
-            new DeveloperInteractiveSeedOptions { AdminPassword = "dev-password" }
+            new DeveloperInteractiveSeedOptions
+            {
+                SpaClients = [CreateSpaClient()],
+                AdminPassword = "dev-password",
+            }
         );
 
         await handler.HandleAsync(CreateCommand("root", TenantPlane.Root), CancellationToken.None);
@@ -106,6 +112,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         var handler = CreateHandler(
             new DeveloperInteractiveSeedOptions
             {
+                SpaClients = [CreateSpaClient()],
                 AdminPassword = "dev-password",
                 TenantId = "tenant-a",
             }
@@ -140,14 +147,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
 
         var options = new DeveloperInteractiveSeedOptions
         {
-            SpaClients =
-            [
-                new DeveloperSpaClientSeed
-                {
-                    ClientId = "spa",
-                    RedirectUris = ["https://spa.example/callback"],
-                },
-            ],
+            SpaClients = [CreateSpaClient()],
             AdminPassword = null,
         };
         var handler = new DeveloperInteractiveSeedHandler(

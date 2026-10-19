@@ -41,26 +41,18 @@ public sealed class DeveloperInteractiveSeedOptions
 
     /// <summary>
     /// Gets or sets the public (PKCE-only) single-page-application clients to seed, one per interactive frontend
-    /// surface that runs as its own dev-server origin. Defaults to the Management console and the Playground flow
-    /// explorer; read-only surfaces (for example, the conformance dashboard) perform no interactive login and so need
-    /// no client here.
+    /// surface that runs as its own dev-server origin; read-only surfaces (for example, the conformance dashboard)
+    /// perform no interactive login and so need no client here. Defaults to empty, so no client is seeded unless
+    /// configuration declares one.
     /// </summary>
-    public IList<DeveloperSpaClientSeed> SpaClients { get; set; } =
-    [
-        new()
-        {
-            ClientId = "mgmt-spa",
-            RedirectUris = ["http://localhost:5173/callback", "https://localhost:5173/callback"],
-        },
-        new()
-        {
-            ClientId = "playground-spa",
-            RedirectUris = ["http://localhost:5174/callback", "https://localhost:5174/callback"],
-            // The Playground is a flow explorer; requiring consent makes the OP exercise its durable, granular consent
-            // surface on first authorization (and remember the decision thereafter).
-            RequireConsent = true,
-        },
-    ];
+    /// <remarks>
+    /// There are no built-in clients: a surface's client id is published by the host's <c>Frontend</c> section, so
+    /// the host declares the matching client next to it (the reference host does so in its Development overlay).
+    /// Starting empty also lets configuration replace the list, because the configuration binder appends the
+    /// configured entries to a list that already holds some.
+    /// </remarks>
+    // See ADR-0146.
+    public IList<DeveloperSpaClientSeed> SpaClients { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the administrator user name to seed. When empty, no user is seeded.

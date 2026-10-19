@@ -24,8 +24,9 @@
 
 .NOTES
     Prerequisites (see `build/conformance/README.md`):
-      - Docker (Compose v2) and a real Python 3 on PATH (not the Windows Store alias); the .NET SDK and Node 22 via
-        NVS (`nvs add 22`; Corepack provides the pinned pnpm) for the pre-flight.
+      - Docker (Compose v2) and a real Python 3 on PATH (not the Windows Store alias); the .NET SDK and NVS for the
+        pre-flight (`build/frontend-install.ps1` adds the Node major pinned in `src/frontend/.node-version` and the
+        pinned pnpm).
       - Hosts-file entries `127.0.0.1  localhost.emobix.co.uk` (the suite's external base URL) and
         `127.0.0.1  host.docker.internal` (the OP issuer, probed from the host).
       - The seeded conformance clients / test user from `appsettings.Conformance.json` (backlog `T4`).
@@ -251,7 +252,7 @@ try {
         if (-not $SkipFrontendInstall) {
             # The pnpm workspace must be installed for vite-node to resolve; the bootstrap is idempotent and also
             # self-heals a partially-installed node_modules (a present root but missing per-app links). It also puts the
-            # NVS-managed Node 22 (and Corepack's pnpm shim) on this process's PATH, so pnpm is checked only afterwards.
+            # pinned Node (and the pinned pnpm beside it) on this process's PATH, so pnpm is checked only afterwards.
             Write-Host '    Ensuring the frontend workspace is installed.' -ForegroundColor Gray
             & (Join-Path $RepoRoot 'build/frontend-install.ps1')
             if ($LASTEXITCODE -ne 0) { throw 'Frontend workspace install failed; cannot run the pre-flight.' }

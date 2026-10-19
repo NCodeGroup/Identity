@@ -57,40 +57,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Corepack ships with Node and provides the `pnpm` shim. Enabling it is what lets the workspace's
-      # "packageManager" pin decide the pnpm version, so CI and a developer machine run identical tooling.
-      - name: Enable Corepack
-        run: corepack enable
-        working-directory: .
-
+      # The Node major is pinned once, in src/frontend/.node-version, which is the same file NVS selects locally and the
+      # Aspire AppHost reads (ADR-0152), so CI runs the runtime a developer machine runs.
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          # Matches the Node major the Aspire AppHost expects locally (ADR-0071) and satisfies the workspace's
-          # "engines" floor.
-          node-version: 22
+          node-version-file: src/frontend/.node-version
 
-      # Materialize the pnpm version pinned by the workspace's "packageManager" field, so `pnpm` is a real binary
-      # before anything asks it for a path.
-      #
-      # setup-node's built-in `cache: pnpm` deliberately is NOT used: it resolves the store location during its own
-      # setup step, which runs before Corepack has downloaded pnpm, so it registers a path that never comes into
-      # existence and then fails the job at post-job cleanup with "Path Validation Error: Path(s) specified in the
-      # action for caching do(es) not exist" — after every check has already passed. Resolving the store ourselves,
-      # once pnpm genuinely exists, is what makes the cache real.
-      - name: Activate pnpm
-        run: corepack prepare --activate
-
-      - name: Resolve the pnpm store
-        run: echo "PNPM_STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
-
-      - name: Cache the pnpm store
-        uses: actions/cache@v6
+      # Installs the exact pnpm the workspace's "packageManager" field pins (Node no longer bundles Corepack, which used
+      # to provide it), so CI and a developer machine run identical tooling. It also caches the pnpm store, resolving
+      # the store path after pnpm exists. setup-node's own `cache: pnpm` resolves it earlier, before pnpm is installed,
+      # and then fails the job at post-job cleanup ("Path Validation Error") after every check has passed.
+      # A third-party action, so it is pinned to a commit; Dependabot moves the pin and its version comment together.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
-          path: ${{ env.PNPM_STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('src/frontend/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-
+          package_json_file: src/frontend/package.json
+          cache: true
+          cache_dependency_path: src/frontend/pnpm-lock.yaml
 
       # --frozen-lockfile makes the lockfile authoritative: CI fails rather than silently resolving a different tree
       # when a manifest and the lockfile disagree.

@@ -1,14 +1,19 @@
 #!/usr/bin/env pwsh
-# One-time frontend bootstrap: ensures the repo-pinned Node (via NVS) is reachable and installs the pnpm workspace.
+# One-time frontend bootstrap: ensures the repo-pinned Node and pnpm are reachable and installs the pnpm workspace.
 #
 # Orchestration is owned by .NET Aspire now (see docs/adr/0071): the `Aspire: Full stack (F5)` launch starts the
 # AppHost, which runs each app's own `dev` script with deterministic, health-gated ordering. This script no longer
 # runs `pnpm dev` — it only prepares the workspace so Aspire can spawn pnpm/node:
-#   - The AppHost auto-prepends the newest NVS-managed Node 22 to its PATH, so `nvs add 22` is enough (no `nvs link`);
-#     `corepack enable` below installs the `pnpm` shim into that same Node directory so Aspire finds pnpm there.
+#   - The Node major is pinned once, in src/frontend/.node-version (CI and the AppHost read it too). With NVS, this
+#     script adds that major when it is missing, and the AppHost prepends the same install to its PATH, so no
+#     `nvs link` is needed. Any other version manager works as long as `node` on PATH is the pinned major.
+#   - pnpm is the exact version the workspace's "packageManager" field pins. Node no longer bundles Corepack, so this
+#     script installs that version with the pinned Node's npm, into its global prefix — for NVS, the Node directory
+#     itself, so Aspire finds pnpm next to node.
 #   - Installing the pnpm workspace once from the root avoids the per-app installs Aspire would otherwise run
 #     concurrently against the shared, symlinked node_modules.
-# Run this once after a fresh clone (or when dependencies change), then launch `Aspire: Full stack (F5)`.
+# Run this once after a fresh clone, and again when dependencies or the pinned Node/pnpm change, then launch
+# `Aspire: Full stack (F5)`.
 #
 # SELF-HEAL: a fast `--frozen-lockfile` install is a no-op when pnpm believes node_modules matches the lockfile — but
 # it will NOT rebuild symlinks that were deleted/broken out-of-band (branch switches, antivirus, OneDrive, an aborted
@@ -20,8 +25,38 @@
 
 $ErrorActionPreference = 'Stop'
 
+# Returns the major of a Node version string ("26", "26.12.0", or "v26.12.0").
+function Get-NodeMajor {
+    param([Parameter(Mandatory)][string] $Version)
+
+    return [int] ($Version.Trim().TrimStart('v') -split '\.')[0]
+}
+
+# Returns the x64 directory of the newest NVS-managed install of the given Node major, or $null when there is none.
+# Versions compare numerically (22.9.0 < 22.22.2), never as strings — the AppHost selects the same way.
+function Find-NvsNode {
+    param([Parameter(Mandatory)][int] $Major)
+
+    if (-not $env:LOCALAPPDATA) {
+        return $null
+    }
+
+    $nvsNodeRoot = Join-Path $env:LOCALAPPDATA 'nvs/node'
+    $installs = Get-ChildItem -Path $nvsNodeRoot -Directory -Filter "$Major.*" -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            $version = $null
+            if ([version]::TryParse($_.Name, [ref] $version) -and $version.Major -eq $Major) {
+                [pscustomobject] @{ Version = $version; Directory = Join-Path $_.FullName 'x64' }
+            }
+        } |
+        Where-Object { Test-Path -LiteralPath $_.Directory } |
+        Sort-Object -Property Version -Descending
+
+    return @($installs)[0].Directory
+}
+
 # Returns $false when any workspace package is missing a directly-declared dependency under its own node_modules.
-# pnpm's isolated layout (shamefully-hoist=false) symlinks every DIRECT dependency into the owning package's
+# pnpm's isolated layout (`shamefullyHoist: false`) symlinks every DIRECT dependency into the owning package's
 # node_modules (transitives live in the shared .pnpm store), so a missing entry is a reliable corruption signal.
 # Test-Path follows reparse points, so a broken junction (target gone) also reports missing — exactly what we want.
 function Test-FrontendNodeModulesIntact {
@@ -57,25 +92,58 @@ function Test-FrontendNodeModulesIntact {
     return $true
 }
 
-# Put the NVS-managed Node 22 on PATH for this process (Node is not on the global PATH unless `nvs link`ed).
-$nodeDir = (Get-ChildItem "$env:LOCALAPPDATA\nvs\node\22*\x64" -Directory -ErrorAction SilentlyContinue |
-    Select-Object -First 1).FullName
-if ($nodeDir) {
-    $env:Path = "$nodeDir;$env:Path"
-}
-
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    throw "Node.js 22 was not found. Install it with NVS: 'nvs add 22' (the AppHost adds it to PATH automatically)."
-}
-
-# Let corepack provision the repo-pinned pnpm non-interactively.
-$env:COREPACK_ENABLE_DOWNLOAD_PROMPT = '0'
-corepack enable 2>$null | Out-Null
-
 $frontendDir = (Join-Path $PSScriptRoot '..' | Join-Path -ChildPath 'src' | Join-Path -ChildPath 'frontend')
+$nodeMajor = Get-NodeMajor (Get-Content -LiteralPath (Join-Path $frontendDir '.node-version') -Raw)
+
+# Put the NVS-managed Node of the pinned major on PATH for this process (Node is not on the global PATH unless
+# `nvs link`ed), adding it through NVS first when it is missing.
+$nodeDir = Find-NvsNode $nodeMajor
+if (-not $nodeDir -and (Get-Command nvs -ErrorAction SilentlyContinue)) {
+    Write-Host "Adding Node $nodeMajor (src/frontend/.node-version) with NVS..." -ForegroundColor Yellow
+    nvs add $nodeMajor
+    $nodeDir = Find-NvsNode $nodeMajor
+}
+if ($nodeDir) {
+    $env:PATH = $nodeDir + [IO.Path]::PathSeparator + $env:PATH
+}
+
+$nodeVersion = if (Get-Command node -ErrorAction SilentlyContinue) { node --version }
+if (-not $nodeVersion -or (Get-NodeMajor $nodeVersion) -ne $nodeMajor) {
+    $found = if ($nodeVersion) { "'node' on PATH is $nodeVersion" } else { "'node' is not on PATH" }
+    throw ("Node.js $nodeMajor (pinned in src/frontend/.node-version) was not found; $found. Install NVS and " +
+        "re-run this script, which adds the pinned major ('nvs add $nodeMajor').")
+}
+
+# Install the exact pnpm the workspace pins into the selected Node's npm global prefix, unless it is already there, and
+# put that prefix first on PATH so this script runs the same pnpm the AppHost will.
+$packageJsonPath = Join-Path $frontendDir 'package.json'
+$packageManager = (Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json).packageManager
+if ($packageManager -notmatch '^pnpm@(?<version>[^+]+)') {
+    throw "src/frontend/package.json must pin pnpm in its ""packageManager"" field (found '$packageManager')."
+}
+$pnpmVersion = $Matches.version
+$installedPnpmManifest = Join-Path (npm root --global) 'pnpm/package.json'
+$installedPnpmVersion = if (Test-Path -LiteralPath $installedPnpmManifest) {
+    (Get-Content -LiteralPath $installedPnpmManifest -Raw | ConvertFrom-Json).version
+}
+if ($installedPnpmVersion -ne $pnpmVersion) {
+    Write-Host "Installing pnpm $pnpmVersion for Node $nodeVersion..." -ForegroundColor Yellow
+    npm install --global "pnpm@$pnpmVersion"
+    if ($LASTEXITCODE -ne 0) {
+        throw "npm install --global pnpm@$pnpmVersion failed with exit code $LASTEXITCODE."
+    }
+}
+$npmGlobalBin = npm prefix --global
+if (-not $IsWindows) {
+    $npmGlobalBin = Join-Path $npmGlobalBin 'bin'
+}
+$env:PATH = $npmGlobalBin + [IO.Path]::PathSeparator + $env:PATH
+
 Set-Location $frontendDir
 
-pnpm install --frozen-lockfile
+# This script is the workspace's installer, so pnpm may replace node_modules wholesale (a pnpm major or a changed
+# store layout requires it) without the interactive confirmation it otherwise asks for.
+pnpm install --frozen-lockfile --config.confirm-modules-purge=false
 if ($LASTEXITCODE -ne 0) {
     throw "pnpm install failed with exit code $LASTEXITCODE."
 }
@@ -86,7 +154,7 @@ if ($LASTEXITCODE -ne 0) {
 if (-not (Test-FrontendNodeModulesIntact -Root $frontendDir)) {
     Write-Host "node_modules is out of sync; repairing with a forced reinstall..." -ForegroundColor Yellow
 
-    pnpm install --force
+    pnpm install --force --config.confirm-modules-purge=false
     if ($LASTEXITCODE -ne 0) {
         throw "pnpm install --force failed with exit code $LASTEXITCODE."
     }

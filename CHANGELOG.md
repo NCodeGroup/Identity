@@ -77,6 +77,24 @@ change to the public API is a **major** version bump.
   weekly grouped update no longer brings back the two upgrades that cannot land yet. See
   [ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md).
 
+- **The frontend runs on Node 26, and its Node and pnpm versions are each set in one place.** Node 22 is in
+  Maintenance LTS; Node 26 enters Active LTS on 2026-10-28 and is supported until 2029-04-30.
+  `src/frontend/.node-version` is now the only place the Node major is set. CI reads it (`node-version-file`), and so
+  do the Aspire AppHost and `build/frontend-install.ps1` when they pick the NVS install. Previously both could pick an
+  older install: the AppHost compared versions as text (`22.9.0` sorted above `22.22.2`), and the script took the first
+  directory. `engines.node` is now `>=26.0.0`, and `@types/node` moves to 26.
+
+  Node no longer ships Corepack, which used to provide pnpm. `build/frontend-install.ps1` now installs the exact pnpm
+  the `packageManager` field pins, beside the pinned Node, after adding that Node through NVS if it is missing. CI uses
+  `pnpm/action-setup`. pnpm moves from 9.12 to 10.34, the newest major Dependabot supports: Dependabot cannot read the
+  lockfile pnpm 12 writes, so moving further would silently stop security updates (backlog `U21`). Every pnpm setting
+  now lives in `pnpm-workspace.yaml`. A dependency's install script fails `pnpm install` until it is allowed or denied
+  there; esbuild's is denied because esbuild does not need it.
+
+  **Action:** run `./build/frontend-install.ps1` once. It adds Node 26 through NVS, installs pnpm 10, and lets pnpm
+  replace the `node_modules` that pnpm 9 built. See
+  [ADR-0152](docs/adr/0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md).
+
 - **Frontend tests fail on warnings, and frontend coverage can no longer fall unnoticed.** A test that logs
   `console.error` or `console.warn` now fails. The usual culprit is a React "not wrapped in act(...)" warning, which
   means the test asserted before an update settled. The check comes from a console guard in the new test-only

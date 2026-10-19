@@ -31,8 +31,9 @@ Registration. Secrets are the dev-only conformance credentials — this is a loc
 1. **Docker** (Compose v2) running; the **.NET SDK** pinned in [`global.json`](../../global.json).
 2. A real **Python 3** on PATH. The Windows Microsoft Store `python` alias is on PATH but fails when run, so it
    does not count.
-3. **Node 22 via [NVS](https://github.com/jasongin/nvs)** for the pre-flight;
-   [`build/frontend-install.ps1`](../frontend-install.ps1) puts it on PATH and enables Corepack's pinned pnpm.
+3. **[NVS](https://github.com/jasongin/nvs)** for the pre-flight;
+   [`build/frontend-install.ps1`](../frontend-install.ps1) adds the Node major pinned in
+   [`src/frontend/.node-version`](../../src/frontend/.node-version), puts it on PATH, and installs the pinned pnpm.
 4. Hosts-file entries so both origins resolve to loopback from the host:
     ```
     127.0.0.1  localhost.emobix.co.uk
@@ -55,11 +56,11 @@ winget install 9NQ7512CXL7T -e --accept-package-agreements --disable-interactivi
 py install default
 python --version   # new terminal; must print "Python 3.x", not the Store "Python was not found" stub
 
-# Node 22 via NVS, per-user (no admin): clone into %LOCALAPPDATA%\nvs and add it to the user PATH.
+# NVS, per-user (no admin): clone into %LOCALAPPDATA%\nvs and add it to the user PATH. The harness's first run adds
+# the pinned Node major through it (build/frontend-install.ps1).
 $env:NVS_HOME = "$env:LOCALAPPDATA\nvs"
 git clone https://github.com/jasongin/nvs "$env:NVS_HOME"
 . "$env:NVS_HOME\nvs.ps1" install
-nvs add 22
 
 # Hosts entries — run from an ELEVATED PowerShell; appends only the missing ones.
 $hostsFile = "$env:SystemRoot\System32\drivers\etc\hosts"

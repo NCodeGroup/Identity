@@ -74,7 +74,7 @@ entry and/or ADR that closed it.
 | `D` — Deferred, intentionally not-yet | `D16`     | `D15`      |
 | `F` — Feature gaps                    | `F65`     | `F64`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
-| `U` — Frontend presentation platform  | `U21`     | `U20`      |
+| `U` — Frontend presentation platform  | `U22`     | `U21`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
 | `X` — Tooling & agent customization   | `X5`      | `X4`       |
 
@@ -576,16 +576,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `typescript-eslint` widens its peer range to 7, bump every workspace's `typescript` together, drop the Dependabot
   ignore, and keep `pnpm typecheck` (`tsc --noEmit`) and `pnpm lint` green. Touch points: `src/frontend/package.json`
   and each `apps/*` / `packages/*` `package.json`, `.github/dependabot.yml`.
-- **`U16` — Move the frontend toolchain runtime to the next Node LTS.** The frontend runs on Node 22
-  ([`.node-version`](src/frontend/.node-version), the CI `node-version`), which is in Maintenance LTS until
-  2027-04-30; Node 24 is Active LTS until 2026-10-20 and Node 26 enters Active LTS on 2026-10-28. `@types/node` tracks
-  the runtime major and Dependabot ignores its majors
-  ([ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)), so the move is
-  one deliberate change: `.node-version`, `node-version` in
-  [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml), `engines.node` and the `@types/node` range in
-  [`src/frontend/package.json`](src/frontend/package.json) (plus `apps/conformance-runner`), the Aspire AppHost's NVS
-  lookup ([ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)), and the Node 22 mentions in
-  [`src/frontend/README.md`](src/frontend/README.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - **`U18` — One `BootstrapGate` for every standalone surface.** `apps/mgmt`, `apps/playground`, and
   `apps/conformance` each carry a copy of `src/BootstrapGate.tsx` that differs only in its doc comment — each discovers
   the runtime configuration through its own `bootstrap.ts` (the surface binding), dispatches it to the store, and themes
@@ -613,6 +603,20 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   build-time counterpart of the test gates in
   [ADR-0151](docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md).
   Touch points: each app's `vite.config.ts` and `src/App.tsx`.
+- **`U21` — Move pnpm to its current major once Dependabot supports it.** The workspace pins pnpm 10 in the
+  `packageManager` field, the newest major Dependabot officially supports
+  ([ADR-0152](docs/adr/0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)). pnpm 12 is
+  current. It is a native executable and can also provision Node itself (`devEngines.runtime`, the `pnpm/setup`
+  action), locking both versions with checksums in `pnpm-lock.yaml`. That would replace NVS, `actions/setup-node`, and
+  the AppHost's NVS lookup with one pin. It cannot land yet: Dependabot reads pnpm 12's multi-document lockfile as an
+  empty dependency graph and stops raising security updates (dependabot-core#15904), does not officially support
+  pnpm 11 or 12 (dependabot-core#16397), and ignores `devEngines` (dependabot-core#13722). When it supports them, bump
+  `packageManager` by hand (Dependabot never does, dependabot-core#4830), regenerate the lockfile, decide whether
+  `devEngines.runtime` replaces `.node-version` as the single Node pin, and keep `strictDepBuilds` with the reviewed
+  `allowBuilds` list. Touch points: [`src/frontend/package.json`](src/frontend/package.json),
+  [`pnpm-workspace.yaml`](src/frontend/pnpm-workspace.yaml), `pnpm-lock.yaml`,
+  [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml),
+  [`build/frontend-install.ps1`](build/frontend-install.ps1), the AppHost's `EnsurePinnedNodeOnPath`.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
 - **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML

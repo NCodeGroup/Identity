@@ -19,25 +19,31 @@ Management, Auth/Consent/Login, Playground, and OIDC conformance. Decision recor
 
 This toolchain is intentionally **outside** the .NET `dod.ps1` inner loop; it has its own scripts.
 
-### Package manager — pnpm via Corepack
+### Package manager — pnpm, pinned by `packageManager`
 
-The pnpm version is pinned in the root [`package.json`](package.json) `packageManager` field and
-activated with **Corepack** (built into Node ≥ 20), so every machine and CI runner uses the exact same
-pnpm with no global install:
+The pnpm version is pinned in the root [`package.json`](package.json) `packageManager` field, so every machine and CI
+runner uses the exact same pnpm. Node no longer bundles Corepack, so nothing activates it implicitly:
+[`build/frontend-install.ps1`](../../build/frontend-install.ps1) installs the pinned version with the pinned Node's
+npm, and CI installs it with `pnpm/action-setup`. A globally installed pnpm 10 or later also switches to the pinned
+version by itself. The pin stays on the newest pnpm major Dependabot supports (10), and Dependabot does not bump it, so
+it moves only by a deliberate change (backlog `U21`,
+[ADR-0152](../../docs/adr/0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
 
-```sh
-corepack enable            # one-time: let Corepack shim pnpm/yarn/npm
-corepack prepare --activate # activate the pinned pnpm@… from packageManager
-```
+Every pnpm setting lives in [`pnpm-workspace.yaml`](pnpm-workspace.yaml), not `.npmrc` or the `package.json` `pnpm`
+field. Dependency install scripts are denied unless reviewed: `strictDepBuilds` fails an install on any script nobody
+has decided about, and `allowBuilds` records each decision.
 
 We deliberately use pnpm's strict, symlinked `node_modules` rather than Yarn Plug'n'Play or
 zero-installs: PnP needs patches for the Vite + Storybook + emotion/MUI stack and zero-installs would
 bloat the repo (see [ADR-0064](../../docs/adr/0064-frontend-presentation-platform.md)).
 
-The Node major version is pinned in [`.node-version`](.node-version) (Node 22, at least 22.13 — the floor the
-toolchain's `engines` states), honored by NVS, nvm, and fnm, so each repo selects its own Node. `@types/node`
-tracks that major, not the newest release
-([ADR-0147](../../docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). With
+The Node major version is pinned once, in [`.node-version`](.node-version) (Node 26). CI reads it
+(`node-version-file`), the Aspire AppHost and `build/frontend-install.ps1` read it to select the NVS install, and NVS
+and fnm honor it, so each repo selects its own Node (nvm reads only `.nvmrc`). `engines.node` states the same
+major as the floor — it is also what makes Turborepo's cache miss when the runtime changes — and `@types/node` tracks
+that major, not the newest release
+([ADR-0147](../../docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Moving to a
+new major changes `.node-version`, `engines.node`, and the `@types/node` ranges together. With
 NVS: `nvs auto on` switches automatically on `cd`; it only lasts for the current shell, so persist it in your shell
 profile:
 
@@ -222,12 +228,12 @@ conformance-dashboard Vite dev server (`conformance`, :5175). Aspire gates each 
 **healthy** (`WaitFor` + `/health`), so the browser UIs no longer race the API, and its **dashboard** is one place
 for ordered startup, logs, and traces.
 
-One-time setup (**required** before the first launch, and again whenever dependencies change): run
-[`build/frontend-install.ps1`](../../build/frontend-install.ps1) to install the pnpm workspace and enable the
-Corepack `pnpm` shim. The AppHost does **not** auto-install (concurrent per-app installs collide on a pnpm
-workspace), so this script is the single installer. The AppHost automatically puts the repo-pinned
-**NVS-managed Node 22** on `PATH` for the frontend resources, so you only need `nvs add 22` once — no global
-`nvs link` required.
+One-time setup (**required** before the first launch, and again whenever dependencies or the pinned Node/pnpm change):
+run [`build/frontend-install.ps1`](../../build/frontend-install.ps1). It adds the Node major pinned in
+[`.node-version`](.node-version) through NVS when it is missing, installs the pinned pnpm beside it, and installs the
+pnpm workspace. The AppHost does **not** auto-install (concurrent per-app installs collide on a pnpm workspace), so
+this script is the single installer. The AppHost automatically puts that **NVS-managed Node** (and the pnpm beside it)
+first on `PATH` for the frontend resources — no global `nvs link` required.
 
 > **Self-healing / repair.** If a surface fails at dev time with Vite `Failed to resolve import "react-redux"` (or any
 > workspace dependency) — the symptom of `node_modules` symlinks lost out-of-band to a branch switch, antivirus, or an
@@ -335,11 +341,27 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   reference no longer types that key — configs are not in any tsconfig, so only the editor shows it); and a jsdom app
   whose tests import `node:` modules lists `"node"` in `types` (as [`apps/playground`](apps/playground) does for
   `webcrypto`, which jsdom lacks).
-- **`@types/node` is pinned to the runtime major workspace-wide.** The root `devDependency` is the one range; a
-  `pnpm.overrides` entry (`"@types/node": "$@types/node"`) forces every transitive and auto-installed copy to it —
-  without it, `auto-install-peers` resolves Vite's and Vitest's `@types/node` peer to the newest major in every
-  workspace that does not declare it. Dependabot ignores its majors; move it only together with `.node-version`
-  (backlog `U16`).
+- **`@types/node` is pinned to the runtime major workspace-wide.** The root `devDependency` is the one range; an
+  `overrides` entry in [`pnpm-workspace.yaml`](pnpm-workspace.yaml) (`'@types/node': '$@types/node'`) forces every
+  transitive and auto-installed copy to it — without it, `auto-install-peers` resolves Vite's and Vitest's
+  `@types/node` peer to the newest major in every workspace that does not declare it. Dependabot ignores its majors;
+  move it only together with `.node-version` and `engines.node`
+  ([ADR-0152](../../docs/adr/0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
+- **A dependency with an install script fails `pnpm install` until it is decided.** `strictDepBuilds` turns pnpm's
+  "Ignored build scripts" warning into `ERR_PNPM_IGNORED_BUILDS`. Decide whether the script is needed and record it in
+  `allowBuilds` in [`pnpm-workspace.yaml`](pnpm-workspace.yaml) (`true` to run it, `false` to skip it); prefer
+  `false` unless the package cannot work without it. pnpm keeps a skipped script in `node_modules/.modules.yaml` for
+  any package it does not rebuild, so a `node_modules` installed before the decision keeps failing; delete it and
+  reinstall.
+- **A non-interactive `pnpm install` cannot replace `node_modules` on its own.** After a pnpm major or a store-layout
+  change, pnpm must purge `node_modules` first and asks for confirmation; without a terminal (an agent's shell, a script
+  run from another tool) it fails with `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`. Run
+  [`build/frontend-install.ps1`](../../build/frontend-install.ps1), which passes `--config.confirm-modules-purge=false`,
+  or pass that flag yourself.
+- **Force an uncached run with `TURBO_FORCE=true`, not `--force`.** Turborepo replays a cached task's output, so a
+  re-run after a runtime or toolchain change can report results it never recomputed. The scripts end in `--` for
+  Vitest (`test:report` is `turbo run test … -- --coverage …`), so a `--force` appended to `pnpm run test:report` goes
+  to Vitest, not Turborepo; set the environment variable instead (`$env:TURBO_FORCE = 'true'` in pwsh).
 - **Lint is one flat config at the workspace root.** [`eslint.config.js`](eslint.config.js) is found by walking up from
   each linted file, so a package's `lint` script needs no config of its own. React rules come from
   `@eslint-react/eslint-plugin` (`eslint-plugin-react` does not support ESLint 10), and `eslint-plugin-react-hooks` adds

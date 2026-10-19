@@ -1221,6 +1221,20 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   the upgrade rather than discovering it later.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)._
+- **`U16` — Move the frontend toolchain runtime to the next Node LTS.** The frontend runs on Node 22
+  ([`.node-version`](src/frontend/.node-version), the CI `node-version`), which is in Maintenance LTS until
+  2027-04-30; Node 24 is Active LTS until 2026-10-20 and Node 26 enters Active LTS on 2026-10-28. `@types/node` tracks
+  the runtime major and Dependabot ignores its majors
+  ([ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)), so the move is
+  one deliberate change: `.node-version`, `node-version` in
+  [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml), `engines.node` and the `@types/node` range in
+  [`src/frontend/package.json`](src/frontend/package.json) (plus `apps/conformance-runner`), the Aspire AppHost's NVS
+  lookup ([ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)), and the Node 22 mentions in
+  [`src/frontend/README.md`](src/frontend/README.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0152](docs/adr/0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md) — the frontend
+  runs on Node 26, `.node-version` is the single pin that CI, the AppHost, and the bootstrap script read, and pnpm 10
+  is installed from its `packageManager` pin because Node 26 no longer ships Corepack. Moving to pnpm 12 is `U21`._
 - **`U17` — Frontend tests leave state updates outside `act(...)`.** A green `pnpm test` still logs eight React
   "An update to … inside a test was not wrapped in act(...)" warnings, from `ExportPublicKeyDialog`,
   `RevealSecretDialog`, `RevealInitialAccessTokenDialog`, MUI's `FormControl`, and `FlowExplorer`. The same set appears

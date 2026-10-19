@@ -99,7 +99,8 @@ pnpm install              # install the workspace
 pnpm dev                  # run the WHOLE frontend stack (Turborepo): dev servers + build-watch
 pnpm --filter @ncode/app-mgmt dev    # run just the Management console
 pnpm test                 # run all unit tests
-pnpm run test:report      # same, plus per-package JUnit (test-results/) and coverage (coverage/) — what CI runs
+pnpm run test:report      # same, plus per-package JUnit (test-results/) and coverage (coverage/) — what CI runs;
+                          # every package runs to completion even when one fails, so the report is never truncated
 pnpm lint                 # lint all packages
 pnpm typecheck            # type-check all packages
 pnpm --filter @ncode/ui storybook    # component workbench
@@ -228,6 +229,12 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   read `input instanceof Request ? input.url : String(input)` and return a real `Response`
   (`new Response(JSON.stringify(body), { status, headers })`) — a plain object lacks `.clone()`, which
   `fetchBaseQuery` calls.
+- **jsdom test timeout.** Every `environment: 'jsdom'` suite sets `testTimeout: 15_000` instead of Vitest's 5 s default.
+  A jsdom test that renders a full MUI screen spends seconds in the first render (theme and emotion setup), and v8
+  coverage instrumentation — which CI always collects (`pnpm run test:report`) — slows it further on a shared runner:
+  CI measured 2.7–7.1 s for single tests across the jsdom suites, so the default failed them intermittently. The
+  timeout is a hang guard, not a performance assertion; keep it uniform across the jsdom suites, and leave the
+  `environment: 'node'` suites (milliseconds per test) on the default.
 - **jsdom + undici cross-realm `AbortSignal`.** Under `environment: 'jsdom'`, `fetch`/`Request`/`Response`
   stay Node's (undici) globals while jsdom overrides `AbortController`/`AbortSignal`. `fetchBaseQuery`
   builds `new Request(url, { signal })` from the global (jsdom) `AbortController`, and undici's `Request`

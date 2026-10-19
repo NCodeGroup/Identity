@@ -105,8 +105,10 @@ Manual because account creation and the first API token can't be created by an A
 3. Create a short-lived **bootstrap token** on the day you run the bootstrap stack (it expires tomorrow): My Profile →
    API Tokens → *Create Custom Token*, named `<infra-repo>-bootstrap-<yyyy-mm-dd>`:
    - Permissions: Account → *Account API Tokens* → Edit (to mint the scoped CI tokens); Account → *Email Routing
-     Addresses* → Edit; Zone → *Zone* → Edit; Zone → *DNS* → Edit; Zone → *Zone Settings* → Edit; Zone → *Email Routing
-     Rules* → Edit. _(Cloudflare renames permission groups occasionally — match by meaning.)_
+     Addresses* → Edit; Zone → *Zone* → Edit; Zone → *DNS* → Edit; Zone → *Zone Settings* → Edit; Zone → *SSL and
+     Certificates* → Edit (to turn Universal SSL off, so the zone's CAA records are the only CAs that can issue for
+     it); Zone → *Email Routing Rules* → Edit. _(Cloudflare renames permission groups occasionally — match by
+     meaning.)_
    - Account resources: only your account. Zone resources: *All zones from an account* → your account (not *All
      zones*, which spans every account you can access).
    - Client IP filtering: your current public IPv4 **and** IPv6 address, if you have one

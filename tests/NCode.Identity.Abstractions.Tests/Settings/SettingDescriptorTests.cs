@@ -53,6 +53,76 @@ public class SettingDescriptorTests
 
     #endregion
 
+    #region HasLatticeMerge Property Tests
+
+    [Fact]
+    public void HasLatticeMerge_WhenMergedWithMinOrMax_ReturnsTrue()
+    {
+        var min = new SettingDescriptor<TimeSpan> { Name = "min", OnMerge = SettingMerge.Min };
+        var max = new SettingDescriptor<TimeSpan> { Name = "max", OnMerge = SettingMerge.Max };
+
+        Assert.True(min.HasLatticeMerge);
+        Assert.True(max.HasLatticeMerge);
+    }
+
+    [Fact]
+    public void HasLatticeMerge_WhenMergedWithAndOrOr_ReturnsTrue()
+    {
+        var and = new SettingDescriptor<bool> { Name = "and", OnMerge = SettingMerge.And };
+        var or = new SettingDescriptor<bool> { Name = "or", OnMerge = SettingMerge.Or };
+
+        Assert.True(and.HasLatticeMerge);
+        Assert.True(or.HasLatticeMerge);
+    }
+
+    [Fact]
+    public void HasLatticeMerge_WhenMergedWithIntersectOrUnion_ReturnsTrue()
+    {
+        var intersect = new SettingDescriptor<IReadOnlyCollection<string>>
+        {
+            Name = "intersect",
+            OnMerge = SettingMerge.Intersect,
+        };
+        var union = new SettingDescriptor<IReadOnlyCollection<string>>
+        {
+            Name = "union",
+            OnMerge = SettingMerge.Union,
+        };
+
+        Assert.True(intersect.HasLatticeMerge);
+        Assert.True(union.HasLatticeMerge);
+    }
+
+    [Fact]
+    public void HasLatticeMerge_WhenMergedWithAProjection_ReturnsFalse()
+    {
+        var keep = new SettingDescriptor<string> { Name = "keep", OnMerge = SettingMerge.Keep };
+        var replace = new SettingDescriptor<string>
+        {
+            Name = "replace",
+            OnMerge = SettingMerge.Replace,
+        };
+
+        Assert.False(keep.HasLatticeMerge);
+        Assert.False(replace.HasLatticeMerge);
+    }
+
+    [Fact]
+    public void HasLatticeMerge_WhenMergedWithTheDefaultOrAnotherFunction_ReturnsFalse()
+    {
+        var byDefault = new SettingDescriptor<bool> { Name = "default" };
+        var custom = new SettingDescriptor<bool>
+        {
+            Name = "custom",
+            OnMerge = (current, other) => SettingMerge.Or(current, other),
+        };
+
+        Assert.False(byDefault.HasLatticeMerge);
+        Assert.False(custom.HasLatticeMerge);
+    }
+
+    #endregion
+
     #region Default Property Tests
 
     [Fact]

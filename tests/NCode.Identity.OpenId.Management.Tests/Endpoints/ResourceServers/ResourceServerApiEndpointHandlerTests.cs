@@ -35,6 +35,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -61,6 +62,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
+    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -80,6 +82,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
+        MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -148,6 +151,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             MockCryptoService.Object,
             MockSettingSerializer.Object,
             MockServerProvider.Object,
+            MockSecurityProfileCatalog.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<ResourceServerApiEndpointHandler>.Instance
@@ -452,6 +456,96 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var created = Assert.IsType<Created<ScopeResource>>(result);
         Assert.Equal("read:x", created.Value?.Value);
+    }
+
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_ExpandsTheTenantProfilesOntoTheServerBaseline()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        var mockTenantStore = MockRepository.Create<ITenantStore>();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(mockTenantStore.Object)
+            .Verifiable();
+        mockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PersistedTenantSettings
+                {
+                    TenantId = TenantId,
+                    ConcurrencyToken = "tenant-ct",
+                    Value = JsonSerializer.SerializeToElement(
+                        new Dictionary<string, object> { ["scope"] = "tenant" }
+                    ),
+                }
+            )
+            .Verifiable();
+        var descriptor = new SettingDescriptor<bool> { Name = "require_pkce" };
+        IReadOnlyCollection<Setting> tenantScopeSettings = [descriptor.Create(true)];
+        IReadOnlyCollection<Setting> resourceServerScopeSettings = [];
+        MockSecurityProfileCatalog
+            .Setup(x =>
+                x.Expand(
+                    It.Is<JsonElement>(element => IsTenantDocument(element)),
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
+            .Returns(tenantScopeSettings)
+            .Verifiable();
+        MockSettingSerializer
+            .Setup(x =>
+                x.DeserializeSettings(
+                    It.Is<JsonElement>(element => !IsTenantDocument(element)),
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
+            .Returns(resourceServerScopeSettings)
+            .Verifiable();
+        SetupServerProvider(tenantScopeSettings, resourceServerScopeSettings);
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<ResourceServerEffectiveSettingsResource>>(result);
+        Assert.True(json.Value!.Settings.GetProperty("require_pkce").GetBoolean());
+    }
+
+    private static bool IsTenantDocument(JsonElement element) =>
+        element.TryGetProperty("scope", out _);
+
+    private void SetupServerProvider(
+        IReadOnlyCollection<Setting> tenantScopeSettings,
+        IReadOnlyCollection<Setting> resourceServerScopeSettings
+    )
+    {
+        var effective = new Mock<ISettingCollection>(MockBehavior.Loose);
+        effective.Setup(x => x.GetEnumerator()).Returns(() => tenantScopeSettings.GetEnumerator());
+
+        var tenantEffective = new Mock<ISettingCollection>(MockBehavior.Loose);
+        tenantEffective.Setup(x => x.Merge(resourceServerScopeSettings)).Returns(effective.Object);
+
+        var serverCollection = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
+        serverCollection.Setup(x => x.Merge(tenantScopeSettings)).Returns(tenantEffective.Object);
+
+        var provider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
+        provider.Setup(x => x.Collection).Returns(serverCollection.Object);
+
+        var server = new Mock<OpenIdServer>(MockBehavior.Loose);
+        server.Setup(x => x.SettingsProvider).Returns(provider.Object);
+
+        MockServerProvider
+            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(server.Object)
+            .Verifiable();
     }
 
     private static PersistedSecret CreatePersistedSecret() =>

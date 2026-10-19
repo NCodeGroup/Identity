@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// <remarks>
 /// Every descriptor declares its domain through <see cref="SettingDescriptor{TValue}.Rule"/>. A rule whose domain is
 /// defined by registered strategies consults them: an algorithm setting accepts the registered algorithms of its kind,
-/// and <c>security_profile</c> accepts the names of the registered <see cref="ISecurityProfile"/> implementations.
+/// and <c>security_profiles</c> accepts the names of the registered <see cref="ISecurityProfile"/> implementations.
 /// </remarks>
 // See ADR-0140.
 internal class DefaultSettingDescriptorDataSource(
@@ -1636,19 +1636,19 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
-            // security_profile: the named security baseline (e.g. fapi2) a scope selects to tighten the OP; empty (the
-            // default) selects none, and any other value must name a registered profile, because a name that matches
-            // none would silently leave the scope without the baseline it asked for. Not advertised. Un-loosenable
-            // floor: once any scope in the cascade selects fapi2 a child cannot clear it (so a tenant can mandate the
-            // profile); otherwise the child's value wins.
-            yield return new SettingDescriptor<string>
+            // security_profiles: the named security baselines (e.g. fapi2) a scope selects to tighten the OP; empty (the
+            // default) selects none, and every value must name a registered profile, because a name that matches none
+            // would silently leave the scope without the baseline it asked for. Not advertised. Floor (Union): the
+            // profiles accumulate down the cascade, so a child can add a profile but never remove one a parent selects
+            // (a server or tenant can mandate a profile), and every selected profile applies. (ADR-0148)
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
-                Name = OpenIdSettingNames.SecurityProfile,
-                Rule = SecurityProfile(),
-                Default = string.Empty,
+                Name = OpenIdSettingNames.SecurityProfiles,
+                Rule = SecurityProfiles(),
+                Default = [],
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = MergeSecurityProfile,
+                OnMerge = Union,
             };
 
             // subject_types_supported: subject identifier types the server supports (public, pairwise). Both are
@@ -1736,16 +1736,16 @@ internal class DefaultSettingDescriptorDataSource(
     }
 
     /// <summary>
-    /// Gets the rule for <c>security_profile</c>: empty, which selects no profile, or the name of a registered
-    /// <see cref="ISecurityProfile"/>.
+    /// Gets the rule for <c>security_profiles</c>: a list whose every value names a registered
+    /// <see cref="ISecurityProfile"/>; the empty list selects no profile.
     /// </summary>
-    private SettingRule<string> SecurityProfile() =>
+    private SettingRule<IReadOnlyCollection<string>> SecurityProfiles() =>
         SecurityProfileNames.IsEmpty
-            ? SettingRules.Must<string>(
+            ? SettingRules.Must<IReadOnlyCollection<string>>(
                 "empty, because no security profile is registered",
-                value => value.Length == 0
+                value => value.Count == 0
             )
-            : SettingRules.EmptyOr(SettingRules.OneOf(SecurityProfileNames));
+            : SettingRules.Each(SettingRules.OneOf(SecurityProfileNames));
 
     /// <summary>
     /// Gets the rule for a list of signature algorithms a client or the server may choose from, symmetric ones
@@ -1825,15 +1825,4 @@ internal class DefaultSettingDescriptorDataSource(
             code,
             out algorithm
         ) && SettingAlgorithms.IsSelectable(algorithm);
-
-    /// <summary>
-    /// Merges the <c>security_profile</c> setting as an un-loosenable floor: once any scope in the cascade selects
-    /// <c>fapi2</c>, a child scope cannot clear it (so a tenant can mandate the profile); otherwise the child's value
-    /// wins. Used as the <c>security_profile</c> descriptor's merge delegate.
-    /// </summary>
-    private static string MergeSecurityProfile(string current, string other) =>
-        string.Equals(current, OpenIdConstants.SecurityProfiles.Fapi2, StringComparison.Ordinal)
-        || string.Equals(other, OpenIdConstants.SecurityProfiles.Fapi2, StringComparison.Ordinal)
-            ? OpenIdConstants.SecurityProfiles.Fapi2
-            : other;
 }

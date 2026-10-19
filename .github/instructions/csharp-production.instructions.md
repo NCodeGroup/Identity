@@ -364,6 +364,16 @@ rationale.
   reader, and is never split back into its parts to be enforced piecewise.
   See [ADR-0140](../../docs/adr/0140-setting-values-are-validated-against-their-domain.md) and
   [ADR-0141](../../docs/adr/0141-response-types-are-whole-values.md).
+- 👁 **A security profile binds every scope below the one that selects it.** A scope's own settings enter the cascade
+  through `ISecurityProfileCatalog.Expand` — the root settings, the persisted server, tenant, and client documents, and
+  any view that claims to show what the runtime enforces (a management effective-settings preview) — never through a
+  bare `ISettingSerializer.DeserializeSettings`, which would apply a profile's requirements without its ceilings.
+  `security_profiles` accumulates down the cascade (`Union`), so enforcement evaluates the requirements of every profile
+  in the effective settings and never picks "the" profile. A profile contributes its ceiling through
+  `ISecurityProfileCeilingBuilder`, which accepts only a setting whose merge is a lattice operation
+  (`SettingDescriptor.HasLatticeMerge`); a setting a profile must constrain gets a lattice merge, never a projection
+  (`Replace`/`Keep`), which a child would override or which would ignore the ceiling. See
+  [ADR-0148](../../docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md).
 - 👁 **A package registers its own services from `DefaultRegistration.cs`** (the class is **always** `DefaultRegistration`)
   using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
   [ADR-0069](../../docs/adr/0069-registration-library-compile-time-marker-nesting.md). **The receiver marker is the

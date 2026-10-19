@@ -5,7 +5,9 @@
   [ADR-0144](0144-authorization-codes-are-bound-to-pkce-by-default.md): it is the registered `ICodeChallengeMethod`
   transformations, not a fixed vocabulary, and excludes `plain`; client-authentication-method domain amended by
   [ADR-0145](0145-a-client-authenticates-only-with-its-registered-method.md): `token_endpoint_auth_method` is always a
-  registered method, `client_secret_basic` by default, never empty)
+  registered method, `client_secret_basic` by default, never empty; security-profile domain amended by
+  [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md): `security_profiles` is a list whose every
+  value names a registered profile)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 
@@ -125,7 +127,8 @@ ADR-0139: name, type, and domain are checked together, at the same entry points,
   ([ADR-0141](0141-response-types-are-whole-values.md)).
 - `client_notification_endpoint` has an empty default, so a ping or push client that registered none is reported as a
   missing endpoint rather than failing to read the setting.
-- Follow-ups: backlog `F54` (a parent's security profile is un-loosenable only when it is `fapi2`) and `F55`
+- Follow-ups: backlog `F54` (a parent's security profile is un-loosenable only when it is `fapi2`, decided in
+  [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md)) and `F55`
   (registration of combined `response_types`, decided in [ADR-0141](0141-response-types-are-whole-values.md)).
 
 ## References

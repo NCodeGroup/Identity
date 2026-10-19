@@ -694,10 +694,12 @@ public static class OpenIdSettingNames
     public const string SectorIdentifierUriMaxSizeBytes = "sector_identifier_uri_max_size_bytes";
 
     /// <summary>
-    /// Contains the name of the <c>security_profile</c> setting: the named security baseline (for example
-    /// <c>fapi2</c>) a tenant or client selects to tighten the OP's effective settings and enforcement.
+    /// Contains the name of the <c>security_profiles</c> setting: the named security baselines (for example
+    /// <c>fapi2</c>) a server, tenant, or client selects to tighten the OP's effective settings and enforcement. The
+    /// profiles accumulate down the <c>server → tenant → client</c> cascade: a scope can add a profile but never remove
+    /// one that a scope above it selects, and every selected profile applies.
     /// </summary>
-    public const string SecurityProfile = "security_profile";
+    public const string SecurityProfiles = "security_profiles";
 
     /// <summary>
     /// Contains the name of <c>subject_max_age</c> setting.

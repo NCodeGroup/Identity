@@ -75,6 +75,52 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     private InMemoryDatabaseRoot DatabaseRoot { get; } = new();
 
     /// <summary>
+    /// Persists the server's own settings document. The server is materialized once, by the first request that needs
+    /// it, and loads this document then, so this must be called before the factory serves any request.
+    /// </summary>
+    /// <param name="settings">The server's settings document.</param>
+    public async Task SeedServerSettingsAsync(IReadOnlyDictionary<string, object> settings)
+    {
+        const string serverId = OpenIdServerOptions.DefaultServerId;
+
+        using var scope = Services.CreateScope();
+        var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var store = storeManager.GetStore<IServerStore>();
+
+        if (await store.GetOrDefaultAsync(serverId, CancellationToken.None) is not null)
+        {
+            throw new InvalidOperationException(
+                "The server is already persisted, so it may already be materialized with its earlier settings."
+            );
+        }
+
+        var persistedServer = new PersistedServer
+        {
+            ServerId = serverId,
+            ConcurrencyToken = Guid.NewGuid().ToString("N"),
+            DisplayName = serverId,
+            Settings = new PersistedServerSettings
+            {
+                ServerId = serverId,
+                ConcurrencyToken = Guid.NewGuid().ToString("N"),
+                Value = System.Text.Json.JsonSerializer.SerializeToElement(settings),
+            },
+            Secrets = new PersistedServerSecrets
+            {
+                ServerId = serverId,
+                ConcurrencyToken = Guid.NewGuid().ToString("N"),
+                Value = [],
+            },
+        };
+
+        await store.AddAsync(persistedServer, CancellationToken.None);
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
+    /// <summary>
     /// Ensures the tenant exists (persisted lazily on first request) and seeds a public client
     /// (<c>none</c> client authentication, no secrets) registered with the given redirect URIs.
     /// </summary>
@@ -566,14 +612,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     }
 
     /// <summary>
-    /// Ensures the tenant exists and seeds a confidential <c>client_secret_post</c> client whose
-    /// <paramref name="securityProfile"/> (for example <c>fapi2</c>) is applied, so profile-driven setting ceilings and
-    /// enforcement can be exercised end-to-end.
+    /// Ensures the tenant exists and seeds a confidential <c>client_secret_post</c> client that selects the
+    /// <paramref name="securityProfiles"/> (for example <c>fapi2</c>), so profile-driven setting ceilings and
+    /// enforcement can be exercised end-to-end. An empty list is stored as an explicit empty selection.
     /// </summary>
-    public async Task SeedConfidentialClientWithSecurityProfileAsync(
+    public async Task SeedConfidentialClientWithSecurityProfilesAsync(
         string clientId,
         string clientSecret,
-        string securityProfile,
+        IReadOnlyCollection<string> securityProfiles,
         params string[] grantTypes
     )
     {
@@ -611,9 +657,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             ["token_endpoint_auth_method"] = OpenIdConstants
                 .ClientAuthenticationMethods
                 .ClientSecretPost,
+            ["security_profiles"] = securityProfiles,
         };
-        if (!string.IsNullOrEmpty(securityProfile))
-            settings["security_profile"] = securityProfile;
         if (grantTypes.Length > 0)
             settings["grant_types_supported"] = grantTypes;
 

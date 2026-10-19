@@ -520,8 +520,8 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
-    /// Contains constants for the named <c>security_profile</c> values a tenant or client can select to tighten the OP
-    /// to a standardized security baseline.
+    /// Contains constants for the named <c>security_profiles</c> values a server, tenant, or client can select to
+    /// tighten the OP to a standardized security baseline.
     /// </summary>
     public static class SecurityProfiles
     {

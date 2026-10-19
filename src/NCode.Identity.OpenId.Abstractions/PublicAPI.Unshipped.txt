@@ -402,7 +402,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SectorIdentifierUriAllow
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SectorIdentifierUriFetchTimeout = "sector_identifier_uri_fetch_timeout" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SectorIdentifierUriMaxSizeBytes = "sector_identifier_uri_max_size_bytes" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ServiceDocumentation = "service_documentation" -> string!
-const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SecurityProfile = "security_profile" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SecurityProfiles = "security_profiles" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectMaxAge = "subject_max_age" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectType = "subject_type" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.UserCodeLength = "user_code_length" -> string!
@@ -439,7 +439,7 @@ NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.WriteAsync(NCode.Identity
 NCode.Identity.OpenId.Results.IOpenIdResult
 NCode.Identity.OpenId.Results.IOpenIdResult.Response.get -> NCode.Identity.OpenId.Messages.IOpenIdResponse!
 NCode.Identity.OpenId.Settings.ISecurityProfile
-NCode.Identity.OpenId.Settings.ISecurityProfile.ApplyCeilingSettings(NCode.Identity.Settings.ISettingCollection! ceiling) -> void
+NCode.Identity.OpenId.Settings.ISecurityProfile.ApplyCeilingSettings(NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder! ceiling) -> void
 NCode.Identity.OpenId.Settings.ISecurityProfile.ProfileName.get -> string!
 NCode.Identity.OpenId.Settings.ISecurityProfile.Requirements.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Settings.ISecurityProfileRequirement!>!
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog
@@ -447,6 +447,8 @@ NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.EvaluateRequirementsAsync
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Text.Json.JsonElement settingsJson, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.TryGetProfile(string! profileName, out NCode.Identity.OpenId.Settings.ISecurityProfile! profile) -> bool
+NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder
+NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder.Set<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, TValue value) -> void
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>.EvaluateAsync(TContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -911,7 +913,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInAcce
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInIdToken.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SendSystemMetadataInUserInfo.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ServiceDocumentation.get -> NCode.Identity.Settings.SettingKey<string!>
-static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SecurityProfile.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SecurityProfiles.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectMaxAge.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectType.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SubjectTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>

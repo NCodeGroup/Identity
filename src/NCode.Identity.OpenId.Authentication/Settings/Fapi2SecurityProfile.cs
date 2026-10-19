@@ -17,7 +17,6 @@
 #endregion
 
 using NCode.Identity.Jose.Algorithms;
-using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Settings;
 
@@ -60,7 +59,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
     ];
 
     /// <inheritdoc />
-    public void ApplyCeilingSettings(ISettingCollection ceiling)
+    public void ApplyCeilingSettings(ISecurityProfileCeilingBuilder ceiling)
     {
         // Signing algorithms → PS256 / ES256 / EdDSA (Intersect ceilings narrow the advertised/accepted set).
         ceiling.Set(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, SigningAlgorithms);

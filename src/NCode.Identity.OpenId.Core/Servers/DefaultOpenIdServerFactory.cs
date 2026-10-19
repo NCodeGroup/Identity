@@ -39,21 +39,25 @@ namespace NCode.Identity.OpenId.Servers;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdServerFactory"/> abstraction.
 /// </summary>
+/// <remarks>
+/// The server's persisted settings document is loaded through <see cref="ISecurityProfileCatalog"/>, like every other
+/// scope's, so the security profiles it selects contribute their ceilings at the top of the cascade.
+/// </remarks>
+// See ADR-0148 (security profiles accumulate down the cascade).
 internal class DefaultOpenIdServerFactory(
     IOptions<OpenIdOptions> optionsAccessor,
     IServiceProvider serviceProvider,
-    ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
     IStoreManagerFactory storeManagerFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
+    ISecurityProfileCatalog securityProfileCatalog,
     IIdGenerator<long> idGenerator
 ) : IOpenIdServerFactory
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private IServiceProvider ServiceProvider { get; } = serviceProvider;
-    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ICollectionDataSourceFactory CollectionDataSourceFactory { get; } =
@@ -62,6 +66,7 @@ internal class DefaultOpenIdServerFactory(
         settingCollectionProviderFactory;
     private ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } =
         secretKeyCollectionProviderFactory;
+    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
     private IIdGenerator<long> IdGenerator { get; } = idGenerator;
 
     /// <summary>
@@ -251,7 +256,7 @@ internal class DefaultOpenIdServerFactory(
         cancellationToken.ThrowIfCancellationRequested();
 
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var initialSettings = SettingSerializer.DeserializeSettings(
+        var initialSettings = SecurityProfileCatalog.Expand(
             persistedServer.Settings.Value,
             jsonOptions
         );
@@ -295,7 +300,7 @@ internal class DefaultOpenIdServerFactory(
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var settings = SettingSerializer.DeserializeSettings(newSettings.Value, jsonOptions);
+        var settings = SecurityProfileCatalog.Expand(newSettings.Value, jsonOptions);
 
         // update the state after successfully deserializing the settings
         persistedServer.Settings = newSettings;

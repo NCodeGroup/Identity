@@ -37,7 +37,7 @@ internal sealed class ConfidentialClientRequirement : IAuthorizationRequestProfi
         {
             throw context
                 .OpenIdContext.ErrorFactory.UnauthorizedClient(
-                    "The active security profile requires a confidential client."
+                    "A selected security profile requires a confidential client."
                 )
                 .AsException();
         }

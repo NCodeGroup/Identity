@@ -35,6 +35,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
@@ -61,6 +62,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
+    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private TenantApiEndpointHandler Handler { get; }
@@ -83,6 +85,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
+        MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
             .Setup(x =>
@@ -135,6 +138,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockCryptoService.Object,
             MockSettingSerializer.Object,
             MockServerProvider.Object,
+            MockSecurityProfileCatalog.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<TenantApiEndpointHandler>.Instance
@@ -435,10 +439,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct"))
             .Verifiable();
-        MockSettingSerializer
-            .Setup(x =>
-                x.DeserializeSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
-            )
+        MockSecurityProfileCatalog
+            .Setup(x => x.Expand(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>()))
             .Returns(Array.Empty<Setting>())
             .Verifiable();
 
@@ -488,10 +490,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct"))
             .Verifiable();
-        MockSettingSerializer
-            .Setup(x =>
-                x.DeserializeSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
-            )
+        MockSecurityProfileCatalog
+            .Setup(x => x.Expand(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>()))
             .Returns(Array.Empty<Setting>())
             .Verifiable();
         SetupServerProvider(CreateSettingCollection());

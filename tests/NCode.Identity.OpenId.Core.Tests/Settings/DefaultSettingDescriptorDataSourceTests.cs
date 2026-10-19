@@ -45,35 +45,66 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
     #region Collection Property Tests
 
     [Theory]
-    [InlineData("", true)]
-    [InlineData("fapi2", true)]
-    [InlineData("fapi-2", false)]
-    [InlineData("FAPI2", false)]
-    public void Collection_SecurityProfile_AcceptsOnlyEmptyOrARegisteredProfile(
-        string value,
+    [InlineData(new string[0], true)]
+    [InlineData(new[] { "fapi2" }, true)]
+    [InlineData(new[] { "fapi2", "custom" }, true)]
+    [InlineData(new[] { "fapi2", "fapi2" }, true)]
+    [InlineData(new[] { "fapi-2" }, false)]
+    [InlineData(new[] { "FAPI2" }, false)]
+    [InlineData(new[] { "" }, false)]
+    [InlineData(new[] { "fapi2", "other" }, false)]
+    public void Collection_SecurityProfiles_AcceptsOnlyRegisteredProfiles(
+        string[] value,
         bool expected
     )
     {
-        var dataSource = CreateDataSource("fapi2");
-        var descriptor = GetDescriptor(dataSource, OpenIdSettingNames.SecurityProfile);
+        var dataSource = CreateDataSource("fapi2", "custom");
+        var descriptor = GetDescriptor(dataSource, OpenIdSettingNames.SecurityProfiles);
 
-        var valid = descriptor.TryValidate(value, out _);
+        var valid = descriptor.TryValidate((IReadOnlyCollection<string>)value, out _);
 
         Assert.Equal(expected, valid);
     }
 
     [Fact]
-    public void Collection_SecurityProfile_WhenNoProfileIsRegistered_AcceptsOnlyEmpty()
+    public void Collection_SecurityProfiles_WhenNoProfileIsRegistered_AcceptsOnlyAnEmptyList()
     {
         var dataSource = CreateDataSource();
-        var descriptor = GetDescriptor(dataSource, OpenIdSettingNames.SecurityProfile);
+        var descriptor = GetDescriptor(dataSource, OpenIdSettingNames.SecurityProfiles);
 
-        var emptyIsValid = descriptor.TryValidate(string.Empty, out _);
-        var fapi2IsValid = descriptor.TryValidate("fapi2", out var failure);
+        var emptyIsValid = descriptor.TryValidate((IReadOnlyCollection<string>)[], out _);
+        var fapi2IsValid = descriptor.TryValidate(
+            (IReadOnlyCollection<string>)["fapi2"],
+            out var failure
+        );
 
         Assert.True(emptyIsValid);
         Assert.False(fapi2IsValid);
         Assert.Equal("must be empty, because no security profile is registered", failure);
+    }
+
+    [Theory]
+    [InlineData(new[] { "fapi2" }, new string[0], new[] { "fapi2" })]
+    [InlineData(new[] { "fapi2" }, new[] { "custom" }, new[] { "fapi2", "custom" })]
+    [InlineData(new[] { "custom" }, new[] { "fapi2" }, new[] { "custom", "fapi2" })]
+    [InlineData(new string[0], new[] { "custom" }, new[] { "custom" })]
+    [InlineData(new[] { "custom" }, new[] { "custom" }, new[] { "custom" })]
+    public void Collection_SecurityProfiles_ChildCannotRemoveAProfileItsParentSelects(
+        string[] parent,
+        string[] child,
+        string[] expected
+    )
+    {
+        var dataSource = CreateDataSource("fapi2", "custom");
+        var descriptor = Assert.IsType<SettingDescriptor<IReadOnlyCollection<string>>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.SecurityProfiles)
+        );
+        var parentSetting = descriptor.Create(parent);
+        var childSetting = descriptor.Create(child);
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.Equal(expected, merged.Value);
     }
 
     [Fact]
@@ -111,7 +142,7 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         public string ProfileName => name;
         public IReadOnlyCollection<ISecurityProfileRequirement> Requirements => [];
 
-        public void ApplyCeilingSettings(ISettingCollection ceiling) { }
+        public void ApplyCeilingSettings(ISecurityProfileCeilingBuilder ceiling) { }
     }
 
     #endregion

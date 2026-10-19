@@ -36,7 +36,7 @@ internal sealed class SenderConstrainedAccessTokenRequirement : ITokenRequestPro
         {
             throw context
                 .OpenIdContext.ErrorFactory.InvalidRequest(
-                    "The active security profile requires a sender-constrained access token (DPoP or mutual-TLS)."
+                    "A selected security profile requires a sender-constrained access token (DPoP or mutual-TLS)."
                 )
                 .AsException();
         }

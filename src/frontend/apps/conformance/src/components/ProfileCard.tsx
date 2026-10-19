@@ -20,13 +20,13 @@ export function ProfileCard({ profile }: ProfileCardProps) {
   return (
     <Card variant="outlined" data-testid={`profile-${profile.id}`} data-status={profile.status}>
       <CardContent>
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mb: 1 }}>
           <Typography variant="h6" component="h3" sx={{ flexGrow: 1 }}>
             {profile.name}
           </Typography>
           <SeverityChip severity={profile.status} size="medium" />
         </Stack>
-        <Typography color="text.secondary" variant="body2">
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {STATUS_HINT[profile.status]}
         </Typography>
       </CardContent>

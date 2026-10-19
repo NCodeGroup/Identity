@@ -139,7 +139,7 @@ export function ResourceServerScopesPage({
           Resource servers
         </Button>
       )}
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         {embedded ? (
           <Box />
         ) : (
@@ -147,7 +147,7 @@ export function ResourceServerScopesPage({
             <Typography variant="h5" component="h2">
               Scopes
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {resourceServer.name} · {resourceServer.identifier}
             </Typography>
           </Stack>

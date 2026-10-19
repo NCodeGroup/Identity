@@ -95,7 +95,7 @@ export function SettingsEditor({
           }}
         />
       </Box>
-      <Box display="flex" justifyContent="flex-end">
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Button
           variant="contained"
           onClick={handleSave}

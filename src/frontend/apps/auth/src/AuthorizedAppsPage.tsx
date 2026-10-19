@@ -107,11 +107,11 @@ export function AuthorizedAppsPage({
             </Typography>
 
             {applications === null ? (
-              <Typography color="text.secondary" data-testid="applications-loading">
+              <Typography data-testid="applications-loading" sx={{ color: 'text.secondary' }}>
                 Loading your applications…
               </Typography>
             ) : applications.length === 0 ? (
-              <Typography color="text.secondary" data-testid="applications-empty">
+              <Typography data-testid="applications-empty" sx={{ color: 'text.secondary' }}>
                 You have not authorized any applications.
               </Typography>
             ) : (
@@ -120,9 +120,8 @@ export function AuthorizedAppsPage({
                   <Box key={application.clientId} data-testid="application-item">
                     <Stack
                       direction="row"
-                      justifyContent="space-between"
-                      alignItems="center"
                       spacing={2}
+                      sx={{ justifyContent: 'space-between', alignItems: 'center' }}
                     >
                       <Typography sx={{ wordBreak: 'break-all' }}>
                         <strong>{application.clientName ?? application.clientId}</strong>
@@ -143,7 +142,7 @@ export function AuthorizedAppsPage({
                       </Stack>
                     </Stack>
                     {application.scopes.length > 0 ? (
-                      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1 }}>
+                      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', mt: 1 }}>
                         {application.scopes.map((scope) => (
                           <Chip
                             key={scope.value}

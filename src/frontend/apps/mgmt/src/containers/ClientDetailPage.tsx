@@ -47,11 +47,11 @@ export function ClientDetailPage({ scope, client, onBack }: ClientDetailPageProp
       >
         Clients
       </Button>
-      <Stack mb={2}>
+      <Stack sx={{ mb: 2 }}>
         <Typography variant="h5" component="h2">
           {client.clientId}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Client · {client.isDisabled ? 'Disabled' : 'Active'}
         </Typography>
       </Stack>

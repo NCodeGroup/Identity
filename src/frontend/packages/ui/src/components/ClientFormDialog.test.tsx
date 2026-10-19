@@ -14,7 +14,7 @@ describe('ClientFormDialog', () => {
         onCancel={vi.fn()}
       />,
     );
-    expect(screen.getByRole('checkbox', { name: 'Disabled' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Disabled' })).toBeChecked();
   });
 
   it('submits the toggled values', () => {
@@ -29,7 +29,7 @@ describe('ClientFormDialog', () => {
         onCancel={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Disabled' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Disabled' }));
     fireEvent.click(screen.getByTestId('client-form-submit'));
     expect(onSubmit).toHaveBeenCalledWith({ isDisabled: true });
   });

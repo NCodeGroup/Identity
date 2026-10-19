@@ -74,13 +74,13 @@ export function ExportPublicKeyDialog({
       <DialogTitle>Export public key</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <Typography variant="body2" color="text.secondary" component="div">
+          <Typography variant="body2" component="div" sx={{ color: 'text.secondary' }}>
             Public key for secret <code data-testid="export-public-key-id">{secretId}</code>. Only
             public key material is exported; the private key never leaves the server.
           </Typography>
 
           {isLoading && (
-            <Box display="flex" justifyContent="center" py={2}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
               <CircularProgress size={24} data-testid="export-public-key-loading" />
             </Box>
           )}
@@ -139,7 +139,7 @@ type KeySectionProps = {
 function KeySection({ label, testPrefix, value, copied, onCopy, onDownload }: KeySectionProps) {
   return (
     <Box>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
         <Typography variant="subtitle2">{label}</Typography>
         <Stack direction="row" spacing={0.5}>
           <Tooltip title={copied ? 'Copied' : 'Copy'}>

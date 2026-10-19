@@ -195,7 +195,7 @@ export function FlowExplorer({
             onChange={(event) => setClientId(event.target.value)}
             size="small"
             fullWidth
-            inputProps={{ 'data-testid': 'client-id' }}
+            slotProps={{ htmlInput: { 'data-testid': 'client-id' } }}
           />
           <TextField
             label="Scopes (space-separated)"
@@ -203,7 +203,7 @@ export function FlowExplorer({
             onChange={(event) => setScopesText(event.target.value)}
             size="small"
             fullWidth
-            inputProps={{ 'data-testid': 'scopes' }}
+            slotProps={{ htmlInput: { 'data-testid': 'scopes' } }}
           />
           <CodeBlock label="Redirect URI (registered)" value={`${origin}/callback`} />
           <FormControlLabel
@@ -211,7 +211,7 @@ export function FlowExplorer({
               <Checkbox
                 checked={promptConsent}
                 onChange={(event) => setPromptConsent(event.target.checked)}
-                inputProps={consentToggleInputProps}
+                slotProps={{ input: consentToggleInputProps }}
               />
             }
             label="Force consent (prompt=consent)"
@@ -238,13 +238,13 @@ export function FlowExplorer({
       >
         {callbackError ? <Alert severity="error">{callbackError}</Alert> : null}
         {!tokens && !callbackError ? (
-          <Typography color="text.secondary">
+          <Typography sx={{ color: 'text.secondary' }}>
             No tokens yet — start the authorization above to complete the round trip.
           </Typography>
         ) : null}
         {tokens ? (
           <Stack spacing={1.5}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               token_type <strong>{tokens.tokenType}</strong>
               {tokens.expiresInSeconds ? ` · expires_in ${tokens.expiresInSeconds}s` : ''}
               {tokens.scope ? ` · scope ${tokens.scope}` : ''}
@@ -265,7 +265,7 @@ export function FlowExplorer({
         description="Call UserInfo with the access token, refresh it, or end the session with RP-Initiated Logout."
       >
         <Stack spacing={1.5}>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
               onClick={handleUserInfo}

@@ -45,6 +45,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
             new("scope", "openid"),
             new("state", "abc123"),
         };
+        values.AddRange(TestPkce.FormFields);
         values.AddRange(extra);
         return new FormUrlEncodedContent(values);
     }
@@ -70,6 +71,34 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
 
         Assert.True(root.TryGetProperty("expires_in", out var expiresIn));
         Assert.True(expiresIn.GetInt32() > 0);
+    }
+
+    [Fact]
+    public async Task PostPar_WithoutCodeChallenge_ReturnsInvalidRequest()
+    {
+        // The pushed request is validated as the authorization endpoint would validate it, so a missing
+        // code_challenge is refused at the PAR endpoint with invalid_request (RFC 7636 §4.4.1).
+        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["client_id"] = ClientId,
+                ["redirect_uri"] = RedirectUri,
+                ["response_type"] = "code",
+                ["scope"] = "openid",
+                ["state"] = "abc123",
+            }
+        );
+        using var response = await client.PostAsync("/oauth2/par", form);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("invalid_request", document.RootElement.GetProperty("error").GetString());
     }
 
     [Fact]

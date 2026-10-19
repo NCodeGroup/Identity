@@ -16,12 +16,13 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Errors;
 
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// Requires a confidential (authenticated) client: a public client — one whose <c>token_endpoint_auth_method</c> is
+/// Requires a confidential client: a client registered as public — one whose <c>token_endpoint_auth_method</c> is
 /// unset or <c>none</c> — is rejected at the authorization endpoint.
 /// </summary>
 internal sealed class ConfidentialClientRequirement : IAuthorizationRequestProfileRequirement
@@ -32,17 +33,7 @@ internal sealed class ConfidentialClientRequirement : IAuthorizationRequestProfi
         CancellationToken cancellationToken
     )
     {
-        var authMethod = context.Client.Settings.GetValue(
-            OpenIdSettingKeys.TokenEndpointAuthMethod
-        );
-        if (
-            string.IsNullOrEmpty(authMethod)
-            || string.Equals(
-                authMethod,
-                OpenIdConstants.ClientAuthenticationMethods.None,
-                StringComparison.Ordinal
-            )
-        )
+        if (!context.Client.IsRegisteredAsConfidential)
         {
             throw context
                 .OpenIdContext.ErrorFactory.UnauthorizedClient(

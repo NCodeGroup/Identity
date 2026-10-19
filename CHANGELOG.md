@@ -216,7 +216,50 @@ change to the public API is a **major** version bump.
   `response_types_supported` instead if it was `false`. A deployment that stores settings documents in its own database
   must apply the same rewrite there, or a document that names the setting fails when it is read.
 
+- **Every authorization code is bound to PKCE by default.** `require_pkce` now defaults to `true`, so an authorization
+  request whose response type issues a code must carry an `S256` `code_challenge`, for every client; a missing one is
+  refused with `invalid_request` (RFC 7636 §4.4.1), not `unauthorized_client`, at both the authorization and the pushed
+  authorization request endpoints. A response type that issues no code (an implicit flow an operator enabled) is not
+  affected. The only exception is the one OAuth 2.1 §7.5.1.1 allows, and every condition must hold: the server's
+  configuration relaxes `require_pkce`; an administrator attests the client with the new `pkce_nonce_exemption`
+  setting (dynamic client registration never sets it); the client is registered as confidential; and the request
+  requests `openid` and carries a `nonce`. A public client is always bound to PKCE, and at the token endpoint a code
+  that is not bound can be redeemed only by a client that authenticates and keeps `openid` in scope, so the ID Token
+  returns the nonce. ([ADR-0144](docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md))
+
+  PKCE is `S256`: the `plain` method, which sends the verifier in the authorization request, is removed (OAuth 2.1
+  §7.5.2). `code_challenge_methods_supported` accepts the registered transformations and defaults to `S256` alone, so a
+  deployment that registers another transformation offers it by listing it. A `code_challenge` must name its
+  `code_challenge_method` — RFC 7636's implicit `plain` default no longer applies — and both the challenge and the
+  verifier must have the RFC 7636 syntax (43 to 128 unreserved characters). The `RetirePlainCodeChallengeMethod`
+  migration removes `plain` from every stored server, tenant, client, and resource-server
+  `code_challenge_methods_supported` list, giving each rewritten document a new settings concurrency token; a list that
+  named only `plain` becomes empty.
+
+  The conformance host relaxes `require_pkce` and attests its clients, because the OpenID Foundation suite is a
+  confidential relying party that validates the nonce but sends PKCE only in one module. The Basic OP module that sends
+  neither PKCE nor a nonce (`oidcc-ensure-request-without-nonce-succeeds-for-code-flow`) is an expected failure. A
+  seeded conformance client registers one `TokenEndpointAuthMethod` — its `token_endpoint_auth_method`, the only method
+  it may use — so it is a confidential client the way a dynamically registered one is.
+
+  **Breaking:** a client that sends no `code_challenge` is refused until it uses PKCE, or until the deployment relaxes
+  `require_pkce` and attests it with `pkce_nonce_exemption`, if it is a confidential OpenID Connect client that sends a
+  nonce. `OpenIdConstants.CodeChallengeMethods.Plain` is removed, `AuthorizationRequest.CodeChallengeMethod` is `null`
+  when the request names no method, and configuration that lists `plain` stops the host when it starts. A deployment
+  that stores settings documents in its own database must remove `plain` from them, or a document that lists it fails
+  when it is read. `ConformanceClientSeed.TokenEndpointAuthMethods` is replaced by `TokenEndpointAuthMethod`.
+
 ### Fixed
+
+- **The pushed authorization request endpoint refused a request with `200 OK`.** A validation error that named no
+  status code — an unsupported scope or response type, a missing `code_challenge` — was rendered as `200`. An OpenID
+  protocol error without a status code is now `400 Bad Request` (RFC 6749 §5.2, RFC 9126 §2.3).
+  ([ADR-0144](docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md))
+
+- **A configured conformance client kept the defaults it meant to replace.** `ConformanceClientSeed`'s grant types and
+  PKCE methods started out holding their defaults, and the configuration binder appends to an array that already has
+  values, so a client configured with fewer grant types still received the default ones. The lists now start empty, and
+  the defaults apply only when none are configured.
 
 - **An implicit or hybrid response could be redirected in the query string.** Without a `response_mode`, the
   authorization endpoint returned its first-pass response — tokens or an error — in the query, whatever the response

@@ -99,7 +99,8 @@ public interface IAuthorizationRequest
     string? CodeChallenge { get; }
 
     /// <summary>
-    /// Gets the <c>code_challenge_method</c> parameter.
+    /// Gets the <c>code_challenge_method</c> parameter: the transformation that derived <see cref="CodeChallenge"/>
+    /// from the code verifier. It has no default; a request that carries a <c>code_challenge</c> names its method.
     /// </summary>
     string? CodeChallengeMethod { get; }
 

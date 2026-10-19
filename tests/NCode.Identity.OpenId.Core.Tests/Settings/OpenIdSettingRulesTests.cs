@@ -98,15 +98,6 @@ public class OpenIdSettingRulesTests
     }
 
     [Theory]
-    [InlineData("S256", true)]
-    [InlineData("plain", true)]
-    [InlineData("s256", false)]
-    public void CodeChallengeMethod_AcceptsThePkceMethods(string value, bool expected)
-    {
-        Assert.Equal(expected, IsValid(OpenIdSettingRules.CodeChallengeMethod(), value));
-    }
-
-    [Theory]
     [InlineData("normal", true)]
     [InlineData("aggregated", false)]
     [InlineData("distributed", false)]

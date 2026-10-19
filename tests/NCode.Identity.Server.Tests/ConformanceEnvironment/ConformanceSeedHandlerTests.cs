@@ -260,5 +260,86 @@ public class ConformanceSeedHandlerTests : BaseTests
         Assert.Contains("'grant_types_supported'", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task HandleAsync_WhenClientConfigured_RegistersItsMethodAndAppliesDefaults()
+    {
+        // The registered token_endpoint_auth_method decides the client type, so a seeded client is confidential the
+        // way a dynamically registered one is, and it is the only method the client may use. Unconfigured lists take
+        // their defaults: the Basic OP grant types, and the server's PKCE methods (the setting is left out).
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
+        mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(jsonOptions);
+        var mockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
+        mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
+
+        // The validation result stops the seeding before the secret is stored, once the document is captured.
+        JsonElement? capturedSettings = null;
+        var mockSettingSerializer = CreateStrictMock<ISettingSerializer>();
+        mockSettingSerializer
+            .Setup(x => x.ValidateSettings(It.IsAny<JsonElement>(), jsonOptions))
+            .Callback(
+                (JsonElement settings, JsonSerializerOptions _) => capturedSettings = settings
+            )
+            .Returns([new SettingError("redirect_uris", "stop")])
+            .Verifiable();
+
+        var options = new ConformanceSeedOptions
+        {
+            Clients =
+            [
+                new ConformanceClientSeed
+                {
+                    ClientId = "client",
+                    ClientSecret = "Y29uZm9ybWFuY2Utc2VjcmV0LWNsaWVudA",
+                    RedirectUris = ["https://client.example/callback"],
+                    TokenEndpointAuthMethod = "client_secret_post",
+                },
+            ],
+            TestUserPassword = null,
+        };
+        var handler = CreateHandler(
+            options,
+            mockSettingSerializer.Object,
+            mockEnvironmentProvider.Object
+        );
+
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        var mockClientStore = CreateStrictMock<IClientStore>();
+        mockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(mockClientStore.Object)
+            .Verifiable();
+        mockClientStore
+            .Setup(x => x.GetOrDefaultAsync("client", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler.HandleAsync(
+                CreateCommand(WorkloadTenantId, TenantPlane.Workload, mockStoreManager.Object),
+                CancellationToken.None
+            )
+        );
+
+        Assert.NotNull(capturedSettings);
+        var settingsDocument = capturedSettings.Value;
+        Assert.Equal(
+            "client_secret_post",
+            settingsDocument.GetProperty("token_endpoint_auth_method").GetString()
+        );
+        Assert.Equal(
+            ["client_secret_post"],
+            GetStrings(settingsDocument, "token_endpoint_auth_methods_supported")
+        );
+        Assert.Equal(
+            ["authorization_code", "refresh_token"],
+            GetStrings(settingsDocument, "grant_types_supported")
+        );
+        Assert.False(settingsDocument.TryGetProperty("code_challenge_methods_supported", out _));
+    }
+
+    private static IEnumerable<string?> GetStrings(JsonElement document, string propertyName) =>
+        document.GetProperty(propertyName).EnumerateArray().Select(element => element.GetString());
+
     #endregion
 }

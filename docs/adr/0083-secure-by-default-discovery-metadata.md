@@ -2,8 +2,10 @@
 
 - **Status:** Accepted (amended by [ADR-0140](0140-setting-values-are-validated-against-their-domain.md): symmetric
   signing of a token that crosses a trust boundary is outside the signing settings' domain, so it cannot be re-enabled;
-  and by [ADR-0141](0141-response-types-are-whole-values.md): `response_types_supported` lists whole response types,
-  advertised as listed, so an operator re-enables one implicit or hybrid flow by listing exactly that flow)
+  by [ADR-0141](0141-response-types-are-whole-values.md): `response_types_supported` lists whole response types,
+  advertised as listed, so an operator re-enables one implicit or hybrid flow by listing exactly that flow; and by
+  [ADR-0144](0144-authorization-codes-are-bound-to-pkce-by-default.md): PKCE `plain` cannot be re-enabled, and every
+  authorization code is bound to an `S256` challenge by default)
 - **Date:** 2026-10-12
 - **Deciders:** NCode.Identity maintainers
 

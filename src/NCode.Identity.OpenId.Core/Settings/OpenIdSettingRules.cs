@@ -117,15 +117,6 @@ internal static class OpenIdSettingRules
         );
 
     /// <summary>
-    /// Gets the rule for a PKCE <c>code_challenge_method</c> value.
-    /// </summary>
-    public static SettingRule<string> CodeChallengeMethod() =>
-        SettingRules.OneOf(
-            OpenIdConstants.CodeChallengeMethods.S256,
-            OpenIdConstants.CodeChallengeMethods.Plain
-        );
-
-    /// <summary>
     /// Gets the rule for a claim type the server can emit; only <c>normal</c> claims are implemented.
     /// </summary>
     public static SettingRule<string> ClaimType() =>

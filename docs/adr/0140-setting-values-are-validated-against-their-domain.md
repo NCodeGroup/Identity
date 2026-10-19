@@ -1,7 +1,9 @@
 # 140. Setting values are validated against their domain, not only their type
 
 - **Status:** Accepted (response-type domain amended by [ADR-0141](0141-response-types-are-whole-values.md): a
-  response type is a whole value in canonical form, enforced exactly)
+  response type is a whole value in canonical form, enforced exactly; PKCE-method domain amended by
+  [ADR-0144](0144-authorization-codes-are-bound-to-pkce-by-default.md): it is the registered `ICodeChallengeMethod`
+  transformations, not a fixed vocabulary, and excludes `plain`)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

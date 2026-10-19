@@ -110,7 +110,6 @@ internal sealed class DeveloperInteractiveSeedHandler(
             {
                 [OpenIdSettingNames.RedirectUris] = spaClient.RedirectUris,
                 [OpenIdSettingNames.TokenEndpointAuthMethodsSupported] = PublicClientAuthMethods,
-                [OpenIdSettingNames.RequireCodeChallenge] = true,
                 [OpenIdSettingNames.RequireConsent] = spaClient.RequireConsent,
             }
         );

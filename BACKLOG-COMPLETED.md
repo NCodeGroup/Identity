@@ -863,6 +863,31 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   omitting them), and a response type that returns tokens defaults to the fragment on every authorization-endpoint path
   — the first pass had defaulted to the query string._
 
+- **`F56` — Require PKCE for the authorization code flow by default.** `require_pkce` defaults to `false`, so an
+  authorization request without a `code_challenge` is accepted unless the client runs the FAPI 2.0 profile or is the
+  developer seed client. The OAuth 2.1 direction and RFC 9700 §2.1.1 expect PKCE (`S256`) for every client that uses the
+  authorization code flow; `code_challenge_methods_supported` already defaults to `S256` only. Default `require_pkce` to
+  `true` (it merges as a floor, so a client cannot loosen it), decide whether a confidential
+  OpenID Connect client that sends a `nonce` may be exempt (RFC 9700 permits the nonce as the alternative mitigation for
+  such clients — a genuine trade-off to record in the ADR), and verify the conformance plans and seeders send a
+  challenge. Touch points: `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`
+  (`require_pkce`), `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultValidateAuthorizationRequestHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/AuthorizationCode/DefaultValidateAuthorizationCodeGrantHandler.cs`.
+  Capture the design in an ADR (amending [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0144](docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md). `require_pkce` defaults to `true`, and
+  one policy (`CodeChallengeRequirement`) decides the binding at both endpoints. The nonce exemption follows OAuth 2.1
+  §7.5.1.1 exactly: the deployment relaxes `require_pkce`, an administrator attests the specific client with the new
+  `pkce_nonce_exemption` setting (never set by dynamic client registration), the client is confidential — by
+  registration at the authorization endpoint, by actual authentication at the token endpoint — and the request requests
+  `openid` with a `nonce` (at the token endpoint, in the effective scopes). A missing challenge is `invalid_request`,
+  only for code-issuing response types. The work also removed PKCE `plain` (OAuth 2.1 §7.5.2) with a verified data
+  migration, made `code_challenge_methods_supported` a registered-strategy domain with an `S256` default, required
+  `code_challenge_method`, checked the RFC 7636 syntax of both PKCE values, and fixed the pushed authorization request
+  endpoint returning `200` for refusals. The conformance host relaxes and attests; the one Basic OP module that sends
+  neither PKCE nor a nonce is a documented expected failure. A design review surfaced the follow-up `F58`._
+
 - **`F57` — Retire `allow_unsafe_token_response`, which duplicates listing `token` in `response_types_supported`.**
   Response types are whole values enforced exactly
   ([ADR-0141](docs/adr/0141-response-types-are-whole-values.md)), so an operator who wants an access token returned by

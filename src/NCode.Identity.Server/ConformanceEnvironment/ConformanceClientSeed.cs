@@ -24,9 +24,13 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 /// <summary>
 /// Describes a single <strong>conformance-only</strong> confidential client to seed: its client id, its
 /// <c>Base64Url</c>-encoded secret, and the exact-match redirect URIs, grant types, token-endpoint authentication
-/// methods, and PKCE code-challenge methods it registers. The scopes it may request are not part of the seed: they
+/// method, and PKCE code-challenge methods it registers. The scopes it may request are not part of the seed: they
 /// come from the tenant's resource servers, and the OpenID Connect scopes are available to every client.
 /// </summary>
+/// <remarks>
+/// The list options start empty and their defaults apply only when none are configured, because the configuration
+/// binder appends the configured values to an array that already holds some.
+/// </remarks>
 [PublicAPI]
 public sealed class ConformanceClientSeed
 {
@@ -49,25 +53,24 @@ public sealed class ConformanceClientSeed
     public string[] RedirectUris { get; set; } = [];
 
     /// <summary>
-    /// Gets or sets the grant types this client is allowed to use. Defaults to the Basic OP set
-    /// (<c>authorization_code</c> + <c>refresh_token</c>).
+    /// Gets or sets the grant types this client is allowed to use. When none are configured, the client uses the Basic
+    /// OP set (<c>authorization_code</c> + <c>refresh_token</c>).
     /// </summary>
-    public string[] GrantTypes { get; set; } =
-    [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.RefreshToken];
+    public string[] GrantTypes { get; set; } = [];
 
     /// <summary>
-    /// Gets or sets the token-endpoint authentication methods this client supports. Defaults to
+    /// Gets or sets the token-endpoint authentication method the client registers (RFC 7591 §2), which decides whether
+    /// it is a confidential client, and which it is the only method permitted to use. Defaults to
     /// <c>client_secret_basic</c>.
     /// </summary>
-    public string[] TokenEndpointAuthMethods { get; set; } =
-    [OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic];
+    public string TokenEndpointAuthMethod { get; set; } =
+        OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
 
     /// <summary>
-    /// Gets or sets the PKCE code-challenge methods this client supports. Defaults to <c>S256</c> (the only
-    /// recommended method; <c>plain</c> is intentionally omitted).
+    /// Gets or sets the PKCE code-challenge methods this client supports. When none are configured, the client uses
+    /// the methods the server supports, which are <c>S256</c> by default.
     /// </summary>
-    public string[] CodeChallengeMethods { get; set; } =
-    [OpenIdConstants.CodeChallengeMethods.S256];
+    public string[] CodeChallengeMethods { get; set; } = [];
 
     /// <summary>
     /// Gets a value indicating whether this client should be seeded.

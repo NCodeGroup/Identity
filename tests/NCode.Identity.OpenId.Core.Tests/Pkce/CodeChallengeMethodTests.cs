@@ -35,24 +35,6 @@ public sealed class CodeChallengeMethodTests : IDisposable
 
     public void Dispose() => MockRepository.Verify();
 
-    #region PlainCodeChallengeMethod
-
-    [Fact]
-    public void Plain_Method_IsPlain()
-    {
-        var method = new PlainCodeChallengeMethod();
-        Assert.Equal(OpenIdConstants.CodeChallengeMethods.Plain, method.Method);
-    }
-
-    [Fact]
-    public void Plain_ComputeChallenge_ReturnsVerifierVerbatim()
-    {
-        var method = new PlainCodeChallengeMethod();
-        Assert.Equal("the-verifier", method.ComputeChallenge("the-verifier"));
-    }
-
-    #endregion
-
     #region S256CodeChallengeMethod
 
     [Fact]
@@ -91,39 +73,44 @@ public sealed class CodeChallengeMethodTests : IDisposable
     [Fact]
     public void Provider_SupportedMethods_ReflectsRegisteredMethods()
     {
-        var provider = new DefaultCodeChallengeMethodCollectionProvider([
-            new PlainCodeChallengeMethod(),
-        ]);
+        var s256 = CreateS256Method();
+        var provider = new DefaultCodeChallengeMethodCollectionProvider([s256]);
 
-        Assert.Equal(
-            [OpenIdConstants.CodeChallengeMethods.Plain],
-            provider.SupportedMethods.Order()
-        );
+        Assert.Equal([OpenIdConstants.CodeChallengeMethods.S256], provider.SupportedMethods);
     }
 
     [Fact]
     public void Provider_TryGet_RegisteredMethod_ReturnsTrueAndHandler()
     {
-        var plain = new PlainCodeChallengeMethod();
-        var provider = new DefaultCodeChallengeMethodCollectionProvider([plain]);
+        var s256 = CreateS256Method();
+        var provider = new DefaultCodeChallengeMethodCollectionProvider([s256]);
 
-        var found = provider.TryGet(OpenIdConstants.CodeChallengeMethods.Plain, out var method);
+        var found = provider.TryGet(OpenIdConstants.CodeChallengeMethods.S256, out var method);
 
         Assert.True(found);
-        Assert.Same(plain, method);
+        Assert.Same(s256, method);
     }
 
     [Fact]
     public void Provider_TryGet_UnknownMethod_ReturnsFalse()
     {
-        var provider = new DefaultCodeChallengeMethodCollectionProvider([
-            new PlainCodeChallengeMethod(),
-        ]);
+        var s256 = CreateS256Method();
+        var provider = new DefaultCodeChallengeMethodCollectionProvider([s256]);
 
-        var found = provider.TryGet("unknown", out var method);
+        var found = provider.TryGet("plain", out var method);
 
         Assert.False(found);
         Assert.Null(method);
+    }
+
+    #endregion
+
+    #region Scaffolding
+
+    private S256CodeChallengeMethod CreateS256Method()
+    {
+        var mockCryptoService = MockRepository.Create<ICryptoService>();
+        return new S256CodeChallengeMethod(mockCryptoService.Object);
     }
 
     #endregion

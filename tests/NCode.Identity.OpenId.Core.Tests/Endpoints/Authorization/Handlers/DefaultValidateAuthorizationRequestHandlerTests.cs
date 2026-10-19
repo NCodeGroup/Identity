@@ -396,6 +396,184 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
     #endregion
 
+    #region ValidateCodeChallenge Tests
+
+    // RFC 7636 Appendix B.
+    private const string CodeChallenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+
+    private sealed record CodeChallengeScaffold(
+        IOpenIdErrorFactory ErrorFactory,
+        OpenIdClient Client,
+        Mock<IAuthorizationRequest> Request,
+        Func<string?> CapturedCode
+    );
+
+    private CodeChallengeScaffold CreateCodeChallengeScaffold(
+        bool requirePkce,
+        string registeredAuthMethod = "",
+        bool nonceExemption = false
+    )
+    {
+        string? capturedCode = null;
+        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+        var mockError = CreateLooseMock<IOpenIdError>();
+        mockErrorFactory
+            .Setup(x => x.Create(It.IsAny<string>()))
+            .Callback<string>(code => capturedCode = code)
+            .Returns(mockError.Object);
+
+        var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RequireCodeChallenge))
+            .Returns(requirePkce);
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.PkceNonceExemption))
+            .Returns(nonceExemption);
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod))
+            .Returns(registeredAuthMethod);
+        IReadOnlyCollection<string> methods = [OpenIdConstants.CodeChallengeMethods.S256];
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.CodeChallengeMethodsSupported))
+            .Returns(methods);
+
+        var mockClient = CreateLooseMock<OpenIdClient>();
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+
+        var mockRequest = CreateRequest(OpenIdConstants.ResponseTypes.Code);
+        IReadOnlyList<string> scopes = [OpenIdConstants.ScopeTypes.OpenId];
+        mockRequest.SetupGet(x => x.Scopes).Returns(scopes);
+
+        return new CodeChallengeScaffold(
+            mockErrorFactory.Object,
+            mockClient.Object,
+            mockRequest,
+            () => capturedCode
+        );
+    }
+
+    private static void InvokeValidateCodeChallenge(CodeChallengeScaffold scaffold) =>
+        DefaultValidateAuthorizationRequestHandler.ValidateCodeChallenge(
+            scaffold.ErrorFactory,
+            scaffold.Client,
+            scaffold.Request.Object
+        );
+
+    [Fact]
+    public void ValidateCodeChallenge_WhenRequiredAndMissing_ThrowsInvalidRequest()
+    {
+        // RFC 7636 §4.4.1: a missing code_challenge is invalid_request, not unauthorized_client.
+        var scaffold = CreateCodeChallengeScaffold(requirePkce: true);
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateCodeChallenge(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
+    }
+
+    [Fact]
+    public void ValidateCodeChallenge_WhenTheResponseTypeIssuesNoCode_DoesNotRequireAChallenge()
+    {
+        // PKCE binds an authorization code; an implicit response type issues none.
+        var scaffold = CreateCodeChallengeScaffold(requirePkce: true);
+        IReadOnlyList<string> responseTypes = [OpenIdConstants.ResponseTypes.IdToken];
+        scaffold.Request.SetupGet(x => x.ResponseTypes).Returns(responseTypes);
+
+        var exception = Record.Exception(() => InvokeValidateCodeChallenge(scaffold));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void ValidateCodeChallenge_WhenExemptedByTheNonce_DoesNotRequireAChallenge()
+    {
+        var scaffold = CreateCodeChallengeScaffold(
+            requirePkce: false,
+            registeredAuthMethod: OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            nonceExemption: true
+        );
+        scaffold.Request.SetupGet(x => x.Nonce).Returns("n-0S6_WzA2Mj");
+
+        var exception = Record.Exception(() => InvokeValidateCodeChallenge(scaffold));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void ValidateCodeChallenge_WhenAPublicClientOmitsIt_ThrowsInvalidRequest()
+    {
+        // A public client is bound to PKCE however the deployment relaxes require_pkce.
+        var scaffold = CreateCodeChallengeScaffold(
+            requirePkce: false,
+            registeredAuthMethod: OpenIdConstants.ClientAuthenticationMethods.None,
+            nonceExemption: true
+        );
+        scaffold.Request.SetupGet(x => x.Nonce).Returns("n-0S6_WzA2Mj");
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateCodeChallenge(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
+    }
+
+    [Fact]
+    public void ValidateCodeChallenge_WhenWellFormedWithASupportedMethod_DoesNotThrow()
+    {
+        var scaffold = CreateCodeChallengeScaffold(requirePkce: true);
+        scaffold.Request.SetupGet(x => x.CodeChallenge).Returns(CodeChallenge);
+        scaffold
+            .Request.SetupGet(x => x.CodeChallengeMethod)
+            .Returns(OpenIdConstants.CodeChallengeMethods.S256);
+
+        var exception = Record.Exception(() => InvokeValidateCodeChallenge(scaffold));
+
+        Assert.Null(exception);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ValidateCodeChallenge_WhenTheMethodIsMissing_ThrowsInvalidRequest(string? method)
+    {
+        // OAuth 2.1 §4.1.1: code_challenge_method has no default; RFC 7636's implicit 'plain' is not applied.
+        var scaffold = CreateCodeChallengeScaffold(requirePkce: true);
+        scaffold.Request.SetupGet(x => x.CodeChallenge).Returns(CodeChallenge);
+        scaffold.Request.SetupGet(x => x.CodeChallengeMethod).Returns(method);
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateCodeChallenge(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
+    }
+
+    [Theory]
+    [InlineData("plain")]
+    [InlineData("s256")]
+    public void ValidateCodeChallenge_WhenTheMethodIsNotSupported_ThrowsInvalidRequest(
+        string method
+    )
+    {
+        var scaffold = CreateCodeChallengeScaffold(requirePkce: true);
+        scaffold.Request.SetupGet(x => x.CodeChallenge).Returns(CodeChallenge);
+        scaffold.Request.SetupGet(x => x.CodeChallengeMethod).Returns(method);
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateCodeChallenge(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
+    }
+
+    [Theory]
+    [InlineData("too-short")]
+    [InlineData("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw+cM")]
+    public void ValidateCodeChallenge_WhenMalformed_ThrowsInvalidRequest(string codeChallenge)
+    {
+        var scaffold = CreateCodeChallengeScaffold(requirePkce: true);
+        scaffold.Request.SetupGet(x => x.CodeChallenge).Returns(codeChallenge);
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateCodeChallenge(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
+    }
+
+    #endregion
+
     #region dpop_jkt
 
     [Fact]

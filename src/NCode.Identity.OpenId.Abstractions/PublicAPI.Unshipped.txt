@@ -69,7 +69,6 @@ const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.None = "
 const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt = "private_key_jwt" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth = "self_signed_tls_client_auth" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth = "tls_client_auth" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods.Plain = "plain" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods.S256 = "S256" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ConfirmationMethods.JwkThumbprint = "jkt" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint = "x5t#S256" -> string!
@@ -349,6 +348,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.JwksUriFetchTimeout = "j
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.JwksUriMaxSizeBytes = "jwks_uri_max_size_bytes" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.OpenIdProviderPolicyUri = "op_policy_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.OpenIdProviderTermsOfServiceUri = "op_tos_uri" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PkceNonceExemption = "pkce_nonce_exemption" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PromptValuesSupported = "prompt_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RedirectUris = "redirect_uris" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PostLogoutRedirectUris = "post_logout_redirect_uris" -> string!
@@ -857,6 +857,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.JwksUriFetchTimeout.get 
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.JwksUriMaxSizeBytes.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.OpenIdProviderPolicyUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.OpenIdProviderTermsOfServiceUri.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PkceNonceExemption.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PromptValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RedirectUris.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PostLogoutRedirectUris.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>

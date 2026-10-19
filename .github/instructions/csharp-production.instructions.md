@@ -297,12 +297,22 @@ rationale.
   `GetTenantUriByName`, which takes the authority from the tenant and carries the tenant route's values over. Never
   hand the request's live `RouteValues` to a template binder — it consumes them; bind a copy. See
   [ADR-0138](../../docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md).
+- 👁 **Decide a client's type from what the endpoint knows.** The authorization endpoint does not authenticate the
+  client, so a rule it applies reads the type the client is **registered** as — `IsRegisteredAsConfidential`, from its
+  registered `token_endpoint_auth_method` — and the same validation reads the same fact when it also runs at the pushed
+  authorization request endpoint, so the two agree. An endpoint that decides from the request's own client
+  authentication (the token endpoint redeeming a grant) reads `OpenIdClient.IsConfidential`. Never treat a client
+  registered as confidential as having authenticated. See
+  [ADR-0144](../../docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md).
 - 👁 **Bind configuration strictly and validate it when the host starts.** An options type bound from configuration is
   bound with the binder's `ErrorOnUnknownConfiguration` (through `NCode.Registration`'s `BindStrictly`, which names the
   section in the error) and registered with `ValidateOnStart`; a rule the binder cannot express is an
   `IValidateOptions<T>`. A key that maps to no option must stop the host — a misspelled or misplaced key is otherwise
   indistinguishable from an absent one. Bind a whole section rather than reading single keys (`configuration["A:B"]`),
-  which leave a misspelled sibling unnoticed; bind eagerly only when the value decides what gets registered. Each section
+  which   leave a misspelled sibling unnoticed; bind eagerly only when the value decides what gets registered. A collection
+  option the binder fills starts **empty**: the binder appends the configured values to an array or list that already
+  holds some, so a default set in the initializer can never be narrowed by configuration — apply the default when
+  nothing is configured instead. Each section
   has one owner that declares its whole shape; an extension binds its own section rather than adding keys to one the
   server owns. Validate only what is in force (for example the selected tenant strategy's options), since a JSON overlay
   cannot delete a lower layer's key. **Validate a value the way it will be used:** a lenient parser can turn a typo into

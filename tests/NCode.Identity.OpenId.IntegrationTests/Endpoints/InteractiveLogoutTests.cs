@@ -148,7 +148,8 @@ public class InteractiveLogoutTests
                         + "&response_type=code"
                         + "&scope=openid"
                         + $"&state=state-{i:D2}"
-                        + "&prompt=none";
+                        + "&prompt=none"
+                        + TestPkce.QueryParameters;
                     using var request = new HttpRequestMessage(
                         HttpMethod.Get,
                         "/oauth2/authorize" + query

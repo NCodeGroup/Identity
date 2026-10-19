@@ -1,5 +1,5 @@
 {
-  "description": "NCode.Identity OP — Basic OP certification (authorization-code + PKCE S256, dynamic client registration).",
+  "description": "NCode.Identity OP — Basic OP certification (authorization code bound to PKCE S256 or, for the attested suite clients, the nonce; dynamic client registration).",
   "server": {
     "discoveryUrl": "https://host.docker.internal:5001/.well-known/openid-configuration"
   },

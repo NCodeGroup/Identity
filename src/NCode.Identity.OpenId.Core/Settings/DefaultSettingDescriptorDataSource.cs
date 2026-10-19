@@ -409,20 +409,6 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Min,
             };
 
-            // code_challenge_methods_supported: the PKCE code_challenge_method transformations the server supports
-            // (RFC 7636 / RFC 8414). Secure-by-default advertises only "S256"; an operator may re-add "plain" via
-            // configuration (discouraged — RFC 9700 / OAuth 2.1).
-            // Ceiling (Intersect): a child narrows the parent's set; it cannot re-add a method the parent removed.
-            yield return new SettingDescriptor<IReadOnlyCollection<string>>
-            {
-                Name = OpenIdSettingNames.CodeChallengeMethodsSupported,
-                Rule = SettingRules.Each(OpenIdSettingRules.CodeChallengeMethod()),
-                Default = [OpenIdConstants.CodeChallengeMethods.S256],
-
-                IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect,
-            };
-
             // continue_authorization_lifetime: validity window for a paused ("continue") authorization flow (default 15 minutes).
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
@@ -1087,15 +1073,34 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Or,
             };
 
-            // require_pkce: whether the authorization-code flow must use PKCE (default false).
+            // require_pkce: whether every authorization request whose response type issues an authorization code must
+            // bind the code to a PKCE code_challenge (default true; RFC 9700 §2.1.1, OAuth 2.1 §4.1.1). Only the
+            // server's configuration can relax it; where it is relaxed, a confidential client attested by
+            // pkce_nonce_exemption may use the OpenID Connect nonce instead. A public client always uses PKCE
+            // (ADR-0144).
             // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequireCodeChallenge,
-                Default = false,
+                Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Or,
+            };
+
+            // pkce_nonce_exemption: an attestation that the client implements the OpenID Connect nonce mechanism
+            // correctly — the "reasonable assurance" of OAuth 2.1 §7.5.1.1 — so where require_pkce is relaxed, its
+            // confidential OpenID Connect requests that carry a nonce may omit the PKCE code_challenge (default false).
+            // It is an administrator's statement about a known client: dynamic client registration never sets it, and
+            // it has no effect while require_pkce is in force (ADR-0144).
+            // Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.PkceNonceExemption,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
             };
 
             // require_request_object: whether an authorization request must be passed as a signed request object

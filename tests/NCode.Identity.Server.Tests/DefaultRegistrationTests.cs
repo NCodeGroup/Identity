@@ -141,6 +141,7 @@ public sealed class DefaultRegistrationTests
     [InlineData("jwks_uri_allowed_hosts:0", "10.0.0")]
     [InlineData("grant_types_supported:0", "authorisation_code")]
     [InlineData("token_endpoint_auth_methods_supported:0", "client_secret")]
+    [InlineData("code_challenge_methods_supported:0", "plain")]
     [InlineData("id_token_signing_alg_values_supported:0", "HS256")]
     [InlineData("request_object_signing_alg_values_supported:0", "none")]
     [InlineData("id_token_encryption_alg_values_supported:0", "dir")]
@@ -179,6 +180,9 @@ public sealed class DefaultRegistrationTests
                     "urn:ietf:params:oauth:grant-type:device_code",
                 ["OpenId:Server:Settings:jwks_uri_allowed_hosts:0"] = "keys.example.com",
                 ["OpenId:Server:Settings:user_code_length"] = "12",
+                ["OpenId:Server:Settings:code_challenge_methods_supported:0"] = "S256",
+                ["OpenId:Server:Settings:require_pkce"] = "false",
+                ["OpenId:Server:Settings:pkce_nonce_exemption"] = "true",
             }
         );
 

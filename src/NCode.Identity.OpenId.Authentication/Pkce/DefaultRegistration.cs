@@ -19,6 +19,8 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Collections.Providers;
+using NCode.Identity.Settings;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Pkce;
@@ -32,7 +34,10 @@ internal static class DefaultRegistration
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
         /// <summary>
-        /// Configures the built-in <c>plain</c> and <c>S256</c> code challenge methods and their lookup provider.
+        /// Configures the built-in <c>S256</c> code challenge method, its lookup provider, and the
+        /// <c>code_challenge_methods_supported</c> setting descriptor, whose domain is the registered methods. A
+        /// deployment supports another transformation by registering another <see cref="ICodeChallengeMethod"/> and
+        /// listing it in <c>code_challenge_methods_supported</c>.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
@@ -41,15 +46,18 @@ internal static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<ICodeChallengeMethod, PlainCodeChallengeMethod>()
-            );
-            serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ICodeChallengeMethod, S256CodeChallengeMethod>()
             );
             serviceCollection.TryAddSingleton<
                 ICodeChallengeMethodCollectionProvider,
                 DefaultCodeChallengeMethodCollectionProvider
             >();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<SettingDescriptor>,
+                    DefaultPkceSettingDescriptorDataSource
+                >()
+            );
 
             return builder;
         }

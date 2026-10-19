@@ -90,8 +90,15 @@ intentional deviation** codified in [`expected-failures.json`](../../build/confo
 
 The first full run completed `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` (38 modules, no mass-abort). **After the
 fixes below the plan runs clean** — `32 PASSED, 0 WARNING, 3 REVIEW, 4 SKIPPED, 0 FAILED` (39 modules incl. the Config
-OP) with a green gate (`Conformance run PASSED`). `expected-failures.json` now has no entries (a `REVIEW` result with
-no failing conditions does not gate the run).
+OP) with a green gate (`Conformance run PASSED`); a `REVIEW` result with no failing conditions does not gate the run.
+
+`expected-failures.json` holds one intentional deviation: since every authorization code is bound to PKCE
+([ADR-0144](../adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)), the conformance host relaxes
+`require_pkce` and attests the suite's clients with `pkce_nonce_exemption`, so its nonce-carrying requests need no
+`code_challenge` — but `oidcc-ensure-request-without-nonce-succeeds-for-code-flow` sends neither a challenge nor a nonce,
+which leaves the code unprotected against injection, and the OP refuses it with `invalid_request` (OAuth 2.1 §7.5.1.1).
+The first run with this baseline completed `31 PASSED, 0 WARNING, 3 REVIEW, 4 SKIPPED, 1 FAILED` (39 modules incl. the
+Config OP; the failure is the expected one, on `CheckIfAuthorizationEndpointError`) with a green gate.
 
 ### Fixed backend bugs (see [`CHANGELOG.md`](../../CHANGELOG.md))
 

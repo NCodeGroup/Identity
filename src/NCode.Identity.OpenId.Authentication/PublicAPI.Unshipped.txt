@@ -13,7 +13,7 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.Authorizat
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.ClientId.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.Clone() -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.CodeChallenge.get -> string?
-NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.CodeChallengeMethod.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.CodeChallengeMethod.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.CodeVerifier.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.DisplayType.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.DPoPJwkThumbprint.get -> string?

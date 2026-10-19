@@ -41,7 +41,11 @@ export function StepCard({ index, title, status, description, children }: StepCa
   return (
     <Card variant="outlined" data-testid={`step-${index}`} data-status={status}>
       <CardContent>
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: description ? 0.5 : 1 }}>
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{ alignItems: 'center', mb: description ? 0.5 : 1 }}
+        >
           <Chip size="small" label={index} color={STATUS_COLOR[status]} />
           <Typography variant="h6" component="h2" sx={{ flexGrow: 1 }}>
             {title}
@@ -54,9 +58,7 @@ export function StepCard({ index, title, status, description, children }: StepCa
           />
         </Stack>
         {description ? (
-          <Typography color="text.secondary" sx={{ mb: 1.5 }}>
-            {description}
-          </Typography>
+          <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>{description}</Typography>
         ) : null}
         {children ? <Box>{children}</Box> : null}
       </CardContent>

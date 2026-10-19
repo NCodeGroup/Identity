@@ -129,7 +129,7 @@ export function AccountPage({
                 ) : null}
               </Stack>
             ) : (
-              <Typography color="text.secondary" data-testid="account-loading">
+              <Typography data-testid="account-loading" sx={{ color: 'text.secondary' }}>
                 Loading your session…
               </Typography>
             )}
@@ -170,8 +170,8 @@ function DetailRow({
   readonly testId: string;
 }) {
   return (
-    <Stack direction="row" justifyContent="space-between" spacing={2}>
-      <Typography color="text.secondary">{label}</Typography>
+    <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between' }}>
+      <Typography sx={{ color: 'text.secondary' }}>{label}</Typography>
       <Typography sx={{ wordBreak: 'break-all', textAlign: 'right' }} data-testid={testId}>
         {value}
       </Typography>

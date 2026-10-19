@@ -53,7 +53,7 @@ export function ServerTable({ servers, onSelect, onEdit, onDelete }: ServerTable
             <TableCell>{server.serverId}</TableCell>
             {showActions && (
               <TableCell align="right">
-                <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
                   {onEdit && (
                     <Tooltip title="Edit server">
                       <IconButton

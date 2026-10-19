@@ -78,7 +78,7 @@ export function ProbePanel({
 
   return (
     <Stack spacing={1.5} data-testid="probe-panel">
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
         Actively exercise the browser-reachable endpoints against the live provider to turn{' '}
         <em>advertised</em> into <em>verified</em>. Probes make real network calls (CORS applies);
         the confidential and interactive-session legs are left to the probe runner.
@@ -103,10 +103,9 @@ export function ProbePanel({
           <Stack
             direction="row"
             spacing={1}
-            alignItems="center"
-            flexWrap="wrap"
             useFlexGap
             data-testid="probe-summary"
+            sx={{ alignItems: 'center', flexWrap: 'wrap' }}
           >
             <Chip size="small" color="success" label={`Verified ${report.totals.verified}`} />
             <Chip size="small" color="error" label={`Failed ${report.totals.failed}`} />
@@ -120,9 +119,8 @@ export function ProbePanel({
                     <Stack
                       direction="row"
                       spacing={1}
-                      alignItems="center"
-                      flexWrap="wrap"
                       useFlexGap
+                      sx={{ alignItems: 'center', flexWrap: 'wrap' }}
                     >
                       <Chip
                         size="small"
@@ -130,21 +128,20 @@ export function ProbePanel({
                         label={OUTCOME_META[result.outcome].label}
                         data-testid={`probe-${result.outcome}`}
                       />
-                      <Typography component="span" fontWeight={600}>
+                      <Typography component="span" sx={{ fontWeight: 600 }}>
                         {result.feature}
                       </Typography>
                     </Stack>
                   }
                   secondary={
                     <>
-                      <Typography component="span" variant="body2" color="text.secondary">
+                      <Typography component="span" variant="body2" sx={{ color: 'text.secondary' }}>
                         {result.detail}
                       </Typography>
                       <Typography
                         component="span"
                         variant="caption"
-                        color="text.disabled"
-                        display="block"
+                        sx={{ color: 'text.disabled', display: 'block' }}
                       >
                         {result.reference}
                       </Typography>

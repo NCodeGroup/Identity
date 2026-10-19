@@ -24,15 +24,21 @@ export function SignInScreen({
   onSignIn,
 }: SignInScreenProps) {
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh" p={2}>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        p: 2,
+      }}
+    >
       <Card sx={{ maxWidth: 420, width: '100%' }}>
         <CardContent sx={{ textAlign: 'center', py: 5 }}>
           <Typography variant="h5" component="h1" gutterBottom>
             {productName}
           </Typography>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Sign in to continue.
-          </Typography>
+          <Typography sx={{ color: 'text.secondary', mb: 3 }}>Sign in to continue.</Typography>
           {error && (
             <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }} data-testid="signin-error">
               {error}

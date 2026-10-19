@@ -116,11 +116,11 @@ export function SessionsPage({
             </Typography>
 
             {sessions === null ? (
-              <Typography color="text.secondary" data-testid="sessions-loading">
+              <Typography data-testid="sessions-loading" sx={{ color: 'text.secondary' }}>
                 Loading your sessions…
               </Typography>
             ) : sessions.length === 0 ? (
-              <Typography color="text.secondary" data-testid="sessions-empty">
+              <Typography data-testid="sessions-empty" sx={{ color: 'text.secondary' }}>
                 You have no other active sessions.
               </Typography>
             ) : (
@@ -129,9 +129,8 @@ export function SessionsPage({
                   <Box key={session.sessionId} data-testid="session-item">
                     <Stack
                       direction="row"
-                      justifyContent="space-between"
-                      alignItems="center"
                       spacing={2}
+                      sx={{ justifyContent: 'space-between', alignItems: 'center' }}
                     >
                       <Typography sx={{ wordBreak: 'break-word' }}>
                         <strong>{session.userAgent ?? 'Unknown device'}</strong>
@@ -223,8 +222,8 @@ export function SessionsPage({
 
 function DetailRow({ label, value }: { readonly label: string; readonly value: string }) {
   return (
-    <Stack direction="row" justifyContent="space-between" spacing={2}>
-      <Typography color="text.secondary" variant="body2">
+    <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between' }}>
+      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
         {label}
       </Typography>
       <Typography variant="body2" sx={{ wordBreak: 'break-all', textAlign: 'right' }}>

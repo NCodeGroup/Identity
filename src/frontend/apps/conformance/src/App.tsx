@@ -26,13 +26,13 @@ export function App() {
           <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
             {productName} · Conformance
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {runtime.issuer}
           </Typography>
         </Toolbar>
       </AppBar>
       <Container maxWidth="md" sx={{ py: 3 }}>
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
+        <Typography sx={{ color: 'text.secondary', mb: 2 }}>
           A security-posture and OpenID Foundation conformance readiness dashboard. It audits the
           provider&rsquo;s published discovery metadata against modern OAuth 2.1 / OIDC guidance,
           reports Basic/Config OP readiness, and measures coverage of the full published

@@ -18,7 +18,7 @@ export function CodeBlock({ label, value, sensitive = false }: CodeBlockProps) {
   return (
     <Box>
       {label ? (
-        <Typography variant="caption" color="text.secondary" component="div" gutterBottom>
+        <Typography variant="caption" component="div" gutterBottom sx={{ color: 'text.secondary' }}>
           {label}
         </Typography>
       ) : null}

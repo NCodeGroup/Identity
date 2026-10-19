@@ -32,11 +32,11 @@ export function TenantDetailPage({ tenantId }: TenantDetailPageProps) {
 
   return (
     <>
-      <Stack mb={2}>
+      <Stack sx={{ mb: 2 }}>
         <Typography variant="h5" component="h2">
           Tenant
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {tenantId}
         </Typography>
       </Stack>

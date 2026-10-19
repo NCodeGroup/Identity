@@ -52,11 +52,11 @@ export function ResourceServerDetailPage({
       >
         Resource servers
       </Button>
-      <Stack mb={2}>
+      <Stack sx={{ mb: 2 }}>
         <Typography variant="h5" component="h2">
           {resourceServer.name}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Resource server · {resourceServer.identifier}
         </Typography>
       </Stack>

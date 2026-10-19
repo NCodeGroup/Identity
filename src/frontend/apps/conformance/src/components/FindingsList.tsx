@@ -21,23 +21,22 @@ export function FindingsList({ findings }: FindingsListProps) {
         <ListItem key={finding.id} divider alignItems="flex-start" sx={{ px: 0 }}>
           <ListItemText
             primary={
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                 <SeverityChip severity={finding.severity} />
-                <Typography component="span" fontWeight={600}>
+                <Typography component="span" sx={{ fontWeight: 600 }}>
                   {finding.title}
                 </Typography>
               </Stack>
             }
             secondary={
               <>
-                <Typography component="span" variant="body2" color="text.secondary">
+                <Typography component="span" variant="body2" sx={{ color: 'text.secondary' }}>
                   {finding.detail}
                 </Typography>
                 <Typography
                   component="span"
                   variant="caption"
-                  color="text.disabled"
-                  display="block"
+                  sx={{ color: 'text.disabled', display: 'block' }}
                 >
                   {finding.reference}
                 </Typography>

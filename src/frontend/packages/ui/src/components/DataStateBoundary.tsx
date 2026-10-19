@@ -25,7 +25,7 @@ export function DataStateBoundary({
 }: DataStateBoundaryProps) {
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" py={6} data-testid="data-loading">
+      <Box data-testid="data-loading" sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
         <CircularProgress />
       </Box>
     );
@@ -39,8 +39,8 @@ export function DataStateBoundary({
   }
   if (isEmpty) {
     return (
-      <Box py={6} textAlign="center" data-testid="data-empty">
-        <Typography color="text.secondary">{emptyMessage}</Typography>
+      <Box data-testid="data-empty" sx={{ py: 6, textAlign: 'center' }}>
+        <Typography sx={{ color: 'text.secondary' }}>{emptyMessage}</Typography>
       </Box>
     );
   }

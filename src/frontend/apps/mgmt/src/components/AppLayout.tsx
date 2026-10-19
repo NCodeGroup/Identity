@@ -36,7 +36,7 @@ export function AppLayout({
   children,
 }: AppLayoutProps) {
   return (
-    <Box minHeight="100vh" bgcolor="background.default">
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="static" color="default" elevation={1}>
         <Toolbar sx={{ gap: 2 }}>
           {onExitTenant && (
@@ -54,7 +54,11 @@ export function AppLayout({
           </Typography>
           <ScopeBadge kind={scopeKind} {...(scopeLabel ? { label: scopeLabel } : {})} />
           {subject && (
-            <Typography variant="body2" color="text.secondary" data-testid="session-subject">
+            <Typography
+              variant="body2"
+              data-testid="session-subject"
+              sx={{ color: 'text.secondary' }}
+            >
               {subject}
             </Typography>
           )}

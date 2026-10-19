@@ -11,7 +11,7 @@ Management, Auth/Consent/Login, Playground, and OIDC conformance. Decision recor
 
 ## Stack
 
-- **React 18 + Material UI (MUI)** for the view layer.
+- **React 19 + Material UI (MUI) 9** for the view layer.
 - **Redux Toolkit + RTK Query** for client and server state.
 - **Vite** build, **Vitest + React Testing Library** unit tests, **Storybook** for component
   verification, **TypeScript (strict)** everywhere.
@@ -279,10 +279,19 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
 - **A `data-testid` on a MUI control lands on the root, not the native input.** `<Switch data-testid=…>`
   (and friends) forward the attribute to the outer element, so `getByTestId(...)` returns a `<span>` and
   matchers like `.toBeChecked()` fail. `TextField`'s `slotProps.htmlInput` _does_ reach the input (its
-  type has an index signature), but `Switch`'s `slotProps.input` / `inputProps` types reject `data-*`.
+  type has an index signature), but `Switch`'s `slotProps.input` type rejects `data-*`.
   Prefer querying the control by role and accessible name instead —
-  `getByRole('checkbox', { name: 'Disabled' })` (the `FormControlLabel` supplies the name) — which is both
-  type-safe and closer to how a user finds it.
+  `getByRole('switch', { name: 'Disabled' })` (the `FormControlLabel` supplies the name) — which is both
+  type-safe and closer to how a user finds it. Use the control's real role: since MUI 9 a `Switch` is
+  `role="switch"`, not `checkbox`, and only a `Checkbox` answers to `'checkbox'`.
+- **MUI has no system props; style through `sx`.** MUI 9 removed the system-prop shorthands from `Box`, `Stack`,
+  `Typography`, `Link`, and `Grid` (`<Box display="flex" py={2}>`, `<Typography color="text.secondary">`), and the
+  deprecated `*Props` escape hatches (`inputProps`, `InputProps`, `PaperProps`, …) in favor of `slots` / `slotProps`
+  (`slotProps={{ htmlInput: { … } }}` on a `TextField`, `slotProps={{ input: … }}` on a `Checkbox` / `Switch`). A
+  removed prop is a type error, so `pnpm typecheck` catches it. To migrate code in bulk, use MUI's codemods
+  (`npx @mui/codemod@<version> v9.0.0/system-props <path>` and `deprecations/all`). Pin the version: 9.5.0's CLI is
+  broken (`yargs.command is not a function`), so use 9.4.0. Run them on LF checkouts and re-run Prettier afterwards,
+  because jscodeshift writes CRLF on Windows and expands every object it touches.
 - **Test type entry points are the Vitest ones.** Vitest no longer pulls Jest's global matcher namespace or
   `@types/node` into a test program, so name them explicitly: a tsconfig lists `@testing-library/jest-dom/vitest` in
   `types` (the bare `@testing-library/jest-dom` entry augments Jest only, and `toBeInTheDocument` stops type-checking);

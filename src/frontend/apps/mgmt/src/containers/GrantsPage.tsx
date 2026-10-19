@@ -133,7 +133,7 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
 
   return (
     <>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Typography variant="h5" component="h2">
           Grants
         </Typography>
@@ -163,7 +163,7 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
           </Button>
         </Stack>
       </Box>
-      <Stack direction="row" spacing={2} mb={2}>
+      <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
         <TextField
           size="small"
           label="Subject"

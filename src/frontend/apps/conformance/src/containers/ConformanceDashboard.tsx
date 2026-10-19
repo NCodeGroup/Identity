@@ -132,7 +132,12 @@ export function ConformanceDashboard({
 
           <TabPanel value={tab} index={0}>
             <Stack spacing={2}>
-              <Stack direction="row" spacing={1} alignItems="center" data-testid="summary">
+              <Stack
+                direction="row"
+                spacing={1}
+                data-testid="summary"
+                sx={{ alignItems: 'center' }}
+              >
                 <SeverityChip severity="fail" size="medium" />
                 <Typography sx={{ mr: 2 }}>{counts.fail}</Typography>
                 <SeverityChip severity="warn" size="medium" />
@@ -142,16 +147,15 @@ export function ConformanceDashboard({
               </Stack>
 
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography variant="subtitle2" gutterBottom sx={{ color: 'text.secondary' }}>
                   Spec coverage
                 </Typography>
                 <Stack
                   direction="row"
                   spacing={1}
-                  alignItems="center"
-                  flexWrap="wrap"
                   useFlexGap
                   data-testid="coverage-summary"
+                  sx={{ alignItems: 'center', flexWrap: 'wrap' }}
                 >
                   <CoverageStatusChip status="implemented" />
                   <Typography sx={{ mr: 1 }}>{coverage.totals.implemented}</Typography>
@@ -186,7 +190,7 @@ export function ConformanceDashboard({
           </TabPanel>
 
           <TabPanel value={tab} index={2}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
               Coverage of the full published OAuth&nbsp;2.x / OpenID&nbsp;Connect / CIBA / FAPI
               surface, classified from the live discovery document (semantics: <em>advertised</em>).
               Categories with a gap start expanded; missing rows link to their tracking backlog id,
@@ -210,7 +214,7 @@ export function ConformanceDashboard({
             <Card variant="outlined">
               <CardContent>
                 <Stack spacing={2}>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Drive this provider with the{' '}
                     <Link
                       href="https://www.certification.openid.net/"
@@ -229,30 +233,36 @@ export function ConformanceDashboard({
                       onChange={(event) => setSuiteBaseUrl(event.target.value)}
                       size="small"
                       fullWidth
-                      inputProps={{ 'data-testid': 'suite-base' }}
+                      slotProps={{ htmlInput: { 'data-testid': 'suite-base' } }}
                     />
                     <TextField
                       label="Alias"
                       value={alias}
                       onChange={(event) => setAlias(event.target.value)}
                       size="small"
-                      inputProps={{ 'data-testid': 'alias' }}
+                      slotProps={{ htmlInput: { 'data-testid': 'alias' } }}
                     />
                   </Stack>
                   <Divider />
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">
+                    <Typography
+                      variant="caption"
+                      sx={{ color: 'text.secondary', display: 'block' }}
+                    >
                       Issuer (must byte-match the discovery document)
                     </Typography>
-                    <Typography fontFamily="monospace" data-testid="issuer">
+                    <Typography data-testid="issuer" sx={{ fontFamily: 'monospace' }}>
                       {runtime.issuer}
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">
+                    <Typography
+                      variant="caption"
+                      sx={{ color: 'text.secondary', display: 'block' }}
+                    >
                       RP callback the OP must accept
                     </Typography>
-                    <Typography fontFamily="monospace" data-testid="callback-url">
+                    <Typography data-testid="callback-url" sx={{ fontFamily: 'monospace' }}>
                       {callbackUrl}
                     </Typography>
                   </Box>
@@ -277,7 +287,7 @@ function TabLabel({
   readonly color: 'error' | 'default';
 }) {
   return (
-    <Stack direction="row" spacing={1} alignItems="center">
+    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
       <span>{text}</span>
       {count > 0 ? <Chip size="small" color={color} label={count} /> : null}
     </Stack>

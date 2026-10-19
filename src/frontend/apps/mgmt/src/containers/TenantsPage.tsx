@@ -125,7 +125,7 @@ export function TenantsPage({ onOpenTenant }: TenantsPageProps) {
 
   return (
     <>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Typography variant="h5" component="h2">
           Tenants
         </Typography>

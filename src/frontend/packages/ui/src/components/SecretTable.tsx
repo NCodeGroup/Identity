@@ -78,7 +78,7 @@ export function SecretTable({
               <TableCell>{secret.secretType}</TableCell>
               <TableCell>{secret.keySizeBits}</TableCell>
               <TableCell>
-                <Stack direction="row" spacing={1} alignItems="center">
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                   <span>{formatInstant(secret.expiresWhen)}</span>
                   {expired && <Chip size="small" color="warning" label="Expired" />}
                 </Stack>

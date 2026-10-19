@@ -44,6 +44,8 @@ const closed: DialogState = { kind: 'none' };
  * {@link GrantTable} and {@link ConfirmDialog}; owns only filter/dialog/error state.
  */
 export function GrantsPage({ tenantId }: GrantsPageProps) {
+  // Read the clock once, in a state initializer: reading it during render would make the table's output impure.
+  const [now] = useState(() => Date.now());
   const [subjectId, setSubjectId] = useState('');
   const [clientId, setClientId] = useState('');
 
@@ -183,7 +185,7 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
         isEmpty={grants.length === 0}
         emptyMessage="No grants match the current filter."
       >
-        <GrantTable grants={grants} onRevoke={openRevoke} />
+        <GrantTable grants={grants} now={now} onRevoke={openRevoke} />
       </DataStateBoundary>
 
       <ConfirmDialog

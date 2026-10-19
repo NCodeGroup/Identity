@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ClientFormDialog, emptyClientFormValues } from './ClientFormDialog.js';
 
 const meta: Meta<typeof ClientFormDialog> = {

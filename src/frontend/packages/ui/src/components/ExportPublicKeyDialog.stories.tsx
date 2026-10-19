@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ExportPublicKeyDialog } from './ExportPublicKeyDialog.js';
 
 const meta: Meta<typeof ExportPublicKeyDialog> = {

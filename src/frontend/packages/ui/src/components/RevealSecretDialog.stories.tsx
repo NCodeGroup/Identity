@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { RevealSecretDialog } from './RevealSecretDialog.js';
 
 const meta: Meta<typeof RevealSecretDialog> = {

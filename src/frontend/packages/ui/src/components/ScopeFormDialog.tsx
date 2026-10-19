@@ -47,13 +47,13 @@ export function ScopeFormDialog({
   onCancel,
 }: ScopeFormDialogProps) {
   const [values, setValues] = useState<ScopeFormValues>(initialValues);
-  const wasOpen = useRef(open);
+  const wasOpenRef = useRef(open);
 
   useEffect(() => {
-    if (open && !wasOpen.current) {
+    if (open && !wasOpenRef.current) {
       setValues(initialValues);
     }
-    wasOpen.current = open;
+    wasOpenRef.current = open;
   }, [open, initialValues]);
 
   const value = values.value.trim();

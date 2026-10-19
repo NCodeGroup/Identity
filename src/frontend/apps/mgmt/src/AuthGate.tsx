@@ -26,7 +26,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const productName = runtime?.branding?.displayName;
 
   const [error, setError] = useState<string | null>(null);
-  const [isBusy, setBusy] = useState(() =>
+  const [isBusy, setIsBusy] = useState(() =>
     typeof window !== 'undefined' ? isAuthorizationCallback(window.location.search) : false,
   );
 
@@ -37,19 +37,19 @@ export function AuthGate({ children }: { children: ReactNode }) {
   // transaction — which then dead-ends on "No in-flight authorization transaction was found." The ref
   // is set only when completion actually starts, so a pre-discovery render (authConfig still null)
   // does not consume the single attempt.
-  const completionStarted = useRef(false);
+  const completionStartedRef = useRef(false);
 
   useEffect(() => {
     if (
-      completionStarted.current ||
+      completionStartedRef.current ||
       !authConfig ||
       accessToken ||
       !isAuthorizationCallback(window.location.search)
     ) {
       return;
     }
-    completionStarted.current = true;
-    setBusy(true);
+    completionStartedRef.current = true;
+    setIsBusy(true);
     completeAuthorization(authConfig, window.location.search, deps)
       .then((tokens) => {
         const subject =
@@ -73,7 +73,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
       })
       .finally(() => {
-        setBusy(false);
+        setIsBusy(false);
       });
   }, [authConfig, accessToken, deps, dispatch]);
 
@@ -120,12 +120,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   const handleSignIn = () => {
     setError(null);
-    setBusy(true);
+    setIsBusy(true);
     beginAuthorization(authConfig, deps)
       .then((url) => window.location.assign(url))
       .catch((cause: unknown) => {
         setError(cause instanceof Error ? cause.message : 'Unable to start sign-in.');
-        setBusy(false);
+        setIsBusy(false);
       });
   };
 

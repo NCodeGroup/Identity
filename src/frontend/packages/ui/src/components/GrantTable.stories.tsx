@@ -1,9 +1,11 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { GrantTable } from './GrantTable.js';
 
 const meta: Meta<typeof GrantTable> = {
   title: 'Management/GrantTable',
   component: GrantTable,
+  // A fixed reference instant, so the expired/active split renders the same on every visit.
+  args: { now: Date.parse('2026-06-01T00:00:00Z') },
 };
 export default meta;
 

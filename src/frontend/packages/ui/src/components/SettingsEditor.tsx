@@ -47,12 +47,12 @@ export function SettingsEditor({
   onSave,
 }: SettingsEditorProps) {
   const [text, setText] = useState(initialJson);
-  const previousInitial = useRef(initialJson);
+  const previousInitialRef = useRef(initialJson);
 
   useEffect(() => {
-    if (initialJson !== previousInitial.current) {
+    if (initialJson !== previousInitialRef.current) {
       setText(initialJson);
-      previousInitial.current = initialJson;
+      previousInitialRef.current = initialJson;
     }
   }, [initialJson]);
 

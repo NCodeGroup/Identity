@@ -34,9 +34,12 @@ We deliberately use pnpm's strict, symlinked `node_modules` rather than Yarn Plu
 zero-installs: PnP needs patches for the Vite + Storybook + emotion/MUI stack and zero-installs would
 bloat the repo (see [ADR-0064](../../docs/adr/0064-frontend-presentation-platform.md)).
 
-The Node major version is pinned in [`.node-version`](.node-version) (Node 22), honored by NVS, nvm,
-and fnm, so each repo selects its own Node. With NVS: `nvs auto on` switches automatically on `cd`; it only
-lasts for the current shell, so persist it in your shell profile:
+The Node major version is pinned in [`.node-version`](.node-version) (Node 22, at least 22.13 — the floor the
+toolchain's `engines` states), honored by NVS, nvm, and fnm, so each repo selects its own Node. `@types/node`
+tracks that major, not the newest release
+([ADR-0147](../../docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). With
+NVS: `nvs auto on` switches automatically on `cd`; it only lasts for the current shell, so persist it in your shell
+profile:
 
 ```powershell
 # pwsh — $PROFILE.CurrentUserAllHosts (profile.ps1; covers the terminal and the VS Code PowerShell host)
@@ -73,6 +76,8 @@ src/frontend/
 1. **Stateless presentational components.** Components in `@ncode/ui` (and app `components/`) are
    prop-driven and hold no store/fetch state, so they render in Storybook and under RTL in isolation.
    Local state is allowed only when intrinsic to a control and it does not break isolated rendering.
+   They render as a pure function of their props: ambient values such as the clock come in as props
+   (e.g. `GrantTable`'s `now`), never from a read during render — the React lint rules (`purity`) flag it.
 2. **Stateful containers at the top.** State and side effects live in container components
    (`apps/*/src/containers/`) and the shell, which wire Redux + RTK Query and pass plain props down.
 3. **UI-free services/logic are unit-tested directly.** Validation, discovery parsing, PKCE, and the
@@ -278,6 +283,24 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   Prefer querying the control by role and accessible name instead —
   `getByRole('checkbox', { name: 'Disabled' })` (the `FormControlLabel` supplies the name) — which is both
   type-safe and closer to how a user finds it.
+- **Test type entry points are the Vitest ones.** Vitest no longer pulls Jest's global matcher namespace or
+  `@types/node` into a test program, so name them explicitly: a tsconfig lists `@testing-library/jest-dom/vitest` in
+  `types` (the bare `@testing-library/jest-dom` entry augments Jest only, and `toBeInTheDocument` stops type-checking);
+  a `vite.config.ts` with a `test` block starts with `/// <reference types="vitest/config" />` (the bare `vitest`
+  reference no longer types that key — configs are not in any tsconfig, so only the editor shows it); and a jsdom app
+  whose tests import `node:` modules lists `"node"` in `types` (as [`apps/playground`](apps/playground) does for
+  `webcrypto`, which jsdom lacks).
+- **`@types/node` is pinned to the runtime major workspace-wide.** The root `devDependency` is the one range; a
+  `pnpm.overrides` entry (`"@types/node": "$@types/node"`) forces every transitive and auto-installed copy to it —
+  without it, `auto-install-peers` resolves Vite's and Vitest's `@types/node` peer to the newest major in every
+  workspace that does not declare it. Dependabot ignores its majors; move it only together with `.node-version`
+  (backlog `U16`).
+- **Lint is one flat config at the workspace root.** [`eslint.config.js`](eslint.config.js) is found by walking up from
+  each linted file, so a package's `lint` script needs no config of its own. React rules come from
+  `@eslint-react/eslint-plugin` (`eslint-plugin-react` does not support ESLint 10), and `eslint-plugin-react-hooks` adds
+  the React Compiler checks; `@eslint-react`'s `disable-conflict-eslint-plugin-react-hooks` preset keeps the overlap
+  reported once. Its naming rules expect refs to end in `Ref` and a `useState` setter to be `set` + the capitalized
+  state name (`[isBusy, setIsBusy]`).
 - **A Node/backend CLI app (not a browser bundle) drops the DOM lib and runs via `vite-node`.** A headless
   app such as [`apps/conformance-runner`](apps/conformance-runner) sets `lib: ["ES2022"]` + `types: ["node"]`
   in its `tsconfig.json` (overriding the base, which adds `DOM`) so the global `fetch`/`Response`/`Buffer`/

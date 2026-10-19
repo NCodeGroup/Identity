@@ -23,6 +23,11 @@ export type SecretRow = {
 
 export type SecretTableProps = {
   readonly secrets: readonly SecretRow[];
+  /**
+   * The instant (epoch milliseconds) a secret's expiry is judged against. Supplied by the caller rather than read from
+   * the clock, so the table stays a pure function of its props.
+   */
+  readonly now: number;
   readonly onDelete?: (secretId: string) => void;
   /** Exports the public key of a secret; shown only for secret types in {@link exportableSecretTypes}. */
   readonly onExportPublicKey?: (secretId: string) => void;
@@ -46,11 +51,11 @@ function formatInstant(value: string): string {
  */
 export function SecretTable({
   secrets,
+  now,
   onDelete,
   onExportPublicKey,
   exportableSecretTypes,
 }: SecretTableProps) {
-  const now = Date.now();
   const exportable = new Set(exportableSecretTypes ?? []);
   const showActions = Boolean(onDelete) || Boolean(onExportPublicKey);
   return (

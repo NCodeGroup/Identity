@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { SettingsEditor } from './SettingsEditor.js';
 
 const meta: Meta<typeof SettingsEditor> = {

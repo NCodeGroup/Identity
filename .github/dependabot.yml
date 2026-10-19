@@ -32,9 +32,20 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # `@types/node` describes the Node runtime, so its major must equal the one pinned in src/frontend/.node-version
+      # (and the CI `node-version`). Types from a newer major let code compile against APIs the runtime lacks. Bump
+      # the runtime and this major together, deliberately.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # TypeScript 7 (the native compiler) no longer ships the JavaScript compiler API that typescript-eslint parses
+      # with, and typescript-eslint caps its peer range below it. Hold the 6.x line until it supports 7 (backlog U15).
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
     groups:
-      # The toolchain (vitest/vite/esbuild and friends) is where the current advisories sit (backlog U14); every one is
-      # a devDependency that never reaches the shipped bundle, so they are safe to move as a single group.
+      # The toolchain (vitest/vite/esbuild and friends) is where dev-only advisories land (backlog U14 was cleared this
+      # way); every one is a devDependency that never reaches the shipped bundle, so they are safe to move as a single
+      # group. Its majors are coupled (vite + vitest + plugin-react; eslint + its plugins) and must move together anyway.
       frontend-dev-toolchain:
         dependency-type: development
       frontend-production:

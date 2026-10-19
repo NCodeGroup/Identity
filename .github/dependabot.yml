@@ -32,6 +32,13 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # A version must be three days old before Dependabot proposes it. It is the same window as pnpm's
+    # minimumReleaseAge in src/frontend/pnpm-workspace.yaml, and must not be longer: Dependabot enforces this cooldown
+    # on every version already in the lockfile, and pnpm's gate is what keeps a younger one out (ADR-0153). Equal
+    # windows also mean Dependabot defers to pnpm's own setting. Dependabot's default is 3 days; it is stated here so a
+    # change to that default cannot reopen the gap.
+    cooldown:
+      default-days: 3
     ignore:
       # `@types/node` describes the Node runtime, so its major must equal the one pinned in src/frontend/.node-version
       # (which CI, NVS, and the Aspire AppHost all read). Types from a newer major let code compile against APIs the

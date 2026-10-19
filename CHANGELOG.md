@@ -95,6 +95,15 @@ change to the public API is a **major** version bump.
   replace the `node_modules` that pnpm 9 built. See
   [ADR-0152](docs/adr/0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md).
 
+- **Frontend dependencies must be three days old before anyone installs them.** pnpm now refuses a version published
+  less than three days ago (`minimumReleaseAge`), so a compromised release is usually caught and pulled before it
+  reaches the lockfile; `pnpm add` picks the newest version old enough. The window equals Dependabot's npm cooldown,
+  now stated in `dependabot.yml` rather than left to its default. That equality matters: on pnpm 10, Dependabot
+  enforces its cooldown on every version already in the lockfile, so a version a person locked inside the window made
+  its npm updates fail until the version aged. Dependabot security updates bypass both gates; any other urgent version
+  goes in `minimumReleaseAgeExclude`. See
+  [ADR-0153](docs/adr/0153-one-release-age-window-gates-frontend-dependencies.md).
+
 - **Frontend tests fail on warnings, and frontend coverage can no longer fall unnoticed.** A test that logs
   `console.error` or `console.warn` now fails. The usual culprit is a React "not wrapped in act(...)" warning, which
   means the test asserted before an update settled. The check comes from a console guard in the new test-only

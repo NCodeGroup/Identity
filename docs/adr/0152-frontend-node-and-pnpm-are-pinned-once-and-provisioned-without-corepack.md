@@ -3,7 +3,9 @@
 - **Status:** Accepted (amends [ADR-0064](0064-frontend-presentation-platform.md): pnpm is no longer activated with
   Corepack; [ADR-0071](0071-aspire-local-dev-orchestrator.md): the AppHost selects the Node major pinned in
   `.node-version`; [ADR-0147](0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md): the
-  runtime is Node 26 and `engines.node` is its floor)
+  runtime is Node 26 and `engines.node` is its floor; amended by
+  [ADR-0153](0153-one-release-age-window-gates-frontend-dependencies.md): pnpm also enforces Dependabot's three-day
+  release-age window)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

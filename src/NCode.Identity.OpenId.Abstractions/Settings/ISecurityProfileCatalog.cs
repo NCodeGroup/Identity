@@ -79,12 +79,15 @@ public interface ISecurityProfileCatalog
     /// the single operation every persisted-scope load uses so the selected profiles are always applied.
     /// </summary>
     /// <param name="settingsJson">The scope's persisted settings as a JSON document.</param>
+    /// <param name="scopeName">The name of the registered scope whose settings document <paramref name="settingsJson"/>
+    /// is; a setting that does not apply within it fails the load.</param>
     /// <param name="jsonOptions">The <see cref="JsonSerializerOptions"/> used to deserialize the settings.</param>
     /// <returns>The deserialized, profile-expanded settings.</returns>
     /// <exception cref="JsonException">The document cannot be honored, including a <c>security_profiles</c> value that
     /// names no registered profile.</exception>
     IReadOnlyCollection<Setting> Expand(
         JsonElement settingsJson,
+        string scopeName,
         JsonSerializerOptions jsonOptions
     );
 }

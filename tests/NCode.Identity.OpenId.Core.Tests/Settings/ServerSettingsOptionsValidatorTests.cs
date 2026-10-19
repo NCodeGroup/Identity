@@ -51,7 +51,10 @@ public class ServerSettingsOptionsValidatorTests : BaseTests
     {
         var section = CreateSection();
         var mockReader = CreateStrictMock<ISettingConfigurationReader>();
-        mockReader.Setup(x => x.Validate(section)).Returns([]).Verifiable();
+        mockReader
+            .Setup(x => x.Validate(section, OpenIdSettingScopes.Server))
+            .Returns([])
+            .Verifiable();
         var validator = new ServerSettingsOptionsValidator(mockReader.Object);
         var options = new OpenIdOptions { Server = { Settings = section } };
 
@@ -66,7 +69,7 @@ public class ServerSettingsOptionsValidatorTests : BaseTests
         var section = CreateSection();
         var mockReader = CreateStrictMock<ISettingConfigurationReader>();
         mockReader
-            .Setup(x => x.Validate(section))
+            .Setup(x => x.Validate(section, OpenIdSettingScopes.Server))
             .Returns(["first error.", "second error."])
             .Verifiable();
         var validator = new ServerSettingsOptionsValidator(mockReader.Object);

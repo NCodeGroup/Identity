@@ -64,6 +64,10 @@ public static class DefaultRegistration
                 DefaultSettingDescriptorCollectionProvider
             >();
             serviceCollection.TryAddSingleton<
+                ISettingScopeCollectionProvider,
+                DefaultSettingScopeCollectionProvider
+            >();
+            serviceCollection.TryAddSingleton<
                 IReadOnlySettingCollectionProviderFactory,
                 DefaultReadOnlySettingCollectionProviderFactory
             >();

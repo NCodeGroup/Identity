@@ -29,7 +29,12 @@ public class DefaultSettingCollectionTests : BaseTests
     }
 
     private static SettingDescriptor<string> Descriptor(string name, string? defaultValue = null) =>
-        new() { Name = name, DefaultOrNull = defaultValue };
+        new()
+        {
+            Name = name,
+            AppliesTo = ["client"],
+            DefaultOrNull = defaultValue,
+        };
 
     private static Setting<string> Setting(string name, string value) =>
         Descriptor(name).Create(value);
@@ -242,7 +247,9 @@ public class DefaultSettingCollectionTests : BaseTests
     public void Set_ByKey_WhenDescriptorHasAnotherValueType_Throws()
     {
         var collection = new DefaultSettingCollection(_mockProvider.Object);
-        SetupRegisteredDescriptor(new SettingDescriptor<bool> { Name = "a" });
+        SetupRegisteredDescriptor(
+            new SettingDescriptor<bool> { Name = "a", AppliesTo = ["client"] }
+        );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
             collection.Set(new SettingKey<string>("a"), "1")

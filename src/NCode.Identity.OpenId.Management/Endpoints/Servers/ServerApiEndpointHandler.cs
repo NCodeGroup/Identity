@@ -35,6 +35,7 @@ using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -77,6 +78,7 @@ internal class ServerApiEndpointHandler(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
+    ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IOpenIdServerProvider serverProvider,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ServerApiEndpointHandler> logger
@@ -90,6 +92,9 @@ internal class ServerApiEndpointHandler(
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+
+    private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
+        settingScopeCollectionProvider;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private ILogger<ServerApiEndpointHandler> Logger { get; } = logger;
@@ -301,10 +306,15 @@ internal class ServerApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        // Setting names are a closed vocabulary (ADR-0139): a settings document that cannot be honored is rejected
-        // here rather than stored and failed when the server's settings are next loaded.
+        // Setting names are a closed vocabulary (ADR-0139), and the server carries only the settings that apply within it
+        // (ADR-0149): a settings document that cannot be honored is rejected here rather than stored and failed when the
+        // server's settings are next loaded.
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettings(request.Settings, jsonOptions);
+        var settingErrors = SettingSerializer.ValidateSettings(
+            request.Settings,
+            OpenIdSettingScopes.Server,
+            jsonOptions
+        );
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);
@@ -532,7 +542,11 @@ internal class ServerApiEndpointHandler(
         return new ServerEffectiveSettingsResource
         {
             ServerId = serverId,
-            Settings = ToEffectiveSettingsElement(settings),
+            Settings = ToEffectiveSettingsElement(
+                settings,
+                SettingScopeCollectionProvider.Collection,
+                OpenIdSettingScopes.Server
+            ),
         };
     }
 
@@ -603,7 +617,11 @@ internal class ServerApiEndpointHandler(
 
         var settingsValue = SerializeToElement(jsonObject);
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettings(settingsValue, jsonOptions);
+        var settingErrors = SettingSerializer.ValidateSettings(
+            settingsValue,
+            OpenIdSettingScopes.Server,
+            jsonOptions
+        );
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);

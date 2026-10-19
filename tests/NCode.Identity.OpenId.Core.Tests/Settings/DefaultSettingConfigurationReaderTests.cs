@@ -30,32 +30,47 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
     private DefaultSettingConfigurationReader CreateReader()
     {
         var descriptors = new TestSettingDescriptorCollection(
-            new SettingDescriptor<string> { Name = "text" },
-            new SettingDescriptor<bool> { Name = "flag" },
-            new SettingDescriptor<int> { Name = "count" },
-            new SettingDescriptor<TimeSpan> { Name = "lifetime" },
-            new SettingDescriptor<IReadOnlyCollection<string>> { Name = "list" },
+            new SettingDescriptor<string> { Name = "text", AppliesTo = ["client"] },
+            new SettingDescriptor<bool> { Name = "flag", AppliesTo = ["client"] },
+            new SettingDescriptor<int> { Name = "count", AppliesTo = ["client"] },
+            new SettingDescriptor<TimeSpan> { Name = "lifetime", AppliesTo = ["client"] },
+            new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = "list",
+                AppliesTo = ["client"],
+            },
             new SettingDescriptor<string>
             {
                 Name = "mode",
+                AppliesTo = ["client"],
                 Rule = SettingRules.OneOf("poll", "ping", "push"),
             },
             new SettingDescriptor<TimeSpan>
             {
                 Name = "timeout",
+                AppliesTo = ["client"],
                 Rule = SettingRules.AtLeast(TimeSpan.FromSeconds(1)),
             },
             new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = "methods",
+                AppliesTo = ["client"],
                 Rule = SettingRules.Each(SettingRules.OneOf("S256", "plain")),
-            }
+            },
+            new SettingDescriptor<bool> { Name = "tenant_only", AppliesTo = ["tenant"] },
+            new SettingDescriptor<bool> { Name = "nowhere", AppliesTo = [] }
         );
 
         var mockProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
         mockProvider.Setup(x => x.Collection).Returns(descriptors).Verifiable();
 
-        return new DefaultSettingConfigurationReader(mockProvider.Object);
+        var mockScopeProvider = CreateStrictMock<ISettingScopeCollectionProvider>();
+        mockScopeProvider
+            .Setup(x => x.Collection)
+            .Returns(TestSettingScopeCollection.OpenId)
+            .Verifiable();
+
+        return new DefaultSettingConfigurationReader(mockProvider.Object, mockScopeProvider.Object);
     }
 
     private static IConfigurationSection CreateSection(params (string Key, string? Value)[] values)
@@ -83,7 +98,9 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
             ("list:1", "b")
         );
 
-        var settings = reader.Read(section).ToDictionary(x => x.Descriptor.Name, x => x.GetValue());
+        var settings = reader
+            .Read(section, OpenIdSettingScopes.Server)
+            .ToDictionary(x => x.Descriptor.Name, x => x.GetValue());
 
         Assert.Equal("value", settings["text"]);
         Assert.True(Assert.IsType<bool>(settings["flag"]));
@@ -98,7 +115,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("list", null));
 
-        var setting = Assert.Single(reader.Read(section));
+        var setting = Assert.Single(reader.Read(section, OpenIdSettingScopes.Server));
 
         Assert.Empty(Assert.IsAssignableFrom<IEnumerable<string>>(setting.GetValue()));
     }
@@ -108,7 +125,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
     {
         var reader = CreateReader();
 
-        var settings = reader.Read(CreateSection());
+        var settings = reader.Read(CreateSection(), OpenIdSettingScopes.Server);
 
         Assert.Empty(settings);
     }
@@ -119,7 +136,9 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("tenant_issuer", "https://op.example"), ("flag", "yes"));
 
-        var exception = Assert.Throws<InvalidOperationException>(() => reader.Read(section));
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            reader.Read(section, OpenIdSettingScopes.Server)
+        );
 
         Assert.Contains($"'{SectionPath}'", exception.Message, StringComparison.Ordinal);
         Assert.Contains(
@@ -136,7 +155,9 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("mode", "pull"), ("text", "value"));
 
-        var exception = Assert.Throws<InvalidOperationException>(() => reader.Read(section));
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            reader.Read(section, OpenIdSettingScopes.Server)
+        );
 
         Assert.Contains($"{SectionPath}:mode", exception.Message, StringComparison.Ordinal);
     }
@@ -151,7 +172,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("text", ""), ("flag", "false"), ("list:0", "a"));
 
-        var errors = reader.Validate(section);
+        var errors = reader.Validate(section, OpenIdSettingScopes.Server);
 
         Assert.Empty(errors);
     }
@@ -162,7 +183,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("tenant_issuer", "https://op.example"));
 
-        var error = Assert.Single(reader.Validate(section));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
 
         Assert.Equal($"'{SectionPath}:tenant_issuer' is not a registered setting.", error);
     }
@@ -173,7 +194,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("Flag", "true"));
 
-        var error = Assert.Single(reader.Validate(section));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
 
         Assert.Contains("not a registered setting", error, StringComparison.Ordinal);
     }
@@ -187,7 +208,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection((name, value));
 
-        var error = Assert.Single(reader.Validate(section));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
 
         Assert.Contains($"{SectionPath}:{name}", error, StringComparison.Ordinal);
     }
@@ -198,7 +219,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("list", "authorization_code"));
 
-        var error = Assert.Single(reader.Validate(section));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
 
         Assert.Contains("must be a list of values", error, StringComparison.Ordinal);
     }
@@ -211,7 +232,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection((key, "true"));
 
-        var error = Assert.Single(reader.Validate(section));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
 
         Assert.Contains("must be a single value", error, StringComparison.Ordinal);
     }
@@ -222,7 +243,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("mode", "pull"));
 
-        var error = Assert.Single(reader.Validate(section));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
 
         Assert.Equal($"'{SectionPath}:mode' must be one of 'poll', 'ping', or 'push'.", error);
     }
@@ -233,7 +254,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("timeout", "-00:05:00"));
 
-        var error = Assert.Single(reader.Validate(section));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
 
         Assert.Equal($"'{SectionPath}:timeout' must be at least 00:00:01.", error);
     }
@@ -244,7 +265,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("methods:0", "S256"), ("methods:1", "S512"));
 
-        var error = Assert.Single(reader.Validate(section));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
 
         Assert.Contains($"'{SectionPath}:methods'", error, StringComparison.Ordinal);
         Assert.Contains("'S512' is not", error, StringComparison.Ordinal);
@@ -260,7 +281,61 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
             ("methods:0", "S256")
         );
 
-        var errors = reader.Validate(section);
+        var errors = reader.Validate(section, OpenIdSettingScopes.Server);
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Validate_WhenTheSettingDoesNotApplyWithinTheScope_ReportsItsPathAndScopes()
+    {
+        var reader = CreateReader();
+        var section = CreateSection(("tenant_only", "true"));
+
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Client));
+
+        Assert.Equal($"'{SectionPath}:tenant_only' does not apply to the 'client' scope.", error);
+    }
+
+    [Fact]
+    public void Validate_WhenTheSettingAppliesToNoScope_ReportsItEvenForTheServer()
+    {
+        var reader = CreateReader();
+        var section = CreateSection(("nowhere", "true"));
+
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
+
+        Assert.Equal($"'{SectionPath}:nowhere' does not apply to the 'server' scope.", error);
+    }
+
+    [Fact]
+    public void Validate_WhenTheScopeIsNotRegistered_Throws()
+    {
+        // The scope is checked before any descriptor is consulted.
+        var mockScopeProvider = CreateStrictMock<ISettingScopeCollectionProvider>();
+        mockScopeProvider
+            .Setup(x => x.Collection)
+            .Returns(TestSettingScopeCollection.OpenId)
+            .Verifiable();
+        var reader = new DefaultSettingConfigurationReader(
+            CreateStrictMock<ISettingDescriptorCollectionProvider>().Object,
+            mockScopeProvider.Object
+        );
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            reader.Validate(CreateSection(), "organization")
+        );
+
+        Assert.Equal("scopeName", exception.ParamName);
+    }
+
+    [Fact]
+    public void Validate_WhenTheSettingAppliesBelowTheScope_ReturnsNoErrors()
+    {
+        var reader = CreateReader();
+        var section = CreateSection(("tenant_only", "true"), ("flag", "true"));
+
+        var errors = reader.Validate(section, OpenIdSettingScopes.Server);
 
         Assert.Empty(errors);
     }

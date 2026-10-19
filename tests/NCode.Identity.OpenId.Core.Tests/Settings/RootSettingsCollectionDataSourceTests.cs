@@ -75,7 +75,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
         mockAlgorithmProvider.Setup(x => x.GetChangeToken()).Returns(NeverChanges).Verifiable();
 
         var descriptors = new TestSettingDescriptorCollection(
-            new SettingDescriptor<bool> { Name = "flag" }
+            new SettingDescriptor<bool> { Name = "flag", AppliesTo = ["client"] }
         );
         var mockDescriptorProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
         mockDescriptorProvider.Setup(x => x.Collection).Returns(descriptors).Verifiable();
@@ -88,13 +88,22 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
             .Returns(() => CreateLooseMock<ISettingCollection>().Object)
             .Verifiable();
 
+        var mockScopeProvider = CreateStrictMock<ISettingScopeCollectionProvider>();
+        mockScopeProvider
+            .Setup(x => x.Collection)
+            .Returns(TestSettingScopeCollection.OpenId)
+            .Verifiable();
+
         return new RootSettingsCollectionDataSource(
             Options.Create(options),
             mockAlgorithmProvider.Object,
             mockDescriptorProvider.Object,
             mockFactory.Object,
             [],
-            new DefaultSettingConfigurationReader(mockDescriptorProvider.Object),
+            new DefaultSettingConfigurationReader(
+                mockDescriptorProvider.Object,
+                mockScopeProvider.Object
+            ),
             securityProfileCatalog,
             logger
         );

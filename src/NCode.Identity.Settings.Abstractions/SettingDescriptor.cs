@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
@@ -32,6 +33,17 @@ public abstract class SettingDescriptor
     /// Gets the name of the setting.
     /// </summary>
     public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets the names of the scopes the setting applies to: the registered <see cref="SettingScopeDescriptor"/> scopes
+    /// whose effective settings the server reads the setting from, whether to enforce it or to advertise it. A settings
+    /// document may carry the setting only at a scope that applies it or that cascades into one that does
+    /// (<see cref="ISettingScopeCollection.AppliesWithin(SettingDescriptor, string)"/>); anywhere else the setting would
+    /// be accepted without being honored, so every entry point that accepts a settings document rejects it there. A
+    /// setting that names no registered scope applies nowhere.
+    /// </summary>
+    // See ADR-0149.
+    public required ImmutableArray<string> AppliesTo { get; init; }
 
     /// <summary>
     /// Gets the type of the setting's value.

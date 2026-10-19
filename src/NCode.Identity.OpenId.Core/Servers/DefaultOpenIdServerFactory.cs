@@ -258,6 +258,7 @@ internal class DefaultOpenIdServerFactory(
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
         var initialSettings = SecurityProfileCatalog.Expand(
             persistedServer.Settings.Value,
+            OpenIdSettingScopes.Server,
             jsonOptions
         );
 
@@ -300,7 +301,11 @@ internal class DefaultOpenIdServerFactory(
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var settings = SecurityProfileCatalog.Expand(newSettings.Value, jsonOptions);
+        var settings = SecurityProfileCatalog.Expand(
+            newSettings.Value,
+            OpenIdSettingScopes.Server,
+            jsonOptions
+        );
 
         // update the state after successfully deserializing the settings
         persistedServer.Settings = newSettings;

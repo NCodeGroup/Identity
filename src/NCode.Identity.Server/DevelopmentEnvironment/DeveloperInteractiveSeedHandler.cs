@@ -143,7 +143,11 @@ internal sealed class DeveloperInteractiveSeedHandler(
     private void EnsureSettingsCanBeHonored(string clientId, JsonElement settings)
     {
         var jsonOptions = OpenIdEnvironmentProvider.Get().JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettings(settings, jsonOptions);
+        var settingErrors = SettingSerializer.ValidateSettings(
+            settings,
+            OpenIdSettingScopes.Client,
+            jsonOptions
+        );
         if (settingErrors.Count == 0)
             return;
 

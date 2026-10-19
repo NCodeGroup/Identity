@@ -346,7 +346,11 @@ public class DefaultOpenIdTenantFactory(
     {
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
         var initialSettingsJson = persistedTenant.Settings.Value;
-        var initialSettings = SecurityProfileCatalog.Expand(initialSettingsJson, jsonOptions);
+        var initialSettings = SecurityProfileCatalog.Expand(
+            initialSettingsJson,
+            OpenIdSettingScopes.Tenant,
+            jsonOptions
+        );
 
         var periodicPollingSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             new RefreshSettingsState(openIdEnvironment, openIdServer, persistedTenant),
@@ -395,7 +399,11 @@ public class DefaultOpenIdTenantFactory(
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var settings = SecurityProfileCatalog.Expand(newSettings.Value, jsonOptions);
+        var settings = SecurityProfileCatalog.Expand(
+            newSettings.Value,
+            OpenIdSettingScopes.Tenant,
+            jsonOptions
+        );
 
         // update the state after successfully deserializing the settings
         persistedTenant.Settings = newSettings;

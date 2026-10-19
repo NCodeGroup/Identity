@@ -62,7 +62,9 @@ marked tool-enforced or review-only. The highlights:
 
 - `ValueTask` / `ValueTask<T>` for async; `Async` suffix; `CancellationToken` last.
 - Nullable enabled; restructure so the compiler proves non-null instead of using `!`.
-- `sealed` / `init` / concrete collections; enums only for closed vocabularies (extensible ones are `const string`).
+- `sealed` / `init` / concrete collections; vocabularies are open by default — `const string` names plus registered
+  descriptors or strategies — and an `enum` only for a provably closed set
+  ([ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)).
 - No behavior-selecting flag arguments; split into intention-revealing methods instead.
 - **No cross-assembly `InternalsVisibleTo`** in production — packages compose through public contracts
   ([ADR-0004](docs/adr/0004-no-cross-assembly-internalsvisibleto.md)).

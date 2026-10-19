@@ -65,6 +65,7 @@ internal class DefaultOpenIdClientResolver(
         var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
         var clientSettings = SecurityProfileCatalog.Expand(
             persistedClient.Settings.Value,
+            OpenIdSettingScopes.Client,
             jsonOptions
         );
         var effectiveSettings = openIdContext.Tenant.SettingsProvider.Collection.Merge(

@@ -26,34 +26,38 @@ namespace NCode.Identity.OpenId.Settings;
 /// <summary>
 /// Provides the default implementation of <see cref="ISettingConfigurationReader"/>. A list-valued setting is read from
 /// indexed entries (an empty list from an empty array); a single-valued setting is converted from its value by the
-/// configuration binder. A value whose shape or type does not match the descriptor, or that is outside the setting's
-/// domain, is reported, never skipped.
+/// configuration binder. A setting that does not apply within the scope, or a value whose shape or type does not match
+/// the descriptor or that is outside the setting's domain, is reported, never skipped.
 /// </summary>
-// See ADR-0139 (closed vocabulary) and ADR-0140 (value domains).
+// See ADR-0139 (closed vocabulary), ADR-0140 (value domains), and ADR-0149 (scopes).
 internal class DefaultSettingConfigurationReader(
-    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
+    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
+    ISettingScopeCollectionProvider settingScopeCollectionProvider
 ) : ISettingConfigurationReader
 {
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } =
         settingDescriptorCollectionProvider;
 
+    private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
+        settingScopeCollectionProvider;
+
     /// <inheritdoc />
-    public IReadOnlyList<string> Validate(IConfigurationSection section)
+    public IReadOnlyList<string> Validate(IConfigurationSection section, string scopeName)
     {
         var errors = new List<string>();
 
-        ReadSettings(section, [], errors);
+        ReadSettings(section, scopeName, [], errors);
 
         return errors;
     }
 
     /// <inheritdoc />
-    public IReadOnlyCollection<Setting> Read(IConfigurationSection section)
+    public IReadOnlyCollection<Setting> Read(IConfigurationSection section, string scopeName)
     {
         var settings = new List<Setting>();
         var errors = new List<string>();
 
-        ReadSettings(section, settings, errors);
+        ReadSettings(section, scopeName, settings, errors);
 
         if (errors.Count > 0)
         {
@@ -68,16 +72,32 @@ internal class DefaultSettingConfigurationReader(
 
     private void ReadSettings(
         IConfigurationSection section,
+        string scopeName,
         List<Setting> settings,
         List<string> errors
     )
     {
+        var scopes = SettingScopeCollectionProvider.Collection;
+        if (!scopes.TryGet(scopeName, out _))
+        {
+            throw new ArgumentException(
+                $"'{scopeName}' is not a registered setting scope.",
+                nameof(scopeName)
+            );
+        }
+
         var descriptors = SettingDescriptorCollectionProvider.Collection;
         foreach (var child in section.GetChildren())
         {
             if (!descriptors.TryGet(child.Key, out var descriptor))
             {
                 errors.Add($"'{child.Path}' is not a registered setting.");
+                continue;
+            }
+
+            if (!scopes.AppliesWithin(descriptor, scopeName, out var scopeFailure))
+            {
+                errors.Add($"'{child.Path}' {scopeFailure}.");
                 continue;
             }
 

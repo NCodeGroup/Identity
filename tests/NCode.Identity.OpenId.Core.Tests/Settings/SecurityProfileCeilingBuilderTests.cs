@@ -30,7 +30,12 @@ public class SecurityProfileCeilingBuilderTests : BaseTests
 
     private SecurityProfileCeilingBuilder CreateBuilder(Func<bool, bool, bool> merge)
     {
-        var descriptor = new SettingDescriptor<bool> { Name = SettingName, OnMerge = merge };
+        var descriptor = new SettingDescriptor<bool>
+        {
+            Name = SettingName,
+            AppliesTo = ["client"],
+            OnMerge = merge,
+        };
         Setting<bool>? setting = descriptor.Create(true);
 
         var mockCeiling = CreateStrictMock<ISettingCollection>();

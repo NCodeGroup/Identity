@@ -186,7 +186,11 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     {
         MockSettingSerializer
             .Setup(x =>
-                x.DeserializeSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+                x.DeserializeSettings(
+                    It.IsAny<JsonElement>(),
+                    "resource_server",
+                    It.IsAny<JsonSerializerOptions>()
+                )
             )
             .Returns(Array.Empty<Setting>())
             .Verifiable();

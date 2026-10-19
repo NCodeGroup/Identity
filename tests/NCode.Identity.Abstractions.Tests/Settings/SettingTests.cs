@@ -22,7 +22,7 @@ namespace NCode.Identity.Settings;
 public class SettingTests
 {
     private static SettingDescriptor<string> CreateDescriptor(string name = "example") =>
-        new() { Name = name };
+        new() { Name = name, AppliesTo = ["client"] };
 
     #region Setting<TValue> Tests
 

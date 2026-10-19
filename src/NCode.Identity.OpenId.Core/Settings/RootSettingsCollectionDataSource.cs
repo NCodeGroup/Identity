@@ -398,7 +398,10 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         if (ConfigurationSection is not { } configurationSection)
             return true;
 
-        var errors = SettingConfigurationReader.Validate(configurationSection);
+        var errors = SettingConfigurationReader.Validate(
+            configurationSection,
+            OpenIdSettingScopes.Server
+        );
         if (errors.Count == 0)
             return true;
 
@@ -412,7 +415,12 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         if (ConfigurationSection is null)
             return;
 
-        foreach (var setting in SettingConfigurationReader.Read(ConfigurationSection))
+        foreach (
+            var setting in SettingConfigurationReader.Read(
+                ConfigurationSection,
+                OpenIdSettingScopes.Server
+            )
+        )
         {
             settings.Set(setting);
         }

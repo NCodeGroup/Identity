@@ -349,7 +349,46 @@ change to the public API is a **major** version bump.
   `HasLatticeMerge`. A deployment that stores settings documents in its own database must apply the same rewrite there,
   or a document that names `security_profile` fails when it is read.
 
+- **A setting is accepted only at a scope that reads it.** Every setting now declares the scopes it applies to — the
+  server, tenant, client, or resource-server scopes whose effective settings the runtime reads it from — and a settings
+  document may carry it only at one of those scopes or a scope above it in the cascade. A setting anywhere else had no
+  effect and was stored silently: `security_profiles` or `require_pkce` on a resource server, or a tenant-wide setting
+  such as `session_idle_timeout`, `subject_claim_types`, or discovery metadata on a client. It is now rejected wherever
+  it enters, like an unregistered name: configuration stops the host, a management create or settings patch returns
+  `400`, dynamic client registration refuses it, a seeder stops naming the client, and a stored document fails the
+  request that loads it. The error names the scopes the setting applies to. A resource server selects no security
+  profile; a constraint it needs on its access tokens is one of its own settings (backlog `F62`).
+  ([ADR-0149](docs/adr/0149-settings-declare-the-scopes-they-apply-to.md))
+
+  Scopes are an open vocabulary, not a fixed set: each is a registered `SettingScopeDescriptor` (a name and the scope it
+  inherits from), and the cascade is derived from them. The server registers `server`, `tenant`, `client`, and
+  `resource_server`; a package that stores settings for an entity of its own — an organization, a connection —
+  registers that entity's scope beneath the one it inherits from and declares its own settings for it, with no change to
+  the library. ([ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md))
+
+  The management API's effective-settings previews list only the settings that apply within the previewed scope: a
+  resource server's preview no longer shows the client settings it inherits from its tenant, and a client's no longer
+  shows the tenant's session and discovery settings.
+
+  The `RemoveSettingsOutsideTheirScopes` migration removes those settings from every stored client and resource-server
+  settings document. They never had an effect where they were stored, so nothing they configured is lost; each
+  rewritten document gets a new settings concurrency token, and any other setting in it that cannot be honored still
+  fails closed.
+
+  **Breaking:** `SettingDescriptor` gains the required `AppliesTo` (scope names); `SettingScopeDescriptor`,
+  `ISettingScopeCollection`, `ISettingScopeCollectionProvider`, and `OpenIdSettingScopes` are new; and
+  `ISettingSerializer.DeserializeSettings`, `ISettingSerializer.ValidateSettings`, and the JSON overload of
+  `ISecurityProfileCatalog.Expand` take the name of the scope whose document they read. A deployment that stores
+  settings documents in its own database must apply the same removal there.
+
 ### Fixed
+
+- **A client's narrower `token_endpoint_auth_signing_alg_values_supported`, and the ceiling of a security profile the
+  client selects, now bind its client assertions.** The algorithm of a `private_key_jwt` or `client_secret_jwt`
+  assertion was checked against the tenant's list only, so a client-level narrowing — including the FAPI 2.0 profile's
+  ceiling when the client, not its tenant, selects the profile — was stored and never enforced. It is now checked
+  against the authenticating client's effective settings, and a list narrowed to nothing permits no algorithm instead of
+  every one. ([ADR-0149](docs/adr/0149-settings-declare-the-scopes-they-apply-to.md))
 
 - **A FAPI 2.0 client could not reach the authorization endpoint.** The endpoint identified the client through client
   authentication as a public client, which the profile's `token_endpoint_auth_methods_supported` ceiling refuses, so

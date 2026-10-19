@@ -1,7 +1,8 @@
 # 139. Setting names are a closed vocabulary, and configuration the server cannot honor fails loudly
 
 - **Status:** Accepted (extended by [ADR-0140](0140-setting-values-are-validated-against-their-domain.md): setting
-  values are validated against their domain, not only their type)
+  values are validated against their domain, not only their type; and by
+  [ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md): a setting is accepted only at a scope that reads it)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

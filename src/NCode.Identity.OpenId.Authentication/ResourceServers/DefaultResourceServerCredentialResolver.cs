@@ -20,6 +20,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -120,7 +121,11 @@ internal class DefaultResourceServerCredentialResolver(
             unmatchedResources?.Remove(resourceServer.Identifier);
 
             var effectiveSettings = tenantEffectiveSettings.Merge(
-                SettingSerializer.DeserializeSettings(resourceServer.Settings.Value, jsonOptions)
+                SettingSerializer.DeserializeSettings(
+                    resourceServer.Settings.Value,
+                    OpenIdSettingScopes.ResourceServer,
+                    jsonOptions
+                )
             );
 
             matches.Add(

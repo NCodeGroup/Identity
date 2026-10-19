@@ -26,7 +26,7 @@ public class SettingDescriptorTests
     [Fact]
     public void ValueType_WhenStringValue_ReturnsStringType()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
 
         Assert.Equal(typeof(string), descriptor.ValueType);
     }
@@ -38,7 +38,7 @@ public class SettingDescriptorTests
     [Fact]
     public void HasDefault_WhenDefaultNotSet_ReturnsFalse()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
 
         Assert.False(descriptor.HasDefault);
     }
@@ -46,7 +46,12 @@ public class SettingDescriptorTests
     [Fact]
     public void HasDefault_WhenDefaultSet_ReturnsTrue()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example", Default = "value" };
+        var descriptor = new SettingDescriptor<string>
+        {
+            Name = "example",
+            AppliesTo = ["client"],
+            Default = "value",
+        };
 
         Assert.True(descriptor.HasDefault);
     }
@@ -58,8 +63,18 @@ public class SettingDescriptorTests
     [Fact]
     public void HasLatticeMerge_WhenMergedWithMinOrMax_ReturnsTrue()
     {
-        var min = new SettingDescriptor<TimeSpan> { Name = "min", OnMerge = SettingMerge.Min };
-        var max = new SettingDescriptor<TimeSpan> { Name = "max", OnMerge = SettingMerge.Max };
+        var min = new SettingDescriptor<TimeSpan>
+        {
+            Name = "min",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Min,
+        };
+        var max = new SettingDescriptor<TimeSpan>
+        {
+            Name = "max",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Max,
+        };
 
         Assert.True(min.HasLatticeMerge);
         Assert.True(max.HasLatticeMerge);
@@ -68,8 +83,18 @@ public class SettingDescriptorTests
     [Fact]
     public void HasLatticeMerge_WhenMergedWithAndOrOr_ReturnsTrue()
     {
-        var and = new SettingDescriptor<bool> { Name = "and", OnMerge = SettingMerge.And };
-        var or = new SettingDescriptor<bool> { Name = "or", OnMerge = SettingMerge.Or };
+        var and = new SettingDescriptor<bool>
+        {
+            Name = "and",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.And,
+        };
+        var or = new SettingDescriptor<bool>
+        {
+            Name = "or",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Or,
+        };
 
         Assert.True(and.HasLatticeMerge);
         Assert.True(or.HasLatticeMerge);
@@ -81,11 +106,13 @@ public class SettingDescriptorTests
         var intersect = new SettingDescriptor<IReadOnlyCollection<string>>
         {
             Name = "intersect",
+            AppliesTo = ["client"],
             OnMerge = SettingMerge.Intersect,
         };
         var union = new SettingDescriptor<IReadOnlyCollection<string>>
         {
             Name = "union",
+            AppliesTo = ["client"],
             OnMerge = SettingMerge.Union,
         };
 
@@ -96,10 +123,16 @@ public class SettingDescriptorTests
     [Fact]
     public void HasLatticeMerge_WhenMergedWithAProjection_ReturnsFalse()
     {
-        var keep = new SettingDescriptor<string> { Name = "keep", OnMerge = SettingMerge.Keep };
+        var keep = new SettingDescriptor<string>
+        {
+            Name = "keep",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Keep,
+        };
         var replace = new SettingDescriptor<string>
         {
             Name = "replace",
+            AppliesTo = ["client"],
             OnMerge = SettingMerge.Replace,
         };
 
@@ -110,10 +143,11 @@ public class SettingDescriptorTests
     [Fact]
     public void HasLatticeMerge_WhenMergedWithTheDefaultOrAnotherFunction_ReturnsFalse()
     {
-        var byDefault = new SettingDescriptor<bool> { Name = "default" };
+        var byDefault = new SettingDescriptor<bool> { Name = "default", AppliesTo = ["client"] };
         var custom = new SettingDescriptor<bool>
         {
             Name = "custom",
+            AppliesTo = ["client"],
             OnMerge = (current, other) => SettingMerge.Or(current, other),
         };
 
@@ -128,7 +162,7 @@ public class SettingDescriptorTests
     [Fact]
     public void Default_WhenNotSet_Throws()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
 
         Assert.Throws<InvalidOperationException>(() => descriptor.Default);
     }
@@ -136,7 +170,12 @@ public class SettingDescriptorTests
     [Fact]
     public void Default_WhenSet_ReturnsValue()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example", Default = "value" };
+        var descriptor = new SettingDescriptor<string>
+        {
+            Name = "example",
+            AppliesTo = ["client"],
+            Default = "value",
+        };
 
         Assert.Equal("value", descriptor.Default);
         Assert.Equal("value", descriptor.DefaultOrNull);
@@ -149,7 +188,7 @@ public class SettingDescriptorTests
     [Fact]
     public void Key_WhenAccessed_ReturnsKeyWithName()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
 
         var key = descriptor.Key;
 
@@ -160,7 +199,7 @@ public class SettingDescriptorTests
     [Fact]
     public void ImplicitConversion_ToSettingKey_UsesName()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
 
         SettingKey<string> key = descriptor;
 
@@ -174,7 +213,7 @@ public class SettingDescriptorTests
     [Fact]
     public void Create_WithTypedValue_ReturnsSettingWithValue()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
 
         var setting = descriptor.Create("value");
 
@@ -185,7 +224,7 @@ public class SettingDescriptorTests
     [Fact]
     public void Create_WithBoxedValue_ReturnsSettingWithValue()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
 
         var setting = descriptor.Create((object)"value");
 
@@ -195,7 +234,12 @@ public class SettingDescriptorTests
     [Fact]
     public void CreateDefault_WhenDefaultSet_ReturnsSettingWithDefault()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example", Default = "value" };
+        var descriptor = new SettingDescriptor<string>
+        {
+            Name = "example",
+            AppliesTo = ["client"],
+            Default = "value",
+        };
 
         var setting = descriptor.CreateDefault();
 
@@ -205,7 +249,7 @@ public class SettingDescriptorTests
     [Fact]
     public void CreateDefault_WhenNoDefault_Throws()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
 
         Assert.Throws<InvalidOperationException>(() => descriptor.CreateDefault());
     }
@@ -217,7 +261,7 @@ public class SettingDescriptorTests
     [Fact]
     public void Merge_WhenDefaultBehavior_ReturnsOtherValue()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
         var current = descriptor.Create("current");
         var other = descriptor.Create("other");
 
@@ -232,6 +276,7 @@ public class SettingDescriptorTests
         var descriptor = new SettingDescriptor<string>
         {
             Name = "example",
+            AppliesTo = ["client"],
             OnMerge = (current, other) => current + other,
         };
         var current = descriptor.Create("a");
@@ -245,7 +290,7 @@ public class SettingDescriptorTests
     [Fact]
     public void Merge_WithBoxedSettings_ReturnsOtherValue()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
         Setting current = descriptor.Create("current");
         Setting other = descriptor.Create("other");
 
@@ -261,7 +306,7 @@ public class SettingDescriptorTests
     [Fact]
     public void Format_WhenDefaultBehavior_ReturnsValueAsIs()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
         var setting = descriptor.Create("value");
 
         var formatted = descriptor.Format(setting);
@@ -275,6 +320,7 @@ public class SettingDescriptorTests
         var descriptor = new SettingDescriptor<string>
         {
             Name = "example",
+            AppliesTo = ["client"],
             OnFormat = setting => setting.Value.ToUpperInvariant(),
         };
         var setting = descriptor.Create("value");
@@ -287,7 +333,7 @@ public class SettingDescriptorTests
     [Fact]
     public void Format_WithBoxedSetting_ReturnsValue()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
         Setting setting = descriptor.Create("value");
 
         var formatted = descriptor.Format(setting);
@@ -297,12 +343,33 @@ public class SettingDescriptorTests
 
     #endregion
 
+    #region AppliesTo Property Tests
+
+    [Fact]
+    public void AppliesTo_WhenSet_RoundTripsTheScopeNames()
+    {
+        var descriptor = new SettingDescriptor<string>
+        {
+            Name = "example",
+            AppliesTo = ["tenant", "organization"],
+        };
+
+        Assert.Equal<string>(["tenant", "organization"], descriptor.AppliesTo);
+    }
+
+    #endregion
+
     #region IsDiscoverable Property Tests
 
     [Fact]
     public void IsDiscoverable_WhenSet_RoundTrips()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example", IsDiscoverable = true };
+        var descriptor = new SettingDescriptor<string>
+        {
+            Name = "example",
+            AppliesTo = ["client"],
+            IsDiscoverable = true,
+        };
 
         Assert.True(descriptor.IsDiscoverable);
     }
@@ -314,7 +381,7 @@ public class SettingDescriptorTests
     [Fact]
     public void Rule_WhenNotSet_AcceptsEveryValue()
     {
-        var descriptor = new SettingDescriptor<string> { Name = "example" };
+        var descriptor = new SettingDescriptor<string> { Name = "example", AppliesTo = ["client"] };
 
         Assert.Equal("any value", descriptor.Rule.Description);
     }
@@ -329,6 +396,7 @@ public class SettingDescriptorTests
         var descriptor = new SettingDescriptor<string>
         {
             Name = "example",
+            AppliesTo = ["client"],
             Rule = SettingRules.OneOf("public", "pairwise"),
         };
 
@@ -344,6 +412,7 @@ public class SettingDescriptorTests
         var descriptor = new SettingDescriptor<string>
         {
             Name = "example",
+            AppliesTo = ["client"],
             Rule = SettingRules.OneOf("public", "pairwise"),
         };
 
@@ -359,6 +428,7 @@ public class SettingDescriptorTests
         SettingDescriptor descriptor = new SettingDescriptor<TimeSpan>
         {
             Name = "example",
+            AppliesTo = ["client"],
             Rule = SettingRules.AtLeast(TimeSpan.Zero),
         };
 

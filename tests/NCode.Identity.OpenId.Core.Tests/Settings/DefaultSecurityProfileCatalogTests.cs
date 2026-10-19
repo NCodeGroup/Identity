@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Json;
 using Moq;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
@@ -285,6 +286,38 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
         );
 
         Assert.Contains("'fapi-2'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Expand_WhenGivenADocument_DeserializesItForItsScope()
+    {
+        var mockSerializer = CreateStrictMock<ISettingSerializer>();
+        var mockFactory = CreateStrictMock<ISettingCollectionFactory>();
+        var catalog = new DefaultSecurityProfileCatalog(
+            [new FakeProfile("fake")],
+            mockSerializer.Object,
+            mockFactory.Object
+        );
+        var settingsJson = JsonElement.Parse("{}");
+        var jsonOptions = new JsonSerializerOptions();
+        IReadOnlyCollection<Setting> scopeSettings = [];
+        mockSerializer
+            .Setup(x =>
+                x.DeserializeSettings(
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Client,
+                    jsonOptions
+                )
+            )
+            .Returns(scopeSettings)
+            .Verifiable();
+        var collection = CreateSettingCollection();
+        SelectProfiles(collection);
+        mockFactory.Setup(x => x.Create(scopeSettings)).Returns(collection.Object).Verifiable();
+
+        var result = catalog.Expand(settingsJson, OpenIdSettingScopes.Client, jsonOptions);
+
+        Assert.Same(scopeSettings, result);
     }
 
     #endregion

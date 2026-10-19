@@ -20,7 +20,10 @@ Production projects live under `src/`; test projects (the `*Tests` projects) liv
   `NCode.Identity.OpenId.LocalDev` (.NET Aspire local-dev orchestrator — [ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md))
 
 The central extensibility model — **service** vs **strategy collection** vs **mediator** — is captured in
-[ADR-0001](docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md).
+[ADR-0001](docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md). Extensibility is the family's goal: a
+consumer or sibling package extends any vocabulary (settings, setting scopes, profiles, grant types, methods) by
+registering into it, so vocabularies are **open by default** and a closed construct such as an `enum` must be provably
+closed ([ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)).
 
 ## Coding conventions
 

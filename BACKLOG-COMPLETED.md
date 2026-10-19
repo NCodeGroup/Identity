@@ -989,6 +989,42 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   seeded, or if a seeded client does not resolve at the authorization endpoint with each of its redirect URIs. The
   handler needed no change._
 
+- **`F60` — Make the setting vocabulary scope-aware: reject a setting at a scope that never honors it.** Setting names
+  and values are validated against one catalog for every document type
+  ([ADR-0139](docs/adr/0139-setting-names-are-a-closed-vocabulary.md),
+  [ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md)), so a server, tenant, client, or
+  resource-server document accepts any registered setting even where the runtime never reads it. The sharpest case is
+  `security_profiles` on a resource server: it is accepted and stored, but resource-server settings are merged
+  unexpanded and requirements are evaluated against client settings, so the profile neither tightens nor enforces
+  anything there ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)). Client-only
+  settings on a resource server, and resource-server-only settings on a client, are the same class. Give each descriptor
+  the scopes it applies to, reject a setting outside them at every entry point (configuration, management writes,
+  dynamic client registration and seeders, and stored documents failing closed), and ship the migration that removes —
+  or translates — what stored documents carry at a scope that never honored it. Decide separately whether a resource
+  server may select a security profile with its own enforcement (for example refusing to issue an access token that
+  is not sender-constrained for an audience that requires it). Touch points:
+  `src/NCode.Identity.Settings.Abstractions/SettingDescriptor.cs`, `src/NCode.Identity/Settings/DefaultSettingSerializer.cs`,
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`,
+  `src/NCode.Identity.OpenId.Management/Endpoints/*/*ApiEndpointHandler.cs`. Capture the design in an ADR.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0149](docs/adr/0149-settings-declare-the-scopes-they-apply-to.md). Every descriptor declares the required
+  `AppliesTo` — the names of the scopes whose effective settings the runtime reads it from — and a document accepts a
+  setting only at a scope that applies it or cascades into one that does (`ISettingScopeCollection.AppliesWithin`).
+  Scopes are registered `SettingScopeDescriptor` data with the cascade derived from them, so an extension can add a scope
+  for an entity of its own; a first cut modeled them as a closed flags enum, which led to the open-vocabulary rule of
+  [ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md). The classification came
+  from tracing every reader: 39 settings apply to tenants only (discovery metadata and the tenant-wide services), 25 to
+  tenants and clients, 78 to clients, and the four access-token encryption settings to clients and resource servers.
+  The serializer, the configuration reader, and the catalog's JSON `Expand` take the document's scope, so every entry
+  point enforces it; the management previews show only the settings that apply within their scope. The separate
+  decision: a resource server selects no security profile — a constraint it needs on its tokens is one of its own
+  settings, recorded as `F62`. Tracing the readers surfaced one setting meaningful at a scope that never read it:
+  `token_endpoint_auth_signing_alg_values_supported` is now enforced against the client's effective settings (so a
+  client-selected profile's ceiling binds), with an empty list permitting nothing. The `RemoveSettingsOutsideTheirScopes`
+  migration was verified against Postgres, including rollback and idempotent re-apply. The tracing also surfaced `F63`
+  (request-object and UserInfo algorithm settings that only discovery reads)._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

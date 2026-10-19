@@ -33,11 +33,20 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides the default implementation for a data source collection of <see cref="SettingDescriptor"/> instances supported by this library.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Every descriptor declares its domain through <see cref="SettingDescriptor{TValue}.Rule"/>. A rule whose domain is
 /// defined by registered strategies consults them: an algorithm setting accepts the registered algorithms of its kind,
 /// and <c>security_profiles</c> accepts the names of the registered <see cref="ISecurityProfile"/> implementations.
+/// </para>
+/// <para>
+/// Every descriptor also declares the scopes it applies to through <see cref="SettingDescriptor.AppliesTo"/>: the
+/// scopes whose effective settings the server reads it from. Discovery and the tenant-wide services (sessions,
+/// principal resolution, federation, dynamic registration policy) read a tenant's effective settings, so every
+/// discoverable setting applies to tenants; the protocol endpoints read the effective settings of the client making the
+/// request; and access-token issuance reads a targeted resource server's effective settings for its encryption.
+/// </para>
 /// </remarks>
-// See ADR-0140.
+// See ADR-0140 (domains) and ADR-0149 (scopes).
 internal class DefaultSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
@@ -46,6 +55,15 @@ internal class DefaultSettingDescriptorDataSource(
 {
     private const bool IsStdDiscoverable = true;
     private const bool IsNonStdDiscoverable = false;
+
+    private static ImmutableArray<string> Tenants { get; } = [OpenIdSettingScopes.Tenant];
+    private static ImmutableArray<string> Clients { get; } = [OpenIdSettingScopes.Client];
+
+    private static ImmutableArray<string> TenantsAndClients { get; } =
+    [OpenIdSettingScopes.Tenant, OpenIdSettingScopes.Client];
+
+    private static ImmutableArray<string> ClientsAndResourceServers { get; } =
+    [OpenIdSettingScopes.Client, OpenIdSettingScopes.ResourceServer];
 
     // RFC 8628 §6.1: eight characters from the 20-character default alphabet give about 34.5 bits of entropy, the
     // floor that keeps a user_code impractical to guess under rate limiting; the ceiling keeps it typeable.
@@ -73,6 +91,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SubjectClaimTypes,
+                AppliesTo = Tenants,
                 Rule = OpenIdSettingRules.ClaimTypes(),
                 Default = OpenIdConstants.DefaultSubjectClaimTypes,
 
@@ -85,6 +104,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.PrincipalIssuerClaim,
+                AppliesTo = Tenants,
                 Rule = OpenIdSettingRules.Token(),
                 Default = "iss",
 
@@ -97,6 +117,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.FederatedIdentityJoinClaim,
+                AppliesTo = Tenants,
                 Rule = OpenIdSettingRules.Token(),
                 Default = "email",
 
@@ -109,6 +130,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.FederatedIdentityVerifiedClaim,
+                AppliesTo = Tenants,
                 Rule = OpenIdSettingRules.Token(),
                 Default = "email_verified",
 
@@ -121,6 +143,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.FederatedIdentityRequireVerified,
+                AppliesTo = Tenants,
                 Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -132,6 +155,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.FederatedIdentityExplicitOnly,
+                AppliesTo = Tenants,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -143,6 +167,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported,
+                AppliesTo = ClientsAndResourceServers,
                 Rule = KeyManagementAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -154,6 +179,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionEncValuesSupported,
+                AppliesTo = ClientsAndResourceServers,
                 Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -161,10 +187,12 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // access_token_encryption_required: whether issued access tokens must be encrypted (default false).
-            // Floor (Or): once a parent requires it, a child cannot un-require it.
+            // Floor (Or): once a parent requires it, a child cannot un-require it. Scopes: a single targeted resource
+            // server's effective settings govern its tokens' encryption, otherwise the client's do. (ADR-0075)
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionRequired,
+                AppliesTo = ClientsAndResourceServers,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -176,6 +204,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionZipValuesSupported,
+                AppliesTo = ClientsAndResourceServers,
                 Rule = CompressionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -187,6 +216,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.AccessTokenLifetime,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(5.0),
 
@@ -199,6 +229,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
+                AppliesTo = Clients,
                 Rule = AsymmetricSignatureAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -211,6 +242,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AccessTokenType,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.AccessTokenType(),
                 Default = JoseTokenTypes.AccessTokenJwt,
 
@@ -223,6 +255,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AcrValuesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = SettingRules.Each(OpenIdSettingRules.Token()),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -230,10 +263,12 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // default_acr: the baseline acr value asserted for a single-factor authentication event (OP behavior, not
-            // advertised). Replace: a child's value overrides the parent's.
+            // advertised). Replace: a child's value overrides the parent's. Scopes: an authentication event belongs to
+            // the tenant's session, not to one client, so the tenant's settings decide it.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.DefaultAcr,
+                AppliesTo = Tenants,
                 Rule = OpenIdSettingRules.Token(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -246,6 +281,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AlwaysIncludeAuthTime,
+                AppliesTo = Clients,
                 Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -257,6 +293,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AllowLoopbackRedirect,
+                AppliesTo = Clients,
                 Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -268,6 +305,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AllowedIdentityProviders,
+                AppliesTo = Clients,
                 Rule = SettingRules.Each(SettingRules.NonEmpty()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -279,6 +317,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AuthorizationAuthenticateScheme,
+                AppliesTo = Clients,
                 Rule = SettingRules.NonEmpty(),
 
                 // we are compatible with Microsoft.AspNetCore.Identity
@@ -294,6 +333,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AuthorizationChallengeScheme,
+                AppliesTo = Clients,
                 Rule = SettingRules.NonEmpty(),
 
                 // we are compatible with Microsoft.AspNetCore.Identity
@@ -309,6 +349,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.AuthorizationCodeLifetime,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(5.0),
 
@@ -322,6 +363,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AuthorizationResponseIssParameterSupported,
+                AppliesTo = Tenants,
                 Default = true,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -333,6 +375,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ClaimsLocalesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = SettingRules.Each(OpenIdSettingRules.Token()),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -344,6 +387,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.ClaimsParameterSupported,
+                AppliesTo = TenantsAndClients,
                 Default = true,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -355,6 +399,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ClaimsSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = SettingRules.Each(OpenIdSettingRules.Token()),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -366,6 +411,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.ClaimsSupportedIsStrict,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -377,6 +423,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ClaimTypesSupported,
+                AppliesTo = Tenants,
                 Rule = SettingRules.Each(OpenIdSettingRules.ClaimType()),
                 Default = [OpenIdConstants.ClaimTypes.Normal],
 
@@ -390,6 +437,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.ClientAssertionMaxLifetime,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(5),
 
@@ -402,6 +450,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.ClockSkew,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.NonNegativeDuration(),
                 Default = TimeSpan.FromMinutes(5),
 
@@ -414,6 +463,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.ContinueAuthorizationLifetime,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(15),
 
@@ -426,6 +476,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.DeviceCodeLifetime,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(10),
 
@@ -438,6 +489,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.DeviceCodePollingInterval,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromSeconds(5),
 
@@ -450,6 +502,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.UserCodeLength,
+                AppliesTo = Clients,
                 Rule = SettingRules.Between(MinUserCodeLength, MaxUserCodeLength),
                 Default = 8,
 
@@ -462,6 +515,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.BackchannelTokenDeliveryMode,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.BackchannelTokenDeliveryMode(),
                 Default = OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
 
@@ -475,6 +529,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.ClientNotificationEndpoint,
+                AppliesTo = Clients,
                 Rule = SettingRules.EmptyOr(OpenIdSettingRules.HttpsUri()),
                 Default = string.Empty,
 
@@ -487,6 +542,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.BackchannelTokenDeliveryModesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = SettingRules.Each(OpenIdSettingRules.BackchannelTokenDeliveryMode()),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -498,6 +554,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.BackchannelUserCodeParameterSupported,
+                AppliesTo = Tenants,
                 Default = false,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -509,6 +566,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = SignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -523,6 +581,7 @@ internal class DefaultSettingDescriptorDataSource(
             {
                 Name =
                     OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionAlgValuesSupported,
+                AppliesTo = Clients,
                 Rule = KeyManagementAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -536,6 +595,7 @@ internal class DefaultSettingDescriptorDataSource(
             {
                 Name =
                     OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionEncValuesSupported,
+                AppliesTo = Clients,
                 Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -548,6 +608,7 @@ internal class DefaultSettingDescriptorDataSource(
             {
                 Name =
                     OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionZipValuesSupported,
+                AppliesTo = Clients,
                 Rule = CompressionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -559,6 +620,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.CibaRequestLifetime,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(10),
 
@@ -571,6 +633,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.CibaPollingInterval,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromSeconds(5),
 
@@ -583,6 +646,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.DisplayValuesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = SettingRules.Each(OpenIdSettingRules.DisplayValue()),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -594,6 +658,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.GrantTypesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = SettingRules.Each(OpenIdSettingRules.GrantType()),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -605,6 +670,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionAlgValuesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = KeyManagementAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -616,6 +682,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionEncValuesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -627,6 +694,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionRequired,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -638,6 +706,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionZipValuesSupported,
+                AppliesTo = Clients,
                 Rule = CompressionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -649,6 +718,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.IdTokenLifetime,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(5.0),
 
@@ -661,6 +731,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = AsymmetricSignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -672,6 +743,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.OpenIdProviderPolicyUri,
+                AppliesTo = Tenants,
                 Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -683,6 +755,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.OpenIdProviderTermsOfServiceUri,
+                AppliesTo = Tenants,
                 Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -694,6 +767,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.PromptValuesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = SettingRules.Each(OpenIdSettingRules.PromptValue()),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -705,6 +779,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RedirectUris,
+                AppliesTo = Clients,
                 Rule = SettingRules.Each(OpenIdSettingRules.RedirectUri()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -716,6 +791,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.PostLogoutRedirectUris,
+                AppliesTo = Clients,
                 Rule = SettingRules.Each(OpenIdSettingRules.RedirectUri()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -727,6 +803,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.BackChannelLogoutUri,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.LogoutUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -738,6 +815,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.BackChannelLogoutSessionRequired,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -748,6 +826,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.BackChannelLogoutSupported,
+                AppliesTo = Tenants,
                 Default = true,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -758,6 +837,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.BackChannelLogoutSessionSupported,
+                AppliesTo = Tenants,
                 Default = true,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -769,6 +849,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.FrontChannelLogoutUri,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.LogoutUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -780,6 +861,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.FrontChannelLogoutSessionRequired,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -791,6 +873,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.FrontChannelLogoutSupported,
+                AppliesTo = Tenants,
                 Default = false,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -802,6 +885,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.FrontChannelLogoutSessionSupported,
+                AppliesTo = Tenants,
                 Default = false,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -815,6 +899,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.SessionManagementSupported,
+                AppliesTo = Tenants,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -828,6 +913,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SessionAbsoluteLifetime,
+                AppliesTo = Tenants,
                 Rule = OpenIdSettingRules.NonNegativeDuration(),
                 Default = TimeSpan.Zero,
 
@@ -841,6 +927,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SessionIdleTimeout,
+                AppliesTo = Tenants,
                 Rule = OpenIdSettingRules.NonNegativeDuration(),
                 Default = TimeSpan.Zero,
 
@@ -854,6 +941,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.MaxConcurrentSessions,
+                AppliesTo = Tenants,
                 Rule = SettingRules.AtLeast(0),
                 Default = 0,
 
@@ -867,6 +955,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RegistrationEndpointAllowAnonymous,
+                AppliesTo = Tenants,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -879,6 +968,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.RefreshTokenExpirationPolicy,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.RefreshTokenExpirationPolicy(),
                 Default = OpenIdConstants.RefreshTokenExpirationPolicy.Absolute,
 
@@ -893,6 +983,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.RefreshTokenReusePolicy,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.RefreshTokenReusePolicy(),
                 Default = OpenIdConstants.RefreshTokenReusePolicy.RevokeAll,
 
@@ -905,6 +996,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.RefreshTokenLifetime,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromDays(30.0),
 
@@ -917,6 +1009,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RefreshTokenRotationEnabled,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -928,6 +1021,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported,
+                AppliesTo = Tenants,
                 Rule = KeyManagementAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -939,6 +1033,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported,
+                AppliesTo = Tenants,
                 Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -950,6 +1045,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionZipValuesSupported,
+                AppliesTo = Tenants,
                 Rule = CompressionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -957,10 +1053,12 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // request_object_signing_alg_values_supported: permitted "alg" values for signing request objects.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). Scopes: only
+            // discovery reads it today, so it applies to tenants (backlog F63).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectSigningAlgValuesSupported,
+                AppliesTo = Tenants,
                 Rule = SignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -972,6 +1070,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.RequestObjectExpectedAudience,
+                AppliesTo = Clients,
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -983,6 +1082,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequestParameterSupported,
+                AppliesTo = TenantsAndClients,
                 Default = true,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -994,6 +1094,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequestUriParameterSupported,
+                AppliesTo = TenantsAndClients,
                 Default = true,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1005,6 +1106,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequestUriRequireStrictContentType,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1016,6 +1118,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.RequestUriExpectedContentType,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.MediaType(),
                 Default = "application/oauth-authz-req+jwt",
 
@@ -1030,6 +1133,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestUriAllowedHosts,
+                AppliesTo = Clients,
                 Rule = SettingRules.Each(OpenIdSettingRules.HostName()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1041,6 +1145,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.RequestUriFetchTimeout,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Timeout(),
                 Default = TimeSpan.FromSeconds(10),
 
@@ -1054,6 +1159,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.RequestUriMaxSizeBytes,
+                AppliesTo = Clients,
                 Rule = SettingRules.AtLeast(1),
                 Default = 100 * 1024,
 
@@ -1067,6 +1173,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequireConsent,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1082,6 +1189,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequireCodeChallenge,
+                AppliesTo = Clients,
                 Default = true,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1097,6 +1205,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.PkceNonceExemption,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1109,6 +1218,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequireRequestObject,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1120,6 +1230,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequireRequestUriRegistration,
+                AppliesTo = Tenants,
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Or,
@@ -1131,6 +1242,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequirePushedAuthorizationRequests,
+                AppliesTo = TenantsAndClients,
                 Default = false,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1142,6 +1254,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.PushedAuthorizationRequestLifetime,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromSeconds(90),
 
@@ -1155,6 +1268,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.DPoPSigningAlgValuesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = AsymmetricSignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1162,10 +1276,12 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // dpop_proof_lifetime: acceptable age window of a DPoP proof's iat (RFC 9449 §4.3), default 60 seconds.
-            // Ceiling (Min): a child may only tighten it.
+            // Ceiling (Min): a child may only tighten it. Scopes: the token endpoint validates a proof with the client's
+            // settings and the UserInfo endpoint with the tenant's.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.DPoPProofLifetime,
+                AppliesTo = TenantsAndClients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromSeconds(60),
 
@@ -1178,6 +1294,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.DPoPNonceRequired,
+                AppliesTo = TenantsAndClients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1189,6 +1306,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequireDPoP,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1202,6 +1320,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.TlsClientCertificateBoundAccessTokens,
+                AppliesTo = TenantsAndClients,
                 Default = false,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1214,6 +1333,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.MtlsEndpointAliasAuthority,
+                AppliesTo = Tenants,
                 Rule = SettingRules.EmptyOr(OpenIdSettingRules.HttpsOrigin()),
                 Default = string.Empty,
 
@@ -1227,6 +1347,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthSubjectDn,
+                AppliesTo = Clients,
                 Rule = SettingRules.EmptyOr(OpenIdSettingRules.DistinguishedName()),
                 Default = string.Empty,
 
@@ -1237,6 +1358,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthSanDns,
+                AppliesTo = Clients,
                 Rule = SettingRules.EmptyOr(OpenIdSettingRules.DnsName()),
                 Default = string.Empty,
 
@@ -1247,6 +1369,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthSanUri,
+                AppliesTo = Clients,
                 Rule = SettingRules.EmptyOr(OpenIdSettingRules.AbsoluteUri()),
                 Default = string.Empty,
 
@@ -1257,6 +1380,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthSanIp,
+                AppliesTo = Clients,
                 Rule = SettingRules.EmptyOr(OpenIdSettingRules.IpAddress()),
                 Default = string.Empty,
 
@@ -1267,6 +1391,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthSanEmail,
+                AppliesTo = Clients,
                 Rule = SettingRules.EmptyOr(OpenIdSettingRules.EmailAddress()),
                 Default = string.Empty,
 
@@ -1279,6 +1404,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ResponseModesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = SettingRules.Each(OpenIdSettingRules.ResponseMode()),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1291,6 +1417,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ResponseTypesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = SettingRules.Each(OpenIdSettingRules.ResponseType()),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1302,6 +1429,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.SendIdClaimsInAccessToken,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1315,6 +1443,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.TokenExchangeAllowRefreshToken,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1327,6 +1456,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.SendProfileMetadataInAccessToken,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1339,6 +1469,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.SendProfileMetadataInIdToken,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1347,10 +1478,11 @@ internal class DefaultSettingDescriptorDataSource(
 
             // send_profile_metadata_in_user_info: project the account's owner-updatable profile metadata bag into the
             // UserInfo response as a single JSON object claim (default false). Override (Replace): a child fully
-            // replaces the parent value.
+            // replaces the parent value. Scopes: the UserInfo endpoint reads the tenant's settings, not a client's.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.SendProfileMetadataInUserInfo,
+                AppliesTo = Tenants,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1363,6 +1495,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.SendSystemMetadataInAccessToken,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1375,6 +1508,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.SendSystemMetadataInIdToken,
+                AppliesTo = Clients,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1387,6 +1521,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.SendSystemMetadataInUserInfo,
+                AppliesTo = Tenants,
                 Default = false,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1398,6 +1533,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.ServiceDocumentation,
+                AppliesTo = Tenants,
                 Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1409,6 +1545,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SubjectMaxAge,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.NonNegativeDuration(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1421,6 +1558,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.SubjectType,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.SubjectType(),
                 Default = OpenIdConstants.SubjectTypes.Public,
 
@@ -1435,6 +1573,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.SectorIdentifierUri,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.HttpsUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1447,6 +1586,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.JwksUri,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.HttpsUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1461,6 +1601,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.ClientName,
+                AppliesTo = Clients,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1469,6 +1610,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.ClientUri,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1478,6 +1620,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.LogoUri,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1487,6 +1630,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TosUri,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1496,6 +1640,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.PolicyUri,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1505,6 +1650,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.Contacts,
+                AppliesTo = Clients,
                 Rule = SettingRules.Each(SettingRules.NonEmpty()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1514,6 +1660,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<JsonElement>
             {
                 Name = OpenIdSettingNames.Jwks,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.JwkSet(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1523,6 +1670,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.SoftwareId,
+                AppliesTo = Clients,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1531,6 +1679,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.SoftwareVersion,
+                AppliesTo = Clients,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1542,6 +1691,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.JwksUriAllowedHosts,
+                AppliesTo = Clients,
                 Rule = SettingRules.Each(OpenIdSettingRules.HostName()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1553,6 +1703,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.JwksUriFetchTimeout,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Timeout(),
                 Default = TimeSpan.FromSeconds(10),
 
@@ -1566,6 +1717,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.JwksUriMaxSizeBytes,
+                AppliesTo = Clients,
                 Rule = SettingRules.AtLeast(1),
                 Default = 100 * 1024,
 
@@ -1579,6 +1731,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.JwksUriCacheDuration,
+                AppliesTo = Clients,
                 Rule = OpenIdSettingRules.NonNegativeDuration(),
                 Default = TimeSpan.FromMinutes(15),
 
@@ -1593,6 +1746,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SectorIdentifierUriAllowedHosts,
+                AppliesTo = Tenants,
                 Rule = SettingRules.Each(OpenIdSettingRules.HostName()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1604,6 +1758,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SectorIdentifierUriFetchTimeout,
+                AppliesTo = Tenants,
                 Rule = OpenIdSettingRules.Timeout(),
                 Default = TimeSpan.FromSeconds(10),
 
@@ -1617,6 +1772,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.SectorIdentifierUriMaxSizeBytes,
+                AppliesTo = Tenants,
                 Rule = SettingRules.AtLeast(1),
                 Default = 100 * 1024,
 
@@ -1631,6 +1787,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.PairwiseSalt,
+                AppliesTo = Clients,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1641,9 +1798,12 @@ internal class DefaultSettingDescriptorDataSource(
             // would silently leave the scope without the baseline it asked for. Not advertised. Floor (Union): the
             // profiles accumulate down the cascade, so a child can add a profile but never remove one a parent selects
             // (a server or tenant can mandate a profile), and every selected profile applies. (ADR-0148)
+            // Scopes: a tenant's selection expands into the ceilings discovery advertises, and a client's effective
+            // selection is enforced on its requests; a resource server selects none, since no profile governs one. (ADR-0149)
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SecurityProfiles,
+                AppliesTo = TenantsAndClients,
                 Rule = SecurityProfiles(),
                 Default = [],
 
@@ -1656,6 +1816,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SubjectTypesSupported,
+                AppliesTo = Tenants,
                 Rule = SettingRules.Each(OpenIdSettingRules.SubjectType()),
                 Default =
                 [
@@ -1668,10 +1829,12 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // token_endpoint_auth_signing_alg_values_supported: permitted "alg" values for private_key_jwt / client_secret_jwt client auth.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). Scopes: advertised
+            // from the tenant's settings and enforced against the authenticating client's.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported,
+                AppliesTo = TenantsAndClients,
                 Rule = SignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1683,6 +1846,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UiLocalesSupported,
+                AppliesTo = Tenants,
                 Rule = SettingRules.Each(OpenIdSettingRules.Token()),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1694,6 +1858,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionAlgValuesSupported,
+                AppliesTo = Tenants,
                 Rule = KeyManagementAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1705,6 +1870,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionEncValuesSupported,
+                AppliesTo = Tenants,
                 Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1716,6 +1882,7 @@ internal class DefaultSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionZipValuesSupported,
+                AppliesTo = Tenants,
                 Rule = CompressionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1723,10 +1890,12 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // userinfo_signing_alg_values_supported: permitted "alg" values for signing the UserInfo response.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). Scopes: only
+            // discovery reads it today, so it applies to tenants (backlog F63).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoSigningAlgValuesSupported,
+                AppliesTo = Tenants,
                 Rule = AsymmetricSignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,

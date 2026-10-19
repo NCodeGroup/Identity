@@ -397,14 +397,16 @@ entry and/or ADR that closed it.
   and production run them by released version.
   _Progress:_ the first components (`tags`, `aws-state-backend`, `aws-backup-bucket`, `aws-kms-key`, `aws-github-oidc`,
   `cloudflare-zone`, `github-repository`), the `live/bootstrap` root, and the `validate` CI workflow exist; release
-  `v0.1.0` is tagged, `live/bootstrap` consumes it by `?ref=v0.1.0`, and CI enforces the member rule for `live/`.
-  Next: `live/global` (DNS records — including the lab's, so the lab never holds a zone token — email routing, and zone
-  settings) and `live/lab` on OCI OKE; each root that manages AWS resources adds exactly those permissions to its apply
-  role, which today can reach only its state and secrets. Provenance per
-  [ADR-0136](docs/adr/0136-provenance-is-attested-on-workloads-and-audited-for-infrastructure.md): the deploy workflow
-  names its AWS sessions `gh-<run_id>-<run_attempt>` and `aws-github-oidc` requires that form (`sts:RoleSessionName`);
-  workload images and charts get build-provenance attestations and signatures that Flux verifies before the first
-  production rollout.
+  `v0.2.0` is current and `live/bootstrap` consumes it, and CI enforces the member rule for `live/`. The `deploy`
+  workflow plans each CI root on pull requests, applies the reviewed plan through the root's GitHub environment, and
+  fails a daily run on drift; `live/global` runs through it and owns inbound email routing. Provenance per
+  [ADR-0136](docs/adr/0136-provenance-is-attested-on-workloads-and-audited-for-infrastructure.md) is in place for
+  infrastructure: CI names its AWS sessions `gh-<run_id>-<run_attempt>`, and `aws-github-oidc` (v0.2.0) requires that
+  form and trusts GitHub's immutable OIDC subject (owner and repository IDs, the default for repositories created after
+  July 15, 2026). Next: the rest of `live/global` (DNS records — including the lab's, so the lab never holds a zone
+  token — and zone settings) and `live/lab` on OCI OKE; each root that manages AWS resources adds exactly those
+  permissions to its apply role, which today can reach only its state and secrets. Workload images and charts get
+  build-provenance attestations and signatures that Flux verifies before the first production rollout.
 
 ## Conformance & interop testing (group `T`)
 

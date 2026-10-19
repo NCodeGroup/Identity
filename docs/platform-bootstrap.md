@@ -226,7 +226,9 @@ update of `cloudflare_zone_dnssec` from `pending` to `active`; **don't apply it*
 record is published — and the state object exists in the bucket with versioning enabled.
 
 **Re-run it at least every 90 days** with fresh credentials (no override file) to rotate the CI Cloudflare tokens; they
-expire 30 days after their scheduled rotation. Re-run it too whenever `live/bootstrap` changes.
+expire 30 days after their scheduled rotation. Re-run it too whenever `live/bootstrap` changes. Until section 7 is done,
+limit such a re-run to what changed so the DNSSEC update stays out of it — for example
+`tofu plan '-target=module.github_oidc' '-out=bootstrap.tfplan'`; quote the argument, or PowerShell splits it at the dot.
 
 ## 7. Delegate the domain
 
@@ -268,11 +270,16 @@ owner can confirm it.
    ```
 
 2. **Apply `live/global` through CI:** merge the pull request that changes it (its plan appears in the `deploy` run's
-   summary), then approve the `production` deployment of the run on `main`.
-3. Click the Cloudflare **destination verification** link sent to the forwarding mailbox.
+   summary), then approve the `production` deployment of the run on `main`. Cloudflare forwards only to a verified
+   mailbox, so this first apply creates the destination and then fails on the forwarding rules (`Destination address
+   is not verified`) — expected.
+3. Click the Cloudflare **destination verification** link sent to the forwarding mailbox, then on the failed run choose
+   **Re-run all jobs** (so it plans again; the old plan is stale) and approve the new `production` deployment.
 4. In the mailbox, add a filter for mail to `*@<domain>`: never send to spam, apply a label.
 
-**Verify:** a test message to `security@<domain>` arrives in the mailbox; one to an unlisted address is dropped.
+**Verify:** a test message to `security@<domain>` from a different account (Gmail hides a forwarded copy of your own
+message) arrives in the mailbox; one to an unlisted address is dropped. Senders whose resolver still caches the
+registrar's name servers (section 7) can't find the MX records until that cache expires.
 
 ## 9. Close out
 

@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Server.ReverseProxy;
 
 namespace NCode.Identity.Server;
@@ -49,7 +50,9 @@ public static class ReverseProxyApplicationBuilderExtensions
         {
             ArgumentNullException.ThrowIfNull(app);
 
-            var options = app.ApplicationServices.GetRequiredService<ReverseProxyOptions>();
+            var options = app
+                .ApplicationServices.GetRequiredService<IOptions<ReverseProxyOptions>>()
+                .Value;
 
             return options.HasTrustedProxy ? app.UseForwardedHeaders() : app;
         }

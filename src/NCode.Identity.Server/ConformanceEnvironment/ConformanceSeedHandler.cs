@@ -118,7 +118,6 @@ internal sealed class ConformanceSeedHandler(
             {
                 [OpenIdSettingNames.RedirectUris] = client.RedirectUris,
                 [OpenIdSettingNames.GrantTypesSupported] = client.GrantTypes,
-                [OpenIdSettingNames.ScopesSupported] = client.Scopes,
                 [OpenIdSettingNames.TokenEndpointAuthMethodsSupported] =
                     client.TokenEndpointAuthMethods,
                 [OpenIdSettingNames.CodeChallengeMethodsSupported] = client.CodeChallengeMethods,

@@ -1,6 +1,8 @@
 # 63. Dynamic Client Registration (RFC 7591/7592) over the persisted-grant store
 
-- **Status:** Accepted
+- **Status:** Accepted (metadata storage and the registration `scope` amended by
+  [ADR-0139](0139-setting-names-are-a-closed-vocabulary.md): informational metadata are registered client settings, the
+  requested `scope` is not stored, and the response reports the scopes the client may request)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 
@@ -124,9 +126,8 @@ Concretely:
   an access token carrying a required scope); it may also enable anonymous registration. Minting reuses the shared
   `IPersistedGrantService.AddAsync`, which now returns the server-generated grant id so the management surface can hand
   it back for revocation.
-- Informational metadata lives as inert keys inside the client settings document; the runtime ignores them and the
-  management endpoint reads them back. If that ever collides with a future setting name, the registered-metadata keys
-  are namespaced by their RFC 7591 names and can be relocated under a dedicated sub-object without a contract change.
+- Informational metadata are registered client settings with their RFC 7591 names, so the settings document holds no
+  untyped keys ([ADR-0139](0139-setting-names-are-a-closed-vocabulary.md)); the management endpoint reads them back.
 - RFC 7592 responses omit the `registration_access_token` on `GET` / `PUT` because the server stores only its hash and
   cannot reproduce the plaintext; the client already holds its token. Rotation on update is intentionally not performed
   (RFC 7592 makes it a MAY) and remains available as a future addition.

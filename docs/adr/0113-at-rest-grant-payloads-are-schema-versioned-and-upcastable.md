@@ -61,8 +61,9 @@ long-lived, in-place-mutated payloads.** Concretely:
 - **In scope:** the `PersistedGrant<TPayload>` payload path, which carries the complex, evolving at-rest documents.
 - **Out of scope by design:** primitive scope-list columns (`ConsentEntity.RequestedScopesJson`,
   `ClientGrantEntity.ScopesJson`) are a bare `List<string>` with no schema to evolve; client/resource-server
-  `SettingsJson` already deserializes through the tolerant `ISettingSerializer`/`ISettingDescriptorJsonProvider` (an
-  unknown setting key is given an ad-hoc descriptor rather than throwing); and the opaque `JsonElement` metadata bags
+  `SettingsJson` deserializes through `ISettingSerializer`, where every setting is typed by its registered descriptor and
+  retiring a setting is a data migration ([ADR-0139](0139-setting-names-are-a-closed-vocabulary.md)); and the opaque
+  `JsonElement` metadata bags
   (`FederatedPrincipalEntity`, `LocalAccount` profile/system metadata) are stored and returned verbatim. If any of these
   later needs ordered migration, the serializer can be promoted to a shared location and reused.
 

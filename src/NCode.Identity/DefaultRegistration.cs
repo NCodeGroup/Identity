@@ -68,10 +68,6 @@ public static class DefaultRegistration
                 DefaultReadOnlySettingCollectionProviderFactory
             >();
             serviceCollection.TryAddSingleton<
-                ISettingDescriptorJsonProvider,
-                DefaultSettingDescriptorJsonProvider
-            >();
-            serviceCollection.TryAddSingleton<
                 ISettingCollectionFactory,
                 DefaultSettingCollectionFactory
             >();

@@ -20,6 +20,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
@@ -40,8 +41,11 @@ public static class InteractiveAuthenticationApplicationBuilderExtensions
         /// <returns>The same <see cref="IApplicationBuilder"/> instance for method chaining.</returns>
         public IApplicationBuilder UseInteractiveAuthentication()
         {
-            var options =
-                app.ApplicationServices.GetRequiredService<InteractiveAuthenticationOptions>();
+            var options = app
+                .ApplicationServices.GetRequiredService<
+                    IOptions<InteractiveAuthenticationOptions>
+                >()
+                .Value;
 
             var bundleRootPath = options.BundleRootPath;
             if (string.IsNullOrEmpty(bundleRootPath) || !Directory.Exists(bundleRootPath))

@@ -49,4 +49,15 @@ internal static partial class Log
         string displayName,
         string errorCode
     );
+
+    [LoggerMessage(
+        EventId = EventIds.ServerSettingsReloadRejected,
+        Level = LogLevel.Error,
+        Message = "The reloaded server settings in '{SectionPath}' cannot be honored, so the previous settings remain in force: {Errors}"
+    )]
+    internal static partial void ServerSettingsReloadRejected(
+        this ILogger logger,
+        string sectionPath,
+        string errors
+    );
 }

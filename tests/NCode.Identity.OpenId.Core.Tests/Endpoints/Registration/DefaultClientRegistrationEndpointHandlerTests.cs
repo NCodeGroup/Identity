@@ -23,6 +23,7 @@ using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages;
 using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -38,6 +39,11 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     #region Scaffold
 
     private DefaultClientRegistrationEndpointHandler CreateHandler() =>
+        CreateHandler(CreateStrictMock<IClientScopeService>().Object);
+
+    private DefaultClientRegistrationEndpointHandler CreateHandler(
+        IClientScopeService clientScopeService
+    ) =>
         new(
             TimeProvider.System,
             CreateStrictMock<LinkGenerator>().Object,
@@ -47,7 +53,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<IPersistedGrantService>().Object,
             CreateStrictMock<IInitialAccessTokenValidator>().Object,
-            CreateStrictMock<ISectorIdentifierValidator>().Object
+            CreateStrictMock<ISectorIdentifierValidator>().Object,
+            clientScopeService
         );
 
     private (IOpenIdErrorFactory factory, Func<string?> capturedCode) CreateErrorFactory()
@@ -252,15 +259,37 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         Assert.Equal(
             "client_secret_basic",
-            settings[RegistrationMetadataKeys.TokenEndpointAuthMethod]!.GetValue<string>()
+            settings[OpenIdSettingNames.TokenEndpointAuthMethod]!.GetValue<string>()
         );
-        Assert.Equal(
-            "My Client",
-            settings[RegistrationMetadataKeys.ClientName]!.GetValue<string>()
-        );
-        Assert.NotNull(settings[OpenIdSettingNames.ScopesSupported]);
+        Assert.Equal("My Client", settings[OpenIdSettingNames.ClientName]!.GetValue<string>());
         Assert.NotNull(settings[OpenIdSettingNames.RedirectUris]);
-        Assert.NotNull(settings[RegistrationMetadataKeys.Contacts]);
+        Assert.NotNull(settings[OpenIdSettingNames.Contacts]);
+    }
+
+    [Fact]
+    public void BuildSettingsObject_WhenScopeRequested_DoesNotStoreIt()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            Scope = "openid profile email",
+        };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            RedirectUris = ["https://example.com/callback"],
+        };
+
+        var settings = handler.BuildSettingsObject(request, resolved);
+
+        // The scopes a client may request come from resource servers and grants, never from a stored setting.
+        Assert.DoesNotContain(
+            settings,
+            pair => pair.Key.Contains("scope", StringComparison.Ordinal)
+        );
     }
 
     [Fact]
@@ -347,11 +376,79 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.Equal("client_secret_basic", response.TokenEndpointAuthMethod);
         Assert.Equal("My Client", response.ClientName);
         Assert.Equal("https://example.com/logo.png", response.LogoUri);
-        Assert.Equal("openid profile", response.Scope);
+        Assert.Null(response.Scope);
         Assert.Equal(["https://example.com/callback"], response.RedirectUris);
         Assert.Equal([OpenIdConstants.GrantTypes.AuthorizationCode], response.GrantTypes);
         Assert.Equal([OpenIdConstants.ResponseTypes.Code], response.ResponseTypes);
     }
+
+    #endregion
+
+    #region ToResponseAsync
+
+    [Fact]
+    public async Task ToResponseAsync_ReportsTheScopesTheClientMayRequest()
+    {
+        var mockClientScopeService = CreateStrictMock<IClientScopeService>();
+        mockClientScopeService
+            .Setup(x =>
+                x.GetAllowedScopesAsync("tenant-1", "client-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(["profile", "openid", "api:read"])
+            .Verifiable();
+        var handler = CreateHandler(mockClientScopeService.Object);
+        var client = CreateClient(
+            JsonSerializer.SerializeToElement(new Dictionary<string, object>())
+        );
+
+        var response = await handler.ToResponseAsync(client, CancellationToken.None);
+
+        Assert.Equal("api:read openid profile", response.Scope);
+        Assert.Equal("client-1", response.ClientId);
+    }
+
+    [Fact]
+    public async Task ToResponseAsync_WhenNoScopeIsAllowed_OmitsScope()
+    {
+        var mockClientScopeService = CreateStrictMock<IClientScopeService>();
+        mockClientScopeService
+            .Setup(x =>
+                x.GetAllowedScopesAsync("tenant-1", "client-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+        var handler = CreateHandler(mockClientScopeService.Object);
+        var client = CreateClient(
+            JsonSerializer.SerializeToElement(new Dictionary<string, object>())
+        );
+
+        var response = await handler.ToResponseAsync(client, CancellationToken.None);
+
+        Assert.Null(response.Scope);
+    }
+
+    private static PersistedClient CreateClient(JsonElement settings) =>
+        new()
+        {
+            TenantId = "tenant-1",
+            ClientId = "client-1",
+            ConcurrencyToken = string.Empty,
+            IsDisabled = false,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = "tenant-1",
+                ClientId = "client-1",
+                ConcurrencyToken = string.Empty,
+                Value = settings,
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = "tenant-1",
+                ClientId = "client-1",
+                ConcurrencyToken = string.Empty,
+                Value = [],
+            },
+        };
 
     #endregion
 }

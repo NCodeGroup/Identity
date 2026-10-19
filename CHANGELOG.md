@@ -25,7 +25,7 @@ change to the public API is a **major** version bump.
 
 - **The server refuses to start in Production with development-only settings still enabled.**
   `AddProductionSafety(configuration, hostEnvironment)` validates configuration during composition and throws before
-  the port is bound. It checks the signing-key source, `AllowedHosts`, loopback CORS origins, and the two seeders
+  the port is bound. It checks the signing-key source, `AllowedHosts`, developer CORS configuration, and the two seeders
   (`DeveloperInteractiveSeed`, `ConformanceSeed`), and reports **every** finding in one message so a misconfigured
   deployment is fixed in a single pass rather than one restart per problem. It is inert in every non-Production
   environment, so local, test, and conformance hosts keep their conveniences.
@@ -81,11 +81,60 @@ change to the public API is a **major** version bump.
   `OpenIdServerOptions.Settings` carries the server's settings section. The authentication library no longer binds
   `OpenId:MutualTls` itself — `AddConfiguration` does.
 
+- **Setting names are a closed vocabulary.** Every setting a server, tenant, client, or resource server carries must
+  have a registered descriptor, and its value must convert to the descriptor's type; nothing invents a descriptor for an
+  unknown name any more. The rule is enforced wherever a setting enters:
+  - `OpenId:Server:Settings` is validated when the host starts. An unregistered name, a value that does not convert, a
+    list setting written as a single value, or a single-value setting written as a list stops the host with an error
+    naming the configuration path; an empty array is an empty list. A configuration reload that cannot be honored is
+    rejected with an error log and the previous settings stay in force.
+  - The management API validates the settings of a created server, tenant, client, or resource server and every
+    settings `PATCH`, returning `400` with a validation problem keyed by setting name and storing nothing. A non-object
+    `settings` payload is rejected rather than stored as `{}`.
+  - A stored settings document that names an unregistered setting fails when it is loaded instead of being loaded
+    without it, so a control an operator configured is never silently dropped.
+
+  Dynamic client registration stores the RFC 7591 metadata (`client_name`, `client_uri`, `logo_uri`, `tos_uri`,
+  `policy_uri`, `contacts`, `jwks`, `software_id`, `software_version`) as registered client settings, and no longer
+  stores the requested `scope`. ([ADR-0139](docs/adr/0139-setting-names-are-a-closed-vocabulary.md))
+
+  **Breaking:** `ISettingDescriptorJsonProvider` is removed; `ISettingSerializer` gains `ValidateSettings`, which returns
+  `SettingError` values; `ISettingCollection.Set(key, value)` throws for a key with no descriptor of that value type.
+  `OpenIdSettingNames.ScopesSupported` is removed (discovery still publishes `scopes_supported`), and
+  `ConformanceClientSeed.Scopes` is removed — the OpenID Connect scopes are available to every client. An extension must
+  register a descriptor for every setting it reads or writes, and retiring a setting needs a migration of the stored
+  settings documents.
+
+- **The remaining lenient configuration inputs are bound and validated.** `ReverseProxy` rejects a trusted proxy that is
+  not an IP address (IPv4 written as four decimal octets — the parser otherwise reads `10.0.0` as another address), a
+  trusted network that is not CIDR notation or has bits set past its prefix (the parser otherwise masks
+  `10.0.0.4/8` to `10.0.0.0/8`), and a forward limit below one. `InteractiveAuthentication`, `DeveloperKeys`, and `Cors`
+  are bound strictly into `InteractiveAuthenticationOptions`, `DeveloperKeysOptions`, and `DeveloperCorsOptions`; an
+  unknown `DeveloperKeys:Mode` throws instead of falling back to `Ephemeral`, and an allowed origin that can never match
+  a browser's `Origin` header (a trailing slash, a path, a wildcard) stops the host. In Production, any `Cors` section is
+  a production-safety violation, because the developer CORS policy is never registered there.
+  ([ADR-0139](docs/adr/0139-setting-names-are-a-closed-vocabulary.md))
+
+  **Breaking:** `DeveloperKeyModeConfiguration.GetDeveloperKeyMode()` is replaced by
+  `DeveloperKeysConfiguration.GetDeveloperKeysOptions()`. `ReverseProxyOptions` and `InteractiveAuthenticationOptions`
+  are resolved through `IOptions<T>` rather than registered as singleton instances. Strict binding is public as
+  `NCode.Registration.StrictConfigurationBindingExtensions.BindStrictly`, so an extension can bind its own section the
+  same way.
+
 - **`IEndpointGroup.Prefix` is replaced by `GetPrefix(IServiceProvider)`**, resolved when routes are mapped, so a
   group's prefix can come from configuration. **Breaking** for custom endpoint groups, which return a `RoutePattern`.
   ([ADR-0138](docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md))
 
 ### Fixed
+
+- **The reference host could not start in Production.** `UseDeveloperCors()` added the CORS middleware
+  unconditionally, but the developer CORS policy — and with it the CORS services — is registered only outside
+  Production, so startup failed resolving `ICorsService`. It now adds no middleware when the policy is not registered.
+
+- **A registration response claimed scopes the client could not obtain.** Dynamic client registration stored the
+  requested `scope` under a setting nothing reads — scope entitlement comes from resource servers and client grants —
+  and echoed it back. The response now reports the scopes the client may request, from `IClientScopeService`.
+  ([ADR-0139](docs/adr/0139-setting-names-are-a-closed-vocabulary.md))
 
 - **The reference host's tenant configuration bound to nothing.** Its `appsettings.json` configured tenant selection
   under `OpenId:Tenant` (`Mode`, `StaticSingle:TenantPath`), which is the tenant *materialization* section; the

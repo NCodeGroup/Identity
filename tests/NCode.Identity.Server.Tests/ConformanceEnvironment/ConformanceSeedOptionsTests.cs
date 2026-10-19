@@ -78,12 +78,11 @@ public class ConformanceSeedOptionsTests
     }
 
     [Fact]
-    public void ClientSeed_ByDefault_UsesBasicOpGrantsScopesAndS256()
+    public void ClientSeed_ByDefault_UsesBasicOpGrantsAndS256()
     {
         var client = new ConformanceClientSeed();
 
         Assert.Equal(["authorization_code", "refresh_token"], client.GrantTypes);
-        Assert.Equal(["openid", "profile", "email"], client.Scopes);
         Assert.Equal(["client_secret_basic"], client.TokenEndpointAuthMethods);
         Assert.Equal(["S256"], client.CodeChallengeMethods);
     }

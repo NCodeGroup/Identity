@@ -16,6 +16,8 @@
 
 #endregion
 
+using Microsoft.Extensions.Options;
+
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
@@ -24,9 +26,11 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// each request rather than cached so a locally rebuilt bundle is picked up without a restart; the no-JavaScript forms
 /// render standalone when no bundle is configured or available.
 /// </summary>
-internal sealed class InteractiveBundleReader(InteractiveAuthenticationOptions options)
+internal sealed class InteractiveBundleReader(
+    IOptions<InteractiveAuthenticationOptions> optionsAccessor
+)
 {
-    private InteractiveAuthenticationOptions Options { get; } = options;
+    private InteractiveAuthenticationOptions Options { get; } = optionsAccessor.Value;
 
     /// <summary>
     /// Reads the single-page bundle's <c>index.html</c>, or returns <see langword="null"/> when no bundle is

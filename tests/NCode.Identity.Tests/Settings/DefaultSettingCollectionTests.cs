@@ -217,16 +217,7 @@ public class DefaultSettingCollectionTests : BaseTests
     public void Set_ByKey_WhenDescriptorExists_UsesDescriptor()
     {
         var collection = new DefaultSettingCollection(_mockProvider.Object);
-        var mockDescriptorCollection = CreateStrictMock<ISettingDescriptorCollection>();
-        SettingDescriptor<string>? descriptor = Descriptor("a");
-        mockDescriptorCollection
-            .Setup(x => x.TryGet(It.IsAny<SettingKey<string>>(), out descriptor))
-            .Returns(true)
-            .Verifiable();
-        _mockProvider
-            .Setup(x => x.Collection)
-            .Returns(mockDescriptorCollection.Object)
-            .Verifiable();
+        SetupRegisteredDescriptor(Descriptor("a"));
 
         collection.Set(new SettingKey<string>("a"), "1");
 
@@ -234,23 +225,44 @@ public class DefaultSettingCollectionTests : BaseTests
     }
 
     [Fact]
-    public void Set_ByKey_WhenDescriptorMissing_CreatesDefaultDescriptor()
+    public void Set_ByKey_WhenDescriptorMissing_Throws()
     {
         var collection = new DefaultSettingCollection(_mockProvider.Object);
+        SetupRegisteredDescriptor(null);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            collection.Set(new SettingKey<string>("a"), "1")
+        );
+
+        Assert.Contains("'a'", exception.Message, StringComparison.Ordinal);
+        Assert.Empty(collection);
+    }
+
+    [Fact]
+    public void Set_ByKey_WhenDescriptorHasAnotherValueType_Throws()
+    {
+        var collection = new DefaultSettingCollection(_mockProvider.Object);
+        SetupRegisteredDescriptor(new SettingDescriptor<bool> { Name = "a" });
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            collection.Set(new SettingKey<string>("a"), "1")
+        );
+
+        Assert.Contains(typeof(bool).ToString(), exception.Message, StringComparison.Ordinal);
+        Assert.Empty(collection);
+    }
+
+    private void SetupRegisteredDescriptor(SettingDescriptor? descriptor)
+    {
         var mockDescriptorCollection = CreateStrictMock<ISettingDescriptorCollection>();
-        SettingDescriptor<string>? descriptor = null;
         mockDescriptorCollection
-            .Setup(x => x.TryGet(It.IsAny<SettingKey<string>>(), out descriptor))
-            .Returns(false)
+            .Setup(x => x.TryGet("a", out descriptor))
+            .Returns(descriptor is not null)
             .Verifiable();
         _mockProvider
             .Setup(x => x.Collection)
             .Returns(mockDescriptorCollection.Object)
             .Verifiable();
-
-        collection.Set(new SettingKey<string>("a"), "1");
-
-        Assert.Equal("1", collection.GetValue(new SettingKey<string>("a")));
     }
 
     #endregion

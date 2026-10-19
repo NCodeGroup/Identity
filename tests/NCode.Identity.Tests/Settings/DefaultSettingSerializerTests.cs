@@ -23,24 +23,30 @@ namespace NCode.Identity.Settings;
 
 public class DefaultSettingSerializerTests : BaseTests
 {
-    private readonly Mock<ISettingDescriptorJsonProvider> _mockJsonProvider;
-    private readonly DefaultSettingSerializer _serializer;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
-    public DefaultSettingSerializerTests()
+    private DefaultSettingSerializer CreateSerializer(params SettingDescriptor[] descriptors)
     {
-        _mockJsonProvider = CreateStrictMock<ISettingDescriptorJsonProvider>();
-        _serializer = new DefaultSettingSerializer(_mockJsonProvider.Object);
+        var mockProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
+        mockProvider
+            .Setup(x => x.Collection)
+            .Returns(new DefaultSettingDescriptorCollection(descriptors))
+            .Verifiable();
+        return new DefaultSettingSerializer(mockProvider.Object);
     }
 
-    private static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement;
+    private static JsonElement Parse(string json) => JsonElement.Parse(json);
 
     #region DeserializeSettings Tests
 
     [Fact]
     public void DeserializeSettings_WhenNull_ReturnsEmpty()
     {
-        var result = _serializer.DeserializeSettings(Parse("null"), _jsonOptions);
+        var serializer = new DefaultSettingSerializer(
+            CreateStrictMock<ISettingDescriptorCollectionProvider>().Object
+        );
+
+        var result = serializer.DeserializeSettings(Parse("null"), _jsonOptions);
 
         Assert.Empty(result);
     }
@@ -48,35 +54,43 @@ public class DefaultSettingSerializerTests : BaseTests
     [Fact]
     public void DeserializeSettings_WhenNotObject_ThrowsJsonException()
     {
+        var serializer = new DefaultSettingSerializer(
+            CreateStrictMock<ISettingDescriptorCollectionProvider>().Object
+        );
+
         Assert.Throws<JsonException>(() =>
-            _serializer.DeserializeSettings(Parse("[]"), _jsonOptions)
+            serializer.DeserializeSettings(Parse("[]"), _jsonOptions)
         );
     }
 
     [Fact]
-    public void DeserializeSettings_WhenObject_CreatesSettingsFromValues()
+    public void DeserializeSettings_WhenRegistered_CreatesSettingsFromValues()
     {
-        _mockJsonProvider
-            .Setup(x => x.GetDescriptor("a", JsonValueKind.String))
-            .Returns(new SettingDescriptor<string> { Name = "a" })
-            .Verifiable();
+        var serializer = CreateSerializer(
+            new SettingDescriptor<string> { Name = "a" },
+            new SettingDescriptor<bool> { Name = "b" },
+            new SettingDescriptor<IReadOnlyCollection<string>> { Name = "c" }
+        );
 
-        var result = _serializer.DeserializeSettings(Parse("""{"a":"value"}"""), _jsonOptions);
+        var result = serializer.DeserializeSettings(
+            Parse("""{"a":"value","b":true,"c":["x","y"]}"""),
+            _jsonOptions
+        );
 
-        var setting = Assert.Single(result);
-        Assert.Equal("a", setting.Descriptor.Name);
-        Assert.Equal("value", setting.GetValue());
+        var settings = result.ToDictionary(x => x.Descriptor.Name, x => x.GetValue());
+        Assert.Equal("value", settings["a"]);
+        Assert.True(Assert.IsType<bool>(settings["b"]));
+        Assert.Equal(["x", "y"], Assert.IsAssignableFrom<IEnumerable<string>>(settings["c"]));
     }
 
     [Fact]
     public void DeserializeSettings_WhenNullValueAndDescriptorHasDefault_UsesDefault()
     {
-        _mockJsonProvider
-            .Setup(x => x.GetDescriptor("a", JsonValueKind.Null))
-            .Returns(new SettingDescriptor<string> { Name = "a", Default = "fallback" })
-            .Verifiable();
+        var serializer = CreateSerializer(
+            new SettingDescriptor<string> { Name = "a", Default = "fallback" }
+        );
 
-        var result = _serializer.DeserializeSettings(Parse("""{"a":null}"""), _jsonOptions);
+        var result = serializer.DeserializeSettings(Parse("""{"a":null}"""), _jsonOptions);
 
         var setting = Assert.Single(result);
         Assert.Equal("fallback", setting.GetValue());
@@ -85,14 +99,99 @@ public class DefaultSettingSerializerTests : BaseTests
     [Fact]
     public void DeserializeSettings_WhenNullValueAndNoDefault_ThrowsJsonException()
     {
-        _mockJsonProvider
-            .Setup(x => x.GetDescriptor("a", JsonValueKind.Null))
-            .Returns(new SettingDescriptor<string> { Name = "a" })
-            .Verifiable();
+        var serializer = CreateSerializer(new SettingDescriptor<string> { Name = "a" });
 
         Assert.Throws<JsonException>(() =>
-            _serializer.DeserializeSettings(Parse("""{"a":null}"""), _jsonOptions)
+            serializer.DeserializeSettings(Parse("""{"a":null}"""), _jsonOptions)
         );
+    }
+
+    [Fact]
+    public void DeserializeSettings_WhenSettingIsNotRegistered_ThrowsNamingIt()
+    {
+        var serializer = CreateSerializer(new SettingDescriptor<string> { Name = "a" });
+
+        var exception = Assert.Throws<JsonException>(() =>
+            serializer.DeserializeSettings(
+                Parse("""{"a":"value","tenant_issuer":"x"}"""),
+                _jsonOptions
+            )
+        );
+
+        Assert.Contains("'tenant_issuer'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DeserializeSettings_WhenValueHasWrongType_ThrowsNamingIt()
+    {
+        var serializer = CreateSerializer(new SettingDescriptor<bool> { Name = "require_pkce" });
+
+        var exception = Assert.Throws<JsonException>(() =>
+            serializer.DeserializeSettings(Parse("""{"require_pkce":"yes"}"""), _jsonOptions)
+        );
+
+        Assert.Contains("'require_pkce'", exception.Message, StringComparison.Ordinal);
+    }
+
+    #endregion
+
+    #region ValidateSettings Tests
+
+    [Fact]
+    public void ValidateSettings_WhenNull_ReturnsNoErrors()
+    {
+        var serializer = new DefaultSettingSerializer(
+            CreateStrictMock<ISettingDescriptorCollectionProvider>().Object
+        );
+
+        var errors = serializer.ValidateSettings(Parse("null"), _jsonOptions);
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void ValidateSettings_WhenValid_ReturnsNoErrors()
+    {
+        var serializer = CreateSerializer(new SettingDescriptor<TimeSpan> { Name = "a" });
+
+        var errors = serializer.ValidateSettings(Parse("""{"a":"00:05:00"}"""), _jsonOptions);
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void ValidateSettings_WhenNotObject_ReportsDocumentError()
+    {
+        var serializer = new DefaultSettingSerializer(
+            CreateStrictMock<ISettingDescriptorCollectionProvider>().Object
+        );
+
+        var errors = serializer.ValidateSettings(Parse("[]"), _jsonOptions);
+
+        var error = Assert.Single(errors);
+        Assert.Equal(string.Empty, error.SettingName);
+    }
+
+    [Fact]
+    public void ValidateSettings_WhenSeveralSettingsAreInvalid_ReportsEachOne()
+    {
+        var serializer = CreateSerializer(
+            new SettingDescriptor<bool> { Name = "flag" },
+            new SettingDescriptor<IReadOnlyCollection<string>> { Name = "list" },
+            new SettingDescriptor<string> { Name = "text" },
+            new SettingDescriptor<string> { Name = "valid" }
+        );
+
+        var errors = serializer.ValidateSettings(
+            Parse("""{"unknown":1,"flag":"yes","list":"one","text":null,"valid":"ok"}"""),
+            _jsonOptions
+        );
+
+        Assert.Equal(["unknown", "flag", "list", "text"], errors.Select(x => x.SettingName));
+        Assert.Contains("not a registered setting", errors[0].Message, StringComparison.Ordinal);
+        Assert.Contains("true or false", errors[1].Message, StringComparison.Ordinal);
+        Assert.Contains("an array of strings", errors[2].Message, StringComparison.Ordinal);
+        Assert.Contains("not null", errors[3].Message, StringComparison.Ordinal);
     }
 
     #endregion

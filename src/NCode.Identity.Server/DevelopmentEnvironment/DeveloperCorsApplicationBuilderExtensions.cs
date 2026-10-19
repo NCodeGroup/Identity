@@ -18,6 +18,9 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace NCode.Identity.Server;
 
@@ -32,13 +35,21 @@ public static class DeveloperCorsApplicationBuilderExtensions
     {
         /// <summary>
         /// Adds the CORS middleware using the development policy (<see cref="DeveloperCorsRegistration.PolicyName"/>).
-        /// Call after <c>UseRouting</c> and before the authentication/authorization and endpoint middleware. Requires
-        /// <c>AddDeveloperCors</c> to have registered the policy.
+        /// Call after <c>UseRouting</c> and before the authentication/authorization and endpoint middleware. It is a
+        /// <b>no-op</b> when <c>AddDeveloperCors</c> has not registered the policy — as in Production, where
+        /// <c>AddDevelopmentEnvironment</c> registers nothing — so it is safe to leave wired.
         /// </summary>
         /// <returns>The same <see cref="IApplicationBuilder"/> instance for method chaining.</returns>
         public IApplicationBuilder UseDeveloperCors()
         {
-            return app.UseCors(DeveloperCorsRegistration.PolicyName);
+            ArgumentNullException.ThrowIfNull(app);
+
+            var corsOptions = app
+                .ApplicationServices.GetRequiredService<IOptions<CorsOptions>>()
+                .Value;
+            var policy = corsOptions.GetPolicy(DeveloperCorsRegistration.PolicyName);
+
+            return policy is null ? app : app.UseCors(DeveloperCorsRegistration.PolicyName);
         }
     }
 }

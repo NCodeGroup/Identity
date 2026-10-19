@@ -18,11 +18,13 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Disposables;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.OpenId.Logging;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Settings;
 
@@ -33,6 +35,11 @@ namespace NCode.Identity.OpenId.Settings;
 /// that are loaded from the server's configured settings (<see cref="OpenIdServerOptions.Settings"/>) and the default
 /// values from <see cref="ISettingDescriptorCollectionProvider"/>.
 /// </summary>
+/// <remarks>
+/// The configured settings are read through <see cref="ISettingConfigurationReader"/>, so a setting that cannot be
+/// honored is never loaded. The host validates them when it starts; when a later configuration reload cannot be
+/// honored, the reload is rejected with an error log and the previously loaded settings remain in force.
+/// </remarks>
 internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<Setting>
 {
     private IConfigurationSection? ConfigurationSection { get; }
@@ -40,6 +47,8 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
     private ISettingCollectionFactory SettingCollectionFactory { get; }
     private IEnumerable<IDefaultSettingsProvider> DefaultSettingsProviders { get; }
+    private ISettingConfigurationReader SettingConfigurationReader { get; }
+    private ILogger<RootSettingsCollectionDataSource> Logger { get; }
 
     private Lock SyncObj { get; } = new();
     private bool IsDisposed { get; set; }
@@ -59,7 +68,9 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         IAlgorithmCollectionProvider algorithmCollectionProvider,
         ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
         ISettingCollectionFactory settingCollectionFactory,
-        IEnumerable<IDefaultSettingsProvider> defaultSettingsProviders
+        IEnumerable<IDefaultSettingsProvider> defaultSettingsProviders,
+        ISettingConfigurationReader settingConfigurationReader,
+        ILogger<RootSettingsCollectionDataSource> logger
     )
     {
         ConfigurationSection = optionsAccessor.Value.Server.Settings;
@@ -67,6 +78,8 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
         SettingCollectionFactory = settingCollectionFactory;
         DefaultSettingsProviders = defaultSettingsProviders;
+        SettingConfigurationReader = settingConfigurationReader;
+        Logger = logger;
 
         Collection = LoadCollection();
 
@@ -171,6 +184,11 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         lock (SyncObj)
         {
             if (IsDisposed)
+                return;
+
+            // A reload that cannot be honored leaves the last valid settings in force rather than loading part of it
+            // or faulting the reload callback; the error log is the signal (ADR-0139).
+            if (!CanLoadConfiguration())
                 return;
 
             oldTokenSource = ChangeTokenSource;
@@ -372,35 +390,27 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         );
     }
 
+    private bool CanLoadConfiguration()
+    {
+        if (ConfigurationSection is not { } configurationSection)
+            return true;
+
+        var errors = SettingConfigurationReader.Validate(configurationSection);
+        if (errors.Count == 0)
+            return true;
+
+        var details = string.Join(" ", errors);
+        Logger.ServerSettingsReloadRejected(configurationSection.Path, details);
+        return false;
+    }
+
     private void LoadFromConfiguration(ISettingCollection settings)
     {
         if (ConfigurationSection is null)
             return;
 
-        var descriptors = SettingDescriptorCollectionProvider.Collection;
-        foreach (var settingSection in ConfigurationSection.GetChildren())
+        foreach (var setting in SettingConfigurationReader.Read(ConfigurationSection))
         {
-            var settingName = settingSection.Key;
-            if (!descriptors.TryGet(settingName, out var descriptor))
-            {
-                if (settingSection.GetChildren().Count() > 1)
-                {
-                    descriptor = new SettingDescriptor<IReadOnlyCollection<string>>
-                    {
-                        Name = settingName,
-                    };
-                }
-                else
-                {
-                    descriptor = new SettingDescriptor<string> { Name = settingName };
-                }
-            }
-
-            var value = settingSection.Get(descriptor.ValueType);
-            if (value is null)
-                continue;
-
-            var setting = descriptor.Create(value);
             settings.Set(setting);
         }
     }

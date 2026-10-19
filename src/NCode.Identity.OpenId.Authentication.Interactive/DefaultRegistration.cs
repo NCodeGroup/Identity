@@ -41,7 +41,6 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 public static class DefaultRegistration
 {
     private const string ConfigurationSectionName = "InteractiveAuthentication";
-    private const string BundleRootPathConfigurationKey = "BundleRootPath";
     private const string AntiforgeryHeaderName = "X-XSRF-TOKEN";
     private const string CookieName = "NCode.Identity.Interactive";
 
@@ -52,22 +51,28 @@ public static class DefaultRegistration
         /// Registers the interactive login/consent surface: a cookie scheme named
         /// <see cref="InteractiveAuthenticationDefaults.CookieSchemeName"/> (with its <c>LoginPath</c> /
         /// <c>LogoutPath</c> pointed at the surface) that the authorize endpoint's challenge redirects into, and the
-        /// antiforgery configuration the single-page surface uses. The bundle location is read from the
-        /// <c>InteractiveAuthentication:BundleRootPath</c> configuration value (resolved relative to the content root
-        /// when not rooted) and may be overridden through <paramref name="configureOptions"/>. Its endpoints register as
-        /// an <see cref="InteractiveAuthenticationEndpointGroup"/> discovered by <c>MapEndpointGroups</c> alongside the
-        /// protocol endpoints; apply the static-asset middleware to the pipeline with <c>UseInteractiveAuthentication</c>.
-        /// The cookie scheme is registered as a named scheme and does not itself set the host's default authentication
-        /// scheme. Credential verification is deferred to a registered <see cref="IInteractiveCredentialVerifier"/>,
-        /// which the host must supply separately.
+        /// antiforgery configuration the single-page surface uses. <see cref="InteractiveAuthenticationOptions"/> is
+        /// bound from the <c>InteractiveAuthentication</c> configuration section and may be further configured through
+        /// <paramref name="configureOptions"/>; a relative bundle path is resolved against the content root. Its
+        /// endpoints register as an <see cref="InteractiveAuthenticationEndpointGroup"/> discovered by
+        /// <c>MapEndpointGroups</c> alongside the protocol endpoints; apply the static-asset middleware to the pipeline
+        /// with <c>UseInteractiveAuthentication</c>. The cookie scheme is registered as a named scheme and does not
+        /// itself set the host's default authentication scheme. Credential verification is deferred to a registered
+        /// <see cref="IInteractiveCredentialVerifier"/>, which the host must supply separately.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// The section is bound strictly and checked when the host starts: a key that maps to no option stops the host
+        /// with an error naming the key, rather than leaving the surface without its bundle and no sign of why.
+        /// </para>
+        /// <para>
         /// The host MUST order <c>UseAntiforgery</c> AFTER <c>UseAuthentication</c>/<c>UseAuthorization</c>. The login
         /// and consent forms submit claims-bound antiforgery tokens, and when this cookie is the only registered
         /// authentication scheme ASP.NET Core promotes it to the default — so once a session cookie exists the login
         /// page authenticates the user and mints the token bound to that user. Validating the POST before
         /// authentication runs would compare an authenticated token against an anonymous user and throw
         /// "The provided antiforgery token was meant for a different claims-based user than the current user".
+        /// </para>
         /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the surface's settings.</param>
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> whose content root anchors a relative
@@ -84,19 +89,26 @@ public static class DefaultRegistration
 
             var section = configuration.GetSection(ConfigurationSectionName);
 
-            var options = new InteractiveAuthenticationOptions();
+            // ValidateOnStart materializes the options as the host starts, so a strict-binding failure stops the host
+            // before it accepts traffic (ADR-0137).
+            var optionsBuilder = serviceCollection
+                .AddOptions<InteractiveAuthenticationOptions>()
+                .Configure(options => section.BindStrictly(options));
 
-            var configuredBundlePath = section[BundleRootPathConfigurationKey];
-            if (!string.IsNullOrWhiteSpace(configuredBundlePath))
+            if (configureOptions is not null)
             {
-                options.BundleRootPath = Path.IsPathRooted(configuredBundlePath)
-                    ? configuredBundlePath
-                    : Path.Combine(hostEnvironment.ContentRootPath, configuredBundlePath);
+                optionsBuilder.Configure(configureOptions);
             }
 
-            configureOptions?.Invoke(options);
+            optionsBuilder
+                .PostConfigure(options =>
+                    options.BundleRootPath = ResolveBundleRootPath(
+                        options.BundleRootPath,
+                        hostEnvironment.ContentRootPath
+                    )
+                )
+                .ValidateOnStart();
 
-            serviceCollection.AddSingleton(options);
             serviceCollection.TryAddSingleton<InteractiveBundleReader>();
 
             // The content-negotiation seam in OpenIdResult selects this formatter when an interactive browser
@@ -141,4 +153,9 @@ public static class DefaultRegistration
             return builder;
         }
     }
+
+    private static string? ResolveBundleRootPath(string? bundleRootPath, string contentRootPath) =>
+        string.IsNullOrWhiteSpace(bundleRootPath) || Path.IsPathRooted(bundleRootPath)
+            ? bundleRootPath
+            : Path.Combine(contentRootPath, bundleRootPath);
 }

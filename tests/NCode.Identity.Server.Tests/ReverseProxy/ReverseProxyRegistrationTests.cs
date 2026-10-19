@@ -77,21 +77,22 @@ public sealed class ReverseProxyRegistrationTests : BaseTests
         Assert.Equal([IPNetwork.Parse("172.16.0.0/12")], forwarded.KnownIPNetworks);
     }
 
-    [Fact]
-    public void AddReverseProxy_WhenEntryIsMalformed_IgnoresIt()
+    [Theory]
+    [InlineData("KnownProxies", "not-an-address")]
+    [InlineData("KnownProxies", "10.0.0")]
+    [InlineData("KnownNetworks", "not-a-network")]
+    [InlineData("KnownNetworks", "10.0.0.4/8")]
+    public void AddReverseProxy_WhenEntryCannotBeHonored_Throws(string key, string entry)
     {
-        var (_, forwarded) = Resolve(
-            new Dictionary<string, string?>
-            {
-                ["ReverseProxy:KnownProxies:0"] = "not-an-address",
-                ["ReverseProxy:KnownProxies:1"] = "10.0.0.4",
-                ["ReverseProxy:KnownNetworks:0"] = "not-a-network",
-                ["ReverseProxy:KnownNetworks:1"] = "172.16.0.0/12",
-            }
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            Resolve(new Dictionary<string, string?> { [$"ReverseProxy:{key}:0"] = entry })
         );
 
-        Assert.Equal([IPAddress.Parse("10.0.0.4")], forwarded.KnownProxies);
-        Assert.Equal([IPNetwork.Parse("172.16.0.0/12")], forwarded.KnownIPNetworks);
+        Assert.Contains(
+            $"ReverseProxy:{key}:0 '{entry}'",
+            exception.Message,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -199,7 +200,7 @@ public sealed class ReverseProxyRegistrationTests : BaseTests
         using var serviceProvider = BuildServiceProvider(configurationData);
 
         return (
-            serviceProvider.GetRequiredService<ReverseProxyOptions>(),
+            serviceProvider.GetRequiredService<IOptions<ReverseProxyOptions>>().Value,
             serviceProvider.GetRequiredService<IOptions<ForwardedHeadersOptions>>().Value
         );
     }

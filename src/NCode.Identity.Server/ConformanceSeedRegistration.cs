@@ -21,7 +21,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Server.Configuration;
 using NCode.Identity.Server.ConformanceEnvironment;
 using NCode.Mediator;
 using NCode.Registration;

@@ -22,8 +22,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.Server.Configuration;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Server.ReverseProxy;
+using NCode.Registration;
 
 namespace NCode.Identity.Server;
 
@@ -44,59 +46,80 @@ public static class ReverseProxyRegistration
         /// <summary>
         /// Registers <see cref="ReverseProxyOptions"/> from the <c>ReverseProxy</c> configuration section and
         /// configures the forwarded-headers middleware to honor <c>X-Forwarded-For</c>, <c>X-Forwarded-Proto</c>, and
-        /// <c>X-Forwarded-Host</c> from the configured proxies only. The section is bound strictly: a key that maps to
-        /// no option throws.
+        /// <c>X-Forwarded-Host</c> from the configured proxies only.
         /// </summary>
+        /// <remarks>
+        /// The section is bound strictly and validated when the host starts: a key that maps to no option, a trusted
+        /// proxy that is not an IP address, a trusted network that is not in CIDR notation, or a forward limit below
+        /// one stops the host with an error naming the entry, rather than leaving the server trusting less than the
+        /// operator configured.
+        /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the <c>ReverseProxy</c> section.</param>
         /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        /// <exception cref="InvalidOperationException">The <c>ReverseProxy</c> section contains a key that maps to no
-        /// option.</exception>
         public IServiceCollection AddReverseProxy(IConfiguration configuration)
         {
             ArgumentNullException.ThrowIfNull(serviceCollection);
             ArgumentNullException.ThrowIfNull(configuration);
 
-            var options = new ReverseProxyOptions();
             var section = configuration.GetSection(ReverseProxyOptions.DefaultSectionName);
-            section.BindStrictly(options);
 
-            serviceCollection.AddSingleton(options);
+            // ValidateOnStart materializes the options as the host starts, so an entry that cannot be honored stops
+            // the host before it accepts traffic (ADR-0137).
+            serviceCollection
+                .AddOptions<ReverseProxyOptions>()
+                .Configure(options => section.BindStrictly(options))
+                .ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<ReverseProxyOptions>,
+                    ReverseProxyOptionsValidator
+                >()
+            );
 
-            serviceCollection.Configure<ForwardedHeadersOptions>(forwardedHeadersOptions =>
-            {
-                forwardedHeadersOptions.ForwardedHeaders =
-                    ForwardedHeaders.XForwardedFor
-                    | ForwardedHeaders.XForwardedProto
-                    | ForwardedHeaders.XForwardedHost;
-
-                forwardedHeadersOptions.ForwardLimit = options.ForwardLimit;
-
-                // The framework defaults trust loopback, which is wrong in both directions here: a proxy in another
-                // container is not loopback (so forwarding would silently do nothing), and anything else that reaches
-                // the application directly must not be trusted. Replace the defaults with exactly what was configured.
-                forwardedHeadersOptions.KnownProxies.Clear();
-                forwardedHeadersOptions.KnownIPNetworks.Clear();
-
-                foreach (var candidate in options.KnownProxies)
-                {
-                    if (IPAddress.TryParse(candidate, out var address))
-                    {
-                        forwardedHeadersOptions.KnownProxies.Add(address);
-                    }
-                }
-
-                foreach (var candidate in options.KnownNetworks)
-                {
-                    // System.Net.IPNetwork, not the obsolete Microsoft.AspNetCore.HttpOverrides type of the same name
-                    // that KnownNetworks used to take.
-                    if (System.Net.IPNetwork.TryParse(candidate, out var network))
-                    {
-                        forwardedHeadersOptions.KnownIPNetworks.Add(network);
-                    }
-                }
-            });
+            serviceCollection
+                .AddOptions<ForwardedHeadersOptions>()
+                .Configure<IOptions<ReverseProxyOptions>>(
+                    (forwardedHeadersOptions, reverseProxyOptionsAccessor) =>
+                        ConfigureForwardedHeaders(
+                            forwardedHeadersOptions,
+                            reverseProxyOptionsAccessor.Value
+                        )
+                );
 
             return serviceCollection;
+        }
+    }
+
+    private static void ConfigureForwardedHeaders(
+        ForwardedHeadersOptions forwardedHeadersOptions,
+        ReverseProxyOptions reverseProxyOptions
+    )
+    {
+        forwardedHeadersOptions.ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor
+            | ForwardedHeaders.XForwardedProto
+            | ForwardedHeaders.XForwardedHost;
+
+        forwardedHeadersOptions.ForwardLimit = reverseProxyOptions.ForwardLimit;
+
+        // The framework defaults trust loopback, which is wrong in both directions here: a proxy in another container
+        // is not loopback (so forwarding would silently do nothing), and anything else that reaches the application
+        // directly must not be trusted. Replace the defaults with exactly what was configured; the validator has
+        // already rejected every entry that does not parse.
+        forwardedHeadersOptions.KnownProxies.Clear();
+        forwardedHeadersOptions.KnownIPNetworks.Clear();
+
+        foreach (var proxy in reverseProxyOptions.KnownProxies)
+        {
+            var address = IPAddress.Parse(proxy);
+            forwardedHeadersOptions.KnownProxies.Add(address);
+        }
+
+        foreach (var network in reverseProxyOptions.KnownNetworks)
+        {
+            // System.Net.IPNetwork, not the obsolete Microsoft.AspNetCore.HttpOverrides type of the same name.
+            var ipNetwork = System.Net.IPNetwork.Parse(network);
+            forwardedHeadersOptions.KnownIPNetworks.Add(ipNetwork);
         }
     }
 }

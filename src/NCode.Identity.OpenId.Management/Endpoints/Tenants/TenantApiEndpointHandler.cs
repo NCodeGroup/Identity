@@ -114,7 +114,8 @@ internal class TenantApiEndpointHandler(
 
         tenants
             .MapPost("", CreateTenantAsync)
-            .Produces<TenantResource>(StatusCodes.Status201Created);
+            .Produces<TenantResource>(StatusCodes.Status201Created)
+            .ProducesValidationProblem();
         tenants.MapGet("", ListTenantsAsync).Produces<CollectionResource<TenantResource>>();
         tenants.MapGet("/{tenantId}", GetTenantAsync).Produces<TenantResource>();
         tenants.MapPatch("/{tenantId}", UpdateTenantAsync).Produces(StatusCodes.Status204NoContent);
@@ -125,7 +126,8 @@ internal class TenantApiEndpointHandler(
         tenants.MapGet("/{tenantId}/settings", GetSettingsAsync).Produces<TenantSettingsResource>();
         tenants
             .MapPatch("/{tenantId}/settings", UpdateSettingsAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem();
         tenants
             .MapGet("/{tenantId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<TenantEffectiveSettingsResource>();
@@ -340,6 +342,17 @@ internal class TenantApiEndpointHandler(
         if (error is not null)
         {
             return ToErrorResult(error);
+        }
+
+        // Setting names are a closed vocabulary (ADR-0139): a settings document that cannot be honored is rejected
+        // here rather than stored and failed on every request that resolves the tenant.
+        var settingErrors = SettingSerializer.ValidateSettings(
+            request.Settings,
+            openIdContext.Environment.JsonSerializerOptions
+        );
+        if (settingErrors.Count > 0)
+        {
+            return SettingsValidationProblem(settingErrors);
         }
 
         await store.AddAsync(tenant, cancellationToken);
@@ -655,7 +668,15 @@ internal class TenantApiEndpointHandler(
             );
         }
 
-        tenantSettings.Value = SerializeToElement(jsonObject);
+        var settingsValue = SerializeToElement(jsonObject);
+        var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
+        var settingErrors = SettingSerializer.ValidateSettings(settingsValue, jsonOptions);
+        if (settingErrors.Count > 0)
+        {
+            return SettingsValidationProblem(settingErrors);
+        }
+
+        tenantSettings.Value = settingsValue;
 
         await store.UpdateSettingsAsync(tenantSettings, cancellationToken);
 

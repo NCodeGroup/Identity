@@ -122,7 +122,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   failure — that discards the isolation guarantee.
 - 👁 **A source-generated `ILogger<T>` needs only a loose mock.** `[LoggerMessage]` methods check `IsEnabled` first, and
   a loose mock returns `false`, so `Log` is never called and no setup is needed — a sanctioned value-provider loose mock
-  (`CreateLooseMock<ILogger<T>>()`).
+  (`CreateLooseMock<ILogger<T>>()`). When the log entry **is** the behavior under test (an error logged instead of
+  thrown), use a strict mock with `IsEnabled(level)` returning `true` and a `.Verifiable()`
+  `Log(level, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), …, It.IsAny<Func<It.IsAnyType, Exception?, string>>())`
+  setup; `It.IsAnyType` matches the generated state struct.
 
 ## Persistence & integration tests
 
@@ -164,6 +167,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   fails in the parallel gate. Assert startup failures against a host built directly
   (`Host.CreateEmptyApplicationBuilder`, the registration under test, then `StartAsync`), and keep factory-based tests
   for hosts that start.
+- 👁 **A directly built host that composes the whole server needs a store-factory stub.** `AddIdentityServer()` leaves
+  the persistence provider to the host, yet resolving the setting-descriptor catalog resolves the client-authentication
+  handlers, which depend on `IStoreManagerFactory`. A configuration-only test registers a never-called strict
+  `new Mock<IStoreManagerFactory>(MockBehavior.Strict).Object` rather than disabling DI validation or composing a
+  database.
 - 👁 **Validate new tests in Release before running `dod.ps1`.** The gate builds and tests in **Release**, where
   `Debug.Assert` and `#if DEBUG` blocks disappear; run `dotnet test <proj> --configuration Release` first to catch
   Debug-vs-Release differences fast (a `#if DEBUG` auth bypass, a stripped assertion).

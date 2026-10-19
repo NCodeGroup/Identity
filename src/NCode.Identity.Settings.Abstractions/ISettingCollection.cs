@@ -34,11 +34,13 @@ public interface ISettingCollection : IReadOnlySettingCollection
     void Set(Setting setting);
 
     /// <summary>
-    /// Add or updates a strongly typed setting in the collection.
+    /// Add or updates a strongly typed setting in the collection, using the setting's registered descriptor.
     /// </summary>
-    /// <param name="key">The key of the strongly typed setting to remove.</param>
+    /// <param name="key">The key of the strongly typed setting to add or update.</param>
     /// <param name="value">The value of the strongly typed setting to set.</param>
     /// <typeparam name="TValue">The type of the setting's value.</typeparam>
+    /// <exception cref="InvalidOperationException">The setting has no registered descriptor, or its registered
+    /// descriptor's value type is not <typeparamref name="TValue"/>.</exception>
     void Set<TValue>(SettingKey<TValue> key, TValue value)
         where TValue : notnull;
 

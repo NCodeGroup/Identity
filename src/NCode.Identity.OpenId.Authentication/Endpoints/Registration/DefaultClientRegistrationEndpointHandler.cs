@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results;
 using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -56,7 +57,8 @@ internal class DefaultClientRegistrationEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IPersistedGrantService persistedGrantService,
     IInitialAccessTokenValidator initialAccessTokenValidator,
-    ISectorIdentifierValidator sectorIdentifierValidator
+    ISectorIdentifierValidator sectorIdentifierValidator,
+    IClientScopeService clientScopeService
 ) : IEndpointProvider
 {
     private const int ClientSecretKeySizeBits = 256;
@@ -91,6 +93,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         initialAccessTokenValidator;
     private ISectorIdentifierValidator SectorIdentifierValidator { get; } =
         sectorIdentifierValidator;
+    private IClientScopeService ClientScopeService { get; } = clientScopeService;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -300,7 +303,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         var registrationClientUri = GetRegistrationClientUri(openIdContext, clientId);
 
-        var response = ToResponse(client);
+        var response = await ToResponseAsync(client, cancellationToken);
         response = response with
         {
             ClientSecret = clientSecret,
@@ -413,7 +416,8 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (client is null)
             return TypedResults.NotFound();
 
-        var response = ToResponse(client) with
+        var response = await ToResponseAsync(client, cancellationToken);
+        response = response with
         {
             RegistrationClientUri = GetRegistrationClientUri(openIdContext, clientId),
         };
@@ -482,7 +486,8 @@ internal class DefaultClientRegistrationEndpointHandler(
         await store.UpdateSettingsAsync(client.Settings, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        var response = ToResponse(client) with
+        var response = await ToResponseAsync(client, cancellationToken);
+        response = response with
         {
             RegistrationClientUri = GetRegistrationClientUri(openIdContext, clientId),
         };
@@ -862,7 +867,9 @@ internal class DefaultClientRegistrationEndpointHandler(
         element.TryGetPropertyValue<string>(memberName, out var value) ? value : null;
 
     /// <summary>
-    /// Projects the submitted metadata and the resolved values into the client's persisted settings document.
+    /// Projects the submitted metadata and the resolved values into the client's persisted settings document. Every
+    /// key is a registered client setting. The requested <c>scope</c> is not stored: the scopes a client may request
+    /// come from the tenant's resource servers and the client's grants, and the registration response reports those.
     /// </summary>
     internal virtual JsonObject BuildSettingsObject(
         RegisterClientRequest request,
@@ -874,7 +881,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             [OpenIdSettingNames.RedirectUris] = ToJsonArray(resolved.RedirectUris),
             [OpenIdSettingNames.GrantTypesSupported] = ToJsonArray(resolved.GrantTypes),
             [OpenIdSettingNames.ResponseTypesSupported] = ToJsonArray(resolved.ResponseTypes),
-            [RegistrationMetadataKeys.TokenEndpointAuthMethod] = resolved.TokenEndpointAuthMethod,
+            [OpenIdSettingNames.TokenEndpointAuthMethod] = resolved.TokenEndpointAuthMethod,
         };
 
         SetIfPresent(settings, OpenIdSettingNames.SubjectType, resolved.SubjectType);
@@ -884,41 +891,60 @@ internal class DefaultClientRegistrationEndpointHandler(
             resolved.SectorIdentifierUri
         );
 
-        if (!string.IsNullOrEmpty(request.Scope))
-        {
-            var scopes = request.Scope.Split(
-                OpenIdConstants.ParameterSeparatorChar,
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-            );
-            settings[OpenIdSettingNames.ScopesSupported] = ToJsonArray(scopes);
-        }
-
-        SetIfPresent(settings, RegistrationMetadataKeys.ClientName, request.ClientName);
-        SetIfPresent(settings, RegistrationMetadataKeys.ClientUri, request.ClientUri);
-        SetIfPresent(settings, RegistrationMetadataKeys.LogoUri, request.LogoUri);
-        SetIfPresent(settings, RegistrationMetadataKeys.TosUri, request.TosUri);
-        SetIfPresent(settings, RegistrationMetadataKeys.PolicyUri, request.PolicyUri);
-        SetIfPresent(settings, RegistrationMetadataKeys.JwksUri, request.JwksUri);
-        SetIfPresent(settings, RegistrationMetadataKeys.SoftwareId, request.SoftwareId);
-        SetIfPresent(settings, RegistrationMetadataKeys.SoftwareVersion, request.SoftwareVersion);
+        SetIfPresent(settings, OpenIdSettingNames.ClientName, request.ClientName);
+        SetIfPresent(settings, OpenIdSettingNames.ClientUri, request.ClientUri);
+        SetIfPresent(settings, OpenIdSettingNames.LogoUri, request.LogoUri);
+        SetIfPresent(settings, OpenIdSettingNames.TosUri, request.TosUri);
+        SetIfPresent(settings, OpenIdSettingNames.PolicyUri, request.PolicyUri);
+        SetIfPresent(settings, OpenIdSettingNames.JwksUri, request.JwksUri);
+        SetIfPresent(settings, OpenIdSettingNames.SoftwareId, request.SoftwareId);
+        SetIfPresent(settings, OpenIdSettingNames.SoftwareVersion, request.SoftwareVersion);
 
         if (request.Contacts is { Count: > 0 })
-            settings[RegistrationMetadataKeys.Contacts] = ToJsonArray(request.Contacts);
+            settings[OpenIdSettingNames.Contacts] = ToJsonArray(request.Contacts);
 
         if (request.Jwks is { ValueKind: JsonValueKind.Object } jwks)
-            settings[RegistrationMetadataKeys.Jwks] = JsonSerializer.SerializeToNode(jwks);
+            settings[OpenIdSettingNames.Jwks] = JsonSerializer.SerializeToNode(jwks);
 
         return settings;
     }
 
     /// <summary>
-    /// Reconstructs a client information response from a persisted client's settings document.
+    /// Builds the client information response for a persisted client: the registered metadata reconstructed from its
+    /// settings document, and a <c>scope</c> listing the scopes the client may currently request — the scopes of the
+    /// tenant's system resource servers and of the resource servers the client is granted. A requested <c>scope</c>
+    /// is replaced by that set (RFC 7591 §3.2.1), so the response never claims a scope the client cannot obtain.
+    /// </summary>
+    internal virtual async ValueTask<RegisterClientResponse> ToResponseAsync(
+        PersistedClient client,
+        CancellationToken cancellationToken
+    )
+    {
+        var allowedScopes = await ClientScopeService.GetAllowedScopesAsync(
+            client.TenantId,
+            client.ClientId,
+            cancellationToken
+        );
+
+        var orderedScopes = allowedScopes.Order(StringComparer.Ordinal);
+        var scope =
+            allowedScopes.Count == 0
+                ? null
+                : string.Join(OpenIdConstants.ParameterSeparatorString, orderedScopes);
+
+        return ToResponse(client) with
+        {
+            Scope = scope,
+        };
+    }
+
+    /// <summary>
+    /// Reconstructs the registered metadata of a client information response from a persisted client's settings
+    /// document.
     /// </summary>
     internal virtual RegisterClientResponse ToResponse(PersistedClient client)
     {
         var settings = ToJsonObject(client.Settings.Value);
-
-        var scopes = ReadStringArray(settings, OpenIdSettingNames.ScopesSupported);
 
         return new RegisterClientResponse
         {
@@ -928,23 +954,20 @@ internal class DefaultClientRegistrationEndpointHandler(
             ResponseTypes = ReadStringArray(settings, OpenIdSettingNames.ResponseTypesSupported),
             TokenEndpointAuthMethod = ReadString(
                 settings,
-                RegistrationMetadataKeys.TokenEndpointAuthMethod
+                OpenIdSettingNames.TokenEndpointAuthMethod
             ),
             SubjectType = ReadString(settings, OpenIdSettingNames.SubjectType),
             SectorIdentifierUri = ReadString(settings, OpenIdSettingNames.SectorIdentifierUri),
-            Scope = scopes is null
-                ? null
-                : string.Join(OpenIdConstants.ParameterSeparatorString, scopes),
-            ClientName = ReadString(settings, RegistrationMetadataKeys.ClientName),
-            ClientUri = ReadString(settings, RegistrationMetadataKeys.ClientUri),
-            LogoUri = ReadString(settings, RegistrationMetadataKeys.LogoUri),
-            Contacts = ReadStringArray(settings, RegistrationMetadataKeys.Contacts),
-            TosUri = ReadString(settings, RegistrationMetadataKeys.TosUri),
-            PolicyUri = ReadString(settings, RegistrationMetadataKeys.PolicyUri),
-            JwksUri = ReadString(settings, RegistrationMetadataKeys.JwksUri),
-            Jwks = ReadElement(settings, RegistrationMetadataKeys.Jwks),
-            SoftwareId = ReadString(settings, RegistrationMetadataKeys.SoftwareId),
-            SoftwareVersion = ReadString(settings, RegistrationMetadataKeys.SoftwareVersion),
+            ClientName = ReadString(settings, OpenIdSettingNames.ClientName),
+            ClientUri = ReadString(settings, OpenIdSettingNames.ClientUri),
+            LogoUri = ReadString(settings, OpenIdSettingNames.LogoUri),
+            Contacts = ReadStringArray(settings, OpenIdSettingNames.Contacts),
+            TosUri = ReadString(settings, OpenIdSettingNames.TosUri),
+            PolicyUri = ReadString(settings, OpenIdSettingNames.PolicyUri),
+            JwksUri = ReadString(settings, OpenIdSettingNames.JwksUri),
+            Jwks = ReadElement(settings, OpenIdSettingNames.Jwks),
+            SoftwareId = ReadString(settings, OpenIdSettingNames.SoftwareId),
+            SoftwareVersion = ReadString(settings, OpenIdSettingNames.SoftwareVersion),
         };
     }
 

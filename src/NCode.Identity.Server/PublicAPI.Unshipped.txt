@@ -1,7 +1,9 @@
 #nullable enable
 const NCode.Identity.Server.BootstrapAdminOptions.DefaultSectionName = "BootstrapAdmin" -> string!
 const NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.DefaultSectionName = "ConformanceSeed" -> string!
+const NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.DefaultSectionName = "Cors" -> string!
 const NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.DefaultSectionName = "DeveloperInteractiveSeed" -> string!
+const NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.DefaultSectionName = "DeveloperKeys" -> string!
 NCode.Identity.Server.BootstrapAdminOptions
 NCode.Identity.Server.BootstrapAdminOptions.BootstrapAdminOptions() -> void
 NCode.Identity.Server.BootstrapAdminOptions.ClientId.get -> string?
@@ -23,8 +25,6 @@ NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.GrantTypes.ge
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.GrantTypes.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.RedirectUris.get -> string![]!
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.RedirectUris.set -> void
-NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.Scopes.get -> string![]!
-NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.Scopes.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ShouldSeed.get -> bool
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethods.get -> string![]!
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethods.set -> void
@@ -64,14 +64,18 @@ NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(NCode.Regis
 NCode.Identity.Server.DeveloperKeyMode
 NCode.Identity.Server.DeveloperKeyMode.Ephemeral = 0 -> NCode.Identity.Server.DeveloperKeyMode
 NCode.Identity.Server.DeveloperKeyMode.PersistentSigningKey = 1 -> NCode.Identity.Server.DeveloperKeyMode
-NCode.Identity.Server.DeveloperKeyModeConfiguration
-NCode.Identity.Server.DeveloperKeyModeConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!)
-NCode.Identity.Server.DeveloperKeyModeConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!).GetDeveloperKeyMode() -> NCode.Identity.Server.DeveloperKeyMode
+NCode.Identity.Server.DeveloperKeysConfiguration
+NCode.Identity.Server.DeveloperKeysConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!)
+NCode.Identity.Server.DeveloperKeysConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!).GetDeveloperKeysOptions() -> NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions!
 NCode.Identity.Server.DeveloperKeysRegistration
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperKeys(NCode.Identity.Server.DeveloperKeyMode mode) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperSigningKey() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddEphemeralDeveloperKeys() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.AllowedOrigins.get -> string![]!
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.AllowedOrigins.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.DeveloperCorsOptions() -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.AdminEmail.get -> string?
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.AdminEmail.set -> void
@@ -85,6 +89,10 @@ NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.Spa
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.SpaClients.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.TenantId.get -> string?
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.TenantId.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.DeveloperKeysOptions() -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.Mode.get -> NCode.Identity.Server.DeveloperKeyMode?
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.Mode.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ClientId.get -> string?
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ClientId.set -> void

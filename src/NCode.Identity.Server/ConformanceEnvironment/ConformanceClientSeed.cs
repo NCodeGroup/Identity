@@ -23,8 +23,9 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 
 /// <summary>
 /// Describes a single <strong>conformance-only</strong> confidential client to seed: its client id, its
-/// <c>Base64Url</c>-encoded secret, and the exact-match redirect URIs, grant types, scopes, token-endpoint
-/// authentication methods, and PKCE code-challenge methods it registers.
+/// <c>Base64Url</c>-encoded secret, and the exact-match redirect URIs, grant types, token-endpoint authentication
+/// methods, and PKCE code-challenge methods it registers. The scopes it may request are not part of the seed: they
+/// come from the tenant's resource servers, and the OpenID Connect scopes are available to every client.
 /// </summary>
 [PublicAPI]
 public sealed class ConformanceClientSeed
@@ -53,17 +54,6 @@ public sealed class ConformanceClientSeed
     /// </summary>
     public string[] GrantTypes { get; set; } =
     [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.RefreshToken];
-
-    /// <summary>
-    /// Gets or sets the scopes this client is allowed to request. Defaults to the standard OpenID Connect set
-    /// (<c>openid</c> + <c>profile</c> + <c>email</c>).
-    /// </summary>
-    public string[] Scopes { get; set; } =
-    [
-        OpenIdConstants.ScopeTypes.OpenId,
-        OpenIdConstants.ScopeTypes.Profile,
-        OpenIdConstants.ScopeTypes.Email,
-    ];
 
     /// <summary>
     /// Gets or sets the token-endpoint authentication methods this client supports. Defaults to

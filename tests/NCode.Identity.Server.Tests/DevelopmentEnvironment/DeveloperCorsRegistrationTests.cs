@@ -16,11 +16,14 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Moq;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;
@@ -56,12 +59,98 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         Assert.Empty(policy.Origins);
     }
 
+    [Theory]
+    [InlineData("https://app.example.com/")]
+    [InlineData("https://app.example.com/path")]
+    [InlineData("https://*.example.com")]
+    [InlineData("*")]
+    [InlineData("app.example.com")]
+    public void AddDeveloperCors_WhenOriginCanNeverMatch_Throws(string origin)
+    {
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            ResolvePolicy("Development", configuredOrigins: [origin])
+        );
+
+        Assert.Contains(
+            $"Cors:AllowedOrigins:0 '{origin}'",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void AddDeveloperCors_WhenSectionHasUnknownKey_Throws()
+    {
+        var hostEnvironment = CreateEnvironment("Development");
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?> { ["Cors:AllowedOrigin:0"] = "https://app.example" }
+            )
+            .Build();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddDeveloperCors(configuration, hostEnvironment);
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<CorsOptions>>().Value
+        );
+
+        Assert.Contains("'AllowedOrigin'", exception.Message, StringComparison.Ordinal);
+    }
+
     #endregion
 
-    private CorsPolicy ResolvePolicy(string environmentName, string[]? configuredOrigins)
+    #region UseDeveloperCors Tests
+
+    [Fact]
+    public void UseDeveloperCors_WhenPolicyNotRegistered_AddsNoMiddleware()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddOptions();
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        // Strict: the mock has no Use(...) setup, so adding middleware would fail the test — which is exactly what a
+        // Production host, where the developer policy is never registered, must not do.
+        var app = CreateStrictMock<IApplicationBuilder>();
+        app.Setup(x => x.ApplicationServices).Returns(serviceProvider).Verifiable();
+
+        var result = app.Object.UseDeveloperCors();
+
+        Assert.Same(app.Object, result);
+    }
+
+    [Fact]
+    public void UseDeveloperCors_WhenPolicyRegistered_AddsMiddleware()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddDeveloperCors(configuration, CreateEnvironment("Development"));
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var app = CreateStrictMock<IApplicationBuilder>();
+        app.Setup(x => x.ApplicationServices).Returns(serviceProvider).Verifiable();
+        app.Setup(x => x.Use(It.IsAny<Func<RequestDelegate, RequestDelegate>>()))
+            .Returns(app.Object)
+            .Verifiable();
+
+        var result = app.Object.UseDeveloperCors();
+
+        Assert.Same(app.Object, result);
+    }
+
+    #endregion
+
+    private IHostEnvironment CreateEnvironment(string environmentName)
     {
         var hostEnvironment = CreateStrictMock<IHostEnvironment>();
         hostEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName);
+        return hostEnvironment.Object;
+    }
+
+    private CorsPolicy ResolvePolicy(string environmentName, string[]? configuredOrigins)
+    {
+        var hostEnvironment = CreateEnvironment(environmentName);
 
         var configurationData = new Dictionary<string, string?>();
         if (configuredOrigins is not null)
@@ -76,7 +165,7 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
             .Build();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddDeveloperCors(configuration, hostEnvironment.Object);
+        serviceCollection.AddDeveloperCors(configuration, hostEnvironment);
 
         using var serviceProvider = serviceCollection.BuildServiceProvider();
         var corsOptions = serviceProvider.GetRequiredService<IOptions<CorsOptions>>().Value;

@@ -18,6 +18,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
@@ -75,6 +76,31 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
         }
 
         return JsonSerializer.SerializeToElement(values);
+    }
+
+    /// <summary>
+    /// Builds the <c>400 Bad Request</c> validation problem for a settings document that cannot be honored: the
+    /// problem's <c>errors</c> map each offending setting name to its error, and its <c>detail</c> lists them all.
+    /// </summary>
+    /// <param name="errors">The <see cref="SettingError"/> instances describing each setting that cannot be honored.</param>
+    /// <returns>The <see cref="IResult"/> representing the validation failure.</returns>
+    internal virtual IResult SettingsValidationProblem(IReadOnlyList<SettingError> errors)
+    {
+        var messages = errors.Select(error => error.Message);
+        var detail = string.Join(" ", messages);
+        var errorsBySetting = errors
+            .GroupBy(error => error.SettingName, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(error => error.Message).ToArray(),
+                StringComparer.Ordinal
+            );
+
+        return TypedResults.ValidationProblem(
+            errorsBySetting,
+            detail: detail,
+            title: "The settings are invalid."
+        );
     }
 
     /// <summary>

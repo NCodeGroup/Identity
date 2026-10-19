@@ -13,3 +13,6 @@ NCode.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.De
 NCode.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddRegistrationMarker<TMarker>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).IsRegistered<TMarker>() -> bool
 NCode.Registration.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).NewBuilder<TNewMarker>() -> NCode.Registration.IServiceBuilder<TNewMarker>!
+NCode.Registration.StrictConfigurationBindingExtensions
+NCode.Registration.StrictConfigurationBindingExtensions.extension(Microsoft.Extensions.Configuration.IConfigurationSection!)
+NCode.Registration.StrictConfigurationBindingExtensions.extension(Microsoft.Extensions.Configuration.IConfigurationSection!).BindStrictly(object! instance) -> void

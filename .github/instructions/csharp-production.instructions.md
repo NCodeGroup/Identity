@@ -252,7 +252,7 @@ rationale.
   `new`, reading a configuration section — stop and move that logic into the **owning package** as an `Add*`/`Use*`/`Map*`
   extension, then call the one-liner from the host. Developer/dev-only helpers for the OpenID server live beside their
   siblings in [`NCode.Identity.Server/DevelopmentEnvironment/`](../../src/NCode.Identity.Server/DevelopmentEnvironment)
-  (`AddDeveloperKeys`/`GetDeveloperKeyMode`, `AddDeveloperCors`/`UseDeveloperCors`) and are exposed through the server's
+  (`AddDeveloperKeys`/`GetDeveloperKeysOptions`, `AddDeveloperCors`/`UseDeveloperCors`) and are exposed through the server's
   turnkey surface so a host opts in with one call. Default to "it goes in the package"; only the genuinely host-specific,
   unsafe-to-default inputs called out below (database provider/connection string, production signing key) stay in
   `Program.cs`.
@@ -298,13 +298,27 @@ rationale.
   hand the request's live `RouteValues` to a template binder — it consumes them; bind a copy. See
   [ADR-0138](../../docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md).
 - 👁 **Bind configuration strictly and validate it when the host starts.** An options type bound from configuration is
-  bound with the binder's `ErrorOnUnknownConfiguration` (in the server, through `BindStrictly`, which names the section in
-  the error) and registered with `ValidateOnStart`; a rule the binder cannot express is an `IValidateOptions<T>`. A key
-  that maps to no option must stop the host — a misspelled or misplaced key is otherwise indistinguishable from an absent
-  one. Each section has one owner that declares its whole shape; an extension binds its own section rather than adding
-  keys to one the server owns. Validate only what is in force (for example the selected tenant strategy's options), since
-  a JSON overlay cannot delete a lower layer's key. See
-  [ADR-0137](../../docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md).
+  bound with the binder's `ErrorOnUnknownConfiguration` (through `NCode.Registration`'s `BindStrictly`, which names the
+  section in the error) and registered with `ValidateOnStart`; a rule the binder cannot express is an
+  `IValidateOptions<T>`. A key that maps to no option must stop the host — a misspelled or misplaced key is otherwise
+  indistinguishable from an absent one. Bind a whole section rather than reading single keys (`configuration["A:B"]`),
+  which leave a misspelled sibling unnoticed; bind eagerly only when the value decides what gets registered. Each section
+  has one owner that declares its whole shape; an extension binds its own section rather than adding keys to one the
+  server owns. Validate only what is in force (for example the selected tenant strategy's options), since a JSON overlay
+  cannot delete a lower layer's key. **Validate a value the way it will be used:** a lenient parser can turn a typo into
+  a different value instead of an error (`IPAddress.TryParse("10.0.0")` is `10.0.0.0`; `IPNetwork.TryParse` masks
+  `10.0.0.4/8` to `10.0.0.0/8`), and a value compared verbatim (a CORS origin) must be in the form it is compared in —
+  reject anything that parses to something other than what was written. A setting the server cannot honor in an
+  environment (a development-only section in Production) is a startup error, not an inert key. See
+  [ADR-0137](../../docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md) and
+  [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md).
+- 👁 **Setting names are a closed vocabulary.** Every setting a server, tenant, client, or resource server carries has a
+  registered `SettingDescriptor`, contributed through `ICollectionDataSource<SettingDescriptor>` by the package that
+  reads or writes it; never read or write a setting through an ad-hoc `new SettingKey<T>("…")` without a descriptor.
+  Settings are rejected wherever they enter — configuration on start, management writes (`ISettingSerializer.ValidateSettings`
+  → `400`), and stored documents on read (fail closed) — so retiring or renaming a setting ships with a data migration
+  of the stored documents. A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`)
+  is still a registered setting. See [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md).
 - 👁 **A package registers its own services from `DefaultRegistration.cs`** (the class is **always** `DefaultRegistration`)
   using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
   [ADR-0069](../../docs/adr/0069-registration-library-compile-time-marker-nesting.md). **The receiver marker is the

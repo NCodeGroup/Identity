@@ -17,10 +17,9 @@
 #endregion
 
 using Microsoft.Extensions.Configuration;
-using NCode.Identity.Server.Configuration;
 using Xunit;
 
-namespace NCode.Identity.Server.Tests.Configuration;
+namespace NCode.Registration.Tests;
 
 public sealed class StrictConfigurationBindingExtensionsTests
 {

@@ -23,8 +23,8 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Server.Configuration;
 using NCode.Identity.Server.Frontend;
+using NCode.Registration;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.Server;

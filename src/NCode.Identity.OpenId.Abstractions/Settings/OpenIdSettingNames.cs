@@ -618,11 +618,6 @@ public static class OpenIdSettingNames
     public const string ResponseTypesSupported = "response_types_supported";
 
     /// <summary>
-    /// Contains the name of <c>scopes_supported</c> setting.
-    /// </summary>
-    public const string ScopesSupported = "scopes_supported";
-
-    /// <summary>
     /// Contains the name of <c>send_id_claims_in_access_token</c> setting.
     /// </summary>
     public const string SendIdClaimsInAccessToken = "send_id_claims_in_access_token";
@@ -830,4 +825,57 @@ public static class OpenIdSettingNames
     /// <c>mtls_endpoint_aliases</c> object whose endpoint URLs are rewritten to that mutual-TLS authority.
     /// </summary>
     public const string MtlsEndpointAliasAuthority = "mtls_endpoint_alias_authority";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>client_name</c> setting (RFC 7591 §2): the human-readable name of the
+    /// client presented to the end-user, for example on the consent page.
+    /// </summary>
+    public const string ClientName = "client_name";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>client_uri</c> setting (RFC 7591 §2): the URL of the client's home page.
+    /// </summary>
+    public const string ClientUri = "client_uri";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>logo_uri</c> setting (RFC 7591 §2): the URL of the client's logo.
+    /// </summary>
+    public const string LogoUri = "logo_uri";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>tos_uri</c> setting (RFC 7591 §2): the URL of the client's terms of
+    /// service.
+    /// </summary>
+    public const string TosUri = "tos_uri";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>policy_uri</c> setting (RFC 7591 §2): the URL of the client's privacy
+    /// policy.
+    /// </summary>
+    public const string PolicyUri = "policy_uri";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>contacts</c> setting (RFC 7591 §2): the email addresses of the people
+    /// responsible for the client.
+    /// </summary>
+    public const string Contacts = "contacts";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>jwks</c> setting (RFC 7591 §2): the JSON Web Key Set document the client
+    /// registered by value, kept as registered so a registration read returns it. Its keys are imported as the
+    /// client's secrets when the client registers.
+    /// </summary>
+    public const string Jwks = "jwks";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>software_id</c> setting (RFC 7591 §2): the identifier of the client
+    /// software, stable across its instances and versions.
+    /// </summary>
+    public const string SoftwareId = "software_id";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>software_version</c> setting (RFC 7591 §2): the version of the client
+    /// software identified by <c>software_id</c>.
+    /// </summary>
+    public const string SoftwareVersion = "software_version";
 }

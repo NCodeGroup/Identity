@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
@@ -1360,6 +1361,83 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.JwksUri,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // RFC 7591 §2 client metadata: client_name, client_uri, logo_uri, tos_uri, policy_uri, contacts, jwks,
+            // software_id, software_version. Registered so a registration (or the management API) stores them as typed
+            // settings rather than untyped extras; client_name is shown on the consent page, and jwks keeps the key set
+            // the client registered by value (its keys are imported as client secrets). No defaults: absent means the
+            // client did not provide it. Not advertised. Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.ClientName,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.ClientUri,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.LogoUri,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.TosUri,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.PolicyUri,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.Contacts,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<JsonElement>
+            {
+                Name = OpenIdSettingNames.Jwks,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.SoftwareId,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.SoftwareVersion,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,

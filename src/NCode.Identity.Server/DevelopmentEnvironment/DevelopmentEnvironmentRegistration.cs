@@ -78,7 +78,8 @@ public static class DevelopmentEnvironmentRegistration
 
             // Chooses how signing keys are provided (ADR-0002). Defaults to ephemeral, in-memory keys, which is what
             // makes a freshly-cloned repository run and the integration tests hermetic.
-            builder.AddDeveloperKeys(configuration.GetDeveloperKeyMode());
+            var developerKeys = configuration.GetDeveloperKeysOptions();
+            builder.AddDeveloperKeys(developerKeys.Mode ?? DeveloperKeyMode.Ephemeral);
 
             return builder;
         }

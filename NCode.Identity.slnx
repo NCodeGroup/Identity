@@ -80,5 +80,6 @@
         <Project Path="tests/NCode.Identity.Server.Tests/NCode.Identity.Server.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Tests/NCode.Identity.Tests.csproj" />
         <Project Path="tests/NCode.Json.Tests/NCode.Json.Tests.csproj" />
+        <Project Path="tests/NCode.Registration.Tests/NCode.Registration.Tests.csproj" />
     </Folder>
 </Solution>

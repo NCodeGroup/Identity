@@ -46,7 +46,8 @@ Per [`conformance-testing.md`](../conformance-testing.md) Appendix C, the Basic 
 client registrations (all registering the suite callback as a redirect URI):
 
 - **`client` (primary):** `token_endpoint_auth_method = client_secret_basic`; grants
-  `authorization_code` + `refresh_token`; scopes `openid profile email`.
+  `authorization_code` + `refresh_token`; scopes `openid profile email` (available to every client through the
+  system OpenID Connect resource server, so the seed carries no scopes).
 - **`client2` (second confidential):** a **distinct** `client_id`, same shape — exists so the suite can
   prove auth codes are bound to the issuing client.
 - **`client_secret_post` client:** `token_endpoint_auth_method = client_secret_post` (may be the same
@@ -64,7 +65,7 @@ Add a **config-driven startup seeder** for the conformance scenario, modeled on 
 admin seeder (idempotent, declarative, dev/conformance-only), reusing the same store-level operations the
 test factory already exercises.
 
-- Introduce a `Conformance` seeding section (clients + user + redirect URIs + scopes) bound from
+- Introduce a `Conformance` seeding section (clients + user + redirect URIs) bound from
   configuration, enabled only under the conformance profile from `T3`. Keep secrets as dev-only fixed
   values.
 - Make seeding **idempotent**: on startup, upsert the tenant, the three clients, and the test user; a
@@ -79,7 +80,7 @@ test factory already exercises.
 
 ## Work breakdown
 
-1. Define the conformance seeding configuration shape (tenant id, clients with auth methods/grants/scopes,
+1. Define the conformance seeding configuration shape (tenant id, clients with auth methods/grants,
    redirect URIs, test user credentials).
 2. Implement an idempotent startup seeder (bootstrap-admin-style) that upserts the tenant, the three
    clients, and the test user, gated on the conformance profile.

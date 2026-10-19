@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Settings;
 
@@ -857,4 +858,50 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<string> MtlsEndpointAliasAuthority =>
         new(OpenIdSettingNames.MtlsEndpointAliasAuthority);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'client_name' setting (RFC 7591 §2).
+    /// </summary>
+    public static SettingKey<string> ClientName => new(OpenIdSettingNames.ClientName);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'client_uri' setting (RFC 7591 §2).
+    /// </summary>
+    public static SettingKey<string> ClientUri => new(OpenIdSettingNames.ClientUri);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'logo_uri' setting (RFC 7591 §2).
+    /// </summary>
+    public static SettingKey<string> LogoUri => new(OpenIdSettingNames.LogoUri);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'tos_uri' setting (RFC 7591 §2).
+    /// </summary>
+    public static SettingKey<string> TosUri => new(OpenIdSettingNames.TosUri);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'policy_uri' setting (RFC 7591 §2).
+    /// </summary>
+    public static SettingKey<string> PolicyUri => new(OpenIdSettingNames.PolicyUri);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'contacts' setting (RFC 7591 §2).
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> Contacts =>
+        new(OpenIdSettingNames.Contacts);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'jwks' setting (RFC 7591 §2).
+    /// </summary>
+    public static SettingKey<JsonElement> Jwks => new(OpenIdSettingNames.Jwks);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'software_id' setting (RFC 7591 §2).
+    /// </summary>
+    public static SettingKey<string> SoftwareId => new(OpenIdSettingNames.SoftwareId);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'software_version' setting (RFC 7591 §2).
+    /// </summary>
+    public static SettingKey<string> SoftwareVersion => new(OpenIdSettingNames.SoftwareVersion);
 }

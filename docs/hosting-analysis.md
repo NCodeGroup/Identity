@@ -597,7 +597,7 @@ speed-test endpoint from the Denver network the users are on.
 - **Kubernetes deployment artifacts** — backlog `F46`. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ReverseProxy:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
-  loopback CORS, seeders). Still needed: a hardened multi-arch image (non-root, port 8080 — today's Dockerfile is
+  developer CORS, seeders). Still needed: a hardened multi-arch image (non-root, port 8080 — today's Dockerfile is
   development-shaped), readiness checks separate from liveness, a Helm chart, `Host.MigrationService` as a pre-deploy
   Job with expand/contract schema changes so a rolling update never breaks the running version, and a production gate
   for a missing tenant issuer ([ADR-0129](adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)).

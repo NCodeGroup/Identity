@@ -27,11 +27,9 @@ NCode.Identity.Settings.ISettingDescriptorCollection
 NCode.Identity.Settings.ISettingDescriptorCollection.TryGet(string! settingName, out NCode.Identity.Settings.SettingDescriptor! descriptor) -> bool
 NCode.Identity.Settings.ISettingDescriptorCollection.TryGet<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, out NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor) -> bool
 NCode.Identity.Settings.ISettingDescriptorCollectionProvider
-NCode.Identity.Settings.ISettingDescriptorJsonProvider
-NCode.Identity.Settings.ISettingDescriptorJsonProvider.GetDescriptor(string! settingName, System.Text.Json.JsonTokenType jsonTokenType) -> NCode.Identity.Settings.SettingDescriptor!
-NCode.Identity.Settings.ISettingDescriptorJsonProvider.GetDescriptor(string! settingName, System.Text.Json.JsonValueKind jsonValueKind) -> NCode.Identity.Settings.SettingDescriptor!
 NCode.Identity.Settings.ISettingSerializer
 NCode.Identity.Settings.ISettingSerializer.DeserializeSettings(System.Text.Json.JsonElement settingsJson, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.Settings.ISettingSerializer.ValidateSettings(System.Text.Json.JsonElement settingsJson, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Settings.SettingError>!
 NCode.Identity.Settings.Setting
 NCode.Identity.Settings.Setting.Descriptor.get -> NCode.Identity.Settings.SettingDescriptor!
 NCode.Identity.Settings.Setting.Setting(NCode.Identity.Settings.SettingDescriptor! descriptor) -> void
@@ -61,6 +59,13 @@ NCode.Identity.Settings.SettingDescriptor<TValue>.OnFormat.init -> void
 NCode.Identity.Settings.SettingDescriptor<TValue>.OnMerge.get -> System.Func<TValue, TValue, TValue>!
 NCode.Identity.Settings.SettingDescriptor<TValue>.OnMerge.init -> void
 NCode.Identity.Settings.SettingDescriptor<TValue>.SettingDescriptor() -> void
+NCode.Identity.Settings.SettingError
+NCode.Identity.Settings.SettingError.Message.get -> string!
+NCode.Identity.Settings.SettingError.Message.init -> void
+NCode.Identity.Settings.SettingError.SettingError() -> void
+NCode.Identity.Settings.SettingError.SettingError(string! SettingName, string! Message) -> void
+NCode.Identity.Settings.SettingError.SettingName.get -> string!
+NCode.Identity.Settings.SettingError.SettingName.init -> void
 NCode.Identity.Settings.SettingKey<TValue>
 NCode.Identity.Settings.SettingKey<TValue>.SettingKey() -> void
 NCode.Identity.Settings.SettingKey<TValue>.SettingKey(string! SettingName) -> void

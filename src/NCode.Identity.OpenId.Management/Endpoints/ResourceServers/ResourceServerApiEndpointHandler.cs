@@ -130,7 +130,8 @@ internal class ResourceServerApiEndpointHandler(
             .Produces<CollectionResource<ResourceServerResource>>();
         resourceServers
             .MapPost("", CreateAsync)
-            .Produces<ResourceServerResource>(StatusCodes.Status201Created);
+            .Produces<ResourceServerResource>(StatusCodes.Status201Created)
+            .ProducesValidationProblem();
         resourceServers.MapGet("/{resourceServerId}", GetAsync).Produces<ResourceServerResource>();
         resourceServers
             .MapPatch("/{resourceServerId}", UpdateAsync)
@@ -160,7 +161,8 @@ internal class ResourceServerApiEndpointHandler(
             .Produces<ResourceServerSettingsResource>();
         resourceServers
             .MapPatch("/{resourceServerId}/settings", UpdateSettingsAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem();
         resourceServers
             .MapGet("/{resourceServerId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<ResourceServerEffectiveSettingsResource>();
@@ -334,6 +336,17 @@ internal class ResourceServerApiEndpointHandler(
         if (error is not null)
         {
             return ToErrorResult(error);
+        }
+
+        // Setting names are a closed vocabulary (ADR-0139): a settings document that cannot be honored is rejected
+        // here rather than stored and failed when the resource server's settings are next loaded.
+        var settingErrors = SettingSerializer.ValidateSettings(
+            request.Settings,
+            openIdContext.Environment.JsonSerializerOptions
+        );
+        if (settingErrors.Count > 0)
+        {
+            return SettingsValidationProblem(settingErrors);
         }
 
         await store.AddAsync(resourceServer, cancellationToken);
@@ -974,7 +987,15 @@ internal class ResourceServerApiEndpointHandler(
             );
         }
 
-        settings.Value = SerializeToElement(jsonObject);
+        var settingsValue = SerializeToElement(jsonObject);
+        var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
+        var settingErrors = SettingSerializer.ValidateSettings(settingsValue, jsonOptions);
+        if (settingErrors.Count > 0)
+        {
+            return SettingsValidationProblem(settingErrors);
+        }
+
+        settings.Value = settingsValue;
         await store.UpdateSettingsAsync(settings, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 

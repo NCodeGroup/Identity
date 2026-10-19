@@ -17,9 +17,14 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using NCode.Identity.Server.DevelopmentEnvironment;
+using NCode.Registration;
 
 namespace NCode.Identity.Server;
 
@@ -29,9 +34,10 @@ namespace NCode.Identity.Server;
 /// discovery document and call the management API during local development.
 /// </summary>
 /// <remarks>
-/// Allowed origins come from the <c>Cors:AllowedOrigins</c> configuration array. When that is absent, a Development
-/// host defaults to the local Vite dev/preview origins; outside Development (and without explicit configuration) the
-/// registered policy allows no origins. This is intentionally NOT part of the default registrations.
+/// Allowed origins come from <see cref="DeveloperCorsOptions"/>, bound from the <c>Cors</c> configuration section. When
+/// none are configured, a Development host defaults to the local Vite dev/preview origins; any other environment allows
+/// no origins. This is intentionally NOT part of the default registrations, and <c>AddDevelopmentEnvironment</c> does
+/// not register it in Production.
 /// </remarks>
 [PublicAPI]
 public static class DeveloperCorsRegistration
@@ -40,8 +46,6 @@ public static class DeveloperCorsRegistration
     /// The name of the CORS policy registered by <c>AddDeveloperCors</c> and applied by <c>UseDeveloperCors</c>.
     /// </summary>
     public const string PolicyName = "NCode.Identity.Server.DeveloperCors";
-
-    private const string AllowedOriginsConfigurationKey = "Cors:AllowedOrigins";
 
     private static readonly string[] DefaultDevelopmentOrigins =
     [
@@ -62,13 +66,17 @@ public static class DeveloperCorsRegistration
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
-        /// Registers the development CORS policy (<see cref="PolicyName"/>) whose allowed origins come from the
-        /// <c>Cors:AllowedOrigins</c> configuration array, defaulting to the local Vite dev/preview origins in a
-        /// Development environment. Apply it to the request pipeline with <c>UseDeveloperCors</c>. It is a no-op when
-        /// no origins resolve (so it is safe to leave wired), and must not be used to grant production cross-origin
-        /// access implicitly — configure <c>Cors:AllowedOrigins</c> explicitly instead.
+        /// Registers the development CORS policy (<see cref="PolicyName"/>) whose allowed origins come from
+        /// <see cref="DeveloperCorsOptions"/>, defaulting to the local Vite dev/preview origins in a Development
+        /// environment. Apply it to the request pipeline with <c>UseDeveloperCors</c>. It must not be used to grant
+        /// production cross-origin access implicitly.
         /// </summary>
-        /// <param name="configuration">The <see cref="IConfiguration"/> read for <c>Cors:AllowedOrigins</c>.</param>
+        /// <remarks>
+        /// The <c>Cors</c> section is bound strictly and validated when the host starts: a key that maps to no option,
+        /// or an allowed origin that is not written as a browser sends it (a trailing slash, a path, a wildcard), stops
+        /// the host with an error naming the entry, because such an origin can never match a request.
+        /// </remarks>
+        /// <param name="configuration">The <see cref="IConfiguration"/> read for the <c>Cors</c> section.</param>
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> used to apply the Development default.</param>
         /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
         public IServiceCollection AddDeveloperCors(
@@ -76,25 +84,45 @@ public static class DeveloperCorsRegistration
             IHostEnvironment hostEnvironment
         )
         {
-            var origins = configuration
-                .GetSection(AllowedOriginsConfigurationKey)
-                .GetChildren()
-                .Select(child => child.Value)
-                .OfType<string>()
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .ToArray();
+            ArgumentNullException.ThrowIfNull(configuration);
+            ArgumentNullException.ThrowIfNull(hostEnvironment);
 
-            if (origins.Length == 0 && hostEnvironment.IsDevelopment())
-            {
-                origins = DefaultDevelopmentOrigins;
-            }
+            var section = configuration.GetSection(DeveloperCorsOptions.DefaultSectionName);
+            var isDevelopment = hostEnvironment.IsDevelopment();
 
-            serviceCollection.AddCors(options =>
-                options.AddPolicy(
-                    PolicyName,
-                    policy => policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod()
+            // ValidateOnStart materializes the options as the host starts, so an origin that can never match stops the
+            // host before it accepts traffic (ADR-0137).
+            serviceCollection
+                .AddOptions<DeveloperCorsOptions>()
+                .Configure(options => section.BindStrictly(options))
+                .PostConfigure(options =>
+                    options.AllowedOrigins =
+                        options.AllowedOrigins.Length == 0 && isDevelopment
+                            ? [.. DefaultDevelopmentOrigins]
+                            : options.AllowedOrigins
                 )
+                .ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<DeveloperCorsOptions>,
+                    DeveloperCorsOptionsValidator
+                >()
             );
+
+            serviceCollection.AddCors();
+            serviceCollection
+                .AddOptions<CorsOptions>()
+                .Configure<IOptions<DeveloperCorsOptions>>(
+                    (corsOptions, developerCorsOptionsAccessor) =>
+                        corsOptions.AddPolicy(
+                            PolicyName,
+                            policy =>
+                                policy
+                                    .WithOrigins(developerCorsOptionsAccessor.Value.AllowedOrigins)
+                                    .AllowAnyHeader()
+                                    .AllowAnyMethod()
+                        )
+                );
 
             return serviceCollection;
         }

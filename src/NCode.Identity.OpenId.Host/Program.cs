@@ -42,7 +42,7 @@ var hostEnvironment = builder.Environment;
 var serviceCollection = builder.Services;
 
 // SAFETY GATE: refuse to start a Production deployment that still has development-only conveniences enabled
-// (developer signing keys, a wildcard host filter, loopback CORS origins, seeded accounts). Every one of them is
+// (developer signing keys, a wildcard host filter, developer CORS configuration, seeded accounts). Every one of them is
 // silent — the server would start, serve traffic, and look healthy — so this fails before the port is bound.
 // Inert in every non-Production environment.
 serviceCollection.AddProductionSafety(configuration, hostEnvironment);
@@ -150,8 +150,8 @@ app.UseInteractiveAuthentication();
 
 app.UseRouting();
 
-// Must run after UseRouting and before the authN/authZ + endpoint middleware. A no-op unless
-// AddDeveloperCors resolved origins (Development default, or explicit 'Cors:AllowedOrigins').
+// Must run after UseRouting and before the authN/authZ + endpoint middleware. A no-op unless AddDeveloperCors
+// registered the developer policy, which AddDevelopmentEnvironment never does in Production.
 app.UseDeveloperCors();
 
 app.UseAuthentication();

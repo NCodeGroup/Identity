@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
@@ -182,6 +183,35 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
+    private void SetupValidSettings() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+            )
+            .Returns([])
+            .Verifiable();
+
+    private void SetupInvalidSettings() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+            )
+            .Returns([
+                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
+            ])
+            .Verifiable();
+
+    private static void AssertSettingsValidationProblem(IResult result)
+    {
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal(["tenant_issuer"], problem.ProblemDetails.Errors.Keys);
+        Assert.Contains(
+            "'tenant_issuer' is not a registered setting.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
     private static HttpContext CreateHttpContext()
     {
         var httpContext = new DefaultHttpContext
@@ -194,6 +224,10 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
                 feature.OpenIdContext
                 == Mock.Of<OpenIdContext>(context =>
                     context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == TenantId)
+                    && context.Environment
+                        == Mock.Of<OpenIdEnvironment>(environment =>
+                            environment.JsonSerializerOptions == JsonSerializerOptions.Default
+                        )
                 )
             )
         );
@@ -261,6 +295,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateAsync_WhenAuthorized_ReturnsCreated()
     {
+        SetupValidSettings();
         MockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
             .Returns("generated-rs-id")
@@ -305,6 +340,46 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var created = Assert.IsType<Created<ResourceServerResource>>(result);
         Assert.Equal("generated-rs-id", created.Value?.ResourceServerId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
+    {
+        SetupInvalidSettings();
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Returns("generated-rs-id")
+            .Verifiable();
+        SetupStore();
+        MockValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedResourceServer>(),
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+
+        var request = new CreateResourceServerRequest
+        {
+            Identifier = "https://api.example.com",
+            Name = "Example API",
+            IsDisabled = false,
+            Settings = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+        };
+
+        // Strict mocks: no AddAsync / SaveChangesAsync setup, so persisting the API would fail the test.
+        var result = await Handler.CreateAsync(
+            CreateHttpContext(),
+            TenantId,
+            request,
+            CancellationToken.None
+        );
+
+        AssertSettingsValidationProblem(result);
     }
 
     [Fact]
@@ -418,6 +493,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupValidSettings();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
@@ -447,6 +523,29 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
+    {
+        SetupInvalidSettings();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+
+        // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(),
+            ResourceServerId,
+            new JsonPatchDocument<JsonObject>(),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        AssertSettingsValidationProblem(result);
     }
 
     [Fact]

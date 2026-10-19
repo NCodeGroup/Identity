@@ -39,11 +39,7 @@ public class ProductionSafetyRegistrationTests
     /// A configuration an operator would deploy: an explicit host filter, no developer keys, no seeding.
     /// </summary>
     private static IConfiguration CreateSafeConfiguration() =>
-        CreateConfiguration(
-            ("AllowedHosts", "op.example.com"),
-            ("DeveloperKeys:Mode", "None"),
-            ("Cors:AllowedOrigins:0", "https://app.example.com")
-        );
+        CreateConfiguration(("AllowedHosts", "op.example.com"), ("DeveloperKeys:Mode", "None"));
 
     private static IHostEnvironment CreateEnvironment(string environmentName)
     {
@@ -213,10 +209,12 @@ public class ProductionSafetyRegistrationTests
 
     [Theory]
     [InlineData("http://localhost:5173")]
-    [InlineData("https://127.0.0.1:5173")]
     [InlineData("https://host.docker.internal:5001")]
-    public void FindViolations_WhenCorsOriginIsLoopback_ReportsViolation(string origin)
+    [InlineData("https://app.example.com")]
+    public void FindViolations_WhenCorsSectionPresent_ReportsViolation(string origin)
     {
+        // The developer CORS policy is never registered in Production, so any Cors section there is accepted without
+        // being honored — whether it names a loopback dev server or a real origin.
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
@@ -225,27 +223,25 @@ public class ProductionSafetyRegistrationTests
             )
         );
 
-        Assert.Contains(
-            violations,
-            violation => violation.ConfigurationKey == "Cors:AllowedOrigins"
-        );
+        var violation = Assert.Single(violations);
+        Assert.Equal("Cors", violation.ConfigurationKey);
     }
 
-    [Fact]
-    public void FindViolations_WhenCorsOriginIsPublic_DoesNotReportCorsViolation()
+    [Theory]
+    [InlineData("DeveloperKeys:Mode", "Persistent")]
+    [InlineData("DeveloperKeys:Mode", "5")]
+    [InlineData("DeveloperKeys:Mdoe", "None")]
+    public void FindViolations_WhenDeveloperKeysCannotBeRead_ReportsTheSection(
+        string key,
+        string value
+    )
     {
         var violations = ProductionSafetyRegistration.FindViolations(
-            CreateConfiguration(
-                ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", "None"),
-                ("Cors:AllowedOrigins:0", "https://app.example.com")
-            )
+            CreateConfiguration(("AllowedHosts", "op.example.com"), (key, value))
         );
 
-        Assert.DoesNotContain(
-            violations,
-            violation => violation.ConfigurationKey == "Cors:AllowedOrigins"
-        );
+        var violation = Assert.Single(violations);
+        Assert.Equal("DeveloperKeys", violation.ConfigurationKey);
     }
 
     [Theory]

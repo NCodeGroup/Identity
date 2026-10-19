@@ -32,4 +32,6 @@ internal static class EventIds
     public const int UnhandledException = Base + 1;
 
     public const int ClientError = Base + 2;
+
+    public const int ServerSettingsReloadRejected = Base + 3;
 }

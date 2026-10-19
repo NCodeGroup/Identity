@@ -783,6 +783,32 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   tenant route, and the base-address and link-generation defects on that path are fixed. Follow-ups: `F50`, `F51`,
   `F52`._
 
+- **`F52` — Fail loudly on the configuration that is still accepted without being honored.** Every options section the
+  server binds is strict ([ADR-0137](docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md)); three
+  inputs remain lenient. (a) Setting **names** under `OpenId:Server:Settings` (and in persisted settings) are an open
+  vocabulary: an unregistered name loads as an ad-hoc string setting, which is how the removed `tenant_issuer` pin kept
+  "working" unnoticed. Decide whether an unregistered name is rejected, which requires an extension's settings to
+  register descriptors. (b) `ReverseProxy:KnownProxies` / `KnownNetworks` skip an entry that does not parse, so a
+  mistyped proxy address silently trusts nothing. (c) Single-key reads — `InteractiveAuthentication:BundleRootPath`,
+  `DeveloperKeys:Mode`, `Cors:AllowedOrigins` — are not bound, so a misspelled sibling key goes unnoticed. Touch points:
+  `src/NCode.Identity.OpenId.Core/Settings/RootSettingsCollectionDataSource.cs`,
+  `src/NCode.Identity.Server/ReverseProxy/ReverseProxyRegistration.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs`,
+  `src/NCode.Identity.Server/DevelopmentEnvironment`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0139](docs/adr/0139-setting-names-are-a-closed-vocabulary.md). (a) Setting names are a closed vocabulary: an
+  unregistered name or a value that does not convert to its descriptor's type stops the host when configured, returns
+  `400` from the management API, and fails closed when a stored document is loaded; a configuration reload that cannot
+  be honored is rejected with an error log. Closing the vocabulary exposed the untyped writes: dynamic client
+  registration's RFC 7591 metadata became registered client settings, and its dead `scopes_supported` write was dropped
+  (the registration response now reports the scopes the client may request), as was the conformance seed's.
+  (b) `ReverseProxy` is validated on start, including the IPv4 shorthand the address parser accepts and the host bits
+  the network parser masks. (c) `InteractiveAuthentication`, `DeveloperKeys`, and `Cors` are bound strictly; an unknown
+  key mode no longer falls back to `Ephemeral`, and allowed origins must be origin-form. Making `Cors` honest exposed
+  that the reference host could not start in Production (`UseDeveloperCors` ran without CORS services); it is now a
+  no-op there and any `Cors` section is a production-safety violation. Follow-up: `F53` (value-domain rules)._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

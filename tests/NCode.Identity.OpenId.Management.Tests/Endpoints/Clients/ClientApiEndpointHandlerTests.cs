@@ -209,6 +209,35 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
+    private void SetupValidSettings() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+            )
+            .Returns([])
+            .Verifiable();
+
+    private void SetupInvalidSettings() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+            )
+            .Returns([
+                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
+            ])
+            .Verifiable();
+
+    private static void AssertSettingsValidationProblem(IResult result)
+    {
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal(["tenant_issuer"], problem.ProblemDetails.Errors.Keys);
+        Assert.Contains(
+            "'tenant_issuer' is not a registered setting.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
     private static HttpContext CreateHttpContext(bool authenticated)
     {
         var identity = authenticated
@@ -221,6 +250,10 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
                 feature.OpenIdContext
                 == Mock.Of<OpenIdContext>(context =>
                     context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == TenantId)
+                    && context.Environment
+                        == Mock.Of<OpenIdEnvironment>(environment =>
+                            environment.JsonSerializerOptions == JsonSerializerOptions.Default
+                        )
                 )
             )
         );
@@ -339,6 +372,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateClientAsync_UsesAmbientTenant()
     {
+        SetupValidSettings();
         SetupStore();
         SetupResourceId("generated-id");
 
@@ -382,6 +416,38 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         Assert.Equal(TenantId, captured.TenantId);
         Assert.Equal(TenantId, captured.Settings.TenantId);
         Assert.Equal(TenantId, captured.Secrets.TenantId);
+    }
+
+    [Fact]
+    public async Task CreateClientAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
+    {
+        SetupInvalidSettings();
+        SetupStore();
+        SetupResourceId("generated-id");
+        MockClientValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedClient>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+
+        var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no AddAsync / SaveChangesAsync setup, so persisting the client would fail the test.
+        var result = await Handler.CreateClientAsync(
+            httpContext,
+            TenantId,
+            request,
+            CancellationToken.None
+        );
+
+        AssertSettingsValidationProblem(result);
     }
 
     #endregion
@@ -656,6 +722,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupValidSettings();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -687,6 +754,31 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
+    {
+        SetupInvalidSettings();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ClientId,
+            CreateAddPatch("tenant_issuer", "value"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        AssertSettingsValidationProblem(result);
     }
 
     [Fact]

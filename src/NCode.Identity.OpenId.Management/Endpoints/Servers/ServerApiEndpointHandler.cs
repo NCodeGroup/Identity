@@ -76,6 +76,7 @@ internal class ServerApiEndpointHandler(
     ISecretPublicKeyConverter secretPublicKeyConverter,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
+    ISettingSerializer settingSerializer,
     IOpenIdServerProvider serverProvider,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ServerApiEndpointHandler> logger
@@ -88,6 +89,7 @@ internal class ServerApiEndpointHandler(
     private ISecretImporter SecretImporter { get; } = secretImporter;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private ILogger<ServerApiEndpointHandler> Logger { get; } = logger;
@@ -105,7 +107,8 @@ internal class ServerApiEndpointHandler(
 
         servers
             .MapPost("", CreateServerAsync)
-            .Produces<ServerResource>(StatusCodes.Status201Created);
+            .Produces<ServerResource>(StatusCodes.Status201Created)
+            .ProducesValidationProblem();
         servers.MapGet("", ListServersAsync).Produces<CollectionResource<ServerResource>>();
         servers.MapGet("/{serverId}", GetServerAsync).Produces<ServerResource>();
         servers.MapPatch("/{serverId}", UpdateServerAsync).Produces(StatusCodes.Status204NoContent);
@@ -116,7 +119,8 @@ internal class ServerApiEndpointHandler(
         servers.MapGet("/{serverId}/settings", GetSettingsAsync).Produces<ServerSettingsResource>();
         servers
             .MapPatch("/{serverId}/settings", UpdateSettingsAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesValidationProblem();
         servers
             .MapGet("/{serverId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<ServerEffectiveSettingsResource>();
@@ -295,6 +299,15 @@ internal class ServerApiEndpointHandler(
         if (error is not null)
         {
             return ToErrorResult(error);
+        }
+
+        // Setting names are a closed vocabulary (ADR-0139): a settings document that cannot be honored is rejected
+        // here rather than stored and failed when the server's settings are next loaded.
+        var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
+        var settingErrors = SettingSerializer.ValidateSettings(request.Settings, jsonOptions);
+        if (settingErrors.Count > 0)
+        {
+            return SettingsValidationProblem(settingErrors);
         }
 
         await store.AddAsync(server, cancellationToken);
@@ -588,7 +601,15 @@ internal class ServerApiEndpointHandler(
             );
         }
 
-        serverSettings.Value = SerializeToElement(jsonObject);
+        var settingsValue = SerializeToElement(jsonObject);
+        var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
+        var settingErrors = SettingSerializer.ValidateSettings(settingsValue, jsonOptions);
+        if (settingErrors.Count > 0)
+        {
+            return SettingsValidationProblem(settingErrors);
+        }
+
+        serverSettings.Value = settingsValue;
 
         await store.UpdateSettingsAsync(serverSettings, cancellationToken);
 

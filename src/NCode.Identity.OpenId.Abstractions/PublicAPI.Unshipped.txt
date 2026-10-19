@@ -271,17 +271,26 @@ const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.LogoutToken = "lo
 const NCode.Identity.OpenId.OpenIdConstants.BackChannelLogout.EventName = "http://schemas.openid.net/event/backchannel-logout" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.BackChannelLogout.EventsClaimName = "events" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.DPoP = "DPoP" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientName = "client_name" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientUri = "client_uri" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.Contacts = "contacts" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DPoPNonceRequired = "dpop_nonce_required" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DPoPProofLifetime = "dpop_proof_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DPoPSigningAlgValuesSupported = "dpop_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.Jwks = "jwks" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.LogoUri = "logo_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MtlsEndpointAliasAuthority = "mtls_endpoint_alias_authority" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PolicyUri = "policy_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireDPoP = "require_dpop" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SoftwareId = "software_id" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SoftwareVersion = "software_version" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientCertificateBoundAccessTokens = "tls_client_certificate_bound_access_tokens" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthSanDns = "tls_client_auth_san_dns" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthSanEmail = "tls_client_auth_san_email" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthSanIp = "tls_client_auth_san_ip" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthSanUri = "tls_client_auth_san_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthSubjectDn = "tls_client_auth_subject_dn" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TosUri = "tos_uri" -> string!
 NCode.Identity.OpenId.OpenIdConstants.BackChannelLogout
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.IdToken = "id_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.RefreshToken = "refresh_token" -> string!
@@ -379,7 +388,6 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequirePushedAuthorizati
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PushedAuthorizationRequestLifetime = "pushed_authorization_request_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ResponseModesSupported = "response_modes_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ResponseTypesSupported = "response_types_supported" -> string!
-const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ScopesSupported = "scopes_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendIdClaimsInAccessToken = "send_id_claims_in_access_token" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendProfileMetadataInAccessToken = "send_profile_metadata_in_access_token" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SendProfileMetadataInIdToken = "send_profile_metadata_in_id_token" -> string!
@@ -806,8 +814,11 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsSupported.get -> N
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimsSupportedIsStrict.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClaimTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAssertionMaxLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientName.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClockSkew.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.CodeChallengeMethodsSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.Contacts.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ContinueAuthorizationLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DefaultAcr.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeviceCodeLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
@@ -817,14 +828,20 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DPoPNonceRequired.get ->
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DPoPProofLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DPoPSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.GrantTypesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.Jwks.get -> NCode.Identity.Settings.SettingKey<System.Text.Json.JsonElement>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.LogoUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.MtlsEndpointAliasAuthority.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PolicyUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireDPoP.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SoftwareId.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SoftwareVersion.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientAuthSanDns.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientAuthSanEmail.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientAuthSanIp.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientAuthSanUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientAuthSubjectDn.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TosUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.UserCodeLength.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>

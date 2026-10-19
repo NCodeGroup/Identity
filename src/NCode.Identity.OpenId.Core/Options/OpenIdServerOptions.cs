@@ -56,9 +56,11 @@ public sealed class OpenIdServerOptions
     /// inherits from.
     /// </summary>
     /// <remarks>
-    /// Settings are an open vocabulary, so the section is carried as-is rather than bound to a fixed shape: each value
-    /// is typed by its registered setting descriptor when the settings are loaded, and the section is watched so a
-    /// configuration reload refreshes them. When unset, the server has no configured settings beyond the defaults.
+    /// The section is carried as-is rather than bound to a fixed shape: each child is a setting typed by its registered
+    /// setting descriptor, and the section is watched so a configuration reload refreshes them. Setting names are a
+    /// closed vocabulary — a name with no registered descriptor, or a value that does not convert to the descriptor's
+    /// type, stops the host when it starts; a reload that cannot be honored leaves the previous settings in force.
+    /// When unset, the server has no configured settings beyond the defaults.
     /// </remarks>
     public IConfigurationSection? Settings { get; set; }
 }

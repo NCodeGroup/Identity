@@ -22,14 +22,13 @@ using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models;
-using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.Settings;
+using NCode.Identity.OpenId.Settings;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Consent;
@@ -313,10 +312,7 @@ internal class DefaultConsentService(
 
     private static string? ResolveClientName(OpenIdClient? client) =>
         client is not null
-        && client.Settings.TryGetValue(
-            new SettingKey<string>(RegistrationMetadataKeys.ClientName),
-            out var clientName
-        )
+        && client.Settings.TryGetValue(OpenIdSettingKeys.ClientName, out var clientName)
         && !string.IsNullOrEmpty(clientName)
             ? clientName
             : null;

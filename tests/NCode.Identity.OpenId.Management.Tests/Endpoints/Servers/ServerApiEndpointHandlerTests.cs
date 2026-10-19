@@ -59,6 +59,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<IServerValidator> MockServerValidator { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
+    private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private ServerApiEndpointHandler Handler { get; }
@@ -79,6 +80,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns((ManagementError?)null);
         MockCryptoService = MockRepository.Create<ICryptoService>();
+        MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
 
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
@@ -116,6 +118,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             MockSecretPublicKeyConverter.Object,
             TimeProvider.System,
             MockCryptoService.Object,
+            MockSettingSerializer.Object,
             MockServerProvider.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<ServerApiEndpointHandler>.Instance
@@ -166,12 +169,53 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
+    private void SetupValidSettings() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+            )
+            .Returns([])
+            .Verifiable();
+
+    private void SetupInvalidSettings() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+            )
+            .Returns([
+                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
+            ])
+            .Verifiable();
+
+    private static void AssertSettingsValidationProblem(IResult result)
+    {
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal(["tenant_issuer"], problem.ProblemDetails.Errors.Keys);
+        Assert.Contains(
+            "'tenant_issuer' is not a registered setting.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
     private static HttpContext CreateHttpContext(bool authenticated, string? ifNoneMatch = null)
     {
         var identity = authenticated
             ? new ClaimsIdentity(authenticationType: "test")
             : new ClaimsIdentity();
         var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        // The shared environment filter publishes the context in the pipeline; emulate it for direct handler calls.
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature =>
+                feature.OpenIdContext
+                == Mock.Of<OpenIdContext>(context =>
+                    context.Environment
+                    == Mock.Of<OpenIdEnvironment>(environment =>
+                        environment.JsonSerializerOptions == JsonSerializerOptions.Default
+                    )
+                )
+            )
+        );
 
         if (ifNoneMatch is not null)
         {
@@ -493,6 +537,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorizedAndNoIfMatch_AppliesPatchAndReturnsNoContent()
     {
+        SetupValidSettings();
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
@@ -528,6 +573,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenIfMatchMatches_AppliesPatch()
     {
+        SetupValidSettings();
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
@@ -555,6 +601,34 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
+    {
+        SetupInvalidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct", EmptyObject());
+        MockServerStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ServerId,
+            CreateAddPatch("tenant_issuer", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        AssertSettingsValidationProblem(result);
+        Assert.Equal(JsonValueKind.Object, settings.Value.ValueKind);
+        Assert.False(settings.Value.TryGetProperty("tenant_issuer", out _));
     }
 
     [Fact]
@@ -1275,6 +1349,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateServerAsync_WhenValid_ReturnsCreatedWithDisplayName()
     {
+        SetupValidSettings();
         SetupStore();
         SetupResourceId("generated-id");
         MockServerValidator
@@ -1320,6 +1395,37 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
                 ),
             Times.Once
         );
+    }
+
+    [Fact]
+    public async Task CreateServerAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
+    {
+        SetupInvalidSettings();
+        SetupStore();
+        SetupResourceId("generated-id");
+        MockServerValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedServer>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+        var request = new CreateServerRequest
+        {
+            DisplayName = "My Server",
+            Settings = EmptyObject(),
+        };
+
+        // Strict mocks: no AddAsync / SaveChangesAsync setup, so persisting the server would fail the test.
+        var result = await Handler.CreateServerAsync(httpContext, request, CancellationToken.None);
+
+        AssertSettingsValidationProblem(result);
     }
 
     [Fact]

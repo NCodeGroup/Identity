@@ -159,14 +159,24 @@ internal class DefaultSettingCollection : ISettingCollection
     public void Set<TValue>(SettingKey<TValue> key, TValue value)
         where TValue : notnull
     {
-        if (!SettingDescriptorCollectionProvider.Collection.TryGet(key, out var descriptor))
+        var settingName = key.SettingName;
+        if (!SettingDescriptorCollectionProvider.Collection.TryGet(settingName, out var registered))
         {
-            descriptor = new SettingDescriptor<TValue> { Name = key.SettingName };
+            throw new InvalidOperationException(
+                $"The setting '{settingName}' has no registered descriptor; a setting must be registered before it "
+                    + "can be set."
+            );
         }
 
-        var setting = descriptor.Create(value);
+        if (registered is not SettingDescriptor<TValue> descriptor)
+        {
+            throw new InvalidOperationException(
+                $"The setting '{settingName}' is registered with the value type {registered.ValueType}, not "
+                    + $"{typeof(TValue)}."
+            );
+        }
 
-        Store[key.SettingName] = setting;
+        Store[settingName] = descriptor.Create(value);
     }
 
     /// <inheritdoc />

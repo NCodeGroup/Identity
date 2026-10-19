@@ -38,8 +38,9 @@ namespace NCode.Identity.Server;
 public static class ProductionSafetyRegistration
 {
     private const string AllowedHostsConfigurationKey = "AllowedHosts";
-    private const string AllowedOriginsConfigurationKey = "Cors:AllowedOrigins";
-    private const string DeveloperKeyModeConfigurationKey = "DeveloperKeys:Mode";
+
+    private const string DeveloperKeyModeConfigurationKey =
+        $"{DeveloperKeysOptions.DefaultSectionName}:{nameof(DeveloperKeysOptions.Mode)}";
 
     extension(IServiceCollection serviceCollection)
     {
@@ -96,31 +97,7 @@ public static class ProductionSafetyRegistration
 
         var violations = new List<ProductionSafetyViolation>();
 
-        // Developer keys are development-only in BOTH developer modes (ADR-0002, ADR-0021): Ephemeral regenerates the
-        // signing key on every restart, invalidating every token and JWKS cache the moment the process recycles, and
-        // PersistentSigningKey seeds a key the server generated for itself rather than one an operator controls.
-        // Absent configuration is not safe either, because the mode defaults to Ephemeral — so Production must state
-        // DeveloperKeyMode.None explicitly to assert that it supplies its own key.
-        var developerKeyMode = configuration[DeveloperKeyModeConfigurationKey];
-        if (
-            !string.Equals(
-                developerKeyMode,
-                nameof(DeveloperKeyMode.None),
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
-        {
-            violations.Add(
-                new ProductionSafetyViolation(
-                    DeveloperKeyModeConfigurationKey,
-                    developerKeyMode is null
-                        ? $"is unset, which defaults to {nameof(DeveloperKeyMode.Ephemeral)} signing keys that are "
-                            + "regenerated on every restart."
-                        : $"'{developerKeyMode}' is a development-only signing key source.",
-                    $"Set it to '{nameof(DeveloperKeyMode.None)}' and supply a stable, operator-managed signing key."
-                )
-            );
-        }
+        AddDeveloperKeysViolations(configuration, violations);
 
         // A wildcard host filter accepts any Host header, which is what lets a request for an unrelated origin reach
         // the application at all.
@@ -141,22 +118,13 @@ public static class ProductionSafetyRegistration
             );
         }
 
-        // Loopback CORS origins only make sense when a developer's browser is the caller.
-        var loopbackOrigins = configuration
-            .GetSection(AllowedOriginsConfigurationKey)
-            .Get<string[]>()
-            ?.Where(ProductionSafetyRegistration.IsLoopbackOrigin)
-            .ToArray();
-        if (loopbackOrigins is { Length: > 0 })
-        {
-            violations.Add(
-                new ProductionSafetyViolation(
-                    AllowedOriginsConfigurationKey,
-                    $"grants cross-origin access to local dev server(s): {string.Join(", ", loopbackOrigins)}.",
-                    "Remove them, or list only this deployment's real browser origins."
-                )
-            );
-        }
+        // The developer CORS policy is never registered in Production, so a Cors section there is configuration the
+        // server accepts without honoring — and, when it names loopback origins, one that would be unsafe if it were.
+        AddSectionViolationIfPresent(
+            DeveloperCorsOptions.DefaultSectionName,
+            "configures the developer CORS policy, which is development-only and not registered in Production, so "
+                + "it has no effect."
+        );
 
         // Both seeders create accounts and clients with known, published credentials.
         AddSectionViolationIfPresent(
@@ -179,11 +147,48 @@ public static class ProductionSafetyRegistration
         }
     }
 
-    private static bool IsLoopbackOrigin(string origin) =>
-        Uri.TryCreate(origin, UriKind.Absolute, out var uri)
-        && (
-            uri.IsLoopback
-            || string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(uri.Host, "host.docker.internal", StringComparison.OrdinalIgnoreCase)
+    private static void AddDeveloperKeysViolations(
+        IConfiguration configuration,
+        List<ProductionSafetyViolation> violations
+    )
+    {
+        const string remedy =
+            $"Set it to '{nameof(DeveloperKeyMode.None)}' and supply a stable, operator-managed signing key.";
+
+        DeveloperKeysOptions developerKeys;
+        try
+        {
+            developerKeys = configuration.GetDeveloperKeysOptions();
+        }
+        catch (InvalidOperationException exception)
+        {
+            violations.Add(
+                new ProductionSafetyViolation(
+                    DeveloperKeysOptions.DefaultSectionName,
+                    exception.Message,
+                    remedy
+                )
+            );
+            return;
+        }
+
+        // Developer keys are development-only in BOTH developer modes (ADR-0002, ADR-0021): Ephemeral regenerates the
+        // signing key on every restart, invalidating every token and JWKS cache the moment the process recycles, and
+        // PersistentSigningKey seeds a key the server generated for itself rather than one an operator controls.
+        // Absent configuration is not safe either, because the mode defaults to Ephemeral — so Production must state
+        // DeveloperKeyMode.None explicitly to assert that it supplies its own key.
+        if (developerKeys.Mode == DeveloperKeyMode.None)
+            return;
+
+        violations.Add(
+            new ProductionSafetyViolation(
+                DeveloperKeyModeConfigurationKey,
+                developerKeys.Mode is { } mode
+                    ? $"'{mode}' is a development-only signing key source."
+                    : $"is unset, which defaults to {nameof(DeveloperKeyMode.Ephemeral)} signing keys that are "
+                        + "regenerated on every restart.",
+                remedy
+            )
         );
+    }
 }

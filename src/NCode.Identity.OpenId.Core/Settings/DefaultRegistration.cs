@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Identity.Settings;
 using NCode.Registration;
@@ -34,8 +35,10 @@ internal static class DefaultRegistration
     extension(IServiceBuilder<OpenIdCoreLibrary> builder)
     {
         /// <summary>
-        /// Configures the base setting-descriptor catalog and the built-in default settings provider. The catalog is a
-        /// composable collection; the authentication slice contributes its protocol-specific descriptors additively.
+        /// Configures the base setting-descriptor catalog, the built-in default settings provider, and the validation of
+        /// the server's configured settings. The catalog is a composable collection; the authentication slice contributes
+        /// its protocol-specific descriptors additively. Setting names are a closed vocabulary, so a configured setting
+        /// with no registered descriptor, or a value that does not convert to its type, stops the host when it starts.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
@@ -52,6 +55,20 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IDefaultSettingsProvider, DefaultSettingsProvider>()
+            );
+
+            // The server's configured settings are a closed vocabulary typed by the descriptor catalog; a configured
+            // setting that cannot be honored stops the host when it starts (ADR-0137, ADR-0139).
+            serviceCollection.TryAddSingleton<
+                ISettingConfigurationReader,
+                DefaultSettingConfigurationReader
+            >();
+            serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<OpenIdOptions>,
+                    ServerSettingsOptionsValidator
+                >()
             );
 
             // The security-profile catalog resolves the registered profiles (a strategy collection contributed by the

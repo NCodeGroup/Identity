@@ -22,7 +22,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Server.Configuration;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Mediator;
 using NCode.Registration;

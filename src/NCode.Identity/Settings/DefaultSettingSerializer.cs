@@ -16,20 +16,24 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using NCode.Json;
 
 namespace NCode.Identity.Settings;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ISettingSerializer"/> abstraction.
+/// Provides a default implementation of the <see cref="ISettingSerializer"/> abstraction. Each setting is typed by its
+/// registered <see cref="SettingDescriptor"/>; a setting without one is an error rather than an ad-hoc value, so a
+/// misspelled or retired setting name can never be stored or loaded without being honored.
 /// </summary>
+// See ADR-0139.
 internal class DefaultSettingSerializer(
-    ISettingDescriptorJsonProvider settingDescriptorJsonProvider
+    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : ISettingSerializer
 {
-    private ISettingDescriptorJsonProvider SettingDescriptorJsonProvider { get; } =
-        settingDescriptorJsonProvider;
+    private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } =
+        settingDescriptorCollectionProvider;
 
     /// <inheritdoc />
     public IReadOnlyCollection<Setting> DeserializeSettings(
@@ -37,43 +41,127 @@ internal class DefaultSettingSerializer(
         JsonSerializerOptions jsonOptions
     )
     {
-        if (settingsJson.IsNullOrUndefined())
-        {
-            return [];
-        }
-
-        if (settingsJson.ValueKind != JsonValueKind.Object)
-        {
-            throw new JsonException("Expected an object or null value.");
-        }
-
         var settings = new List<Setting>();
+        var errors = new List<SettingError>();
 
-        foreach (var jsonProperty in settingsJson.EnumerateObject())
+        ReadSettings(settingsJson, jsonOptions, settings, errors);
+
+        if (errors.Count > 0)
         {
-            var descriptor = SettingDescriptorJsonProvider.GetDescriptor(
-                jsonProperty.Name,
-                jsonProperty.Value.ValueKind
-            );
-            var value = jsonProperty.Value.Deserialize(descriptor.ValueType, jsonOptions);
-
-            Setting setting;
-            if (value is not null)
-            {
-                setting = descriptor.Create(value);
-            }
-            else if (descriptor.HasDefault)
-            {
-                setting = descriptor.CreateDefault();
-            }
-            else
-            {
-                throw new JsonException($"Unable to deserialize value for {jsonProperty.Name}.");
-            }
-
-            settings.Add(setting);
+            var messages = errors.Select(error => error.Message);
+            var details = string.Join(" ", messages);
+            throw new JsonException($"The settings are invalid: {details}");
         }
 
         return settings;
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<SettingError> ValidateSettings(
+        JsonElement settingsJson,
+        JsonSerializerOptions jsonOptions
+    )
+    {
+        var errors = new List<SettingError>();
+
+        ReadSettings(settingsJson, jsonOptions, [], errors);
+
+        return errors;
+    }
+
+    private void ReadSettings(
+        JsonElement settingsJson,
+        JsonSerializerOptions jsonOptions,
+        List<Setting> settings,
+        List<SettingError> errors
+    )
+    {
+        if (settingsJson.IsNullOrUndefined())
+            return;
+
+        if (settingsJson.ValueKind != JsonValueKind.Object)
+        {
+            errors.Add(new SettingError(string.Empty, "The settings must be a JSON object."));
+            return;
+        }
+
+        var descriptors = SettingDescriptorCollectionProvider.Collection;
+        foreach (var jsonProperty in settingsJson.EnumerateObject())
+        {
+            var settingName = jsonProperty.Name;
+            if (!descriptors.TryGet(settingName, out var descriptor))
+            {
+                errors.Add(
+                    new SettingError(settingName, $"'{settingName}' is not a registered setting.")
+                );
+                continue;
+            }
+
+            if (TryCreateSetting(descriptor, jsonProperty.Value, jsonOptions, out var setting))
+            {
+                settings.Add(setting);
+                continue;
+            }
+
+            var expected = DescribeValueType(descriptor.ValueType);
+            var message =
+                jsonProperty.Value.ValueKind == JsonValueKind.Null
+                    ? $"The setting '{settingName}' has no default, so it must be {expected}, not null."
+                    : $"The setting '{settingName}' must be {expected}.";
+            errors.Add(new SettingError(settingName, message));
+        }
+    }
+
+    private static bool TryCreateSetting(
+        SettingDescriptor descriptor,
+        JsonElement valueJson,
+        JsonSerializerOptions jsonOptions,
+        [NotNullWhen(true)] out Setting? setting
+    )
+    {
+        object? value;
+        try
+        {
+            value = valueJson.Deserialize(descriptor.ValueType, jsonOptions);
+        }
+        catch (Exception exception) when (exception is JsonException or NotSupportedException)
+        {
+            setting = null;
+            return false;
+        }
+
+        if (value is not null)
+        {
+            setting = descriptor.Create(value);
+            return true;
+        }
+
+        if (descriptor.HasDefault)
+        {
+            setting = descriptor.CreateDefault();
+            return true;
+        }
+
+        setting = null;
+        return false;
+    }
+
+    private static string DescribeValueType(Type valueType)
+    {
+        if (valueType == typeof(string))
+            return "a string";
+        if (valueType == typeof(bool))
+            return "true or false";
+        if (valueType == typeof(int) || valueType == typeof(long))
+            return "an integer";
+        if (valueType == typeof(double) || valueType == typeof(decimal))
+            return "a number";
+        if (valueType == typeof(TimeSpan))
+            return "a time span such as \"00:05:00\"";
+        if (valueType == typeof(JsonElement))
+            return "a JSON value";
+        if (typeof(IEnumerable<string>).IsAssignableFrom(valueType))
+            return "an array of strings";
+        return $"a {valueType.Name} value";
     }
 }

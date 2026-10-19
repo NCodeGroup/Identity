@@ -1,6 +1,7 @@
 # 137. Configuration binds strictly and is validated when the host starts
 
-- **Status:** Accepted
+- **Status:** Accepted (extended by [ADR-0139](0139-setting-names-are-a-closed-vocabulary.md): setting names are a
+  closed vocabulary, and the remaining lenient configuration inputs are bound and validated)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 
@@ -35,8 +36,9 @@ checked before the host accepts traffic.**
    `DeveloperInteractiveSeed`.
 2. **The OpenID section has one owner.** `AddConfiguration` declares the whole shape of the OpenID section and rejects
    any other subsection:
-   - `Server` → `OpenIdServerOptions`, whose `Settings` member carries the server's settings subsection as-is (settings
-     are an open vocabulary typed by their descriptors when loaded, and the section is watched for reloads);
+   - `Server` → `OpenIdServerOptions`, whose `Settings` member carries the server's settings subsection as-is (each
+     child is a setting typed by its registered descriptor — a closed vocabulary validated on start,
+     [ADR-0139](0139-setting-names-are-a-closed-vocabulary.md) — and the section is watched for reloads);
    - `Tenant` → `OpenIdTenantOptions` — how a resolved tenant is materialized and cached;
    - `TenantResolution` → `TenantResolutionOptions` — which tenant a request selects, and the route it is served under.
      **This is the canonical location of tenant selection**;
@@ -70,13 +72,15 @@ checked before the host accepts traffic.**
   its own section, not from `OpenId:TenantResolution`.
 - The server factory reads its settings from the bound `OpenIdServerOptions.Settings`; there is no separate
   section-name option to keep in step with the binding.
-- Setting **names** under `OpenId:Server:Settings` are still an open vocabulary; an unknown name loads as an ad-hoc
-  setting. Rejecting unknown names is a separate decision (backlog `F52`).
+- Setting **names** under `OpenId:Server:Settings` are a closed vocabulary validated with the rest of the configuration,
+  and the `ReverseProxy`, `InteractiveAuthentication`, `DeveloperKeys`, and `Cors` sections are bound and validated the
+  same way ([ADR-0139](0139-setting-names-are-a-closed-vocabulary.md)).
 
 ## References
 
 - [ADR-0129](0129-the-tenant-issuer-is-the-single-authoritative-origin.md) — the issuer the static tenant is pinned with.
 - [ADR-0138](0138-protocol-endpoints-are-served-under-the-tenant-route.md) — the tenant route the validator checks.
+- [ADR-0139](0139-setting-names-are-a-closed-vocabulary.md) — setting names and the remaining configuration inputs.
 - Code: `NCode.Identity.Server.IdentityServerBuilderExtensions.AddConfiguration`,
-  `NCode.Identity.Server.Configuration.StrictConfigurationBindingExtensions`,
+  `NCode.Registration.StrictConfigurationBindingExtensions`,
   `NCode.Identity.OpenId.Tenants.TenantResolutionOptionsValidator`.

@@ -203,6 +203,35 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
+    private void SetupValidSettings() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+            )
+            .Returns([])
+            .Verifiable();
+
+    private void SetupInvalidSettings() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+            )
+            .Returns([
+                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
+            ])
+            .Verifiable();
+
+    private static void AssertSettingsValidationProblem(IResult result)
+    {
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal(["tenant_issuer"], problem.ProblemDetails.Errors.Keys);
+        Assert.Contains(
+            "'tenant_issuer' is not a registered setting.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
     private static HttpContext CreateHttpContext(bool authenticated)
     {
         var identity = authenticated
@@ -212,7 +241,13 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         // The shared environment filter publishes the context in the pipeline; emulate it for direct handler calls.
         httpContext.Features.Set<IOpenIdContextFeature>(
             Mock.Of<IOpenIdContextFeature>(feature =>
-                feature.OpenIdContext == Mock.Of<OpenIdContext>()
+                feature.OpenIdContext
+                == Mock.Of<OpenIdContext>(context =>
+                    context.Environment
+                    == Mock.Of<OpenIdEnvironment>(environment =>
+                        environment.JsonSerializerOptions == JsonSerializerOptions.Default
+                    )
+                )
             )
         );
         return httpContext;
@@ -526,6 +561,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupValidSettings();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         MockTenantStore
@@ -553,6 +589,32 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
+    {
+        SetupInvalidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            CreateAddPatch("tenant_issuer", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        AssertSettingsValidationProblem(result);
     }
 
     [Fact]
@@ -1154,6 +1216,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenPreconditionsPass_ReturnsCreated()
     {
+        SetupValidSettings();
         SetupStore();
         SetupResourceId();
         MockTenantValidator
@@ -1185,6 +1248,36 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<Created<TenantResource>>(result);
+    }
+
+    [Fact]
+    public async Task CreateTenantAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
+    {
+        SetupInvalidSettings();
+        SetupStore();
+        SetupResourceId();
+        MockTenantValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedTenant>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no AddAsync / SaveChangesAsync setup, so persisting the tenant would fail the test.
+        var result = await Handler.CreateTenantAsync(
+            httpContext,
+            CreateTenantRequest(),
+            CancellationToken.None
+        );
+
+        AssertSettingsValidationProblem(result);
     }
 
     [Fact]

@@ -16,18 +16,21 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 
-namespace NCode.Identity.Server.Configuration;
+namespace NCode.Registration;
 
 /// <summary>
 /// Binds configuration strictly, so a key that maps to nothing stops the host from starting instead of being silently
-/// ignored. A misspelled or misplaced key otherwise looks exactly like an absent one: the server starts on its defaults
+/// ignored. A misspelled or misplaced key otherwise looks exactly like an absent one: the host starts on its defaults
 /// and the operator has no signal that their setting never took effect.
 /// </summary>
 // See ADR-0137.
-internal static class StrictConfigurationBindingExtensions
+[PublicAPI]
+public static class StrictConfigurationBindingExtensions
 {
+    /// <param name="section">The <see cref="IConfigurationSection"/> to bind.</param>
     extension(IConfigurationSection section)
     {
         /// <summary>

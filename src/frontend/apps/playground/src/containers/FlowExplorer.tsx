@@ -96,13 +96,13 @@ export function FlowExplorer({
 
   // A single-use authorization code and the one-shot PKCE transaction must be consumed EXACTLY once; a run-once ref
   // (not an effect-cancellation flag) guards against React StrictMode's intentional double-invocation in development.
-  const completionStarted = useRef(false);
+  const completionStartedRef = useRef(false);
 
   useEffect(() => {
-    if (completionStarted.current || !isCallback(initialSearch)) {
+    if (completionStartedRef.current || !isCallback(initialSearch)) {
       return;
     }
-    completionStarted.current = true;
+    completionStartedRef.current = true;
     (async () => {
       try {
         const callback = readCallback(initialSearch, deps);
@@ -174,7 +174,7 @@ export function FlowExplorer({
     setUserInfo(null);
     setUserInfoError(null);
     setRefreshError(null);
-    completionStarted.current = false;
+    completionStartedRef.current = false;
   };
 
   const requestStatus: StepStatus = tokens ? 'done' : beginError ? 'error' : 'active';

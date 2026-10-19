@@ -55,13 +55,13 @@ export function InitialAccessTokenFormDialog({
   const [values, setValues] = useState<InitialAccessTokenFormValues>(
     emptyInitialAccessTokenFormValues,
   );
-  const wasOpen = useRef(open);
+  const wasOpenRef = useRef(open);
 
   useEffect(() => {
-    if (open && !wasOpen.current) {
+    if (open && !wasOpenRef.current) {
       setValues(emptyInitialAccessTokenFormValues);
     }
-    wasOpen.current = open;
+    wasOpenRef.current = open;
   }, [open]);
 
   const lifetimeValid = isValidLifetime(values.lifetimeSeconds);

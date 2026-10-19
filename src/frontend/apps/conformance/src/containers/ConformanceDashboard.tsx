@@ -69,7 +69,13 @@ export function ConformanceDashboard({
   const [coverage, setCoverage] = useState<CoverageReport | null>(null);
   const [discovery, setDiscovery] = useState<RawDiscovery | null>(null);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [isLoading, setLoading] = useState(true);
+  // The request whose load has settled. Loading is derived from it rather than set at the start of the effect, so a
+  // changed issuer or loader reads as loading on the very render that changes it, with no synchronous state update.
+  const [settled, setSettled] = useState<{
+    readonly issuer: string;
+    readonly load: typeof loadDiscovery;
+  }>();
+  const isLoading = !settled || settled.issuer !== runtime.issuer || settled.load !== loadDiscovery;
   const [tab, setTab] = useState(0);
 
   const [suiteBaseUrl, setSuiteBaseUrl] = useState(defaultSuiteBaseUrl);
@@ -77,7 +83,6 @@ export function ConformanceDashboard({
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
     loadDiscovery(runtime.issuer, controller.signal)
       .then((raw) => {
         setReport(auditDiscovery(raw));
@@ -92,7 +97,7 @@ export function ConformanceDashboard({
       })
       .finally(() => {
         if (!controller.signal.aborted) {
-          setLoading(false);
+          setSettled({ issuer: runtime.issuer, load: loadDiscovery });
         }
       });
     return () => controller.abort();

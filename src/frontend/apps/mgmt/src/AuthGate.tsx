@@ -52,10 +52,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setIsBusy(true);
     completeAuthorization(authConfig, window.location.search, deps)
       .then((tokens) => {
-        const subject =
-          (tokens.idToken && getSubject(tokens.idToken)) ||
-          getSubject(tokens.accessToken) ||
-          'unknown';
+        // The access token is opaque to this client (RFC 9068 §6: a client must not inspect it) and is
+        // never parsed: the subject comes from the ID token alone.
+        const subject = (tokens.idToken && getSubject(tokens.idToken)) || 'unknown';
         dispatch(
           signedIn({
             accessToken: tokens.accessToken,
@@ -89,9 +88,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
       fetchFn: deps.fetchFn,
       getRefreshToken: () => store.getState().auth.refreshToken,
       onRenewed: (tokens) => {
+        // The access token is opaque to this client and is never parsed: take the subject from a
+        // re-issued ID token, otherwise keep the one established at sign-in.
         const subject =
           (tokens.idToken && getSubject(tokens.idToken)) ||
-          getSubject(tokens.accessToken) ||
           store.getState().auth.subject ||
           'unknown';
         // A refresh may not re-issue an ID token; keep the prior one as the logout hint.

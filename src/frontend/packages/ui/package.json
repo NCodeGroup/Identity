@@ -14,7 +14,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 0",
     "test": "vitest run",
     "storybook": "storybook dev -p 6006 --no-open",
     "build-storybook": "storybook build"
@@ -31,6 +31,7 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@ncode/test-support": "workspace:*",
     "@storybook/react-vite": "^10.6.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.0.1",

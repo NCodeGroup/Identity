@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ExportPublicKeyDialog, type PublicKeyMaterial } from './ExportPublicKeyDialog.js';
 
@@ -9,58 +9,78 @@ const publicKey: PublicKeyMaterial = {
   pem: '-----BEGIN PUBLIC KEY-----\nMIIB\n-----END PUBLIC KEY-----',
 };
 
+const jwkText = JSON.stringify(publicKey.jwk, null, 2);
+
+function renderLoaded() {
+  render(
+    <ExportPublicKeyDialog
+      open
+      secretId="s-1"
+      publicKey={publicKey}
+      isLoading={false}
+      error={undefined}
+      onClose={vi.fn()}
+    />,
+  );
+}
+
 describe('ExportPublicKeyDialog', () => {
-  it('renders the JWK and PEM and copies each', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal('navigator', { clipboard: { writeText } });
-
-    render(
-      <ExportPublicKeyDialog
-        open
-        secretId="s-1"
-        publicKey={publicKey}
-        isLoading={false}
-        error={undefined}
-        onClose={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByTestId('export-public-key-id')).toHaveTextContent('s-1');
-    expect(screen.getByTestId('export-public-key-jwk-value')).toHaveTextContent('"kty": "RSA"');
-    expect(screen.getByTestId('export-public-key-pem-value')).toHaveTextContent('BEGIN PUBLIC KEY');
-
-    fireEvent.click(screen.getByTestId('export-public-key-jwk-copy'));
-    expect(writeText).toHaveBeenCalledWith(JSON.stringify(publicKey.jwk, null, 2));
-
-    fireEvent.click(screen.getByTestId('export-public-key-pem-copy'));
-    expect(writeText).toHaveBeenCalledWith(publicKey.pem);
-
+  afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
-  it('downloads the PEM as a file', () => {
+  it('renders the JWK and PEM for the secret', () => {
+    renderLoaded();
+
+    expect(screen.getByTestId('export-public-key-id')).toHaveTextContent('s-1');
+    expect(screen.getByTestId('export-public-key-jwk-value').textContent).toBe(jwkText);
+    expect(screen.getByTestId('export-public-key-pem-value').textContent).toBe(publicKey.pem);
+    expect(screen.queryByTestId('export-public-key-loading')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('export-public-key-error')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['jwk', jwkText],
+    ['pem', publicKey.pem],
+  ])('copies the %s and confirms it in the copy tooltip', async (kind, expectedText) => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { clipboard: { writeText } });
+    renderLoaded();
+    const copy = screen.getByTestId(`export-public-key-${kind}-copy`);
+
+    fireEvent.mouseOver(copy);
+    expect(await screen.findByRole('tooltip', { name: 'Copy' })).toBeInTheDocument();
+
+    fireEvent.click(copy);
+
+    expect(await screen.findByRole('tooltip', { name: 'Copied' })).toBeInTheDocument();
+    expect(writeText).toHaveBeenCalledExactlyOnceWith(expectedText);
+  });
+
+  it.each([
+    ['jwk', 's-1.jwk.json', 'application/json', jwkText],
+    ['pem', 's-1.pem', 'application/x-pem-file', publicKey.pem],
+  ])('downloads the %s as %s', async (kind, expectedFilename, expectedMime, expectedContent) => {
     const createObjectURL = vi.fn().mockReturnValue('blob:x');
     const revokeObjectURL = vi.fn();
     vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const clicked: { href: string; download: string }[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      clicked.push({ href: this.href, download: this.download });
+    });
+    renderLoaded();
 
-    render(
-      <ExportPublicKeyDialog
-        open
-        secretId="s-1"
-        publicKey={publicKey}
-        isLoading={false}
-        error={undefined}
-        onClose={vi.fn()}
-      />,
-    );
+    fireEvent.click(screen.getByTestId(`export-public-key-${kind}-download`));
 
-    fireEvent.click(screen.getByTestId('export-public-key-pem-download'));
-    expect(createObjectURL).toHaveBeenCalledTimes(1);
-    expect(click).toHaveBeenCalledTimes(1);
-
-    click.mockRestore();
-    vi.unstubAllGlobals();
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    const blob = createObjectURL.mock.calls[0]?.[0] as Blob;
+    expect(blob.type).toBe(expectedMime);
+    expect(await blob.text()).toBe(expectedContent);
+    expect(clicked).toEqual([{ href: 'blob:x', download: expectedFilename }]);
+    expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith('blob:x');
   });
 
   it('shows a spinner while loading', () => {
@@ -76,6 +96,7 @@ describe('ExportPublicKeyDialog', () => {
     );
     expect(screen.getByTestId('export-public-key-loading')).toBeInTheDocument();
     expect(screen.queryByTestId('export-public-key-jwk-value')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('export-public-key-pem-value')).not.toBeInTheDocument();
   });
 
   it('shows an error message on failure', () => {
@@ -90,6 +111,8 @@ describe('ExportPublicKeyDialog', () => {
       />,
     );
     expect(screen.getByTestId('export-public-key-error')).toHaveTextContent('Not found.');
+    expect(screen.queryByTestId('export-public-key-loading')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('export-public-key-jwk-value')).not.toBeInTheDocument();
   });
 
   it('invokes onClose when done', () => {
@@ -105,6 +128,6 @@ describe('ExportPublicKeyDialog', () => {
       />,
     );
     fireEvent.click(screen.getByTestId('export-public-key-done'));
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

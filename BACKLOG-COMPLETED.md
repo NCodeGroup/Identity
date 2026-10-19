@@ -1221,6 +1221,17 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   the upgrade rather than discovering it later.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)._
+- **`U17` — Frontend tests leave state updates outside `act(...)`.** A green `pnpm test` still logs eight React
+  "An update to … inside a test was not wrapped in act(...)" warnings, from `ExportPublicKeyDialog`,
+  `RevealSecretDialog`, `RevealInitialAccessTokenDialog`, MUI's `FormControl`, and `FlowExplorer`. The same set appears
+  under React 18 and React 19, so it predates the upgrade. Each one is a test that asserts before an async update
+  (a resolved promise, a transition) has settled. That can pass for the wrong reason, and it buries any new warning in
+  noise. Await the settled state with `findBy…` / `waitFor` (or wrap the trigger in `act`) until the suites run with
+  no `act` warnings. Touch points: the `*.test.tsx` of those components in `packages/ui` and
+  `apps/playground/src/containers/FlowExplorer.test.tsx`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0151](docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md) — every test that
+  logs a console warning or error now fails, so the fix is also enforced._
 
 ## Secrets management (group `S`)
 

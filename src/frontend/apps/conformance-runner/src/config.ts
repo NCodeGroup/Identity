@@ -59,7 +59,8 @@ Options:
   --json                    Emit the report as JSON instead of a table.
   --help                    Show this help.
 
-The runner exits 0 when no probe fails, 1 when any probe fails.`;
+The runner exits 0 when no probe fails, 1 when any probe fails, and 2 on invalid arguments or a run that could not
+complete.`;
 
 function normalizeAuthMethod(value: string | undefined): ClientAuthMethod | undefined {
   if (value === undefined || value === 'basic') {

@@ -369,7 +369,8 @@ export async function probeDeviceAuthorization(
       (typeof body.verification_uri === 'string' ||
         typeof body.verification_uri_complete === 'string')
     ) {
-      return pollDeviceToken(
+      // `return await` keeps a rejected token poll inside this try/catch, so it fails the probe, not the whole run.
+      return await pollDeviceToken(
         raw,
         fetchFn,
         context,

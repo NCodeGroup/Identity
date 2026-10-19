@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { GrantTable, type GrantRow } from './GrantTable.js';
 
 // A fixed reference instant, so the expired/active split does not depend on the real clock.
@@ -47,10 +47,82 @@ describe('GrantTable', () => {
   it('exposes a revoke control only for active grants', () => {
     const onRevoke = vi.fn();
     render(<GrantTable grants={grants} now={now} onRevoke={onRevoke} />);
+    expect(screen.getByRole('columnheader', { name: 'Actions' })).toBeInTheDocument();
     expect(screen.getByTestId('grant-revoke-g-active')).toBeInTheDocument();
     expect(screen.queryByTestId('grant-revoke-g-revoked')).not.toBeInTheDocument();
     expect(screen.queryByTestId('grant-revoke-g-expired')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('grant-revoke-g-active'));
-    expect(onRevoke).toHaveBeenCalledWith('g-active');
+    expect(onRevoke).toHaveBeenCalledExactlyOnceWith('g-active');
+  });
+
+  it('renders no actions column without an onRevoke callback', () => {
+    render(<GrantTable grants={grants} now={now} />);
+    expect(screen.queryByRole('columnheader', { name: 'Actions' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('grant-revoke-g-active')).not.toBeInTheDocument();
+  });
+
+  it('renders em dashes for a grant with no client or subject', () => {
+    render(
+      <GrantTable
+        grants={[{ ...base, grantId: 'g-anon', clientId: null, subjectId: null }]}
+        now={now}
+      />,
+    );
+    const cells = within(screen.getByTestId('grant-row-g-anon')).getAllByRole('cell');
+    expect(cells.map((cell) => cell.textContent)).toEqual([
+      'authorization_code',
+      '—',
+      '—',
+      new Date(Date.parse(base.createdWhen)).toLocaleString(),
+      'Active',
+    ]);
+  });
+
+  it('treats a grant without an expiry as active', () => {
+    render(
+      <GrantTable
+        grants={[
+          { ...base, grantId: 'g-forever', clientId: 'web-spa', subjectId: 'u', expiresWhen: null },
+        ]}
+        now={now}
+      />,
+    );
+    expect(screen.getByTestId('grant-row-g-forever')).toHaveTextContent('Active');
+  });
+
+  it('expires a grant exactly at its expiry instant', () => {
+    render(
+      <GrantTable
+        grants={[
+          {
+            ...base,
+            grantId: 'g-boundary',
+            clientId: 'web-spa',
+            subjectId: 'u',
+            expiresWhen: '2026-06-01T00:00:00Z',
+          },
+        ]}
+        now={now}
+      />,
+    );
+    expect(screen.getByTestId('grant-row-g-boundary')).toHaveTextContent('Expired');
+  });
+
+  it('shows an unparseable created instant verbatim', () => {
+    render(
+      <GrantTable
+        grants={[
+          {
+            ...base,
+            grantId: 'g-odd',
+            clientId: 'web-spa',
+            subjectId: 'u',
+            createdWhen: 'not-a-date',
+          },
+        ]}
+        now={now}
+      />,
+    );
+    expect(screen.getByTestId('grant-row-g-odd')).toHaveTextContent('not-a-date');
   });
 });

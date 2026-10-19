@@ -23,6 +23,19 @@ describe('decodeJwtClaims', () => {
   it('throws on a malformed token', () => {
     expect(() => decodeJwtClaims('not-a-jwt')).toThrow(AuthError);
   });
+
+  it('throws when the payload segment is empty', () => {
+    expect(() => decodeJwtClaims('header..sig')).toThrow(
+      /Malformed JWT: expected at least a header and payload/,
+    );
+  });
+
+  it('throws when the payload is not valid JSON', () => {
+    const payload = base64UrlEncode(new TextEncoder().encode('not-json'));
+    expect(() => decodeJwtClaims(`header.${payload}.sig`)).toThrow(
+      /Malformed JWT: payload is not valid JSON/,
+    );
+  });
 });
 
 describe('getSubject', () => {
@@ -32,5 +45,9 @@ describe('getSubject', () => {
 
   it('returns undefined when sub is absent', () => {
     expect(getSubject(fakeJwt({ name: 'x' }))).toBeUndefined();
+  });
+
+  it('returns undefined when sub is not a string', () => {
+    expect(getSubject(fakeJwt({ sub: 42 }))).toBeUndefined();
   });
 });

@@ -41,6 +41,14 @@ function jsonResponse(body: unknown) {
   );
 }
 
+const acmeTenant = {
+  tenantId: 'acme',
+  displayName: 'Acme',
+  domainName: null,
+  isDisabled: false,
+  concurrencyToken: 'c',
+};
+
 describe('App (global ↔ tenant boundary)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -178,6 +186,76 @@ describe('App (global ↔ tenant boundary)', () => {
     );
     expect(requestedUrls).toContain('https://api.test/api/servers');
   });
+
+  it('exits a tenant back to the global scope', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/tenants/acme/clients')) {
+          return jsonResponse({ items: [] });
+        }
+        if (url.endsWith('/api/tenants')) {
+          return jsonResponse({ items: [acmeTenant] });
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    renderApp();
+    fireEvent.click(await screen.findByTestId('tenant-row-acme'));
+    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('exit-tenant'));
+
+    // Swapping the scope's tab set re-measures the tab indicator asynchronously; await the settled UI.
+    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
+    expect(screen.getByTestId('scope-badge')).toHaveTextContent('Global');
+    expect(screen.queryByTestId('exit-tenant')).not.toBeInTheDocument();
+  });
+
+  it('reaches the grants and tenant surfaces, and re-enters a tenant on its clients', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = (input as Request).url;
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/api/tenants/acme/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c', secrets: [] });
+      }
+      if (url.includes('/api/tenants/acme/grants')) {
+        return jsonResponse({ items: [] });
+      }
+      if (url.endsWith('/api/tenants/acme/clients')) {
+        return jsonResponse({ items: [] });
+      }
+      if (url.endsWith('/api/tenants')) {
+        return jsonResponse({ items: [acmeTenant] });
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderApp();
+    fireEvent.click(await screen.findByTestId('tenant-row-acme'));
+    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('tenant-tab-grants'));
+    expect(await screen.findByText('No grants match the current filter.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('tenant-tab-tenant'));
+    expect(await screen.findByText('This tenant has no secrets yet.')).toBeInTheDocument();
+
+    // Leaving and re-entering a tenant starts again on its clients, not the last surface visited.
+    fireEvent.click(screen.getByTestId('exit-tenant'));
+    fireEvent.click(screen.getByTestId('tenant-row-acme'));
+    // Swapping the scope's tab set re-measures the tab indicator asynchronously; await the settled UI.
+    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+
+    const requestedUrls = fetchMock.mock.calls.map(([input]) => (input as Request).url);
+    expect(requestedUrls.some((url) => url.includes('/api/tenants/acme/grants'))).toBe(true);
+    expect(requestedUrls).toContain('https://api.test/api/tenants/acme/secrets');
+  });
 });
 
 describe('App (sign-out)', () => {
@@ -236,5 +314,78 @@ describe('App (sign-out)', () => {
     expect(target.searchParams.get('id_token_hint')).toBe('id-token');
     expect(target.searchParams.get('client_id')).toBe('mgmt-spa');
     expect(target.searchParams.get('post_logout_redirect_uri')).toBe('https://ui.test/');
+  });
+
+  function renderSession(
+    preloadedRuntime: RuntimeConfig | null,
+    auth: { readonly accessToken: string | null; readonly subject: string | null },
+  ) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/tenants')) {
+          return jsonResponse({ items: [] });
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+    const assign = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { origin: 'https://ui.test', href: 'https://ui.test/', assign },
+    });
+    const store = createAppStore({
+      config: { runtime: preloadedRuntime },
+      auth: { ...auth, expiresAt: null, refreshToken: null, idToken: 'id-token' },
+    });
+    render(
+      <Provider store={store}>
+        <App />
+      </Provider>,
+    );
+    return { store, assign };
+  }
+
+  it('clears local tokens without a redirect when the OP advertises no end_session_endpoint', async () => {
+    const { store, assign } = renderSession(
+      { ...runtime, clientId: 'mgmt-spa' },
+      { accessToken: 'token', subject: 'admin' },
+    );
+    expect(await screen.findByText('No tenants exist yet.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('sign-out'));
+
+    expect(store.getState().auth.accessToken).toBeNull();
+    expect(assign).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('sign-out')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('session-subject')).not.toBeInTheDocument();
+  });
+
+  it('clears local tokens without a redirect when no runtime config is loaded', async () => {
+    const { store, assign } = renderSession(null, { accessToken: 'token', subject: 'admin' });
+    // Without discovered config there is no API base URL, so the tenant list cannot load.
+    expect(await screen.findByTestId('data-error')).toHaveTextContent('Failed to load tenants.');
+
+    fireEvent.click(screen.getByTestId('sign-out'));
+
+    expect(store.getState().auth.accessToken).toBeNull();
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it('offers sign-out without a subject label when the session has no subject', async () => {
+    renderSession(runtime, { accessToken: 'token', subject: null });
+    expect(await screen.findByText('No tenants exist yet.')).toBeInTheDocument();
+
+    expect(screen.getByTestId('sign-out')).toBeInTheDocument();
+    expect(screen.queryByTestId('session-subject')).not.toBeInTheDocument();
+  });
+
+  it('hides the session controls when no one is signed in', async () => {
+    renderSession(runtime, { accessToken: null, subject: 'admin' });
+    expect(await screen.findByText('No tenants exist yet.')).toBeInTheDocument();
+
+    expect(screen.queryByTestId('sign-out')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('session-subject')).not.toBeInTheDocument();
   });
 });

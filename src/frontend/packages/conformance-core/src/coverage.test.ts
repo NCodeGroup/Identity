@@ -112,3 +112,125 @@ describe('buildCoverageReport — status transitions (gap → implemented, regre
     expect(entry(report, 'sec-pkce')?.status).toBe('partial');
   });
 });
+
+describe('buildCoverageReport — fully advertised surface', () => {
+  const advertised: RawDiscovery = {
+    ...baseline,
+    token_endpoint_auth_methods_supported: ['private_key_jwt', 'tls_client_auth'],
+    tls_client_certificate_bound_access_tokens: true,
+    response_modes_supported: ['query', 'query.jwt'],
+    subject_types_supported: ['public', 'pairwise'],
+    acr_values_supported: ['urn:mace:incommon:iap:silver'],
+    prompt_values_supported: ['none', 'login', 'consent'],
+    id_token_encryption_alg_values_supported: ['RSA-OAEP-256'],
+    frontchannel_logout_supported: true,
+    pushed_authorization_request_endpoint: 'https://op.test/par',
+  };
+
+  it('classifies every advertised optional capability as implemented', () => {
+    const report = buildCoverageReport(advertised);
+    for (const id of [
+      'auth-private-key-jwt',
+      'auth-mtls',
+      'sec-mtls-bound',
+      'sec-jarm',
+      'oidc-subject-pairwise',
+      'oidc-acr',
+      'oidc-prompt',
+      'oidc-idtoken-encryption',
+      'oidc-frontchannel-logout',
+    ]) {
+      expect(entry(report, id)?.status, id).toBe('implemented');
+    }
+    expect(entry(report, 'auth-mtls')?.detail).toBe('Advertised: tls_client_auth.');
+    expect(entry(report, 'oidc-prompt')?.detail).toBe('Advertised: none, login, consent.');
+  });
+
+  it('reports a client-secret method as missing when only asymmetric methods are advertised', () => {
+    const report = buildCoverageReport(advertised);
+    expect(entry(report, 'auth-secret')?.status).toBe('missing');
+  });
+
+  it('marks a non-advertised response mode missing when the mode list is present', () => {
+    const report = buildCoverageReport(advertised);
+    expect(entry(report, 'mode-query')?.status).toBe('implemented');
+    expect(entry(report, 'mode-fragment')?.status).toBe('missing');
+    expect(entry(report, 'mode-fragment')?.detail).toBe(
+      "'fragment' is not advertised in response_modes_supported.",
+    );
+  });
+
+  it('accepts mTLS-bound tokens as the FAPI 2.0 sender-constraining mechanism', () => {
+    const report = buildCoverageReport(advertised);
+    expect(entry(report, 'profile-fapi2')?.status).toBe('implemented');
+  });
+
+  it('classifies JARM from an authorization signing alg alone', () => {
+    const report = buildCoverageReport({
+      ...baseline,
+      authorization_signing_alg_values_supported: ['PS256'],
+    });
+    expect(entry(report, 'sec-jarm')?.status).toBe('implemented');
+  });
+});
+
+describe('buildCoverageReport — empty discovery document', () => {
+  const report = buildCoverageReport({});
+
+  it('marks every endpoint, grant, and flag missing', () => {
+    expect(entry(report, 'ep-authorize')?.status).toBe('missing');
+    expect(entry(report, 'ep-authorize')?.detail).toBe(
+      "'authorization_endpoint' is not advertised.",
+    );
+    expect(entry(report, 'grant-code')?.status).toBe('missing');
+    expect(entry(report, 'sec-jar')?.status).toBe('missing');
+    expect(entry(report, 'sec-jar')?.detail).toBe(
+      "'request_parameter_supported' is not advertised as supported.",
+    );
+    expect(entry(report, 'oidc-claims-param')?.status).toBe('missing');
+    expect(entry(report, 'oidc-backchannel-logout')?.status).toBe('missing');
+    expect(entry(report, 'sec-jarm')?.status).toBe('missing');
+  });
+
+  it('reports the missing client-auth and PKCE capabilities', () => {
+    expect(entry(report, 'auth-secret')?.status).toBe('missing');
+    expect(entry(report, 'auth-mtls')?.status).toBe('missing');
+    expect(entry(report, 'sec-pkce')?.status).toBe('missing');
+    expect(entry(report, 'sec-pkce')?.detail).toContain("'S256' is not advertised");
+  });
+
+  it('treats the OIDC Core prompt values and OAuth default response modes as partial', () => {
+    expect(entry(report, 'oidc-prompt')?.status).toBe('partial');
+    expect(entry(report, 'mode-query')?.status).toBe('partial');
+    expect(entry(report, 'mode-fragment')?.status).toBe('partial');
+    expect(entry(report, 'mode-fragment')?.detail).toContain("'fragment' is an OAuth 2.0 default");
+  });
+
+  it('marks form_post missing because it is not an OAuth 2.0 default', () => {
+    expect(entry(report, 'mode-form-post')?.status).toBe('missing');
+    expect(entry(report, 'mode-form-post')?.detail).toContain("'form_post' is not a default");
+  });
+
+  it('lists every unmet FAPI 2.0 prerequisite', () => {
+    expect(entry(report, 'profile-fapi2')?.detail).toBe(
+      'Unmet FAPI 2.0 prerequisites: PAR, DPoP or mTLS-bound tokens, PKCE S256.',
+    );
+  });
+
+  it('treats the absence of legacy grants as correct', () => {
+    expect(entry(report, 'grant-insecure')?.status).toBe('implemented');
+  });
+
+  it('carries backlog ids only for rows that track one', () => {
+    expect(entry(report, 'ep-check-session')?.backlog).toBe('D2');
+    expect(entry(report, 'ep-authorize')).not.toHaveProperty('backlog');
+    expect(entry(report, 'grant-code')).not.toHaveProperty('backlog');
+    expect(entry(report, 'sec-jar')).not.toHaveProperty('backlog');
+  });
+
+  it('assigns each row the channel that can exercise it', () => {
+    expect(entry(report, 'ep-authorize')?.channel).toBe('browser');
+    expect(entry(report, 'ep-revocation')?.channel).toBe('probe-runner');
+    expect(entry(report, 'profile-fapi2')?.channel).toBe('external-suite');
+  });
+});

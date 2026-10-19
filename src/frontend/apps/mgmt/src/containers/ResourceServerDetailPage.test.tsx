@@ -26,7 +26,7 @@ const resourceServer: ResourceServerResource = {
   scopes: [],
 };
 
-function renderPage() {
+function renderPage(onBack = vi.fn()) {
   const store = createAppStore({
     config: { runtime },
     auth: {
@@ -37,15 +37,16 @@ function renderPage() {
       idToken: null,
     },
   });
-  return render(
+  render(
     <Provider store={store}>
       <ResourceServerDetailPage
         scope={tenantScope('acme')}
         resourceServer={resourceServer}
-        onBack={vi.fn()}
+        onBack={onBack}
       />
     </Provider>,
   );
+  return onBack;
 }
 
 type Call = { readonly url: string; readonly method: string; readonly body: string };
@@ -87,6 +88,92 @@ const createdSecret = {
 describe('ResourceServerDetailPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('opens on the embedded scopes panel and returns to the list via the back control', () => {
+    installFetch((url, method) => {
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    const onBack = renderPage();
+
+    expect(screen.getByRole('heading', { name: 'Orders API' })).toBeInTheDocument();
+    expect(screen.getByText('Resource server · https://orders.example.com')).toBeInTheDocument();
+    expect(screen.getByTestId('create-scope')).toBeInTheDocument();
+    // Embedded, the scopes panel defers the back control and heading to the detail page.
+    expect(screen.queryByTestId('scopes-back')).not.toBeInTheDocument();
+    expect(screen.getByTestId('data-empty')).toHaveTextContent(
+      'This resource server has no scopes yet.',
+    );
+
+    fireEvent.click(screen.getByTestId('resource-server-detail-back'));
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('deletes a resource-server secret under the nested path after confirmation', async () => {
+    let deleted = false;
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/resource-servers/rs-orders/secrets/s-old') && method === 'DELETE') {
+        deleted = true;
+        return new Response(null, { status: 204 });
+      }
+      if (url.endsWith('/resource-servers/rs-orders/secrets')) {
+        return jsonResponse({
+          concurrencyToken: 'c1',
+          secrets: deleted ? [] : [{ ...createdSecret, secretId: 's-old' }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByTestId('resource-server-tab-secrets'));
+    fireEvent.click(await screen.findByTestId('secret-delete-s-old'));
+    fireEvent.click(screen.getByTestId('confirm-accept'));
+
+    expect(await screen.findByTestId('data-empty')).toHaveTextContent(
+      'This resource server has no secrets yet.',
+    );
+    expect(calls.find((c) => c.method === 'DELETE')?.url).toBe(
+      'https://api.test/api/tenants/acme/resource-servers/rs-orders/secrets/s-old',
+    );
+  });
+
+  it('exports a resource-server secret public key', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({
+          secretTypes: [{ secretType: 'ecc', isAsymmetric: true, supportsPublicKeyExport: true }],
+        });
+      }
+      if (url.endsWith('/resource-servers/rs-orders/secrets/s-ecc/public-key')) {
+        return jsonResponse({
+          secretId: 's-ecc',
+          secretType: 'ecc',
+          jwk: { kty: 'EC', crv: 'P-256', x: 'eA', y: 'eQ' },
+          pem: '-----BEGIN PUBLIC KEY-----\nMFkw\n-----END PUBLIC KEY-----',
+        });
+      }
+      if (url.endsWith('/resource-servers/rs-orders/secrets')) {
+        return jsonResponse({
+          concurrencyToken: 'c1',
+          secrets: [{ ...createdSecret, secretId: 's-ecc', secretType: 'ecc' }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByTestId('resource-server-tab-secrets'));
+    fireEvent.click(await screen.findByTestId('secret-export-s-ecc'));
+
+    expect(await screen.findByTestId('export-public-key-jwk-value')).toHaveTextContent(
+      '"crv": "P-256"',
+    );
+    expect(screen.getByTestId('export-public-key-pem-value')).toHaveTextContent('BEGIN PUBLIC KEY');
   });
 
   it('creates a resource-server secret under the nested path and reveals its material', async () => {

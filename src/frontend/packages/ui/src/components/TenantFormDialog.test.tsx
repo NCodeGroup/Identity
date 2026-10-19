@@ -31,6 +31,8 @@ describe('TenantFormDialog', () => {
       />,
     );
     expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
+    fireEvent.change(screen.getByTestId('tenant-display-name'), { target: { value: '   ' } });
+    expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
     fireEvent.change(screen.getByTestId('tenant-display-name'), { target: { value: 'New' } });
     expect(screen.getByTestId('tenant-form-submit')).toBeEnabled();
   });
@@ -75,6 +77,77 @@ describe('TenantFormDialog', () => {
     );
     expect(screen.getByTestId('tenant-form-error')).toHaveTextContent('Boom');
     expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
+    expect(screen.getByTestId('tenant-form-submit')).toHaveTextContent('Saving…');
+    expect(screen.getByTestId('tenant-form-cancel')).toBeDisabled();
+  });
+
+  it('submits the toggled disabled state', () => {
+    const onSubmit = vi.fn();
+    render(
+      <TenantFormDialog
+        open
+        title="Edit tenant"
+        submitLabel="Save"
+        initialValues={{ displayName: 'Acme', domainName: '', isDisabled: false }}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+    const toggle = screen.getByRole('switch', { name: 'Disabled' });
+    fireEvent.click(toggle);
+    expect(toggle).toBeChecked();
+    fireEvent.click(screen.getByTestId('tenant-form-submit'));
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      displayName: 'Acme',
+      domainName: '',
+      isDisabled: true,
+    });
+  });
+
+  it('keeps in-progress edits while open and reseeds from initialValues on reopen', () => {
+    const props = {
+      title: 'Edit tenant',
+      submitLabel: 'Save',
+      onSubmit: vi.fn(),
+      onCancel: vi.fn(),
+    };
+    const { rerender } = render(
+      <TenantFormDialog
+        {...props}
+        open
+        initialValues={{ displayName: 'Acme', domainName: 'acme.example', isDisabled: false }}
+      />,
+    );
+    fireEvent.change(screen.getByTestId('tenant-display-name'), {
+      target: { value: 'Unsaved edit' },
+    });
+
+    rerender(
+      <TenantFormDialog
+        {...props}
+        open
+        initialValues={{ displayName: 'Acme', domainName: 'acme.example', isDisabled: false }}
+      />,
+    );
+    expect(screen.getByTestId('tenant-display-name')).toHaveValue('Unsaved edit');
+
+    rerender(
+      <TenantFormDialog
+        {...props}
+        open={false}
+        initialValues={{ displayName: 'Acme', domainName: 'acme.example', isDisabled: false }}
+      />,
+    );
+    rerender(
+      <TenantFormDialog
+        {...props}
+        open
+        initialValues={{ displayName: 'Globex', domainName: 'globex.example', isDisabled: true }}
+      />,
+    );
+    expect(screen.getByTestId('tenant-display-name')).toHaveValue('Globex');
+    expect(screen.getByTestId('tenant-domain-name')).toHaveValue('globex.example');
+    expect(screen.getByRole('switch', { name: 'Disabled' })).toBeChecked();
   });
 
   it('invokes onCancel from the cancel button', () => {

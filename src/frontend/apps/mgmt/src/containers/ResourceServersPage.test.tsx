@@ -51,7 +51,12 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-type Call = { readonly url: string; readonly method: string; readonly body: string };
+type Call = {
+  readonly url: string;
+  readonly method: string;
+  readonly body: string;
+  readonly ifMatch: string | null;
+};
 
 function installFetch(handler: (url: string, method: string) => Response) {
   const calls: Call[] = [];
@@ -61,12 +66,50 @@ function installFetch(handler: (url: string, method: string) => Response) {
       url: request.url,
       method: request.method,
       body: request.method === 'GET' ? '' : await request.clone().text(),
+      ifMatch: request.headers.get('if-match'),
     });
     return handler(request.url, request.method);
   });
   vi.stubGlobal('fetch', fetchMock);
   return calls;
 }
+
+/** Serves only the tenant's resource-server list; any write is unexpected. */
+function listOnly(items: readonly unknown[]) {
+  return (url: string, method: string) => {
+    if (url.endsWith('/api/tenants/acme/resource-servers') && method === 'GET') {
+      return jsonResponse({ items });
+    }
+    throw new Error(`Unexpected ${method} ${url}`);
+  };
+}
+
+describe('ResourceServersPage (list states)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('shows a loading indicator, then the empty state when the tenant has no resource servers', async () => {
+    installFetch(listOnly([]));
+
+    renderPage();
+
+    expect(screen.getByTestId('data-loading')).toBeInTheDocument();
+    expect(await screen.findByTestId('data-empty')).toHaveTextContent(
+      'No resource servers in this tenant yet.',
+    );
+  });
+
+  it('reports a failure to load the resource-server list', async () => {
+    installFetch(() => jsonResponse({ title: 'Internal Server Error' }, 500));
+
+    renderPage();
+
+    expect(await screen.findByTestId('data-error')).toHaveTextContent(
+      'Failed to load resource servers.',
+    );
+  });
+});
 
 describe('ResourceServersPage (tenant-scoped CRUD + scope drill-in)', () => {
   beforeEach(() => {
@@ -107,6 +150,81 @@ describe('ResourceServersPage (tenant-scoped CRUD + scope drill-in)', () => {
     });
   });
 
+  it('edits a resource server with an If-Match JSON Patch, keeping the identifier immutable', async () => {
+    let renamed = false;
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/tenants/acme/resource-servers/rs-orders') && method === 'PATCH') {
+        renamed = true;
+        return new Response(null, { status: 204 });
+      }
+      if (url.endsWith('/api/tenants/acme/resource-servers')) {
+        return jsonResponse({ items: [renamed ? { ...orders, name: 'Orders API v2' } : orders] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('resource-server-edit-rs-orders'));
+
+    expect(screen.getByRole('dialog', { name: 'Edit resource server' })).toBeInTheDocument();
+    expect(screen.getByTestId('resource-server-identifier')).toHaveValue(
+      'https://orders.example.com',
+    );
+    expect(screen.getByTestId('resource-server-identifier')).toBeDisabled();
+    expect(screen.getByTestId('resource-server-name')).toHaveValue('Orders API');
+    expect(screen.getByTestId('resource-server-form-submit')).toHaveTextContent('Save');
+
+    fireEvent.change(screen.getByTestId('resource-server-name'), {
+      target: { value: 'Orders API v2' },
+    });
+    fireEvent.click(screen.getByRole('switch', { name: 'Disabled' }));
+    fireEvent.click(screen.getByTestId('resource-server-form-submit'));
+
+    expect(await screen.findByText('Orders API v2')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('resource-server-form-submit')).not.toBeInTheDocument(),
+    );
+    const patch = calls.find((c) => c.method === 'PATCH');
+    expect(patch?.url).toBe('https://api.test/api/tenants/acme/resource-servers/rs-orders');
+    expect(patch?.ifMatch).toBe('c1');
+    expect(JSON.parse(patch?.body ?? '[]')).toEqual([
+      { op: 'replace', path: '/name', value: 'Orders API v2' },
+      { op: 'replace', path: '/isDisabled', value: true },
+    ]);
+  });
+
+  it('discards the edit form on cancel', async () => {
+    const calls = installFetch(listOnly([orders]));
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('resource-server-edit-rs-orders'));
+    fireEvent.click(screen.getByTestId('resource-server-form-cancel'));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('resource-server-form-submit')).not.toBeInTheDocument(),
+    );
+    expect(calls.every((c) => c.method === 'GET')).toBe(true);
+  });
+
+  it('ignores a submit fired while the form dialog is closing', async () => {
+    const calls = installFetch(listOnly([orders]));
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('create-resource-server'));
+    fireEvent.change(screen.getByTestId('resource-server-identifier'), {
+      target: { value: 'urn:late' },
+    });
+    fireEvent.change(screen.getByTestId('resource-server-name'), { target: { value: 'Late' } });
+    fireEvent.click(screen.getByTestId('resource-server-form-cancel'));
+    // The dialog stays mounted for its exit transition; a stray click on it must not create anything.
+    fireEvent.click(screen.getByTestId('resource-server-form-submit'));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('resource-server-form-submit')).not.toBeInTheDocument(),
+    );
+    expect(calls.every((c) => c.method === 'GET')).toBe(true);
+  });
+
   it('deletes a resource server after confirmation', async () => {
     const calls = installFetch((url, method) => {
       if (url.endsWith('/api/tenants/acme/resource-servers/rs-orders') && method === 'DELETE') {
@@ -132,6 +250,45 @@ describe('ResourceServersPage (tenant-scoped CRUD + scope drill-in)', () => {
         ),
       ).toBe(true),
     );
+  });
+
+  it('keeps the delete dialog open with the server problem detail when the delete is rejected', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/tenants/acme/resource-servers/rs-orders') && method === 'DELETE') {
+        return jsonResponse({ detail: 'Clients are still granted this API.' }, 409);
+      }
+      if (url.endsWith('/api/tenants/acme/resource-servers')) {
+        return jsonResponse({ items: [orders] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('resource-server-delete-rs-orders'));
+    expect(screen.getByRole('dialog', { name: 'Delete resource server' })).toHaveTextContent(
+      'Delete “Orders API”? This cannot be undone.',
+    );
+    fireEvent.click(screen.getByTestId('confirm-accept'));
+
+    expect(await screen.findByTestId('confirm-error')).toHaveTextContent(
+      'Clients are still granted this API.',
+    );
+
+    fireEvent.click(screen.getByTestId('confirm-cancel'));
+    await waitFor(() => expect(screen.queryByTestId('confirm-accept')).not.toBeInTheDocument());
+  });
+
+  it('ignores a confirm fired while the delete dialog is closing', async () => {
+    const calls = installFetch(listOnly([orders]));
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('resource-server-delete-rs-orders'));
+    fireEvent.click(screen.getByTestId('confirm-cancel'));
+    // The dialog stays mounted for its exit transition; a stray click on it must not delete anything.
+    fireEvent.click(screen.getByTestId('confirm-accept'));
+
+    await waitFor(() => expect(screen.queryByTestId('confirm-accept')).not.toBeInTheDocument());
+    expect(calls.every((c) => c.method === 'GET')).toBe(true);
   });
 
   it('drills into a resource server and adds a scope', async () => {

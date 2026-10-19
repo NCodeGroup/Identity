@@ -73,6 +73,88 @@ describe('TenantDetailPage', () => {
     vi.restoreAllMocks();
   });
 
+  it('identifies the tenant whose own secrets are listed', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/api/tenants/acme/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+
+    expect(screen.getByRole('heading', { name: 'Tenant' })).toBeInTheDocument();
+    expect(screen.getByText('acme')).toBeInTheDocument();
+    expect(await screen.findByTestId('data-empty')).toHaveTextContent(
+      'This tenant has no secrets yet.',
+    );
+  });
+
+  it('deletes a tenant secret under the tenant path after confirmation', async () => {
+    let deleted = false;
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/api/tenants/acme/secrets/s-old') && method === 'DELETE') {
+        deleted = true;
+        return new Response(null, { status: 204 });
+      }
+      if (url.endsWith('/api/tenants/acme/secrets')) {
+        return jsonResponse({
+          concurrencyToken: 'c1',
+          secrets: deleted ? [] : [{ ...createdSecret, secretId: 's-old' }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('secret-delete-s-old'));
+    fireEvent.click(screen.getByTestId('confirm-accept'));
+
+    expect(await screen.findByTestId('data-empty')).toBeInTheDocument();
+    expect(calls.find((c) => c.method === 'DELETE')?.url).toBe(
+      'https://api.test/api/tenants/acme/secrets/s-old',
+    );
+  });
+
+  it('exports a tenant secret public key', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({
+          secretTypes: [{ secretType: 'rsa', isAsymmetric: true, supportsPublicKeyExport: true }],
+        });
+      }
+      if (url.endsWith('/api/tenants/acme/secrets/s-rsa/public-key')) {
+        return jsonResponse({
+          secretId: 's-rsa',
+          secretType: 'rsa',
+          jwk: { kty: 'RSA', n: 'bW9k', e: 'AQAB' },
+          pem: '-----BEGIN PUBLIC KEY-----\nMIIB\n-----END PUBLIC KEY-----',
+        });
+      }
+      if (url.endsWith('/api/tenants/acme/secrets')) {
+        return jsonResponse({
+          concurrencyToken: 'c1',
+          secrets: [{ ...createdSecret, secretId: 's-rsa', secretType: 'rsa', keySizeBits: 2048 }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('secret-export-s-rsa'));
+
+    expect(await screen.findByTestId('export-public-key-pem-value')).toHaveTextContent(
+      'BEGIN PUBLIC KEY',
+    );
+    expect(screen.getByTestId('export-public-key-jwk-value')).toHaveTextContent('"kty": "RSA"');
+  });
+
   it('creates a tenant secret under the tenant path and reveals its material', async () => {
     installFetch((url, method) => {
       if (url.endsWith('/api/tenants/acme/secrets') && method === 'POST') {

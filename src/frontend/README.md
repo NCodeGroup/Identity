@@ -63,6 +63,7 @@ src/frontend/
     store/    @ncode/store   — Redux store assembly, slices, typed hooks
     ui/       @ncode/ui      — MUI design system + stateless components + Storybook
     conformance-core/ @ncode/conformance-core — framework-free conformance logic (discovery, audit, spec-coverage, probes)
+    test-support/ @ncode/test-support — test-only Vitest support shared by every workspace (the console guard)
   apps/
     mgmt/     @ncode/app-mgmt — Management console (first surface)
     auth/     @ncode/app-auth — Interactive login/consent surface (OP-hosted under /account/*)
@@ -105,12 +106,39 @@ pnpm dev                  # run the WHOLE frontend stack (Turborepo): dev server
 pnpm --filter @ncode/app-mgmt dev    # run just the Management console
 pnpm test                 # run all unit tests
 pnpm run test:report      # same, plus per-package JUnit (test-results/) and coverage (coverage/) — what CI runs;
-                          # every package runs to completion even when one fails, so the report is never truncated
-pnpm lint                 # lint all packages
-pnpm typecheck            # type-check all packages
+                          # every package runs to completion even when one fails, so the report is never truncated;
+                          # fails when a package drops below its coverage floor
+pnpm lint                 # lint all packages (warnings fail: --max-warnings 0)
+pnpm typecheck            # type-check all packages, including tests, stories, and setup files
 pnpm --filter @ncode/ui storybook    # component workbench
 pnpm build                # build all packages/apps
 ```
+
+### Test gates — warnings are errors
+
+A green run means more than "no assertion failed" ([ADR-0151](../../docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md)):
+
+- **A test that logs `console.error` or `console.warn` fails.** Every workspace's `vitest.setup.ts` registers
+  `failOnConsole` from [`@ncode/test-support`](packages/test-support). The usual cause is a React
+  _"not wrapped in act(...)"_ warning: the test asserted before an async update (a resolved promise, an RTK Query
+  fetch, a transition) settled. Await the settled UI with `findBy…` / `waitFor` rather than wrapping calls in `act`.
+  When logging _is_ the behavior under test, mock the method in that test
+  (`vi.spyOn(console, 'error').mockImplementation(() => {})`) and assert on the spy. The one built-in exemption is
+  Redux Toolkit's load-dependent "…StateInvariantMiddleware took Nms" timing warning, which the guard drops: it would
+  otherwise fail store-backed tests at random under coverage. Keep that list to timing diagnostics.
+- **Lint warnings fail** (`--max-warnings 0`), and so does a stale `eslint-disable` comment.
+- **A test that makes no assertion fails** (`expect.requireAssertions` in every Vitest config).
+- **Tests, stories, and setup files are type-checked** — no tsconfig excludes them.
+- **Coverage measures every source file and holds a floor.** Each workspace's coverage `include` spans all `.ts`/`.tsx`
+  sources except its entry point (`main.ts[x]`) and barrel (`index.ts`), and its Vitest config sets
+  `coverage.thresholds` at the level reached, rounded down. Vitest enforces them whenever coverage is collected
+  (`pnpm run test:report`, which CI runs). When a change raises a workspace's coverage, raise its floor in the same
+  change; lowering one needs a stated reason.
+
+A new workspace joins these gates by adding `"@ncode/test-support": "workspace:*"` to its `devDependencies`, a
+`vitest.setup.ts` that calls `failOnConsole({ beforeEach, afterEach })` (listed in `setupFiles` and in the tsconfig
+`include`), `--max-warnings 0` on its `lint` script, and `expect.requireAssertions` plus coverage thresholds in its
+Vitest config.
 
 ### The `dev` script encodes each app's serving model
 
@@ -284,6 +312,14 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   `getByRole('switch', { name: 'Disabled' })` (the `FormControlLabel` supplies the name) — which is both
   type-safe and closer to how a user finds it. Use the control's real role: since MUI 9 a `Switch` is
   `role="switch"`, not `checkbox`, and only a `Checkbox` answers to `'checkbox'`.
+- **Drive the UI through Testing Library, not native DOM calls.** `fireEvent.click(element)` (and `userEvent`) run
+  inside React's `act`, so the update they trigger is flushed before the next assertion. A native `element.click()`
+  runs outside it, and the resulting state update logs a _"not wrapped in act(...)"_ warning — which the console
+  guard turns into a failure. When a test asserts that **nothing** changes after a promise settles (a rejected load
+  that leaves the loading state in place), there is no UI state for `findBy…` to wait on; flush with
+  `await act(async () => {})` and then assert.
+- **In Vitest 5, `mockRestore()` also clears a spy's call history.** Assert on `spy.mock.calls` (or
+  `toHaveBeenCalledWith`) **before** restoring the spy; afterwards the spy reports zero calls.
 - **MUI has no system props; style through `sx`.** MUI 9 removed the system-prop shorthands from `Box`, `Stack`,
   `Typography`, `Link`, and `Grid` (`<Box display="flex" py={2}>`, `<Typography color="text.secondary">`), and the
   deprecated `*Props` escape hatches (`inputProps`, `InputProps`, `PaperProps`, …) in favor of `slots` / `slotProps`

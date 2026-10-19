@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   mergeRuntimeConfig,
   normalizeBaseUrl,
@@ -6,7 +6,6 @@ import {
   parseOpenIdDiscovery,
   RuntimeConfigError,
 } from './parse.js';
-import { loadRuntimeConfig, type FetchLike } from './loader.js';
 import type { BootstrapDocument, OpenIdDiscovery } from './types.js';
 
 describe('normalizeBaseUrl', () => {
@@ -47,8 +46,56 @@ describe('parseBootstrapDocument', () => {
     expect(() => parseBootstrapDocument('nope')).toThrow(RuntimeConfigError);
   });
 
+  it('rejects a null document', () => {
+    expect(() => parseBootstrapDocument(null)).toThrow('Bootstrap document must be a JSON object.');
+  });
+
   it('rejects a missing required field', () => {
     expect(() => parseBootstrapDocument({ apiBaseUrl: 'https://api.example' })).toThrow(/issuer/);
+  });
+
+  it('rejects a blank required field', () => {
+    expect(() =>
+      parseBootstrapDocument({ apiBaseUrl: '   ', issuer: 'https://op.example' }),
+    ).toThrow("Bootstrap document is missing required field 'apiBaseUrl'.");
+  });
+
+  it('keeps a client id and an all-string scopes list', () => {
+    const result = parseBootstrapDocument({
+      apiBaseUrl: 'https://api.example',
+      issuer: 'https://op.example',
+      clientId: 'mgmt-spa',
+      scopes: ['openid', 'write:clients'],
+    });
+    expect(result.clientId).toBe('mgmt-spa');
+    expect(result.scopes).toEqual(['openid', 'write:clients']);
+  });
+
+  it('drops malformed optional fields instead of trusting them', () => {
+    const result = parseBootstrapDocument({
+      apiBaseUrl: 'https://api.example',
+      issuer: 'https://op.example',
+      clientId: '',
+      scopes: ['openid', 42],
+      features: 'all',
+      branding: 'acme',
+    });
+    expect(result).toEqual({
+      apiBaseUrl: 'https://api.example',
+      issuer: 'https://op.example',
+      features: {},
+    });
+  });
+
+  it('ignores a non-string client id and a non-array scopes value', () => {
+    const result = parseBootstrapDocument({
+      apiBaseUrl: 'https://api.example',
+      issuer: 'https://op.example',
+      clientId: 7,
+      scopes: 'openid',
+    });
+    expect(result).not.toHaveProperty('clientId');
+    expect(result).not.toHaveProperty('scopes');
   });
 });
 
@@ -72,6 +119,43 @@ describe('parseOpenIdDiscovery', () => {
         authorization_endpoint: 'https://op.example/authorize',
       }),
     ).toThrow(/token_endpoint/);
+  });
+
+  it('extracts the end-session endpoint and JWKS URI when advertised', () => {
+    const result = parseOpenIdDiscovery({
+      issuer: 'https://op.example',
+      authorization_endpoint: 'https://op.example/authorize',
+      token_endpoint: 'https://op.example/token',
+      end_session_endpoint: 'https://op.example/end-session',
+      jwks_uri: 'https://op.example/jwks',
+    });
+    expect(result).toEqual({
+      issuer: 'https://op.example',
+      authorization_endpoint: 'https://op.example/authorize',
+      token_endpoint: 'https://op.example/token',
+      end_session_endpoint: 'https://op.example/end-session',
+      jwks_uri: 'https://op.example/jwks',
+    });
+  });
+
+  it('ignores non-string optional endpoints', () => {
+    const result = parseOpenIdDiscovery({
+      issuer: 'https://op.example',
+      authorization_endpoint: 'https://op.example/authorize',
+      token_endpoint: 'https://op.example/token',
+      end_session_endpoint: true,
+      userinfo_endpoint: 1,
+      jwks_uri: null,
+    });
+    expect(result).toEqual({
+      issuer: 'https://op.example',
+      authorization_endpoint: 'https://op.example/authorize',
+      token_endpoint: 'https://op.example/token',
+    });
+  });
+
+  it.each([null, 'nope', 42])('rejects a non-object document (%s)', (raw) => {
+    expect(() => parseOpenIdDiscovery(raw)).toThrow('Discovery document must be a JSON object.');
   });
 });
 
@@ -113,76 +197,36 @@ describe('mergeRuntimeConfig', () => {
       mergeRuntimeConfig(bootstrap, { ...discovery, issuer: 'https://evil.example' }),
     ).toThrow(/Issuer mismatch/);
   });
-});
 
-describe('loadRuntimeConfig', () => {
-  const okJson = (body: unknown): ReturnType<FetchLike> =>
-    Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
-
-  it('loads bootstrap then discovery and merges them', async () => {
-    const fetchFn = vi.fn<FetchLike>((url) => {
-      if (url.endsWith('/config/bootstrap.json')) {
-        return okJson({ apiBaseUrl: 'https://api.example', issuer: 'https://op.example' });
-      }
-      return okJson({
-        issuer: 'https://op.example',
-        authorization_endpoint: 'https://op.example/authorize',
-        token_endpoint: 'https://op.example/token',
-      });
-    });
-
-    const result = await loadRuntimeConfig({ origin: 'https://ui.example/', fetchFn });
-
-    expect(fetchFn).toHaveBeenNthCalledWith(
-      1,
-      'https://ui.example/config/bootstrap.json',
-      undefined,
-    );
-    expect(fetchFn).toHaveBeenNthCalledWith(
-      2,
-      'https://op.example/.well-known/openid-configuration',
-      undefined,
-    );
-    expect(result.apiBaseUrl).toBe('https://api.example');
-    expect(result.authorizationEndpoint).toBe('https://op.example/authorize');
+  it('accepts a discovery issuer that differs only by a trailing slash', () => {
+    const result = mergeRuntimeConfig(bootstrap, { ...discovery, issuer: 'https://op.example/' });
+    expect(result.issuer).toBe('https://op.example');
   });
 
-  it('throws when a fetch fails', async () => {
-    const fetchFn = vi.fn<FetchLike>(() =>
-      Promise.resolve({ ok: false, status: 503, json: () => Promise.resolve({}) }),
-    );
-    await expect(loadRuntimeConfig({ origin: 'https://ui.example', fetchFn })).rejects.toThrow(
-      /HTTP 503/,
-    );
+  it('falls back to the default scopes when the bootstrap scopes list is empty', () => {
+    const result = mergeRuntimeConfig({ ...bootstrap, scopes: [] }, discovery);
+    expect(result.scopes).toEqual(['openid', 'read:clients']);
   });
 
-  it('requests surface-specific coordinates when a surface is given', async () => {
-    const fetchFn = vi.fn<FetchLike>((url) => {
-      if (url.includes('/config/bootstrap.json')) {
-        return okJson({
-          apiBaseUrl: 'https://api.example',
-          issuer: 'https://op.example',
-          clientId: 'playground-spa',
-        });
-      }
-      return okJson({
-        issuer: 'https://op.example',
-        authorization_endpoint: 'https://op.example/authorize',
-        token_endpoint: 'https://op.example/token',
-      });
-    });
-
-    const result = await loadRuntimeConfig({
-      origin: 'https://ui.example',
-      surface: 'playground',
-      fetchFn,
-    });
-
-    expect(fetchFn).toHaveBeenNthCalledWith(
-      1,
-      'https://ui.example/config/bootstrap.json?surface=playground',
-      undefined,
+  it('defaults features to an empty set when the bootstrap omits them', () => {
+    const result = mergeRuntimeConfig(
+      { apiBaseUrl: 'https://api.example', issuer: 'https://op.example' },
+      discovery,
     );
-    expect(result.clientId).toBe('playground-spa');
+    expect(result.features).toEqual({});
+  });
+
+  it('maps the optional discovery endpoints and passes branding through', () => {
+    const result = mergeRuntimeConfig(
+      { ...bootstrap, branding: { displayName: 'Acme', mode: 'dark' } },
+      {
+        ...discovery,
+        end_session_endpoint: 'https://op.example/end-session',
+        userinfo_endpoint: 'https://op.example/userinfo',
+      },
+    );
+    expect(result.endSessionEndpoint).toBe('https://op.example/end-session');
+    expect(result.userInfoEndpoint).toBe('https://op.example/userinfo');
+    expect(result.branding).toEqual({ displayName: 'Acme', mode: 'dark' });
   });
 });

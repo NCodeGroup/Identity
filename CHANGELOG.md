@@ -77,6 +77,17 @@ change to the public API is a **major** version bump.
   weekly grouped update no longer brings back the two upgrades that cannot land yet. See
   [ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md).
 
+- **Frontend tests fail on warnings, and frontend coverage can no longer fall unnoticed.** A test that logs
+  `console.error` or `console.warn` now fails. The usual culprit is a React "not wrapped in act(...)" warning, which
+  means the test asserted before an update settled. The check comes from a console guard in the new test-only
+  `@ncode/test-support` workspace. A test that makes no assertion also fails, lint fails on any warning, and tests,
+  stories, and setup files are now type-checked (seven workspaces had excluded their tests). Each workspace's
+  coverage now measures every source file and holds a floor at its current level, enforced by
+  `pnpm run test:report` in CI. New and extended tests raise frontend line coverage from 81% to 99% and branch
+  coverage from 74% to 98%; eight of the twelve workspaces are fully covered. The conformance runner's CLI logic moved
+  from its entry point into a tested `cli.ts`, and its `--help` now documents exit code `2`. See
+  [ADR-0151](docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md).
+
 - **The reference host is no longer called "Playground".** `NCode.Identity.OpenId.Playground` is now
   `NCode.Identity.OpenId.Host`, and its two companions are `NCode.Identity.OpenId.Host.Database` and
   `NCode.Identity.OpenId.Host.MigrationService`. The Aspire orchestrator, previously
@@ -389,6 +400,24 @@ change to the public API is a **major** version bump.
   ceiling when the client, not its tenant, selects the profile — was stored and never enforced. It is now checked
   against the authenticating client's effective settings, and a list narrowed to nothing permits no algorithm instead of
   every one. ([ADR-0149](docs/adr/0149-settings-declare-the-scopes-they-apply-to.md))
+
+- **The Management console no longer reads the access token.** When the token response carried no ID token, the
+  console took the user's subject from the access token, which a client must treat as opaque (RFC 9068 §6). With an
+  opaque access token, sign-in failed and silent renewal signed the user out. The subject now comes from the ID token
+  only, and a refresh that returns none keeps the previous subject and ID token.
+  ([ADR-0151](docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md))
+
+- **The conformance dashboard could show one issuer's audit under another.** A discovery load superseded by an issuer
+  change was ignored when it failed but not when it succeeded late, so a slow response for the previous issuer could
+  overwrite the current one. A superseded load now never updates the dashboard.
+
+- **A network error on the device-code token poll aborted the whole conformance-runner run.** The poll's rejection
+  escaped the probe's error handling, so the runner printed "Runner failed" and exited `2` instead of reporting that
+  one probe as failed. It now fails only the device-authorization probe.
+
+- **The conformance runner rejects RSA-PSS-restricted keys up front.** It accepted an `id-RSASSA-PSS` key and then
+  failed with Node's opaque "Unsupported JWK Key Type." when publishing its public key. It now explains that an
+  ordinary RSA key is required — `PS256`/`PS384`/`PS512` already sign it with PSS padding.
 
 - **A FAPI 2.0 client could not reach the authorization endpoint.** The endpoint identified the client through client
   authentication as a public client, which the profile's `token_endpoint_auth_methods_supported` ceiling refuses, so

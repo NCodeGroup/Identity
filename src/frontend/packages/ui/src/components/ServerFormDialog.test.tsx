@@ -29,6 +29,8 @@ describe('ServerFormDialog', () => {
       />,
     );
     expect(screen.getByTestId('server-form-submit')).toBeDisabled();
+    fireEvent.change(screen.getByTestId('server-display-name'), { target: { value: '   ' } });
+    expect(screen.getByTestId('server-form-submit')).toBeDisabled();
     fireEvent.change(screen.getByTestId('server-display-name'), { target: { value: 'New' } });
     expect(screen.getByTestId('server-form-submit')).toBeEnabled();
   });
@@ -65,6 +67,32 @@ describe('ServerFormDialog', () => {
     );
     expect(screen.getByTestId('server-form-error')).toHaveTextContent('Boom');
     expect(screen.getByTestId('server-form-submit')).toBeDisabled();
+    expect(screen.getByTestId('server-form-submit')).toHaveTextContent('Saving…');
+    expect(screen.getByTestId('server-form-cancel')).toBeDisabled();
+  });
+
+  it('keeps in-progress edits while open and reseeds from initialValues on reopen', () => {
+    const props = {
+      title: 'Edit server',
+      submitLabel: 'Save',
+      onSubmit: vi.fn(),
+      onCancel: vi.fn(),
+    };
+    const { rerender } = render(
+      <ServerFormDialog {...props} open initialValues={{ displayName: 'Root server' }} />,
+    );
+    fireEvent.change(screen.getByTestId('server-display-name'), {
+      target: { value: 'Unsaved edit' },
+    });
+
+    rerender(<ServerFormDialog {...props} open initialValues={{ displayName: 'Root server' }} />);
+    expect(screen.getByTestId('server-display-name')).toHaveValue('Unsaved edit');
+
+    rerender(
+      <ServerFormDialog {...props} open={false} initialValues={{ displayName: 'Root server' }} />,
+    );
+    rerender(<ServerFormDialog {...props} open initialValues={{ displayName: 'Edge server' }} />);
+    expect(screen.getByTestId('server-display-name')).toHaveValue('Edge server');
   });
 
   it('invokes onCancel from the cancel button', () => {

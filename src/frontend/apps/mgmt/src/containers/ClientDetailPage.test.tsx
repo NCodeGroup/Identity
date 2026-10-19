@@ -22,7 +22,7 @@ const client: ClientResource = {
   isDisabled: false,
 };
 
-function renderPage() {
+function renderPage(overrides: Partial<ClientResource> = {}, onBack = vi.fn()) {
   const store = createAppStore({
     config: { runtime },
     auth: {
@@ -33,11 +33,16 @@ function renderPage() {
       idToken: null,
     },
   });
-  return render(
+  render(
     <Provider store={store}>
-      <ClientDetailPage scope={tenantScope('acme')} client={client} onBack={vi.fn()} />
+      <ClientDetailPage
+        scope={tenantScope('acme')}
+        client={{ ...client, ...overrides }}
+        onBack={onBack}
+      />
     </Provider>,
   );
+  return onBack;
 }
 
 type Call = { readonly url: string; readonly method: string; readonly body: string };
@@ -79,6 +84,75 @@ const createdSecret = {
 describe('ClientDetailPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('identifies an active client and returns to the list via the back control', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/clients/web/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    const onBack = renderPage();
+
+    expect(screen.getByRole('heading', { name: 'web' })).toBeInTheDocument();
+    expect(screen.getByText('Client · Active')).toBeInTheDocument();
+    expect(await screen.findByTestId('data-empty')).toHaveTextContent(
+      'This client has no secrets yet.',
+    );
+
+    fireEvent.click(screen.getByTestId('client-detail-back'));
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('labels a disabled client', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/clients/web/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage({ isDisabled: true });
+
+    expect(screen.getByText('Client · Disabled')).toBeInTheDocument();
+    expect(await screen.findByTestId('data-empty')).toBeInTheDocument();
+  });
+
+  it('deletes a client secret under the client path after confirmation', async () => {
+    let deleted = false;
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/clients/web/secrets/s-old') && method === 'DELETE') {
+        deleted = true;
+        return new Response(null, { status: 204 });
+      }
+      if (url.endsWith('/clients/web/secrets')) {
+        return jsonResponse({
+          concurrencyToken: 'c1',
+          secrets: deleted ? [] : [{ ...createdSecret, secretId: 's-old' }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('secret-delete-s-old'));
+    fireEvent.click(screen.getByTestId('confirm-accept'));
+
+    expect(await screen.findByTestId('data-empty')).toBeInTheDocument();
+    expect(calls.find((c) => c.method === 'DELETE')?.url).toBe(
+      'https://api.test/api/tenants/acme/clients/web/secrets/s-old',
+    );
   });
 
   it('creates a secret and reveals its one-time material', async () => {

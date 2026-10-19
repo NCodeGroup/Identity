@@ -1,10 +1,17 @@
 import { render } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppThemeProvider } from '@ncode/ui';
-import { createAppStore, runtimeConfigLoaded } from '@ncode/store';
+import { createAppStore, runtimeConfigLoaded, type AppStore } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
 import { App } from './App.js';
+import { loadDiscovery } from './bootstrap.js';
+
+// The dashboard loads discovery on mount; keep the shell test off the network.
+vi.mock(import('./bootstrap.js'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  loadDiscovery: vi.fn(() => new Promise<never>(() => {})),
+}));
 
 const runtime: RuntimeConfig = {
   apiBaseUrl: 'https://op.test',
@@ -15,19 +22,51 @@ const runtime: RuntimeConfig = {
   features: {},
 };
 
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+function renderApp(store: AppStore) {
+  return render(
+    <Provider store={store}>
+      <AppThemeProvider>
+        <App />
+      </AppThemeProvider>
+    </Provider>,
+  );
+}
+
 describe('Conformance App', () => {
   it('renders the dashboard header once runtime config is loaded', () => {
     const store = createAppStore();
     store.dispatch(runtimeConfigLoaded(runtime));
 
-    const { getByRole } = render(
-      <Provider store={store}>
-        <AppThemeProvider>
-          <App />
-        </AppThemeProvider>
-      </Provider>,
-    );
+    const { getByRole, getByText, getByTestId } = renderApp(store);
 
-    expect(getByRole('heading', { name: /Conformance/i })).toBeInTheDocument();
+    expect(getByRole('heading', { name: 'NCode.Identity · Conformance' })).toBeInTheDocument();
+    expect(getByText('https://op.test')).toBeInTheDocument();
+    // The dashboard audits the discovered issuer.
+    expect(getByTestId('data-loading')).toBeInTheDocument();
+    expect(vi.mocked(loadDiscovery)).toHaveBeenCalledWith(
+      'https://op.test',
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('brands the header with the discovered display name', () => {
+    const store = createAppStore();
+    store.dispatch(runtimeConfigLoaded({ ...runtime, branding: { displayName: 'Acme ID' } }));
+
+    const { getByRole } = renderApp(store);
+
+    expect(getByRole('heading', { name: 'Acme ID · Conformance' })).toBeInTheDocument();
+  });
+
+  it('renders nothing until runtime config is loaded', () => {
+    const { queryByRole, queryByTestId } = renderApp(createAppStore());
+
+    expect(queryByRole('heading')).not.toBeInTheDocument();
+    expect(queryByTestId('data-loading')).not.toBeInTheDocument();
+    expect(vi.mocked(loadDiscovery)).not.toHaveBeenCalled();
   });
 });

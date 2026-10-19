@@ -30,7 +30,40 @@ describe('apiErrorMessage', () => {
     expect(apiErrorMessage({ status: 500, data: undefined })).toMatch(/HTTP 500/);
   });
 
+  it('ignores an empty detail and a non-string title in the Problem Details', () => {
+    expect(apiErrorMessage({ status: 400, data: { detail: '', title: 42 } })).toBe(
+      'The server rejected the request (HTTP 400).',
+    );
+  });
+
+  it('ignores an empty title in the Problem Details', () => {
+    expect(apiErrorMessage({ status: 422, data: { title: '' } })).toMatch(/HTTP 422/);
+  });
+
+  it('ignores a non-object error body', () => {
+    expect(apiErrorMessage({ status: 502, data: 'Bad Gateway' })).toMatch(/HTTP 502/);
+  });
+
+  it('returns the fallback for a transport failure with no HTTP status', () => {
+    expect(apiErrorMessage({ status: 'FETCH_ERROR', error: 'TypeError: Failed to fetch' })).toBe(
+      'Something went wrong.',
+    );
+  });
+
+  it('returns the supplied fallback for a custom client-side error', () => {
+    expect(
+      apiErrorMessage(
+        { status: 'CUSTOM_ERROR', error: 'Runtime configuration has not been loaded.' },
+        'Could not load tenants.',
+      ),
+    ).toBe('Could not load tenants.');
+  });
+
   it('reads the message from a serialized error', () => {
     expect(apiErrorMessage({ message: 'boom' })).toBe('boom');
+  });
+
+  it('returns the fallback for a serialized error without a message', () => {
+    expect(apiErrorMessage({ name: 'AbortError' }, 'Cancelled.')).toBe('Cancelled.');
   });
 });

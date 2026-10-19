@@ -40,5 +40,10 @@ The asymmetric legs (`private_key_jwt`, DPoP) are driven by a real Node-`crypto`
 private key via `--private-key` (the `private_key_jwt` client assertion, with `--public-client-id`) and/or `--dpop-key`
 (the DPoP proof). The signing algorithm is inferred from the key — the curve for EC keys (`ES256`/`ES384`/`ES512`),
 `EdDSA` for Ed25519/Ed448, and `PS256` for RSA — and can be overridden with `--private-key-alg` / `--dpop-key-alg`
-(e.g. `RS256`). The DPoP proof embeds the key's public JWK in its header (RFC 9449 §4). These legs still `skip` until
+(e.g. `RS256`). RSA keys must be ordinary `rsaEncryption` keys: an RSA-PSS-restricted (`id-RSASSA-PSS`) key is rejected
+up front because its public key cannot be published as a JWK — `PS256`/`PS384`/`PS512` already sign an ordinary RSA key
+with PSS padding. The DPoP proof embeds the key's public JWK in its header (RFC 9449 §4). These legs still `skip` until
 the backend advertises the capability (`private_key_jwt`: `F16` / `S3`; DPoP: `F7`).
+
+The process exits `0` when no probe fails, `1` when any probe fails, and `2` for invalid arguments or a run that could
+not complete (for example, unreachable discovery metadata or an unloadable key).

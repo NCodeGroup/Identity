@@ -20,6 +20,20 @@ describe('fetchRawDiscovery', () => {
     expect(raw.issuer).toBe('https://op.test');
   });
 
+  it('forwards the abort signal and does not strip a slash-less issuer', async () => {
+    const signal = new AbortController().signal;
+    const fetchFn = vi.fn<FetchLike>(() =>
+      Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }),
+    );
+
+    await fetchRawDiscovery('https://op.test/tenant', fetchFn, signal);
+
+    expect(fetchFn).toHaveBeenCalledWith(
+      'https://op.test/tenant/.well-known/openid-configuration',
+      { signal },
+    );
+  });
+
   it('throws when the fetch fails', async () => {
     const fetchFn = vi.fn<FetchLike>(() =>
       Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}) }),
@@ -30,6 +44,16 @@ describe('fetchRawDiscovery', () => {
   it('throws when the document is not a JSON object', async () => {
     const fetchFn = vi.fn<FetchLike>(() =>
       Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve('nope') }),
+    );
+    await expect(fetchRawDiscovery('https://op.test', fetchFn)).rejects.toThrow(/JSON object/);
+  });
+
+  it.each([
+    ['null', null],
+    ['an array', [{ issuer: 'https://op.test' }]],
+  ])('throws when the document is %s', async (_label, body) => {
+    const fetchFn = vi.fn<FetchLike>(() =>
+      Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) }),
     );
     await expect(fetchRawDiscovery('https://op.test', fetchFn)).rejects.toThrow(/JSON object/);
   });

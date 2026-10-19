@@ -146,6 +146,25 @@ describe('readCallback', () => {
     expect(() => readCallback('?error=access_denied', deps)).toThrow(AuthError);
   });
 
+  it('surfaces the server error description and code', () => {
+    const deps = createDeps(vi.fn<FetchLike>());
+
+    expect(() =>
+      readCallback('?error=access_denied&error_description=The%20user%20said%20no.', deps),
+    ).toThrow(
+      expect.objectContaining({
+        name: 'AuthError',
+        message: 'The user said no.',
+        code: 'access_denied',
+      }),
+    );
+  });
+
+  it('throws when the query carries no authorization response', () => {
+    const deps = createDeps(vi.fn<FetchLike>());
+    expect(() => readCallback('?tab=tokens', deps)).toThrow(/No authorization response/);
+  });
+
   it('throws when no transaction is in flight', () => {
     const deps = createDeps(vi.fn<FetchLike>());
     expect(() => readCallback('?code=c&state=state-7', deps)).toThrow(/in-flight/);
@@ -230,6 +249,22 @@ describe('fetchUserInfo', () => {
     const deps = createDeps(vi.fn<FetchLike>());
     await expect(fetchUserInfo(withoutUserInfo, 'at', deps)).rejects.toThrow(/userinfo/);
   });
+
+  it('throws with the status when the userinfo call fails', async () => {
+    const fetchFn = vi.fn<FetchLike>(() =>
+      Promise.resolve({
+        ok: false,
+        status: 401,
+        json: () => Promise.resolve({}),
+        text: () => Promise.resolve(''),
+      }),
+    );
+    const deps = createDeps(fetchFn);
+
+    await expect(fetchUserInfo(runtime, 'expired-at', deps)).rejects.toThrow(
+      'UserInfo request failed (HTTP 401).',
+    );
+  });
 });
 
 describe('inspectJwt', () => {
@@ -244,6 +279,11 @@ describe('inspectJwt', () => {
   it('returns null for an opaque (non-JWT) token', () => {
     expect(inspectJwt('opaque-access-token')).toBeNull();
   });
+
+  it('returns null when the header segment is empty', () => {
+    const payload = Buffer.from(JSON.stringify({ sub: 'user-1' })).toString('base64url');
+    expect(inspectJwt(`.${payload}.sig`)).toBeNull();
+  });
 });
 
 describe('endSessionUrl', () => {
@@ -253,6 +293,12 @@ describe('endSessionUrl', () => {
     expect(url.searchParams.get('id_token_hint')).toBe('id-token');
     expect(url.searchParams.get('client_id')).toBe('playground-spa');
     expect(url.searchParams.get('post_logout_redirect_uri')).toBe('https://ui.test/');
+  });
+
+  it('omits the id token hint when no id token is available', () => {
+    const url = new URL(endSessionUrl(runtime, null, 'playground-spa', 'https://ui.test')!);
+    expect(url.searchParams.has('id_token_hint')).toBe(false);
+    expect(url.searchParams.get('client_id')).toBe('playground-spa');
   });
 
   it('returns null when no end_session_endpoint is advertised', () => {
@@ -276,5 +322,17 @@ describe('clearTransaction', () => {
     deps.storage.setItem(TRANSACTION_KEY, '{}');
     clearTransaction(deps);
     expect(deps.storage.getItem(TRANSACTION_KEY)).toBeNull();
+  });
+});
+
+describe('loadTransaction', () => {
+  it('returns null when no transaction is persisted', () => {
+    expect(loadTransaction(createDeps(vi.fn<FetchLike>()))).toBeNull();
+  });
+
+  it('returns null for a corrupt persisted transaction', () => {
+    const deps = createDeps(vi.fn<FetchLike>());
+    deps.storage.setItem(TRANSACTION_KEY, '{not json');
+    expect(loadTransaction(deps)).toBeNull();
   });
 });

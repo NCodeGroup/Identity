@@ -66,10 +66,10 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
-| `F` — Feature gaps                    | `F49`     | `F48`      |
+| `F` — Feature gaps                    | `F50`     | `F49`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U15`     | `U14`      |
-| `S` — Secrets management              | `S11`     | `S10`      |
+| `S` — Secrets management              | `S12`     | `S11`      |
 | `X` — Tooling & agent customization   | `X4`      | `X3`       |
 
 ---
@@ -360,17 +360,20 @@ entry and/or ADR that closed it.
   headers only from configured proxies (`ReverseProxy:KnownNetworks` — set it to the cluster's pod CIDR) and refuses
   development-only settings in Production (`AddProductionSafety`). Still missing for a rolling deployment behind
   Traefik: the [`Dockerfile`](src/NCode.Identity.OpenId.Host/Dockerfile) is development-shaped (copies the whole repo,
-  exposes 80/443 although .NET listens on 8080, runs as root, amd64 only); `/health` has no checks registered, so
-  readiness (database, Valkey) is not separated from liveness; no Helm chart (probes, `preStop` drain, PodDisruptionBudget,
-  restricted security context); and `Host.MigrationService` should run as a pre-deploy Job with expand/contract schema
-  changes so a rolling update never breaks the running version. The production-safety gate should also refuse a
-  tenant with no configured issuer (the [ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)
+  exposes 80/443 although .NET listens on 8080, runs as root, amd64 only) and never builds the `apps/auth` interactive
+  bundle — `InteractiveAuthentication:BundleRootPath` is set only in `launchSettings.json` — so the container cannot
+  render login or consent; `/health` has no checks registered, so readiness (database, Valkey) is not separated from
+  liveness; no Helm chart (probes, `preStop` drain, PodDisruptionBudget, restricted security context); and
+  `Host.MigrationService` (which has no image) should run as a pre-deploy Job with expand/contract schema changes so a
+  rolling update never breaks the running version. The production-safety gate should also refuse a tenant with no
+  configured issuer (the [ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)
   follow-up) and an unprotected Data Protection key ring (`S10`). Plus the OpenTofu modules, bootstrap stack, and GitHub
   Actions workflows in the public `NCodeGroup/identity-platform` repository
   ([ADR-0132](docs/adr/0132-platform-infrastructure-as-code-is-public-on-github.md); see the
   [hosting analysis](docs/hosting-analysis.md#11-iac-and-delivery)). Touch points:
   `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.OpenId.Host/Dockerfile`,
-  `src/NCode.Identity.OpenId.Host.MigrationService`, `src/NCode.Identity.Server/ProductionSafety`.
+  `src/NCode.Identity.OpenId.Host.MigrationService`, `src/NCode.Identity.Server/ProductionSafety`,
+  `src/frontend/apps/auth`.
 
 - **`F47` — Route a tenant's mTLS endpoint-alias host.** `mtls_endpoint_alias_authority` publishes the RFC 8705 §5
   `mtls_endpoint_aliases` on a separate authority (for example `https://acme.mtls.example`), but `DynamicByHost` routes
@@ -407,8 +410,23 @@ entry and/or ADR that closed it.
   form and trusts GitHub's immutable OIDC subject (owner and repository IDs, the default for repositories created after
   July 15, 2026). Next: the rest of `live/global` (DNS records — including the lab's, so the lab never holds a zone
   token — and zone settings) and `live/lab` on OCI OKE; each root that manages AWS resources adds exactly those
-  permissions to its apply role, which today can reach only its state and secrets. Workload images and charts get
+  permissions to its apply role, which today can reach only its state and secrets. Beyond this item, the lab needs
+  `F46` and `S11`, plus `F49` to run more than one replica. Workload images and charts get
   build-provenance attestations and signatures that Flux verifies before the first production rollout.
+
+- **`F49` — Shared `IDistributedCache` for multi-replica deployments.** The DPoP nonce service, the DPoP proof replay
+  cache, and the client-assertion replay cache (RFC 7523 §3) run over `IDistributedCache`, and the server registers
+  `AddDistributedMemoryCache()` by default, so every replica keeps its own: a nonce issued by one pod is rejected by
+  another, and a proof or assertion replayed against a different pod is accepted. Nothing in the server composition or
+  the host registers a shared provider, so a deployment must run a single replica until one exists. Add a
+  configuration-bound Valkey (Redis-protocol) registration to the server composition, wire it in the host, and report
+  it in readiness (`F46`). Give the replay caches an atomic set-if-absent on that store to close the check-then-set race
+  their `IDistributedCache` implementations document. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultRegistration.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultDPoPNonceService.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultDPoPProofReplayCache.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientAssertionReplayCache.cs`,
+  `src/NCode.Identity.OpenId.Host/Program.cs`.
 
 ## Conformance & interop testing (group `T`)
 
@@ -541,6 +559,22 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   Complements `S9` (envelope encryption of stored secrets) and `S7` (external-keystore providers). Touch points:
   `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.Server/IdentityServerBuilder.cs`,
   `src/NCode.Identity.Server/ProductionSafety`, `src/NCode.Identity.Secrets/DefaultRegistration.cs`.
+
+- **`S11` — Provision tenant signing keys in production.** A tenant's signing keys come only from its persisted secrets
+  (`DefaultOpenIdTenantFactory.GetTenantSecretsAsync`), and the only seeder that creates one is the development-only
+  `DeveloperSigningKeySeedHandler`. `AddProductionSafety` requires `DeveloperKeys:Mode=None` in Production, so on a
+  fresh production database no tenant has a signing key: the JWKS is empty, no token can be issued, and the
+  [ADR-0044](docs/adr/0044-management-api-authentication-and-globaladmin-bootstrap.md) bootstrap administrator cannot
+  obtain the management token it needs to create or import one through `POST api/tenants/{tenantId}/secrets` — a
+  cold-start deadlock that blocks the lab. Add production key provisioning (the open "first-class production
+  key-management registration" follow-up of [ADR-0002](docs/adr/0002-ephemeral-development-keys.md)): on tenant seed,
+  generate the tenant's asymmetric signing keys through the normal persistence path when none is usable — covering the
+  mandatory-to-implement `RS256` and the preferred `PS256` / `ES256`. Unlike the developer seeder, never prune
+  undecryptable secrets; fail loudly, since that signals a lost or changed Data Protection key ring. Rotation and
+  retirement follow in `S8`, external keystores in `S7`. Touch points:
+  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperSigningKeySeedHandler.cs`,
+  `src/NCode.Identity.Server/ProductionSafety/ProductionSafetyRegistration.cs`,
+  `src/NCode.Identity.OpenId.Core/Tenants/DefaultOpenIdTenantFactory.cs`. Capture the design in an ADR.
 
 ## Tooling & agent customization (group `X`)
 

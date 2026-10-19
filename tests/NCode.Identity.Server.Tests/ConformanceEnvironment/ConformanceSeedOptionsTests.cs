@@ -16,7 +16,9 @@
 
 #endregion
 
+using Microsoft.Extensions.Configuration;
 using NCode.Identity.Server.ConformanceEnvironment;
+using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;
@@ -78,12 +80,37 @@ public class ConformanceSeedOptionsTests
     }
 
     [Fact]
-    public void ClientSeed_ByDefault_UsesBasicOpGrantsAndS256()
+    public void ClientSeed_ByDefault_RegistersClientSecretBasicAndLeavesListsEmpty()
     {
+        // The lists start empty so configuration replaces, rather than extends, their defaults.
         var client = new ConformanceClientSeed();
 
-        Assert.Equal(["authorization_code", "refresh_token"], client.GrantTypes);
-        Assert.Equal(["client_secret_basic"], client.TokenEndpointAuthMethods);
+        Assert.Empty(client.GrantTypes);
+        Assert.Equal("client_secret_basic", client.TokenEndpointAuthMethod);
+        Assert.Empty(client.CodeChallengeMethods);
+    }
+
+    [Fact]
+    public void ClientSeed_WhenBoundFromConfiguration_HoldsExactlyTheConfiguredValues()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["ConformanceSeed:Clients:0:ClientId"] = "client-secret-post",
+                    ["ConformanceSeed:Clients:0:GrantTypes:0"] = "authorization_code",
+                    ["ConformanceSeed:Clients:0:TokenEndpointAuthMethod"] = "client_secret_post",
+                    ["ConformanceSeed:Clients:0:CodeChallengeMethods:0"] = "S256",
+                }
+            )
+            .Build();
+        var options = new ConformanceSeedOptions();
+
+        configuration.GetSection(ConformanceSeedOptions.DefaultSectionName).BindStrictly(options);
+
+        var client = Assert.Single(options.Clients);
+        Assert.Equal(["authorization_code"], client.GrantTypes);
+        Assert.Equal("client_secret_post", client.TokenEndpointAuthMethod);
         Assert.Equal(["S256"], client.CodeChallengeMethods);
     }
 

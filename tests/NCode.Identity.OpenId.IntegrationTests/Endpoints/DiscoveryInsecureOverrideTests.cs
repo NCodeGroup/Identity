@@ -66,10 +66,6 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
         // The 'implicit' grant type is advertised.
         var grantTypes = GetStringArray(root, "grant_types_supported");
         Assert.Contains(OpenIdConstants.GrantTypes.Implicit, grantTypes);
-
-        // PKCE 'plain' is advertised alongside 'S256'.
-        var codeChallengeMethods = GetStringArray(root, "code_challenge_methods_supported");
-        Assert.Contains(OpenIdConstants.CodeChallengeMethods.Plain, codeChallengeMethods);
     }
 
     [Fact]
@@ -138,7 +134,8 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
             + "&scope=openid"
             + "&nonce=n-0S6_WzA2Mj"
             + "&state=abc123"
-            + "&prompt=none";
+            + "&prompt=none"
+            + TestPkce.QueryParameters;
 
         using var response = await CreateClient().GetAsync("/oauth2/authorize" + query);
 

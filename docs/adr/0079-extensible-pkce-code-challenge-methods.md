@@ -1,6 +1,8 @@
 # 79. Extensible PKCE `code_challenge_method` transformations
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0144](0144-authorization-codes-are-bound-to-pkce-by-default.md): `plain` is
+  no longer shipped or configurable, the setting's domain is the registered transformations, and its default is `S256`
+  alone, so a registered transformation is offered only once an operator lists it)
 - **Date:** 2026-10-12
 - **Deciders:** NCode.Identity maintainers
 

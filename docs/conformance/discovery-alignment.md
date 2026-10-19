@@ -62,7 +62,7 @@ Verify each discoverable field against actual support for the Basic/Config profi
 | `scopes_supported`                                                       | incl. `openid`, `profile`, `email`             | Suite requests these in standard-claims tests         |
 | `claims_supported`                                                       | the claims actually returned                   | Over-advertising triggers warnings                    |
 | `token_endpoint_auth_methods_supported`                                  | `["client_secret_basic","client_secret_post"]` | Must cover both to certify Basic OP                   |
-| `code_challenge_methods_supported`                                       | `["S256"]`                                     | Omit `plain` unless intentionally supported           |
+| `code_challenge_methods_supported`                                       | `["S256"]`                                     | `plain` is not offered (ADR-0144)                     |
 
 ## Approach
 

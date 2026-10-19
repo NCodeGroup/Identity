@@ -202,7 +202,7 @@ and the backing settings in
 | `scopes_supported`                      | incl. `openid`, `profile`, `email`             | Suite requests these in standard claims tests                 |
 | `claims_supported`                      | the claims actually returned                   | Over-advertising triggers warnings                            |
 | `token_endpoint_auth_methods_supported` | `["client_secret_basic","client_secret_post"]` | Must cover both to certify Basic OP                           |
-| `code_challenge_methods_supported`      | `["S256"]`                                     | PKCE; omit `plain` unless intentionally supported             |
+| `code_challenge_methods_supported`      | `["S256"]`                                     | PKCE; `plain` is not offered (ADR-0144)                       |
 
 ## Appendix B — Login/consent automation contract
 
@@ -238,7 +238,10 @@ methods). All must register the suite callback as a redirect URI.
 - **Redirect URI (all):** `https://<SUITE_BASE>/test/a/<ALIAS>/callback`
   (local: `https://localhost.emobix.co.uk:8443/test/a/<ALIAS>/callback`;
   hosted: `https://www.certification.openid.net/test/a/<ALIAS>/callback`).
-- **PKCE:** allow `S256`.
+- **PKCE:** allow `S256`. The OP binds every authorization code to PKCE by default
+  ([ADR-0144](adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)); the conformance host relaxes
+  `require_pkce` and attests its clients with `pkce_nonce_exemption`, because the suite's requests carry a `nonce` but
+  send PKCE in only one module.
 
 > With DCR (gap `F6`) implemented, skip all of the above — remove `alias` from the config and the suite
 > registers clients itself and runs modules in parallel.

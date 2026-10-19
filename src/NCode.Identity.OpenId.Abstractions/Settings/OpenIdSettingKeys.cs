@@ -599,6 +599,11 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RequireCodeChallenge);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'pkce_nonce_exemption' setting.
+    /// </summary>
+    public static SettingKey<bool> PkceNonceExemption => new(OpenIdSettingNames.PkceNonceExemption);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_request_object' setting.
     /// </summary>
     public static SettingKey<bool> RequireRequestObject =>

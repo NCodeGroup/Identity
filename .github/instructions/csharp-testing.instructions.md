@@ -172,6 +172,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   handlers, which depend on `IStoreManagerFactory`. A configuration-only test registers a never-called strict
   `new Mock<IStoreManagerFactory>(MockBehavior.Strict).Object` rather than disabling DI validation or composing a
   database.
+- 👁 **Drive the authorization endpoint the way a conforming client does.** Every authorization code is bound to an
+  `S256` PKCE challenge by default ([ADR-0144](../../docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)),
+  so an integration test that requests a code sends `TestPkce.QueryParameters` (or `TestPkce.FormFields` at the pushed
+  authorization request endpoint) and redeems it with `TestPkce.CodeVerifier`; a test without them exercises the
+  refusal, not the flow. Sign a user in with `InteractiveLogin.SignInAsync` rather than another copy of the antiforgery
+  dance.
 - 👁 **Validate new tests in Release before running `dod.ps1`.** The gate builds and tests in **Release**, where
   `Debug.Assert` and `#if DEBUG` blocks disappear; run `dotnet test <proj> --configuration Release` first to catch
   Debug-vs-Release differences fast (a `#if DEBUG` auth bypass, a stripped assertion).

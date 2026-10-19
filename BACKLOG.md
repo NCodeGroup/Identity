@@ -66,7 +66,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
-| `F` — Feature gaps                    | `F58`     | `F57`      |
+| `F` — Feature gaps                    | `F60`     | `F59`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U15`     | `U14`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
@@ -454,17 +454,32 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Abstractions/Settings/ISecurityProfile.cs`. Capture the design in an ADR (amending
   [ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
 
-- **`F56` — Require PKCE for the authorization code flow by default.** `require_pkce` defaults to `false`, so an
-  authorization request without a `code_challenge` is accepted unless the client runs the FAPI 2.0 profile or is the
-  developer seed client. The OAuth 2.1 direction and RFC 9700 §2.1.1 expect PKCE (`S256`) for every client that uses the
-  authorization code flow; `code_challenge_methods_supported` already defaults to `S256` only. Default `require_pkce` to
-  `true` (it merges as a floor, so a client cannot loosen it), decide whether a confidential
-  OpenID Connect client that sends a `nonce` may be exempt (RFC 9700 permits the nonce as the alternative mitigation for
-  such clients — a genuine trade-off to record in the ADR), and verify the conformance plans and seeders send a
-  challenge. Touch points: `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`
-  (`require_pkce`), `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultValidateAuthorizationRequestHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/AuthorizationCode/DefaultValidateAuthorizationCodeGrantHandler.cs`.
-  Capture the design in an ADR (amending [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
+- **`F58` — Enforce the client's registered `token_endpoint_auth_method` at every endpoint that authenticates it.** The
+  client-authentication service checks the method a client authenticated with only against its effective
+  `token_endpoint_auth_methods_supported`, whose default is every registered handler, `none` included — not against the
+  client's registered `token_endpoint_auth_method` (RFC 7591 §2). A client registered as confidential (every dynamically
+  registered `client_secret_*` client) can therefore present only its `client_id` and be treated as public: at the token
+  endpoint for the `refresh_token` grant and other grants that rely on client authentication, and at the pushed
+  authorization request endpoint. Authorization codes are safe — a code that is not bound to PKCE is redeemable only by a
+  client that actually authenticates ([ADR-0144](docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)) —
+  but the client type should be one fact. Require the method a client authenticates with to be its registered method
+  (normalizing an unset registration, and treating `token_endpoint_auth_methods_supported` as the server/profile
+  ceiling it is), and decide how a management-API client that registers no method is typed (the conformance seeder
+  already registers one method and permits only it). Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientAuthenticationService.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Clients/OpenIdClientRegistrationExtensions.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/RefreshToken/DefaultValidateRefreshTokenGrantHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`.
+  Capture the design in an ADR.
+
+- **`F59` — Let configuration replace the developer seed's default SPA clients.**
+  `DeveloperInteractiveSeedOptions.SpaClients` starts with the `mgmt-spa` and `playground-spa` entries, and the
+  configuration binder appends configured entries to a list that already holds some, so configuring
+  `DeveloperInteractiveSeed:SpaClients` adds clients but can never remove or replace the defaults (the convention:
+  a bound collection starts empty and its default applies only when nothing is configured). Start the list empty and
+  apply the two defaults when none are configured. Touch points:
+  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperInteractiveSeedOptions.cs`,
+  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperInteractiveSeedHandler.cs`.
 
 ## Conformance & interop testing (group `T`)
 

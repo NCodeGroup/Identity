@@ -573,9 +573,17 @@ public static class OpenIdSettingNames
     public const string RequireConsent = "require_consent";
 
     /// <summary>
-    /// Contains the name of <c>require_pkce</c> setting.
+    /// Contains the name of <c>require_pkce</c> setting: whether every authorization request whose response type issues
+    /// an authorization code must bind the code to a PKCE <c>code_challenge</c>.
     /// </summary>
     public const string RequireCodeChallenge = "require_pkce";
+
+    /// <summary>
+    /// Contains the name of <c>pkce_nonce_exemption</c> setting: an attestation that a client implements the OpenID
+    /// Connect <c>nonce</c> mechanism correctly, so that where <c>require_pkce</c> is relaxed, its confidential OpenID
+    /// Connect requests that carry a <c>nonce</c> may omit the PKCE <c>code_challenge</c>.
+    /// </summary>
+    public const string PkceNonceExemption = "pkce_nonce_exemption";
 
     /// <summary>
     /// Contains the name of <c>require_request_object</c> setting.

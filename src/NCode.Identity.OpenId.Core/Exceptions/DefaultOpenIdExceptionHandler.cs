@@ -65,6 +65,12 @@ internal class DefaultOpenIdExceptionHandler(ILogger<DefaultOpenIdExceptionHandl
         }
 
         var exception = exceptionDispatchInfo.SourceException;
+
+        // A protocol error that names no status code is a client error: an OAuth 2.0 error response is 400 Bad Request
+        // unless the endpoint's specification says otherwise (RFC 6749 §5.2, RFC 9126 §2.3).
+        if (exception is OpenIdException { Error: { StatusCode: null } protocolError })
+            protocolError.StatusCode = StatusCodes.Status400BadRequest;
+
         LogException(httpContext, exception);
 
         var httpResult = CreateHttpResult(openIdEnvironment, exception);

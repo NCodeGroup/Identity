@@ -125,10 +125,8 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
         OriginalRequestObject?.CodeChallenge ?? OriginalRequestMessage.CodeChallenge;
 
     /// <inheritdoc />
-    public string CodeChallengeMethod =>
-        OriginalRequestObject?.CodeChallengeMethod
-        ?? OriginalRequestMessage.CodeChallengeMethod
-        ?? OpenIdConstants.CodeChallengeMethods.Plain;
+    public string? CodeChallengeMethod =>
+        OriginalRequestObject?.CodeChallengeMethod ?? OriginalRequestMessage.CodeChallengeMethod;
 
     /// <inheritdoc />
     public string? CodeVerifier =>

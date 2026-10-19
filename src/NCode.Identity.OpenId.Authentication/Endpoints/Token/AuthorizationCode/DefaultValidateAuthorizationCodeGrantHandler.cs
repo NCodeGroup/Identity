@@ -20,6 +20,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Pkce;
@@ -28,7 +29,6 @@ using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
-using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 using NCode.Registration.AspNetCore;
 
@@ -60,7 +60,6 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
         var (authorizationRequest, subjectAuthentication) = authorizationGrant;
 
         var errorFactory = openIdContext.ErrorFactory;
-        var settings = openIdClient.Settings;
 
         // client_id/authenticated-client match is enforced upstream by DefaultClientAuthenticationService
 
@@ -159,13 +158,12 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
         // DPoP binding continuity (dpop_jkt, RFC 9449 §10) is enforced in DefaultAuthorizationCodeGrantHandler, where
         // the presented proof-of-possession binding is available.
 
-        // PKCE: code_verifier, code_challenge, code_challenge_method
-        ValidatePkce(
+        ValidateCodeVerifier(
             errorFactory,
+            openIdClient,
             tokenRequest.CodeVerifier,
-            authorizationRequest.CodeChallenge,
-            authorizationRequest.CodeChallengeMethod,
-            settings.GetValue(OpenIdSettingKeys.RequireCodeChallenge)
+            authorizationRequest,
+            effectiveScopes
         );
     }
 
@@ -202,60 +200,85 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
         }
     }
 
-    private void ValidatePkce(
+    // PKCE (RFC 7636 §4.6, OAuth 2.1 §4.1.3): a code bound to a code_challenge is redeemed only with the matching
+    // code_verifier; a code that is not bound is redeemed without one (PKCE downgrade, RFC 9700 §4.8.2), and only where
+    // the requirement exempts it for the client as authenticated here and the scopes the token request is effectively
+    // for. See ADR-0144.
+    private void ValidateCodeVerifier(
         IOpenIdErrorFactory errorFactory,
+        OpenIdClient openIdClient,
         string? codeVerifier,
-        string? codeChallenge,
-        string? codeChallengeMethod,
-        bool requireCodeChallenge
+        IAuthorizationRequest authorizationRequest,
+        IReadOnlyCollection<string> effectiveScopes
     )
     {
-        var hasCodeChallenge = !string.IsNullOrEmpty(codeChallenge);
-        var requireCodeVerifier = hasCodeChallenge || requireCodeChallenge;
+        var codeChallenge = authorizationRequest.CodeChallenge;
 
-        if (!string.IsNullOrEmpty(codeVerifier))
+        if (string.IsNullOrEmpty(codeChallenge))
         {
-            if (!hasCodeChallenge)
+            if (!string.IsNullOrEmpty(codeVerifier))
                 throw errorFactory
                     .InvalidGrant(
-                        "The 'code_challenge' parameter was missing in the original authorization request."
+                        "The 'code_verifier' parameter must not be used, because the authorization request had no 'code_challenge'."
                     )
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
 
             if (
-                string.IsNullOrEmpty(codeChallengeMethod)
-                || !CodeChallengeMethodCollectionProvider.TryGet(
-                    codeChallengeMethod,
-                    out var codeChallengeMethodHandler
+                CodeChallengeRequirement.IsRequiredForRedemption(
+                    openIdClient,
+                    authorizationRequest,
+                    effectiveScopes
                 )
             )
                 throw errorFactory
                     .InvalidGrant(
-                        "The provided 'code_challenge_method' parameter contains a value that is not supported."
+                        "The authorization code is not bound to a 'code_challenge', which this token request requires."
                     )
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
 
-            var expectedCodeChallenge = codeChallengeMethodHandler.ComputeChallenge(codeVerifier);
-
-            if (
-                !CryptographicOperations.FixedTimeEquals(
-                    MemoryMarshal.AsBytes(expectedCodeChallenge.AsSpan()),
-                    MemoryMarshal.AsBytes(codeChallenge.AsSpan())
-                )
-            )
-                throw errorFactory
-                    .InvalidGrant("PKCE verification failed.")
-                    .WithStatusCode(StatusCodes.Status400BadRequest)
-                    .AsException();
+            return;
         }
-        else if (requireCodeVerifier)
-        {
+
+        if (string.IsNullOrEmpty(codeVerifier))
             throw errorFactory
                 .InvalidGrant("The 'code_verifier' parameter is required.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
-        }
+
+        if (!PkceValueSyntax.IsWellFormed(codeVerifier))
+            throw errorFactory
+                .InvalidGrant("The 'code_verifier' parameter is malformed.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+
+        var codeChallengeMethod = authorizationRequest.CodeChallengeMethod;
+        if (
+            string.IsNullOrEmpty(codeChallengeMethod)
+            || !CodeChallengeMethodCollectionProvider.TryGet(
+                codeChallengeMethod,
+                out var codeChallengeMethodHandler
+            )
+        )
+            throw errorFactory
+                .InvalidGrant(
+                    "The 'code_challenge_method' of the authorization request is not supported."
+                )
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
+
+        var expectedCodeChallenge = codeChallengeMethodHandler.ComputeChallenge(codeVerifier);
+
+        if (
+            !CryptographicOperations.FixedTimeEquals(
+                MemoryMarshal.AsBytes(expectedCodeChallenge.AsSpan()),
+                MemoryMarshal.AsBytes(codeChallenge.AsSpan())
+            )
+        )
+            throw errorFactory
+                .InvalidGrant("PKCE verification failed.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsException();
     }
 }

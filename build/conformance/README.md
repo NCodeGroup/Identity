@@ -17,8 +17,8 @@ is slow, so it runs as an opt-in / nightly gate while the `dod.ps1` inner loop s
 | [`New-ConformanceReport.ps1`](New-ConformanceReport.ps1) | Renders a self-contained HTML report (pass / warn / skip / fail) from the result zips. |
 | [`oidcc-config.json`](oidcc-config.json)             | Config OP plan config (discovery-metadata only).                              |
 | [`oidcc-basic.json`](oidcc-basic.json)               | Basic OP plan config, with the `browser` automation block (clients registered per module via DCR). |
-| [`expected-failures.json`](expected-failures.json)   | Baseline of documented, intentional failures (starts empty).                  |
-| [`expected-skips.json`](expected-skips.json)         | Baseline of documented, intentional skips (starts empty).                     |
+| [`expected-failures.json`](expected-failures.json)   | Baseline of documented, intentional failures (each entry explains its deviation). |
+| [`expected-skips.json`](expected-skips.json)         | Baseline of documented, intentional skips (each entry explains its skip).     |
 
 The `conformance-user` login identity in the configs and the `client` credentials the pre-flight uses match the
 deterministic seed in

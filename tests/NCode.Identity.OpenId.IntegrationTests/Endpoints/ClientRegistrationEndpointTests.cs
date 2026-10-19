@@ -322,7 +322,8 @@ public class ClientRegistrationEndpointTests
         + $"&response_type={Uri.EscapeDataString(responseType)}"
         + "&scope=openid"
         + "&nonce=n-0S6_WzA2Mj"
-        + "&state=abc123";
+        + "&state=abc123"
+        + TestPkce.QueryParameters;
 
     private static string[] GetStringArray(JsonElement root, string propertyName) =>
         [

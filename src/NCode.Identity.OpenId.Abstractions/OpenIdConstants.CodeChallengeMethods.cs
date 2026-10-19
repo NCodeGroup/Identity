@@ -20,15 +20,11 @@ namespace NCode.Identity.OpenId;
 public static partial class OpenIdConstants
 {
     /// <summary>
-    /// Contains constants for possible values of the <c>code_challenge_method</c> parameter.
+    /// Contains constants for possible values of the <c>code_challenge_method</c> parameter. The server offers only
+    /// transformations that do not expose the code verifier in the authorization request.
     /// </summary>
     public static class CodeChallengeMethods
     {
-        /// <summary>
-        /// Contains the <c>code_challenge_method</c> parameter value for <c>plain</c>.
-        /// </summary>
-        public const string Plain = "plain";
-
         /// <summary>
         /// Contains the <c>code_challenge_method</c> parameter value for <c>S256</c>.
         /// </summary>

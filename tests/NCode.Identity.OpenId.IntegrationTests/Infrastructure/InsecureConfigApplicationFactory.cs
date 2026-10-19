@@ -25,9 +25,11 @@ namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 /// A <see cref="HostApplicationFactory"/> that re-enables — purely through host configuration — the
 /// not-recommended capabilities the library omits from its secure defaults
 /// ([ADR-0083](../../../docs/adr/0083-secure-by-default-discovery-metadata.md)): the implicit/hybrid response
-/// types and <c>implicit</c> grant, and PKCE <c>plain</c>. Symmetric signing of a token that crosses a trust boundary
-/// is outside the signing settings' domain, so it cannot be re-enabled
-/// ([ADR-0140](../../../docs/adr/0140-setting-values-are-validated-against-their-domain.md)).
+/// types and <c>implicit</c> grant. Symmetric signing of a token that crosses a trust boundary is outside the signing
+/// settings' domain ([ADR-0140](../../../docs/adr/0140-setting-values-are-validated-against-their-domain.md)), and
+/// PKCE <c>plain</c> is not a registered transformation
+/// ([ADR-0144](../../../docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)), so neither can be
+/// re-enabled.
 /// </summary>
 /// <remarks>
 /// Server settings read from <c>OpenId:Server:Settings</c> are applied last and overwrite the baseline, so an
@@ -71,14 +73,6 @@ public sealed class InsecureConfigApplicationFactory : HostApplicationFactory
                     ["OpenId:Server:Settings:grant_types_supported:3"] = OpenIdConstants
                         .GrantTypes
                         .DeviceCode,
-
-                    // Re-add PKCE 'plain' alongside 'S256'.
-                    ["OpenId:Server:Settings:code_challenge_methods_supported:0"] = OpenIdConstants
-                        .CodeChallengeMethods
-                        .Plain,
-                    ["OpenId:Server:Settings:code_challenge_methods_supported:1"] = OpenIdConstants
-                        .CodeChallengeMethods
-                        .S256,
                 }
             );
         });

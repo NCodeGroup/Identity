@@ -46,7 +46,8 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
             + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
             + "&response_type=code"
             + "&scope=openid"
-            + "&state=abc123";
+            + "&state=abc123"
+            + TestPkce.QueryParameters;
 
         using var response = await client.GetAsync("/oauth2/authorize" + query);
 
@@ -71,7 +72,8 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
             + "&response_type=code"
             + "&scope=openid"
             + "&state=abc123"
-            + "&prompt=none";
+            + "&prompt=none"
+            + TestPkce.QueryParameters;
 
         using var response = await client.GetAsync("/oauth2/authorize" + query);
 
@@ -114,7 +116,8 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
                     + "&response_type=code"
                     + "&scope=openid"
                     + $"&state={state}"
-                    + "&prompt=none";
+                    + "&prompt=none"
+                    + TestPkce.QueryParameters;
                 using var response = await client.GetAsync("/oauth2/authorize" + query);
                 var location = response.Headers.Location;
                 var echoed = location is null
@@ -183,5 +186,63 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
         var location = response.Headers.Location;
         Assert.NotNull(location);
         Assert.StartsWith(RedirectUri, location.GetLeftPart(UriPartial.Path));
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithoutCodeChallenge_RedirectsInvalidRequestToTheClient()
+    {
+        // An authorization code is bound to PKCE by default; a missing code_challenge is invalid_request
+        // (RFC 7636 §4.4.1).
+        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        var query =
+            $"?client_id={ClientId}"
+            + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+            + "&response_type=code"
+            + "&scope=openid"
+            + "&nonce=n-0S6_WzA2Mj"
+            + "&state=abc123";
+
+        using var response = await client.GetAsync("/oauth2/authorize" + query);
+
+        Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.StartsWith(RedirectUri, location.GetLeftPart(UriPartial.Path));
+        var parameters = System.Web.HttpUtility.ParseQueryString(location.Query);
+        Assert.Equal("invalid_request", parameters["error"]);
+        Assert.Equal("abc123", parameters["state"]);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithPlainCodeChallengeMethod_RedirectsInvalidRequestToTheClient()
+    {
+        // 'plain' exposes the verifier in the authorization request and is not a method the server offers.
+        await Factory.SeedPublicClientAsync(ClientId, RedirectUri);
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        var query =
+            $"?client_id={ClientId}"
+            + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+            + "&response_type=code"
+            + "&scope=openid"
+            + "&state=abc123"
+            + $"&code_challenge={TestPkce.CodeVerifier}"
+            + "&code_challenge_method=plain";
+
+        using var response = await client.GetAsync("/oauth2/authorize" + query);
+
+        Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        var parameters = System.Web.HttpUtility.ParseQueryString(location.Query);
+        Assert.Equal("invalid_request", parameters["error"]);
     }
 }

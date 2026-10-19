@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Buffers;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Environments;
@@ -59,6 +60,12 @@ internal sealed class ConformanceSeedHandler(
     ILogger<ConformanceSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
+    // The Basic OP set a client uses when its seed configures no grant types.
+    private static readonly string[] DefaultGrantTypes =
+    [
+        OpenIdConstants.GrantTypes.AuthorizationCode,
+        OpenIdConstants.GrantTypes.RefreshToken,
+    ];
     private ConformanceSeedOptions Options { get; } = options;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private ICryptoService CryptoService { get; } = cryptoService;
@@ -126,16 +133,21 @@ internal sealed class ConformanceSeedHandler(
         var secretWritten = Base64Url.DecodeFromChars(secret, secretOwner.Memory.Span);
         var clientSecretBytes = secretOwner.Memory[..secretWritten];
 
-        var settings = JsonSerializer.SerializeToElement(
-            new Dictionary<string, object>
-            {
-                [OpenIdSettingNames.RedirectUris] = client.RedirectUris,
-                [OpenIdSettingNames.GrantTypesSupported] = client.GrantTypes,
-                [OpenIdSettingNames.TokenEndpointAuthMethodsSupported] =
-                    client.TokenEndpointAuthMethods,
-                [OpenIdSettingNames.CodeChallengeMethodsSupported] = client.CodeChallengeMethods,
-            }
-        );
+        // The registered method (RFC 7591 §2) decides the client type, and it is the only method the client may use.
+        string[] tokenEndpointAuthMethods = [client.TokenEndpointAuthMethod];
+        var settingValues = new Dictionary<string, object>
+        {
+            [OpenIdSettingNames.RedirectUris] = client.RedirectUris,
+            [OpenIdSettingNames.GrantTypesSupported] =
+                client.GrantTypes.Length > 0 ? client.GrantTypes : DefaultGrantTypes,
+            [OpenIdSettingNames.TokenEndpointAuthMethod] = client.TokenEndpointAuthMethod,
+            [OpenIdSettingNames.TokenEndpointAuthMethodsSupported] = tokenEndpointAuthMethods,
+        };
+        if (client.CodeChallengeMethods.Length > 0)
+            settingValues[OpenIdSettingNames.CodeChallengeMethodsSupported] =
+                client.CodeChallengeMethods;
+
+        var settings = JsonSerializer.SerializeToElement(settingValues);
         EnsureSettingsCanBeHonored(clientId, settings);
 
         var persistedClient = new PersistedClient

@@ -22,6 +22,7 @@ using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Pkce;
 using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -218,6 +219,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
         ValidateProtocolRules(errorFactory, request);
         ValidateConfiguredConstraints(errorFactory, settings, request);
         ValidateResponseType(openIdContext, openIdClient, request);
+        ValidateCodeChallenge(errorFactory, openIdClient, request);
         ValidateSupportedValues(errorFactory, settings, request);
     }
 
@@ -292,8 +294,6 @@ internal class DefaultValidateAuthorizationRequestHandler(
         IAuthorizationRequest request
     )
     {
-        var hasCodeChallenge = !string.IsNullOrEmpty(request.CodeChallenge);
-
         if (
             request.OriginalRequestObject is null
             && settings.GetValue(OpenIdSettingKeys.RequireRequestObject)
@@ -302,12 +302,6 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 .InvalidRequest(
                     "The configuration requires the use of either request or request_uri parameters."
                 )
-                .AsException();
-
-        // require_pkce
-        if (!hasCodeChallenge && settings.GetValue(OpenIdSettingKeys.RequireCodeChallenge))
-            throw errorFactory
-                .UnauthorizedClient("The configuration requires the use of PKCE parameters.")
                 .AsException();
 
         // dpop_jkt (RFC 9449 §10): a base64url-encoded SHA-256 JWK thumbprint (RFC 7638), i.e. exactly 32 bytes.
@@ -388,6 +382,59 @@ internal class DefaultValidateAuthorizationRequestHandler(
             );
     }
 
+    /// <summary>
+    /// Validates the PKCE parameters (RFC 7636). A request whose response type issues an authorization code carries a
+    /// <c>code_challenge</c> unless <see cref="CodeChallengeRequirement"/> exempts it. A <c>code_challenge</c> has the
+    /// RFC 7636 syntax and names its <c>code_challenge_method</c>, which has no default, and the method must be one of
+    /// the client's <c>code_challenge_methods_supported</c>. Each refusal is <c>invalid_request</c>
+    /// (RFC 7636 §4.4.1).
+    /// </summary>
+    /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the refusal.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> whose registration and settings decide the
+    /// requirement.</param>
+    /// <param name="request">The authorization request to validate.</param>
+    // See ADR-0144.
+    [AssertionMethod]
+    internal static void ValidateCodeChallenge(
+        IOpenIdErrorFactory errorFactory,
+        OpenIdClient openIdClient,
+        IAuthorizationRequest request
+    )
+    {
+        var codeChallenge = request.CodeChallenge;
+        if (string.IsNullOrEmpty(codeChallenge))
+        {
+            if (
+                ResponseTypeValues.IssuesAuthorizationCode(request.ResponseTypes)
+                && CodeChallengeRequirement.IsRequiredForAuthorization(openIdClient, request)
+            )
+                throw errorFactory
+                    .MissingParameter(OpenIdConstants.Parameters.CodeChallenge)
+                    .AsException();
+
+            return;
+        }
+
+        if (!PkceValueSyntax.IsWellFormed(codeChallenge))
+            throw errorFactory
+                .InvalidParameterValue(OpenIdConstants.Parameters.CodeChallenge)
+                .AsException();
+
+        var codeChallengeMethod = request.CodeChallengeMethod;
+        if (string.IsNullOrEmpty(codeChallengeMethod))
+            throw errorFactory
+                .MissingParameter(OpenIdConstants.Parameters.CodeChallengeMethod)
+                .AsException();
+
+        var codeChallengeMethodsSupported = openIdClient.Settings.GetValue(
+            OpenIdSettingKeys.CodeChallengeMethodsSupported
+        );
+        if (!codeChallengeMethodsSupported.Contains(codeChallengeMethod, StringComparer.Ordinal))
+            throw errorFactory
+                .NotSupported(OpenIdConstants.Parameters.CodeChallengeMethod)
+                .AsException();
+    }
+
     [AssertionMethod]
     internal static void ValidateSupportedValues(
         IOpenIdErrorFactory errorFactory,
@@ -403,17 +450,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.AcrValues).AsException();
         }
 
-        // code_challenge_methods_supported
-        if (!string.IsNullOrEmpty(request.CodeChallenge))
-        {
-            var codeChallengeMethodsSupported = settings.GetValue(
-                OpenIdSettingKeys.CodeChallengeMethodsSupported
-            );
-            if (!codeChallengeMethodsSupported.Contains(request.CodeChallengeMethod))
-                throw errorFactory
-                    .NotSupported(OpenIdConstants.Parameters.CodeChallengeMethod)
-                    .AsException();
-        }
+        // code_challenge_methods_supported is enforced by ValidateCodeChallenge
 
         // claims_locales_supported
         if (

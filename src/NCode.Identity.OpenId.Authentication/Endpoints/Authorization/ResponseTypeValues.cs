@@ -19,8 +19,9 @@
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 
 /// <summary>
-/// Provides the operations on an OAuth 2.0 <c>response_type</c> value: its canonical form, whether it returns tokens
-/// from the authorization endpoint, its default <c>response_mode</c>, and the grant types it uses.
+/// Provides the operations on an OAuth 2.0 <c>response_type</c> value: its canonical form, whether it issues an
+/// authorization code, whether it returns tokens from the authorization endpoint, its default <c>response_mode</c>, and
+/// the grant types it uses.
 /// </summary>
 /// <remarks>
 /// A <c>response_type</c> value is a space-delimited list of names whose order does not matter (RFC 6749 §3.1.1), so
@@ -52,6 +53,14 @@ internal static class ResponseTypeValues
         var names = value.Split(OpenIdConstants.ParameterSeparatorChar);
         return names.Any(name => name.Length == 0) ? value : Canonicalize(names);
     }
+
+    /// <summary>
+    /// Gets a value indicating whether a response type issues an authorization code: it includes <c>code</c>.
+    /// </summary>
+    /// <param name="names">The names of the response type, in any order.</param>
+    /// <returns><see langword="true"/> when the response type issues an authorization code.</returns>
+    public static bool IssuesAuthorizationCode(IReadOnlyCollection<string> names) =>
+        names.Contains(OpenIdConstants.ResponseTypes.Code, StringComparer.Ordinal);
 
     /// <summary>
     /// Gets a value indicating whether a response type returns a token from the authorization endpoint: it includes
@@ -87,7 +96,7 @@ internal static class ResponseTypeValues
     {
         List<string> grantTypes = [];
 
-        if (names.Contains(OpenIdConstants.ResponseTypes.Code, StringComparer.Ordinal))
+        if (IssuesAuthorizationCode(names))
             grantTypes.Add(OpenIdConstants.GrantTypes.AuthorizationCode);
 
         if (ReturnsTokens(names))

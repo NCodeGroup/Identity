@@ -26,8 +26,8 @@ NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.GrantTypes.se
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.RedirectUris.get -> string![]!
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.RedirectUris.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ShouldSeed.get -> bool
-NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethods.get -> string![]!
-NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethods.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethod.get -> string!
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethod.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.Clients.get -> System.Collections.Generic.IList<NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed!>!
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.Clients.set -> void

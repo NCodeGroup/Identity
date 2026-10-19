@@ -8,6 +8,12 @@
     Restores, builds (net10, warnings and vulnerability advisories as errors in CI), and tests the whole family
     with coverage. Runs identically locally and in CI so "it passes on my machine" means "it passes in the pipeline".
 
+    The gate is the same everywhere; only its presentation adapts. Every run writes its test results to
+    artifacts/test-results (cleared first, so a report never mixes in an earlier run) and prints a test digest and a
+    stage/duration table. A full run also writes the merged coverage report to artifacts/coverage (index.html is the
+    browsable report). On GitHub Actions each stage is a collapsible log group, a failure is annotated with the stage
+    that broke, and the job summary shows the stage table, the test results, and the coverage summary (ADR-0143).
+
 .PARAMETER Configuration
     The build configuration. Defaults to Release.
 
@@ -38,6 +44,8 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $solution = Join-Path $repoRoot 'NCode.Identity.slnx'
+$testResults = Join-Path $repoRoot 'artifacts/test-results'
+$onGitHub = $env:GITHUB_ACTIONS -eq 'true'
 
 # Enforce the strict gate: warnings-as-errors and NuGet vulnerability advisories (NU1901-1904) fail the build.
 # -Fast is a genuine local build: leaving CI unset keeps compile warnings-as-errors (unconditional in the props) but
@@ -46,12 +54,79 @@ $solution = Join-Path $repoRoot 'NCode.Identity.slnx'
 $originalCi = $env:CI
 $env:CI = if ($Fast) { $null } else { 'true' }
 
+$stages = [System.Collections.Generic.List[object]]::new()
+$passed = $false
+
+function Format-Duration([TimeSpan]$Elapsed) {
+    if ($Elapsed.TotalSeconds -lt 60) {
+        return $Elapsed.TotalSeconds.ToString('0.0', [System.Globalization.CultureInfo]::InvariantCulture) + ' s'
+    }
+    return '{0}m {1:00}s' -f [int][Math]::Floor($Elapsed.TotalMinutes), $Elapsed.Seconds
+}
+
 function Invoke-Step {
     param([string]$Name, [scriptblock]$Action)
-    Write-Host "=== $Name ===" -ForegroundColor Cyan
-    & $Action
-    if ($LASTEXITCODE -ne 0) {
-        throw "$Name failed with exit code $LASTEXITCODE."
+    if ($onGitHub) {
+        Write-Host "::group::$Name"
+    }
+    else {
+        Write-Host "=== $Name ===" -ForegroundColor Cyan
+    }
+    $stage = [pscustomobject]@{ Name = $Name; Passed = $false; Elapsed = [TimeSpan]::Zero }
+    $stages.Add($stage)
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    try {
+        & $Action
+        if ($LASTEXITCODE -ne 0) {
+            throw "$Name failed with exit code $LASTEXITCODE."
+        }
+        $stage.Passed = $true
+    }
+    finally {
+        $stage.Elapsed = $stopwatch.Elapsed
+        if ($onGitHub) {
+            Write-Host '::endgroup::'
+        }
+    }
+}
+
+# The stage table: printed locally, and on GitHub placed at the TOP of the job summary — above the test and coverage
+# sections the stages appended while running — so the verdict and the stage that broke are the first thing a reader
+# sees.
+function Write-StageSummary {
+    $total = [TimeSpan]::Zero
+    foreach ($stage in $stages) {
+        $total += $stage.Elapsed
+    }
+    $verdict = if ($passed) { 'PASSED' } else { 'FAILED' }
+    $mode = if ($Fast) { 'fast gate' } else { 'full gate' }
+
+    Write-Host "`nStages ($mode, $Configuration):"
+    foreach ($stage in $stages) {
+        $color = if ($stage.Passed) { 'Green' } else { 'Red' }
+        Write-Host ('  {0,-28} {1,-6} {2,10}' -f $stage.Name, $(if ($stage.Passed) { 'ok' } else { 'FAILED' }), (Format-Duration $stage.Elapsed)) -ForegroundColor $color
+    }
+    Write-Host ('  {0,-28} {1,-6} {2,10}' -f 'total', '', (Format-Duration $total))
+
+    if (-not $onGitHub -or -not $env:GITHUB_STEP_SUMMARY) {
+        return
+    }
+    $icon = if ($passed) { '✅' } else { '❌' }
+    $failedStage = $stages | Where-Object { -not $_.Passed } | Select-Object -First 1
+    $headline = if ($failedStage) { "$icon Definition of Done: $verdict at ``$($failedStage.Name)``" } else { "$icon Definition of Done: $verdict" }
+    $lines = @("## $headline", '', "_$([char]::ToUpperInvariant($mode[0]) + $mode.Substring(1)), $Configuration._", '', '| | Stage | Duration |', '| :-: | :-- | --: |')
+    foreach ($stage in $stages) {
+        $lines += "| $(if ($stage.Passed) { '✅' } else { '❌' }) | $($stage.Name) | $(Format-Duration $stage.Elapsed) |"
+    }
+    $lines += "| | **Total** | **$(Format-Duration $total)** |"
+    $lines += ''
+    try {
+        $existing = if (Test-Path -LiteralPath $env:GITHUB_STEP_SUMMARY) { Get-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Raw } else { '' }
+        Set-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value (($lines -join "`n") + "`n" + $existing) -Encoding utf8 -NoNewline
+    }
+    catch {
+        # Presentation must never decide the verdict.
+        Write-Warning "Could not write the job summary: $($_.Exception.Message)"
     }
 }
 
@@ -141,50 +216,69 @@ try {
 
     if (-not $SkipTests) {
         Invoke-Step 'test' {
+            # Results go to one directory that is cleared first: the test-project TestResults folders would otherwise
+            # accumulate every past run, and a wildcard over them merges stale coverage into the report.
+            if (Test-Path -LiteralPath $testResults) {
+                Remove-Item -LiteralPath $testResults -Recurse -Force
+            }
+            $junitLogger = "junit;LogFilePath=$(Join-Path $testResults '{assembly}-{framework}.junit.xml')"
             if ($Fast) {
                 # Skip coverage collection and run the test assemblies in parallel across cores
                 # (RunConfiguration.MaxCpuCount=0); xUnit already parallelizes collections within each assembly.
                 dotnet test $solution `
                     --configuration $Configuration `
                     --no-build `
-                    --logger:"junit;LogFilePath={assembly}-{framework}.junit.xml" `
+                    --results-directory $testResults `
+                    --logger:$junitLogger `
                     -- RunConfiguration.MaxCpuCount=0
             }
             else {
                 dotnet test $solution `
                     --configuration $Configuration `
                     --no-build `
+                    --results-directory $testResults `
                     --collect:"XPlat Code Coverage" `
-                    --logger:"junit;LogFilePath={assembly}-{framework}.junit.xml"
+                    --logger:$junitLogger
             }
+
+            # Report whatever ran — failures are exactly when the digest and annotations matter — then let the test
+            # run's own exit code decide the stage.
+            $testExitCode = $LASTEXITCODE
+            & (Join-Path $PSScriptRoot 'test-report.ps1') -Path 'artifacts/test-results/*.junit.xml' -Title '.NET tests' -Root $repoRoot
+            $global:LASTEXITCODE = $testExitCode
         }
 
         # -Fast skips coverage collection, so there is nothing to merge into a report.
         if (-not $Fast) {
             Invoke-Step 'coverage report' {
-                # Merge every per-project/per-TFM cobertura file into one report + a text summary. The summary line
-                # ("Line coverage: NN%") is echoed so a CI system can scrape the overall percentage, and the merged
-                # Cobertura.xml drives per-line diff coverage views.
-                $coverageDir = Join-Path $repoRoot 'artifacts/coverage'
-                dotnet reportgenerator `
-                    "-reports:$(Join-Path $repoRoot '**/coverage.cobertura.xml')" `
-                    "-targetdir:$coverageDir" `
-                    "-reporttypes:Cobertura;TextSummary"
-                if ($LASTEXITCODE -ne 0) { return }
-
-                # ReportGenerator writes absolute source paths; rewrite them relative to the repo root (forward slashes)
-                # so coverage lines up against the diff in a code-review UI.
-                $cobertura = Join-Path $coverageDir 'Cobertura.xml'
-                $content = (Get-Content $cobertura -Raw).Replace($repoRoot + '\', '').Replace($repoRoot + '/', '')
-                $content = [regex]::Replace($content, 'filename="([^"]*)"', { param($m) 'filename="' + ($m.Groups[1].Value -replace '\\', '/') + '"' })
-                Set-Content -Path $cobertura -Value $content -NoNewline
-
-                Get-Content (Join-Path $coverageDir 'Summary.txt') | Write-Host
+                # Merge this run's per-project cobertura files into one report (Cobertura + HTML + summaries). The echoed
+                # "Line coverage: NN%" line lets a CI system scrape the overall percentage, and the merged,
+                # repository-relative Cobertura.xml is what Codecov ingests for per-line diff coverage.
+                & (Join-Path $PSScriptRoot 'coverage-report.ps1') `
+                    -Path 'artifacts/test-results/*/coverage.cobertura.xml' `
+                    -TargetDirectory 'artifacts/coverage' `
+                    -Title '.NET coverage' `
+                    -ArtifactName 'coverage' `
+                    -Root $repoRoot
             }
         }
     }
 
+    $passed = $true
+    Write-StageSummary
+    # Keep this the final line: it is the documented pass signal (AGENTS.md, the push protocol).
     Write-Host "`nDefinition of Done: PASSED" -ForegroundColor Green
+}
+catch {
+    # Name the broken stage in the run's Annotations panel, so the cause is visible without opening the log.
+    if ($onGitHub) {
+        $message = $_.Exception.Message.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+        Write-Host "::error title=Definition of Done::$message"
+    }
+    if (-not $passed) {
+        Write-StageSummary
+    }
+    throw
 }
 finally {
     $env:CI = $originalCi

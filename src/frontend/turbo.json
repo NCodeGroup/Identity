@@ -9,7 +9,7 @@
     "typecheck": {},
     "lint": {},
     "test": {
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**", "test-results/**"]
     },
     "dev": {
       "cache": false,

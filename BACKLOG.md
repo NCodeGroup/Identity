@@ -70,7 +70,7 @@ entry and/or ADR that closed it.
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U15`     | `U14`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
-| `X` — Tooling & agent customization   | `X4`      | `X3`       |
+| `X` — Tooling & agent customization   | `X5`      | `X4`       |
 
 ---
 
@@ -519,8 +519,9 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `uuid` — reachable only when the Vitest UI server or the Vite dev server is running locally. **None ship**: the
   `apps/auth` bundle served by the OP host is static build output, and no NuGet package is affected
   (`dotnet list package --vulnerable --include-transitive` is clean). Clearing them means a `vitest` 2 → 4 major
-  upgrade across every app plus the matching `vite`/`esbuild` bumps; do it with `U5` so the new CI job proves the
-  upgrade rather than discovering it later.
+  upgrade across every app plus the matching `vite`/`esbuild` bumps — and `@vitest/coverage-v8`, which must always match
+  the installed `vitest` version (it drives the CI coverage report, ADR-0143); do it with `U5` so the new CI job proves
+  the upgrade rather than discovering it later.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
 - **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML
@@ -632,3 +633,14 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   both for now — the prompt still serves VS Code chat via its `agent:` frontmatter, and `disable-model-invocation: true`
   is intended to return once github/copilot-cli#4438 is fixed (restoring explicit-only semantics). If kept, edits must be
   mirrored across both files to avoid drift.
+- **`X4` — Decide the .NET coverage scope.** The merged .NET coverage report
+  ([ADR-0143](docs/adr/0143-ci-presents-test-results-and-coverage-in-github.md)) measures every assembly the tests load,
+  so its overall line figure (≈36% on the first isolated run) is dragged down by code that is not unit-testable library
+  surface: EF Core migrations in `NCode.Identity.OpenId.Host.Database` (0%), the reference host
+  `NCode.Identity.OpenId.Host` (<1%), and source-generator output under `obj/` (OpenAPI XML-comment and `Regex`
+  generators — ReportGenerator also warns that these files "do not exist" because they are build intermediates). Decide
+  what the headline number should measure — exclude generated code (`[GeneratedCode]`, `**/obj/**`, `**/Migrations/**`)
+  and the host/composition assemblies via coverlet `ExcludeByFile`/`Exclude` or ReportGenerator filters, applied
+  identically to the job summary and to Codecov (`codecov.yml` `ignore`) so the two never disagree. Touch points:
+  [`build/coverage-report.ps1`](build/coverage-report.ps1), [`tests/Directory.Build.props`](tests/Directory.Build.props),
+  [`codecov.yml`](codecov.yml). Coverage thresholds are a separate, later policy decision.

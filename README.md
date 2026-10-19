@@ -2,6 +2,7 @@
 
 [![.NET CI](https://github.com/NCodeGroup/Identity/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NCodeGroup/Identity/actions/workflows/ci.yml)
 [![Frontend CI](https://github.com/NCodeGroup/Identity/actions/workflows/frontend.yml/badge.svg?branch=main)](https://github.com/NCodeGroup/Identity/actions/workflows/frontend.yml)
+[![codecov](https://codecov.io/gh/NCodeGroup/Identity/graph/badge.svg?branch=main)](https://codecov.io/gh/NCodeGroup/Identity)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](global.json)
 
@@ -122,6 +123,11 @@ green run means the same thing in both places. It prints `Definition of Done: PA
 ./build/dod.ps1          # full gate: format check, build + pack, EF model drift, tests + coverage
 ./build/dod.ps1 -Fast    # local inner loop and pre-push gate: parallel, skips coverage + packing
 ```
+
+Test results land in `artifacts/test-results/` and the merged coverage report in `artifacts/coverage/` (open
+`index.html`). In CI, each run's summary page shows the stage timings, test results, and coverage, failed tests are
+annotated in place, and coverage history and pull-request diff coverage live on
+[Codecov](https://codecov.io/gh/NCodeGroup/Identity) ([ADR-0143](docs/adr/0143-ci-presents-test-results-and-coverage-in-github.md)).
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) has the full workflow. Work lands on the single `main` trunk
 ([ADR-0125](docs/adr/0125-trunk-based-development-on-main.md)).

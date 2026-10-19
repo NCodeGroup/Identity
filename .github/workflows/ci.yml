@@ -22,7 +22,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Least privilege: the gate only reads the tree. Nothing here publishes.
+# Least privilege: the gate job only reads the tree, and nothing here publishes. The one write-scoped permission —
+# `id-token: write`, to authenticate the Codecov upload over OIDC — belongs to the separate codecov job, never to the gate
+# job that executes third-party build and test code (ADR-0143).
 permissions:
   contents: read
 
@@ -66,7 +68,8 @@ jobs:
             ${{ runner.os }}-nuget-
 
       # The one gate. dod.ps1 sets CI=true internally, which promotes NuGet vulnerability advisories (NU1901-1904) to
-      # errors on top of the always-on warnings-as-errors.
+      # errors on top of the always-on warnings-as-errors. Under GitHub Actions it also writes the job summary (stage
+      # table, test results, coverage) and annotates failed tests and the failing stage (ADR-0143).
       - name: Definition of Done
         shell: pwsh
         run: ./build/dod.ps1
@@ -76,10 +79,11 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: test-results
-          path: '**/*.junit.xml'
+          path: artifacts/test-results/*.junit.xml
           retention-days: 14
           if-no-files-found: warn
 
+      # The merged report: Cobertura.xml (what Codecov ingests) plus the browsable HTML report (index.html).
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v7
@@ -99,3 +103,18 @@ jobs:
           path: artifacts/packages/
           retention-days: 14
           if-no-files-found: warn
+
+  # Reporting, not gating: runs after the gate whatever its verdict (failed tests are still worth reporting), and is
+  # never a required check.
+  codecov:
+    name: Codecov
+    needs: definition-of-done
+    if: ${{ !cancelled() }}
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/codecov-upload.yml
+    with:
+      flag: dotnet
+      coverage-artifact: coverage
+      test-results-artifact: test-results

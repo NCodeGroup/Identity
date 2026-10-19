@@ -1,5 +1,7 @@
 # Test + coverage output (generated).
 **/TestResults/
+**/test-results/
+**/*.junit.xml
 **/*.cobertura.xml
 
 # Build output (CSharpier skips bin/obj by default; listed for clarity).

@@ -1,0 +1,93 @@
+# Codecov upload — the reusable job both CI tiers call after their gate job (ADR-0143).
+#
+# The upload runs in its OWN job, never inside a gate job. Authenticating to Codecov over OIDC needs `id-token: write`,
+# and a gate job executes third-party build and test code (MSBuild targets, NuGet and npm packages) that must never be
+# able to mint a token. This job runs only GitHub's own actions and the SHA-pinned Codecov action, over the artifacts
+# the gate already produced, so no stored upload secret exists to leak either.
+#
+# Codecov reports; it does not gate. An upload failure never fails the run, and the statuses Codecov posts are
+# informational (codecov.yml), so the required check stays the tier's own gate ("Definition of Done").
+name: Codecov upload
+
+on:
+  workflow_call:
+    inputs:
+      flag:
+        description: The Codecov flag that groups this tier's coverage and test results (see codecov.yml).
+        required: true
+        type: string
+      coverage-artifact:
+        description: The artifact holding the merged Cobertura.xml written by build/coverage-report.ps1.
+        required: true
+        type: string
+      test-results-artifact:
+        description: The artifact holding the run's JUnit reports.
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  upload:
+    name: Upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      # The uploader reads the commit and the tracked-file list from the checkout to map report paths onto the
+      # repository.
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # A failed gate can leave either artifact missing (coverage is only merged once every test passes), so a missing
+      # artifact skips its upload instead of failing the job.
+      - name: Download coverage
+        id: coverage
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.coverage-artifact }}
+          path: ${{ runner.temp }}/codecov/coverage
+
+      - name: Download test results
+        id: test-results
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.test-results-artifact }}
+          path: ${{ runner.temp }}/codecov/test-results
+
+      # Name the JUnit files explicitly rather than letting the uploader search, so exactly this run's reports go up.
+      - name: List test results
+        id: junit
+        if: steps.test-results.outcome == 'success'
+        shell: bash
+        run: echo "files=$(find "$RUNNER_TEMP/codecov/test-results" -type f -name '*.xml' | sort | paste -sd, -)" >> "$GITHUB_OUTPUT"
+
+      # OIDC needs no stored secret. A pull request from a fork cannot mint an OIDC token, and Codecov accepts
+      # tokenless uploads from forks of public repositories instead.
+      - name: Upload coverage
+        if: steps.coverage.outcome == 'success'
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
+          files: ${{ runner.temp }}/codecov/coverage/Cobertura.xml
+          disable_search: true
+          flags: ${{ inputs.flag }}
+          name: ${{ inputs.flag }}
+          fail_ci_if_error: false
+
+      - name: Upload test results
+        if: steps.junit.outputs.files != ''
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          report_type: test_results
+          use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
+          files: ${{ steps.junit.outputs.files }}
+          disable_search: true
+          flags: ${{ inputs.flag }}
+          name: ${{ inputs.flag }}
+          fail_ci_if_error: false

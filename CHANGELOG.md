@@ -10,6 +10,21 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **CI runs now show their results on GitHub instead of only in zip artifacts.** The run summary page opens with the
+  Definition of Done verdict and a per-stage duration table, then the test results (one table across every test
+  assembly or frontend package, plus each failed test's message and stack) and the merged coverage summary. Failed
+  tests are annotated at their source line — on the run page and inline in pull-request diffs — and a failed gate
+  names the stage that broke. Coverage history, per-line diff coverage on pull requests, and test analytics are on
+  [Codecov](https://codecov.io/gh/NCodeGroup/Identity), uploaded over OIDC from a separate job so the gate jobs stay
+  read-only and no upload secret is stored. Codecov's statuses are informational; "Definition of Done" remains the
+  only required check. The frontend tier gains the same reports and coverage (`pnpm run test:report`), and the
+  `coverage` artifact now holds a browsable HTML report.
+
+  Locally, `./build/dod.ps1` writes each run's results to `artifacts/test-results/` (cleared first) and the coverage
+  report to `artifacts/coverage/index.html`. It previously merged coverage from every run ever left in the test
+  projects' `TestResults/` folders, so coverage figures from before this change overstated or understated the real
+  number. See [ADR-0143](docs/adr/0143-ci-presents-test-results-and-coverage-in-github.md).
+
 - **Every development-only convenience is now behind one self-gating call.** `AddDevelopmentEnvironment(configuration,
   hostEnvironment)` registers the developer CORS policy, the developer and conformance seeders, and the developer
   signing keys, and does nothing at all in Production.

@@ -233,7 +233,8 @@ All identity hosts are **DNS-only** in Cloudflare (no proxy), so TLS reaches Tra
 
 - **CAA:** `0 issue "letsencrypt.org"` and `0 issuewild "letsencrypt.org"` (optionally pinned to the ACME account
   with `accounturi=`) — no other CA may issue for the domain. Cloudflare Universal SSL silently adds CAA records for
-  its own CAs, so it must be off for that to hold (backlog `F64`); DNS-only hosts never use its edge certificates.
+  its own CAs, so the `cloudflare-zone` module keeps it off; DNS-only hosts never use its edge certificates, and a host
+  proxied through Cloudflare later needs an advanced certificate from a listed CA.
 - **Inbound mail only:** Cloudflare Email Routing (free, receive-only; `cloudflare_email_routing_settings` / `_dns` /
   `_address` / `_rule`) forwards per-purpose addresses — `security@` for `security.txt`, `platform@` as the owner of
   every cloud resource ([ADR-0135](adr/0135-one-resource-tagging-strategy-across-every-vendor.md)), and one per vendor account

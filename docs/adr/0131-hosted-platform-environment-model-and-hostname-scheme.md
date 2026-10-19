@@ -57,7 +57,8 @@ apex domain.**
 3. **DNS and certificates.** The registrar holds only the nameserver and DNSSEC delegation (a one-time manual
    bootstrap); the zone is hosted on Cloudflare DNS (DNS-only, never proxied, so TLS reaches the platform's proxy
    untouched) and managed by OpenTofu. cert-manager issues Let's Encrypt certificates (DNS-01 for wildcards); CAA
-   restricts issuance to Let's Encrypt. Lab and CI clusters never hold a token that can edit the production zone. Session
+   restricts issuance to Let's Encrypt, and Cloudflare Universal SSL stays off because it would publish CAA records for
+   Cloudflare's own CAs. Lab and CI clusters never hold a token that can edit the production zone. Session
    cookies are host-only (`__Host-` prefix, no `Domain` attribute).
 
 If `nidentity.com` is acquired before the first customer integrates, it replaces `nidentity.io` as the apex and the

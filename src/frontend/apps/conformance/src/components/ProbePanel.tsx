@@ -61,18 +61,18 @@ export function ProbePanel({
   probeFetch = browserFetch,
 }: ProbePanelProps) {
   const [report, setReport] = useState<ProbeReport | null>(null);
-  const [isRunning, setRunning] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleRun = async () => {
-    setRunning(true);
+    setIsRunning(true);
     setError(null);
     try {
       setReport(await runProbes(raw, probeFetch, clientId ? { clientId } : {}));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Probe run failed.');
     } finally {
-      setRunning(false);
+      setIsRunning(false);
     }
   };
 

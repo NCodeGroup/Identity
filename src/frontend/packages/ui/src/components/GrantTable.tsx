@@ -23,6 +23,11 @@ export type GrantRow = {
 
 export type GrantTableProps = {
   readonly grants: readonly GrantRow[];
+  /**
+   * The instant (epoch milliseconds) a grant's expiry is judged against. Supplied by the caller rather than read from
+   * the clock, so the table stays a pure function of its props.
+   */
+  readonly now: number;
   readonly onRevoke?: (grantId: string) => void;
 };
 
@@ -50,8 +55,7 @@ function formatInstant(value: string): string {
  * active grant (revoked/expired rows expose no control). Receives rows and a callback as props; holds
  * no state and does no fetching, so it renders directly in Storybook and under RTL.
  */
-export function GrantTable({ grants, onRevoke }: GrantTableProps) {
-  const now = Date.now();
+export function GrantTable({ grants, now, onRevoke }: GrantTableProps) {
   const showActions = Boolean(onRevoke);
   return (
     <Table size="small" aria-label="Grants">

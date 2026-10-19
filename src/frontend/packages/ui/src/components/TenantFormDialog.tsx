@@ -51,15 +51,15 @@ export function TenantFormDialog({
   onCancel,
 }: TenantFormDialogProps) {
   const [values, setValues] = useState<TenantFormValues>(initialValues);
-  const wasOpen = useRef(open);
+  const wasOpenRef = useRef(open);
 
   // Reseed the form only on the rising edge of `open`, so a new `initialValues` identity while the
   // dialog is already open never discards in-progress edits.
   useEffect(() => {
-    if (open && !wasOpen.current) {
+    if (open && !wasOpenRef.current) {
       setValues(initialValues);
     }
-    wasOpen.current = open;
+    wasOpenRef.current = open;
   }, [open, initialValues]);
 
   const displayName = values.displayName.trim();

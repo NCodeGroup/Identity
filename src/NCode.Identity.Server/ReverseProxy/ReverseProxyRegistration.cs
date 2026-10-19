@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.Server.Configuration;
 using NCode.Identity.Server.ReverseProxy;
 
 namespace NCode.Identity.Server;
@@ -43,17 +44,21 @@ public static class ReverseProxyRegistration
         /// <summary>
         /// Registers <see cref="ReverseProxyOptions"/> from the <c>ReverseProxy</c> configuration section and
         /// configures the forwarded-headers middleware to honor <c>X-Forwarded-For</c>, <c>X-Forwarded-Proto</c>, and
-        /// <c>X-Forwarded-Host</c> from the configured proxies only.
+        /// <c>X-Forwarded-Host</c> from the configured proxies only. The section is bound strictly: a key that maps to
+        /// no option throws.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the <c>ReverseProxy</c> section.</param>
         /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        /// <exception cref="InvalidOperationException">The <c>ReverseProxy</c> section contains a key that maps to no
+        /// option.</exception>
         public IServiceCollection AddReverseProxy(IConfiguration configuration)
         {
             ArgumentNullException.ThrowIfNull(serviceCollection);
             ArgumentNullException.ThrowIfNull(configuration);
 
             var options = new ReverseProxyOptions();
-            configuration.GetSection(ReverseProxyOptions.DefaultSectionName).Bind(options);
+            var section = configuration.GetSection(ReverseProxyOptions.DefaultSectionName);
+            section.BindStrictly(options);
 
             serviceCollection.AddSingleton(options);
 

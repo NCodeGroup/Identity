@@ -35,11 +35,6 @@ public sealed class OpenIdOptions
     public const string DefaultSectionName = "OpenId";
 
     /// <summary>
-    /// Gets or sets the name of the configuration section.
-    /// </summary>
-    public string SectionName { get; set; } = DefaultSectionName;
-
-    /// <summary>
     /// Gets or sets the configurable options for server features.
     /// </summary>
     public OpenIdServerOptions Server { get; set; } = new();

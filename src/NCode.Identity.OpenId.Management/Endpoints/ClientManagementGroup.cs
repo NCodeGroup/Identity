@@ -16,6 +16,7 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 using NCode.Registration.AspNetCore;
 
@@ -37,7 +38,8 @@ internal sealed class ClientManagementGroup : IEndpointGroup
     public string Name => GroupName;
 
     /// <inheritdoc />
-    public string Prefix => "/clients/{clientId}";
+    public RoutePattern GetPrefix(IServiceProvider serviceProvider) =>
+        RoutePatternFactory.Parse("/clients/{clientId}");
 
     /// <inheritdoc />
     public void ConfigureServices(IEndpointGroupBuilder builder)

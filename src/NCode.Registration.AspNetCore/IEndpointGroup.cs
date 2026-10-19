@@ -18,16 +18,17 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Patterns;
 
 namespace NCode.Registration.AspNetCore;
 
 /// <summary>
-/// Declares a node in the endpoint route-group hierarchy: its relative <see cref="Prefix"/>, the endpoints, child
-/// groups, and services it registers at startup (via <see cref="ConfigureServices"/>), and the conventions applied to
-/// its <see cref="RouteGroupBuilder"/> when routes are mapped (via <see cref="ConfigureRoutes"/>). A group owns its own
-/// contents: registering a root group recursively registers the whole subtree, and the route builder materializes each
-/// group parent-first and maps every endpoint registered under it, so a prefix, its shared filters, and its children
-/// are all declared in one place.
+/// Declares a node in the endpoint route-group hierarchy: its relative route prefix (via <see cref="GetPrefix"/>), the
+/// endpoints, child groups, and services it registers at startup (via <see cref="ConfigureServices"/>), and the
+/// conventions applied to its <see cref="RouteGroupBuilder"/> when routes are mapped (via <see cref="ConfigureRoutes"/>).
+/// A group owns its own contents: registering a root group recursively registers the whole subtree, and the route
+/// builder materializes each group parent-first and maps every endpoint registered under it, so a prefix, its shared
+/// filters, and its children are all declared in one place.
 /// </summary>
 [PublicAPI]
 public interface IEndpointGroup
@@ -41,7 +42,14 @@ public interface IEndpointGroup
     /// Gets the relative route prefix for the group (for example, <c>/api</c> or <c>/tenants/{tenantId}</c>). An empty
     /// prefix groups endpoints for shared conventions without altering their routes.
     /// </summary>
-    string Prefix { get; }
+    /// <remarks>
+    /// The prefix is resolved when routes are mapped rather than when the group is registered, so a group whose prefix
+    /// is configured at runtime (for example, the route a tenant is served under) can read it from the application's
+    /// services.
+    /// </remarks>
+    /// <param name="serviceProvider">The application's <see cref="IServiceProvider"/>.</param>
+    /// <returns>The route pattern the group is mapped under.</returns>
+    RoutePattern GetPrefix(IServiceProvider serviceProvider);
 
     /// <summary>
     /// Applies the group's shared conventions (such as endpoint filters) to its <see cref="RouteGroupBuilder"/>. The

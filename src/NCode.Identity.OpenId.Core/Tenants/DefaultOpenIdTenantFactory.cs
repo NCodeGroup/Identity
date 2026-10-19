@@ -19,6 +19,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
@@ -318,7 +319,9 @@ public class DefaultOpenIdTenantFactory(
         return new UriDescriptor
         {
             Scheme = uri.Scheme,
-            Host = HostString.FromUriComponent(uri),
+            // The authority omits the scheme's default port, so the published URLs keep the issuer's own form
+            // (https://op.example/...) instead of gaining an explicit :443 the issuer does not carry.
+            Host = HostString.FromUriComponent(uri.Authority),
             Path = PathString.FromUriComponent(uri),
         };
     }
@@ -423,32 +426,32 @@ public class DefaultOpenIdTenantFactory(
         // discovery endpoint URLs, the registration_client_uri, the device verification_uri. A configured origin is
         // therefore preferred over anything the caller sent: deriving it from the request lets a Host header decide
         // where the server tells clients to send their credentials, which is only acceptable on a developer's machine.
-        // The tenant's own issuer is its request-independent identity — the explicit-tenant path above already treats
-        // it as BOTH the issuer and the base address. Do the same for a request-materialized tenant, so the origin of
-        // every published URL is the tenant's own rather than whatever Host the caller supplied. Deriving it from the
-        // request is a development convenience, and the only case where a tenant has no issuer.
-        UriDescriptor origin;
+        // The tenant's own issuer is its request-independent identity and names exactly where the tenant is served,
+        // tenant route included, so it is the base address as-is — the explicit-tenant path above does the same (ADR-0138).
         if (!string.IsNullOrEmpty(persistedTenant.Issuer))
         {
-            origin = ParseBaseAddress(persistedTenant.Issuer);
-        }
-        else
-        {
-            origin = new UriDescriptor
-            {
-                Scheme = httpRequest.Scheme,
-                Host = httpRequest.Host,
-                Path = httpRequest.PathBase,
-            };
+            var issuerBaseAddress = ParseBaseAddress(persistedTenant.Issuer);
+            return ValueTask.FromResult(issuerBaseAddress);
         }
 
-        // The per-tenant route segment is appended either way: it identifies the tenant within the origin rather than
-        // being part of the origin itself.
-        var basePath = origin.Path;
+        // The development fallback derives the base address from the request: its origin, the path base the host is
+        // mounted under, and the tenant route bound from the request's route values.
+        var basePath = httpRequest.PathBase;
 
         var tenantRoute = TenantResolver.GetTenantRoute();
+
+        // Bind only the tenant route's own parameters, from a copy: the binder consumes the values it is given and
+        // writes any it does not use as a query string, so handing it the request's live route values would strip
+        // them from the request and leak the endpoint's other parameters into the base address.
+        var tenantRouteValues = new RouteValueDictionary();
+        foreach (var parameter in tenantRoute.Parameters)
+        {
+            if (httpRequest.RouteValues.TryGetValue(parameter.Name, out var value))
+                tenantRouteValues[parameter.Name] = value;
+        }
+
         var templateBinder = TemplateBinderFactory.Create(tenantRoute);
-        var tenantRouteUrl = templateBinder.BindValues(httpRequest.RouteValues);
+        var tenantRouteUrl = templateBinder.BindValues(tenantRouteValues);
         if (!string.IsNullOrEmpty(tenantRouteUrl))
         {
             basePath = basePath.Add(tenantRouteUrl);
@@ -456,8 +459,8 @@ public class DefaultOpenIdTenantFactory(
 
         var baseAddress = new UriDescriptor
         {
-            Scheme = origin.Scheme,
-            Host = origin.Host,
+            Scheme = httpRequest.Scheme,
+            Host = httpRequest.Host,
             Path = basePath,
         };
 

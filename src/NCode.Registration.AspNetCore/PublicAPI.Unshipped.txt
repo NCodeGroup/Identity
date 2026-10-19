@@ -12,8 +12,8 @@ NCode.Registration.AspNetCore.EndpointRouteBuilderExtensions.extension(Microsoft
 NCode.Registration.AspNetCore.IEndpointGroup
 NCode.Registration.AspNetCore.IEndpointGroup.ConfigureRoutes(Microsoft.AspNetCore.Routing.RouteGroupBuilder! group) -> void
 NCode.Registration.AspNetCore.IEndpointGroup.ConfigureServices(NCode.Registration.AspNetCore.IEndpointGroupBuilder! builder) -> void
+NCode.Registration.AspNetCore.IEndpointGroup.GetPrefix(System.IServiceProvider! serviceProvider) -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
 NCode.Registration.AspNetCore.IEndpointGroup.Name.get -> string!
-NCode.Registration.AspNetCore.IEndpointGroup.Prefix.get -> string!
 NCode.Registration.AspNetCore.IEndpointGroupBuilder
 NCode.Registration.AspNetCore.IEndpointGroupBuilder.AddEndpoint<T>() -> void
 NCode.Registration.AspNetCore.IEndpointGroupBuilder.AddGroup<T>() -> void

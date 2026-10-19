@@ -126,6 +126,17 @@ public sealed class ReverseProxyRegistrationTests : BaseTests
         );
     }
 
+    [Fact]
+    public void AddReverseProxy_WhenSectionHasUnknownKey_Throws()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            Resolve(new Dictionary<string, string?> { ["ReverseProxy:KnownProxy:0"] = "10.0.0.4" })
+        );
+
+        Assert.Contains("'ReverseProxy'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("'KnownProxy'", exception.Message, StringComparison.Ordinal);
+    }
+
     #endregion
 
     #region UseReverseProxy Tests

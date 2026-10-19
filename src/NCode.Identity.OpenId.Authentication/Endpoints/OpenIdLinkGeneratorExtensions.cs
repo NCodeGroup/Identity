@@ -36,8 +36,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// </para>
 /// <para>
 /// Anchoring to the tenant's <c>BaseAddress</c> removes that choice from the caller. The base address is the
-/// tenant's configured origin (<c>tenant_base_address</c>) where one is set; only when it is unset does it fall back
-/// to the request, which is a development-only convenience.
+/// tenant's issuer where one is set; only when it is unset does it fall back to the request, which is a
+/// development-only convenience.
 /// </para>
 /// <para>
 /// <b>Use this rather than <see cref="LinkGenerator"/> directly</b> for any URL that leaves the process.
@@ -63,16 +63,22 @@ internal static class OpenIdLinkGeneratorExtensions
             ArgumentNullException.ThrowIfNull(linkGenerator);
             ArgumentNullException.ThrowIfNull(openIdContext);
 
+            var httpContext = openIdContext.Http;
             var baseAddress = openIdContext.Tenant.BaseAddress;
+            var explicitValues = new RouteValueDictionary(values);
 
             // The path still comes from routing (which includes any PathBase the host is mounted under); only the
-            // authority is taken from the tenant, because that is the part the caller could otherwise dictate.
-            return linkGenerator.GetUriByName(
-                openIdContext.Http,
+            // authority is taken from the tenant, because that is the part the caller could otherwise dictate. The
+            // request's route values are supplied as ambient values so a parameter of the tenant route the endpoints
+            // are mounted under (for example {tenantId}) carries over into the URL; generating by name alone would
+            // drop it, and an ambient value never becomes a query parameter.
+            return linkGenerator.GetUriByAddress(
+                httpContext,
                 endpointName,
-                values,
-                baseAddress.Scheme,
-                baseAddress.Host
+                explicitValues,
+                ambientValues: httpContext.Request.RouteValues,
+                scheme: baseAddress.Scheme,
+                host: baseAddress.Host
             );
         }
     }

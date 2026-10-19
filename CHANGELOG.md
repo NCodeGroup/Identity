@@ -63,7 +63,47 @@ change to the public API is a **major** version bump.
   namespaces and Aspire `Projects.*` references moved; `PlaygroundApiMarker`, `PlaygroundDatabase` and
   `PlaygroundApplicationFactory` became `HostApiMarker`, `HostDatabase` and `HostApplicationFactory`.
 
+- **Configuration is bound strictly and checked before the host accepts traffic.** A key that maps to no option now
+  stops the host with an error naming the section, the options type, and the key, instead of being silently ignored.
+  This covers the whole OpenID section and the `BootstrapAdmin`, `Frontend`, `ReverseProxy`, `ConformanceSeed`, and
+  `DeveloperInteractiveSeed` sections. Every bound options type is validated on start, and a tenant-resolution
+  configuration that cannot work — an unknown strategy, a path route without its tenant parameter, an invalid host
+  pattern, a static issuer that does not end with the tenant path — also stops the host instead of failing on the first
+  request after the instance reported ready.
+
+  `AddConfiguration` owns the OpenID section's shape: `Server` (including `Settings`), `Tenant` (tenant
+  materialization and caching), `TenantResolution` (tenant selection — the canonical location), and `MutualTls`. Any
+  other subsection is rejected. The mutual-TLS forwarding options are bound there too, so a host's chosen section name
+  applies to them. ([ADR-0137](docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md))
+
+  **Breaking:** configuration that used to be ignored now fails startup. `OpenIdOptions.SectionName`,
+  `OpenIdServerOptions.SettingsSubsection`, and `MutualTlsForwardingOptions.ConfigurationSectionKey` are removed;
+  `OpenIdServerOptions.Settings` carries the server's settings section. The authentication library no longer binds
+  `OpenId:MutualTls` itself — `AddConfiguration` does.
+
+- **`IEndpointGroup.Prefix` is replaced by `GetPrefix(IServiceProvider)`**, resolved when routes are mapped, so a
+  group's prefix can come from configuration. **Breaking** for custom endpoint groups, which return a `RoutePattern`.
+  ([ADR-0138](docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md))
+
 ### Fixed
+
+- **The reference host's tenant configuration bound to nothing.** Its `appsettings.json` configured tenant selection
+  under `OpenId:Tenant` (`Mode`, `StaticSingle:TenantPath`), which is the tenant *materialization* section; the
+  selection section is `OpenId:TenantResolution` (`StrategyCode`, `StaticSingle:…`). The host only behaved because the
+  defaults coincided with what it asked for. It now uses the canonical keys, and the misplaced shape stops the host.
+  The `Conformance` launch profile pinned its issuer through the removed `tenant_issuer` setting, so the pin was
+  silently dead; it now uses `OpenId:TenantResolution:StaticSingle:Issuer`.
+
+- **A configured tenant route was never served.** The OpenID protocol endpoints were mapped at absolute routes
+  whatever the tenant-resolution strategy declared, while the tenant's base address still included the tenant route —
+  so a configured path such as `/identity` published an issuer nothing was served under, and the path-based strategy
+  could not resolve a tenant at all. The protocol endpoints are now served under the tenant route
+  (`/{tenantId}/oauth2/token`, `/identity/.well-known/openid-configuration`), and published URLs carry the tenant
+  route's values. On the same path: a configured issuer is now the tenant's base address as-is (a path tenant's
+  `https://op.example/acme` was given `https://op.example/acme/acme`); binding the tenant route no longer strips the
+  request's route values or leaks an endpoint's parameters into the base address as a query string; and published
+  URLs no longer carry an explicit default port the issuer does not.
+  ([ADR-0138](docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md))
 
 - **A tenant's routing host and its published issuer could drift apart.** `DomainName` was the routing key for the
   host-based tenant strategy while `Issuer` carried the identity the tenant publishes — and nothing kept the two in

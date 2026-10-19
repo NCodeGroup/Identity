@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// <summary>
 /// Configures how the default <see cref="IClientCertificateResolver"/> reads the mutual-TLS client certificate when
 /// TLS terminates at a reverse proxy, load balancer, or service mesh rather than on the application's own connection.
-/// Bound from the <c>OpenId:MutualTls</c> configuration section.
+/// Bound from the <c>MutualTls</c> subsection of the OpenID configuration section (<c>OpenId:MutualTls</c> by default).
 /// </summary>
 /// <remarks>
 /// Only set <see cref="CertificateHeaderName"/> when the application is reachable exclusively through the trusted proxy
@@ -34,11 +34,6 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 [PublicAPI]
 public sealed class MutualTlsForwardingOptions
 {
-    /// <summary>
-    /// The configuration section (<c>OpenId:MutualTls</c>) bound to <see cref="MutualTlsForwardingOptions"/>.
-    /// </summary>
-    public const string ConfigurationSectionKey = "OpenId:MutualTls";
-
     /// <summary>
     /// Gets or sets the name of the trusted header that carries the forwarded client certificate (for example
     /// <c>X-Forwarded-Client-Cert</c>, <c>X-Amzn-Mtls-Clientcert</c>, or <c>ssl-client-cert</c>). When unset,

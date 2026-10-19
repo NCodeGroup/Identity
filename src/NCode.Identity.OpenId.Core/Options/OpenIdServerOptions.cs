@@ -18,6 +18,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.Extensions.Configuration;
 
 namespace NCode.Identity.OpenId;
 
@@ -31,11 +32,6 @@ public sealed class OpenIdServerOptions
     /// Contains the default value for the server's identifier.
     /// </summary>
     public const string DefaultServerId = "default";
-
-    /// <summary>
-    /// Contains the configuration subsection name for the settings of the server.
-    /// </summary>
-    public const string SettingsSubsection = "Server:Settings";
 
     /// <summary>
     /// Gets or sets the identifier for the server.
@@ -53,4 +49,16 @@ public sealed class OpenIdServerOptions
     /// The default value is 15 minutes.
     /// </summary>
     public TimeSpan SecretsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(15.0);
+
+    /// <summary>
+    /// Gets or sets the configuration section that holds the server's settings, keyed by setting name (for example
+    /// <c>grant_types_supported</c>). These are the root of the settings hierarchy that every tenant and client
+    /// inherits from.
+    /// </summary>
+    /// <remarks>
+    /// Settings are an open vocabulary, so the section is carried as-is rather than bound to a fixed shape: each value
+    /// is typed by its registered setting descriptor when the settings are loaded, and the section is watched so a
+    /// configuration reload refreshes them. When unset, the server has no configured settings beyond the defaults.
+    /// </remarks>
+    public IConfigurationSection? Settings { get; set; }
 }

@@ -18,7 +18,6 @@
 
 using System.Text.Json;
 using IdGen;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
@@ -43,7 +42,6 @@ namespace NCode.Identity.OpenId.Servers;
 internal class DefaultOpenIdServerFactory(
     IOptions<OpenIdOptions> optionsAccessor,
     IServiceProvider serviceProvider,
-    IConfiguration configuration,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
     IStoreManagerFactory storeManagerFactory,
@@ -55,7 +53,6 @@ internal class DefaultOpenIdServerFactory(
 {
     private OpenIdOptions Options { get; } = optionsAccessor.Value;
     private IServiceProvider ServiceProvider { get; } = serviceProvider;
-    private IConfiguration Configuration { get; } = configuration;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -232,13 +229,8 @@ internal class DefaultOpenIdServerFactory(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var configurationSectionName =
-            $"{Options.SectionName}:{OpenIdServerOptions.SettingsSubsection}";
-        var configurationSection = Configuration.GetSection(configurationSectionName);
-
         var dataSource = ActivatorUtilities.CreateInstance<RootSettingsCollectionDataSource>(
-            ServiceProvider,
-            configurationSection
+            ServiceProvider
         );
 
         return ValueTask.FromResult<IDisposableCollectionDataSource<Setting>>(dataSource);

@@ -48,7 +48,7 @@
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
-        "OpenId__Server__Settings__tenant_issuer": "https://host.docker.internal:5001"
+        "OpenId__TenantResolution__StaticSingle__Issuer": "https://host.docker.internal:5001"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "https://0.0.0.0:5001;http://0.0.0.0:5000"

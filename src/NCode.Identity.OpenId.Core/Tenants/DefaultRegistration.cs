@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Core.ResourceServers;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Tenants.Strategies;
@@ -50,6 +51,15 @@ internal static class DefaultRegistration
             >();
 
             serviceCollection.TryAddSingleton<ITenantResolver, DefaultTenantResolver>();
+
+            // A tenant-resolution configuration that cannot work stops the host when it starts (ADR-0137).
+            serviceCollection.AddOptions<TenantResolutionOptions>().ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<TenantResolutionOptions>,
+                    TenantResolutionOptionsValidator
+                >()
+            );
 
             // The materialized tenant (settings + secrets, merged server->tenant) and its cache (ADR-0036).
             serviceCollection.AddMemoryCache();

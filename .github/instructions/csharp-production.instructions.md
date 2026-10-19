@@ -291,6 +291,20 @@ rationale.
   delivery) stays an injectable service invoked **from** a handler, not a mediator command. Exemplars: the token,
   end-session, and CIBA ([ADR-0085](../../docs/adr/0085-ciba-grant.md)) endpoints; the device-authorization endpoint is
   the pre-convention outlier (backlog `F18`), **not** a template to copy.
+- 👁 **Protocol endpoints are served under the tenant route.** The OpenID protocol group's prefix is the configured
+  tenant route (`/{tenantId}`, a literal path, or empty), so an endpoint's own route is relative to the tenant; never
+  hard-code an absolute protocol path into a published URL. Generate every URL that leaves the process with
+  `GetTenantUriByName`, which takes the authority from the tenant and carries the tenant route's values over. Never
+  hand the request's live `RouteValues` to a template binder — it consumes them; bind a copy. See
+  [ADR-0138](../../docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md).
+- 👁 **Bind configuration strictly and validate it when the host starts.** An options type bound from configuration is
+  bound with the binder's `ErrorOnUnknownConfiguration` (in the server, through `BindStrictly`, which names the section in
+  the error) and registered with `ValidateOnStart`; a rule the binder cannot express is an `IValidateOptions<T>`. A key
+  that maps to no option must stop the host — a misspelled or misplaced key is otherwise indistinguishable from an absent
+  one. Each section has one owner that declares its whole shape; an extension binds its own section rather than adding
+  keys to one the server owns. Validate only what is in force (for example the selected tenant strategy's options), since
+  a JSON overlay cannot delete a lower layer's key. See
+  [ADR-0137](../../docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md).
 - 👁 **A package registers its own services from `DefaultRegistration.cs`** (the class is **always** `DefaultRegistration`)
   using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
   [ADR-0069](../../docs/adr/0069-registration-library-compile-time-marker-nesting.md). **The receiver marker is the

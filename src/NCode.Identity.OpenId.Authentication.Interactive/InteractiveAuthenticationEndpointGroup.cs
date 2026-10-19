@@ -18,6 +18,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Registration.AspNetCore;
 
@@ -43,7 +44,9 @@ internal sealed class InteractiveAuthenticationEndpointGroup : IEndpointGroup
     public string Name => GroupName;
 
     /// <inheritdoc />
-    public string Prefix => string.Empty;
+    // Not yet under the tenant route: the cookie login path and the bundle's assets are fixed (backlog F50).
+    public RoutePattern GetPrefix(IServiceProvider serviceProvider) =>
+        RoutePatternFactory.Parse(string.Empty);
 
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group) =>

@@ -43,8 +43,7 @@ public sealed class PinnedIssuerApplicationFactory : HostApplicationFactory
         base.ConfigureWebHost(builder);
 
         // The tenant is provisioned lazily on first resolution, so the issuer has to reach the provisioner through
-        // configuration. Note the section is OpenId:TenantResolution — NOT the OpenId:Tenant that appsettings.json
-        // uses, which binds to nothing (see the backlog item).
+        // configuration: the single static tenant's selection settings live under OpenId:TenantResolution.
         builder.ConfigureAppConfiguration(configurationBuilder =>
             configurationBuilder.AddInMemoryCollection(
                 new Dictionary<string, string?>

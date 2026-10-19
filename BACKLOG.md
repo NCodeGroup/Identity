@@ -66,7 +66,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
-| `F` — Feature gaps                    | `F50`     | `F49`      |
+| `F` — Feature gaps                    | `F53`     | `F52`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U15`     | `U14`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
@@ -315,15 +315,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/Handlers/DefaultLoadBackchannelAuthenticationRequestHandler.cs`,
   `OpenIdSettingKeys`, `Fapi2SecurityProfile`.
 
-- **`F42` — The host's tenant configuration section binds to nothing.** `AddConfiguration` binds tenant resolution from
-  `{section}:TenantResolution` (so `OpenId:TenantResolution`), but the host's
-  [`appsettings.json`](src/NCode.Identity.OpenId.Host/appsettings.json) configures `OpenId:Tenant` — which binds
-  to no options type at all. The host therefore silently ignores its own `Mode` and `TenantPath`, and only works
-  because the defaults coincide (`StrategyCode` already defaults to `StaticSingle`, and an empty tenant path is
-  equivalent to the configured `/`). Any operator copying that shape would find their tenant configuration ignored with
-  no error. Decide which key is canonical, make the other fail loudly (or bind), and add a test that a configured
-  non-default tenant path is actually honored.
-
 - **`F43` — Validate `tls_client_auth` certificate chains in the server against configured trust anchors.**
   `tls_client_auth` ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)) assumes the TLS terminator already
   PKI-validated the certificate; the handler only matches subject DN / SAN. That forces the proxy to
@@ -427,6 +418,42 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultDPoPProofReplayCache.cs`,
   `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientAssertionReplayCache.cs`,
   `src/NCode.Identity.OpenId.Host/Program.cs`.
+
+- **`F50` — Serve the interactive login and consent surface under the tenant route.** The protocol endpoints are served
+  under the tenant route ([ADR-0138](docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md)), but the
+  interactive surface is still mounted at absolute routes (`/account/*`) with a fixed cookie `LoginPath`, a single
+  cookie, and its bundle's static assets at the root. A static or host-selected tenant does not notice, but under
+  `DynamicByPath` the surface's environment filter has no `{tenantId}` to resolve, so interactive flows fail — and
+  path tenants sharing an origin would share one session cookie, which must not happen. Mount the surface's group under
+  the tenant route, make the login and logout redirects tenant-relative, scope the cookie (name or path) per tenant,
+  serve the bundle beneath the tenant route, and have the `apps/auth` bundle derive its API base from its own location.
+  Touch points: `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointGroup.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
+  `src/frontend/apps/auth`. Capture the design in an ADR.
+
+- **`F51` — Validate a tenant's issuer against the tenant route in the management API.** The static tenant's configured
+  issuer is checked when the host starts: an absolute `http`/`https` URL ending in the tenant path
+  ([ADR-0137](docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md)). A tenant created or updated
+  through the management API gets no such check, so it can be given an issuer that no endpoint is served under — a
+  `DynamicByPath` tenant `acme` whose issuer does not end in `/acme`, or any tenant with a query or fragment in its
+  issuer — and conforming clients reject its discovery document. Apply the same rules in the tenant validator, binding
+  the tenant route with the tenant's own identifier for the path strategy. Touch points:
+  `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`,
+  `src/NCode.Identity.OpenId.Core/Tenants/TenantResolutionOptionsValidator.cs` (share the issuer rule).
+
+- **`F52` — Fail loudly on the configuration that is still accepted without being honored.** Every options section the
+  server binds is strict ([ADR-0137](docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md)); three
+  inputs remain lenient. (a) Setting **names** under `OpenId:Server:Settings` (and in persisted settings) are an open
+  vocabulary: an unregistered name loads as an ad-hoc string setting, which is how the removed `tenant_issuer` pin kept
+  "working" unnoticed. Decide whether an unregistered name is rejected, which requires an extension's settings to
+  register descriptors. (b) `ReverseProxy:KnownProxies` / `KnownNetworks` skip an entry that does not parse, so a
+  mistyped proxy address silently trusts nothing. (c) Single-key reads — `InteractiveAuthentication:BundleRootPath`,
+  `DeveloperKeys:Mode`, `Cors:AllowedOrigins` — are not bound, so a misspelled sibling key goes unnoticed. Touch points:
+  `src/NCode.Identity.OpenId.Core/Settings/RootSettingsCollectionDataSource.cs`,
+  `src/NCode.Identity.Server/ReverseProxy/ReverseProxyRegistration.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs`,
+  `src/NCode.Identity.Server/DevelopmentEnvironment`.
 
 ## Conformance & interop testing (group `T`)
 

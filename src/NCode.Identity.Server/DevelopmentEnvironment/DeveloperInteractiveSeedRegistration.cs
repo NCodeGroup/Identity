@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Server.Configuration;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Mediator;
 using NCode.Registration;
@@ -41,12 +42,14 @@ public static class DeveloperInteractiveSeedRegistration
     {
         /// <summary>
         /// Registers the development-only seeder for a public single-page-application client and an administrator user.
-        /// Its inputs are read from the <c>DeveloperInteractiveSeed</c> configuration section; each half is inert
-        /// unless its inputs are configured (the administrator user requires an explicitly configured password). Must
-        /// not be used in production.
+        /// Its inputs are read from the <c>DeveloperInteractiveSeed</c> configuration section, bound strictly; each
+        /// half is inert unless its inputs are configured (the administrator user requires an explicitly configured
+        /// password). Must not be used in production.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the seeder's settings.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        /// <exception cref="InvalidOperationException">The <c>DeveloperInteractiveSeed</c> section contains a key that
+        /// maps to no option.</exception>
         public IServiceBuilder<IdentityServer> AddDeveloperInteractiveSeed(
             IConfiguration configuration
         )
@@ -54,9 +57,10 @@ public static class DeveloperInteractiveSeedRegistration
             var serviceCollection = builder.ServiceCollection;
 
             var options = new DeveloperInteractiveSeedOptions();
-            configuration
-                .GetSection(DeveloperInteractiveSeedOptions.DefaultSectionName)
-                .Bind(options);
+            var section = configuration.GetSection(
+                DeveloperInteractiveSeedOptions.DefaultSectionName
+            );
+            section.BindStrictly(options);
 
             serviceCollection.AddSingleton(options);
             serviceCollection.TryAddEnumerable(

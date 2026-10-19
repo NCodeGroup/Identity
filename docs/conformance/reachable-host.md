@@ -19,9 +19,11 @@ is the single "run the OP for the external suite" entry point:
   so the suite's Docker containers reach it via `host.docker.internal:5001` (a process bound only to
   `localhost` is **not** reachable through `host.docker.internal`, which maps to the host's network
   interface, not loopback).
-- **Pins the issuer to the reached origin.** `OpenId__Server__Settings__tenant_issuer =
+- **Pins the issuer to the reached origin.** `OpenId__TenantResolution__StaticSingle__Issuer =
 https://host.docker.internal:5001` makes the discovery `issuer` byte-match the origin in the Appendix D
-  `server.discoveryUrl`, deterministically and independent of request host / proxy headers. The pin lives
+  `server.discoveryUrl`, deterministically and independent of request host / proxy headers. The issuer is stored on
+  the static tenant when it is first provisioned, so a database that already holds the tenant keeps its stored issuer
+  until it is reset ([`build/dev-db-reset.ps1`](../../build/dev-db-reset.ps1)). The pin lives
   in the launch profile (not `appsettings.Conformance.json`) because the shared `Conformance` environment
   overlay is also loaded by the Aspire-orchestrated `ConformanceAspire` dashboard instance on `:5003`,
   which must keep its own request-derived issuer.
@@ -41,13 +43,13 @@ full orchestration script that also brings the suite up/down is `T1` Phase D, no
   can reach. The `Conformance` launch profile is the reachable-host answer to that gap.
 - **Issuer is request-derived, with a pin available.** In
   [`DefaultOpenIdTenantFactory`](../../src/NCode.Identity.OpenId.Core/Tenants/DefaultOpenIdTenantFactory.cs):
-    - `GetTenantBaseAddressAsync` builds the base address from `httpRequest.Scheme` + `httpRequest.Host`.
-    - `GetTenantIssuerAsync` returns the `tenant_issuer` setting (`OpenIdSettingKeys.TenantIssuer`) when
-      set, otherwise the base address. So the issuer can be **pinned** via the `tenant_issuer` setting, or
-      left to follow the request host.
-- **Discovery is origin-relative.** Discovery endpoints are emitted via `LinkGenerator`/`EndpointDataSource`
+    - `GetTenantBaseAddressAsync` returns the tenant's `Issuer` when it has one, and otherwise builds the base
+      address from `httpRequest.Scheme` + `httpRequest.Host` (plus the path base and tenant route).
+    - `GetTenantIssuerAsync` returns the tenant's `Issuer` when set, otherwise the base address. So the issuer can be
+      **pinned** through `OpenId:TenantResolution:StaticSingle:Issuer`, or left to follow the request host.
+- **Discovery is anchored to the tenant.** Discovery endpoints are emitted via `GetTenantUriByName`
   in [`DefaultDiscoverMetadataHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Discovery/Handlers/DefaultDiscoverMetadataHandler.cs),
-  so endpoint URLs track the reached host; only `issuer` needs explicit alignment.
+  which takes the authority from the tenant's base address, so pinning the issuer also pins every endpoint URL.
 
 ## Approach
 
@@ -68,12 +70,11 @@ Expose the host on a single origin the suite containers can reach — on Windows
 
 ### Issuer byte-match (chosen: pin)
 
-- **Pin the issuer (chosen, explicit):** `tenant_issuer` is set to the exact reached origin
+- **Pin the issuer (chosen, explicit):** the static tenant's issuer is set to the exact reached origin
   (`https://host.docker.internal:5001`) via the `Conformance` launch profile's
-  `OpenId__Server__Settings__tenant_issuer` environment variable. `tenant_issuer` is a parent-owned
-  (`Keep`) setting ([ADR-0038](../adr/0038-setting-merge-lattice-duals.md)), so the server-level value
-  flows down to the single static tenant and cannot be overridden. Deterministic and independent of proxy
-  headers.
+  `OpenId__TenantResolution__StaticSingle__Issuer` environment variable. The issuer is a property of the tenant
+  ([ADR-0129](../adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), and every published URL is
+  anchored to it. Deterministic and independent of proxy headers.
 - **Follow the request host (not chosen):** ensure the request `Host`/`Scheme` the OP sees equals the
   reached origin — which means configuring forwarded-headers handling if anything terminates TLS or
   rewrites the host in front of Kestrel. More moving parts; the pin is preferred.
@@ -85,19 +86,19 @@ Expose the host on a single origin the suite containers can reach — on Windows
 
 ### Packaging
 
-- The dedicated **`Conformance` launch profile** fixes the port, pins `tenant_issuer`, selects the
+- The dedicated **`Conformance` launch profile** fixes the port, pins the static tenant's issuer, selects the
   conformance tenant/seeding (`T4`), and enables the interactive dev UI (`T2`). This profile is the single
   "run the OP for conformance" entry point; the full orchestration script (launch → compose up →
   run-test-plan → teardown) is part of `T1` Phase D, not T3.
 
 ## Work breakdown
 
-1. ✅ Define the `Conformance` launch profile: stable HTTPS port, all-interfaces bind, `tenant_issuer`
+1. ✅ Define the `Conformance` launch profile: stable HTTPS port, all-interfaces bind, issuer
    pin, conformance tenant selection, dev-UI + seeding toggles.
 2. Verify the running OP is reachable from a container at `host.docker.internal:5001` and serves
    `/.well-known/openid-configuration` + `/oauth2/jwks` — a `T1` Phase C step (needs the suite stack up).
 3. Assert `issuer` in the discovery document byte-matches the origin in the Appendix D
-   `server.discoveryUrl` — guaranteed by the `tenant_issuer` pin above; re-confirm live in `T1` Phase C.
+   `server.discoveryUrl` — guaranteed by the issuer pin above; re-confirm live in `T1` Phase C.
 4. Confirm the dev cert path works with the suite's dev-mode SSL relaxation — a `T1` Phase C step.
 5. Record the exact run recipe (above) in the orchestration notes consumed by `T1`.
 
@@ -106,7 +107,7 @@ Expose the host on a single origin the suite containers can reach — on Windows
 - ✅ The reachable origin is produced by a single documented profile/recipe (`Conformance`), not ad-hoc
   flags.
 - ✅ The discovery `issuer` equals the origin the suite uses (`server.discoveryUrl` origin) — pinned to an
-  exact byte match via `tenant_issuer`.
+  exact byte match via the static tenant's issuer.
 - The suite (in Docker) can fetch `/.well-known/openid-configuration` and `/oauth2/jwks` from the
   the host over HTTPS — exercised end-to-end when the suite stack lands in `T1` Phase C.
 

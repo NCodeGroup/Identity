@@ -73,17 +73,20 @@ Everything follows from that rule:
   [ADR-0034](0034-persisted-role-assignments-and-ownership.md)); `default` remains the workload tenant. This ADR changes
   how the management surface is routed and scoped, not the tenancy model.
 - **Route-group composition is declarative, hierarchical, and unified across both planes.** Groups are named
-  `IEndpointGroup` nodes that **own their contents**: each exposes a `Name` and `Prefix`, an optional `ConfigureRoutes`
+  `IEndpointGroup` nodes that **own their contents**: each exposes a `Name` and a prefix (`GetPrefix`, resolved when
+  routes are mapped so it may come from configuration —
+  [ADR-0138](0138-protocol-endpoints-are-served-under-the-tenant-route.md)), an optional `ConfigureRoutes`
   that attaches route-group filters when routes are mapped, and a `ConfigureServices(IEndpointGroupBuilder)` that
   registers — colocated in the group itself — the endpoints (`AddEndpoint<T>()`) and child groups (`AddGroup<T>()`) it
   contains, plus the services those endpoints depend on (via the builder's `ServiceCollection`). Registering a single
   root group (`AddEndpointGroup<ManagementRootGroup>()`) walks that declaration and registers the whole subtree:
   endpoints are keyed by their owning group's name, and each child group is registered keyed by its parent's name and
   then asked to `ConfigureServices` its own subtree in turn. The route builder materializes each root and recurses —
-  creating the group with its `Prefix`, running `ConfigureRoutes`, mapping the group's keyed `IEndpointProvider`
+  creating the group with its prefix, running `ConfigureRoutes`, mapping the group's keyed `IEndpointProvider`
   children into it, then descending into the group's keyed child `IEndpointGroup` nodes. Both the management hierarchy
-  above and the OpenID protocol surface (a single `openid` group with an empty prefix that installs the environment and
-  exception filters) compose through this one mechanism, replacing the imperative `IEndpointGroupProvider` tier of
+  above and the OpenID protocol surface (a single `openid` group mounted under the tenant route that installs the
+  environment and exception filters) compose through this one mechanism, replacing the imperative
+  `IEndpointGroupProvider` tier of
   [ADR-0009](0009-endpoint-families-own-their-route-group.md). A group's hierarchy and its contents are declared in one
   place, so there is no separate, disjoint list of which endpoint belongs to which group.
 

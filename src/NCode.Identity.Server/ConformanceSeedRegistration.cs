@@ -21,6 +21,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Server.Configuration;
 using NCode.Identity.Server.ConformanceEnvironment;
 using NCode.Mediator;
 using NCode.Registration;
@@ -41,17 +42,20 @@ public static class ConformanceSeedRegistration
         /// <summary>
         /// Registers the conformance-only seeder for the confidential clients and the deterministic test user the
         /// OpenID Foundation conformance suite drives. Its inputs are read from the <c>ConformanceSeed</c>
-        /// configuration section; each half is inert unless its inputs are configured (the test user requires an
-        /// explicitly configured password). Must not be used in production.
+        /// configuration section, bound strictly; each half is inert unless its inputs are configured (the test user
+        /// requires an explicitly configured password). Must not be used in production.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the seeder's settings.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        /// <exception cref="InvalidOperationException">The <c>ConformanceSeed</c> section contains a key that maps to
+        /// no option.</exception>
         public IServiceBuilder<IdentityServer> AddConformanceSeed(IConfiguration configuration)
         {
             var serviceCollection = builder.ServiceCollection;
 
             var options = new ConformanceSeedOptions();
-            configuration.GetSection(ConformanceSeedOptions.DefaultSectionName).Bind(options);
+            var section = configuration.GetSection(ConformanceSeedOptions.DefaultSectionName);
+            section.BindStrictly(options);
 
             serviceCollection.AddSingleton(options);
             serviceCollection.TryAddEnumerable(

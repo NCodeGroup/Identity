@@ -16,11 +16,14 @@
 
 #endregion
 
+using System.Collections.Frozen;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Server.Configuration;
 using NCode.Identity.Server.Frontend;
 using NCode.Registration.AspNetCore;
 
@@ -32,14 +35,43 @@ namespace NCode.Identity.Server;
 [PublicAPI]
 public static class IdentityServerBuilderExtensions
 {
+    private const string TenantResolutionSubsection = "TenantResolution";
+    private const string MutualTlsSubsection = "MutualTls";
+
+    // Every subsection of the OpenID configuration section, each bound to exactly one options type below.
+    private static FrozenSet<string> OpenIdSubsections { get; } =
+        FrozenSet.Create(
+            StringComparer.OrdinalIgnoreCase,
+            nameof(OpenIdOptions.Server),
+            nameof(OpenIdOptions.Tenant),
+            TenantResolutionSubsection,
+            MutualTlsSubsection
+        );
+
     /// <param name="builder">The <see cref="IIdentityServerBuilder"/> to configure.</param>
     extension(IIdentityServerBuilder builder)
     {
         /// <summary>
-        /// Binds <see cref="OpenIdOptions"/> and its nested <see cref="TenantResolutionOptions"/> from the specified
-        /// <paramref name="configuration"/> section, so a host does not have to repeat the binding boilerplate. When
-        /// <paramref name="sectionName"/> is <c>null</c> or empty, <see cref="OpenIdOptions.DefaultSectionName"/> is used.
+        /// Binds the server's options from configuration, so a host does not have to repeat the binding boilerplate.
+        /// The OpenID configuration section (<see cref="OpenIdOptions.DefaultSectionName"/> unless
+        /// <paramref name="sectionName"/> names another) holds four subsections, each bound to one options type:
+        /// <list type="bullet">
+        /// <item><description><c>Server</c> — <see cref="OpenIdServerOptions"/>, including the server's
+        /// <c>Settings</c>.</description></item>
+        /// <item><description><c>Tenant</c> — <see cref="OpenIdTenantOptions"/>: how a resolved tenant is
+        /// materialized and cached.</description></item>
+        /// <item><description><c>TenantResolution</c> — <see cref="TenantResolutionOptions"/>: which tenant a request
+        /// selects, and the route the tenant is served under.</description></item>
+        /// <item><description><c>MutualTls</c> — <see cref="MutualTlsForwardingOptions"/>: how a forwarded mutual-TLS
+        /// client certificate is read.</description></item>
+        /// </list>
+        /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>.
         /// </summary>
+        /// <remarks>
+        /// Binding is strict and checked when the host starts: a key that maps to no option — a misspelling, or a
+        /// setting placed in the wrong subsection — stops the host with an error naming the key, rather than leaving
+        /// the option at its default without any sign that the setting was ignored.
+        /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> to bind the options from.</param>
         /// <param name="sectionName">The configuration section name that holds the OpenID options, or <c>null</c> to use
         /// <see cref="OpenIdOptions.DefaultSectionName"/>.</param>
@@ -49,30 +81,59 @@ public static class IdentityServerBuilderExtensions
             string? sectionName = null
         )
         {
+            ArgumentNullException.ThrowIfNull(configuration);
+
             var resolvedSectionName = string.IsNullOrEmpty(sectionName)
                 ? OpenIdOptions.DefaultSectionName
                 : sectionName;
 
-            var serviceCollection = builder.ServiceCollection;
-
-            serviceCollection.Configure<OpenIdOptions>(
-                configuration.GetSection(resolvedSectionName)
+            var openIdSection = configuration.GetSection(resolvedSectionName);
+            var serverSection = openIdSection.GetSection(nameof(OpenIdOptions.Server));
+            var serverSettingsSection = serverSection.GetSection(
+                nameof(OpenIdServerOptions.Settings)
             );
-            serviceCollection.Configure<OpenIdOptions>(options =>
-                options.SectionName = resolvedSectionName
-            );
-
-            // Tenant selection is configured separately from tenant materialization; defaults resolve the
-            // single "default" tenant when this section is absent.
-            serviceCollection.Configure<TenantResolutionOptions>(
-                configuration.GetSection($"{resolvedSectionName}:TenantResolution")
-            );
+            var tenantSection = openIdSection.GetSection(nameof(OpenIdOptions.Tenant));
+            var tenantResolutionSection = openIdSection.GetSection(TenantResolutionSubsection);
+            var mutualTlsSection = openIdSection.GetSection(MutualTlsSubsection);
 
             // The bootstrap administrator credential is sourced from its own top-level section so it can be supplied
             // out of band (for example, environment variables); absent it, the feature stays inert (ADR-0044).
-            serviceCollection.Configure<BootstrapAdminOptions>(
-                configuration.GetSection(BootstrapAdminOptions.DefaultSectionName)
+            var bootstrapAdminSection = configuration.GetSection(
+                BootstrapAdminOptions.DefaultSectionName
             );
+
+            var serviceCollection = builder.ServiceCollection;
+
+            // ValidateOnStart materializes each options instance as the host starts, so a strict-binding failure stops
+            // the host before it accepts traffic rather than on the first request that reads the option (ADR-0137).
+            serviceCollection
+                .AddOptions<OpenIdOptions>()
+                .Configure(options =>
+                {
+                    ThrowOnUnknownSubsection(openIdSection);
+                    serverSection.BindStrictly(options.Server);
+                    tenantSection.BindStrictly(options.Tenant);
+
+                    // The binder only assigns the settings section when the server section has keys; assign it
+                    // regardless so settings added by a later configuration reload are still observed.
+                    options.Server.Settings ??= serverSettingsSection;
+                })
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<TenantResolutionOptions>()
+                .Configure(options => tenantResolutionSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<MutualTlsForwardingOptions>()
+                .Configure(options => mutualTlsSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<BootstrapAdminOptions>()
+                .Configure(options => bootstrapAdminSection.BindStrictly(options))
+                .ValidateOnStart();
 
             return builder;
         }
@@ -87,6 +148,10 @@ public static class IdentityServerBuilderExtensions
         /// published document falls back to the serving request's own origin, so a single-origin host needs no
         /// configuration.
         /// </summary>
+        /// <remarks>
+        /// Binding is strict and checked when the host starts: a key that maps to no option stops the host with an
+        /// error naming the key.
+        /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> to bind the options from.</param>
         /// <param name="sectionName">The configuration section name that holds the options, or <c>null</c> to use
         /// <see cref="FrontendBootstrapOptions.DefaultSectionName"/>.</param>
@@ -102,11 +167,14 @@ public static class IdentityServerBuilderExtensions
                 ? FrontendBootstrapOptions.DefaultSectionName
                 : sectionName;
 
+            var section = configuration.GetSection(resolvedSectionName);
+
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.Configure<FrontendBootstrapOptions>(
-                configuration.GetSection(resolvedSectionName)
-            );
+            serviceCollection
+                .AddOptions<FrontendBootstrapOptions>()
+                .Configure(options => section.BindStrictly(options))
+                .ValidateOnStart();
 
             if (configureOptions is not null)
             {
@@ -117,5 +185,23 @@ public static class IdentityServerBuilderExtensions
 
             return builder;
         }
+    }
+
+    private static void ThrowOnUnknownSubsection(IConfigurationSection openIdSection)
+    {
+        var unknownPaths = openIdSection
+            .GetChildren()
+            .Where(child => !OpenIdSubsections.Contains(child.Key))
+            .Select(child => $"'{child.Path}'")
+            .ToList();
+
+        if (unknownPaths.Count == 0)
+            return;
+
+        throw new InvalidOperationException(
+            $"The configuration section '{openIdSection.Path}' contains unrecognized key(s): "
+                + $"{string.Join(", ", unknownPaths)}. Its recognized subsections are "
+                + $"{string.Join(", ", OpenIdSubsections.Order(StringComparer.Ordinal))}."
+        );
     }
 }

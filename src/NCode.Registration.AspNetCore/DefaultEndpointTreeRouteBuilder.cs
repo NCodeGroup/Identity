@@ -60,7 +60,8 @@ internal class DefaultEndpointTreeRouteBuilder(
         IServiceProvider serviceProvider
     )
     {
-        var routeGroup = parent.MapGroup(group.Prefix);
+        var prefix = group.GetPrefix(serviceProvider);
+        var routeGroup = parent.MapGroup(prefix);
         group.ConfigureRoutes(routeGroup);
 
         foreach (

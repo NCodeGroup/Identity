@@ -763,6 +763,26 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   non-unique as scoped, and the
   new filtered UNIQUE index on the normalized issuer enforces an invariant nothing previously enforced._
 
+- **`F42` — The host's tenant configuration section binds to nothing.** `AddConfiguration` binds tenant resolution from
+  `{section}:TenantResolution` (so `OpenId:TenantResolution`), but the host's
+  [`appsettings.json`](src/NCode.Identity.OpenId.Host/appsettings.json) configures `OpenId:Tenant` — which binds
+  to no options type at all. The host therefore silently ignores its own `Mode` and `TenantPath`, and only works
+  because the defaults coincide (`StrategyCode` already defaults to `StaticSingle`, and an empty tenant path is
+  equivalent to the configured `/`). Any operator copying that shape would find their tenant configuration ignored with
+  no error. Decide which key is canonical, make the other fail loudly (or bind), and add a test that a configured
+  non-default tenant path is actually honored.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0137](docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md),
+  [ADR-0138](docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md). `OpenId:TenantResolution` is
+  canonical; `OpenId:Tenant` is the materialization section (`OpenIdTenantOptions`), so the misplaced keys did bind —
+  into a type with no such members. Every server-bound section is now strict and validated on start, which also exposed
+  the `Conformance` launch profile's dead `tenant_issuer` pin. Writing the honored-path test exposed that the tenant
+  route had never been served: the protocol endpoint group used an empty prefix, so a configured path published an
+  issuer nothing answered under and the path strategy could not resolve a tenant. The group is now mounted under the
+  tenant route, and the base-address and link-generation defects on that path are fixed. Follow-ups: `F50`, `F51`,
+  `F52`._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

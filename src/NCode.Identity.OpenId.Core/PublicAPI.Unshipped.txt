@@ -1,7 +1,6 @@
 #nullable enable
 const NCode.Identity.OpenId.OpenIdOptions.DefaultSectionName = "OpenId" -> string!
 const NCode.Identity.OpenId.OpenIdServerOptions.DefaultServerId = "default" -> string!
-const NCode.Identity.OpenId.OpenIdServerOptions.SettingsSubsection = "Server:Settings" -> string!
 NCode.Identity.OpenId.DefaultRegistration
 NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdCoreLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!
@@ -17,8 +16,6 @@ NCode.Identity.OpenId.OpenIdOptions.JsonOptionsConfigurators.get -> System.Colle
 NCode.Identity.OpenId.OpenIdOptions.NormalizeSubjectId.get -> NCode.Identity.OpenId.Principals.NormalizeSubjectIdDelegate!
 NCode.Identity.OpenId.OpenIdOptions.NormalizeSubjectId.set -> void
 NCode.Identity.OpenId.OpenIdOptions.OpenIdOptions() -> void
-NCode.Identity.OpenId.OpenIdOptions.SectionName.get -> string!
-NCode.Identity.OpenId.OpenIdOptions.SectionName.set -> void
 NCode.Identity.OpenId.OpenIdOptions.Server.get -> NCode.Identity.OpenId.OpenIdServerOptions!
 NCode.Identity.OpenId.OpenIdOptions.Server.set -> void
 NCode.Identity.OpenId.OpenIdOptions.Tenant.get -> NCode.Identity.OpenId.OpenIdTenantOptions!
@@ -29,6 +26,8 @@ NCode.Identity.OpenId.OpenIdServerOptions.SecretsPeriodicRefreshInterval.get -> 
 NCode.Identity.OpenId.OpenIdServerOptions.SecretsPeriodicRefreshInterval.set -> void
 NCode.Identity.OpenId.OpenIdServerOptions.ServerId.get -> string!
 NCode.Identity.OpenId.OpenIdServerOptions.ServerId.set -> void
+NCode.Identity.OpenId.OpenIdServerOptions.Settings.get -> Microsoft.Extensions.Configuration.IConfigurationSection?
+NCode.Identity.OpenId.OpenIdServerOptions.Settings.set -> void
 NCode.Identity.OpenId.OpenIdServerOptions.SettingsPeriodicRefreshInterval.get -> System.TimeSpan
 NCode.Identity.OpenId.OpenIdServerOptions.SettingsPeriodicRefreshInterval.set -> void
 NCode.Identity.OpenId.OpenIdTenantOptions

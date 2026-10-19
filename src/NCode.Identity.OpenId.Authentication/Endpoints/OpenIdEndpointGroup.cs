@@ -18,6 +18,8 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Patterns;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication;
 using NCode.Identity.OpenId.Authentication.Endpoints.CheckSession;
@@ -33,17 +35,21 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Revocation;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
 
 /// <summary>
-/// The route group for the OpenID protocol endpoints. An empty prefix preserves each endpoint's absolute route (for
-/// example <c>/oauth2/token</c>) while still grouping them so the shared pipeline filters apply only to OpenID
-/// endpoints: the <see cref="OpenIdEnvironmentEndpointFilter"/> that materializes the request environment (and opens
-/// the resolved tenant's ambient scope) and the <see cref="OpenIdExceptionEndpointFilter"/> that renders exceptions as
-/// standard OpenID error responses. The group declares the protocol endpoints it contains by invoking each endpoint
-/// family's own registration, which adds the endpoint provider and the services it depends on.
+/// The route group for the OpenID protocol endpoints, mounted under the tenant route the configured tenant-resolution
+/// strategy declares (for example <c>/{tenantId}</c>, a fixed path such as <c>/identity</c>, or the empty route of a
+/// single tenant served at the root). Each endpoint's own route (for example <c>/oauth2/token</c>) is relative to that
+/// tenant route, so a tenant's discovery document is served beneath its issuer as OpenID Connect Discovery requires.
+/// Grouping also scopes the shared pipeline filters to the OpenID endpoints: the
+/// <see cref="OpenIdEnvironmentEndpointFilter"/> that materializes the request environment (and opens the resolved
+/// tenant's ambient scope) and the <see cref="OpenIdExceptionEndpointFilter"/> that renders exceptions as standard
+/// OpenID error responses. The group declares the protocol endpoints it contains by invoking each endpoint family's own
+/// registration, which adds the endpoint provider and the services it depends on.
 /// </summary>
 internal sealed class OpenIdEndpointGroup : IEndpointGroup
 {
@@ -56,7 +62,11 @@ internal sealed class OpenIdEndpointGroup : IEndpointGroup
     public string Name => GroupName;
 
     /// <inheritdoc />
-    public string Prefix => string.Empty;
+    public RoutePattern GetPrefix(IServiceProvider serviceProvider)
+    {
+        var tenantResolver = serviceProvider.GetRequiredService<ITenantResolver>();
+        return tenantResolver.GetTenantRoute();
+    }
 
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group)

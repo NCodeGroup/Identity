@@ -18,6 +18,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Grants;
 using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
@@ -43,7 +44,8 @@ internal sealed class TenantManagementGroup : IEndpointGroup
     public string Name => GroupName;
 
     /// <inheritdoc />
-    public string Prefix => "/tenants/{tenantId}";
+    public RoutePattern GetPrefix(IServiceProvider serviceProvider) =>
+        RoutePatternFactory.Parse("/tenants/{tenantId}");
 
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group) =>

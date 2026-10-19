@@ -53,11 +53,9 @@ internal static class DefaultRegistration
             // Sender-constrained tokens (DPoP — RFC 9449, mutual-TLS — RFC 8705). The replay and nonce stores run over
             // IDistributedCache; an in-memory provider is registered by default (single node) and a cluster swaps in a
             // shared provider (e.g. Redis) by registering its own IDistributedCache. The mutual-TLS forwarded-header
-            // settings bind from the OpenId:MutualTls configuration section.
+            // settings are configured by the host; the server's AddConfiguration binds them from OpenId:MutualTls.
             serviceCollection.AddDistributedMemoryCache();
-            serviceCollection
-                .AddOptions<MutualTlsForwardingOptions>()
-                .BindConfiguration(MutualTlsForwardingOptions.ConfigurationSectionKey);
+            serviceCollection.AddOptions<MutualTlsForwardingOptions>();
             serviceCollection.TryAddSingleton<
                 IProofOfPossessionService,
                 DefaultProofOfPossessionService

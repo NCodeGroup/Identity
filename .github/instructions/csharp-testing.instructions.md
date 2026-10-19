@@ -157,6 +157,13 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   **configures** the host must do both on the **same** instance: configure through a subclass that overrides
   `ConfigureWebHost` (calling `base` first), then seed via that instance's helpers — never seed one instance and request
   another, or the request hits a different, empty database.
+- 👁 **Never assert a startup failure through `WebApplicationFactory`.** When the host's entry point throws after
+  `Build()` — mapping endpoints resolves options, so a configuration error usually lands there — the host's
+  `await using var app` disposes the service provider, and under load the factory's deferred `StartAsync` reaches that
+  disposed provider first and throws an `ObjectDisposedException` that masks the real error. The test passes alone and
+  fails in the parallel gate. Assert startup failures against a host built directly
+  (`Host.CreateEmptyApplicationBuilder`, the registration under test, then `StartAsync`), and keep factory-based tests
+  for hosts that start.
 - 👁 **Validate new tests in Release before running `dod.ps1`.** The gate builds and tests in **Release**, where
   `Debug.Assert` and `#if DEBUG` blocks disappear; run `dotnet test <proj> --configuration Release` first to catch
   Debug-vs-Release differences fast (a `#if DEBUG` auth bypass, a stripped assertion).

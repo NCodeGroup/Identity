@@ -18,6 +18,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Disposables;
@@ -29,11 +30,12 @@ namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> for a collection of <see cref="Setting"/> instances
-/// that are loaded from a <see cref="IConfigurationSection"/> and the default values from <see cref="ISettingDescriptorCollectionProvider"/>.
+/// that are loaded from the server's configured settings (<see cref="OpenIdServerOptions.Settings"/>) and the default
+/// values from <see cref="ISettingDescriptorCollectionProvider"/>.
 /// </summary>
 internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<Setting>
 {
-    private IConfigurationSection ConfigurationSection { get; }
+    private IConfigurationSection? ConfigurationSection { get; }
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; }
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; }
     private ISettingCollectionFactory SettingCollectionFactory { get; }
@@ -53,14 +55,14 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
     /// Initializes a new instance of the <see cref="RootSettingsCollectionDataSource"/> class.
     /// </summary>
     public RootSettingsCollectionDataSource(
-        IConfigurationSection configurationSection,
+        IOptions<OpenIdOptions> optionsAccessor,
         IAlgorithmCollectionProvider algorithmCollectionProvider,
         ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
         ISettingCollectionFactory settingCollectionFactory,
         IEnumerable<IDefaultSettingsProvider> defaultSettingsProviders
     )
     {
-        ConfigurationSection = configurationSection;
+        ConfigurationSection = optionsAccessor.Value.Server.Settings;
         AlgorithmCollectionProvider = algorithmCollectionProvider;
         SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
         SettingCollectionFactory = settingCollectionFactory;
@@ -68,12 +70,20 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
         Collection = LoadCollection();
 
-        ChangeTokenRegistrations =
+        List<IDisposable> changeTokenRegistrations =
         [
-            ChangeToken.OnChange(ConfigurationSection.GetReloadToken, HandleChange),
             ChangeToken.OnChange(AlgorithmCollectionProvider.GetChangeToken, HandleChange),
             ChangeToken.OnChange(SettingDescriptorCollectionProvider.GetChangeToken, HandleChange),
         ];
+
+        if (ConfigurationSection is { } configurationSection)
+        {
+            changeTokenRegistrations.Add(
+                ChangeToken.OnChange(configurationSection.GetReloadToken, HandleChange)
+            );
+        }
+
+        ChangeTokenRegistrations = changeTokenRegistrations;
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(IsDisposed, this);
@@ -364,6 +374,9 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
     private void LoadFromConfiguration(ISettingCollection settings)
     {
+        if (ConfigurationSection is null)
+            return;
+
         var descriptors = SettingDescriptorCollectionProvider.Collection;
         foreach (var settingSection in ConfigurationSection.GetChildren())
         {

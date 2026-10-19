@@ -18,6 +18,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 using NCode.Identity.OpenId.Management.Endpoints.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
@@ -41,7 +42,8 @@ internal sealed class ManagementRootGroup : IEndpointGroup
     public string Name => GroupName;
 
     /// <inheritdoc />
-    public string Prefix => "/api";
+    public RoutePattern GetPrefix(IServiceProvider serviceProvider) =>
+        RoutePatternFactory.Parse("/api");
 
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group) =>

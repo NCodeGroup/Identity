@@ -250,12 +250,29 @@ chain for `<domain>`.
 
 ## 8. Confirm inbound email
 
-Inbound email routing (`security@`, `platform@`, …) is created by the CI-managed `live/global` root, so this section
-follows its first apply; until then mail to `@<domain>` — including the AWS budget alerts sent to `platform@` — bounces.
-1. Click the Cloudflare **destination verification** link sent to `<recovery-email>`.
-2. In the mailbox, add a filter for mail to `*@<domain>`: never send to spam, apply a label.
+Inbound email routing (`security@`, `platform@`, `postmaster@`, `abuse@`, vendor aliases) is created by the CI-managed
+`live/global` root; until its first apply, mail to `@<domain>` — including the AWS budget alerts sent to `platform@` —
+bounces. Manual because the forwarding mailbox is personal data that never enters the repository, and because only its
+owner can confirm it.
 
-**Verify:** a test message to `security@<domain>` arrives in the mailbox.
+1. **Store the forwarding mailbox** for the two scopes that read it (the plan role reads `plan`, the production apply
+   role reads `global`), encrypted with the bootstrap's secrets key:
+
+   ```powershell
+   $email = Read-Host -MaskInput 'Forwarding mailbox'
+   foreach ($scope in 'plan', 'global') {
+     aws ssm put-parameter --profile nidentity-platform-admin --region <aws-region> `
+       --name "/<infra-repo>/$scope/email-destination" --type SecureString `
+       --key-id alias/nidentity-platform-secrets --value $email
+   }
+   ```
+
+2. **Apply `live/global` through CI:** merge the pull request that changes it (its plan appears in the `deploy` run's
+   summary), then approve the `production` deployment of the run on `main`.
+3. Click the Cloudflare **destination verification** link sent to the forwarding mailbox.
+4. In the mailbox, add a filter for mail to `*@<domain>`: never send to spam, apply a label.
+
+**Verify:** a test message to `security@<domain>` arrives in the mailbox; one to an unlisted address is dropped.
 
 ## 9. Close out
 

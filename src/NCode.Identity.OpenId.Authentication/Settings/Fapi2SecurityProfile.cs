@@ -52,8 +52,6 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         // A public client is rejected at the authorization endpoint (the token endpoint rejects it via the permitted
         // token_endpoint_auth_methods_supported ceiling).
         new ConfidentialClientRequirement(),
-        // Every access token must be DPoP- or mutual-TLS-bound.
-        new SenderConstrainedAccessTokenRequirement(),
         // A client_assertion may only target the issuer identifier (FAPI 2.0 §5.3.2.1).
         new IssuerOnlyAssertionAudienceRequirement(),
     ];
@@ -61,6 +59,10 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
     /// <inheritdoc />
     public void ApplyCeilingSettings(ISecurityProfileCeilingBuilder ceiling)
     {
+        // Every access token must be DPoP- or mutual-TLS-bound (Or floor), enforced at the token endpoint and again at
+        // issuance together with every targeted resource server's requirement (ADR-0158).
+        ceiling.Set(OpenIdSettingKeys.AccessTokenSenderConstraintRequired, true);
+
         // Signing algorithms → PS256 / ES256 / EdDSA (Intersect ceilings narrow the advertised/accepted set).
         ceiling.Set(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported, SigningAlgorithms);

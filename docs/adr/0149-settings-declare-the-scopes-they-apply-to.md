@@ -1,7 +1,10 @@
 # 149. Settings declare the scopes they apply to
 
 - **Status:** Accepted (amended by [ADR-0155](0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): the
-  request-object, UserInfo, and ID token algorithm lists apply to clients)
+  request-object, UserInfo, and ID token algorithm lists apply to clients; extended by
+  [ADR-0158](0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md): the access-token
+  lifetime, signing, and sender-constraint settings apply to resource servers, and every setting that applies to
+  resource servers merges with a lattice operation)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

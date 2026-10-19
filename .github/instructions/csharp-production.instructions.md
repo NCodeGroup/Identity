@@ -93,6 +93,11 @@ rationale.
 - 👁 **Correct-by-default.** There is **no public API** to disable issuer / audience / signature / lifetime / algorithm
   validation, or to weaken a security control below its safe baseline. A knob may only supply values or swap a control
   for an equal-or-stronger one.
+- 👁 **A policy that a replaceable public service must apply is itself a public seam.** When a public interface a
+  consumer may replace (`ITokenService`) has to enforce a security policy, put the policy behind its own public
+  interface with an internal default (`IAccessTokenPolicyService`), so a replacement resolves the policy instead of
+  reimplementing it or silently skipping it; keeping it internal makes the secure path unreachable for exactly the code
+  that needs it. See [ADR-0158](../../docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md).
 - 👁 **Extensibility is the default: a vocabulary is open unless it is provably closed.** The family exists to be
   extended — by consumers and by sibling packages — without editing it, so every set of named values (kinds, types,
   modes, scopes, formats, methods, reasons, statuses, plans) is **open** by default and modeled as:
@@ -410,8 +415,8 @@ rationale.
   [ADR-0148](../../docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md).
 - 👁 **A setting declares the scopes it applies to.** Every descriptor sets the required `AppliesTo` — the names of the
   scopes whose effective settings the runtime reads it from (`OpenIdSettingScopes.Tenant` for discovery and the
-  tenant-wide services, `.Client` for the protocol endpoints, `.ResourceServer` for access-token encryption; a
-  discoverable setting always includes the tenant). Scopes are registered data, not a fixed set: a
+  tenant-wide services, `.Client` for the protocol endpoints, `.ResourceServer` for the bounds a resource server puts on
+  the access tokens issued for it; a discoverable setting always includes the tenant). Scopes are registered data, not a fixed set: a
   `SettingScopeDescriptor` (a name and its parent) contributed through `ICollectionDataSource<SettingScopeDescriptor>`,
   so a package that stores settings for an entity of its own registers that entity's scope beneath the scope it
   inherits from and declares its settings for it. A document may carry a setting only at a scope that applies it or
@@ -423,6 +428,16 @@ rationale.
   the profiles the client selects. Adding a reader at a new scope widens `AppliesTo`; narrowing it ships with a data
   migration that removes the setting from the documents of the scopes it leaves. See
   [ADR-0149](../../docs/adr/0149-settings-declare-the-scopes-they-apply-to.md).
+- 👁 **Sibling scopes combine; a cascade merges.** When two scopes that are not parent and child govern one operation —
+  an access token is bound by its client **and** every resource server it targets — join their effective settings with
+  `IReadOnlySettingCollection.Combine`, never `Merge`: it accepts only lattice merges, so the result binds both and does
+  not depend on order, and it throws on a projection. A setting that applies to resource servers therefore merges with
+  a lattice operation (a composed-server test pins it). Read every access-token setting from the token's governing
+  settings (`AccessTokenPolicy.Settings` from `IAccessTokenPolicyService`), never from `openIdClient.Settings` alone,
+  which ignores the targeted resource servers' bounds; and never fall back to a weaker or different credential when the
+  combined bounds cannot be met — refuse (`invalid_request` when the request can avoid it, `server_error` when the
+  configuration cannot be satisfied). See
+  [ADR-0158](../../docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md).
 - 👁 **A package registers its own services from `DefaultRegistration.cs`** (the class is **always** `DefaultRegistration`)
   using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
   [ADR-0069](../../docs/adr/0069-registration-library-compile-time-marker-nesting.md). **The receiver marker is the

@@ -211,7 +211,33 @@ public sealed class DefaultRegistrationTests
         OpenIdSettingScopes.ResourceServer,
         true
     )]
-    [InlineData(OpenIdSettingNames.AccessTokenLifetime, OpenIdSettingScopes.ResourceServer, false)]
+    [InlineData(OpenIdSettingNames.AccessTokenLifetime, OpenIdSettingScopes.ResourceServer, true)]
+    [InlineData(
+        OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
+        OpenIdSettingScopes.ResourceServer,
+        true
+    )]
+    [InlineData(
+        OpenIdSettingNames.AccessTokenSenderConstraintRequired,
+        OpenIdSettingScopes.Client,
+        true
+    )]
+    [InlineData(
+        OpenIdSettingNames.AccessTokenSenderConstraintRequired,
+        OpenIdSettingScopes.ResourceServer,
+        true
+    )]
+    [InlineData(
+        OpenIdSettingNames.AccessTokenConfirmationMethodsSupported,
+        OpenIdSettingScopes.ResourceServer,
+        true
+    )]
+    [InlineData(
+        OpenIdSettingNames.AccessTokenConfirmationMethodsSupported,
+        OpenIdSettingScopes.Client,
+        false
+    )]
+    [InlineData(OpenIdSettingNames.AccessTokenType, OpenIdSettingScopes.ResourceServer, false)]
     [InlineData(OpenIdSettingNames.SessionIdleTimeout, OpenIdSettingScopes.Client, false)]
     [InlineData(OpenIdSettingNames.SessionIdleTimeout, OpenIdSettingScopes.Tenant, true)]
     [InlineData(OpenIdSettingNames.SubjectClaimTypes, OpenIdSettingScopes.Client, false)]
@@ -295,6 +321,32 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public void AddIdentityServer_EverySettingThatAppliesWithinResourceServersMergesWithALatticeOperation()
+    {
+        // Access-token issuance combines a resource server's settings with the client's and those of every other
+        // resource server the token targets, as siblings rather than parent and child; only a lattice merge combines
+        // them in any order and binds both (ADR-0158).
+        using var host = BuildHost([]);
+        var descriptors = host.Services.GetRequiredService<ISettingDescriptorCollectionProvider>();
+        var scopes = host.Services.GetRequiredService<ISettingScopeCollectionProvider>().Collection;
+
+        var resourceServerSettings = descriptors
+            .Collection.Where(descriptor =>
+                scopes.AppliesWithin(descriptor, OpenIdSettingScopes.ResourceServer)
+            )
+            .ToList();
+
+        Assert.NotEmpty(resourceServerSettings);
+        foreach (var descriptor in resourceServerSettings)
+        {
+            Assert.True(
+                descriptor.HasLatticeMerge,
+                $"The setting '{descriptor.Name}' applies to resource servers but does not merge with a lattice operation."
+            );
+        }
+    }
+
+    [Fact]
     public void AddIdentityServer_EveryRegisteredSecurityProfileExpandsWithLatticeCeilings()
     {
         // A profile's ceiling is set in code, so the composed server pins every registered profile: each ceiling names a
@@ -336,6 +388,7 @@ public sealed class DefaultRegistrationTests
     [InlineData("id_token_signing_alg_values_supported:0", "HS256")]
     [InlineData("request_object_signing_alg_values_supported:0", "none")]
     [InlineData("id_token_encryption_alg_values_supported:0", "dir")]
+    [InlineData("access_token_confirmation_methods_supported:0", "x5t")]
     public async Task AddIdentityServer_WhenServerSettingIsOutsideItsDomain_FailsToStart(
         string key,
         string value

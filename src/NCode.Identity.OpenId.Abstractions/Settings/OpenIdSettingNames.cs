@@ -64,6 +64,15 @@ public static class OpenIdSettingNames
     public const string FederatedIdentityExplicitOnly = "federated_identity_explicit_only";
 
     /// <summary>
+    /// Contains the name of the <c>access_token_confirmation_methods_supported</c> setting: the <c>cnf</c> confirmation
+    /// methods (<see cref="OpenIdConstants.ConfirmationMethods"/>, the IANA JWT Confirmation Methods) a resource server
+    /// verifies. When a sender-constrained access token is required, it must be bound by one of the methods every
+    /// resource server it targets verifies. Unset means every method the server binds with.
+    /// </summary>
+    public const string AccessTokenConfirmationMethodsSupported =
+        "access_token_confirmation_methods_supported";
+
+    /// <summary>
     /// Contains the name of <c>access_token_encryption_alg_values_supported</c> setting.
     /// </summary>
     public const string AccessTokenEncryptionAlgValuesSupported =
@@ -84,6 +93,15 @@ public static class OpenIdSettingNames
     /// Contains the name of <c>access_token_lifetime</c> setting.
     /// </summary>
     public const string AccessTokenLifetime = "access_token_lifetime";
+
+    /// <summary>
+    /// Contains the name of the <c>access_token_sender_constraint_required</c> setting: whether an access token must be
+    /// sender-constrained — bound to a DPoP proof key (RFC 9449) or a mutual-TLS client certificate (RFC 8705). A
+    /// client's requirement is enforced at the token endpoint; the requirement of every resource server a token targets
+    /// is enforced when the token is issued.
+    /// </summary>
+    public const string AccessTokenSenderConstraintRequired =
+        "access_token_sender_constraint_required";
 
     /// <summary>
     /// Contains the name of <c>access_token_signing_alg_values_supported</c> setting.

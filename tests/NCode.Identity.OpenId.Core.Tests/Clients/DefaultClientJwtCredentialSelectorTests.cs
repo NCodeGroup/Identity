@@ -325,6 +325,9 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         public ISettingCollection Merge(IEnumerable<Setting> otherCollection) =>
             throw new NotSupportedException();
 
+        public ISettingCollection Combine(IEnumerable<Setting> otherCollection) =>
+            throw new NotSupportedException();
+
         public IEnumerator<Setting> GetEnumerator() => throw new NotSupportedException();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

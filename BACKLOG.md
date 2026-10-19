@@ -72,7 +72,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F69`     | `F68`      |
+| `F` — Feature gaps                    | `F70`     | `F69`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U22`     | `U21`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
@@ -481,32 +481,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`,
   `src/NCode.Identity.OpenId.Core/Tenants/TenantResolutionOptionsValidator.cs` (share the issuer rule).
 
-- **`F61` — Combine the client's and the targeted resource server's settings for access-token encryption.** When an
-  access token targets a single resource server, `DefaultTokenService` takes the encryption settings from that resource
-  server's effective settings (server ∩ tenant ∩ resource server) and ignores the client's
-  ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)). A bound the client carries — set on the
-  client or by a security profile it selects, such as `access_token_encryption_required` or a narrowed
-  `access_token_encryption_*_values_supported` — therefore does not apply once a resource server is targeted, although
-  a profile's ceiling is meant to bind every scope below the one that selects it
-  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)). FAPI 2.0 constrains none of these
-  settings today. Combine the two policies with their lattice merges (`Or` for the requirement, `Intersect` for the
-  algorithm lists) before choosing credentials, and decide which side's preference order wins. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultTokenService.cs`. Amend ADR-0075.
-
-- **`F62` — Let a resource server constrain the access tokens issued for it.** A resource server's settings govern only
-  the encryption of the access tokens issued for it ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)),
-  and it selects no security profile ([ADR-0149](docs/adr/0149-settings-declare-the-scopes-they-apply-to.md)), so an
-  API cannot require that its tokens be sender-constrained, short-lived, or signed with particular algorithms. Auth0
-  exposes all three per API, and RFC 9728 lets a protected resource advertise `dpop_bound_access_tokens_required`. Make
-  them resource-server settings — a sender-constraint requirement (`Or`), an access-token lifetime ceiling (`Min`), and
-  the signing algorithms (`Intersect`) — read from the effective settings of every targeted resource server and combined
-  with the client's by their lattice merges at issuance, refusing a token request that cannot satisfy them (every
-  audience of a multi-audience token binds). Widen `AppliesTo` of the settings it reuses to resource servers, and share
-  the combination with `F61`. Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultTokenService.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultProofOfPossessionService.cs`,
-  `src/NCode.Identity.OpenId.Authentication/ResourceServers/DefaultResourceServerCredentialResolver.cs`,
-  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`. Capture the design in an ADR.
-
 - **`F65` — Validate client key material at every entry point.** A client's `jwks` and the keys its `jwks_uri`
   publishes are the keys the server verifies its signatures with and encrypts its ID tokens and UserInfo responses to
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), but only dynamic client
@@ -533,9 +507,10 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`.
 
-- **`F67` — Validate the access tokens the server encrypted itself.** When `access_token_encryption_required` applies,
-  an access token is a Nested JWT encrypted to the single targeted resource server's key or, for a multi-audience token
-  or a resource server without a key, to the tenant's ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)).
+- **`F67` — Validate the access tokens the server encrypted itself.** When an access token's settings require encryption,
+  it is a Nested JWT encrypted to the key of the single targeted resource server that decrypts its own tokens or,
+  otherwise, to the tenant's
+  ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)).
   The server's own consumers of access tokens — UserInfo, introspection, token exchange, and the management API —
   name no decryption keys and no algorithm lists, so they reject every encrypted access token
   ([ADR-0154](docs/adr/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)): an
@@ -560,6 +535,18 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Abstractions/Settings/ISecurityProfile.cs`,
   `src/NCode.Identity.OpenId.Authentication/Settings/Fapi2SecurityProfile.cs`, the management client and tenant
   endpoints.
+
+- **`F69` — Expose the client JWT credential selector beside `ITokenService`.** A replacement `ITokenService` must
+  protect ID tokens exactly as the client registered
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), but
+  `IClientJwtCredentialSelector`, `ClientJwtCredentials`, and `ClientJwtProtectionSettings` are internal to
+  `NCode.Identity.OpenId.Authentication`, so a replacement can only reimplement that policy or skip it — the gap
+  `IAccessTokenPolicyService` closes for access tokens
+  ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)). Move the
+  interface and its models to `NCode.Identity.OpenId.Authentication.Abstractions` as a public seam with the internal
+  default, so every issuer of a client-addressed JWT (ID token, logout token, UserInfo response) resolves the same
+  selector. Touch points: `src/NCode.Identity.OpenId.Authentication/Clients/IClientJwtCredentialSelector.cs`,
+  `ClientJwtCredentials.cs`, `ClientJwtProtectionSettings.cs`, and the Authentication.Abstractions public API.
 
 ## Conformance & interop testing (group `T`)
 

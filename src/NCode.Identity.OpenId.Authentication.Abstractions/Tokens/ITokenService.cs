@@ -30,7 +30,9 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 public interface ITokenService
 {
     /// <summary>
-    /// Generates an access token.
+    /// Generates an access token. An implementation issues it under the policy <see cref="IAccessTokenPolicyService"/>
+    /// evaluates for the client and the resource servers the token targets, reading every access-token setting from
+    /// <see cref="AccessTokenPolicy.Settings"/>.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>

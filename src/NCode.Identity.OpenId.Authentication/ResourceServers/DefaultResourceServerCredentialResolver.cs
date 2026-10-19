@@ -18,12 +18,12 @@
 
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Persistence;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 
@@ -92,10 +92,8 @@ internal class DefaultResourceServerCredentialResolver(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
 
-        // Keep the matches ordered by audience identifier for a stable `aud` ordering; capture the single match's
-        // persisted secrets so a single-audience token can be encrypted to the resource server's own key.
-        var matches = new SortedList<string, ResolvedResourceServer>(StringComparer.Ordinal);
-        IReadOnlyCollection<PersistedSecret>? lastMatchSecrets = null;
+        // Keep the matches ordered by audience identifier for a stable `aud` ordering.
+        var matches = new SortedList<string, PersistedResourceServer>(StringComparer.Ordinal);
 
         // The DBMS pre-filters to enabled resource servers owning one of the scopes (and, when resources were
         // requested, to those audiences); the exact case-sensitive matches are applied here (ADR-0080).
@@ -119,26 +117,7 @@ internal class DefaultResourceServerCredentialResolver(
             }
 
             unmatchedResources?.Remove(resourceServer.Identifier);
-
-            var effectiveSettings = tenantEffectiveSettings.Merge(
-                SettingSerializer.DeserializeSettings(
-                    resourceServer.Settings.Value,
-                    OpenIdSettingScopes.ResourceServer,
-                    jsonOptions
-                )
-            );
-
-            matches.Add(
-                resourceServer.Identifier,
-                new ResolvedResourceServer
-                {
-                    ResourceServerId = resourceServer.ResourceServerId,
-                    Identifier = resourceServer.Identifier,
-                    EffectiveSettings = effectiveSettings,
-                }
-            );
-
-            lastMatchSecrets = resourceServer.Secrets.Value;
+            matches.Add(resourceServer.Identifier, resourceServer);
         }
 
         // A requested resource that matched no enabled, scope-owning resource server is rejected (RFC 8707).
@@ -151,22 +130,47 @@ internal class DefaultResourceServerCredentialResolver(
                 .AsException();
         }
 
-        var resourceServers = matches.Values.ToList();
-
-        // The per-audience secret keys only apply to a single-audience token; multi-audience tokens use the tenant's
-        // keys (a compact JWE encrypts to one recipient) (ADR-0075). Secrets are deserialized only for the single
-        // match so no key material is materialized (and left undisposed) for the multi-audience case.
-        var singleSecretsProvider =
-            resourceServers.Count == 1 && lastMatchSecrets is not null
-                ? SecretKeyCollectionProviderFactory.CreateStatic(
-                    SecretSerializer.DeserializeSecrets(lastMatchSecrets)
-                )
-                : null;
-
-        return new ResourceServerCredentialResolution
+        // Every targeted resource server's settings bound the token, and its own keys decide whether it decrypts the
+        // tokens issued for it (ADR-0154), so both are materialized for each match. The key providers are owned by the
+        // resolution; any already built are released if a later one cannot be.
+        var resourceServers = new List<ResolvedResourceServer>(matches.Count);
+        try
         {
-            ResourceServers = resourceServers,
-            SingleSecretsProvider = singleSecretsProvider,
-        };
+            foreach (var resourceServer in matches.Values)
+            {
+                var effectiveSettings = tenantEffectiveSettings.Merge(
+                    SettingSerializer.DeserializeSettings(
+                        resourceServer.Settings.Value,
+                        OpenIdSettingScopes.ResourceServer,
+                        jsonOptions
+                    )
+                );
+
+                var secretsProvider = SecretKeyCollectionProviderFactory.CreateStatic(
+                    SecretSerializer.DeserializeSecrets(resourceServer.Secrets.Value)
+                );
+
+                resourceServers.Add(
+                    new ResolvedResourceServer
+                    {
+                        ResourceServerId = resourceServer.ResourceServerId,
+                        Identifier = resourceServer.Identifier,
+                        EffectiveSettings = effectiveSettings,
+                        SecretsProvider = secretsProvider,
+                    }
+                );
+            }
+        }
+        catch
+        {
+            foreach (var resourceServer in resourceServers)
+            {
+                await resourceServer.SecretsProvider.DisposeAsync();
+            }
+
+            throw;
+        }
+
+        return new ResourceServerCredentialResolution { ResourceServers = resourceServers };
     }
 }

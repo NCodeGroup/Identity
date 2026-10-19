@@ -91,4 +91,24 @@ public interface IReadOnlySettingCollection : IReadOnlyCollection<Setting>
     /// <param name="otherCollection">The other collection to merge into the current collection.</param>
     /// <returns>The new <see cref="ISettingCollection"/> instance containing the merged settings from both collections.</returns>
     ISettingCollection Merge(IEnumerable<Setting> otherCollection);
+
+    /// <summary>
+    /// Creates and returns a new <see cref="ISettingCollection"/> instance bound by both the current instance and the
+    /// <paramref name="otherCollection"/>: the settings of two sibling scopes that govern one operation together, rather
+    /// than a parent and a child of the cascade (<see cref="Merge"/>).
+    /// </summary>
+    /// <remarks>
+    /// A setting present in both collections is merged with its descriptor's merge function, which must be a lattice
+    /// operation of <see cref="SettingMerge"/> (<see cref="SettingDescriptor.HasLatticeMerge"/>). Such a merge is
+    /// commutative, associative, and idempotent, so the combined value binds both collections whatever their order and
+    /// a value both inherit from a common ancestor is not counted twice. A setting present in only one collection keeps
+    /// its value. A list keeps the order of the current instance, as <see cref="SettingMerge.Intersect{T}"/> keeps its
+    /// left operand's.
+    /// </remarks>
+    /// <param name="otherCollection">The settings of the sibling scope to combine with the current collection.</param>
+    /// <returns>The new <see cref="ISettingCollection"/> instance containing the combined settings.</returns>
+    /// <exception cref="InvalidOperationException">A setting in <paramref name="otherCollection"/> does not merge with a
+    /// lattice operation, so combining it would let the order of the collections decide its value.</exception>
+    // See ADR-0154.
+    ISettingCollection Combine(IEnumerable<Setting> otherCollection);
 }

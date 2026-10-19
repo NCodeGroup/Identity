@@ -492,7 +492,41 @@ change to the public API is a **major** version bump.
   settings documents in its own database must apply the same migration there.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
+- **An access token is bound by its client and by every resource server it targets, and a resource server can constrain
+  the tokens issued for it.** The client's effective settings and those of every targeted resource server combine by
+  their lattice merges: a requirement any of them states holds, a lifetime is the shortest, and an algorithm list
+  permits only what all of them permit, in the server's order. A resource server can now set `access_token_lifetime`,
+  `access_token_signing_alg_values_supported`, the new `access_token_sender_constraint_required` (the token must be
+  DPoP- or mutual-TLS-bound), and the new `access_token_confirmation_methods_supported` (the `cnf` methods it verifies,
+  `jkt` and `x5t#S256`); every audience of a multi-audience token binds it. A client's sender-constraint requirement is
+  refused at the token endpoint before its grant is spent, and the FAPI 2.0 profile states its sender-constrained-token
+  rule as the ceiling `access_token_sender_constraint_required = true`.
+
+  An encrypted access token is encrypted to the party that reads it. A resource server decrypts its own tokens when it
+  holds a key it can decrypt with under its own settings: a token for it alone is encrypted to that key within the
+  combined settings, and issuance fails with `server_error` rather than encrypt to the tenant's key, which it cannot
+  read; a token for it together with another resource server is refused with `invalid_request`. Any other encrypted
+  token goes to the tenant's key. A missing access-token signing or encryption key is now `server_error`.
+
+  **Breaking:** a multi-audience encrypted token whose resource servers hold no keys is encrypted to the tenant's key
+  instead of refused, and a client-required encrypted token targeting a resource server that decrypts its own tokens
+  together with another is refused instead of encrypted to the tenant's key. `IReadOnlySettingCollection` gains
+  `Combine` (the lattice-only combination of sibling scopes' settings), `ResolvedResourceServer` gains
+  `SecretsProvider`, `ResourceServerCredentialResolution.SingleSecretsProvider` is removed,
+  `IAccessTokenPolicyService` and `AccessTokenPolicy` are new — a replacement `ITokenService` issues access tokens under
+  the policy the service evaluates, and an extension can replace the service to add a bound — and
+  `OpenIdSettingNames` / `OpenIdSettingKeys` gain `AccessTokenSenderConstraintRequired` and
+  `AccessTokenConfirmationMethodsSupported`. No stored document needs migrating.
+  ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md))
+
 ### Security
+
+- **A client's access-token encryption bounds stopped applying once its token targeted a resource server.** A single
+  targeted resource server's settings governed the token's encryption in place of the client's, so a client — or a
+  security profile it selects — that required encryption or narrowed the encryption algorithms was ignored, and the
+  token was issued unencrypted or outside the client's algorithms. The client's and every targeted resource server's
+  settings now combine, so both bind.
+  ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md))
 
 - **The JWT validator accepted an unsigned (`alg:none`) token as authentic.** The `none` signature algorithm verified
   with any key, so a token whose header named `none` and whose signature was empty validated against any key

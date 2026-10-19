@@ -11,6 +11,7 @@ abstract NCode.Identity.Settings.SettingDescriptor.ValueType.get -> System.Type!
 abstract NCode.Identity.Settings.SettingRule<TValue>.Description.get -> string!
 abstract NCode.Identity.Settings.SettingRule<TValue>.TryValidate(TValue value, out string? failure) -> bool
 NCode.Identity.Settings.IReadOnlySettingCollection
+NCode.Identity.Settings.IReadOnlySettingCollection.Combine(System.Collections.Generic.IEnumerable<NCode.Identity.Settings.Setting!>! otherCollection) -> NCode.Identity.Settings.ISettingCollection!
 NCode.Identity.Settings.IReadOnlySettingCollection.GetValue<TValue>(NCode.Identity.Settings.SettingKey<TValue> key) -> TValue
 NCode.Identity.Settings.IReadOnlySettingCollection.Merge(System.Collections.Generic.IEnumerable<NCode.Identity.Settings.Setting!>! otherCollection) -> NCode.Identity.Settings.ISettingCollection!
 NCode.Identity.Settings.IReadOnlySettingCollection.TryGet(string! settingName, out NCode.Identity.Settings.Setting! setting) -> bool

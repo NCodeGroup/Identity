@@ -74,6 +74,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `Interop+Crypto+OpenSslCryptographicException`, so only `Assert.ThrowsAny<CryptographicException>` holds on both.
   Keep `Assert.Throws<T>` where the exact type **is** the contract (a library's own
   `JoseException`/`OpenIdException`, `ArgumentNullException`, and similar).
+- 👁 **A test that a rule refuses an alternative must make the alternative viable.** When the behavior under test is
+  "refuse rather than fall back" (encrypt to a resource server's key or fail, never to the tenant's), arrange the
+  fallback so it **would succeed** — give the tenant a key the policy permits — and pair the test with a control that
+  shows the same fallback succeeding when the rule does not apply. Otherwise the refusal also happens because the
+  fallback itself fails, the same error is asserted, and the test passes with the rule removed.
 
 ## Isolation & mocking
 

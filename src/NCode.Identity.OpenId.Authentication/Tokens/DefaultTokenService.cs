@@ -21,8 +21,6 @@ using System.Security.Claims;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
-using NCode.Identity.Jose.Algorithms;
-using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.Models;
@@ -36,9 +34,7 @@ using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens;
@@ -48,9 +44,8 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// </summary>
 internal class DefaultTokenService(
     ICryptoService cryptoService,
-    IAlgorithmCollectionProvider algorithmCollectionProvider,
-    ICredentialSelector credentialSelector,
     IClientJwtCredentialSelector clientJwtCredentialSelector,
+    IAccessTokenPolicyService accessTokenPolicyService,
     IJwtEncoder jwtEncoder,
     IPersistedGrantService persistedGrantService,
     IResourceServerCredentialResolver resourceServerCredentialResolver,
@@ -58,11 +53,9 @@ internal class DefaultTokenService(
 ) : ITokenService
 {
     private ICryptoService CryptoService { get; } = cryptoService;
-    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
-        algorithmCollectionProvider;
-    private ICredentialSelector CredentialSelector { get; } = credentialSelector;
     private IClientJwtCredentialSelector ClientJwtCredentialSelector { get; } =
         clientJwtCredentialSelector;
+    private IAccessTokenPolicyService AccessTokenPolicyService { get; } = accessTokenPolicyService;
     private IJwtEncoder JwtEncoder { get; } = jwtEncoder;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private IResourceServerCredentialResolver ResourceServerCredentialResolver { get; } =
@@ -156,15 +149,12 @@ internal class DefaultTokenService(
         CancellationToken cancellationToken
     )
     {
-        var settings = openIdClient.Settings;
         var mediator = openIdContext.Mediator;
         var openIdTenant = openIdContext.Tenant;
-        var tenantSecretKeys = openIdTenant.SecretsProvider.Collection;
-        var candidateAlgorithms = AlgorithmCollectionProvider.Collection;
 
-        // Resolve the resource servers this token targets so we can both bind its audience (ADR-0027) and, when it
-        // targets a single resource server, encrypt it to that resource server's own key (ADR-0075). Disposed after
-        // issuance so the transient per-request secret-key provider is released.
+        // Resolve the resource servers this token targets: they bind its audience (ADR-0027), and their settings bound
+        // the token together with the client's (ADR-0158). Disposed after issuance so their transient secret-key
+        // providers are released.
         await using var resolution = await ResourceServerCredentialResolver.ResolveAsync(
             openIdContext,
             tokenRequest.EffectiveScopes,
@@ -172,48 +162,17 @@ internal class DefaultTokenService(
             cancellationToken
         );
 
-        // A single targeted resource server governs the token's encryption with its own effective settings and keys;
-        // zero or many fall back to the client's settings over the tenant's keys (ADR-0075).
-        var encryptionSettings = resolution.Single?.EffectiveSettings ?? settings;
-        var resourceServerSecretKeys = resolution.SingleSecretsProvider?.Collection;
-
-        // A compact JWE encrypts to a single recipient, so a token targeting several resource servers where any one
-        // requires its tokens be encrypted cannot be satisfied — reject rather than silently downgrade (ADR-0075).
-        if (resolution.ResourceServers.Count > 1)
-        {
-            foreach (var resourceServer in resolution.ResourceServers)
-            {
-                if (
-                    resourceServer.EffectiveSettings.GetValue(
-                        OpenIdSettingKeys.AccessTokenEncryptionRequired
-                    )
-                )
-                {
-                    throw openIdContext
-                        .ErrorFactory.InvalidRequest(
-                            "The requested scopes span multiple resource servers but at least one requires its "
-                                + "access tokens be encrypted, which cannot be satisfied for a multi-audience token."
-                        )
-                        .AsException();
-                }
-            }
-        }
-
-        // Access tokens are always signed with the tenant's asymmetric key and validated by resource servers via JWKS
-        // (RFC 9068; FAPI permits only PS256/ES256 and forbids symmetric signing) — a resource server never holds a
-        // token-signing key (ADR-0075).
-        var signingCredentials = GetSigningCredentials(
-            candidateAlgorithms,
-            settings.GetValue(OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported),
-            tenantSecretKeys
+        // Every access-token setting is read from the combined settings, and the token's credentials are chosen within
+        // every bound — or the request is refused (ADR-0158).
+        var policy = AccessTokenPolicyService.Evaluate(
+            openIdContext,
+            openIdClient,
+            tokenRequest.Confirmation,
+            resolution
         );
-
-        var encryptionCredentials = GetAccessTokenEncryptionCredentials(
-            candidateAlgorithms,
-            encryptionSettings,
-            resourceServerSecretKeys,
-            tenantSecretKeys
-        );
+        var settings = policy.Settings;
+        var signingCredentials = policy.SigningCredentials;
+        var encryptionCredentials = policy.EncryptionCredentials;
 
         var ticket = tokenRequest.SubjectAuthentication;
         var tokenContext = new SecurityTokenContext(
@@ -591,80 +550,5 @@ internal class DefaultTokenService(
         return initial == null
             ? new Dictionary<string, object>(StringComparer.Ordinal)
             : new Dictionary<string, object>(initial, StringComparer.Ordinal);
-    }
-
-    // Selects the access token's encryption credentials when encryption is required, preferring the single targeted
-    // resource server's own key so only it can read the token, and falling back to the tenant's key (ADR-0075). The
-    // server never compresses what it encrypts (RFC 8725 §3.6).
-    private JoseEncryptionCredentials? GetAccessTokenEncryptionCredentials(
-        IAlgorithmCollection candidateAlgorithms,
-        IReadOnlySettingCollection settings,
-        ISecretKeyCollection? resourceServerSecretKeys,
-        ISecretKeyCollection tenantSecretKeys
-    )
-    {
-        if (!settings.GetValue(OpenIdSettingKeys.AccessTokenEncryptionRequired))
-        {
-            return null;
-        }
-
-        var encryptionAlgValuesSupported = settings.GetValue(
-            OpenIdSettingKeys.AccessTokenEncryptionAlgValuesSupported
-        );
-        var encryptionEncValuesSupported = settings.GetValue(
-            OpenIdSettingKeys.AccessTokenEncryptionEncValuesSupported
-        );
-
-        if (
-            resourceServerSecretKeys is not null
-            && CredentialSelector.TryGetEncryptionCredentials(
-                candidateAlgorithms,
-                encryptionAlgValuesSupported,
-                encryptionEncValuesSupported,
-                [],
-                resourceServerSecretKeys,
-                out var resourceServerCredentials
-            )
-        )
-        {
-            return resourceServerCredentials;
-        }
-
-        if (
-            !CredentialSelector.TryGetEncryptionCredentials(
-                candidateAlgorithms,
-                encryptionAlgValuesSupported,
-                encryptionEncValuesSupported,
-                [],
-                tenantSecretKeys,
-                out var tenantCredentials
-            )
-        )
-        {
-            throw new JoseCredentialsNotFoundException("Unable to locate encryption credentials.");
-        }
-
-        return tenantCredentials;
-    }
-
-    private JoseSigningCredentials GetSigningCredentials(
-        IAlgorithmCollection candidateAlgorithms,
-        IEnumerable<string> signingAlgValuesSupported,
-        ISecretKeyCollection secretKeys
-    )
-    {
-        if (
-            !CredentialSelector.TryGetSigningCredentials(
-                candidateAlgorithms,
-                signingAlgValuesSupported,
-                secretKeys,
-                out var signingCredentials
-            )
-        )
-        {
-            throw new JoseCredentialsNotFoundException("Unable to locate signing credentials.");
-        }
-
-        return signingCredentials;
     }
 }

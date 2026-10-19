@@ -200,6 +200,26 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
             .Verifiable();
     }
 
+    // Every match's own keys are materialized into a provider the resolution owns, so each provider must be disposed.
+    private void SetupSecretsProviders()
+    {
+        MockSecretSerializer
+            .Setup(x => x.DeserializeSecrets(It.IsAny<IReadOnlyCollection<PersistedSecret>>()))
+            .Returns(Array.Empty<SecretKey>())
+            .Verifiable();
+        MockSecretKeyCollectionProviderFactory
+            .Setup(x => x.CreateStatic(It.IsAny<IEnumerable<SecretKey>>()))
+            .Returns(() => CreateDisposableSecretsProvider().Object)
+            .Verifiable();
+    }
+
+    private Mock<ISecretKeyCollectionProvider> CreateDisposableSecretsProvider()
+    {
+        var mockProvider = MockRepository.Create<ISecretKeyCollectionProvider>();
+        mockProvider.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        return mockProvider;
+    }
+
     #endregion
 
     [Fact]
@@ -214,7 +234,6 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
 
         Assert.Empty(resolution.ResourceServers);
         Assert.Null(resolution.Single);
-        Assert.Null(resolution.SingleSecretsProvider);
         Assert.Empty(resolution.Audiences);
     }
 
@@ -235,7 +254,6 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
 
         Assert.Empty(resolution.ResourceServers);
         Assert.Null(resolution.Single);
-        Assert.Null(resolution.SingleSecretsProvider);
     }
 
     [Fact]
@@ -257,15 +275,14 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     }
 
     [Fact]
-    public async Task ResolveAsync_SingleMatch_SetsSingleAndBuildsSecretsProvider()
+    public async Task ResolveAsync_SingleMatch_SetsSingleWithItsSecretsProvider()
     {
         SetupContext();
         SetupStore();
         SetupSettingsMerge();
         SetupFindEnabledByScopes(ResourceServer("rs-api", "read:x"));
 
-        var mockProvider = MockRepository.Create<ISecretKeyCollectionProvider>();
-        mockProvider.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        var mockProvider = CreateDisposableSecretsProvider();
         MockSecretSerializer
             .Setup(x => x.DeserializeSecrets(It.IsAny<IReadOnlyCollection<PersistedSecret>>()))
             .Returns(Array.Empty<SecretKey>())
@@ -283,9 +300,10 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         );
 
         Assert.Single(resolution.ResourceServers);
-        Assert.NotNull(resolution.Single);
-        Assert.Equal("rs-api", resolution.Single!.ResourceServerId);
-        Assert.Same(mockProvider.Object, resolution.SingleSecretsProvider);
+        var single = resolution.Single;
+        Assert.NotNull(single);
+        Assert.Equal("rs-api", single.ResourceServerId);
+        Assert.Same(mockProvider.Object, single.SecretsProvider);
         Assert.Equal(["urn:rs-api"], resolution.Audiences);
     }
 
@@ -295,6 +313,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         SetupContext();
         SetupStore();
         SetupSettingsMerge();
+        SetupSecretsProviders();
         SetupFindEnabledByScopes(
             ResourceServer("rs-b", "read:x"),
             ResourceServer("rs-a", "read:x")
@@ -309,9 +328,65 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
 
         Assert.Equal(2, resolution.ResourceServers.Count);
         Assert.Null(resolution.Single);
-        Assert.Null(resolution.SingleSecretsProvider);
         // Audiences are ordered by identifier (urn:rs-a before urn:rs-b).
         Assert.Equal(["urn:rs-a", "urn:rs-b"], resolution.Audiences);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_MultipleMatches_EachCarriesItsOwnSecretsProvider()
+    {
+        SetupContext();
+        SetupStore();
+        SetupSettingsMerge();
+        SetupSecretsProviders();
+        SetupFindEnabledByScopes(
+            ResourceServer("rs-a", "read:x"),
+            ResourceServer("rs-b", "read:x")
+        );
+
+        await using var resolution = await Resolver.ResolveAsync(
+            MockContext.Object,
+            ["read:x"],
+            [],
+            CancellationToken.None
+        );
+
+        // Each provider is disposed with the resolution, which the strict DisposeAsync setups verify.
+        Assert.NotSame(
+            resolution.ResourceServers[0].SecretsProvider,
+            resolution.ResourceServers[1].SecretsProvider
+        );
+    }
+
+    [Fact]
+    public async Task ResolveAsync_WhenALaterSecretsProviderCannotBeBuilt_DisposesTheEarlierOnes()
+    {
+        SetupContext();
+        SetupStore();
+        SetupSettingsMerge();
+        SetupFindEnabledByScopes(
+            ResourceServer("rs-a", "read:x"),
+            ResourceServer("rs-b", "read:x")
+        );
+
+        var mockFirstProvider = CreateDisposableSecretsProvider();
+        var created = 0;
+        MockSecretSerializer
+            .Setup(x => x.DeserializeSecrets(It.IsAny<IReadOnlyCollection<PersistedSecret>>()))
+            .Returns(Array.Empty<SecretKey>())
+            .Verifiable();
+        MockSecretKeyCollectionProviderFactory
+            .Setup(x => x.CreateStatic(It.IsAny<IEnumerable<SecretKey>>()))
+            .Returns(() =>
+                ++created == 1
+                    ? mockFirstProvider.Object
+                    : throw new InvalidOperationException("The stored key cannot be read.")
+            )
+            .Verifiable();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Resolver.ResolveAsync(MockContext.Object, ["read:x"], [], CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -320,6 +395,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         SetupContext();
         SetupStore();
         SetupSettingsMerge();
+        SetupSecretsProviders();
         // The store applies the RFC 8707 identifier narrowing, so rs-c is not returned.
         SetupFindEnabledByScopes(
             ResourceServer("rs-a", "read:x"),

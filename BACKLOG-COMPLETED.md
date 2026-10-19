@@ -1025,6 +1025,59 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   migration was verified against Postgres, including rollback and idempotent re-apply. The tracing also surfaced `F63`
   (request-object and UserInfo algorithm settings that only discovery reads)._
 
+- **`F61` — Combine the client's and the targeted resource server's settings for access-token encryption.** When an
+  access token targets a single resource server, `DefaultTokenService` takes the encryption settings from that resource
+  server's effective settings (server ∩ tenant ∩ resource server) and ignores the client's
+  ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)). A bound the client carries — set on the
+  client or by a security profile it selects, such as `access_token_encryption_required` or a narrowed
+  `access_token_encryption_*_values_supported` — therefore does not apply once a resource server is targeted, although
+  a profile's ceiling is meant to bind every scope below the one that selects it
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)). FAPI 2.0 constrains none of these
+  settings today. Combine the two policies with their lattice merges (`Or` for the requirement, `Intersect` for the
+  algorithm lists) before choosing credentials, and decide which side's preference order wins. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultTokenService.cs`. Amend ADR-0075.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md), together
+  with `F62`. A new lattice-only `IReadOnlySettingCollection.Combine` joins sibling scopes' settings (a projection
+  throws, so the result cannot depend on order), and the settings that govern an access token are the client's
+  effective settings combined with the resource-server-scoped settings of every targeted resource server. The preference
+  order is the server's: every effective list keeps the root's order, so a resource server states a preference by
+  narrowing. Combining exposed a silent misdirection — the client's narrowing could exclude the resource server's keys
+  and the tenant-key fallback would mint a token the resource server cannot decrypt (RFC 9068 §4) — and a
+  provenance-dependent multi-audience guard. Both were replaced by one recipient rule: a resource server that holds a key
+  usable under its own settings decrypts its own tokens, so a token for it alone is encrypted to that key within the
+  combined settings or fails with `server_error`, and a token for it with another resource server is refused; any other
+  encrypted token goes to the tenant's key. The policy lives in `IAccessTokenPolicyService` — a public seam with an
+  internal default, so a replacement `ITokenService` resolves it rather than skip it (the replaceable resolver only
+  supplies each targeted resource server's settings and keys)._
+
+- **`F62` — Let a resource server constrain the access tokens issued for it.** A resource server's settings govern only
+  the encryption of the access tokens issued for it ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)),
+  and it selects no security profile ([ADR-0149](docs/adr/0149-settings-declare-the-scopes-they-apply-to.md)), so an
+  API cannot require that its tokens be sender-constrained, short-lived, or signed with particular algorithms. Auth0
+  exposes all three per API, and RFC 9728 lets a protected resource advertise `dpop_bound_access_tokens_required`. Make
+  them resource-server settings — a sender-constraint requirement (`Or`), an access-token lifetime ceiling (`Min`), and
+  the signing algorithms (`Intersect`) — read from the effective settings of every targeted resource server and combined
+  with the client's by their lattice merges at issuance, refusing a token request that cannot satisfy them (every
+  audience of a multi-audience token binds). Widen `AppliesTo` of the settings it reuses to resource servers, and share
+  the combination with `F61`. Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultTokenService.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultProofOfPossessionService.cs`,
+  `src/NCode.Identity.OpenId.Authentication/ResourceServers/DefaultResourceServerCredentialResolver.cs`,
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`. Capture the design in an ADR.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md), together
+  with `F61`. `access_token_lifetime` (`Min`) and `access_token_signing_alg_values_supported` (`Intersect`) now apply to
+  resource servers, and two settings are new: `access_token_sender_constraint_required` (`Or`, clients and resource
+  servers) and `access_token_confirmation_methods_supported` (`Intersect`, resource servers — the IANA `cnf` methods
+  `jkt` and `x5t#S256` a resource server verifies, Auth0's per-API `mechanism` generalized to a list). A requirement
+  without methods was rejected: a token bound by a method a resource server cannot verify would pass as compliant. The
+  client's requirement is enforced at the token endpoint before the grant is spent; the combined requirement and methods
+  at issuance. FAPI 2.0's sender-constraint rule became the ceiling `access_token_sender_constraint_required = true`, and
+  `SenderConstrainedAccessTokenRequirement` was removed. A composed-server test pins every setting that applies to
+  resource servers to a lattice merge. No data migration was needed._
+
 - **`F63` — Honor the request-object and UserInfo algorithm settings, or stop advertising them.** Discovery advertises
   `request_object_signing_alg_values_supported`, `request_object_encryption_{alg,enc}_values_supported`,
   `userinfo_signing_alg_values_supported`, and `userinfo_encryption_{alg,enc}_values_supported`, but no runtime path

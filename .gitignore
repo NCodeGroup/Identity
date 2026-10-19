@@ -266,8 +266,11 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
-# Test logger output (dod.ps1 writes JUnit reports next to the test assemblies)
+# Test report output is build output wherever a runner writes it: dod.ps1 writes JUnit reports to
+# artifacts/test-results (ignored above) and Vitest (`pnpm run test:report`) writes them to each package's test-results/.
+# Ignoring them also keeps them out of the CSharpier check, which formats every unignored XML file.
 *.junit.xml
+test-results/
 
 # Frontend presentation platform (src/frontend) — node toolchain build/cache output.
 # node_modules/ is already ignored above. See docs/adr/0064.

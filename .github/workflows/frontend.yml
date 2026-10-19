@@ -17,13 +17,23 @@ on:
     paths:
       - 'src/frontend/**'
       - '.github/workflows/frontend.yml'
+      - '.github/workflows/codecov-upload.yml'
+      - 'build/test-report.ps1'
+      - 'build/coverage-report.ps1'
+      - '.config/dotnet-tools.json'
   pull_request:
     branches: [main]
     paths:
       - 'src/frontend/**'
       - '.github/workflows/frontend.yml'
+      - '.github/workflows/codecov-upload.yml'
+      - 'build/test-report.ps1'
+      - 'build/coverage-report.ps1'
+      - '.config/dotnet-tools.json'
   workflow_dispatch:
 
+# The frontend job only reads the tree; `id-token: write` (the Codecov OIDC upload) belongs to the separate codecov job
+# alone (ADR-0143).
 permissions:
   contents: read
 
@@ -100,10 +110,69 @@ jobs:
         if: always()
         run: pnpm run typecheck
 
+      # The same Vitest run as `pnpm test`, plus a JUnit report (<package>/test-results/junit.xml) and Cobertura + HTML
+      # coverage (<package>/coverage/) per package, for the reports below and Codecov.
       - name: Test
+        id: test
         if: always()
-        run: pnpm run test
+        run: pnpm run test:report
+
+      # The shared reporter the .NET gate also uses: one table in the job summary, failed tests annotated in place.
+      - name: Test report
+        if: always()
+        shell: pwsh
+        working-directory: .
+        run: ./build/test-report.ps1 -Path 'src/frontend/*/*/test-results/junit.xml' -Title 'Frontend tests'
+
+      # Coverage is merged and rendered by the same ReportGenerator tool (pinned in .config/dotnet-tools.json) as the
+      # .NET coverage, so both tiers present coverage identically; that is the only reason this job installs .NET.
+      # Vitest writes no coverage when a test fails, so these steps follow a passing test step only.
+      - name: Setup .NET
+        if: steps.test.outcome == 'success'
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Coverage report
+        if: steps.test.outcome == 'success'
+        shell: pwsh
+        working-directory: .
+        run: |
+          dotnet tool restore
+          ./build/coverage-report.ps1 -Path 'src/frontend/*/*/coverage/cobertura-coverage.xml' -TargetDirectory artifacts/frontend-coverage -Title 'Frontend coverage' -ArtifactName frontend-coverage -PerPackageReports
 
       - name: Build
         if: always()
         run: pnpm run build
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-test-results
+          path: src/frontend/*/*/test-results/junit.xml
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-coverage
+          path: artifacts/frontend-coverage/
+          retention-days: 14
+          if-no-files-found: warn
+
+  # Reporting, not gating — see ci.yml.
+  codecov:
+    name: Codecov
+    needs: frontend
+    if: ${{ !cancelled() }}
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/codecov-upload.yml
+    with:
+      flag: frontend
+      coverage-artifact: frontend-coverage
+      test-results-artifact: frontend-test-results

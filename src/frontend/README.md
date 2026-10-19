@@ -99,6 +99,7 @@ pnpm install              # install the workspace
 pnpm dev                  # run the WHOLE frontend stack (Turborepo): dev servers + build-watch
 pnpm --filter @ncode/app-mgmt dev    # run just the Management console
 pnpm test                 # run all unit tests
+pnpm run test:report      # same, plus per-package JUnit (test-results/) and coverage (coverage/) — what CI runs
 pnpm lint                 # lint all packages
 pnpm typecheck            # type-check all packages
 pnpm --filter @ncode/ui storybook    # component workbench

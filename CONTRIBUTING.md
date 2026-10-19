@@ -38,6 +38,18 @@ dotnet build NCode.Identity.slnx
 dotnet test NCode.Identity.slnx
 ```
 
+Every gate run clears and rewrites `artifacts/test-results/` (one JUnit report per test assembly, plus the raw coverage
+of a full run) and prints a test digest and a per-stage duration table; a full run also writes the merged coverage
+report to `artifacts/coverage/` — open `index.html` to browse it. In CI the same results appear on the run's summary
+page, failed tests and the failing stage are annotated, and coverage is uploaded to Codecov
+([ADR-0143](docs/adr/0143-ci-presents-test-results-and-coverage-in-github.md)). The frontend workspace's equivalent is
+`pnpm run test:report` (in `src/frontend`), which adds per-package JUnit and coverage output to `pnpm test`.
+
+To preview the CI presentation (job summary + annotations) without pushing, run the gate with `GITHUB_ACTIONS=true` and
+point `GITHUB_STEP_SUMMARY`, `GITHUB_ENV`, and `GITHUB_OUTPUT` at empty temporary files, then read the summary file.
+Set all three: with `GITHUB_ACTIONS=true` Nerdbank.GitVersioning's cloud-build task writes to `GITHUB_ENV` during the
+build and fails it with `ArgumentNullException (Parameter 'path')` when that variable is unset.
+
 When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**` and `/tests/`
 for `tests/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`) — never at the solution root.
 

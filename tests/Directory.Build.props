@@ -18,7 +18,8 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
-  <!-- The Definition of Done (dod.ps1) writes JUnit test reports via the JUnit test logger. -->
+  <!-- The Definition of Done (dod.ps1) writes one JUnit report per test assembly to artifacts/test-results via the JUnit
+       test logger; build/test-report.ps1 presents them and CI uploads them to Codecov (ADR-0143). -->
   <ItemGroup>
     <PackageReference Include="JunitXml.TestLogger" />
   </ItemGroup>

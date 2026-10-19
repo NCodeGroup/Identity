@@ -1,0 +1,24 @@
+# Codecov configuration (ADR-0143). Reports arrive from .github/workflows/codecov-upload.yml, which both CI tiers call:
+# .NET under the `dotnet` flag (ci.yml) and the frontend workspace under the `frontend` flag (frontend.yml).
+
+coverage:
+  status:
+    # Codecov reports; it does not gate. Both statuses are informational, so the only required check stays
+    # "Definition of Done". A coverage threshold, if one is ever wanted, is a deliberate policy decision of its own,
+    # not a side effect of turning reporting on.
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+flag_management:
+  individual_flags:
+    - name: dotnet
+    # Frontend CI is path-filtered, so a commit that touches no frontend file uploads no frontend coverage. Carrying the
+    # last frontend report forward keeps that tier's numbers on such commits instead of reporting it as uncovered.
+    - name: frontend
+      paths:
+        - src/frontend/
+      carryforward: true

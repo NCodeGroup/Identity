@@ -36,6 +36,7 @@ using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -90,6 +91,7 @@ internal class ResourceServerApiEndpointHandler(
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     IOpenIdServerProvider serverProvider,
+    ISecurityProfileCatalog securityProfileCatalog,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ResourceServerApiEndpointHandler> logger
@@ -105,6 +107,7 @@ internal class ResourceServerApiEndpointHandler(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
+    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -874,7 +877,8 @@ internal class ResourceServerApiEndpointHandler(
     /// <summary>
     /// Merges a resource server's persisted settings onto the addressed tenant's effective settings, producing the same
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves at runtime (server baseline
-    /// merged with the tenant's and then the resource server's persisted overrides).
+    /// merged with the tenant's — expanded with the ceilings of the security profiles it selects — and then the resource
+    /// server's persisted overrides).
     /// </summary>
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeResourceServerSettingsAsync(
         OpenIdContext openIdContext,
@@ -895,12 +899,14 @@ internal class ResourceServerApiEndpointHandler(
         var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
         var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
 
-        var tenantEffective = server.SettingsProvider.Collection.Merge(
-            SettingSerializer.DeserializeSettings(tenantSettings.Value, jsonOptions)
+        var tenantScopeSettings = SecurityProfileCatalog.Expand(tenantSettings.Value, jsonOptions);
+        var resourceServerScopeSettings = SettingSerializer.DeserializeSettings(
+            resourceServer.Settings.Value,
+            jsonOptions
         );
-        return tenantEffective.Merge(
-            SettingSerializer.DeserializeSettings(resourceServer.Settings.Value, jsonOptions)
-        );
+
+        var tenantEffective = server.SettingsProvider.Collection.Merge(tenantScopeSettings);
+        return tenantEffective.Merge(resourceServerScopeSettings);
     }
 
     /// <summary>

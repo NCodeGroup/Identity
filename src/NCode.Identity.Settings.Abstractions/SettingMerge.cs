@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Frozen;
 using JetBrains.Annotations;
 
 namespace NCode.Identity.Settings;
@@ -39,6 +40,33 @@ namespace NCode.Identity.Settings;
 [PublicAPI]
 public static class SettingMerge
 {
+    private static FrozenSet<string> LatticeOperationNames { get; } =
+        FrozenSet.Create(
+            StringComparer.Ordinal,
+            nameof(Min),
+            nameof(Max),
+            nameof(And),
+            nameof(Or),
+            nameof(Intersect),
+            nameof(Union)
+        );
+
+    /// <summary>
+    /// Determines whether <paramref name="merge"/> is one of the lattice operations of this class — a meet or a join,
+    /// which is commutative, associative, and idempotent — rather than a projection or another function.
+    /// </summary>
+    /// <param name="merge">The merge function to inspect.</param>
+    /// <returns><see langword="true"/> when <paramref name="merge"/> is <see cref="Min{T}"/>, <see cref="Max{T}"/>,
+    /// <see cref="And"/>, <see cref="Or"/>, <see cref="Intersect{T}"/>, or <see cref="Union{T}"/>; otherwise,
+    /// <see langword="false"/>.</returns>
+    internal static bool IsLatticeOperation(Delegate merge)
+    {
+        var method = merge.Method;
+        return merge.Target is null
+            && method.DeclaringType == typeof(SettingMerge)
+            && LatticeOperationNames.Contains(method.Name);
+    }
+
     /// <summary>
     /// A projection that keeps the parent (current) value, ignoring the child; the value is immutable downward.
     /// </summary>

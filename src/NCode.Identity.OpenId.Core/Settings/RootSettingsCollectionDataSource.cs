@@ -35,10 +35,18 @@ namespace NCode.Identity.OpenId.Settings;
 /// values from <see cref="ISettingDescriptorCollectionProvider"/>.
 /// </summary>
 /// <remarks>
+/// <para>
 /// The configured settings are read through <see cref="ISettingConfigurationReader"/>, so a setting that cannot be
 /// honored is never loaded. The host validates them when it starts; when a later configuration reload cannot be
 /// honored, the reload is rejected with an error log and the previously loaded settings remain in force.
+/// </para>
+/// <para>
+/// The server is the top of the settings cascade, so the security profiles its settings select are expanded through
+/// <see cref="ISecurityProfileCatalog"/> exactly as a tenant's or a client's are, and they then bind every tenant and
+/// client below it.
+/// </para>
 /// </remarks>
+// See ADR-0148 (security profiles accumulate down the cascade).
 internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<Setting>
 {
     private IConfigurationSection? ConfigurationSection { get; }
@@ -47,6 +55,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
     private ISettingCollectionFactory SettingCollectionFactory { get; }
     private IEnumerable<IDefaultSettingsProvider> DefaultSettingsProviders { get; }
     private ISettingConfigurationReader SettingConfigurationReader { get; }
+    private ISecurityProfileCatalog SecurityProfileCatalog { get; }
     private ILogger<RootSettingsCollectionDataSource> Logger { get; }
 
     private Lock SyncObj { get; } = new();
@@ -69,6 +78,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         ISettingCollectionFactory settingCollectionFactory,
         IEnumerable<IDefaultSettingsProvider> defaultSettingsProviders,
         ISettingConfigurationReader settingConfigurationReader,
+        ISecurityProfileCatalog securityProfileCatalog,
         ILogger<RootSettingsCollectionDataSource> logger
     )
     {
@@ -78,6 +88,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         SettingCollectionFactory = settingCollectionFactory;
         DefaultSettingsProviders = defaultSettingsProviders;
         SettingConfigurationReader = settingConfigurationReader;
+        SecurityProfileCatalog = securityProfileCatalog;
         Logger = logger;
 
         Collection = LoadCollection();
@@ -221,7 +232,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         LoadDefaultSettingsProviders(settings);
         LoadFromConfiguration(settings);
 
-        return settings.AsEnumerable();
+        return SecurityProfileCatalog.Expand(settings);
     }
 
     private void LoadDefaultSettingsProviders(ISettingCollection settings)

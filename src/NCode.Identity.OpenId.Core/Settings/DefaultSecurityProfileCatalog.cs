@@ -28,11 +28,18 @@ namespace NCode.Identity.OpenId.Settings;
 /// <see cref="ISecurityProfile"/> strategy collection. Profiles are keyed by their <see cref="ISecurityProfile.ProfileName"/>.
 /// </summary>
 /// <remarks>
-/// A scope whose effective <c>security_profile</c> names no registered profile is an error, never "no profile": every
-/// entry point rejects such a value, so one that still arrives here was set in code, and applying no profile would
-/// silently drop the baseline the scope selected.
+/// <para>
+/// A scope selects a set of profiles and every one applies: the ceiling settings of each profile a scope declares are
+/// merged into that scope's settings, and the requirements of each profile in the effective set are evaluated. The
+/// profiles are visited in the ordinal order of their names, so the outcome never depends on how a list was written.
+/// </para>
+/// <para>
+/// A selected name that matches no registered profile is an error, never "no profile": every entry point rejects such
+/// a value, so one that still arrives here was set in code, and skipping it would silently drop the baseline the scope
+/// selected.
+/// </para>
 /// </remarks>
-// See ADR-0108 (profiles) and ADR-0140 (the security_profile domain).
+// See ADR-0108 (profiles), ADR-0140 (the security_profiles domain), and ADR-0148 (profiles accumulate down the cascade).
 internal sealed class DefaultSecurityProfileCatalog(
     IEnumerable<ISecurityProfile> profiles,
     ISettingSerializer settingSerializer,
@@ -67,28 +74,54 @@ internal sealed class DefaultSecurityProfileCatalog(
         CancellationToken cancellationToken
     )
     {
-        if (!TryGetSelectedProfile(settings, out var profile))
+        var selectedProfiles = GetSelectedProfiles(settings);
+        if (selectedProfiles.Count == 0)
             return;
 
-        foreach (var requirement in profile.Requirements)
+        // A requirement shared by several selected profiles is one rule, so it runs once.
+        var evaluated = new HashSet<ISecurityProfileRequirement>(
+            ReferenceEqualityComparer.Instance
+        );
+
+        foreach (var profile in selectedProfiles)
         {
-            if (requirement is ISecurityProfileRequirement<TContext> applicable)
-                await applicable.EvaluateAsync(context, cancellationToken);
+            foreach (var requirement in profile.Requirements)
+            {
+                if (
+                    requirement is ISecurityProfileRequirement<TContext> applicable
+                    && evaluated.Add(requirement)
+                )
+                {
+                    await applicable.EvaluateAsync(context, cancellationToken);
+                }
+            }
         }
     }
 
     /// <inheritdoc />
     public IReadOnlyCollection<Setting> Expand(IReadOnlyCollection<Setting> scopeSettings)
     {
-        var collection = SettingCollectionFactory.Create(scopeSettings);
+        IReadOnlySettingCollection expanded = SettingCollectionFactory.Create(scopeSettings);
+        var appliedProfileNames = new HashSet<string>(StringComparer.Ordinal);
 
-        if (!TryGetSelectedProfile(collection, out var profile))
-            return scopeSettings;
+        // A profile's ceiling may itself select the profiles it builds on, so expansion repeats until every profile
+        // the scope carries has contributed its ceiling. It ends because each pass applies at least one registered
+        // profile that no earlier pass applied.
+        var pendingProfiles = GetSelectedProfiles(expanded);
+        while (pendingProfiles.Count > 0)
+        {
+            foreach (var profile in pendingProfiles)
+            {
+                appliedProfileNames.Add(profile.ProfileName);
+                expanded = ApplyCeiling(expanded, profile);
+            }
 
-        var ceiling = SettingCollectionFactory.Create();
-        profile.ApplyCeilingSettings(ceiling);
+            pendingProfiles = GetSelectedProfiles(expanded)
+                .Where(profile => !appliedProfileNames.Contains(profile.ProfileName))
+                .ToList();
+        }
 
-        return collection.Merge(ceiling);
+        return appliedProfileNames.Count == 0 ? scopeSettings : expanded;
     }
 
     /// <inheritdoc />
@@ -97,26 +130,47 @@ internal sealed class DefaultSecurityProfileCatalog(
         JsonSerializerOptions jsonOptions
     ) => Expand(SettingSerializer.DeserializeSettings(settingsJson, jsonOptions));
 
-    private bool TryGetSelectedProfile(
+    // Each profile's ceiling is built in its own collection and merged on its own: collecting several profiles into one
+    // collection would let a later profile's value for a setting replace an earlier profile's instead of merging with it.
+    private IReadOnlySettingCollection ApplyCeiling(
         IReadOnlySettingCollection settings,
-        [NotNullWhen(true)] out ISecurityProfile? profile
+        ISecurityProfile profile
     )
     {
+        var ceiling = SettingCollectionFactory.Create();
+        var builder = new SecurityProfileCeilingBuilder(profile.ProfileName, ceiling);
+        profile.ApplyCeilingSettings(builder);
+        return settings.Merge(ceiling);
+    }
+
+    private List<ISecurityProfile> GetSelectedProfiles(IReadOnlySettingCollection settings)
+    {
         if (
-            !settings.TryGetValue(OpenIdSettingKeys.SecurityProfile, out var profileName)
-            || string.IsNullOrEmpty(profileName)
+            !settings.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profileNames)
+            || profileNames.Count == 0
         )
         {
-            profile = null;
-            return false;
+            return [];
         }
 
-        if (ProfilesByName.TryGetValue(profileName, out profile))
-            return true;
+        var orderedNames = profileNames
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal);
 
-        throw new InvalidOperationException(
-            $"The security profile '{profileName}' is not registered, so the scope that selects it cannot be "
-                + "given the baseline it asked for."
-        );
+        var selectedProfiles = new List<ISecurityProfile>(profileNames.Count);
+        foreach (var profileName in orderedNames)
+        {
+            if (!ProfilesByName.TryGetValue(profileName, out var profile))
+            {
+                throw new InvalidOperationException(
+                    $"The security profile '{profileName}' is not registered, so the scope that selects it cannot be "
+                        + "given the baseline it asked for."
+                );
+            }
+
+            selectedProfiles.Add(profile);
+        }
+
+        return selectedProfiles;
     }
 }

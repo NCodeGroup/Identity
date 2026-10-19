@@ -839,6 +839,32 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   policy is removed, and `client_notification_endpoint` gained an empty default. A composed-server test pins every
   default to its own rule._
 
+- **`F54` — Make every registered security profile un-loosenable down the cascade, not only `fapi2`.** The
+  `security_profile` domain is the set of registered `ISecurityProfile` names
+  ([ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md)), so a deployment can add a profile by
+  registering one. Its merge is not generic: `MergeSecurityProfile` keeps a parent's selection only when it is `fapi2`,
+  so a tenant that mandates any other registered profile can have it cleared (or replaced by a weaker one) by a client.
+  Make the merge honor every registered profile — a child may not clear or replace a parent's profile, or may only
+  select one the parent's profile declares as at least as strict — and let the profile itself declare that ordering
+  rather than hard-coding a name. Touch points:
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs` (`MergeSecurityProfile`),
+  `src/NCode.Identity.OpenId.Abstractions/Settings/ISecurityProfile.cs`. Capture the design in an ADR (amending
+  [ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md). Rather than letting a profile
+  declare which profiles it outranks — which would let a replacement drop the parent profile's requirements on the
+  strength of an author's claim — the selection became a set: `security_profiles` merges with `Union`, so profiles
+  accumulate down the cascade, every selected profile's ceilings and requirements apply, and a layered profile selects
+  the profile it builds on. Making the guarantee hold for every registered profile surfaced three further corrections:
+  the server scope (configuration and the persisted server document) was never expanded, so a server-selected profile
+  ran its requirements without its ceilings; the management API's effective-settings previews skipped expansion; and a
+  profile could place a ceiling on a projection-merged setting that a child overrides, so ceilings now go through
+  `ISecurityProfileCeilingBuilder`, which accepts only lattice-merged settings (`SettingDescriptor.HasLatticeMerge`). The
+  `TranslateSecurityProfileToSecurityProfiles` migration was verified against Postgres in both directions. The review
+  surfaced the follow-ups `F60` (scope-aware setting vocabulary) and `F61` (client and resource-server policy for
+  access-token encryption)._
+
 - **`F55` — Accept combined `response_types` values in dynamic client registration.** RFC 7591 §2 registers
   `response_types` as whole `response_type` values (`code id_token`), but the server models
   `response_types_supported` as single values whose combinations the authorization endpoint accepts, so a registration

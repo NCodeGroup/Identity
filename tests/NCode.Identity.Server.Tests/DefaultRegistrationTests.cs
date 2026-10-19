@@ -128,8 +128,32 @@ public sealed class DefaultRegistrationTests
         }
     }
 
+    [Fact]
+    public void AddIdentityServer_EveryRegisteredSecurityProfileExpandsWithLatticeCeilings()
+    {
+        // A profile's ceiling is set in code, so the composed server pins every registered profile: each ceiling names a
+        // registered setting that merges with a lattice operation, so it binds every scope below the one selecting it.
+        using var host = BuildHost([]);
+        var profiles = host.Services.GetServices<ISecurityProfile>().ToList();
+        var catalog = host.Services.GetRequiredService<ISecurityProfileCatalog>();
+        var settingCollectionFactory =
+            host.Services.GetRequiredService<ISettingCollectionFactory>();
+
+        Assert.NotEmpty(profiles);
+        foreach (var profile in profiles)
+        {
+            var scopeSettings = settingCollectionFactory.Create();
+            scopeSettings.Set(OpenIdSettingKeys.SecurityProfiles, [profile.ProfileName]);
+
+            var expanded = settingCollectionFactory.Create(catalog.Expand(scopeSettings));
+
+            Assert.True(expanded.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var selected));
+            Assert.Contains(profile.ProfileName, selected);
+        }
+    }
+
     [Theory]
-    [InlineData("security_profile", "fapi-2")]
+    [InlineData("security_profiles:0", "fapi-2")]
     [InlineData("subject_type", "pairwse")]
     [InlineData("token_endpoint_auth_method", "client_secret")]
     [InlineData("token_endpoint_auth_method", "")]
@@ -173,7 +197,7 @@ public sealed class DefaultRegistrationTests
         using var host = BuildHost(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:security_profile"] = "fapi2",
+                ["OpenId:Server:Settings:security_profiles:0"] = "fapi2",
                 ["OpenId:Server:Settings:token_endpoint_auth_method"] = "private_key_jwt",
                 ["OpenId:Server:Settings:id_token_signing_alg_values_supported:0"] = "ES256",
                 ["OpenId:Server:Settings:request_object_signing_alg_values_supported:0"] = "HS256",

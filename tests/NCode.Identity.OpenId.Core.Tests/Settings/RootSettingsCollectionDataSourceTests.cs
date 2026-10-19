@@ -42,6 +42,21 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
         ILogger<RootSettingsCollectionDataSource> logger
     )
     {
+        var mockCatalog = CreateStrictMock<ISecurityProfileCatalog>();
+        mockCatalog
+            .Setup(x => x.Expand(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .Returns((IReadOnlyCollection<Setting> settings) => settings)
+            .Verifiable();
+
+        return CreateDataSource(configuration, logger, mockCatalog.Object);
+    }
+
+    private RootSettingsCollectionDataSource CreateDataSource(
+        IConfigurationRoot configuration,
+        ILogger<RootSettingsCollectionDataSource> logger,
+        ISecurityProfileCatalog securityProfileCatalog
+    )
+    {
         var options = new OpenIdOptions
         {
             Server = { Settings = configuration.GetSection(SectionPath) },
@@ -80,6 +95,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
             mockFactory.Object,
             [],
             new DefaultSettingConfigurationReader(mockDescriptorProvider.Object),
+            securityProfileCatalog,
             logger
         );
     }
@@ -90,6 +106,29 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
                 new Dictionary<string, string?> { [$"{SectionPath}:flag"] = "true" }
             )
             .Build();
+
+    #region Collection Property Tests
+
+    [Fact]
+    public void Collection_IsTheServerSettingsExpandedWithTheProfilesTheySelect()
+    {
+        IReadOnlyCollection<Setting> expanded = [];
+        var mockCatalog = CreateStrictMock<ISecurityProfileCatalog>();
+        mockCatalog
+            .Setup(x => x.Expand(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .Returns(expanded)
+            .Verifiable();
+
+        using var dataSource = CreateDataSource(
+            CreateConfiguration(),
+            CreateLooseMock<ILogger<RootSettingsCollectionDataSource>>().Object,
+            mockCatalog.Object
+        );
+
+        Assert.Same(expanded, dataSource.Collection);
+    }
+
+    #endregion
 
     #region Reload Tests
 

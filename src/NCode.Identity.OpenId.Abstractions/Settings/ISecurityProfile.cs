@@ -17,39 +17,56 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Defines a named security profile (for example <c>fapi2</c>) as a single, self-contained unit: the value that
-/// activates it, the ceiling settings it injects into the merge lattice, and the behavioral requirements enforced at
+/// selects it, the ceiling settings it injects into the merge lattice, and the behavioral requirements enforced at
 /// request time. Consolidating all of a profile's rules in one definition keeps them discoverable and lets a deployment
 /// add a profile by registering another implementation, without changing any enforcement site.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Implementations are registered as a strategy collection and resolved through <see cref="ISecurityProfileCatalog"/>.
+/// </para>
+/// <para>
+/// A server, tenant, or client selects any number of profiles through the <c>security_profiles</c> setting, and the
+/// selections accumulate down the <c>server → tenant → client</c> cascade: a scope can add a profile but never remove
+/// one a scope above it selects, and every selected profile applies. Profiles therefore compose by conjunction, and a
+/// profile never declares how it ranks against another — selecting several profiles applies all of them, which is at
+/// least as strict as each.
+/// </para>
 /// </remarks>
 [PublicAPI]
 public interface ISecurityProfile
 {
     /// <summary>
-    /// Gets the <c>security_profile</c> setting value that activates this profile (for example <c>fapi2</c>).
+    /// Gets the <c>security_profiles</c> value that selects this profile (for example <c>fapi2</c>).
     /// </summary>
     string ProfileName { get; }
 
     /// <summary>
     /// Gets the behavioral requirements this profile imposes. Each requirement is a self-contained rule object; an
     /// enforcement point resolves the subset assignable to the phase interface it owns and invokes them, so new
-    /// requirement kinds are additive.
+    /// requirement kinds are additive. When several selected profiles share a requirement instance, it is evaluated
+    /// once.
     /// </summary>
     IReadOnlyCollection<ISecurityProfileRequirement> Requirements { get; }
 
     /// <summary>
-    /// Contributes this profile's ceiling settings into the supplied <paramref name="ceiling"/> collection. The caller
+    /// Contributes this profile's ceiling settings through the supplied <paramref name="ceiling"/> builder. The caller
     /// merges the result into the declaring scope's settings so the existing floor/ceiling merge lattice carries the
     /// profile down the <c>server → tenant → client</c> cascade un-loosenably.
     /// </summary>
-    /// <param name="ceiling">The (initially empty) collection to populate with this profile's ceiling settings.</param>
-    void ApplyCeilingSettings(ISettingCollection ceiling);
+    /// <remarks>
+    /// A ceiling setting merges with a lattice operation — an intersected list, a minimum, a required flag — which the
+    /// builder enforces, so the ceilings of several selected profiles bind every scope below the one that selects them
+    /// regardless of the order in which they are applied, and no profile can loosen another. The profile chooses the
+    /// setting whose bound tightens the server: profiles whose ceilings contradict each other leave nothing permitted
+    /// on that dimension, which fails closed. A profile that builds on another selects it here, through the
+    /// <c>security_profiles</c> setting, and the catalog then applies that profile's ceilings and requirements too.
+    /// </remarks>
+    /// <param name="ceiling">The builder that collects this profile's ceiling settings.</param>
+    void ApplyCeilingSettings(ISecurityProfileCeilingBuilder ceiling);
 }

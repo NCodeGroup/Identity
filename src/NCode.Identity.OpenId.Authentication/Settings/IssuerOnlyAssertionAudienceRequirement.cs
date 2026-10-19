@@ -47,7 +47,7 @@ internal sealed class IssuerOnlyAssertionAudienceRequirement
             throw context
                 .OpenIdContext.ErrorFactory.InvalidClient()
                 .WithDescription(
-                    "Under the active security profile the 'client_assertion' audience must be the issuer identifier."
+                    "Under a selected security profile the 'client_assertion' audience must be the issuer identifier."
                 )
                 .AsException();
         }

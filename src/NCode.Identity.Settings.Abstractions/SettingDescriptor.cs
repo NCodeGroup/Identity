@@ -49,6 +49,15 @@ public abstract class SettingDescriptor
     public abstract bool HasDefault { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the setting merges with a lattice operation of <see cref="SettingMerge"/> — a
+    /// meet or a join, which is commutative, associative, and idempotent — rather than a projection
+    /// (<see cref="SettingMerge.Keep{T}"/>, <see cref="SettingMerge.Replace{T}"/>) or another function. A value
+    /// contributed at any scope through such a merge bounds the value of every scope below it, and values contributed
+    /// together reach the same bound in whatever order they are merged.
+    /// </summary>
+    public abstract bool HasLatticeMerge { get; }
+
+    /// <summary>
     /// Factory method used to create a new <see cref="Setting"/> instance with the specified <paramref name="value"/>.
     /// The <paramref name="value"/> must be castable to <see cref="ValueType"/>.
     /// </summary>
@@ -111,6 +120,9 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// <inheritdoc />
     [MemberNotNullWhen(true, nameof(DefaultOrNull))]
     public override bool HasDefault => _hasDefault;
+
+    /// <inheritdoc />
+    public override bool HasLatticeMerge => SettingMerge.IsLatticeOperation(OnMerge);
 
     private readonly TValue? _defaultValue;
     private readonly bool _hasDefault;

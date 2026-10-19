@@ -66,7 +66,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
-| `F` — Feature gaps                    | `F60`     | `F59`      |
+| `F` — Feature gaps                    | `F62`     | `F61`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U17`     | `U16`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
@@ -129,7 +129,7 @@ entry and/or ADR that closed it.
     flows, front-channel ID tokens, `s_hash` detached signatures, and JARM, which conflict with the posture forbidding
     hybrid/front-channel-token flows. Scope decisions: deliver **both** `private_key_jwt` **and** mTLS client auth; client
     **`jwks_uri` is the primary** public-key onboarding path with **BYOK static import secondary** (`S3`); the FAPI
-    constraints are enforced via a **named security-profile mechanism** (a `security_profile` setting that tightens the
+    constraints are enforced via a **named security-profile mechanism** (a `security_profiles` setting that tightens the
     merged setting ceilings and feeds discovery, per [ADR-0038](docs/adr/0038-setting-merge-lattice-duals.md) /
     [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)); **JARM is deferred** to its own item (not required
     by FAPI 2.0, which reduces the authorization response to `code`+`iss`).
@@ -156,7 +156,7 @@ entry and/or ADR that closed it.
     (registered-certificate thumbprint match), gated by the client's `token_endpoint_auth_method`, reusing
     `IClientCertificateResolver` and auto-advertised in `token_endpoint_auth_methods_supported`
     ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)).
-    **The FAPI security-profile mechanism** is **done**: a `security_profile=fapi2` setting resolved through an
+    **The FAPI security-profile mechanism** is **done**: a `security_profiles` setting selecting `fapi2`, resolved through an
     extensible **profile registry** (`ISecurityProfileCatalog` over `ISecurityProfile` definitions) that injects the
     FAPI 2.0 ceilings into the merge lattice (algorithms `PS256`/`ES256`/`EdDSA`, strong-client-auth-only,
     `response_type=code`, PKCE `S256`, require PKCE + PAR, short code/PAR lifetimes, a ≤ 60s `clock_skew` ceiling, and a
@@ -181,9 +181,9 @@ entry and/or ADR that closed it.
       by the conformance work-stream (the spec-coverage harness and headless probe runner), not this OP item: flip the
       `apps/conformance` `coverage.ts` FAPI rows (today they already classify from discovery — `profile-fapi2` reports
       `implemented` once PAR + a sender-constraining mechanism + PKCE `S256` are advertised, which the OP now does); add a
-      FAPI-2.0 seed client (`security_profile=fapi2`, `private_key_jwt`) to `AddConformanceSeed` (this first needs the
+      FAPI-2.0 seed client (`security_profiles` = `[fapi2]`, `private_key_jwt`) to `AddConformanceSeed` (this first needs the
       conformance seed model extended — `ConformanceClientSeed` is secret-only today, with no asymmetric-key /
-      `security_profile` fields); and wire the OpenID Foundation FAPI 2.0 test plan into `T1` and the `T6` matrix.
+      `security_profiles` fields); and wire the OpenID Foundation FAPI 2.0 test plan into `T1` and the `T6` matrix.
     - **OP-side follow-up — accept non-secret `token_endpoint_auth_method` values at Dynamic Client Registration.**
       Extend DCR so `private_key_jwt`, `client_secret_jwt`, `tls_client_auth`, and `self_signed_tls_client_auth` are
       accepted — the DCR `SupportedTokenEndpointAuthMethods` allow-list currently lists only the secret-based + `none`
@@ -446,17 +446,35 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`,
   `src/NCode.Identity.OpenId.Core/Tenants/TenantResolutionOptionsValidator.cs` (share the issuer rule).
 
-- **`F54` — Make every registered security profile un-loosenable down the cascade, not only `fapi2`.** The
-  `security_profile` domain is the set of registered `ISecurityProfile` names
-  ([ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md)), so a deployment can add a profile by
-  registering one. Its merge is not generic: `MergeSecurityProfile` keeps a parent's selection only when it is `fapi2`,
-  so a tenant that mandates any other registered profile can have it cleared (or replaced by a weaker one) by a client.
-  Make the merge honor every registered profile — a child may not clear or replace a parent's profile, or may only
-  select one the parent's profile declares as at least as strict — and let the profile itself declare that ordering
-  rather than hard-coding a name. Touch points:
-  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs` (`MergeSecurityProfile`),
-  `src/NCode.Identity.OpenId.Abstractions/Settings/ISecurityProfile.cs`. Capture the design in an ADR (amending
-  [ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
+- **`F60` — Make the setting vocabulary scope-aware: reject a setting at a scope that never honors it.** Setting names
+  and values are validated against one catalog for every document type
+  ([ADR-0139](docs/adr/0139-setting-names-are-a-closed-vocabulary.md),
+  [ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md)), so a server, tenant, client, or
+  resource-server document accepts any registered setting even where the runtime never reads it. The sharpest case is
+  `security_profiles` on a resource server: it is accepted and stored, but resource-server settings are merged
+  unexpanded and requirements are evaluated against client settings, so the profile neither tightens nor enforces
+  anything there ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)). Client-only
+  settings on a resource server, and resource-server-only settings on a client, are the same class. Give each descriptor
+  the scopes it applies to, reject a setting outside them at every entry point (configuration, management writes,
+  dynamic client registration and seeders, and stored documents failing closed), and ship the migration that removes —
+  or translates — what stored documents carry at a scope that never honored it. Decide separately whether a resource
+  server may select a security profile with its own enforcement (for example refusing to issue an access token that
+  is not sender-constrained for an audience that requires it). Touch points:
+  `src/NCode.Identity.Settings.Abstractions/SettingDescriptor.cs`, `src/NCode.Identity/Settings/DefaultSettingSerializer.cs`,
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`,
+  `src/NCode.Identity.OpenId.Management/Endpoints/*/*ApiEndpointHandler.cs`. Capture the design in an ADR.
+
+- **`F61` — Combine the client's and the targeted resource server's settings for access-token encryption.** When an
+  access token targets a single resource server, `DefaultTokenService` takes the encryption settings from that resource
+  server's effective settings (server ∩ tenant ∩ resource server) and ignores the client's
+  ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)). A bound the client carries — set on the
+  client or by a security profile it selects, such as `access_token_encryption_required` or a narrowed
+  `access_token_encryption_*_values_supported` — therefore does not apply once a resource server is targeted, although
+  a profile's ceiling is meant to bind every scope below the one that selects it
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)). FAPI 2.0 constrains none of these
+  settings today. Combine the two policies with their lattice merges (`Or` for the requirement, `Intersect` for the
+  algorithm lists) before choosing credentials, and decide which side's preference order wins. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultTokenService.cs`. Amend ADR-0075.
 
 ## Conformance & interop testing (group `T`)
 

@@ -3,7 +3,10 @@
 - **Status:** Accepted (permitted-method enforcement amended by
   [ADR-0145](0145-a-client-authenticates-only-with-its-registered-method.md): the ceiling bounds the client's registered
   `token_endpoint_auth_method`, which is the only method the client authenticates with, and an empty ceiling permits
-  nothing)
+  nothing; profile selection amended by
+  [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md): a scope selects a set of profiles through
+  `security_profiles`, merged with `Union` so every profile a parent selects stays in force, and every scope — the
+  server included — is expanded)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
 
@@ -28,6 +31,11 @@ un-loosenably, so discovery and request-time enforcement read one source of trut
 - **`security_profile` is an un-loosenable string setting.** Its merge delegate keeps `fapi2` once any scope in the
   cascade selects it (a tenant can mandate the profile and a child cannot clear it); otherwise the child value wins.
   The recognized value today is `fapi2`.
+
+    > **Superseded by [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md).** A merge that knew
+    > one profile let a child clear or replace any other, dropping its requirements. The selection is the list
+    > `security_profiles`, merged with `Union`, so every registered profile a scope selects stays in force below it, and
+    > every selected profile applies.
 
 - **`ISecurityProfileSettingsExpander` expands a scope's own settings before they enter the cascade.** When a scope
   (tenant or client) declares `security_profile=fapi2`, the expander merges the FAPI 2.0 ceiling settings into that

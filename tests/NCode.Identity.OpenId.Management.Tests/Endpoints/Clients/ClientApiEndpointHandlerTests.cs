@@ -35,6 +35,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -63,6 +64,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
+    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -86,6 +88,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
+        MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -141,6 +144,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             MockCryptoService.Object,
             MockSettingSerializer.Object,
             MockServerProvider.Object,
+            MockSecurityProfileCatalog.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<ClientApiEndpointHandler>.Instance
@@ -621,10 +625,8 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenantSettings())
             .Verifiable();
-        MockSettingSerializer
-            .Setup(x =>
-                x.DeserializeSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
-            )
+        MockSecurityProfileCatalog
+            .Setup(x => x.Expand(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>()))
             .Returns(Array.Empty<Setting>())
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());

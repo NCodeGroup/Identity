@@ -160,8 +160,8 @@ change to the public API is a **major** version bump.
   fails the request that loads it, dynamic client registration returns `invalid_client_metadata` (or
   `invalid_redirect_uri`), and the conformance and developer seeders stop with an error naming the client. Every
   library setting declares its domain:
-  - `security_profile` must be empty or name a registered security profile — a misspelled `fapi2` no longer leaves a
-    client silently without the FAPI 2.0 baseline. The security-profile catalog also throws, rather than applying no
+  - `security_profiles` may list only registered security profiles — a misspelled `fapi2` no longer leaves a client
+    silently without the FAPI 2.0 baseline. The security-profile catalog also throws, rather than applying no
     profile, for a profile name that is not registered.
   - `token_endpoint_auth_method` and `token_endpoint_auth_methods_supported` accept only the methods of the registered
     client-authentication handlers; the enumerated settings (`subject_type`, `backchannel_token_delivery_mode`,
@@ -310,6 +310,38 @@ change to the public API is a **major** version bump.
   ([ADR-0146](docs/adr/0146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md))
 
   **Breaking:** a host that relied on the built-in clients declares them under `DeveloperInteractiveSeed:SpaClients`.
+
+- **A security profile that a server or tenant selects binds every scope below it, whichever profile it is.** The
+  `security_profile` setting (one profile name) is replaced by `security_profiles`, a list that accumulates down the
+  server → tenant → client cascade: a scope can add a profile but can no longer clear or replace one a scope above it
+  selects, and every selected profile applies — its ceilings and its request-time requirements. Previously only
+  `fapi2` was kept when a child set another value, so a client could clear or replace any other mandated profile; the
+  profile's ceilings stayed in force but its requirements silently stopped running. A layered profile selects the
+  profile it builds on, and selecting it applies both. Profiles whose ceilings contradict leave nothing permitted on
+  that dimension, which fails closed. ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md))
+
+  A profile selected at the server scope — in `OpenId:Server:Settings` or the server's stored settings — now injects its
+  ceilings, so discovery advertises them and every tenant and client enforces them; previously it switched on only the
+  requirements. The management API's tenant, client, and resource-server effective-settings previews apply the selected
+  profiles' ceilings, as the runtime does.
+
+  A profile's ceiling binds by construction: a profile contributes it through `ISecurityProfileCeilingBuilder`, which
+  accepts only a registered setting that merges with a lattice operation (`Min`, `Max`, `And`, `Or`, `Intersect`, or
+  `Union`), so no child scope can override it and several profiles combine in any order. A ceiling on a setting that a
+  child could override, or whose merge would ignore it, fails when a scope selects the profile. A requirement's error
+  description now reads "a selected security profile".
+
+  The `TranslateSecurityProfileToSecurityProfiles` migration rewrites every stored server, tenant, client, and
+  resource-server settings document that sets `security_profile`: a non-empty name becomes a one-element
+  `security_profiles`, and an empty or `null` one, which selected no profile, is removed. Each rewritten document gets a
+  new settings concurrency token; a value of another type is left as is, so its document keeps failing when it is read.
+
+  **Breaking:** `OpenIdSettingNames.SecurityProfile` and `OpenIdSettingKeys.SecurityProfile` are replaced by
+  `SecurityProfiles` (a `SettingKey<IReadOnlyCollection<string>>`), and configuration that sets `security_profile` stops
+  the host when it starts — list the profile under `security_profiles` instead. `ISecurityProfile.ApplyCeilingSettings`
+  takes an `ISecurityProfileCeilingBuilder` instead of an `ISettingCollection`, and `SettingDescriptor` gains the abstract
+  `HasLatticeMerge`. A deployment that stores settings documents in its own database must apply the same rewrite there,
+  or a document that names `security_profile` fails when it is read.
 
 ### Fixed
 

@@ -83,10 +83,10 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         // The authorization endpoint identifies a client without authenticating it, so a confidential FAPI 2.0
         // client, which may not authenticate as public, reaches the profile's rules: here, its PAR requirement.
         const string clientId = "it-authorize-fapi2";
-        await Factory.SeedConfidentialClientWithSecurityProfileAsync(
+        await Factory.SeedConfidentialClientWithSecurityProfilesAsync(
             clientId,
             "fapi2-client-secret",
-            OpenIdConstants.SecurityProfiles.Fapi2
+            [OpenIdConstants.SecurityProfiles.Fapi2]
         );
         var client = CreateClient();
 

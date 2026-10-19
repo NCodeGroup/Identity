@@ -36,6 +36,7 @@ using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -79,6 +80,7 @@ internal class ClientApiEndpointHandler(
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     IOpenIdServerProvider serverProvider,
+    ISecurityProfileCatalog securityProfileCatalog,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ClientApiEndpointHandler> logger
@@ -94,6 +96,7 @@ internal class ClientApiEndpointHandler(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
+    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -199,7 +202,8 @@ internal class ClientApiEndpointHandler(
     /// Merges an OpenID Client's persisted settings onto the addressed tenant's effective settings, producing the same
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the client at runtime.
     /// The tenant's effective view is reconstructed by id (the server baseline merged with the tenant's persisted
-    /// overrides), so the preview is independent of the request's resolved tenant.
+    /// overrides), so the preview is independent of the request's resolved tenant. Both the tenant's and the client's
+    /// settings are expanded with the ceilings of the security profiles they select, as they are at runtime.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
@@ -226,13 +230,11 @@ internal class ClientApiEndpointHandler(
 
         var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
         var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
+        var tenantScopeSettings = SecurityProfileCatalog.Expand(tenantSettings.Value, jsonOptions);
+        var clientScopeSettings = SecurityProfileCatalog.Expand(client.Settings.Value, jsonOptions);
 
-        var tenantEffective = server.SettingsProvider.Collection.Merge(
-            SettingSerializer.DeserializeSettings(tenantSettings.Value, jsonOptions)
-        );
-        return tenantEffective.Merge(
-            SettingSerializer.DeserializeSettings(client.Settings.Value, jsonOptions)
-        );
+        var tenantEffective = server.SettingsProvider.Collection.Merge(tenantScopeSettings);
+        return tenantEffective.Merge(clientScopeSettings);
     }
 
     /// <summary>

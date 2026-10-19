@@ -139,17 +139,17 @@ public class DefaultSettingSerializerTests : BaseTests
         var serializer = CreateSerializer(
             new SettingDescriptor<string>
             {
-                Name = "security_profile",
-                Rule = SettingRules.EmptyOr(SettingRules.OneOf("fapi2")),
+                Name = "subject_type",
+                Rule = SettingRules.OneOf("public", "pairwise"),
             }
         );
 
         var exception = Assert.Throws<JsonException>(() =>
-            serializer.DeserializeSettings(Parse("""{"security_profile":"fapi-2"}"""), _jsonOptions)
+            serializer.DeserializeSettings(Parse("""{"subject_type":"pairwse"}"""), _jsonOptions)
         );
 
         Assert.Contains(
-            "The setting 'security_profile' must be empty or 'fapi2'.",
+            "The setting 'subject_type' must be one of 'public' or 'pairwise'.",
             exception.Message,
             StringComparison.Ordinal
         );

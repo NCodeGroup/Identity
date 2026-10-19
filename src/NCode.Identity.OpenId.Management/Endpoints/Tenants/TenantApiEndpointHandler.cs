@@ -36,6 +36,7 @@ using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -79,6 +80,7 @@ internal class TenantApiEndpointHandler(
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     IOpenIdServerProvider serverProvider,
+    ISecurityProfileCatalog securityProfileCatalog,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<TenantApiEndpointHandler> logger
@@ -94,6 +96,7 @@ internal class TenantApiEndpointHandler(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
+    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -585,7 +588,8 @@ internal class TenantApiEndpointHandler(
 
     /// <summary>
     /// Merges a tenant's persisted settings onto the server's effective settings, producing the same effective
-    /// <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the tenant at runtime.
+    /// <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the tenant at runtime — including
+    /// the ceilings of the security profiles the tenant selects.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="tenantSettings">The <see cref="PersistedTenantSettings"/> whose values to merge.</param>
@@ -598,12 +602,9 @@ internal class TenantApiEndpointHandler(
     )
     {
         var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var deserializedSettings = SettingSerializer.DeserializeSettings(
-            tenantSettings.Value,
-            jsonOptions
-        );
+        var expandedSettings = SecurityProfileCatalog.Expand(tenantSettings.Value, jsonOptions);
         var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
-        return server.SettingsProvider.Collection.Merge(deserializedSettings);
+        return server.SettingsProvider.Collection.Merge(expandedSettings);
     }
 
     /// <summary>

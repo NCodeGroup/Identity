@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (confidential-client rule amended by
   [ADR-0145](0145-a-client-authenticates-only-with-its-registered-method.md): a client that registers no
-  `token_endpoint_auth_method` is a `client_secret_basic` client, so only `none` registers a public client)
+  `token_endpoint_auth_method` is a `client_secret_basic` client, so only `none` registers a public client; the profile
+  registry amended by [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md): the catalog resolves
+  every profile a scope's effective `security_profiles` selects, runs all of their requirements, and a profile
+  contributes its ceiling through `ISecurityProfileCeilingBuilder`)
 - **Date:** 2026-10-16
 - **Deciders:** NCode Group
 

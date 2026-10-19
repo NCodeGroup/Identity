@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// <see cref="ISecurityProfileRequirement{TContext}"/> for each enforcement <i>phase</i> it participates in (named
 /// phase aliases — for example in the authentication slice — specialize it for readability). Each enforcement point
 /// calls <see cref="ISecurityProfileCatalog.EvaluateRequirementsAsync{TContext}"/> with its phase context, which runs
-/// the active profile's requirements assignable to that phase, so a new requirement kind is purely additive: it is a
+/// the selected profiles' requirements assignable to that phase, so a new requirement kind is purely additive: it is a
 /// new class a profile includes, and enforcement sites that do not understand its phase simply never see it. This keeps
 /// the set of requirement kinds backward- and forward-compatible without changing this type, the catalog, or any
 /// existing profile.

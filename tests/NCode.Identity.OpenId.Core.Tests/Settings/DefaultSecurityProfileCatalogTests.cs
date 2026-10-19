@@ -32,13 +32,18 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
         return new DefaultSecurityProfileCatalog(profiles, serializer.Object, factory.Object);
     }
 
-    private Mock<IReadOnlySettingCollection> CreateSettings(string? profileName)
+    private DefaultSecurityProfileCatalog CreateCatalog(
+        Mock<ISettingCollectionFactory> mockFactory,
+        params ISecurityProfile[] profiles
+    ) => new(profiles, CreateStrictMock<ISettingSerializer>().Object, mockFactory.Object);
+
+    private Mock<IReadOnlySettingCollection> CreateSettings(params string[]? profileNames)
     {
         var settings = CreateLooseMock<IReadOnlySettingCollection>();
-        var value = profileName;
+        IReadOnlyCollection<string>? value = profileNames;
         settings
-            .Setup(x => x.TryGetValue(OpenIdSettingKeys.SecurityProfile, out value))
-            .Returns(!string.IsNullOrEmpty(profileName));
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out value))
+            .Returns(profileNames is not null);
         return settings;
     }
 
@@ -97,11 +102,55 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
     {
         var requirement = new FakeRequirement<string>();
         var catalog = CreateCatalog(new FakeProfile("fake", requirement));
-        var settings = CreateSettings(profileName: null);
+        var settings = CreateSettings(profileNames: null);
 
         await catalog.EvaluateRequirementsAsync(settings.Object, "hello", CancellationToken.None);
 
         Assert.Equal(0, requirement.InvocationCount);
+    }
+
+    [Fact]
+    public async Task EvaluateRequirementsAsync_WhenTheSelectionIsEmpty_InvokesNothing()
+    {
+        var requirement = new FakeRequirement<string>();
+        var catalog = CreateCatalog(new FakeProfile("fake", requirement));
+        var settings = CreateSettings();
+
+        await catalog.EvaluateRequirementsAsync(settings.Object, "hello", CancellationToken.None);
+
+        Assert.Equal(0, requirement.InvocationCount);
+    }
+
+    [Fact]
+    public async Task EvaluateRequirementsAsync_WhenSeveralProfilesAreSelected_InvokesEachInOrdinalOrder()
+    {
+        List<string> invocations = [];
+        var alphaRequirement = new FakeRequirement<string>(() => invocations.Add("alpha"));
+        var betaRequirement = new FakeRequirement<string>(() => invocations.Add("beta"));
+        var catalog = CreateCatalog(
+            new FakeProfile("beta", betaRequirement),
+            new FakeProfile("alpha", alphaRequirement)
+        );
+        var settings = CreateSettings("beta", "alpha", "beta");
+
+        await catalog.EvaluateRequirementsAsync(settings.Object, "hello", CancellationToken.None);
+
+        Assert.Equal(["alpha", "beta"], invocations);
+    }
+
+    [Fact]
+    public async Task EvaluateRequirementsAsync_WhenProfilesShareARequirement_InvokesItOnce()
+    {
+        var sharedRequirement = new FakeRequirement<string>();
+        var catalog = CreateCatalog(
+            new FakeProfile("alpha", sharedRequirement),
+            new FakeProfile("beta", sharedRequirement)
+        );
+        var settings = CreateSettings("alpha", "beta");
+
+        await catalog.EvaluateRequirementsAsync(settings.Object, "hello", CancellationToken.None);
+
+        Assert.Equal(1, sharedRequirement.InvocationCount);
     }
 
     [Fact]
@@ -123,6 +172,24 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
         Assert.Equal(0, requirement.InvocationCount);
     }
 
+    [Fact]
+    public async Task EvaluateRequirementsAsync_WhenOneSelectedProfileIsUnknown_EvaluatesNone()
+    {
+        var requirement = new FakeRequirement<string>();
+        var catalog = CreateCatalog(new FakeProfile("fake", requirement));
+        var settings = CreateSettings("fake", "other");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await catalog.EvaluateRequirementsAsync(
+                settings.Object,
+                "hello",
+                CancellationToken.None
+            )
+        );
+
+        Assert.Equal(0, requirement.InvocationCount);
+    }
+
     #endregion
 
     #region Expand Tests
@@ -131,13 +198,10 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
     public void Expand_WhenNoProfileSelected_ReturnsTheSettingsUnchanged()
     {
         var mockFactory = CreateStrictMock<ISettingCollectionFactory>();
-        var catalog = new DefaultSecurityProfileCatalog(
-            [new FakeProfile("fake")],
-            CreateStrictMock<ISettingSerializer>().Object,
-            mockFactory.Object
-        );
+        var catalog = CreateCatalog(mockFactory, new FakeProfile("fake"));
         IReadOnlyCollection<Setting> scopeSettings = [];
-        var collection = CreateSettingCollection(profileName: null);
+        var collection = CreateSettingCollection();
+        SelectProfiles(collection);
         mockFactory.Setup(x => x.Create(scopeSettings)).Returns(collection.Object).Verifiable();
 
         var result = catalog.Expand(scopeSettings);
@@ -146,16 +210,74 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
     }
 
     [Fact]
+    public void Expand_WhenSeveralProfilesAreSelected_MergesEachCeilingSeparatelyInOrdinalOrder()
+    {
+        var mockFactory = CreateStrictMock<ISettingCollectionFactory>();
+        List<string> applied = [];
+        var alpha = new FakeProfile("alpha") { OnApply = () => applied.Add("alpha") };
+        var beta = new FakeProfile("beta") { OnApply = () => applied.Add("beta") };
+        var catalog = CreateCatalog(mockFactory, beta, alpha);
+        IReadOnlyCollection<Setting> scopeSettings = [];
+        var alphaCeiling = CreateSettingCollection();
+        var betaCeiling = CreateSettingCollection();
+        SetupCeilings(mockFactory, alphaCeiling, betaCeiling);
+        var declared = CreateSettingCollection();
+        SelectProfiles(declared, "beta", "alpha", "beta");
+        var withAlpha = CreateSettingCollection();
+        var withBoth = CreateSettingCollection();
+        SelectProfiles(withBoth, "alpha", "beta");
+        mockFactory.Setup(x => x.Create(scopeSettings)).Returns(declared.Object).Verifiable();
+        declared.Setup(x => x.Merge(alphaCeiling.Object)).Returns(withAlpha.Object).Verifiable();
+        withAlpha.Setup(x => x.Merge(betaCeiling.Object)).Returns(withBoth.Object).Verifiable();
+
+        var result = catalog.Expand(scopeSettings);
+
+        Assert.Same(withBoth.Object, result);
+        Assert.Equal(["alpha", "beta"], applied);
+    }
+
+    [Fact]
+    public void Expand_WhenACeilingSelectsAnotherProfile_AppliesThatProfileToo()
+    {
+        var mockFactory = CreateStrictMock<ISettingCollectionFactory>();
+        List<string> applied = [];
+        var extended = new FakeProfile("extended") { OnApply = () => applied.Add("extended") };
+        var baseline = new FakeProfile("baseline") { OnApply = () => applied.Add("baseline") };
+        var catalog = CreateCatalog(mockFactory, extended, baseline);
+        IReadOnlyCollection<Setting> scopeSettings = [];
+        var extendedCeiling = CreateSettingCollection();
+        var baselineCeiling = CreateSettingCollection();
+        SetupCeilings(mockFactory, extendedCeiling, baselineCeiling);
+        var declared = CreateSettingCollection();
+        SelectProfiles(declared, "extended");
+        var withExtended = CreateSettingCollection();
+        SelectProfiles(withExtended, "baseline", "extended");
+        var withBoth = CreateSettingCollection();
+        SelectProfiles(withBoth, "baseline", "extended");
+        mockFactory.Setup(x => x.Create(scopeSettings)).Returns(declared.Object).Verifiable();
+        declared
+            .Setup(x => x.Merge(extendedCeiling.Object))
+            .Returns(withExtended.Object)
+            .Verifiable();
+        withExtended
+            .Setup(x => x.Merge(baselineCeiling.Object))
+            .Returns(withBoth.Object)
+            .Verifiable();
+
+        var result = catalog.Expand(scopeSettings);
+
+        Assert.Same(withBoth.Object, result);
+        Assert.Equal(["extended", "baseline"], applied);
+    }
+
+    [Fact]
     public void Expand_WhenProfileUnknown_FailsClosed()
     {
         var mockFactory = CreateStrictMock<ISettingCollectionFactory>();
-        var catalog = new DefaultSecurityProfileCatalog(
-            [new FakeProfile("fake")],
-            CreateStrictMock<ISettingSerializer>().Object,
-            mockFactory.Object
-        );
+        var catalog = CreateCatalog(mockFactory, new FakeProfile("fake"));
         IReadOnlyCollection<Setting> scopeSettings = [];
-        var collection = CreateSettingCollection("fapi-2");
+        var collection = CreateSettingCollection();
+        SelectProfiles(collection, "fapi-2");
         mockFactory.Setup(x => x.Create(scopeSettings)).Returns(collection.Object).Verifiable();
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
@@ -169,14 +291,28 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
 
     #region Scaffolding
 
-    private Mock<ISettingCollection> CreateSettingCollection(string? profileName)
+    private Mock<ISettingCollection> CreateSettingCollection() =>
+        CreateStrictMock<ISettingCollection>();
+
+    private static void SelectProfiles(
+        Mock<ISettingCollection> settings,
+        params string[] profileNames
+    )
     {
-        var settings = CreateLooseMock<ISettingCollection>();
-        var value = profileName;
+        IReadOnlyCollection<string>? value = profileNames;
         settings
-            .Setup(x => x.TryGetValue(OpenIdSettingKeys.SecurityProfile, out value))
-            .Returns(!string.IsNullOrEmpty(profileName));
-        return settings;
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out value))
+            .Returns(true)
+            .Verifiable();
+    }
+
+    private static void SetupCeilings(
+        Mock<ISettingCollectionFactory> mockFactory,
+        params Mock<ISettingCollection>[] ceilings
+    )
+    {
+        var pending = new Queue<ISettingCollection>(ceilings.Select(ceiling => ceiling.Object));
+        mockFactory.Setup(x => x.Create()).Returns(() => pending.Dequeue()).Verifiable();
     }
 
     private sealed class FakeProfile(string name, params ISecurityProfileRequirement[] requirements)
@@ -184,11 +320,14 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
     {
         public string ProfileName => name;
         public IReadOnlyCollection<ISecurityProfileRequirement> Requirements => requirements;
+        public Action? OnApply { get; init; }
 
-        public void ApplyCeilingSettings(ISettingCollection ceiling) { }
+        public void ApplyCeilingSettings(ISecurityProfileCeilingBuilder ceiling) =>
+            OnApply?.Invoke();
     }
 
-    private sealed class FakeRequirement<TContext> : ISecurityProfileRequirement<TContext>
+    private sealed class FakeRequirement<TContext>(Action? onEvaluate = null)
+        : ISecurityProfileRequirement<TContext>
     {
         public int InvocationCount { get; private set; }
         public TContext? LastContext { get; private set; }
@@ -197,6 +336,7 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
         {
             InvocationCount++;
             LastContext = context;
+            onEvaluate?.Invoke();
             return ValueTask.CompletedTask;
         }
     }

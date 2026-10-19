@@ -66,7 +66,7 @@ export function ResourceServerTable({
             data-testid={`resource-server-row-${resourceServer.resourceServerId}`}
           >
             <TableCell>
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                 <span>{resourceServer.name}</span>
                 {resourceServer.isSystem && <Chip size="small" variant="outlined" label="System" />}
               </Stack>
@@ -82,7 +82,7 @@ export function ResourceServerTable({
             </TableCell>
             {showActions && (
               <TableCell align="right">
-                <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
                   {onEdit && (
                     <Tooltip title="Edit resource server">
                       <IconButton

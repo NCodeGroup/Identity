@@ -57,6 +57,12 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The frontend runs on React 19 and Material UI 9.** This covers every surface, including the login and consent
+  pages the OpenID Provider host serves. Material UI 9 removed the system-prop shorthands (`<Box display="flex">`)
+  and the deprecated `inputProps`-style props, so components style through `sx` and pass input attributes through
+  `slotProps`. It also gives `Switch` the ARIA `switch` role, so assistive technology announces the "Disabled"
+  toggles in the management forms as on/off switches rather than checkboxes.
+
 - **The frontend toolchain is current, and its dev-only security advisories are gone.** The grouped Dependabot update
   moves Vite to 8, Vitest to 5, Storybook to 10, ESLint to 10, jsdom to 30, and their companions, and `pnpm audit`
   is now clean. TypeScript moves to 6.0, the newest version typescript-eslint supports; TypeScript 7 waits for it

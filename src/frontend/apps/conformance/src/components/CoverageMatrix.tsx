@@ -68,16 +68,13 @@ export function CoverageMatrix({ report }: CoverageMatrixProps) {
               <Stack
                 direction="row"
                 spacing={1}
-                alignItems="center"
-                flexWrap="wrap"
                 useFlexGap
-                sx={{ width: '100%', pr: 1 }}
+                sx={{ alignItems: 'center', flexWrap: 'wrap', width: '100%', pr: 1 }}
               >
                 <Typography
                   variant="subtitle1"
                   component="h3"
-                  fontWeight={600}
-                  sx={{ flexGrow: 1 }}
+                  sx={{ fontWeight: 600, flexGrow: 1 }}
                 >
                   {category.name}
                 </Typography>
@@ -106,12 +103,11 @@ export function CoverageMatrix({ report }: CoverageMatrixProps) {
                         <Stack
                           direction="row"
                           spacing={1}
-                          alignItems="center"
-                          flexWrap="wrap"
                           useFlexGap
+                          sx={{ alignItems: 'center', flexWrap: 'wrap' }}
                         >
                           <CoverageStatusChip status={entry.status} />
-                          <Typography component="span" fontWeight={600}>
+                          <Typography component="span" sx={{ fontWeight: 600 }}>
                             {entry.feature}
                           </Typography>
                           <Chip
@@ -133,14 +129,17 @@ export function CoverageMatrix({ report }: CoverageMatrixProps) {
                       }
                       secondary={
                         <>
-                          <Typography component="span" variant="body2" color="text.secondary">
+                          <Typography
+                            component="span"
+                            variant="body2"
+                            sx={{ color: 'text.secondary' }}
+                          >
                             {entry.detail}
                           </Typography>
                           <Typography
                             component="span"
                             variant="caption"
-                            color="text.disabled"
-                            display="block"
+                            sx={{ color: 'text.disabled', display: 'block' }}
                           >
                             {entry.reference}
                           </Typography>

@@ -102,7 +102,7 @@ export function ConsentForm({
             <Typography variant="h5" component="h1">
               Authorize access
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {`${appName} is requesting access to your account. Choose what to allow:`}
             </Typography>
 
@@ -121,7 +121,7 @@ export function ConsentForm({
                       <Box>
                         <Typography variant="body2">{scope.description ?? scope.value}</Typography>
                         {scope.description ? (
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                             {scope.value}
                           </Typography>
                         ) : null}

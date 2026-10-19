@@ -65,7 +65,7 @@ export function TenantTable({ tenants, onSelect, onEdit, onDelete }: TenantTable
             </TableCell>
             {showActions && (
               <TableCell align="right">
-                <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
                   {onEdit && (
                     <Tooltip title="Edit tenant">
                       <IconButton

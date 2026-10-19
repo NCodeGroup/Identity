@@ -34,7 +34,7 @@ export function BootstrapGate({ children }: { children: ReactNode }) {
   if (error) {
     return (
       <AppThemeProvider>
-        <Box p={4}>
+        <Box sx={{ p: 4 }}>
           <Alert severity="error">Configuration error: {error}</Alert>
         </Box>
       </AppThemeProvider>
@@ -44,7 +44,14 @@ export function BootstrapGate({ children }: { children: ReactNode }) {
   if (!runtime) {
     return (
       <AppThemeProvider>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100vh',
+          }}
+        >
           <CircularProgress />
         </Box>
       </AppThemeProvider>

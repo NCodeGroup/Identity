@@ -29,13 +29,13 @@ export function App() {
           <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
             {productName} · Playground
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {runtime.issuer}
           </Typography>
         </Toolbar>
       </AppBar>
       <Container maxWidth="md" sx={{ py: 3 }}>
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
+        <Typography sx={{ color: 'text.secondary', mb: 2 }}>
           An interactive OAuth 2.1 / OpenID Connect flow explorer. It discovers this provider and
           walks the authorization-code + PKCE flow end to end, surfacing every artifact along the
           way.

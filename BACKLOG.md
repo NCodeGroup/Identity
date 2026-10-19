@@ -68,7 +68,7 @@ entry and/or ADR that closed it.
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
 | `F` — Feature gaps                    | `F60`     | `F59`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
-| `U` — Frontend presentation platform  | `U17`     | `U16`      |
+| `U` — Frontend presentation platform  | `U18`     | `U17`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
 | `X` — Tooling & agent customization   | `X5`      | `X4`       |
 
@@ -522,6 +522,14 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   [`src/frontend/package.json`](src/frontend/package.json) (plus `apps/conformance-runner`), the Aspire AppHost's NVS
   lookup ([ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)), and the Node 22 mentions in
   [`src/frontend/README.md`](src/frontend/README.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+- **`U17` — Frontend tests leave state updates outside `act(...)`.** A green `pnpm test` still logs eight React
+  "An update to … inside a test was not wrapped in act(...)" warnings, from `ExportPublicKeyDialog`,
+  `RevealSecretDialog`, `RevealInitialAccessTokenDialog`, MUI's `FormControl`, and `FlowExplorer`. The same set appears
+  under React 18 and React 19, so it predates the upgrade. Each one is a test that asserts before an async update
+  (a resolved promise, a transition) has settled. That can pass for the wrong reason, and it buries any new warning in
+  noise. Await the settled state with `findBy…` / `waitFor` (or wrap the trigger in `act`) until the suites run with
+  no `act` warnings. Touch points: the `*.test.tsx` of those components in `packages/ui` and
+  `apps/playground/src/containers/FlowExplorer.test.tsx`.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
 - **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML

@@ -146,7 +146,7 @@ export function SecretsManager({
 
   return (
     <>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Typography variant="h6" component="h3">
           Secrets
         </Typography>

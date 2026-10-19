@@ -16,7 +16,7 @@ describe('TenantFormDialog', () => {
     );
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Acme');
     expect(screen.getByTestId('tenant-domain-name')).toHaveValue('acme.example');
-    expect(screen.getByRole('checkbox', { name: 'Disabled' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Disabled' })).toBeChecked();
   });
 
   it('disables submit until a display name is entered', () => {

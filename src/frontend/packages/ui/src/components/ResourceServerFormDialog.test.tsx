@@ -24,7 +24,7 @@ describe('ResourceServerFormDialog', () => {
     fireEvent.change(screen.getByTestId('resource-server-name'), {
       target: { value: '  Orders API  ' },
     });
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Disabled' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Disabled' }));
     fireEvent.click(screen.getByTestId('resource-server-form-submit'));
     expect(onSubmit).toHaveBeenCalledWith({
       identifier: 'https://api.example.com',

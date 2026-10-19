@@ -84,7 +84,7 @@ export function GrantTable({ grants, now, onRevoke }: GrantTableProps) {
               </TableCell>
               {showActions && (
                 <TableCell align="right">
-                  <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                  <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
                     {revocable && onRevoke && (
                       <Tooltip title="Revoke grant">
                         <IconButton

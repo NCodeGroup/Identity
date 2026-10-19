@@ -72,7 +72,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D16`     | `D15`      |
-| `F` — Feature gaps                    | `F64`     | `F63`      |
+| `F` — Feature gaps                    | `F65`     | `F64`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U21`     | `U20`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
@@ -505,6 +505,22 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/`,
   `src/NCode.Identity.OpenId.Core/Settings/RootSettingsCollectionDataSource.cs`,
   `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`.
+
+- **`F64` — Make the zone's CAA records the only certificate authorities that can issue for it.** The `cloudflare-zone`
+  module publishes CAA `issue` / `issuewild` records for `caa_issuers` only (default `letsencrypt.org`), and the
+  [hosting analysis](docs/hosting-analysis.md#domain-and-dns--nidentityio) intends that no other CA may issue for the
+  domain. But Cloudflare Universal SSL, on by default for every zone, adds hidden CAA records for its own CAs
+  (`pki.goog`, `digicert.com`, `ssl.com`, `comodoca.com`) that never appear in OpenTofu state, so `nidentity.io`
+  authorizes five CAs (observed 2026-10-19) and the module's test, which checks only its own records, can't see it.
+  Universal SSL serves nothing here: every identity host is DNS-only, so TLS terminates at Traefik with cert-manager's
+  Let's Encrypt certificates. Turn it off in the module by default (`cloudflare_universal_ssl_setting`,
+  `enabled = false`) beside the CAA records whose guarantee depends on it, release the module, consume it in
+  `live/bootstrap`, and add *Zone → SSL and Certificates → Edit* to the bootstrap token (runbook section
+  [3. Cloudflare](docs/platform-bootstrap.md#3-cloudflare-dns-and-inbound-email)). A host proxied through Cloudflare
+  later (for example a project site on Cloudflare Pages) must then bring its own certificate. Verify:
+  `Resolve-DnsName nidentity.io -Type CAA -Server 1.1.1.1` lists only `letsencrypt.org` and the `iodef` record.
+  Touch points (`NCodeGroup/identity-platform`): `modules/cloudflare-zone/main.tf` (and its tests and README),
+  `live/bootstrap/cloudflare.tf`.
 
 ## Conformance & interop testing (group `T`)
 

@@ -507,20 +507,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication/ResourceServers/DefaultResourceServerCredentialResolver.cs`,
   `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`. Capture the design in an ADR.
 
-- **`F64` — Release the `cloudflare-zone` module that turns Universal SSL off, and apply it to the zone.** The
-  [hosting analysis](docs/hosting-analysis.md#domain-and-dns--nidentityio) intends that no CA but Let's Encrypt may
-  issue for `nidentity.io`, but Cloudflare Universal SSL, on by default for every zone, publishes hidden CAA records for
-  its own CAs (`pki.goog`, `digicert.com`, `ssl.com`, `comodoca.com`) that never appear in OpenTofu state, so the domain
-  authorizes five CAs (observed 2026-10-19). The `cloudflare-zone` module now always manages
-  `cloudflare_universal_ssl_setting` with `enabled = false`, its test asserts it, and its cloudflare provider floor is
-  `>= 5.13`, the first release with that resource (`NCodeGroup/identity-platform` branch
-  `feat/cloudflare-zone-universal-ssl-off`); the bootstrap token carries *Zone → SSL and Certificates → Edit* (runbook
-  section [3. Cloudflare](docs/platform-bootstrap.md#3-cloudflare-dns-and-inbound-email)). Remaining: merge that
-  branch and release `v0.3.0`; consume it in `live/bootstrap` (`cloudflare.tf` zone `ref`, the README's module table,
-  and *Universal SSL off* in its *Creates* table); apply `live/bootstrap` with a bootstrap token that carries the new
-  permission. Verify: `Resolve-DnsName nidentity.io -Type CAA -Server 1.1.1.1` lists only `letsencrypt.org` and the
-  `iodef` record.
-
 - **`F65` — Validate client key material at every entry point.** A client's `jwks` and the keys its `jwks_uri`
   publishes are the keys the server verifies its signatures with and encrypts its ID tokens and UserInfo responses to
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), but only dynamic client

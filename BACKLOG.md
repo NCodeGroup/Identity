@@ -399,7 +399,9 @@ entry and/or ADR that closed it.
   `cloudflare-zone`, `github-repository`), the `live/bootstrap` root, and the `validate` CI workflow exist; release
   `v0.2.0` is current and `live/bootstrap` consumes it, and CI enforces the member rule for `live/`. The `deploy`
   workflow plans each CI root on pull requests, applies the reviewed plan through the root's GitHub environment, and
-  fails a daily run on drift; `live/global` runs through it and owns inbound email routing. Provenance per
+  fails a daily run on drift; `live/global` runs through it and owns inbound email routing. The platform bootstrap is
+  applied and closed out (2026-10-18): `nidentity.io` is delegated with a secure DNSSEC chain and inbound email is
+  confirmed; the OCI sign-up (runbook section 5) waits for the lab. Provenance per
   [ADR-0136](docs/adr/0136-provenance-is-attested-on-workloads-and-audited-for-infrastructure.md) is in place for
   infrastructure: CI names its AWS sessions `gh-<run_id>-<run_attempt>`, and `aws-github-oidc` (v0.2.0) requires that
   form and trusts GitHub's immutable OIDC subject (owner and repository IDs, the default for repositories created after

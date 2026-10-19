@@ -172,13 +172,15 @@ Manual because AWS accounts and the identity used to administer them must exist 
 
 ## 5. OCI (the lab)
 
-Manual because tenancy sign-up requires identity and card verification, and the home region is chosen once.
+Manual because tenancy sign-up requires identity and card verification, and the home region is chosen once. Only the
+lab needs it — the bootstrap stack (section 6) doesn't touch OCI — so it can wait until the lab is built; starting early
+only gets the sign-up verification out of the way.
 
 1. **Sign up** with `<recovery-email>`; choose home region **`<oci-region>`** — it **cannot** be changed later.
 2. **Upgrade to Pay As You Go** (Billing → Upgrade). It keeps the Always Free resources, adds the monthly Ampere A1
    allowance (≈ 4 OCPU / 24 GB always-on), and exempts the tenancy from idle-resource reclamation.
 3. Enable **MFA** for your console user (Identity → Domains → Default → Security → MFA).
-4. Create an **API signing key** for the local bootstrap: Profile → *API keys* → *Add API key* → generate, download the
+4. Create an **API signing key** for the OCI CLI: Profile → *API keys* → *Add API key* → generate, download the
    private key to `~/.oci/`, and paste the shown configuration into `~/.oci/config` (or run `oci setup config`).
 
 **Verify:** `oci iam region-subscription list` lists `<oci-region>` as the home region.
@@ -284,6 +286,6 @@ registrar's name servers (section 7) can't find the MX records until that cache 
 ## 9. Close out
 
 - [ ] Bootstrap tokens revoked; no credentials in shell history or files.
-- [ ] 2FA confirmed on Porkbun, GitHub, Cloudflare, AWS (Identity Center), and OCI.
-- [ ] Budget alerts present on AWS and OCI (created by the stacks).
+- [ ] 2FA confirmed on Porkbun, GitHub, Cloudflare, and AWS (Identity Center) — and on OCI once section 5 is done.
+- [ ] Budget alert present on AWS (created by the bootstrap stack) — and on OCI once the lab's stack creates it.
 - [ ] Record what changed in this runbook if any step differed from it.

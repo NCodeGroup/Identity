@@ -4,8 +4,16 @@
 # the inputs current so the gate has something honest to prove. Every ecosystem the repository actually ships or builds
 # from is covered; updates land as pull requests against the single `main` trunk (ADR-0125) and are gated by CI.
 #
+# VERSION UPDATES ARE PAUSED (backlog D16). While the family is refactored heavily ahead of its first release, a weekly
+# version bump is mostly churn against code that is about to move. Every ecosystem therefore sets
+# `open-pull-requests-limit: 0`, which is GitHub's documented way to pause version updates while keeping their
+# configuration. Security updates continue: with the repository setting "Dependabot security updates" on, Dependabot
+# opens a pull request whenever a published advisory affects a dependency, and the limit does not apply to those.
+# Everything below — ignore rules, cooldown, groups — stays in place, so resuming means setting each limit back to 5.
+#
 # Updates are GROUPED per ecosystem. Ungrouped, a repository this size opens a pull request per package and buries the
-# trunk in noise; grouped, a week's updates arrive as one reviewable change that CI verifies as a unit.
+# trunk in noise; grouped, a week's updates arrive as one reviewable change that CI verifies as a unit. Security updates
+# have a group of their own in each ecosystem (`applies-to: security-updates`), so one advisory run is one pull request.
 version: 2
 
 updates:
@@ -15,7 +23,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    # Version updates paused (backlog D16); 5 when resumed.
+    open-pull-requests-limit: 0
     groups:
       # Patch/minor servicing moves together — this is the stream that clears NuGet advisories, which the full
       # Definition of Done treats as build errors (NU1901-1904), so leaving it to rot eventually breaks CI outright.
@@ -24,6 +33,9 @@ updates:
       # Majors are separated: each one is a deliberate, individually-reviewed change.
       nuget-major:
         update-types: [major]
+      nuget-security:
+        applies-to: security-updates
+        patterns: ['*']
 
   # The frontend pnpm workspace (ADR-0064). Its root is src/frontend, not the repository root — that is where
   # pnpm-workspace.yaml and the lockfile live, and pointing Dependabot anywhere else finds no manifest.
@@ -31,7 +43,8 @@ updates:
     directory: /src/frontend
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    # Version updates paused (backlog D16); 5 when resumed.
+    open-pull-requests-limit: 0
     # A version must be three days old before Dependabot proposes it. It is the same window as pnpm's
     # minimumReleaseAge in src/frontend/pnpm-workspace.yaml, and must not be longer: Dependabot enforces this cooldown
     # on every version already in the lockfile, and pnpm's gate is what keeps a younger one out (ADR-0153). Equal
@@ -57,6 +70,9 @@ updates:
         dependency-type: development
       frontend-production:
         dependency-type: production
+      frontend-security:
+        applies-to: security-updates
+        patterns: ['*']
 
   # The workflows themselves. Pinned action majors go stale silently and surface as runner deprecation warnings rather
   # than failures, so they need the same automation as package dependencies.
@@ -64,7 +80,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    # Version updates paused (backlog D16); 5 when resumed.
+    open-pull-requests-limit: 0
     groups:
       github-actions:
+        patterns: ['*']
+      github-actions-security:
+        applies-to: security-updates
         patterns: ['*']

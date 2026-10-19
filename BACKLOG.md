@@ -71,7 +71,7 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D16`     | `D15`      |
+| `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
 | `F` — Feature gaps                    | `F65`     | `F64`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U22`     | `U21`      |
@@ -127,6 +127,19 @@ entry and/or ADR that closed it.
   `OutboundHttpReadResult`, `OwnerRemovalResult`) appear to pass. Apply the test to each and convert the ones that fail
   to names plus registered strategies, with data migrations for any persisted value. Touch points: the enum files under
   `src/**/` and their `switch` consumers.
+- **`D16` — Resume Dependabot version updates.** Version updates are paused: every ecosystem in
+  [`.github/dependabot.yml`](.github/dependabot.yml) sets `open-pull-requests-limit: 0`, because while the family is
+  refactored heavily ahead of its first release a weekly bump is mostly churn against code that is about to move.
+  Vulnerabilities are still handled. Dependabot alerts are on, and the "Dependabot security updates" repository
+  setting opens a pull request, grouped per ecosystem, whenever a published advisory affects a dependency. Security
+  updates bypass both the npm cooldown and pnpm's `minimumReleaseAge`
+  ([ADR-0153](docs/adr/0153-one-release-age-window-gates-frontend-dependencies.md)). What the pause costs is drift, so
+  resume no later than the first published release, and before then if the drift starts to block work — for example a
+  toolchain the code needs, or a NuGet advisory the full Definition of Done fails on with no security update to fix it.
+  To resume, set each `open-pull-requests-limit` back to 5. Expect each group's first pull request to be a large
+  catch-up: land the frontend toolchain the way
+  [ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md) describes, and
+  hold any major that cannot land yet with an `ignore` rule and a backlog item. Touch point: `.github/dependabot.yml`.
 
 ## Feature gaps — not yet implemented (group `F`)
 

@@ -130,9 +130,11 @@ To upgrade a package, change its single `Version` in `Directory.Packages.props` 
 
 ## Dependabot pull requests
 
-[`.github/dependabot.yml`](.github/dependabot.yml) opens a **grouped** pull request each week per ecosystem (NuGet
-minor/patch, NuGet majors, frontend dev toolchain, frontend production, GitHub Actions). CI gates it like any other
-change, so a green Dependabot PR can be merged as-is.
+[`.github/dependabot.yml`](.github/dependabot.yml) groups updates per ecosystem (NuGet minor/patch, NuGet majors,
+frontend dev toolchain, frontend production, GitHub Actions). CI gates them like any other change, so a green
+Dependabot PR can be merged as-is. **Weekly version updates are paused** while the family is refactored ahead of its
+first release (backlog `D16`): every ecosystem sets `open-pull-requests-limit: 0`. Security updates still arrive as
+pull requests (one group per ecosystem) whenever a published advisory affects a dependency.
 
 When one is red, the fix belongs **on its branch**: check out the PR branch, commit the code or config the new versions
 require, rebase onto `main` if it has moved, and push. Dependabot stops rebasing a branch once someone else has pushed

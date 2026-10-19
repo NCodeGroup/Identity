@@ -104,6 +104,13 @@ change to the public API is a **major** version bump.
   goes in `minimumReleaseAgeExclude`. See
   [ADR-0153](docs/adr/0153-one-release-age-window-gates-frontend-dependencies.md).
 
+- **Dependabot version updates are paused; security updates continue.** While the family is refactored heavily ahead of
+  its first release, weekly version bumps are mostly churn against code that is about to move. Every ecosystem in
+  `.github/dependabot.yml` therefore sets `open-pull-requests-limit: 0`, GitHub's documented way to pause version
+  updates while keeping their configuration. Backlog `D16` tracks resuming them, no later than the first published
+  release. Dependabot security updates are now on for the repository, with one group per ecosystem, so an advisory that
+  affects a dependency still produces a fix pull request automatically.
+
 - **Frontend tests fail on warnings, and frontend coverage can no longer fall unnoticed.** A test that logs
   `console.error` or `console.warn` now fails. The usual culprit is a React "not wrapped in act(...)" warning, which
   means the test asserted before an update settled. The check comes from a console guard in the new test-only

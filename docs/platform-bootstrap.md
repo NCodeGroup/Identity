@@ -110,14 +110,16 @@ Manual because account creation and the first API token can't be created by an A
    - Account resources: only your account. Zone resources: *All zones from an account* → your account (not *All
      zones*, which spans every account you can access).
    - Client IP filtering: your current public IPv4 **and** IPv6 address, if you have one
-     (`Invoke-RestMethod https://api64.ipify.org`) — requests leave over IPv6 when it's available. TTL: **expires
-     tomorrow**.
+     (`Invoke-RestMethod https://api64.ipify.org`) — requests leave over IPv6 when it's available. TTL: a range from
+     **today to tomorrow** — the picker sets a start date as well as an end date, and picking only tomorrow makes the
+     token unusable until midnight (`Invalid access token`, code 9109).
 4. Keep the token only in an environment variable for the bootstrap run (`$env:CLOUDFLARE_API_TOKEN`); never write it to
    a file in the repository.
 
 **Verify:**
-`Invoke-RestMethod https://api.cloudflare.com/client/v4/user/tokens/verify -Headers @{ Authorization = "Bearer $env:CLOUDFLARE_API_TOKEN" }`
-returns `status: active`.
+`(Invoke-RestMethod https://api.cloudflare.com/client/v4/user/tokens/verify -Headers @{ Authorization = "Bearer $env:CLOUDFLARE_API_TOKEN" }).result`
+shows `status: active` **and** a `not_before` that is already in the past (times are UTC) — `active` alone doesn't mean
+the token is usable yet.
 
 ## 4. AWS (state, backups, vendor tokens)
 
@@ -192,40 +194,64 @@ can't create it. Everything after it runs from GitHub Actions.
    the AWS provider refuses any other account). Generate a **state passphrase** of at least 32 random characters and
    keep it in your password manager — it encrypts this root's state and plans, and the same passphrase is needed on
    every later run.
-2. **Credentials for this shell only:** `$env:AWS_PROFILE = 'nidentity-platform-admin'`, the Cloudflare bootstrap
-   token in `$env:CLOUDFLARE_API_TOKEN`, a fine-grained GitHub token in `$env:GITHUB_TOKEN` (resource owner
-   `<github-org>`, only `<infra-repo>`, permissions *Administration*, *Environments*, and *Variables* read/write, expiry
-   1 day), and the passphrase in `$env:TF_VAR_state_passphrase` — enter secrets with `Read-Host -MaskInput` so they
-   never reach shell history.
-3. **First apply on local state.** The state bucket can't hold this root's state before this root creates it, so the
+2. **GitHub bootstrap token** (manual because the token that lets automation manage the repository can't come from
+   that automation): avatar → *Settings* → *Developer settings* → *Personal access tokens* → *Fine-grained tokens* →
+   *Generate new token*:
+   - Name `<infra-repo>-bootstrap-<yyyy-mm-dd>`; resource owner **`<github-org>`**; expiration *Custom* → tomorrow.
+   - Repository access: *Only select repositories* → `<infra-repo>`.
+   - Repository permissions: **Administration**, **Environments**, and **Variables** → *Read and write* (*Metadata:
+     Read* is added automatically); everything else *No access*.
+   - Copy the token into your password manager — it is shown once. The organization requires approval for
+     fine-grained tokens (section 2), so approve your own request: `<github-org>` → *Settings* → *Personal access
+     tokens* → *Pending requests*. Until then the token gets `403` responses.
+3. **Credentials for this shell only:** `$env:AWS_PROFILE = 'nidentity-platform-admin'` (then `aws sso login`), the
+   Cloudflare bootstrap token in `$env:CLOUDFLARE_API_TOKEN`, the GitHub token in `$env:GITHUB_TOKEN`, and the
+   passphrase in `$env:TF_VAR_state_passphrase` — enter secrets with `Read-Host -MaskInput` so they never reach shell
+   history.
+4. **First apply on local state.** The state bucket can't hold this root's state before this root creates it, so the
    first run uses a local backend: create the git-ignored `backend_override.tf` (`terraform { backend "local" {} }`),
-   then `tofu init` and `tofu apply`. The local state file is already encrypted with the passphrase. The apply creates
-   the S3 state and backup buckets, the KMS keys, the GitHub OIDC provider and roles, the Cloudflare zone, DNSSEC, and
-   scoped tokens (stored as SSM SecureStrings), the budget alert, and the repository's rulesets and `lab` /
-   `production` environments — importing the repository from step 2 rather than creating it. If DNSSEC fails because
-   the zone is still pending, continue and re-run `tofu apply` after step 7.
-4. **Move the state into the bucket it created:** delete `backend_override.tf`, run `tofu init -migrate-state`
-   (answer `yes`), then delete the local `terraform.tfstate` and `terraform.tfstate.backup`.
-5. **Revoke** the Cloudflare bootstrap token and the GitHub token; let the AWS session expire.
+   then `tofu init`, `tofu plan -out bootstrap.tfplan`, review the plan (everything is an add, plus one import, and
+   nothing changes or is destroyed), and `tofu apply bootstrap.tfplan`. The local state file and the plan are already
+   encrypted with the passphrase. The apply creates the S3 state and backup buckets, the KMS keys, the GitHub OIDC
+   provider and roles, the Cloudflare zone, DNSSEC, and scoped tokens (stored as SSM SecureStrings), the budget alert,
+   and the repository's rulesets and `lab` / `production` environments — importing the repository from section 2
+   rather than creating it. If DNSSEC fails because the zone is still pending, continue and re-run `tofu apply` after
+   section 7.
+5. **Move the state into the bucket it created:** delete `backend_override.tf`, run `tofu init -migrate-state`
+   (answer `yes`), then delete the local `terraform.tfstate`, `terraform.tfstate.backup`, and `bootstrap.tfplan`.
+6. **Revoke** the Cloudflare bootstrap token and the GitHub token; let the AWS session expire.
 
-**Verify:** `tofu plan` (with fresh credentials) shows no changes; the state object exists in the bucket with
-versioning enabled.
+**Verify:** `tofu plan` (with fresh credentials) shows no changes — except, until section 7 is done, an in-place
+update of `cloudflare_zone_dnssec` from `pending` to `active`; **don't apply it**, it clears on its own once the DS
+record is published — and the state object exists in the bucket with versioning enabled.
 
 **Re-run it at least every 90 days** with fresh credentials (no override file) to rotate the CI Cloudflare tokens; they
 expire 30 days after their scheduled rotation. Re-run it too whenever `live/bootstrap` changes.
 
 ## 7. Delegate the domain
 
-Manual because it is a registrar change (step 1).
+Manual because it is a registrar change (step 1). Order matters for DNSSEC: publish a DS record only once the zone it
+describes is the one answering, or validating resolvers reject the domain.
 
-1. In Porkbun, set the nameservers of `<domain>` to the two Cloudflare nameservers from the bootstrap outputs.
-2. Add the DNSSEC **DS record** from the bootstrap outputs (key tag, algorithm, digest type, digest).
+1. In Porkbun → *Domain Management* → `<domain>` → *Details*: if a **DNSSEC** record is listed, delete it first (it
+   describes the registrar's old zone).
+2. *Authoritative Nameservers* → *Edit* → replace them with the two Cloudflare name servers from the bootstrap outputs
+   (`name_servers`).
+3. Wait until Cloudflare reports the zone **Active** (email, or the zone's *Overview*) **and** public resolvers have
+   dropped the registrar's name servers from their caches — up to the old NS records' TTL, which is **24 hours** for
+   Porkbun (`(Resolve-DnsName <domain> -Type NS -Server 1.1.1.1).TTL` shows the time left). Cloudflare turns *Active*
+   as soon as the registry delegates to it, long before every cache agrees.
+4. *DNSSEC* → *Add* the DS record from the bootstrap output `dnssec_ds`: key tag, algorithm (`13`, ECDSA P-256 SHA-256),
+   digest type (`2`, SHA-256), and digest.
 
 **Verify:** `Resolve-DnsName <domain> -Type NS -Server 1.1.1.1` returns the Cloudflare nameservers;
-[DNSViz](https://dnsviz.net/) shows a secure chain for `<domain>`.
+`Resolve-DnsName <domain> -Type DS -Server 1.1.1.1` returns the DS record; [DNSViz](https://dnsviz.net/) shows a secure
+chain for `<domain>`.
 
 ## 8. Confirm inbound email
 
+Inbound email routing (`security@`, `platform@`, …) is created by the CI-managed `live/global` root, so this section
+follows its first apply; until then mail to `@<domain>` — including the AWS budget alerts sent to `platform@` — bounces.
 1. Click the Cloudflare **destination verification** link sent to `<recovery-email>`.
 2. In the mailbox, add a filter for mail to `*@<domain>`: never send to spam, apply a label.
 

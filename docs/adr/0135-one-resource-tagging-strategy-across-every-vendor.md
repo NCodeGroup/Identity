@@ -79,4 +79,6 @@ Keys are snake_case; values keep their natural form (kebab-case names, emails, p
 
 - [ADR-0133](0133-we-ship-and-run-the-same-deployment-artifacts.md) — component rules.
 - [ADR-0134](0134-cloud-native-operating-principles.md) — operating principles.
+- [ADR-0136](0136-provenance-is-attested-on-workloads-and-audited-for-infrastructure.md) — where change provenance
+  lives instead of tags.
 - [Kubernetes recommended labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/).

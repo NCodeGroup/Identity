@@ -400,7 +400,11 @@ entry and/or ADR that closed it.
   `v0.1.0` is tagged, `live/bootstrap` consumes it by `?ref=v0.1.0`, and CI enforces the member rule for `live/`.
   Next: `live/global` (DNS records — including the lab's, so the lab never holds a zone token — email routing, and zone
   settings) and `live/lab` on OCI OKE; each root that manages AWS resources adds exactly those permissions to its apply
-  role, which today can reach only its state and secrets.
+  role, which today can reach only its state and secrets. Provenance per
+  [ADR-0136](docs/adr/0136-provenance-is-attested-on-workloads-and-audited-for-infrastructure.md): the deploy workflow
+  names its AWS sessions `gh-<run_id>-<run_attempt>` and `aws-github-oidc` requires that form (`sts:RoleSessionName`);
+  workload images and charts get build-provenance attestations and signatures that Flux verifies before the first
+  production rollout.
 
 ## Conformance & interop testing (group `T`)
 

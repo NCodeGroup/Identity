@@ -320,7 +320,14 @@ rationale.
   reads or writes it; never read or write a setting through an ad-hoc `new SettingKey<T>("…")` without a descriptor.
   Settings are rejected wherever they enter — configuration on start, management writes (`ISettingSerializer.ValidateSettings`
   → `400`), and stored documents on read (fail closed) — so retiring or renaming a setting ships with a data migration
-  of the stored documents. A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`)
+  of the stored documents. That migration is an EF migration in `NCode.Identity.OpenId.Host.Database`
+  (`dotnet ef migrations add`, then hand-written SQL in `Up`) that rewrites **every** settings table (`Servers`,
+  `Tenants`, `Clients`, `ResourceServers`); it **translates** the setting's meaning into the current vocabulary rather
+  than dropping it (dropping a restriction silently loosens the document), leaves a document whose value was already
+  invalid untouched (it keeps failing closed), and gives each rewritten row a new `SettingsConcurrencyToken`. The model
+  drift gate cannot see a data migration, so verify it by applying it to a throwaway Postgres over seeded documents
+  ([ADR-0142](../../docs/adr/0142-listed-response-types-are-the-only-front-channel-token-control.md) is the worked
+  example). A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`)
   is still a registered setting. See [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md).
 - 👁 **A setting declares its domain, not only its type.** Give every descriptor whose type admits values the server
   would not honor a `Rule` (`SettingRules.OneOf`/`EmptyOr`/`AtLeast`/`Between`/`Each`/`Must`): an enumerated string is a
@@ -436,8 +443,10 @@ rationale.
   `NCode.Identity.OpenId.Host.Database` project). The Definition of Done runs
   `dotnet ef migrations has-pending-model-changes` for both contexts and fails on un-migrated model drift, so it is
   caught pre-push and in CI, not at runtime. The dev database is Postgres applied by the migration worker, so migrations
-  are authoritative — the gate is the reminder. See
-  [ADR-0073](../../docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md).
+  are authoritative — the gate is the reminder. `dotnet ef migrations add` writes its files with a UTF-8 BOM and
+  re-saves `OpenIdDbContextModelSnapshot.cs` even when the model is unchanged; the repository's files are BOM-less
+  (`charset = utf-8`), so strip the BOM from the generated migration and revert a snapshot whose only diff is the BOM.
+  See [ADR-0073](../../docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md).
 - ✅ **Raw SQL in the EF model must quote identifiers.** Any hand-written SQL fragment in the model (`HasFilter`,
   `HasComputedColumnSql`, `HasDefaultValueSql`, …) MUST double-quote column/table names (e.g.
   `HasFilter("\"NormalizedDomainName\" IS NOT NULL")`). Postgres folds unquoted identifiers to lower case (the schema

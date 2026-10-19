@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amends [ADR-0140](0140-setting-values-are-validated-against-their-domain.md),
   [ADR-0083](0083-secure-by-default-discovery-metadata.md), and
-  [ADR-0063](0063-dynamic-client-registration.md))
+  [ADR-0063](0063-dynamic-client-registration.md); extended by
+  [ADR-0142](0142-listed-response-types-are-the-only-front-channel-token-control.md): the listed response types are the
+  only control over the tokens the authorization endpoint returns)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

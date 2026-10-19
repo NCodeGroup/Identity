@@ -1,6 +1,8 @@
 # 38. Setting merge is a policy of lattice duals — ceiling, floor, or override
 
-- **Status:** Accepted
+- **Status:** Accepted (`allow_unsafe_token_response` retired by
+  [ADR-0142](0142-listed-response-types-are-the-only-front-channel-token-control.md): `response_types_supported` is the
+  only control over the tokens the authorization endpoint returns)
 - **Date:** 2026-10-03
 - **Deciders:** NCode Group
 

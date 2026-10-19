@@ -318,7 +318,6 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AcrValuesSupported = "ac
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowedIdentityProviders = "allowed_identity_providers" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AlwaysIncludeAuthTime = "always_include_auth_time" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowLoopbackRedirect = "allow_loopback_redirect" -> string!
-const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AllowUnsafeTokenResponse = "allow_unsafe_token_response" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationAuthenticateScheme = "authorization_authenticate_scheme" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationChallengeScheme = "authorization_challenge_scheme" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationCodeLifetime = "authorization_code_lifetime" -> string!
@@ -806,7 +805,6 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AcrValuesSupported.get -
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowedIdentityProviders.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AlwaysIncludeAuthTime.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowLoopbackRedirect.get -> NCode.Identity.Settings.SettingKey<bool>
-static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AllowUnsafeTokenResponse.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationAuthenticateScheme.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationChallengeScheme.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationCodeLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>

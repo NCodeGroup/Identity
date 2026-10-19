@@ -54,6 +54,13 @@ backlog (pending items only). Record pending items there, not in chat history or
 done, **move** its text to the completed-items archive [`BACKLOG-COMPLETED.md`](../BACKLOG-COMPLETED.md) (don't just
 delete it) so completed work stays discoverable.
 
+**Completion status is one fact, the same everywhere.** "Done" is binary and global: report an item as done — in a
+message, a todo list, or by archiving it — only when no work remains **and** nothing still frames it as pending
+(`BACKLOG.md`, a todo list, a "remaining" / "still open" bullet in a doc, the `CHANGELOG.md`). Any remainder, even
+"live verification remaining", makes it partial: say so, and rewrite its `BACKLOG.md` entry to describe only the
+remaining work. Before claiming done, re-read the item's home and reconcile every tracker first; a completed item moves
+to `BACKLOG-COMPLETED.md` in the same change, so it is never both done and listed.
+
 ## Commit attribution
 
 **Never add a `Co-authored-by:` trailer naming an agent account** (`Copilot`, `copilot-swe-agent[bot]`, or any other

@@ -180,6 +180,27 @@ change to the public API is a **major** version bump.
   `IAuthorizationRequest.GrantType` is removed. `OpenIdConstants.ResponseTypes` gains the four combined values, and the
   error factory gains `UnsupportedResponseType`.
 
+- **`response_types_supported` is the only control over the tokens the authorization endpoint returns.** The
+  `allow_unsafe_token_response` setting is removed. It was a second switch for the same capability: a deployment that
+  listed `code token` but turned the switch off advertised and registered a flow it then refused at every request, and
+  the refusal was always `unauthorized_client`, even when the tenant imposed it. To forbid an access token from the
+  authorization endpoint, a tenant or client lists no response type that includes `token` (the default list is `code`
+  alone). Discovery, dynamic client registration, and the authorization endpoint then agree, and a refusal is
+  `unsupported_response_type` when the tenant imposes it and `unauthorized_client` when only the client does.
+  ([ADR-0142](docs/adr/0142-listed-response-types-are-the-only-front-channel-token-control.md))
+
+  The `RetireAllowUnsafeTokenResponse` migration rewrites every stored server, tenant, client, and resource-server
+  settings document that sets it, keeping what it restricted: `true` or `null` is removed; `false` becomes a
+  `response_types_supported` in the same document that lists the document's values that do not include `token` — or,
+  when the document lists none, `["code", "id_token", "code id_token"]`. A rewritten document gets a new settings
+  concurrency token. A value that is not a boolean or `null` is left as is, so its document keeps failing when it is
+  read.
+
+  **Breaking:** `OpenIdSettingNames.AllowUnsafeTokenResponse` and `OpenIdSettingKeys.AllowUnsafeTokenResponse` are
+  removed. Configuration that names `allow_unsafe_token_response` stops the host when it starts; remove it, and narrow
+  `response_types_supported` instead if it was `false`. A deployment that stores settings documents in its own database
+  must apply the same rewrite there, or a document that names the setting fails when it is read.
+
 ### Fixed
 
 - **An implicit or hybrid response could be redirected in the query string.** Without a `response_mode`, the

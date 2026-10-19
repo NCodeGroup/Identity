@@ -134,14 +134,12 @@ internal sealed class ConformanceSeedHandler(
         var clientSecretBytes = secretOwner.Memory[..secretWritten];
 
         // The registered method (RFC 7591 §2) decides the client type, and it is the only method the client may use.
-        string[] tokenEndpointAuthMethods = [client.TokenEndpointAuthMethod];
         var settingValues = new Dictionary<string, object>
         {
             [OpenIdSettingNames.RedirectUris] = client.RedirectUris,
             [OpenIdSettingNames.GrantTypesSupported] =
                 client.GrantTypes.Length > 0 ? client.GrantTypes : DefaultGrantTypes,
             [OpenIdSettingNames.TokenEndpointAuthMethod] = client.TokenEndpointAuthMethod,
-            [OpenIdSettingNames.TokenEndpointAuthMethodsSupported] = tokenEndpointAuthMethods,
         };
         if (client.CodeChallengeMethods.Length > 0)
             settingValues[OpenIdSettingNames.CodeChallengeMethodsSupported] =

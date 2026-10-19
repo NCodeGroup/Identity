@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -715,13 +715,18 @@ public static class OpenIdSettingNames
     public const string SubjectTypesSupported = "subject_types_supported";
 
     /// <summary>
-    /// Contains the name of <c>token_endpoint_auth_methods_supported</c> setting.
+    /// Contains the name of <c>token_endpoint_auth_methods_supported</c> setting: the client-authentication methods the
+    /// server, tenant, or security profile permits. It is a ceiling over a client's registered
+    /// <c>token_endpoint_auth_method</c>: a client whose registered method it excludes cannot authenticate.
     /// </summary>
     public const string TokenEndpointAuthMethodsSupported = "token_endpoint_auth_methods_supported";
 
     /// <summary>
-    /// Contains the name of the per-client <c>token_endpoint_auth_method</c> setting: the single client-authentication
-    /// method the client is registered to use at the token endpoint.
+    /// Contains the name of the <c>token_endpoint_auth_method</c> setting: the single client-authentication method a
+    /// client is registered to use (RFC 7591 §2). It decides the client type — <c>none</c> registers a public client,
+    /// any other method a confidential one — and it is the only method that authenticates the client at every endpoint
+    /// that authenticates clients. A client that registers no method uses the RFC 7591 default,
+    /// <c>client_secret_basic</c>, unless its server or tenant configures another.
     /// </summary>
     public const string TokenEndpointAuthMethod = "token_endpoint_auth_method";
 

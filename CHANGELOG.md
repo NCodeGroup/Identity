@@ -249,7 +249,50 @@ change to the public API is a **major** version bump.
   that stores settings documents in its own database must remove `plain` from them, or a document that lists it fails
   when it is read. `ConformanceClientSeed.TokenEndpointAuthMethods` is replaced by `TokenEndpointAuthMethod`.
 
+- **A client authenticates only with the method it is registered for.** A client's `token_endpoint_auth_method` (RFC
+  7591 §2) is now the one method that authenticates it, at every endpoint that authenticates clients — token, pushed
+  authorization request, introspection, revocation, device authorization, and back-channel authentication — and it
+  decides the client's type: `none` registers a public client, any other method a confidential one. Previously a client
+  could use any method its `token_endpoint_auth_methods_supported` permitted, and that list includes `none` by default,
+  so a client registered as confidential — every dynamically registered `client_secret_*` client — could present only
+  its `client_id` and be served as public, for example to redeem a refresh token or push an authorization request. Such
+  a request, a credential of another method, and a secret presented by a public client are now `invalid_client`.
+  ([ADR-0145](docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md))
+
+  A client that registers no method uses the RFC 7591 default, `client_secret_basic` — the default dynamic client
+  registration already applied — unless its server or tenant configures another; so a client created through the
+  management API without one is a confidential client that authenticates with HTTP Basic once it holds a secret.
+  `token_endpoint_auth_methods_supported` is the ceiling the server, tenant, and security profile impose over the
+  registered method: a client registered outside it cannot authenticate, and dynamic client registration refuses such a
+  method with `invalid_client_metadata`. The authorization endpoint identifies the client by its `client_id` and never
+  authenticates it, and it refuses a request that carries a `client_secret` with `invalid_request`.
+
+  The developer single-page-application clients register `none`, a conformance client registers only its configured
+  method, and the bootstrap administrator registers `client_secret_basic`, so the API reference's client-credentials
+  login now sends its credentials with HTTP Basic. The `RegisterClientAuthenticationMethod` migration rewrites every
+  stored server, tenant, client, and resource-server settings document that registers no method: one whose
+  `token_endpoint_auth_methods_supported` lists exactly one method registers that method (such as a developer client
+  pinned to `["none"]`), and an empty `token_endpoint_auth_method` is otherwise removed; each rewritten document gets a
+  new settings concurrency token.
+
+  **Breaking:** a client that authenticates with a method other than the one it registers — including a client that
+  registers none and authenticates with anything but HTTP Basic — is refused until it registers its method. An empty
+  `token_endpoint_auth_method` is no longer a valid value, and configuration that sets it stops the host when it
+  starts. A request without a secret in HTTP Basic credentials (no colon) is `invalid_client`. The bootstrap
+  administrator presents its secret with HTTP Basic, not in the request body. A deployment that stores settings
+  documents in its own database must apply the same rewrite there.
+
 ### Fixed
+
+- **A FAPI 2.0 client could not reach the authorization endpoint.** The endpoint identified the client through client
+  authentication as a public client, which the profile's `token_endpoint_auth_methods_supported` ceiling refuses, so
+  every request from such a client failed with `invalid_client` before the profile's own rules applied. It now
+  identifies the client by its `client_id`. ([ADR-0145](docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md))
+
+- **An empty `token_endpoint_auth_methods_supported` permitted every method.** Two disjoint ceilings — a tenant that
+  allows only `client_secret_basic` and a client under the FAPI 2.0 profile — intersect to an empty list, which was read
+  as unrestricted. An empty ceiling now permits no method.
+  ([ADR-0145](docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md))
 
 - **The pushed authorization request endpoint refused a request with `200 OK`.** A validation error that named no
   status code — an unsupported scope or response type, a missing `code_challenge` — was rendered as `200`. An OpenID

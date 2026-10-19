@@ -16,23 +16,39 @@
 
 #endregion
 
+using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IClientAuthenticationService"/> abstraction.
+/// Provides a default implementation of the <see cref="IClientAuthenticationService"/> abstraction. Every registered
+/// <see cref="IClientAuthenticationHandler"/> examines the request; the service selects the client they authenticated
+/// and accepts it only when the method it authenticated with is the one it is registered to use and its ceiling permits
+/// that method, whichever handler produced it.
 /// </summary>
-internal class DefaultClientAuthenticationService : IClientAuthenticationService
+// See ADR-0145.
+internal class DefaultClientAuthenticationService(
+    IEnumerable<IClientAuthenticationHandler> handlers,
+    IAuditEventRecorder auditEventRecorder,
+    ILogger<DefaultClientAuthenticationService> logger
+) : IClientAuthenticationService
 {
     // Per-request memoization key. The result is cached on the HttpContext so it is scoped to the current request;
     // this service is a singleton, so an instance field would leak one request's result to every other request.
     private static readonly object CacheKey = new();
+
+    private ImmutableArray<IClientAuthenticationHandler> Handlers { get; } = [.. handlers];
+
+    private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
+
+    private ILogger<DefaultClientAuthenticationService> Logger { get; } = logger;
 
     /// <inheritdoc />
     public async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
@@ -54,7 +70,7 @@ internal class DefaultClientAuthenticationService : IClientAuthenticationService
         return authenticationResult;
     }
 
-    private static async ValueTask<ClientAuthenticationResult> AuthenticateCoreAsync(
+    private async ValueTask<ClientAuthenticationResult> AuthenticateCoreAsync(
         OpenIdContext openIdContext,
         CancellationToken cancellationToken
     )
@@ -67,12 +83,9 @@ internal class DefaultClientAuthenticationService : IClientAuthenticationService
         // - Return first confidential client, if any
         // - Otherwise return first public client
 
-        var serviceProvider = openIdContext.Http.RequestServices;
-        var handlers = serviceProvider.GetServices<IClientAuthenticationHandler>();
-        var capacity = handlers.TryGetNonEnumeratedCount(out var count) ? count : 5;
-        var results = new List<ClientAuthenticationResult>(capacity);
+        var results = new List<ClientAuthenticationResult>(Handlers.Length);
 
-        foreach (var handler in handlers)
+        foreach (var handler in Handlers)
         {
             var result = await handler.AuthenticateClientAsync(openIdContext, cancellationToken);
 
@@ -107,9 +120,6 @@ internal class DefaultClientAuthenticationService : IClientAuthenticationService
         if (results.Count == 0)
             return ClientAuthenticationResult.Undefined;
 
-        if (results.Count == 1)
-            return EnforceAllowedAuthenticationMethod(openIdContext, results[0]);
-
         var confidentialResults = results.Where(result => result.IsConfidential).ToList();
 
         if (confidentialResults.Count > 1)
@@ -119,35 +129,57 @@ internal class DefaultClientAuthenticationService : IClientAuthenticationService
                     .WithStatusCode(StatusCodes.Status400BadRequest)
             );
 
-        if (confidentialResults.Count == 1)
-            return EnforceAllowedAuthenticationMethod(openIdContext, confidentialResults[0]);
+        var selected = confidentialResults.Count == 1 ? confidentialResults[0] : results[0];
 
-        return EnforceAllowedAuthenticationMethod(openIdContext, results[0]);
+        return await EnforceRegisteredAuthenticationMethodAsync(
+            openIdContext,
+            selected,
+            cancellationToken
+        );
     }
 
-    // Enforces that the method the client actually authenticated with is one its effective
-    // token_endpoint_auth_methods_supported permits; under a tightened profile (e.g. fapi2) this rejects weak or
-    // public ("none") authentication. An empty set means unrestricted (ADR-0010).
-    private static ClientAuthenticationResult EnforceAllowedAuthenticationMethod(
+    // Accepts the client only when the method it authenticated with is its registered token_endpoint_auth_method and its
+    // token_endpoint_auth_methods_supported ceiling permits that method, so a client never authenticates as a type it is
+    // not registered as (e.g. a confidential client presenting only its client_id).
+    private async ValueTask<ClientAuthenticationResult> EnforceRegisteredAuthenticationMethodAsync(
         OpenIdContext openIdContext,
-        ClientAuthenticationResult result
+        ClientAuthenticationResult result,
+        CancellationToken cancellationToken
     )
     {
         if (result.Client is not { } client)
             return result;
 
-        var allowedMethods = client.Settings.GetValue(
-            OpenIdSettingKeys.TokenEndpointAuthMethodsSupported
-        );
-        if (allowedMethods.Count == 0)
-            return result;
-
-        var method = client.IsConfidential
-            ? client.ConfidentialClient.AuthenticationMethod
+        var method = result.IsConfidential
+            ? result.ConfidentialClient.AuthenticationMethod
             : OpenIdConstants.ClientAuthenticationMethods.None;
 
-        if (allowedMethods.Contains(method, StringComparer.Ordinal))
+        if (client.MayAuthenticateWith(method))
             return result;
+
+        string reason;
+        var registeredMethod = client.RegisteredAuthenticationMethod;
+        if (string.Equals(method, registeredMethod, StringComparison.Ordinal))
+        {
+            Logger.ClientAuthenticationMethodNotPermitted(client.ClientId, registeredMethod);
+            reason = "authentication_method_not_permitted";
+        }
+        else
+        {
+            Logger.ClientAuthenticationMethodNotRegistered(
+                client.ClientId,
+                method,
+                registeredMethod
+            );
+            reason = "authentication_method_not_registered";
+        }
+
+        await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+            openIdContext,
+            client.ClientId,
+            reason,
+            cancellationToken
+        );
 
         return new ClientAuthenticationResult(
             openIdContext

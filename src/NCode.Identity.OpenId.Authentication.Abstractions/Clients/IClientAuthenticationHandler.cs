@@ -22,13 +22,16 @@ using NCode.Identity.OpenId.Contexts;
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// Used to authenticate an OpenID client from the current HTTP request.
+/// Used to authenticate an OpenID client from the current HTTP request with one client-authentication method. A handler
+/// authenticates only a client registered to use its <see cref="AuthenticationMethod"/>; the
+/// <see cref="IClientAuthenticationService"/> refuses a client a handler authenticated with any other method.
 /// </summary>
 [PublicAPI]
 public interface IClientAuthenticationHandler
 {
     /// <summary>
-    /// Gets the <see cref="string"/> value that identifies the current authentication method.
+    /// Gets the <see cref="string"/> value that identifies the current authentication method, as a client registers it in
+    /// its <c>token_endpoint_auth_method</c>.
     /// </summary>
     string AuthenticationMethod { get; }
 

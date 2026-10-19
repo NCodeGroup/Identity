@@ -30,7 +30,8 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 public abstract class OpenIdConfidentialClient : OpenIdClient
 {
     /// <summary>
-    /// Gets a <see cref="string"/> value containing the authentication method used to authenticate the client.
+    /// Gets a <see cref="string"/> value containing the authentication method used to authenticate the client, which is
+    /// always the method the client is registered to use.
     /// </summary>
     public abstract string AuthenticationMethod { get; }
 

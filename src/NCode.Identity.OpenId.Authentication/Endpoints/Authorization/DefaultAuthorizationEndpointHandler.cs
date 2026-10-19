@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -33,6 +34,7 @@ using NCode.Identity.OpenId.Authentication.Messages;
 using NCode.Identity.OpenId.Authentication.Messages.Commands;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
@@ -41,19 +43,20 @@ using NCode.Registration.AspNetCore;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 
 /// <summary>
-/// Provides a default implementation of the required services and handlers used by the authorization endpoint.
+/// Provides a default implementation of the required services and handlers used by the authorization endpoint. The
+/// authorization request travels through the user agent, so the endpoint identifies the client by its <c>client_id</c>
+/// and never authenticates it; a rule that depends on the client type reads the type the client is registered as.
 /// </summary>
 internal class DefaultAuthorizationEndpointHandler(
     ILogger<DefaultAuthorizationEndpointHandler> logger,
-    IClientAuthenticationService clientAuthenticationService,
+    IOpenIdClientResolver clientResolver,
     IAuthorizationRequestProcessor authorizationRequestProcessor,
     IPushedAuthorizationRequestService pushedAuthorizationRequestService,
     IKnownParameterCollectionProvider knownParameterCollectionProvider
 ) : IEndpointProvider
 {
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
-    private IClientAuthenticationService ClientAuthenticationService { get; } =
-        clientAuthenticationService;
+    private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
     private IAuthorizationRequestProcessor AuthorizationRequestProcessor { get; } =
         authorizationRequestProcessor;
     private IPushedAuthorizationRequestService PushedAuthorizationRequestService { get; } =
@@ -99,28 +102,32 @@ internal class DefaultAuthorizationEndpointHandler(
         var mediator = openIdContext.Mediator;
         var errorFactory = openIdContext.ErrorFactory;
 
-        var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
-            openIdContext,
-            cancellationToken
-        );
-
-        // for errors, before we redirect, we must validate the client_id and redirect_uri
-        // otherwise we must return a failure HTTP status code
-
-        if (!authResult.HasClient)
-        {
-            var error = authResult.Error ?? errorFactory.InvalidClient();
-            error.StatusCode = StatusCodes.Status400BadRequest;
-            return error.AsHttpResult();
-        }
-
         // the following tries its best to not throw for OpenID protocol errors
         var requestValues = await mediator.SendAsync<LoadRequestValuesCommand, IRequestValues>(
             new LoadRequestValuesCommand(openIdContext),
             cancellationToken
         );
 
-        var openIdClient = authResult.Client;
+        // for errors, before we redirect, we must validate the client_id and redirect_uri
+        // otherwise we must return a failure HTTP status code
+
+        if (!TryGetClientId(openIdContext, requestValues, out var clientId, out var clientIdError))
+        {
+            return clientIdError.AsHttpResult();
+        }
+
+        var openIdClient = await ClientResolver.ResolveClientOrDefaultAsync(
+            openIdContext,
+            clientId,
+            cancellationToken
+        );
+        if (openIdClient is null)
+        {
+            return errorFactory
+                .InvalidClient()
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsHttpResult();
+        }
 
         // RFC 9126: if the request references a pushed authorization request, replay its stored parameters; otherwise
         // enforce the require_pushed_authorization_requests policy. This runs before any parameter is trusted.
@@ -209,6 +216,43 @@ internal class DefaultAuthorizationEndpointHandler(
         }
 
         return requestValues;
+    }
+
+    // Identifies the client the request names. The request travels through the user agent, so it identifies the client
+    // without authenticating it, and a client secret in it is refused: RFC 6749 §2.3.1 confines client credentials to
+    // the body of a back-channel request.
+    private static bool TryGetClientId(
+        OpenIdContext openIdContext,
+        IRequestValues requestValues,
+        [NotNullWhen(true)] out string? clientId,
+        [NotNullWhen(false)] out IOpenIdError? error
+    )
+    {
+        var errorFactory = openIdContext.ErrorFactory;
+
+        if (requestValues.ContainsKey(OpenIdConstants.Parameters.ClientSecret))
+        {
+            clientId = null;
+            error = errorFactory
+                .InvalidRequest("The client secret must not be sent to the authorization endpoint.")
+                .WithStatusCode(StatusCodes.Status400BadRequest);
+            return false;
+        }
+
+        if (
+            !requestValues.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientIdValues)
+            || clientIdValues.Count != 1
+            || clientIdValues[0] is not { Length: > 0 } value
+        )
+        {
+            clientId = null;
+            error = errorFactory.InvalidClient().WithStatusCode(StatusCodes.Status400BadRequest);
+            return false;
+        }
+
+        clientId = value;
+        error = null;
+        return true;
     }
 
     private static ClientRedirectContext GetClientRedirectContext(

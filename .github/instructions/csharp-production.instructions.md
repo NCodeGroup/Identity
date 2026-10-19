@@ -297,12 +297,18 @@ rationale.
   `GetTenantUriByName`, which takes the authority from the tenant and carries the tenant route's values over. Never
   hand the request's live `RouteValues` to a template binder — it consumes them; bind a copy. See
   [ADR-0138](../../docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md).
-- 👁 **Decide a client's type from what the endpoint knows.** The authorization endpoint does not authenticate the
-  client, so a rule it applies reads the type the client is **registered** as — `IsRegisteredAsConfidential`, from its
-  registered `token_endpoint_auth_method` — and the same validation reads the same fact when it also runs at the pushed
-  authorization request endpoint, so the two agree. An endpoint that decides from the request's own client
-  authentication (the token endpoint redeeming a grant) reads `OpenIdClient.IsConfidential`. Never treat a client
-  registered as confidential as having authenticated. See
+- 👁 **A client authenticates only with its registered method, and its type is that one fact.** The registered
+  `token_endpoint_auth_method` (RFC 7591 §2; `client_secret_basic` when none is registered) is the only method that
+  authenticates a client at every endpoint that authenticates clients, and `token_endpoint_auth_methods_supported` is
+  only the server/tenant/profile **ceiling** over it — never a list of alternatives. Authenticate a client only through
+  `IClientAuthenticationService`, which enforces this; a new `IClientAuthenticationHandler` authenticates only a client
+  registered for its method (the `CommonClientAuthenticationHandler` base does). Anything that provisions a client
+  registers its method explicitly — a public client registers `none`. The authorization endpoint **identifies** the
+  client by `client_id` and never authenticates it, so a rule there reads the type the client is registered as —
+  `IsRegisteredAsConfidential` — and the same validation reads the same fact when it runs at the pushed authorization
+  request endpoint; an endpoint that authenticated the client (the token endpoint redeeming a grant) reads
+  `OpenIdClient.IsConfidential`, which agrees with it. Never treat a client registered as confidential as having
+  authenticated. See [ADR-0145](../../docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md) and
   [ADR-0144](../../docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md).
 - 👁 **Bind configuration strictly and validate it when the host starts.** An options type bound from configuration is
   bound with the binder's `ErrorOnUnknownConfiguration` (through `NCode.Registration`'s `BindStrictly`, which names the
@@ -674,8 +680,10 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
 - 👁 **A renderer builds a `x-www-form-urlencoded` body from the schema, not from examples.** Optional schema
   properties render unchecked and are omitted from the request, and a named `example` is not applied to form fields. To
   make a field pre-checked and pre-filled, a document transformer marks it `required` and sets its schema `Default`;
-  the renderer's credential location must match the endpoint (the token endpoint reads `client_secret_post` from the
-  **body**). See [ADR-0046](../../docs/adr/0046-api-reference-openapi-document-and-scalar.md).
+  the renderer's credential location must match the method the client is registered for (the bootstrap administrator
+  registers `client_secret_basic`, so its credentials go in the `Authorization` **header**). See
+  [ADR-0046](../../docs/adr/0046-api-reference-openapi-document-and-scalar.md) and
+  [ADR-0145](../../docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md).
 - 👁 **Handle credential and secret bytes in a pinned, zeroed-on-return buffer.** Encode a password or secret into a
   `SecureMemoryPool<byte>` rental via `SecureEncoding.UTF8` (`NCode.Buffers`) — never a raw `ArrayPool<byte>` +
   manual `CryptographicOperations.ZeroMemory`, and never a plain `Encoding.UTF8.GetBytes` that leaves the plaintext

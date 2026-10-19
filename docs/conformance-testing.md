@@ -226,15 +226,15 @@ negative tests.
 
 ## Appendix C — Client seeding checklist (manual, non-DCR path)
 
-The Basic OP plan needs **three** client registrations (two may coincide if one client supports both auth
-methods). All must register the suite callback as a redirect URI.
+The Basic OP plan needs **three** client registrations; each is a distinct client, because a client authenticates only
+with the one method it registers ([ADR-0145](adr/0145-a-client-authenticates-only-with-its-registered-method.md)). All
+must register the suite callback as a redirect URI.
 
 - **`client` (primary):** `token_endpoint_auth_method=client_secret_basic`; grants
   `authorization_code` + `refresh_token`; scopes `openid profile email`.
 - **`client2` (second confidential):** same as above — a _distinct_ `client_id`, used to prove auth codes
   are bound to the issuing client.
-- **`client_secret_post` client:** `token_endpoint_auth_method=client_secret_post` (may be the same record
-  as `client` if it accepts either method).
+- **`client_secret_post` client:** `token_endpoint_auth_method=client_secret_post`.
 - **Redirect URI (all):** `https://<SUITE_BASE>/test/a/<ALIAS>/callback`
   (local: `https://localhost.emobix.co.uk:8443/test/a/<ALIAS>/callback`;
   hosted: `https://www.certification.openid.net/test/a/<ALIAS>/callback`).

@@ -137,7 +137,7 @@ public class TokenEndpointClientAssertionTests
     private static async Task<HostApplicationFactory> CreateSeededFactoryAsync()
     {
         var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(
+        await factory.SeedClientSecretJwtClientAsync(
             ClientId,
             ClientSecret,
             OpenIdConstants.GrantTypes.ClientCredentials

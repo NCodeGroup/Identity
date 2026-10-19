@@ -24,7 +24,6 @@ using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
@@ -108,27 +107,48 @@ internal abstract class MutualTlsClientAuthenticationHandler(
         if (publicClient is null)
             return ClientAuthenticationResult.Undefined;
 
-        // This handler owns the request only when the client is registered for its method.
-        var configuredMethod = publicClient.Settings.TryGetValue(
-            OpenIdSettingKeys.TokenEndpointAuthMethod,
-            out var method
+        // This handler owns the request only when the client is registered for its method: the request carries only a
+        // client_id, as a public client's does, so the registration is what tells the two apart.
+        if (
+            !string.Equals(
+                publicClient.RegisteredAuthenticationMethod,
+                AuthenticationMethod,
+                StringComparison.Ordinal
+            )
         )
-            ? method
-            : string.Empty;
-        if (!string.Equals(configuredMethod, AuthenticationMethod, StringComparison.Ordinal))
+        {
             return ClientAuthenticationResult.Undefined;
+        }
 
         // From here the request is owned by this handler: any failure is a conclusive invalid_client.
+        var rejection = await RejectUnlessPermittedAsync(
+            openIdContext,
+            publicClient,
+            cancellationToken
+        );
+        if (rejection is { } rejected)
+            return rejected;
+
         var certificate = await ClientCertificateResolver.ResolveCertificateAsync(
             openIdContext.Http,
             cancellationToken
         );
         if (certificate is null)
-            return await FailAsync(openIdContext, clientId, "client_certificate_missing");
+            return await FailAsync(
+                openIdContext,
+                clientId,
+                "client_certificate_missing",
+                cancellationToken
+            );
 
         var credentialKey = MatchCertificate(publicClient, certificate);
         if (credentialKey is null)
-            return await FailAsync(openIdContext, clientId, "client_certificate_mismatch");
+            return await FailAsync(
+                openIdContext,
+                clientId,
+                "client_certificate_mismatch",
+                cancellationToken
+            );
 
         var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
             openIdContext,
@@ -140,20 +160,5 @@ internal abstract class MutualTlsClientAuthenticationHandler(
         );
 
         return new ClientAuthenticationResult(confidentialClient);
-    }
-
-    private async ValueTask<ClientAuthenticationResult> FailAsync(
-        OpenIdContext openIdContext,
-        string clientId,
-        string reason
-    )
-    {
-        await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
-            openIdContext,
-            clientId,
-            reason,
-            CancellationToken.None
-        );
-        return CreateInvalidClientResult(openIdContext);
     }
 }

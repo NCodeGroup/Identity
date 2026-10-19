@@ -349,7 +349,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
     private Mock<IReadOnlySettingCollection> CreateTenantSettings(
         IReadOnlyCollection<string>? grantTypesSupported,
-        IReadOnlyCollection<string>? responseTypesSupported
+        IReadOnlyCollection<string>? responseTypesSupported,
+        IReadOnlyCollection<string>? tokenEndpointAuthMethodsSupported = null
     )
     {
         var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
@@ -363,7 +364,60 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
                 x.TryGetValue(OpenIdSettingKeys.ResponseTypesSupported, out responseTypesSupported)
             )
             .Returns(true);
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.TokenEndpointAuthMethodsSupported,
+                    out tokenEndpointAuthMethodsSupported
+                )
+            )
+            .Returns(tokenEndpointAuthMethodsSupported is not null);
         return mockSettings;
+    }
+
+    [Fact]
+    public void ValidateSupportedMetadata_WhenTheTenantPermitsTheAuthMethod_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var mockTenantSettings = CreateTenantSettings(
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
+            [OpenIdConstants.ResponseTypes.CodeIdToken],
+            [
+                OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+                OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            ]
+        );
+
+        var error = handler.ValidateSupportedMetadata(
+            factory,
+            mockTenantSettings.Object,
+            CreateHybridMetadata()
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidateSupportedMetadata_WhenTheTenantDoesNotPermitTheAuthMethod_ReturnsInvalidClientMetadata()
+    {
+        // A client registered outside the tenant's ceiling could never authenticate.
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateTenantSettings(
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
+            [OpenIdConstants.ResponseTypes.CodeIdToken],
+            [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt]
+        );
+
+        var error = handler.ValidateSupportedMetadata(
+            factory,
+            mockTenantSettings.Object,
+            CreateHybridMetadata()
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]

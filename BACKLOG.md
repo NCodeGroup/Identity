@@ -187,8 +187,12 @@ entry and/or ADR that closed it.
     - **OP-side follow-up — accept non-secret `token_endpoint_auth_method` values at Dynamic Client Registration.**
       Extend DCR so `private_key_jwt`, `client_secret_jwt`, `tls_client_auth`, and `self_signed_tls_client_auth` are
       accepted — the DCR `SupportedTokenEndpointAuthMethods` allow-list currently lists only the secret-based + `none`
-      methods, so a client using an advertised strong-auth method must be provisioned through the management API — and
-      project the `tls_client_auth_*` metadata from the registration request.
+      methods, and a client authenticates only with the method it registers
+      ([ADR-0145](docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md)), so a dynamically registered
+      client cannot use an advertised strong-auth method at all and must be provisioned through the management API —
+      and project the `tls_client_auth_*` metadata from the registration request. An asymmetric method needs its key
+      material at registration (`jwks` / `jwks_uri` for `private_key_jwt` and `self_signed_tls_client_auth`), and only
+      the secret-based methods (`client_secret_*`) are issued a `client_secret`.
     - **Deferred hardening — disable CORS on the authorization endpoint (FAPI §5.2.3).** No current exposure: the
       repository ships only a development-only, explicit-origin CORS policy that is not applied to the authorization
       endpoint in production. Add a defense-in-depth guard that asserts no CORS policy can ever attach to the
@@ -453,24 +457,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs` (`MergeSecurityProfile`),
   `src/NCode.Identity.OpenId.Abstractions/Settings/ISecurityProfile.cs`. Capture the design in an ADR (amending
   [ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
-
-- **`F58` — Enforce the client's registered `token_endpoint_auth_method` at every endpoint that authenticates it.** The
-  client-authentication service checks the method a client authenticated with only against its effective
-  `token_endpoint_auth_methods_supported`, whose default is every registered handler, `none` included — not against the
-  client's registered `token_endpoint_auth_method` (RFC 7591 §2). A client registered as confidential (every dynamically
-  registered `client_secret_*` client) can therefore present only its `client_id` and be treated as public: at the token
-  endpoint for the `refresh_token` grant and other grants that rely on client authentication, and at the pushed
-  authorization request endpoint. Authorization codes are safe — a code that is not bound to PKCE is redeemable only by a
-  client that actually authenticates ([ADR-0144](docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)) —
-  but the client type should be one fact. Require the method a client authenticates with to be its registered method
-  (normalizing an unset registration, and treating `token_endpoint_auth_methods_supported` as the server/profile
-  ceiling it is), and decide how a management-API client that registers no method is typed (the conformance seeder
-  already registers one method and permits only it). Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientAuthenticationService.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Clients/OpenIdClientRegistrationExtensions.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/RefreshToken/DefaultValidateRefreshTokenGrantHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`.
-  Capture the design in an ADR.
 
 - **`F59` — Let configuration replace the developer seed's default SPA clients.**
   `DeveloperInteractiveSeedOptions.SpaClients` starts with the `mgmt-spa` and `playground-spa` entries, and the

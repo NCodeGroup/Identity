@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -750,7 +750,8 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.TokenEndpointAuthMethodsSupported);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'token_endpoint_auth_method' setting.
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'token_endpoint_auth_method' setting: the one
+    /// client-authentication method a client is registered to use.
     /// </summary>
     public static SettingKey<string> TokenEndpointAuthMethod =>
         new(OpenIdSettingNames.TokenEndpointAuthMethod);

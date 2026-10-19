@@ -18,6 +18,7 @@
 
 using System.Buffers.Text;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
@@ -65,17 +66,8 @@ public class TokenEndpointBootstrapAdminTests
 
         // The first token request provisions the tenant (seeding the bootstrap client) before client authentication,
         // so this single call self-bootstraps.
-        using var content = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
-                ["client_id"] = BootstrapClientId,
-                ["client_secret"] = BootstrapClientSecret,
-                ["scope"] = ManagementScope,
-            }
-        );
-
-        using var response = await client.PostAsync("/oauth2/token", content);
+        using var request = CreateBootstrapTokenRequest();
+        using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -100,6 +92,38 @@ public class TokenEndpointBootstrapAdminTests
     }
 
     [Fact]
+    public async Task PostToken_WhenTheServerDefaultsAnotherMethod_TheBootstrapClientStillUsesBasic()
+    {
+        // The bootstrap client registers client_secret_basic itself, so a server-wide default for clients that register
+        // no method does not change how it authenticates.
+        using var factory = new HostApplicationFactory();
+        using var configured = factory.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration(
+                (_, config) =>
+                    config.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
+                            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
+                            ["OpenId:Server:Settings:token_endpoint_auth_method"] = OpenIdConstants
+                                .ClientAuthenticationMethods
+                                .PrivateKeyJwt,
+                        }
+                    )
+            )
+        );
+        var client = configured.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var request = CreateBootstrapTokenRequest();
+        using var response = await client.SendAsync(request);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+    }
+
+    [Fact]
     public async Task PostToken_WhenBootstrapNotConfigured_DoesNotIssueTokenForBootstrapClient()
     {
         using var factory = new HostApplicationFactory();
@@ -108,17 +132,8 @@ public class TokenEndpointBootstrapAdminTests
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        using var content = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
-                ["client_id"] = BootstrapClientId,
-                ["client_secret"] = BootstrapClientSecret,
-                ["scope"] = ManagementScope,
-            }
-        );
-
-        using var response = await client.PostAsync("/oauth2/token", content);
+        using var request = CreateBootstrapTokenRequest();
+        using var response = await client.SendAsync(request);
 
         // Absent configuration, the bootstrap client is never seeded, so there is no client to authenticate.
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
@@ -138,17 +153,8 @@ public class TokenEndpointBootstrapAdminTests
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        using var content = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
-                ["client_id"] = BootstrapClientId,
-                ["client_secret"] = BootstrapClientSecret,
-                ["scope"] = ManagementScope,
-            }
-        );
-
-        using var response = await client.PostAsync("/oauth2/token", content);
+        using var request = CreateBootstrapTokenRequest();
+        using var response = await client.SendAsync(request);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -159,6 +165,29 @@ public class TokenEndpointBootstrapAdminTests
 
         using var payload = DecodeJwtPayload(accessToken.GetString()!);
         Assert.Equal("GlobalAdmin", payload.RootElement.GetProperty("role").GetString());
+    }
+
+    // The bootstrap client registers client_secret_basic, so it presents its secret with HTTP Basic authentication.
+    private static HttpRequestMessage CreateBootstrapTokenRequest()
+    {
+        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        return new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
+        {
+            Headers =
+            {
+                Authorization = new AuthenticationHeaderValue(
+                    "Basic",
+                    Convert.ToBase64String(credentials)
+                ),
+            },
+            Content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["scope"] = ManagementScope,
+                }
+            ),
+        };
     }
 
     private static JsonDocument DecodeJwtPayload(string jwt)

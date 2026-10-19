@@ -135,6 +135,31 @@ change to the public API is a **major** version bump.
   from its entry point into a tested `cli.ts`, and its `--help` now documents exit code `2`. See
   [ADR-0151](docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md).
 
+- **Every standalone frontend surface boots through one shared gate.** The Management console, the Playground, and the
+  conformance dashboard each carried their own copy of the gate that loads the runtime configuration before the app
+  renders. They now share `BootstrapGate` from the new `@ncode/shell` workspace, the one package allowed to depend on
+  both the store and the design system. Its loading and error views are a stateless `BootstrapScreen` in `@ncode/ui`.
+  Each surface names itself once, in `main.tsx`, through `createRuntimeConfigLoader({ surface })`, and
+  `loadRuntimeConfig` now defaults the serving origin to the page's own. One test suite replaces three, and it covers
+  the cases they missed:
+  - A loader that ignores its abort signal and settles late can no longer overwrite newer configuration.
+  - Configuration that reaches the store another way replaces an earlier error.
+  - An error without a message shows the generic one instead of spinning forever.
+
+  `SurfaceKind` is now an open vocabulary, so a new surface needs only its host override, not a change to
+  `@ncode/config`. See [ADR-0156](docs/adr/0156-shared-app-shell-containers-live-in-ncode-shell.md).
+
+- **Every frontend workspace builds and tests from one Vite preset.** The new `@ncode/vite-config` workspace owns the
+  test gates and the two serving models, and each workspace's Vite or Vitest config is now one call that states its
+  coverage floors. Two things were drifting:
+  - Workspaces on the `node` test environment never collected `.test.tsx` files.
+  - The Management console's dev server did not pin port 5173, which its redirect URI and CORS origin assume. Outside
+    Aspire, Vite would move it to the next free port, the Playground's.
+
+  Both are fixed for every workspace. Locally, Turborepo now re-runs a workspace's tests and type-check when an internal
+  package it depends on, `tsconfig.base.json`, or `eslint.config.js` changes. Before, it replayed their cached results.
+  See [ADR-0157](docs/adr/0157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md).
+
 - **The reference host is no longer called "Playground".** `NCode.Identity.OpenId.Playground` is now
   `NCode.Identity.OpenId.Host`, and its two companions are `NCode.Identity.OpenId.Host.Database` and
   `NCode.Identity.OpenId.Host.MigrationService`. The Aspire orchestrator, previously

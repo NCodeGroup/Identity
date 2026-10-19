@@ -1,0 +1,31 @@
+{
+  "name": "@ncode/vite-config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The one Vite and Vitest configuration every NCode.Identity frontend workspace builds and tests from: the test gates and the standalone and backend-served surface presets.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/preset.ts",
+      "import": "./src/preset.ts"
+    }
+  },
+  "main": "./src/preset.ts",
+  "types": "./src/preset.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.4"
+  },
+  "devDependencies": {
+    "@ncode/test-support": "workspace:*",
+    "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^5.0.5",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5"
+  }
+}

@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (developer SPA client seeding amended by
   [ADR-0146](0146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md): the seed has no
-  built-in clients, and the host declares them beside the client ids it publishes)
+  built-in clients, and the host declares them beside the client ids it publishes; surface declaration amended by
+  [ADR-0156](0156-shared-app-shell-containers-live-in-ncode-shell.md): each app declares its surface in `main.tsx`, and
+  `SurfaceKind` is an open vocabulary)
 - **Date:** 2026-10-12
 - **Deciders:** NCode Group
 

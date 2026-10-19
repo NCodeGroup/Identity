@@ -1,14 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
+  "globalDependencies": ["tsconfig.base.json", "eslint.config.js"],
   "tasks": {
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
-    "typecheck": {},
+    "typecheck": {
+      "dependsOn": ["transit"]
+    },
     "lint": {},
     "test": {
+      "dependsOn": ["transit"],
       "outputs": ["coverage/**", "test-results/**"]
     },
     "dev": {

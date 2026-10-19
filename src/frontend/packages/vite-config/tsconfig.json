@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2022"],
+    "types": ["node"],
+    // Node loads the preset natively, stripping its types without transforming anything else (ADR-0157).
+    "erasableSyntaxOnly": true
+  },
+  "include": ["src/**/*.ts", "vitest.setup.ts"]
+}

@@ -36,6 +36,21 @@ export type FlowDeps = {
   readonly subtle?: SubtleCrypto;
 };
 
+/** The browser's dependencies for the flow explorer: global fetch and session-scoped transaction storage. */
+export function createFlowDeps(): FlowDeps {
+  return {
+    // Omit an empty body: the browser `fetch` rejects a GET/HEAD request that carries one, and the UserInfo call is a
+    // bodyless GET while the token/refresh calls carry a form body.
+    fetchFn: ((url, init) =>
+      fetch(url, {
+        method: init.method,
+        headers: init.headers,
+        ...(init.body ? { body: init.body } : {}),
+      })) as FetchLike,
+    storage: window.sessionStorage,
+  };
+}
+
 /** The user-tunable inputs to an authorization-code + PKCE request. */
 export type FlowRequest = {
   readonly clientId: string;

@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BOOTSTRAP_PATH, DISCOVERY_PATH, loadRuntimeConfig, type FetchLike } from './loader.js';
+import { defineStandaloneSurfaceConfig } from '@ncode/vite-config';
+import {
+  BOOTSTRAP_PATH,
+  DISCOVERY_PATH,
+  createRuntimeConfigLoader,
+  loadRuntimeConfig,
+  type FetchLike,
+} from './loader.js';
 import { RuntimeConfigError } from './parse.js';
 
 const okJson = (body: unknown): ReturnType<FetchLike> =>
@@ -131,5 +138,94 @@ describe('loadRuntimeConfig', () => {
     await expect(loadRuntimeConfig({ origin: 'https://ui.example', fetchFn })).rejects.toThrow(
       /Issuer mismatch/,
     );
+  });
+
+  it('defaults to the origin of the page that serves the bundle', async () => {
+    vi.stubGlobal('location', { origin: 'https://ui.example' });
+    const fetchFn = serving();
+
+    await loadRuntimeConfig({ fetchFn });
+
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      1,
+      'https://ui.example/config/bootstrap.json',
+      undefined,
+    );
+  });
+
+  it('throws when no serving origin is available', async () => {
+    vi.stubGlobal('location', undefined);
+    const fetchFn = serving();
+
+    await expect(loadRuntimeConfig({ fetchFn })).rejects.toThrow(
+      new RuntimeConfigError('No serving origin available to load runtime config.'),
+    );
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('sends any surface name, since the host defines the surfaces', async () => {
+    const fetchFn = serving();
+
+    await loadRuntimeConfig({ origin: 'https://ui.example', surface: 'partner portal', fetchFn });
+
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      1,
+      'https://ui.example/config/bootstrap.json?surface=partner%20portal',
+      undefined,
+    );
+  });
+
+  it('is served by the bootstrap path the standalone dev servers proxy to the host', () => {
+    const config = defineStandaloneSurfaceConfig({
+      port: 5173,
+      bootstrapHost: { service: 'api', fallbackOrigin: 'https://localhost:5001' },
+      coverage: { statements: 0, branches: 0, functions: 0, lines: 0 },
+      env: {},
+    });
+
+    expect(Object.keys(config.server?.proxy ?? {})).toStrictEqual([BOOTSTRAP_PATH]);
+  });
+});
+
+describe('createRuntimeConfigLoader', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('binds the options and forwards the signal of each load', async () => {
+    const fetchFn = serving();
+    const { signal } = new AbortController();
+    const load = createRuntimeConfigLoader({
+      origin: 'https://ui.example',
+      surface: 'mgmt',
+      fetchFn,
+    });
+
+    const result = await load(signal);
+
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      1,
+      'https://ui.example/config/bootstrap.json?surface=mgmt',
+      { signal },
+    );
+    expect(fetchFn).toHaveBeenNthCalledWith(
+      2,
+      'https://op.example/.well-known/openid-configuration',
+      { signal },
+    );
+    expect(result.tokenEndpoint).toBe('https://op.example/token');
+  });
+
+  it('loads the host default document from the serving origin when given no options', async () => {
+    vi.stubGlobal('location', { origin: 'https://ui.example' });
+    const globalFetch = serving();
+    vi.stubGlobal('fetch', globalFetch);
+    const { signal } = new AbortController();
+
+    await createRuntimeConfigLoader()(signal);
+
+    expect(globalFetch).toHaveBeenNthCalledWith(1, 'https://ui.example/config/bootstrap.json', {
+      signal,
+    });
   });
 });

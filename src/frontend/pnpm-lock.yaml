@@ -69,6 +69,9 @@ importers:
       '@ncode/test-support':
         specifier: workspace:*
         version: link:../../packages/test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../../packages/vite-config
       '@testing-library/jest-dom':
         specifier: ^7.0.1
         version: 7.0.1(@testing-library/dom@10.4.2)(vitest@5.0.5)
@@ -81,9 +84,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.3.0
         version: 19.3.0(@types/react@19.3.0)
-      '@vitejs/plugin-react':
-        specifier: ^6.1.2
-        version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2))
       '@vitest/coverage-v8':
         specifier: ^5.0.5
         version: 5.0.5(vitest@5.0.5)
@@ -120,6 +120,9 @@ importers:
       '@ncode/conformance-core':
         specifier: workspace:*
         version: link:../../packages/conformance-core
+      '@ncode/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
       '@ncode/store':
         specifier: workspace:*
         version: link:../../packages/store
@@ -139,6 +142,9 @@ importers:
       '@ncode/test-support':
         specifier: workspace:*
         version: link:../../packages/test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../../packages/vite-config
       '@testing-library/jest-dom':
         specifier: ^7.0.1
         version: 7.0.1(@testing-library/dom@10.4.2)(vitest@5.0.5)
@@ -151,9 +157,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.3.0
         version: 19.3.0(@types/react@19.3.0)
-      '@vitejs/plugin-react':
-        specifier: ^6.1.2
-        version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2))
       '@vitest/coverage-v8':
         specifier: ^5.0.5
         version: 5.0.5(vitest@5.0.5)
@@ -179,6 +182,9 @@ importers:
       '@ncode/test-support':
         specifier: workspace:*
         version: link:../../packages/test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../../packages/vite-config
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.5
@@ -218,6 +224,9 @@ importers:
       '@ncode/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@ncode/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
       '@ncode/store':
         specifier: workspace:*
         version: link:../../packages/store
@@ -237,6 +246,9 @@ importers:
       '@ncode/test-support':
         specifier: workspace:*
         version: link:../../packages/test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../../packages/vite-config
       '@testing-library/jest-dom':
         specifier: ^7.0.1
         version: 7.0.1(@testing-library/dom@10.4.2)(vitest@5.0.5)
@@ -249,9 +261,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.3.0
         version: 19.3.0(@types/react@19.3.0)
-      '@vitejs/plugin-react':
-        specifier: ^6.1.2
-        version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2))
       '@vitest/coverage-v8':
         specifier: ^5.0.5
         version: 5.0.5(vitest@5.0.5)
@@ -288,6 +297,9 @@ importers:
       '@ncode/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@ncode/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
       '@ncode/store':
         specifier: workspace:*
         version: link:../../packages/store
@@ -307,6 +319,9 @@ importers:
       '@ncode/test-support':
         specifier: workspace:*
         version: link:../../packages/test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../../packages/vite-config
       '@testing-library/jest-dom':
         specifier: ^7.0.1
         version: 7.0.1(@testing-library/dom@10.4.2)(vitest@5.0.5)
@@ -319,9 +334,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.3.0
         version: 19.3.0(@types/react@19.3.0)
-      '@vitejs/plugin-react':
-        specifier: ^6.1.2
-        version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2))
       '@vitest/coverage-v8':
         specifier: ^5.0.5
         version: 5.0.5(vitest@5.0.5)
@@ -343,6 +355,9 @@ importers:
       '@ncode/test-support':
         specifier: workspace:*
         version: link:../test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../vite-config
       '@vitest/coverage-v8':
         specifier: ^5.0.5
         version: 5.0.5(vitest@5.0.5)
@@ -358,6 +373,9 @@ importers:
       '@ncode/test-support':
         specifier: workspace:*
         version: link:../test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../vite-config
       '@vitest/coverage-v8':
         specifier: ^5.0.5
         version: 5.0.5(vitest@5.0.5)
@@ -373,6 +391,9 @@ importers:
       '@ncode/test-support':
         specifier: workspace:*
         version: link:../test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../vite-config
       '@vitest/coverage-v8':
         specifier: ^5.0.5
         version: 5.0.5(vitest@5.0.5)
@@ -392,9 +413,73 @@ importers:
       '@ncode/test-support':
         specifier: workspace:*
         version: link:../test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../vite-config
       '@vitest/coverage-v8':
         specifier: ^5.0.5
         version: 5.0.5(vitest@5.0.5)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2))
+
+  packages/shell:
+    dependencies:
+      '@ncode/config':
+        specifier: workspace:*
+        version: link:../config
+      '@ncode/store':
+        specifier: workspace:*
+        version: link:../store
+      '@ncode/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      '@emotion/react':
+        specifier: ^11.13.3
+        version: 11.14.0(@types/react@19.3.0)(react@19.3.1)
+      '@emotion/styled':
+        specifier: ^11.13.0
+        version: 11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)
+      '@mui/material':
+        specifier: ^9.5.0
+        version: 9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@ncode/test-support':
+        specifier: workspace:*
+        version: link:../test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../vite-config
+      '@testing-library/jest-dom':
+        specifier: ^7.0.1
+        version: 7.0.1(@testing-library/dom@10.4.2)(vitest@5.0.5)
+      '@testing-library/react':
+        specifier: ^16.0.1
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitest/coverage-v8':
+        specifier: ^5.0.5
+        version: 5.0.5(vitest@5.0.5)
+      jsdom:
+        specifier: ^30.1.3
+        version: 30.1.3
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: ^19.3.1
+        version: 19.3.1(react@19.3.1)
+      react-redux:
+        specifier: ^9.1.2
+        version: 9.3.0(@types/react@19.3.0)(react@19.3.1)(redux@5.0.1)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -420,6 +505,9 @@ importers:
       '@ncode/test-support':
         specifier: workspace:*
         version: link:../test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../vite-config
       '@types/react':
         specifier: ^19.3.0
         version: 19.3.0
@@ -469,6 +557,9 @@ importers:
       '@ncode/test-support':
         specifier: workspace:*
         version: link:../test-support
+      '@ncode/vite-config':
+        specifier: workspace:*
+        version: link:../vite-config
       '@storybook/react-vite':
         specifier: ^10.6.2
         version: 10.6.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rollup@4.64.5)(storybook@10.6.2(@types/react@19.3.0)(prettier@3.9.10)(react@19.3.1))(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2))
@@ -505,6 +596,31 @@ importers:
       vite:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2))
+
+  packages/vite-config:
+    dependencies:
+      '@vitejs/plugin-react':
+        specifier: ^6.1.2
+        version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2))
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)
+    devDependencies:
+      '@ncode/test-support':
+        specifier: workspace:*
+        version: link:../test-support
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.5
+      '@vitest/coverage-v8':
+        specifier: ^5.0.5
+        version: 5.0.5(vitest@5.0.5)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^5.0.5
         version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2))

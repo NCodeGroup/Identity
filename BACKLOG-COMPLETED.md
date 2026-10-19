@@ -1280,6 +1280,21 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0151](docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md) — every test that
   logs a console warning or error now fails, so the fix is also enforced._
+- **`U18` — One `BootstrapGate` for every standalone surface.** `apps/mgmt`, `apps/playground`, and
+  `apps/conformance` each carry a copy of `src/BootstrapGate.tsx` that differs only in its doc comment — each discovers
+  the runtime configuration through its own `bootstrap.ts` (the surface binding), dispatches it to the store, and themes
+  the loading and error states — so every fix lands three times and each copy needs the same tests. Extract one gate
+  that takes the loader (`(signal) => Promise<RuntimeConfig>`) as a prop into a shared workspace that may depend on both
+  `@ncode/store` and `@ncode/ui`, keep each app's `bootstrap.ts` as its surface binding, and move the tests with the
+  gate. Touch points: the three `src/BootstrapGate.tsx` / `BootstrapGate.test.tsx` pairs and each app's `main.tsx`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0156](docs/adr/0156-shared-app-shell-containers-live-in-ncode-shell.md) — one `BootstrapGate` in the new
+  `@ncode/shell` workspace serves every standalone surface. Its loading and error views are the stateless
+  `BootstrapScreen` in `@ncode/ui`. The per-app `bootstrap.ts` modules are gone, because each surface names itself in
+  `main.tsx` through `createRuntimeConfigLoader({ surface })`, and `SurfaceKind` is open. The same change moved every
+  workspace's Vite and Vitest configuration into the shared `@ncode/vite-config` preset and made turbo's hashes cover
+  internal dependencies
+  ([ADR-0157](docs/adr/0157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md))._
 
 ## Secrets management (group `S`)
 

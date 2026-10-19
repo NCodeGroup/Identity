@@ -1,11 +1,12 @@
 import { webcrypto } from 'node:crypto';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FetchLike } from '@ncode/auth';
 import type { RuntimeConfig } from '@ncode/config';
 import {
   AuthError,
   beginFlow,
   clearTransaction,
+  createFlowDeps,
   endSessionUrl,
   exchangeCode,
   fetchUserInfo,
@@ -334,5 +335,54 @@ describe('loadTransaction', () => {
     const deps = createDeps(vi.fn<FetchLike>());
     deps.storage.setItem(TRANSACTION_KEY, '{not json');
     expect(loadTransaction(deps)).toBeNull();
+  });
+});
+
+describe('createFlowDeps', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubFetch() {
+    const response = new Response('{}', { status: 200 });
+    const fetchStub = vi.fn<typeof fetch>(() => Promise.resolve(response));
+    vi.stubGlobal('fetch', fetchStub);
+    return { fetchStub, response };
+  }
+
+  it('omits an empty body so a bodyless GET is accepted by fetch', async () => {
+    const { fetchStub, response } = stubFetch();
+    const headers = { accept: 'application/json', authorization: 'Bearer token' };
+
+    const result = await createFlowDeps().fetchFn('https://op.test/userinfo', {
+      method: 'GET',
+      headers,
+      body: '',
+    });
+
+    expect(result).toBe(response);
+    expect(fetchStub).toHaveBeenCalledOnce();
+    const [url, init] = fetchStub.mock.calls[0]!;
+    expect(url).toBe('https://op.test/userinfo');
+    expect(init).toStrictEqual({ method: 'GET', headers });
+  });
+
+  it('forwards a non-empty form body with the method and headers', async () => {
+    const { fetchStub } = stubFetch();
+    const headers = { 'content-type': 'application/x-www-form-urlencoded' };
+
+    await createFlowDeps().fetchFn('https://op.test/token', {
+      method: 'POST',
+      headers,
+      body: 'grant_type=refresh_token',
+    });
+
+    const [url, init] = fetchStub.mock.calls[0]!;
+    expect(url).toBe('https://op.test/token');
+    expect(init).toStrictEqual({ method: 'POST', headers, body: 'grant_type=refresh_token' });
+  });
+
+  it('persists the in-flight transaction in session storage', () => {
+    expect(createFlowDeps().storage).toBe(window.sessionStorage);
   });
 });

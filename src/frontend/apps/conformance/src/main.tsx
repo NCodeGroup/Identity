@@ -1,11 +1,14 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
+import { createRuntimeConfigLoader } from '@ncode/config';
+import { BootstrapGate } from '@ncode/shell';
 import { createAppStore } from '@ncode/store';
-import { BootstrapGate } from './BootstrapGate.js';
 import { App } from './App.js';
 
 const store = createAppStore();
+// The dashboard is read-only and performs no interactive login, so the host returns no client id for this surface.
+const loadRuntimeConfig = createRuntimeConfigLoader({ surface: 'conformance' });
 
 const container = document.getElementById('root');
 if (!container) {
@@ -15,7 +18,7 @@ if (!container) {
 createRoot(container).render(
   <StrictMode>
     <Provider store={store}>
-      <BootstrapGate>
+      <BootstrapGate load={loadRuntimeConfig}>
         <App />
       </BootstrapGate>
     </Provider>

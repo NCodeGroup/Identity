@@ -263,7 +263,14 @@ internal class DefaultAuthorizationEndpointHandler(
         }
         else
         {
-            effectiveResponseMode = OpenIdConstants.ResponseModes.Query;
+            // The default follows the response type, so a response that returns a token is never redirected in a
+            // query string, whether it carries the tokens or an error (ADR-0141).
+            requestValues.TryGetValue(
+                OpenIdConstants.Parameters.ResponseType,
+                out var responseTypeStringValues
+            );
+            var responseTypeNames = SplitResponseTypeNames(responseTypeStringValues);
+            effectiveResponseMode = ResponseTypeValues.GetDefaultResponseMode(responseTypeNames);
         }
 
         if (!requestValues.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
@@ -307,4 +314,11 @@ internal class DefaultAuthorizationEndpointHandler(
 
         return new ClientRedirectContext(redirectUri, effectiveResponseMode, state);
     }
+
+    private static List<string> SplitResponseTypeNames(StringValues responseTypeStringValues) =>
+        [
+            .. responseTypeStringValues.SelectMany(value =>
+                value?.Split(OpenIdConstants.ParameterSeparatorChar) ?? []
+            ),
+        ];
 }

@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.Cryptography;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results;
@@ -242,6 +243,13 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (settingsError is not null)
         {
             return settingsError;
+        }
+
+        var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
+        var supportError = ValidateSupportedMetadata(errorFactory, tenantSettings, resolved);
+        if (supportError is not null)
+        {
+            return supportError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
         }
 
         var isConfidential =
@@ -496,6 +504,13 @@ internal class DefaultClientRegistrationEndpointHandler(
             return settingsError;
         }
 
+        var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
+        var supportError = ValidateSupportedMetadata(errorFactory, tenantSettings, resolved);
+        if (supportError is not null)
+        {
+            return supportError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -608,7 +623,9 @@ internal class DefaultClientRegistrationEndpointHandler(
         ?? throw new InvalidOperationException("Unable to determine the registration client URI.");
 
     /// <summary>
-    /// Validates the submitted client metadata and resolves the effective values (defaults applied).
+    /// Validates the submitted client metadata and resolves the effective values (defaults applied). The resolved grant
+    /// types and response types are consistent with each other: every grant type a registered response type uses is
+    /// registered.
     /// </summary>
     internal virtual IOpenIdError? ValidateMetadata(
         IOpenIdErrorFactory errorFactory,
@@ -630,24 +647,47 @@ internal class DefaultClientRegistrationEndpointHandler(
             );
         }
 
+        if (
+            request.ResponseTypes is { } requestedValues
+            && requestedValues.Any(string.IsNullOrEmpty)
+        )
+        {
+            return errorFactory.InvalidRequest(
+                "Every 'response_types' value must be a non-empty string.",
+                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+            );
+        }
+
+        // A response type is stored in the canonical form the server compares, because the order of its names does
+        // not matter (RFC 6749 §3.1.1).
+        var requestedResponseTypes = request.ResponseTypes is { Count: > 0 }
+            ? CanonicalizeResponseTypes(request.ResponseTypes)
+            : null;
+
         var grantTypes = request.GrantTypes is { Count: > 0 }
             ? request.GrantTypes
-            : DefaultGrantTypes;
+            : GetDefaultGrantTypes(requestedResponseTypes);
 
-        var responseTypes = request.ResponseTypes is { Count: > 0 }
-            ? request.ResponseTypes
-            : DefaultResponseTypes;
+        var responseTypes = requestedResponseTypes ?? GetDefaultResponseTypes(grantTypes);
+
+        var consistencyError = ValidateGrantTypesOfResponseTypes(
+            errorFactory,
+            grantTypes,
+            responseTypes
+        );
+        if (consistencyError is not null)
+        {
+            return consistencyError;
+        }
 
         var redirectUris = request.RedirectUris ?? [];
 
-        var requiresRedirectUris =
-            grantTypes.Contains(OpenIdConstants.GrantTypes.AuthorizationCode)
-            || grantTypes.Contains(OpenIdConstants.GrantTypes.Implicit);
-
-        if (requiresRedirectUris && redirectUris.Count == 0)
+        // The authorization endpoint returns its response to a redirection URI, so a client that registers a response
+        // type registers at least one.
+        if (responseTypes.Length > 0 && redirectUris.Count == 0)
         {
             return errorFactory.InvalidRequest(
-                "At least one 'redirect_uris' value is required for the requested grant types.",
+                "At least one 'redirect_uris' value is required for the registered response types.",
                 OpenIdConstants.ErrorCodes.InvalidRedirectUri
             );
         }
@@ -705,6 +745,122 @@ internal class DefaultClientRegistrationEndpointHandler(
             SubjectType = subjectType,
             SectorIdentifierUri = sectorIdentifierUri,
         };
+
+        return null;
+    }
+
+    private static string[] CanonicalizeResponseTypes(IReadOnlyList<string> responseTypes) =>
+        [
+            .. responseTypes
+                .Select(responseType => ResponseTypeValues.Canonicalize(responseType))
+                .Distinct(StringComparer.Ordinal),
+        ];
+
+    // RFC 7591 §2: omitted grant_types default to authorization_code. A client that registers response types defaults
+    // instead to the grant types they use, so a default never makes the registration inconsistent (RFC 7591 §2.1).
+    private static string[] GetDefaultGrantTypes(IReadOnlyList<string>? responseTypes) =>
+        responseTypes is null
+            ? DefaultGrantTypes
+            :
+            [
+                .. responseTypes
+                    .SelectMany(responseType => ResponseTypeValues.GetGrantTypes(responseType))
+                    .Distinct(StringComparer.Ordinal),
+            ];
+
+    // RFC 7591 §2: omitted response_types default to code. A client whose grant types do not use the authorization
+    // endpoint (neither authorization_code nor implicit) registers no response type.
+    private static string[] GetDefaultResponseTypes(IReadOnlyList<string> grantTypes) =>
+        grantTypes.Contains(OpenIdConstants.GrantTypes.AuthorizationCode)
+        || grantTypes.Contains(OpenIdConstants.GrantTypes.Implicit)
+            ? DefaultResponseTypes
+            : [];
+
+    /// <summary>
+    /// Verifies that every grant type a registered response type uses is registered (OpenID Connect Dynamic Client
+    /// Registration 1.0 §2), returning an <c>invalid_client_metadata</c> error for the first response type whose grant
+    /// type is missing (RFC 7591 §2.1), or <see langword="null"/> when the registration is consistent. Without the grant
+    /// type the authorization endpoint would refuse the response type, so the client could never use it.
+    /// </summary>
+    private static IOpenIdError? ValidateGrantTypesOfResponseTypes(
+        IOpenIdErrorFactory errorFactory,
+        IReadOnlyList<string> grantTypes,
+        IReadOnlyList<string> responseTypes
+    )
+    {
+        foreach (var responseType in responseTypes)
+        {
+            var requiredGrantTypes = ResponseTypeValues.GetGrantTypes(responseType);
+            var missingGrantType = requiredGrantTypes.FirstOrDefault(grantType =>
+                !grantTypes.Contains(grantType, StringComparer.Ordinal)
+            );
+            if (missingGrantType is null)
+                continue;
+
+            return errorFactory.InvalidRequest(
+                $"The 'response_types' value '{responseType}' requires the '{missingGrantType}' grant type, which is not among the registered 'grant_types'.",
+                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+            );
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Verifies that the tenant supports every resolved grant type and response type, returning an
+    /// <c>invalid_client_metadata</c> error (RFC 7591 §3.2.2) for the first value it does not support, or
+    /// <see langword="null"/> when it supports them all; an unset list is unrestricted. The authorization and token
+    /// endpoints refuse a value the tenant does not support, so registering it would report a capability the client can
+    /// never use.
+    /// </summary>
+    /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
+    /// <param name="tenantSettings">The settings of the tenant the client registers with.</param>
+    /// <param name="resolved">The resolved client metadata.</param>
+    /// <returns>The error, or <see langword="null"/> when the tenant supports every value.</returns>
+    // See ADR-0141.
+    internal virtual IOpenIdError? ValidateSupportedMetadata(
+        IOpenIdErrorFactory errorFactory,
+        IReadOnlySettingCollection tenantSettings,
+        ResolvedMetadata resolved
+    )
+    {
+        if (
+            tenantSettings.TryGetValue(
+                OpenIdSettingKeys.GrantTypesSupported,
+                out var grantTypesSupported
+            )
+        )
+        {
+            var unsupportedGrantType = resolved.GrantTypes.FirstOrDefault(grantType =>
+                !grantTypesSupported.Contains(grantType, StringComparer.Ordinal)
+            );
+            if (unsupportedGrantType is not null)
+            {
+                return errorFactory.InvalidRequest(
+                    $"The 'grant_types' value '{unsupportedGrantType}' is not supported.",
+                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                );
+            }
+        }
+
+        if (
+            tenantSettings.TryGetValue(
+                OpenIdSettingKeys.ResponseTypesSupported,
+                out var responseTypesSupported
+            )
+        )
+        {
+            var unsupportedResponseType = resolved.ResponseTypes.FirstOrDefault(responseType =>
+                !responseTypesSupported.Contains(responseType, StringComparer.Ordinal)
+            );
+            if (unsupportedResponseType is not null)
+            {
+                return errorFactory.InvalidRequest(
+                    $"The 'response_types' value '{unsupportedResponseType}' is not supported.",
+                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                );
+            }
+        }
 
         return null;
     }
@@ -1057,6 +1213,8 @@ internal class DefaultClientRegistrationEndpointHandler(
     private static JsonObject ToJsonObject(JsonElement element) =>
         element.ValueKind == JsonValueKind.Object ? JsonObject.Create(element) ?? [] : [];
 
+    // A stored empty list is reported as empty, not omitted: an omitted 'response_types' or 'grant_types' would read as
+    // its RFC 7591 default rather than as what is registered.
     private static List<string>? ReadStringArray(JsonObject settings, string key)
     {
         if (settings[key] is not JsonArray array)
@@ -1069,7 +1227,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 values.Add(node.GetValue<string>());
         }
 
-        return values.Count == 0 ? null : values;
+        return values;
     }
 
     private static string? ReadString(JsonObject settings, string key)

@@ -113,10 +113,6 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
 
         mockAuthRequest.SetupGet(x => x.ResponseTypes).Returns(responseTypes).Verifiable();
         mockAuthRequest.SetupGet(x => x.State).Returns("state-value").Verifiable();
-        mockAuthRequest
-            .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.AuthorizationCode)
-            .Verifiable();
         mockAuthRequest.SetupGet(x => x.Nonce).Returns("nonce-value").Verifiable();
         mockAuthRequest.SetupGet(x => x.Claims).Returns((IRequestClaims?)null).Verifiable();
         mockAuthRequest.SetupGet(x => x.MaxAge).Returns((TimeSpan?)null).Verifiable();
@@ -184,7 +180,9 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
                 x.CreateAccessTokenAsync(
                     mockContext.Object,
                     mockClient.Object,
-                    It.IsAny<CreateSecurityTokenRequest>(),
+                    It.Is<CreateSecurityTokenRequest>(request =>
+                        request.GrantType == OpenIdConstants.GrantTypes.Implicit
+                    ),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -211,7 +209,9 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
                 x.CreateIdTokenAsync(
                     mockContext.Object,
                     mockClient.Object,
-                    It.IsAny<CreateSecurityTokenRequest>(),
+                    It.Is<CreateSecurityTokenRequest>(request =>
+                        request.GrantType == OpenIdConstants.GrantTypes.Implicit
+                    ),
                     It.IsAny<CancellationToken>()
                 )
             )

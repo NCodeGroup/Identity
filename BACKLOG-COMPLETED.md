@@ -839,6 +839,30 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   policy is removed, and `client_notification_endpoint` gained an empty default. A composed-server test pins every
   default to its own rule._
 
+- **`F55` — Accept combined `response_types` values in dynamic client registration.** RFC 7591 §2 registers
+  `response_types` as whole `response_type` values (`code id_token`), but the server models
+  `response_types_supported` as single values whose combinations the authorization endpoint accepts, so a registration
+  that lists a combination is refused as outside the setting's domain
+  ([ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md)). Implicit and hybrid flows are off by
+  default, so only a deployment that re-enables them is affected. Decide the model — store the registered combinations
+  and enforce them exactly, or map a combination to its single values (which also admits each value alone) — and make
+  registration, the registration response, and the authorization endpoint agree. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultValidateAuthorizationRequestHandler.cs`,
+  `src/NCode.Identity.OpenId.Core/Settings/OpenIdSettingRules.cs`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0141](docs/adr/0141-response-types-are-whole-values.md). Response types are whole values everywhere: the
+  registered combinations are stored in canonical form (names in ordinal order) and enforced exactly.
+  `response_types_supported` lists the seven whole values, discovery advertises the list as configured (the
+  combinatorial formatter is gone), and the authorization endpoint accepts exactly a listed value whose grant types are
+  allowed (`unsupported_response_type` for the tenant, `unauthorized_client` for the client). Making registration and
+  the authorization endpoint agree required three further corrections: the non-standard `hybrid` grant type is removed
+  in favor of OpenID Connect Registration §2 (`authorization_code` + `implicit`), registration defaults and checks
+  `grant_types` / `response_types` consistently and against what the tenant supports (reporting empty lists rather than
+  omitting them), and a response type that returns tokens defaults to the fragment on every authorization-endpoint path
+  — the first pass had defaulted to the query string._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

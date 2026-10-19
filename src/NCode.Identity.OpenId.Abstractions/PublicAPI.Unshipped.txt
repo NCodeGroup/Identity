@@ -155,7 +155,6 @@ const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UseDPoPNonce = "use_dpop_
 const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.AuthorizationCode = "authorization_code" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.ClientCredentials = "client_credentials" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.DeviceCode = "urn:ietf:params:oauth:grant-type:device_code" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.Hybrid = "hybrid" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.Implicit = "implicit" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.Password = "password" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.RefreshToken = "refresh_token" -> string!
@@ -256,7 +255,11 @@ const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.FormPost = "form_post"
 const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.Fragment = "fragment" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.Query = "query" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.Code = "code" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.CodeIdToken = "code id_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.CodeIdTokenToken = "code id_token token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.CodeToken = "code token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.IdToken = "id_token" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.IdTokenToken = "id_token token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.Token = "token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.Address = "address" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.Email = "email" -> string!
@@ -515,6 +518,7 @@ NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identi
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).TooManyParameterValues(string! parameterName, string! errorCode = "invalid_request") -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).UnauthorizedClient(string! errorDescription) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).UnsupportedGrantType(string! errorDescription) -> NCode.Identity.OpenId.Messages.IOpenIdError!
+NCode.Identity.OpenId.Errors.OpenIdErrorFactoryExtensions.extension(NCode.Identity.OpenId.Errors.IOpenIdErrorFactory!).UnsupportedResponseType(string! errorDescription) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler
 NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler.HandleExceptionAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Mediator.IMediator! mediator, System.Runtime.ExceptionServices.ExceptionDispatchInfo! exceptionDispatchInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Registration.AspNetCore.ReadOnlyEndpointDisposition>
 NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand

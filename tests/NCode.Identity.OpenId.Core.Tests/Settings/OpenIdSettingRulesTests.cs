@@ -54,8 +54,18 @@ public class OpenIdSettingRulesTests
     [InlineData("code", true)]
     [InlineData("id_token", true)]
     [InlineData("token", true)]
-    [InlineData("code id_token", false)]
-    public void ResponseType_AcceptsSingleResponseTypes(string value, bool expected)
+    [InlineData("code id_token", true)]
+    [InlineData("code token", true)]
+    [InlineData("id_token token", true)]
+    [InlineData("code id_token token", true)]
+    [InlineData("id_token code", false)]
+    [InlineData("token id_token code", false)]
+    [InlineData("code  id_token", false)]
+    [InlineData("code code", false)]
+    [InlineData("none", false)]
+    [InlineData("code none", false)]
+    [InlineData("", false)]
+    public void ResponseType_AcceptsTheResponseTypesInCanonicalForm(string value, bool expected)
     {
         Assert.Equal(expected, IsValid(OpenIdSettingRules.ResponseType(), value));
     }
@@ -129,7 +139,7 @@ public class OpenIdSettingRulesTests
     [Theory]
     [InlineData("authorization_code", true)]
     [InlineData("implicit", true)]
-    [InlineData("hybrid", true)]
+    [InlineData("hybrid", false)]
     [InlineData("client_credentials", true)]
     [InlineData("urn:ietf:params:oauth:grant-type:device_code", true)]
     [InlineData("urn:openid:params:grant-type:ciba", true)]

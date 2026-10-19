@@ -46,17 +46,17 @@ public sealed class InsecureConfigApplicationFactory : HostApplicationFactory
             configurationBuilder.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    // Re-add the implicit/hybrid response types (the formatter expands these into the implicit
-                    // and hybrid front-channel-token combinations).
+                    // Re-add an implicit and a hybrid response type. The setting lists whole response_type values,
+                    // so exactly these are advertised and accepted.
                     ["OpenId:Server:Settings:response_types_supported:0"] = OpenIdConstants
                         .ResponseTypes
                         .Code,
                     ["OpenId:Server:Settings:response_types_supported:1"] = OpenIdConstants
                         .ResponseTypes
-                        .IdToken,
+                        .Token,
                     ["OpenId:Server:Settings:response_types_supported:2"] = OpenIdConstants
                         .ResponseTypes
-                        .Token,
+                        .CodeIdToken,
 
                     // Re-add the 'implicit' grant type alongside the secure defaults.
                     ["OpenId:Server:Settings:grant_types_supported:0"] = OpenIdConstants

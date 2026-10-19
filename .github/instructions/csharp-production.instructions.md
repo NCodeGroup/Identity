@@ -331,7 +331,12 @@ rationale.
   alongside the name and type — configuration, management writes, dynamic client registration and seeders (validate the
   document before storing it), and stored documents (fail closed); it is **not** checked by `ISettingCollection.Set`, so
   a code-set value is trusted and a descriptor's `Default` must satisfy its own rule (a composed-server test pins it).
-  See [ADR-0140](../../docs/adr/0140-setting-values-are-validated-against-their-domain.md).
+  A protocol value whose parts are unordered — a `response_type` such as `code id_token` — is a **whole value** stored,
+  advertised, and compared in **one canonical form** (parts in ordinal order, single-space separated), which the rule
+  enumerates; wire input is canonicalized at the protocol boundary before it is compared, never by a lenient setting
+  reader, and is never split back into its parts to be enforced piecewise.
+  See [ADR-0140](../../docs/adr/0140-setting-values-are-validated-against-their-domain.md) and
+  [ADR-0141](../../docs/adr/0141-response-types-are-whole-values.md).
 - 👁 **A package registers its own services from `DefaultRegistration.cs`** (the class is **always** `DefaultRegistration`)
   using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
   [ADR-0069](../../docs/adr/0069-registration-library-compile-time-marker-nesting.md). **The receiver marker is the

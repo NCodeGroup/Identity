@@ -1291,8 +1291,9 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect,
             };
 
-            // response_types_supported: OAuth response types the server supports (default supplied by the baseline provider).
-            // Ceiling (Intersect); discovery advertises every valid space-delimited combination (OnFormat).
+            // response_types_supported: the whole response_type values the server accepts, in canonical form (default
+            // supplied by the baseline provider). Ceiling (Intersect): a child narrows the parent's set; discovery
+            // advertises the values as they are, and the authorization endpoint accepts exactly them (ADR-0141).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ResponseTypesSupported,
@@ -1300,7 +1301,6 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
-                OnFormat = FormatUniqueCombinations,
             };
 
             // send_id_claims_in_access_token: also place id-token claims into the access token (default false).
@@ -1741,10 +1741,6 @@ internal class DefaultSettingDescriptorDataSource(
         }
     }
 
-    // The number of combinations grows as (2^n - 1) in the input size, so refuse an input large enough to risk a
-    // combinatorial blow-up rather than emitting an unbounded (or truncated, and therefore wrong) document.
-    private const int MaxCombinationInputCount = 10;
-
     /// <summary>
     /// Gets the rule for <c>security_profile</c>: empty, which selects no profile, or the name of a registered
     /// <see cref="ISecurityProfile"/>.
@@ -1846,51 +1842,4 @@ internal class DefaultSettingDescriptorDataSource(
         || string.Equals(other, OpenIdConstants.SecurityProfiles.Fapi2, StringComparison.Ordinal)
             ? OpenIdConstants.SecurityProfiles.Fapi2
             : other;
-
-    /// <summary>
-    /// Expands a setting's values into every non-empty combination (subset): each combination's members are ordered
-    /// deterministically and joined by a single space, and the combinations themselves are ordered by ascending size.
-    /// For example <c>[code, id_token, token]</c> yields <c>code</c>, <c>id_token</c>, <c>token</c>,
-    /// <c>code id_token</c>, <c>code token</c>, <c>id_token token</c>, <c>code id_token token</c>.
-    /// </summary>
-    /// <remarks>
-    /// Used as the discovery formatter for <c>response_types_supported</c>, whose metadata advertises every valid
-    /// space-delimited response-type combination the server accepts. Because the number of combinations grows as
-    /// <c>2^n - 1</c>, an input with more than <see cref="MaxCombinationInputCount"/> values is rejected: listing the
-    /// values as-is would advertise single response types instead of their combinations (a protocol violation), and
-    /// emitting all combinations would be unbounded, so a misconfiguration fails loudly instead.
-    /// </remarks>
-    /// <param name="setting">The setting whose values are expanded into combinations.</param>
-    /// <returns>The distinct space-delimited combinations, ordered by ascending size.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// The setting has more than <see cref="MaxCombinationInputCount"/> values.
-    /// </exception>
-    private static List<string> FormatUniqueCombinations(
-        Setting<IReadOnlyCollection<string>> setting
-    )
-    {
-        var values = setting.Value;
-        if (values.Count > MaxCombinationInputCount)
-            throw new InvalidOperationException(
-                $"The '{setting.Descriptor.Name}' setting has {values.Count} values, which exceeds the maximum of "
-                    + $"{MaxCombinationInputCount} that can be expanded into discovery combinations (the number of "
-                    + "combinations grows as 2^n). Reduce the number of configured values."
-            );
-
-        return values
-            .Order()
-            .Aggregate(
-                Enumerable.Empty<IReadOnlyCollection<string>>(),
-                (acc, value) =>
-                    acc.SelectMany(items => new[] { items, items.Append(value).ToArray() })
-                        .Append([value]),
-                permutations =>
-                    permutations
-                        .OrderBy(combinations => combinations.Count)
-                        .Select(combinations =>
-                            string.Join(OpenIdConstants.ParameterSeparatorChar, combinations)
-                        )
-            )
-            .ToList();
-    }
 }

@@ -19,6 +19,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
@@ -28,6 +29,8 @@ namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
 public class ClientRegistrationEndpointTests
 {
+    private const string RedirectUri = "https://client.example/callback";
+
     [Fact]
     public async Task PostRegister_WithInformationalMetadata_RegistersAClientTheServerCanLoad()
     {
@@ -97,7 +100,7 @@ public class ClientRegistrationEndpointTests
 
     [Theory]
     [InlineData("grant_types", "authorisation_code", OpenIdSettingNames.GrantTypesSupported)]
-    [InlineData("response_types", "code id_token", OpenIdSettingNames.ResponseTypesSupported)]
+    [InlineData("response_types", "code none", OpenIdSettingNames.ResponseTypesSupported)]
     public async Task PostRegister_WhenAListValueIsOutsideItsDomain_ReturnsInvalidClientMetadata(
         string metadataName,
         string value,
@@ -176,10 +179,162 @@ public class ClientRegistrationEndpointTests
         );
     }
 
+    [Fact]
+    public async Task PostRegister_WithAHybridResponseType_RegistersAClientTheAuthorizationEndpointHonors()
+    {
+        using var factory = new ConfiguredHostApplicationFactory(
+            CreateServerConfiguration(
+                [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeIdToken],
+                [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            )
+        );
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { RedirectUri },
+                ["response_types"] = new[] { "id_token code" },
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+
+        using var registration = JsonDocument.Parse(registrationBody);
+        var root = registration.RootElement;
+        var clientId = root.GetProperty("client_id").GetString();
+        Assert.NotNull(clientId);
+
+        // The response type is registered, and reported, in canonical form together with the grant types it uses.
+        Assert.Equal(
+            [OpenIdConstants.ResponseTypes.CodeIdToken],
+            GetStringArray(root, "response_types")
+        );
+        Assert.Equal(
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
+            GetStringArray(root, "grant_types")
+        );
+
+        // The authorization endpoint accepts the registered response type: with no end-user session it issues the
+        // interactive challenge rather than an error redirected to the client.
+        using var hybridResponse = await client.GetAsync(
+            CreateAuthorizeUri(clientId, OpenIdConstants.ResponseTypes.CodeIdToken)
+        );
+        Assert.Equal(HttpStatusCode.Redirect, hybridResponse.StatusCode);
+        var hybridLocation = hybridResponse.Headers.Location;
+        Assert.NotNull(hybridLocation);
+        Assert.False(
+            hybridLocation.OriginalString.StartsWith(RedirectUri, StringComparison.Ordinal),
+            "Expected an interactive challenge, not an error redirected back to the client."
+        );
+
+        // The server supports 'code', but the client did not register it.
+        using var codeResponse = await client.GetAsync(
+            CreateAuthorizeUri(clientId, OpenIdConstants.ResponseTypes.Code)
+        );
+        Assert.Equal(HttpStatusCode.SeeOther, codeResponse.StatusCode);
+        var codeLocation = codeResponse.Headers.Location;
+        Assert.NotNull(codeLocation);
+        var parameters = HttpUtility.ParseQueryString(codeLocation.Query);
+        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, parameters["error"]);
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTheServerDoesNotSupportAResponseType_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new ConfiguredHostApplicationFactory(
+            CreateServerConfiguration(
+                [OpenIdConstants.ResponseTypes.Code],
+                [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            )
+        );
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { RedirectUri },
+                ["response_types"] = new[] { OpenIdConstants.ResponseTypes.CodeIdToken },
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            "response_types"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenAResponseTypeUsesAnUnregisteredGrantType_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { RedirectUri },
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.AuthorizationCode },
+                ["response_types"] = new[] { OpenIdConstants.ResponseTypes.CodeIdToken },
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdConstants.GrantTypes.Implicit
+        );
+    }
+
+    private static Dictionary<string, string?> CreateServerConfiguration(
+        string[] responseTypesSupported,
+        string[] grantTypesSupported
+    )
+    {
+        var configuration = new Dictionary<string, string?>
+        {
+            ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
+        };
+        for (var index = 0; index < responseTypesSupported.Length; ++index)
+            configuration[$"OpenId:Server:Settings:response_types_supported:{index}"] =
+                responseTypesSupported[index];
+        for (var index = 0; index < grantTypesSupported.Length; ++index)
+            configuration[$"OpenId:Server:Settings:grant_types_supported:{index}"] =
+                grantTypesSupported[index];
+        return configuration;
+    }
+
+    private static string CreateAuthorizeUri(string clientId, string responseType) =>
+        "/oauth2/authorize"
+        + $"?client_id={Uri.EscapeDataString(clientId)}"
+        + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+        + $"&response_type={Uri.EscapeDataString(responseType)}"
+        + "&scope=openid"
+        + "&nonce=n-0S6_WzA2Mj"
+        + "&state=abc123";
+
+    private static string[] GetStringArray(JsonElement root, string propertyName) =>
+        [
+            .. root.GetProperty(propertyName)
+                .EnumerateArray()
+                .Select(value => value.GetString() ?? string.Empty),
+        ];
+
     private static async Task AssertRegistrationErrorAsync(
         HttpResponseMessage response,
         string expectedError,
-        string expectedSettingName
+        string expectedQuotedName
     )
     {
         var body = await response.Content.ReadAsStringAsync();
@@ -189,7 +344,7 @@ public class ClientRegistrationEndpointTests
         var root = document.RootElement;
         Assert.Equal(expectedError, root.GetProperty("error").GetString());
         Assert.Contains(
-            $"'{expectedSettingName}'",
+            $"'{expectedQuotedName}'",
             root.GetProperty("error_description").GetString(),
             StringComparison.Ordinal
         );

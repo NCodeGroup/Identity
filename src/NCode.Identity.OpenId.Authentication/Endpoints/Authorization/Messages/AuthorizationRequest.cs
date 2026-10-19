@@ -64,18 +64,6 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
         IReadOnlyList<T>? second
     ) => first ?? second ?? [];
 
-    private static string DetermineGrantType(IReadOnlyCollection<string> responseTypes) =>
-        responseTypes.Contains(OpenIdConstants.ResponseTypes.Code)
-            ? responseTypes.Count == 1
-                ? OpenIdConstants.GrantTypes.AuthorizationCode
-                : OpenIdConstants.GrantTypes.Hybrid
-            : OpenIdConstants.GrantTypes.Implicit;
-
-    private static string DetermineDefaultResponseMode(string grantType) =>
-        grantType == OpenIdConstants.GrantTypes.AuthorizationCode
-            ? OpenIdConstants.ResponseModes.Query
-            : OpenIdConstants.ResponseModes.Fragment;
-
     /// <inheritdoc />
     public string AuthorizationSourceType => AuthorizationSourceTypes.Union;
 
@@ -157,9 +145,6 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
         ?? OpenIdConstants.DisplayTypes.Page;
 
     /// <inheritdoc />
-    public string GrantType => DetermineGrantType(ResponseTypes);
-
-    /// <inheritdoc />
     public string? IdTokenHint =>
         OriginalRequestObject?.IdTokenHint ?? OriginalRequestMessage.IdTokenHint;
 
@@ -193,7 +178,7 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
     public string ResponseMode =>
         OriginalRequestObject?.ResponseMode
         ?? OriginalRequestMessage.ResponseMode
-        ?? DetermineDefaultResponseMode(GrantType);
+        ?? ResponseTypeValues.GetDefaultResponseMode(ResponseTypes);
 
     /// <inheritdoc />
     public IReadOnlyList<string> ResponseTypes =>

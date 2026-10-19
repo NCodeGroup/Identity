@@ -66,7 +66,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
-| `F` — Feature gaps                    | `F56`     | `F55`      |
+| `F` — Feature gaps                    | `F58`     | `F57`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U15`     | `U14`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
@@ -454,17 +454,29 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Abstractions/Settings/ISecurityProfile.cs`. Capture the design in an ADR (amending
   [ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
 
-- **`F55` — Accept combined `response_types` values in dynamic client registration.** RFC 7591 §2 registers
-  `response_types` as whole `response_type` values (`code id_token`), but the server models
-  `response_types_supported` as single values whose combinations the authorization endpoint accepts, so a registration
-  that lists a combination is refused as outside the setting's domain
-  ([ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md)). Implicit and hybrid flows are off by
-  default, so only a deployment that re-enables them is affected. Decide the model — store the registered combinations
-  and enforce them exactly, or map a combination to its single values (which also admits each value alone) — and make
-  registration, the registration response, and the authorization endpoint agree. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultValidateAuthorizationRequestHandler.cs`,
-  `src/NCode.Identity.OpenId.Core/Settings/OpenIdSettingRules.cs`.
+- **`F56` — Require PKCE for the authorization code flow by default.** `require_pkce` defaults to `false`, so an
+  authorization request without a `code_challenge` is accepted unless the client runs the FAPI 2.0 profile or is the
+  developer seed client. The OAuth 2.1 direction and RFC 9700 §2.1.1 expect PKCE (`S256`) for every client that uses the
+  authorization code flow; `code_challenge_methods_supported` already defaults to `S256` only. Default `require_pkce` to
+  `true` (it merges as a floor, so a client cannot loosen it), decide whether a confidential
+  OpenID Connect client that sends a `nonce` may be exempt (RFC 9700 permits the nonce as the alternative mitigation for
+  such clients — a genuine trade-off to record in the ADR), and verify the conformance plans and seeders send a
+  challenge. Touch points: `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`
+  (`require_pkce`), `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultValidateAuthorizationRequestHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/AuthorizationCode/DefaultValidateAuthorizationCodeGrantHandler.cs`.
+  Capture the design in an ADR (amending [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
+
+- **`F57` — Retire `allow_unsafe_token_response`, which duplicates listing `token` in `response_types_supported`.**
+  Response types are whole values enforced exactly
+  ([ADR-0141](docs/adr/0141-response-types-are-whole-values.md)), so an operator who wants an access token returned by
+  the authorization endpoint lists `token`, `id_token token`, `code token`, or `code id_token token`, and a tenant or
+  client narrows that list to forbid it. The boolean `allow_unsafe_token_response` (default `true`, merged `And`) is a
+  second switch for the same capability — exactly the "second switch to forget" ADR-0083 avoids. Remove the setting and
+  its check, and migrate any stored document that sets it (narrowing `response_types_supported` instead). Touch points:
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs` (`allow_unsafe_token_response`),
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultValidateAuthorizationRequestHandler.cs`
+  (`ValidateConfiguredConstraints`), `src/NCode.Identity.OpenId.Abstractions/Settings/OpenIdSettingNames.cs`,
+  `src/NCode.Identity.OpenId.Abstractions/Settings/OpenIdSettingKeys.cs`.
 
 ## Conformance & interop testing (group `T`)
 

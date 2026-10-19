@@ -33,6 +33,7 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
         // Secure-by-default: implicit/hybrid and client_credentials/password are intentionally not advertised.
         // The implicit/hybrid capability still exists; an operator re-enables it by widening this setting (and
         // response_types_supported) via configuration (RFC 9700 / OAuth 2.1 direction — no implicit/hybrid).
+        // A hybrid flow uses both 'authorization_code' and 'implicit' (OpenID Connect Registration §2).
         settings.Set(
             OpenIdSettingKeys.GrantTypesSupported,
             [
@@ -74,10 +75,9 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
             ]
         );
 
-        // Secure-by-default: only the authorization-code flow is advertised. Advertising id_token/token would
-        // expand (via the response_types_supported formatter) into the implicit and hybrid front-channel-token
-        // combinations, which modern guidance (RFC 9700 / OAuth 2.1) removes. An operator re-enables them by
-        // widening this setting via configuration.
+        // Secure-by-default: only the authorization-code flow is advertised. The setting lists whole response_type
+        // values, so an operator re-enables a front-channel-token flow that modern guidance (RFC 9700 / OAuth 2.1)
+        // removes only by listing it — for example 'code id_token' — and enables exactly that flow (ADR-0141).
         settings.Set(
             OpenIdSettingKeys.ResponseTypesSupported,
             [OpenIdConstants.ResponseTypes.Code]

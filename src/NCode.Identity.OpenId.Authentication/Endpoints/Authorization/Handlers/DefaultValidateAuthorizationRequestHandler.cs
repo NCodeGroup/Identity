@@ -23,7 +23,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.ResourceServers;
-using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
@@ -63,7 +63,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
         if (requestObject != null)
             ValidateRequestObject(requestMessage, requestObject);
 
-        ValidateRequest(openIdEnvironment, openIdClient, authorizationRequest);
+        ValidateRequest(openIdContext, openIdClient, authorizationRequest);
 
         // Apply any security-profile authorization-request requirements (e.g. FAPI's confidential-client rule).
         await SecurityProfileCatalog.EvaluateRequirementsAsync(
@@ -157,9 +157,19 @@ internal class DefaultValidateAuthorizationRequestHandler(
 
         if (requestMessage.ResponseTypes != null && requestObject.ResponseTypes != null)
         {
-            var requestMessageResponseTypes = requestMessage.ResponseTypes.Order();
-            var requestObjectResponseTypes = requestObject.ResponseTypes.Order();
-            if (!requestMessageResponseTypes.SequenceEqual(requestObjectResponseTypes))
+            var requestMessageResponseType = ResponseTypeValues.Canonicalize(
+                requestMessage.ResponseTypes
+            );
+            var requestObjectResponseType = ResponseTypeValues.Canonicalize(
+                requestObject.ResponseTypes
+            );
+            if (
+                !string.Equals(
+                    requestMessageResponseType,
+                    requestObjectResponseType,
+                    StringComparison.Ordinal
+                )
+            )
                 throw errorFactory
                     .InvalidRequest(
                         "The 'response_type' parameter in the JWT request object must match the same value from the request message.",
@@ -197,16 +207,17 @@ internal class DefaultValidateAuthorizationRequestHandler(
 
     [AssertionMethod]
     private static void ValidateRequest(
-        OpenIdEnvironment openIdEnvironment,
+        OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest request
     )
     {
-        var errorFactory = openIdEnvironment.ErrorFactory;
+        var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
 
         ValidateProtocolRules(errorFactory, request);
         ValidateConfiguredConstraints(errorFactory, settings, request);
+        ValidateResponseType(openIdContext, openIdClient, request);
         ValidateSupportedValues(errorFactory, settings, request);
     }
 
@@ -219,8 +230,9 @@ internal class DefaultValidateAuthorizationRequestHandler(
         var requestedScopes = request.Scopes;
         var hasOpenIdScope = requestedScopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
 
-        var isImplicit = request.GrantType == OpenIdConstants.GrantTypes.Implicit;
-        var isHybrid = request.GrantType == OpenIdConstants.GrantTypes.Hybrid;
+        // A response type that includes 'id_token' or 'token' returns a token from the authorization endpoint (the
+        // implicit and hybrid flows).
+        var returnsTokens = ResponseTypeValues.ReturnsTokens(request.ResponseTypes);
 
         if (requestedScopes.Count == 0)
             throw errorFactory.MissingParameter(OpenIdConstants.Parameters.Scope).AsException();
@@ -243,13 +255,11 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 .InvalidRequest("The 'openid' scope is required when requesting id tokens.")
                 .AsException();
 
-        if (
-            request.ResponseMode == OpenIdConstants.ResponseModes.Query
-            && request.GrantType != OpenIdConstants.GrantTypes.AuthorizationCode
-        )
+        // A token never travels in a query string (OAuth 2.0 Multiple Response Type Encoding Practices §2.1).
+        if (request.ResponseMode == OpenIdConstants.ResponseModes.Query && returnsTokens)
             throw errorFactory
                 .InvalidRequest(
-                    "The 'query' encoding is only allowed for the authorization code grant."
+                    "The 'query' response mode must not be used with a response type that returns a token or an ID token."
                 )
                 .AsException();
 
@@ -267,7 +277,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
         }
 
         var hasNonce = !string.IsNullOrEmpty(request.Nonce);
-        if (hasOpenIdScope && !hasNonce && (isImplicit || isHybrid))
+        if (hasOpenIdScope && !hasNonce && returnsTokens)
             throw errorFactory
                 .InvalidRequest(
                     "The nonce parameter is required when using the implicit or hybrid flows for openid requests."
@@ -323,6 +333,68 @@ internal class DefaultValidateAuthorizationRequestHandler(
                     )
                     .AsException();
         }
+    }
+
+    /// <summary>
+    /// Validates the requested response type. A response type is supported where it is listed, as a whole value, in
+    /// <c>response_types_supported</c> and every grant type it uses is listed in <c>grant_types_supported</c> (OpenID
+    /// Connect Dynamic Client Registration 1.0 §2); an unset list is unrestricted. A response type the tenant does not
+    /// support is rejected with <c>unsupported_response_type</c>, and one the tenant supports but the client may not
+    /// use with <c>unauthorized_client</c> (RFC 6749 §4.1.2.1).
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> whose tenant's settings define what the server
+    /// supports.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> whose settings define what the client may use.</param>
+    /// <param name="request">The authorization request to validate.</param>
+    // See ADR-0141.
+    [AssertionMethod]
+    internal static void ValidateResponseType(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IAuthorizationRequest request
+    )
+    {
+        var errorFactory = openIdContext.ErrorFactory;
+        var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
+
+        var responseTypes = request.ResponseTypes;
+        var responseType = ResponseTypeValues.Canonicalize(responseTypes);
+        var grantTypes = ResponseTypeValues.GetGrantTypes(responseTypes);
+
+        if (!SupportsResponseType(tenantSettings, responseType, grantTypes))
+            throw errorFactory
+                .UnsupportedResponseType($"The response type '{responseType}' is not supported.")
+                .AsException();
+
+        if (!SupportsResponseType(openIdClient.Settings, responseType, grantTypes))
+            throw errorFactory
+                .UnauthorizedClient(
+                    $"The client is not authorized to use the response type '{responseType}'."
+                )
+                .AsException();
+    }
+
+    private static bool SupportsResponseType(
+        IReadOnlySettingCollection settings,
+        string responseType,
+        IReadOnlyList<string> grantTypes
+    )
+    {
+        if (
+            settings.TryGetValue(
+                OpenIdSettingKeys.ResponseTypesSupported,
+                out var responseTypesSupported
+            ) && !responseTypesSupported.Contains(responseType, StringComparer.Ordinal)
+        )
+            return false;
+
+        return !settings.TryGetValue(
+                OpenIdSettingKeys.GrantTypesSupported,
+                out var grantTypesSupported
+            )
+            || grantTypes.All(grantType =>
+                grantTypesSupported.Contains(grantType, StringComparer.Ordinal)
+            );
     }
 
     [AssertionMethod]
@@ -393,14 +465,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 throw errorFactory.NotSupported(OpenIdConstants.Parameters.Display).AsException();
         }
 
-        // grant_types_supported
-        if (
-            settings.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out var grantTypesSupported)
-        )
-        {
-            if (!grantTypesSupported.Contains(request.GrantType))
-                throw errorFactory.NotSupported(OpenIdConstants.Parameters.GrantType).AsException();
-        }
+        // grant_types_supported and response_types_supported are enforced by ValidateResponseType
 
         // prompt_values_supported
         if (
@@ -439,20 +504,6 @@ internal class DefaultValidateAuthorizationRequestHandler(
             if (!responseModesSupported.Contains(request.ResponseMode))
                 throw errorFactory
                     .NotSupported(OpenIdConstants.Parameters.ResponseMode)
-                    .AsException();
-        }
-
-        // response_types_supported
-        if (
-            settings.TryGetValue(
-                OpenIdSettingKeys.ResponseTypesSupported,
-                out var responseTypesSupported
-            )
-        )
-        {
-            if (request.ResponseTypes.Except(responseTypesSupported).Any())
-                throw errorFactory
-                    .NotSupported(OpenIdConstants.Parameters.ResponseType)
                     .AsException();
         }
 

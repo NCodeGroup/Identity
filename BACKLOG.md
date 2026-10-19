@@ -466,18 +466,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/AuthorizationCode/DefaultValidateAuthorizationCodeGrantHandler.cs`.
   Capture the design in an ADR (amending [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)).
 
-- **`F57` — Retire `allow_unsafe_token_response`, which duplicates listing `token` in `response_types_supported`.**
-  Response types are whole values enforced exactly
-  ([ADR-0141](docs/adr/0141-response-types-are-whole-values.md)), so an operator who wants an access token returned by
-  the authorization endpoint lists `token`, `id_token token`, `code token`, or `code id_token token`, and a tenant or
-  client narrows that list to forbid it. The boolean `allow_unsafe_token_response` (default `true`, merged `And`) is a
-  second switch for the same capability — exactly the "second switch to forget" ADR-0083 avoids. Remove the setting and
-  its check, and migrate any stored document that sets it (narrowing `response_types_supported` instead). Touch points:
-  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs` (`allow_unsafe_token_response`),
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultValidateAuthorizationRequestHandler.cs`
-  (`ValidateConfiguredConstraints`), `src/NCode.Identity.OpenId.Abstractions/Settings/OpenIdSettingNames.cs`,
-  `src/NCode.Identity.OpenId.Abstractions/Settings/OpenIdSettingKeys.cs`.
-
 ## Conformance & interop testing (group `T`)
 
 - **`T1` (subsumes `T6`) — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite,

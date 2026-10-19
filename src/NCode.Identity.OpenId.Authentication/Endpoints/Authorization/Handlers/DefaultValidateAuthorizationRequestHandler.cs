@@ -304,17 +304,6 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 )
                 .AsException();
 
-        // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-16
-        if (
-            request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.Token)
-            && !settings.GetValue(OpenIdSettingKeys.AllowUnsafeTokenResponse)
-        )
-            throw errorFactory
-                .UnauthorizedClient(
-                    "The configuration prohibits the use of unsafe token responses."
-                )
-                .AsException();
-
         // require_pkce
         if (!hasCodeChallenge && settings.GetValue(OpenIdSettingKeys.RequireCodeChallenge))
             throw errorFactory
@@ -340,13 +329,15 @@ internal class DefaultValidateAuthorizationRequestHandler(
     /// <c>response_types_supported</c> and every grant type it uses is listed in <c>grant_types_supported</c> (OpenID
     /// Connect Dynamic Client Registration 1.0 §2); an unset list is unrestricted. A response type the tenant does not
     /// support is rejected with <c>unsupported_response_type</c>, and one the tenant supports but the client may not
-    /// use with <c>unauthorized_client</c> (RFC 6749 §4.1.2.1).
+    /// use with <c>unauthorized_client</c> (RFC 6749 §4.1.2.1). This is the only control over the tokens the
+    /// authorization endpoint returns: a tenant or client forbids an access token there by listing no response type
+    /// that includes <c>token</c>.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> whose tenant's settings define what the server
     /// supports.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> whose settings define what the client may use.</param>
     /// <param name="request">The authorization request to validate.</param>
-    // See ADR-0141.
+    // See ADR-0141 and ADR-0142.
     [AssertionMethod]
     internal static void ValidateResponseType(
         OpenIdContext openIdContext,

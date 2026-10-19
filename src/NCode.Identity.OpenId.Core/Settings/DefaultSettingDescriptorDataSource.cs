@@ -263,17 +263,6 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = And,
             };
 
-            // allow_unsafe_token_response: permit returning tokens via a query/fragment response (default true).
-            // Ceiling (And): once a parent forbids it, a child cannot re-allow it.
-            yield return new SettingDescriptor<bool>
-            {
-                Name = OpenIdSettingNames.AllowUnsafeTokenResponse,
-                Default = true,
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = And,
-            };
-
             // allowed_identity_providers: identity providers a client may use; unset permits any.
             // Ceiling (Intersect): a child narrows the parent's set; a set (or narrowed-to-empty) list denies all others (fail-closed).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>

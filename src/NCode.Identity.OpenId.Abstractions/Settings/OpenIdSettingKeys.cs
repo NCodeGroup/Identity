@@ -136,12 +136,6 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.AllowLoopbackRedirect);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'allow_unsafe_token_response' setting.
-    /// </summary>
-    public static SettingKey<bool> AllowUnsafeTokenResponse =>
-        new(OpenIdSettingNames.AllowUnsafeTokenResponse);
-
-    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_code_lifetime' setting.
     /// </summary>
     public static SettingKey<TimeSpan> AuthorizationCodeLifetime =>

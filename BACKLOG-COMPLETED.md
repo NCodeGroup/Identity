@@ -863,6 +863,29 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   omitting them), and a response type that returns tokens defaults to the fragment on every authorization-endpoint path
   — the first pass had defaulted to the query string._
 
+- **`F57` — Retire `allow_unsafe_token_response`, which duplicates listing `token` in `response_types_supported`.**
+  Response types are whole values enforced exactly
+  ([ADR-0141](docs/adr/0141-response-types-are-whole-values.md)), so an operator who wants an access token returned by
+  the authorization endpoint lists `token`, `id_token token`, `code token`, or `code id_token token`, and a tenant or
+  client narrows that list to forbid it. The boolean `allow_unsafe_token_response` (default `true`, merged `And`) is a
+  second switch for the same capability — exactly the "second switch to forget" ADR-0083 avoids. Remove the setting and
+  its check, and migrate any stored document that sets it (narrowing `response_types_supported` instead). Touch points:
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs` (`allow_unsafe_token_response`),
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultValidateAuthorizationRequestHandler.cs`
+  (`ValidateConfiguredConstraints`), `src/NCode.Identity.OpenId.Abstractions/Settings/OpenIdSettingNames.cs`,
+  `src/NCode.Identity.OpenId.Abstractions/Settings/OpenIdSettingKeys.cs`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0142](docs/adr/0142-listed-response-types-are-the-only-front-channel-token-control.md). The setting, its name,
+  key, descriptor, and check are removed; `response_types_supported` is the only control over the tokens the
+  authorization endpoint returns. The `RetireAllowUnsafeTokenResponse` EF migration is the first data migration of
+  stored settings documents under ADR-0139: it rewrites every `Servers` / `Tenants` / `Clients` / `ResourceServers`
+  document that sets the setting, translating `false` into an intersection-equivalent `response_types_supported`
+  (rather than dropping a restriction), removing `true` / `null`, leaving an already-invalid value untouched, and
+  bumping `SettingsConcurrencyToken`. It was verified against Postgres over seeded documents (including rollback and
+  idempotent re-apply), and the way to write and verify such a migration is now a convention in
+  `csharp-production.instructions.md`._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

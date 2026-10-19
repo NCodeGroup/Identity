@@ -71,9 +71,6 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         var mockError = CreateLooseMock<IOpenIdError>();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
-        IReadOnlyList<string> responseTypes = [];
-        mockRequest.SetupGet(x => x.ResponseTypes).Returns(responseTypes);
-
         DefaultValidateAuthorizationRequestHandler.ValidateConfiguredConstraints(
             mockErrorFactory.Object,
             mockSettings.Object,
@@ -329,6 +326,69 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
                 client,
                 mockRequest.Object
             )
+        );
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void ValidateResponseType_WhenTheClientListsNoResponseTypeThatReturnsAnAccessToken_ThrowsUnauthorizedClient()
+    {
+        var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        SetupSupported(
+            mockTenantSettings,
+            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeToken],
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+        );
+        SetupSupported(
+            mockClientSettings,
+            [
+                OpenIdConstants.ResponseTypes.Code,
+                OpenIdConstants.ResponseTypes.IdToken,
+                OpenIdConstants.ResponseTypes.CodeIdToken,
+            ],
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+        );
+        var (context, client, capturedCode) = CreateResponseTypeScaffold(
+            mockTenantSettings,
+            mockClientSettings
+        );
+        var mockRequest = CreateRequest(
+            OpenIdConstants.ResponseTypes.Token,
+            OpenIdConstants.ResponseTypes.Code
+        );
+
+        Assert.Throws<OpenIdException>(() =>
+            DefaultValidateAuthorizationRequestHandler.ValidateResponseType(
+                context,
+                client,
+                mockRequest.Object
+            )
+        );
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, capturedCode());
+    }
+
+    #endregion
+
+    #region ValidateConfiguredConstraints Tests
+
+    [Fact]
+    public void ValidateConfiguredConstraints_WhenTheResponseTypeReturnsAnAccessToken_DoesNotThrow()
+    {
+        // The settings stub reads false for every boolean, so a separate "allow token responses" switch would reject
+        // this request; response_types_supported alone decides it (ADR-0142).
+        var (mockSettings, mockRequest) = CreateScaffold();
+        IReadOnlyList<string> responseTypes =
+        [
+            OpenIdConstants.ResponseTypes.Code,
+            OpenIdConstants.ResponseTypes.Token,
+        ];
+        mockRequest.SetupGet(x => x.ResponseTypes).Returns(responseTypes);
+
+        var exception = Record.Exception(() =>
+            InvokeValidateConfiguredConstraints(mockSettings, mockRequest)
         );
 
         Assert.Null(exception);

@@ -132,11 +132,6 @@ public static class OpenIdSettingNames
     public const string AllowLoopbackRedirect = "allow_loopback_redirect";
 
     /// <summary>
-    /// Contains the name of <c>allow_unsafe_token_response</c> setting.
-    /// </summary>
-    public const string AllowUnsafeTokenResponse = "allow_unsafe_token_response";
-
-    /// <summary>
     /// Contains the name of <c>authorization_authenticate_scheme</c> setting.
     /// </summary>
     public const string AuthorizationAuthenticateScheme = "authorization_authenticate_scheme";

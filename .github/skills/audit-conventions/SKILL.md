@@ -83,6 +83,16 @@ Fast mechanical checks (grep production `.cs`, adapt as needed):
 - `RequestServices` / `GetService` / `GetServices` — confirm each site is the sanctioned singleton service-location
   exception or `[ExcludeFromCodeCoverage]` framework glue.
 
+**Exhaustive sweeps are deterministic.** A claim that a whole class of defect is absent (for example "no get-only
+property's summary says _Gets or sets_") comes from a script or grep that lists every candidate with `file:line`, never
+from an exploration subagent — those under-report and will answer "0 / clean". PowerShell `-match` is case-insensitive;
+use `-cmatch` for casing checks (a summary that starts lower-case, "a id" vs "an ID"). The documentation defects the
+compiler reports as errors — `CS1570` (malformed XML), `CS1572` / `CS1573` (a wrong or missing `<param>`), `CS1574` (a
+bad `cref`) — are absent once the Definition of Done passes, so spend manual effort on the review-only classes: a
+_Gets or sets_ summary that disagrees with its accessor, terse or copy-pasted summaries, and grammar. To compare a
+summary with its accessor, read past the `///` and attribute lines to the declaration, and classify `{ get; }`,
+`{ get; init; }`, and `=>` as read-only and `set;` as mutable.
+
 ## 4. Report
 
 Deliver a **ranked** report — 🔴 violation / 🟡 worth fixing / 🟢 minor or conscious trade-off — each with the file,

@@ -124,6 +124,26 @@ per project ([ADR-0003](docs/adr/0003-central-package-management-and-lockstep-ve
 
 To upgrade a package, change its single `Version` in `Directory.Packages.props` — every consuming project moves together.
 
+## Dependabot pull requests
+
+[`.github/dependabot.yml`](.github/dependabot.yml) opens a **grouped** pull request each week per ecosystem (NuGet
+minor/patch, NuGet majors, frontend dev toolchain, frontend production, GitHub Actions). CI gates it like any other
+change, so a green Dependabot PR can be merged as-is.
+
+When one is red, the fix belongs **on its branch**: check out the PR branch, commit the code or config the new versions
+require, rebase onto `main` if it has moved, and push. Dependabot stops rebasing a branch once someone else has pushed
+to it, which is what you want: it would otherwise discard your fix. Do not close it to get a fresh one; the next run
+would just bring back the same break.
+
+When an upgrade **cannot land yet** (the upstream ecosystem has not caught up), hold it with an `ignore` rule in
+`dependabot.yml` that explains why, plus a backlog item for lifting it. That is how TypeScript majors and `@types/node`
+majors are held today
+([ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Without the rule,
+every weekly group PR fails on the same package.
+
+The frontend has no lockfile-free path: after changing a `package.json`, run `pnpm install` in `src/frontend` and commit
+`pnpm-lock.yaml`, because CI installs with `--frozen-lockfile`.
+
 ## Public API surface guard (`PublicAPI.*.txt`)
 
 Because these are shipped libraries, an accidental change to the public API surface is a break for every consumer. The

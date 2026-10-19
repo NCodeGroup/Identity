@@ -57,6 +57,20 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The frontend toolchain is current, and its dev-only security advisories are gone.** The grouped Dependabot update
+  moves Vite to 8, Vitest to 5, Storybook to 10, ESLint to 10, jsdom to 30, and their companions, and `pnpm audit`
+  is now clean. TypeScript moves to 6.0, the newest version typescript-eslint supports; TypeScript 7 waits for it
+  (backlog `U15`).
+
+  Lint now uses a flat `src/frontend/eslint.config.js`, because ESLint 9 and later no longer read `.eslintrc`.
+  `@eslint-react/eslint-plugin` replaces `eslint-plugin-react`, which does not support ESLint 10, and
+  `eslint-plugin-react-hooks` 7 adds the React Compiler checks. The stricter rules found two presentational tables
+  that read the clock during render: `GrantTable` and `SecretTable` now take a `now` prop from their container.
+  `@types/node` stays on the Node 22 runtime major, pinned workspace-wide by a pnpm override, and `engines.node` now
+  states the toolchain's real floor (`>=22.13.0`). Dependabot ignores TypeScript and `@types/node` majors, so the
+  weekly grouped update no longer brings back the two upgrades that cannot land yet. See
+  [ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md).
+
 - **The reference host is no longer called "Playground".** `NCode.Identity.OpenId.Playground` is now
   `NCode.Identity.OpenId.Host`, and its two companions are `NCode.Identity.OpenId.Host.Database` and
   `NCode.Identity.OpenId.Host.MigrationService`. The Aspire orchestrator, previously

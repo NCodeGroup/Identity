@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TenantTable } from './TenantTable.js';
 
 const meta: Meta<typeof TenantTable> = {

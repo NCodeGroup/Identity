@@ -1,4 +1,4 @@
-import type { Preview } from '@storybook/react';
+import type { Preview } from '@storybook/react-vite';
 import { AppThemeProvider } from '../src/theme/AppThemeProvider.js';
 
 const preview: Preview = {

@@ -1147,6 +1147,18 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   Touch points: `src/NCode.Identity.OpenId.LocalDev/Program.cs`.
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0072](docs/adr/0072-self-healing-dev-database-and-model-drift-gate.md)._
+- **`U14` — Frontend dev-dependency security advisories.** `pnpm audit` reports 10 advisories (3 critical, 1 high,
+  6 moderate) against [`src/frontend/pnpm-lock.yaml`](src/frontend/pnpm-lock.yaml); GitHub Dependabot counts the same
+  advisories per workspace path and reports them as 47 alerts on the default branch. Every one is a **`devDependency`
+  of the test/dev toolchain** — `vitest` 2.1.9 and `@vitest/mocker`, `vite`, `esbuild`, `tinypool`, `launch-editor`,
+  `uuid` — reachable only when the Vitest UI server or the Vite dev server is running locally. **None ship**: the
+  `apps/auth` bundle served by the OP host is static build output, and no NuGet package is affected
+  (`dotnet list package --vulnerable --include-transitive` is clean). Clearing them means a `vitest` 2 → 4 major
+  upgrade across every app plus the matching `vite`/`esbuild` bumps — and `@vitest/coverage-v8`, which must always match
+  the installed `vitest` version (it drives the CI coverage report, ADR-0143); do it with `U5` so the new CI job proves
+  the upgrade rather than discovering it later.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)._
 
 ## Secrets management (group `S`)
 

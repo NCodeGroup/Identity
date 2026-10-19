@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ScopeTable, type ScopeRow } from './ScopeTable.js';
 
 const scopes: ScopeRow[] = [
@@ -16,6 +16,7 @@ describe('ScopeTable', () => {
 
   it('renders no actions column without callbacks', () => {
     render(<ScopeTable scopes={scopes} />);
+    expect(screen.queryByRole('columnheader', { name: 'Actions' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('scope-edit-read:orders')).not.toBeInTheDocument();
   });
 
@@ -34,5 +35,27 @@ describe('ScopeTable', () => {
     render(<ScopeTable scopes={scopes} onDelete={onDelete} />);
     expect(screen.queryByTestId('scope-delete-openid')).not.toBeInTheDocument();
     expect(screen.getByTestId('scope-delete-read:orders')).toBeInTheDocument();
+    expect(screen.queryByTestId('scope-edit-read:orders')).not.toBeInTheDocument();
+  });
+
+  it('marks a system scope with a chip', () => {
+    render(<ScopeTable scopes={scopes} />);
+    expect(screen.getByTestId('scope-row-openid')).toHaveTextContent('System');
+    expect(screen.getByTestId('scope-row-read:orders')).not.toHaveTextContent('System');
+  });
+
+  it('renders an em dash for a scope without a description', () => {
+    render(<ScopeTable scopes={[{ value: 'write:orders', description: null, isSystem: false }]} />);
+    const cells = within(screen.getByTestId('scope-row-write:orders')).getAllByRole('cell');
+    expect(cells.map((cell) => cell.textContent)).toEqual(['write:orders', '—']);
+  });
+
+  it('offers only an edit control when only onEdit is supplied', () => {
+    const onEdit = vi.fn();
+    render(<ScopeTable scopes={scopes} onEdit={onEdit} />);
+    expect(screen.getByRole('columnheader', { name: 'Actions' })).toBeInTheDocument();
+    expect(screen.queryByTestId('scope-delete-read:orders')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('scope-edit-openid'));
+    expect(onEdit).toHaveBeenCalledExactlyOnceWith('openid');
   });
 });

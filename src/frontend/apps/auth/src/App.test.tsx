@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { App } from './App.js';
@@ -10,6 +10,19 @@ function renderApp(props: Parameters<typeof App>[0]) {
     </AppThemeProvider>,
   );
 }
+
+// The consent and account surfaces load through their default same-origin fetch; a request that never settles keeps
+// the tests hermetic and the surfaces in their initial state.
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('App login surface', () => {
   it('renders the login form with the stable locators and hidden fields', () => {

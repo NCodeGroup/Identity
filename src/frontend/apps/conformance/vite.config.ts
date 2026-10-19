@@ -41,11 +41,15 @@ export default defineConfig({
     testTimeout: 15_000,
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
+    // A test that makes no assertion fails (ADR-0151).
+    expect: { requireAssertions: true },
     include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/**/*.test.{ts,tsx}', 'src/main.tsx'],
+      // Floors at the level reached, rounded down (ADR-0151): raise them as coverage rises; lowering one needs a reason.
+      thresholds: { statements: 100, branches: 100, functions: 100, lines: 100 },
     },
   },
 });

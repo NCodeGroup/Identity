@@ -76,4 +76,60 @@ describe('SecretTable', () => {
     );
     expect(screen.queryByTestId('secret-export-s-expired')).not.toBeInTheDocument();
   });
+
+  it('hides the export action when exportable types are not supplied', () => {
+    render(<SecretTable secrets={secrets} now={now} onExportPublicKey={vi.fn()} />);
+    expect(screen.getByRole('columnheader', { name: 'Actions' })).toBeInTheDocument();
+    expect(screen.queryByTestId('secret-export-s-expired')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('secret-delete-s-expired')).not.toBeInTheDocument();
+  });
+
+  it('renders no actions column without callbacks', () => {
+    render(<SecretTable secrets={secrets} now={now} exportableSecretTypes={['rsa']} />);
+    expect(screen.queryByRole('columnheader', { name: 'Actions' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('secret-export-s-expired')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('secret-delete-s-expired')).not.toBeInTheDocument();
+  });
+
+  it('formats a parseable expiry and shows an unparseable one verbatim', () => {
+    render(
+      <SecretTable
+        secrets={[
+          ...secrets,
+          {
+            ...base,
+            secretId: 's-odd',
+            secretType: 'ecc',
+            keySizeBits: 256,
+            expiresWhen: 'not-a-date',
+          },
+        ]}
+        now={now}
+      />,
+    );
+    expect(screen.getByTestId('secret-row-s-active')).toHaveTextContent(
+      new Date(Date.parse('2099-01-01T12:00:00Z')).toLocaleString(),
+    );
+    const odd = screen.getByTestId('secret-row-s-odd');
+    expect(odd).toHaveTextContent('not-a-date');
+    expect(odd).not.toHaveTextContent('Expired');
+  });
+
+  it('expires a secret exactly at its expiry instant', () => {
+    render(
+      <SecretTable
+        secrets={[
+          {
+            ...base,
+            secretId: 's-boundary',
+            secretType: 'rsa',
+            keySizeBits: 2048,
+            expiresWhen: '2026-06-01T00:00:00Z',
+          },
+        ]}
+        now={now}
+      />,
+    );
+    expect(screen.getByTestId('secret-row-s-boundary')).toHaveTextContent('Expired');
+  });
 });

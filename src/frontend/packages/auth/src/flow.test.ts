@@ -117,6 +117,14 @@ describe('parseCallbackParams', () => {
     });
   });
 
+  it('omits the description and state when the error response carries neither', () => {
+    expect(parseCallbackParams('?error=server_error')).toEqual({ error: 'server_error' });
+  });
+
+  it('returns null when the code arrives without a state', () => {
+    expect(parseCallbackParams('?code=abc')).toBeNull();
+  });
+
   it('returns null when the query is not a callback', () => {
     expect(parseCallbackParams('?foo=bar')).toBeNull();
   });
@@ -164,12 +172,29 @@ describe('exchangeCodeForToken', () => {
       scope: 'openid read:clients',
     });
 
-    const [, init] = fetchFn.mock.calls[0]!;
+    const [tokenUrl, init] = fetchFn.mock.calls[0]!;
+    expect(tokenUrl).toBe('https://op.test/token');
     expect(init.method).toBe('POST');
+    expect(init.headers).toEqual({
+      'content-type': 'application/x-www-form-urlencoded',
+      accept: 'application/json',
+    });
     const body = new URLSearchParams(init.body);
     expect(body.get('grant_type')).toBe('authorization_code');
     expect(body.get('code_verifier')).toBe('verifier');
     expect(body.get('client_id')).toBe('mgmt-spa');
+  });
+
+  it('defaults the token type to Bearer and omits absent optional fields', async () => {
+    const fetchFn = vi.fn<FetchLike>(() => okJson({ access_token: 'at' }));
+
+    const tokens = await exchangeCodeForToken(
+      'https://op.test/token',
+      { clientId: 'c', code: 'x', redirectUri: 'r', codeVerifier: 'v' },
+      fetchFn,
+    );
+
+    expect(tokens).toEqual({ accessToken: 'at', tokenType: 'Bearer' });
   });
 
   it('throws an AuthError carrying the OAuth error code on failure', async () => {
@@ -189,6 +214,45 @@ describe('exchangeCodeForToken', () => {
         fetchFn,
       ),
     ).rejects.toMatchObject({ name: 'AuthError', code: 'invalid_grant', message: 'bad code' });
+  });
+
+  it('falls back to the HTTP status when the error body is not JSON', async () => {
+    const fetchFn = vi.fn<FetchLike>(() =>
+      Promise.resolve({
+        ok: false,
+        status: 502,
+        json: () => Promise.reject(new SyntaxError('Unexpected token <')),
+        text: () => Promise.resolve('<html>Bad Gateway</html>'),
+      }),
+    );
+
+    const error = await exchangeCodeForToken(
+      'https://op.test/token',
+      { clientId: 'c', code: 'x', redirectUri: 'r', codeVerifier: 'v' },
+      fetchFn,
+    ).catch((cause: unknown) => cause);
+
+    expect(error).toBeInstanceOf(AuthError);
+    expect(error).toMatchObject({ message: 'Token request failed (HTTP 502).', code: undefined });
+  });
+
+  it('ignores non-string error fields in a JSON error body', async () => {
+    const fetchFn = vi.fn<FetchLike>(() =>
+      Promise.resolve({
+        ok: false,
+        status: 401,
+        json: () => Promise.resolve({ error: 42, error_description: { text: 'nope' } }),
+        text: () => Promise.resolve('{}'),
+      }),
+    );
+
+    await expect(
+      refreshAccessToken('https://op.test/token', { clientId: 'c', refreshToken: 'rt' }, fetchFn),
+    ).rejects.toMatchObject({
+      name: 'AuthError',
+      message: 'Token request failed (HTTP 401).',
+      code: undefined,
+    });
   });
 
   it('throws when the response lacks an access_token', async () => {

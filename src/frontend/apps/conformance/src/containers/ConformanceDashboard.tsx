@@ -83,12 +83,16 @@ export function ConformanceDashboard({
 
   useEffect(() => {
     const controller = new AbortController();
+    // A superseded load (aborted by an issuer/loader change) must never write state, even if the loader ignores the
+    // signal and still settles — otherwise one issuer's audit could be shown under another.
     loadDiscovery(runtime.issuer, controller.signal)
       .then((raw) => {
-        setReport(auditDiscovery(raw));
-        setCoverage(buildCoverageReport(raw));
-        setDiscovery(raw);
-        setError(undefined);
+        if (!controller.signal.aborted) {
+          setReport(auditDiscovery(raw));
+          setCoverage(buildCoverageReport(raw));
+          setDiscovery(raw);
+          setError(undefined);
+        }
       })
       .catch((cause: unknown) => {
         if (!controller.signal.aborted) {

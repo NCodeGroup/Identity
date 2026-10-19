@@ -74,7 +74,7 @@ entry and/or ADR that closed it.
 | `D` — Deferred, intentionally not-yet | `D16`     | `D15`      |
 | `F` — Feature gaps                    | `F64`     | `F63`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
-| `U` — Frontend presentation platform  | `U18`     | `U17`      |
+| `U` — Frontend presentation platform  | `U21`     | `U20`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
 | `X` — Tooling & agent customization   | `X5`      | `X4`       |
 
@@ -570,14 +570,33 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   [`src/frontend/package.json`](src/frontend/package.json) (plus `apps/conformance-runner`), the Aspire AppHost's NVS
   lookup ([ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)), and the Node 22 mentions in
   [`src/frontend/README.md`](src/frontend/README.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
-- **`U17` — Frontend tests leave state updates outside `act(...)`.** A green `pnpm test` still logs eight React
-  "An update to … inside a test was not wrapped in act(...)" warnings, from `ExportPublicKeyDialog`,
-  `RevealSecretDialog`, `RevealInitialAccessTokenDialog`, MUI's `FormControl`, and `FlowExplorer`. The same set appears
-  under React 18 and React 19, so it predates the upgrade. Each one is a test that asserts before an async update
-  (a resolved promise, a transition) has settled. That can pass for the wrong reason, and it buries any new warning in
-  noise. Await the settled state with `findBy…` / `waitFor` (or wrap the trigger in `act`) until the suites run with
-  no `act` warnings. Touch points: the `*.test.tsx` of those components in `packages/ui` and
-  `apps/playground/src/containers/FlowExplorer.test.tsx`.
+- **`U18` — One `BootstrapGate` for every standalone surface.** `apps/mgmt`, `apps/playground`, and
+  `apps/conformance` each carry a copy of `src/BootstrapGate.tsx` that differs only in its doc comment — each discovers
+  the runtime configuration through its own `bootstrap.ts` (the surface binding), dispatches it to the store, and themes
+  the loading and error states — so every fix lands three times and each copy needs the same tests. Extract one gate
+  that takes the loader (`(signal) => Promise<RuntimeConfig>`) as a prop into a shared workspace that may depend on both
+  `@ncode/store` and `@ncode/ui`, keep each app's `bootstrap.ts` as its surface binding, and move the tests with the
+  gate. Touch points: the three `src/BootstrapGate.tsx` / `BootstrapGate.test.tsx` pairs and each app's `main.tsx`.
+- **`U19` — Key the Management API cache tags by scope.** [ADR-0064](docs/adr/0064-frontend-presentation-platform.md)
+  makes the global-vs-tenant boundary first-class with distinct cache tags, and the doc comment on `managementApi`
+  promises that a tenant mutation never invalidates the global list and vice versa. The code does not deliver it: the
+  `Client` and `ResourceServer` `LIST` tags are shared by the global scope and every tenant, the `Grant` `LIST` tag by
+  every tenant, and the per-id `Client`/`ResourceServer`/`Secret`/`Settings` tags use the bare resource id, so a
+  mutation in one scope refetches the matching caches of every other scope. RTK Query caches by request arguments, so
+  no data crosses a boundary — the cost is redundant refetches and an invariant that only exists in a comment. Derive
+  each tag id from the scope (for example `tenant:{tenantId}:LIST` / `global:LIST`, and the scope prefix on per-id and
+  `client:`/`tenant:` tags) through one helper beside `scopeApiPrefix`, and extend `managementApi.test.ts`'s
+  invalidation matrix (it already asserts which of 27 cached queries refetch per mutation) to pin cross-scope
+  isolation. Touch points: [`packages/store/src/managementApi.ts`](src/frontend/packages/store/src/managementApi.ts),
+  `packages/api/src/scope.ts`, `packages/store/src/managementApi.test.ts`.
+- **`U20` — Split the standalone SPA bundles below Vite's chunk-size warning.** `pnpm build` warns that `apps/mgmt`,
+  `apps/playground`, and `apps/conformance` each emit a chunk larger than 500 kB after minification — React, MUI,
+  emotion, and Redux all land in one entry chunk. Raising `build.chunkSizeWarningLimit` would only hide it. Split
+  instead: lazy-load the route-level containers (`React.lazy` + `Suspense`) and separate the vendor libraries into their
+  own chunks in the Vite build options, then make a chunk-size warning fail the build so it stays fixed — the
+  build-time counterpart of the test gates in
+  [ADR-0151](docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md).
+  Touch points: each app's `vite.config.ts` and `src/App.tsx`.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
 - **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML

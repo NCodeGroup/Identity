@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ProbeFetch, ProbeResponse } from '@ncode/conformance-core';
 import { runConformanceRunner } from './runner.js';
 import type { RunnerConfig } from './config.js';
@@ -74,5 +74,44 @@ describe('runConformanceRunner', () => {
     const outcomes = Object.fromEntries(report.results.map((r) => [r.id, r.outcome]));
     expect(outcomes['runner-private-key-jwt']).toBe('verified');
     expect(outcomes['runner-dpop']).toBe('verified');
+  });
+
+  describe('run-wide timeout', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('aborts an in-flight request once the timeout elapses', async () => {
+      const signals: AbortSignal[] = [];
+      const fetchFn: ProbeFetch = (_url, init) =>
+        new Promise((_resolve, reject) => {
+          const signal = init?.signal;
+          if (signal) {
+            signals.push(signal);
+            signal.addEventListener('abort', () => reject(new Error('aborted')));
+          }
+        });
+      const run = runConformanceRunner({ ...config, timeoutMs: 5000 }, { fetchFn });
+      const outcome = expect(run).rejects.toThrow('aborted');
+
+      await vi.advanceTimersByTimeAsync(4999);
+      expect(signals).toHaveLength(1);
+      expect(signals[0]?.aborted).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await outcome;
+      expect(signals[0]?.aborted).toBe(true);
+    });
+
+    it('clears the timer once the run settles', async () => {
+      const fetchFn: ProbeFetch = () =>
+        Promise.resolve(jsonResponse({ issuer: 'https://op.test' }));
+      await runConformanceRunner(config, { fetchFn });
+      expect(vi.getTimerCount()).toBe(0);
+    });
   });
 });

@@ -1,11 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { RevealInitialAccessTokenDialog } from './RevealInitialAccessTokenDialog.js';
 
 describe('RevealInitialAccessTokenDialog', () => {
-  it('shows the one-time token with its grant id and expiry, and copies it', () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal('navigator', { clipboard: { writeText } });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('shows the one-time token with its grant id, expiry, and a reveal-once warning', () => {
     render(
       <RevealInitialAccessTokenDialog
         open
@@ -18,12 +20,34 @@ describe('RevealInitialAccessTokenDialog', () => {
 
     expect(screen.getByTestId('reveal-iat-grant-id')).toHaveTextContent('g-1');
     expect(screen.getByTestId('reveal-iat-expires')).toHaveTextContent('2027-01-01T00:00:00Z');
+    expect(screen.queryByTestId('reveal-iat-no-expiry')).not.toBeInTheDocument();
     expect(screen.getByTestId('reveal-iat-token')).toHaveTextContent('iat-123');
+    expect(
+      screen.getByText(/shown only once and can never be retrieved again/),
+    ).toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByTestId('reveal-iat-copy'));
-    expect(writeText).toHaveBeenCalledWith('iat-123');
+  it('copies the token and confirms it in the copy tooltip', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { clipboard: { writeText } });
+    render(
+      <RevealInitialAccessTokenDialog
+        open
+        token="iat-123"
+        grantId="g-1"
+        expiresWhen={null}
+        onClose={vi.fn()}
+      />,
+    );
+    const copy = screen.getByTestId('reveal-iat-copy');
 
-    vi.unstubAllGlobals();
+    fireEvent.mouseOver(copy);
+    expect(await screen.findByRole('tooltip', { name: 'Copy' })).toBeInTheDocument();
+
+    fireEvent.click(copy);
+
+    expect(await screen.findByRole('tooltip', { name: 'Copied' })).toBeInTheDocument();
+    expect(writeText).toHaveBeenCalledExactlyOnceWith('iat-123');
   });
 
   it('notes a non-expiring token', () => {
@@ -36,7 +60,9 @@ describe('RevealInitialAccessTokenDialog', () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByTestId('reveal-iat-no-expiry')).toBeInTheDocument();
+    expect(screen.getByTestId('reveal-iat-no-expiry')).toHaveTextContent(
+      'This token does not expire.',
+    );
     expect(screen.queryByTestId('reveal-iat-expires')).not.toBeInTheDocument();
   });
 
@@ -52,6 +78,6 @@ describe('RevealInitialAccessTokenDialog', () => {
       />,
     );
     fireEvent.click(screen.getByTestId('reveal-iat-done'));
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

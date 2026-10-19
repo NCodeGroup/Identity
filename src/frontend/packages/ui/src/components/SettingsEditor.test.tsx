@@ -15,6 +15,10 @@ describe('SettingsEditor', () => {
       <SettingsEditor initialJson={initialJson} effectiveJson={effectiveJson} onSave={vi.fn()} />,
     );
     expect(screen.getByTestId('settings-save')).toBeDisabled();
+    fireEvent.change(screen.getByTestId('settings-json'), { target: { value: '{}' } });
+    expect(screen.getByTestId('settings-save')).toBeEnabled();
+    fireEvent.change(screen.getByTestId('settings-json'), { target: { value: initialJson } });
+    expect(screen.getByTestId('settings-save')).toBeDisabled();
   });
 
   it('saves the parsed object after a valid edit', () => {
@@ -57,5 +61,63 @@ describe('SettingsEditor', () => {
       />,
     );
     expect(screen.getByTestId('settings-error')).toHaveTextContent('Conflict');
+  });
+
+  it('shows the persisted settings for editing and the effective settings read-only', () => {
+    render(
+      <SettingsEditor initialJson={initialJson} effectiveJson={effectiveJson} onSave={vi.fn()} />,
+    );
+    expect(screen.getByTestId('settings-json')).toHaveValue(initialJson);
+    expect(screen.getByTestId('effective-settings-json')).toHaveValue(effectiveJson);
+    expect(screen.getByTestId('effective-settings-json')).toHaveAttribute('readonly');
+    expect(screen.queryByTestId('settings-error')).not.toBeInTheDocument();
+    expect(screen.getByTestId('settings-save')).toHaveTextContent('Save settings');
+  });
+
+  it.each(['null', '42', '"text"'])('rejects the non-object JSON value %s', (value) => {
+    render(
+      <SettingsEditor initialJson={initialJson} effectiveJson={effectiveJson} onSave={vi.fn()} />,
+    );
+    fireEvent.change(screen.getByTestId('settings-json'), { target: { value } });
+    expect(screen.getByText('Settings must be a JSON object.')).toBeInTheDocument();
+    expect(screen.getByTestId('settings-save')).toBeDisabled();
+  });
+
+  it('disables save while saving a valid edit', () => {
+    render(
+      <SettingsEditor
+        initialJson={initialJson}
+        effectiveJson={effectiveJson}
+        isSaving
+        onSave={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByTestId('settings-json'), {
+      target: { value: '{"accessTokenLifetime": 7200}' },
+    });
+    expect(screen.getByTestId('settings-save')).toBeDisabled();
+    expect(screen.getByTestId('settings-save')).toHaveTextContent('Saving…');
+  });
+
+  it('keeps in-progress edits until the persisted settings change, then reseeds', () => {
+    const onSave = vi.fn();
+    const { rerender } = render(
+      <SettingsEditor initialJson={initialJson} effectiveJson={effectiveJson} onSave={onSave} />,
+    );
+    const edited = '{"accessTokenLifetime": 7200}';
+    fireEvent.change(screen.getByTestId('settings-json'), { target: { value: edited } });
+
+    rerender(
+      <SettingsEditor initialJson={initialJson} effectiveJson={effectiveJson} onSave={onSave} />,
+    );
+    expect(screen.getByTestId('settings-json')).toHaveValue(edited);
+    expect(screen.getByTestId('settings-save')).toBeEnabled();
+
+    const savedJson = JSON.stringify({ accessTokenLifetime: 7200 }, null, 2);
+    rerender(
+      <SettingsEditor initialJson={savedJson} effectiveJson={effectiveJson} onSave={onSave} />,
+    );
+    expect(screen.getByTestId('settings-json')).toHaveValue(savedJson);
+    expect(screen.getByTestId('settings-save')).toBeDisabled();
   });
 });

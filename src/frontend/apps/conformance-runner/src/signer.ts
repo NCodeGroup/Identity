@@ -72,6 +72,8 @@ export function isSupportedAlg(value: string): value is JwaSignatureAlg {
  * Loads a PEM- or JWK-encoded private key, resolving its signature algorithm. The algorithm is inferred from the key
  * (the curve for EC keys, `EdDSA` for Ed25519/Ed448, `PS256` for RSA) and can be overridden via {@link
  * LoadSigningKeyOptions.alg}; an override that contradicts the key material (wrong family or EC curve) is rejected.
+ * RSA keys must be ordinary `rsaEncryption` keys: an RSA-PSS-restricted (`id-RSASSA-PSS`) key is rejected because its
+ * public key cannot be published as a JWK, and the `PS*` algorithms already sign an ordinary RSA key with PSS padding.
  */
 export function loadSigningKey(material: string, options: LoadSigningKeyOptions = {}): SigningKey {
   const { privateKey, kid } = parsePrivateKey(material);
@@ -128,7 +130,12 @@ function resolveAlg(privateKey: KeyObject, override?: JwaSignatureAlg): JwaSigna
     }
     return inferred;
   }
-  if (type === 'rsa' || type === 'rsa-pss') {
+  if (type === 'rsa-pss') {
+    throw new Error(
+      "RSA-PSS-restricted keys (id-RSASSA-PSS) cannot be published as a JWK; supply an ordinary RSA (rsaEncryption) key — 'PS256'/'PS384'/'PS512' already sign it with PSS padding.",
+    );
+  }
+  if (type === 'rsa') {
     if (override !== undefined) {
       if (!RSA_ALGS.has(override)) {
         throw new Error(`Algorithm '${override}' is not an RSA algorithm.`);

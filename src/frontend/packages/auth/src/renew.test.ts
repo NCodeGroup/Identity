@@ -89,6 +89,30 @@ describe('createTokenRenewer', () => {
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
+  it('does not re-arm when the renewed token set carries no expiry hint', async () => {
+    const fetchFn = vi.fn<FetchLike>(() =>
+      okJson({ access_token: 'at2', token_type: 'Bearer', refresh_token: 'rt2' }),
+    );
+    const onRenewed = vi.fn();
+    const renewer = createTokenRenewer({
+      tokenEndpoint: 'https://op.test/token',
+      clientId: 'mgmt-spa',
+      fetchFn,
+      getRefreshToken: () => 'rt',
+      onRenewed,
+      onError: vi.fn(),
+      skewSeconds: 60,
+    });
+
+    renewer.schedule(3600 * 1000);
+    await vi.advanceTimersByTimeAsync((3600 - 60) * 1000);
+    expect(onRenewed).toHaveBeenCalledWith(expect.objectContaining({ accessToken: 'at2' }));
+
+    await vi.advanceTimersByTimeAsync(24 * 3600 * 1000);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('reports an error and stops when no refresh token is available', async () => {
     const fetchFn = vi.fn<FetchLike>(() => okJson({}));
     const onError = vi.fn();

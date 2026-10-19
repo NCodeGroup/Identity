@@ -9,7 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 0",
     "test": "vitest run"
   },
   "dependencies": {
@@ -27,6 +27,7 @@
     "react-redux": "^9.1.2"
   },
   "devDependencies": {
+    "@ncode/test-support": "workspace:*",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.0.1",
     "@types/react": "^19.3.0",

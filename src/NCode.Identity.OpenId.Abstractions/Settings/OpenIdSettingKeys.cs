@@ -66,6 +66,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.FederatedIdentityExplicitOnly);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'access_token_confirmation_methods_supported' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> AccessTokenConfirmationMethodsSupported =>
+        new(OpenIdSettingNames.AccessTokenConfirmationMethodsSupported);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'access_token_encryption_alg_values_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> AccessTokenEncryptionAlgValuesSupported =>
@@ -88,6 +94,12 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<TimeSpan> AccessTokenLifetime =>
         new(OpenIdSettingNames.AccessTokenLifetime);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'access_token_sender_constraint_required' setting.
+    /// </summary>
+    public static SettingKey<bool> AccessTokenSenderConstraintRequired =>
+        new(OpenIdSettingNames.AccessTokenSenderConstraintRequired);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'access_token_signing_alg_values_supported' setting.

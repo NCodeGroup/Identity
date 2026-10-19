@@ -22,7 +22,8 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 
 /// <summary>
 /// Reads an algorithm list (<c>*_alg_values_supported</c>, <c>*_enc_values_supported</c>) where it decides which
-/// algorithms the server accepts from another party — a cryptographic trust boundary.
+/// algorithms the server accepts from another party — a cryptographic trust boundary — or which it may protect a token
+/// with.
 /// </summary>
 // See ADR-0155.
 internal static class PermittedAlgorithmExtensions

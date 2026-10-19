@@ -1,6 +1,10 @@
 # 75. Runtime consumption of resource-server secrets and settings at access-token issuance
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0158](0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md): the client's and every
+  targeted resource server's settings combine by their lattice merges, and an encrypted token goes to the party that
+  reads it — a resource server that decrypts its own tokens, or else the tenant — with no fallback and no
+  provenance-based multi-audience guard)
 - **Date:** 2026-10-11
 - **Deciders:** NCode.Identity maintainers
 

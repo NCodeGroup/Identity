@@ -17,18 +17,16 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.Secrets.Collections;
 
 namespace NCode.Identity.OpenId.Authentication.ResourceServers;
 
 /// <summary>
-/// The result of resolving the resource servers an access token targets, used to bind the token's audience and — when
-/// it targets a single resource server — encrypt it to that resource server's own key. When the token
-/// targets exactly one resource server, <see cref="SingleSecretsProvider"/> exposes that resource server's own secret
-/// keys; otherwise it is <c>null</c> and the token uses the tenant's keys. The transient provider is owned by this
-/// instance and released on disposal. Access tokens are always signed with the tenant's key, never a resource server's.
+/// The result of resolving the resource servers an access token targets: they bind the token's audience, their settings
+/// bound the token together with the client's, and their own keys are the ones a token encrypted to one of them uses.
+/// Each resolved resource server's secret-key provider is owned by this instance and released on disposal. Access tokens
+/// are always signed with the tenant's key, never a resource server's.
 /// </summary>
-// See ADR-0075.
+// See ADR-0075 and ADR-0154.
 [PublicAPI]
 public sealed class ResourceServerCredentialResolution : IAsyncDisposable
 {
@@ -39,14 +37,9 @@ public sealed class ResourceServerCredentialResolution : IAsyncDisposable
     public required IReadOnlyList<ResolvedResourceServer> ResourceServers { get; init; }
 
     /// <summary>
-    /// Gets the secret-key collection provider for the single targeted resource server, or <c>null</c> when the token
-    /// targets zero or more than one resource server. Owned by this instance.
-    /// </summary>
-    public ISecretKeyCollectionProvider? SingleSecretsProvider { get; init; }
-
-    /// <summary>
     /// Gets the single targeted resource server, or <c>null</c> when the token targets zero or more than one resource
-    /// server. Per-audience encryption material is only well-defined for a single-audience token.
+    /// server. A compact JWE has one recipient, so a token can be encrypted to a resource server's own key only when it
+    /// targets that resource server alone.
     /// </summary>
     public ResolvedResourceServer? Single => ResourceServers.Count == 1 ? ResourceServers[0] : null;
 
@@ -57,6 +50,11 @@ public sealed class ResourceServerCredentialResolution : IAsyncDisposable
         ResourceServers.Select(resourceServer => resourceServer.Identifier).ToList();
 
     /// <inheritdoc />
-    public ValueTask DisposeAsync() =>
-        SingleSecretsProvider?.DisposeAsync() ?? ValueTask.CompletedTask;
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var resourceServer in ResourceServers)
+        {
+            await resourceServer.SecretsProvider.DisposeAsync();
+        }
+    }
 }

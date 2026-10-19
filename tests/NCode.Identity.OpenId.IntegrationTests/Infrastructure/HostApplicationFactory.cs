@@ -485,9 +485,27 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// (RFC 8705 §2.2) whose registered certificate is the public half of <paramref name="certificate"/>, so the
     /// client authenticates by presenting that certificate on the mutual-TLS connection.
     /// </summary>
+    public Task SeedSelfSignedTlsClientAsync(
+        string clientId,
+        X509Certificate2 certificate,
+        params string[] grantTypes
+    ) =>
+        SeedSelfSignedTlsClientAsync(
+            clientId,
+            certificate,
+            new Dictionary<string, object>(),
+            grantTypes
+        );
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client registered for <c>self_signed_tls_client_auth</c>
+    /// whose registered certificate is the public half of <paramref name="certificate"/>, carrying the given
+    /// additional client settings (for example <c>tls_client_certificate_bound_access_tokens</c>).
+    /// </summary>
     public async Task SeedSelfSignedTlsClientAsync(
         string clientId,
         X509Certificate2 certificate,
+        IReadOnlyDictionary<string, object> additionalSettings,
         params string[] grantTypes
     )
     {
@@ -523,7 +541,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
         };
 
-        var settings = new Dictionary<string, object>
+        var settings = new Dictionary<string, object>(additionalSettings)
         {
             ["token_endpoint_auth_method"] = OpenIdConstants
                 .ClientAuthenticationMethods
@@ -674,10 +692,29 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// Seeds a resource server owning the given scopes and a client grant authorizing the client to all of them,
     /// so the client may request those scopes (replaces the retired <c>scopes_supported</c> setting).
     /// </summary>
+    public Task SeedResourceServerWithClientGrantAsync(
+        string clientId,
+        string resourceServerId,
+        string identifier,
+        params string[] scopes
+    ) =>
+        SeedResourceServerWithClientGrantAsync(
+            clientId,
+            resourceServerId,
+            identifier,
+            new Dictionary<string, object>(),
+            scopes
+        );
+
+    /// <summary>
+    /// Seeds a resource server carrying the given settings document and owning the given scopes, and a client grant
+    /// authorizing the client to all of them. The settings bound every access token issued for the resource server.
+    /// </summary>
     public async Task SeedResourceServerWithClientGrantAsync(
         string clientId,
         string resourceServerId,
         string identifier,
+        IReadOnlyDictionary<string, object> settings,
         params string[] scopes
     )
     {
@@ -686,9 +723,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             using var _ = await warmupClient.GetAsync("/oauth2/jwks");
         }
 
-        var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
-            new Dictionary<string, object>()
-        );
+        var settingsJson = System.Text.Json.JsonSerializer.SerializeToElement(settings);
 
         using var scope = Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
@@ -712,7 +747,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 {
                     TenantId = TenantId,
                     ResourceServerId = resourceServerId,
-                    Value = emptySettingsJson,
+                    Value = settingsJson,
                 },
                 Scopes = scopes
                     .Select(value => new PersistedScope

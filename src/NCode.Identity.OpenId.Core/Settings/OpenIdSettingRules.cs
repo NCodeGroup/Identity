@@ -67,6 +67,16 @@ internal static class OpenIdSettingRules
         );
 
     /// <summary>
+    /// Gets the rule for a <c>cnf</c> confirmation method an access token can be bound by: <c>jkt</c> (a DPoP proof key,
+    /// RFC 9449) or <c>x5t#S256</c> (a mutual-TLS client certificate, RFC 8705) — the methods the server binds with.
+    /// </summary>
+    public static SettingRule<string> ConfirmationMethod() =>
+        SettingRules.OneOf(
+            OpenIdConstants.ConfirmationMethods.JwkThumbprint,
+            OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint
+        );
+
+    /// <summary>
     /// Gets the rule for a <c>response_type</c> value: one of the response types defined by OAuth 2.0 and OAuth 2.0
     /// Multiple Response Type Encoding Practices, written in canonical form — its names in ordinal order, separated by a
     /// single space (<c>code id_token</c>, not <c>id_token code</c>). A setting lists the whole values the server

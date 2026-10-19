@@ -43,10 +43,11 @@ namespace NCode.Identity.OpenId.Settings;
 /// scopes whose effective settings the server reads it from. Discovery and the tenant-wide services (sessions,
 /// principal resolution, federation, dynamic registration policy) read a tenant's effective settings, so every
 /// discoverable setting applies to tenants; the protocol endpoints read the effective settings of the client making the
-/// request; and access-token issuance reads a targeted resource server's effective settings for its encryption.
+/// request; and access-token issuance combines the client's effective settings with those of every resource server the
+/// token targets, so every setting that applies to resource servers merges with a lattice operation (ADR-0158).
 /// </para>
 /// </remarks>
-// See ADR-0140 (domains) and ADR-0149 (scopes).
+// See ADR-0140 (domains), ADR-0149 (scopes), and ADR-0158 (resource-server bounds).
 internal class DefaultSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
@@ -58,6 +59,8 @@ internal class DefaultSettingDescriptorDataSource(
 
     private static ImmutableArray<string> Tenants { get; } = [OpenIdSettingScopes.Tenant];
     private static ImmutableArray<string> Clients { get; } = [OpenIdSettingScopes.Client];
+    private static ImmutableArray<string> ResourceServers { get; } =
+    [OpenIdSettingScopes.ResourceServer];
 
     private static ImmutableArray<string> TenantsAndClients { get; } =
     [OpenIdSettingScopes.Tenant, OpenIdSettingScopes.Client];
@@ -162,8 +165,23 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Or,
             };
 
+            // access_token_confirmation_methods_supported: the 'cnf' methods a resource server verifies (jkt for DPoP,
+            // x5t#S256 for mutual TLS). A required sender constraint is met only by a binding every targeted resource
+            // server verifies. Ceiling (Intersect): a child narrows the parent's set; unset = every method (ADR-0010).
+            // Scopes: a resource server's bound on the tokens issued for it, combined at issuance (ADR-0158).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.AccessTokenConfirmationMethodsSupported,
+                AppliesTo = ResourceServers,
+                Rule = SettingRules.Each(OpenIdSettingRules.ConfirmationMethod()),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
             // access_token_encryption_alg_values_supported: permitted "alg" values for access-token encryption.
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Scopes: the client's and every targeted resource server's lists combine at issuance (ADR-0158).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported,
@@ -176,6 +194,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // access_token_encryption_enc_values_supported: permitted "enc" values for access-token encryption.
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Scopes: the client's and every targeted resource server's lists combine at issuance (ADR-0158).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionEncValuesSupported,
@@ -187,8 +206,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // access_token_encryption_required: whether issued access tokens must be encrypted (default false).
-            // Floor (Or): once a parent requires it, a child cannot un-require it. Scopes: a single targeted resource
-            // server's effective settings govern its tokens' encryption, otherwise the client's do. (ADR-0075)
+            // Floor (Or): once a parent requires it, a child cannot un-require it. Scopes: the client's and every
+            // targeted resource server's requirements combine at issuance (ADR-0075, ADR-0158).
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionRequired,
@@ -201,10 +220,11 @@ internal class DefaultSettingDescriptorDataSource(
 
             // access_token_lifetime: validity window for issued access tokens (default 5 minutes).
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // Scopes: the client's and every targeted resource server's lifetimes combine at issuance (ADR-0158).
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.AccessTokenLifetime,
-                AppliesTo = Clients,
+                AppliesTo = ClientsAndResourceServers,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(5.0),
 
@@ -212,12 +232,27 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Min,
             };
 
+            // access_token_sender_constraint_required: whether an access token must be bound to a DPoP proof key or a
+            // mutual-TLS client certificate (default false). Floor (Or): once a parent requires it, a child cannot
+            // un-require it. Scopes: the client's requirement is enforced at the token endpoint; the client's and every
+            // targeted resource server's requirements combine at issuance (ADR-0158).
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.AccessTokenSenderConstraintRequired,
+                AppliesTo = ClientsAndResourceServers,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Or,
+            };
+
             // access_token_signing_alg_values_supported: permitted "alg" values for access-token signing.
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Scopes: the client's and every targeted resource server's lists combine at issuance (ADR-0158).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
-                AppliesTo = Clients,
+                AppliesTo = ClientsAndResourceServers,
                 Rule = AsymmetricSignatureAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,

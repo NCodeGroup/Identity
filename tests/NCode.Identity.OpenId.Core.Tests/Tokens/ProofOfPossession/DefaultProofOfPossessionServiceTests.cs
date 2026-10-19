@@ -88,6 +88,12 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
             .Returns(certificateBound);
     }
 
+    private void SetupSenderConstraintRequired() =>
+        MockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.AccessTokenSenderConstraintRequired))
+            .Returns(true)
+            .Verifiable();
+
     #endregion
 
     #region EvaluateTokenRequestAsync Tests
@@ -193,6 +199,71 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
                 )
                 .AsTask()
         );
+    }
+
+    [Fact]
+    public async Task EvaluateTokenRequestAsync_WhenSenderConstraintRequiredAndUnbound_Throws()
+    {
+        SetupSettings(requireDPoP: false, certificateBound: false);
+        SetupSenderConstraintRequired();
+
+        await Assert.ThrowsAsync<OpenIdException>(() =>
+            Service
+                .EvaluateTokenRequestAsync(
+                    MockContext.Object,
+                    MockClient.Object,
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Fact]
+    public async Task EvaluateTokenRequestAsync_WhenSenderConstraintRequiredAndDPoPBound_ReturnsBinding()
+    {
+        SetupSettings(requireDPoP: false, certificateBound: false);
+        SetupSenderConstraintRequired();
+        HttpContext.Request.Headers[OpenIdConstants.DPoP.HeaderName] = "proof-jwt";
+        MockValidator
+            .Setup(x =>
+                x.ValidateAsync(
+                    MockContext.Object,
+                    It.IsAny<DPoPProofValidationRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync("jkt-thumbprint")
+            .Verifiable();
+
+        var binding = await Service.EvaluateTokenRequestAsync(
+            MockContext.Object,
+            MockClient.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(binding.IsSenderConstrained);
+        Assert.Equal("jkt-thumbprint", binding.Confirmation.JwkThumbprint);
+    }
+
+    [Fact]
+    public async Task EvaluateTokenRequestAsync_WhenSenderConstraintRequiredAndCertificateBound_ReturnsBinding()
+    {
+        SetupSettings(requireDPoP: false, certificateBound: true);
+        SetupSenderConstraintRequired();
+        using var certificate = CreateSelfSignedCertificate();
+        MockCertificateResolver
+            .Setup(x => x.ResolveCertificateAsync(HttpContext, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(certificate)
+            .Verifiable();
+
+        var binding = await Service.EvaluateTokenRequestAsync(
+            MockContext.Object,
+            MockClient.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(binding.IsSenderConstrained);
+        Assert.NotNull(binding.Confirmation.X509CertificateSha256Thumbprint);
     }
 
     #endregion

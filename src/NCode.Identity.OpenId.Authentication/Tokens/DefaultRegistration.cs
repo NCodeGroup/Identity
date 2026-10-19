@@ -46,6 +46,10 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<ITokenService, DefaultTokenService>();
             serviceCollection.TryAddSingleton<
+                IAccessTokenPolicyService,
+                DefaultAccessTokenPolicyService
+            >();
+            serviceCollection.TryAddSingleton<
                 IAuthorizationCodeService,
                 DefaultAuthorizationCodeService
             >();

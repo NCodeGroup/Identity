@@ -21,6 +21,30 @@ namespace NCode.Identity.Settings;
 
 public class DefaultSettingCollectionTests : BaseTests
 {
+    private static SettingDescriptor<bool> FloorDescriptor { get; } =
+        new()
+        {
+            Name = "required",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Or,
+        };
+
+    private static SettingDescriptor<IReadOnlyCollection<string>> CeilingListDescriptor { get; } =
+        new()
+        {
+            Name = "values_supported",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Intersect,
+        };
+
+    private static SettingDescriptor<TimeSpan> CeilingDescriptor { get; } =
+        new()
+        {
+            Name = "lifetime",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Min,
+        };
+
     private readonly Mock<ISettingDescriptorCollectionProvider> _mockProvider;
 
     public DefaultSettingCollectionTests()
@@ -310,6 +334,83 @@ public class DefaultSettingCollectionTests : BaseTests
         Assert.Equal("other", merged.GetValue(new SettingKey<string>("a")));
         Assert.Equal("keep", merged.GetValue(new SettingKey<string>("b")));
         Assert.Equal("new", merged.GetValue(new SettingKey<string>("c")));
+    }
+
+    #endregion
+
+    #region Combine Tests
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void Combine_WhenEitherCollectionRequires_TheCombinationRequires(
+        bool current,
+        bool other
+    )
+    {
+        var collection = CreateCollection(FloorDescriptor.Create(current));
+
+        var combined = collection.Combine([FloorDescriptor.Create(other)]);
+
+        Assert.True(combined.GetValue(FloorDescriptor.Key));
+    }
+
+    [Fact]
+    public void Combine_WhenBothCarryAList_KeepsTheValuesBothPermitInTheCurrentOrder()
+    {
+        var collection = CreateCollection(CeilingListDescriptor.Create(["a", "b", "c"]));
+
+        var combined = collection.Combine([CeilingListDescriptor.Create(["c", "a"])]);
+
+        Assert.Equal(["a", "c"], combined.GetValue(CeilingListDescriptor.Key));
+    }
+
+    [Fact]
+    public void Combine_WhenBothCarryAnOrderedCeiling_KeepsTheLesser()
+    {
+        var collection = CreateCollection(CeilingDescriptor.Create(TimeSpan.FromMinutes(1)));
+
+        var combined = collection.Combine([CeilingDescriptor.Create(TimeSpan.FromMinutes(5))]);
+
+        Assert.Equal(TimeSpan.FromMinutes(1), combined.GetValue(CeilingDescriptor.Key));
+    }
+
+    [Fact]
+    public void Combine_WhenOnlyOneCollectionCarriesASetting_KeepsItsValue()
+    {
+        var collection = CreateCollection(FloorDescriptor.Create(true));
+
+        var combined = collection.Combine([CeilingDescriptor.Create(TimeSpan.FromMinutes(2))]);
+
+        Assert.Equal(2, combined.Count);
+        Assert.True(combined.GetValue(FloorDescriptor.Key));
+        Assert.Equal(TimeSpan.FromMinutes(2), combined.GetValue(CeilingDescriptor.Key));
+    }
+
+    [Fact]
+    public void Combine_WhenOtherSettingMergesWithAProjection_Throws()
+    {
+        var collection = CreateCollection();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            collection.Combine([Setting("a", "other")])
+        );
+
+        Assert.Contains("'a'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Combine_DoesNotModifyTheCurrentCollection()
+    {
+        var collection = CreateCollection(FloorDescriptor.Create(false));
+
+        _ = collection.Combine([
+            FloorDescriptor.Create(true),
+            CeilingDescriptor.Create(TimeSpan.Zero),
+        ]);
+
+        Assert.Single(collection);
+        Assert.False(collection.GetValue(FloorDescriptor.Key));
     }
 
     #endregion

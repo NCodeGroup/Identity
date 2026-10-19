@@ -17,15 +17,16 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.ResourceServers;
 
 /// <summary>
 /// Represents a resource server resolved at access-token issuance as one of the audiences a token targets, carrying the
-/// effective settings used to govern per-audience encryption of the token when it targets this resource server alone.
+/// effective settings that bound the access tokens issued for it and its own secret keys.
 /// </summary>
-// See ADR-0075.
+// See ADR-0075 and ADR-0154.
 [PublicAPI]
 public sealed class ResolvedResourceServer
 {
@@ -41,8 +42,17 @@ public sealed class ResolvedResourceServer
 
     /// <summary>
     /// Gets the resource server's effective settings — the server baseline merged with the tenant's and then the
-    /// resource server's persisted overrides — used to select the access-token encryption algorithm (and whether
-    /// encryption is required) when the token targets this resource server alone.
+    /// resource server's persisted overrides. The settings among them that apply to resource servers bound every access
+    /// token issued for it: they are combined with the requesting client's effective settings, and with those of every
+    /// other resource server the token targets, by their lattice merges.
     /// </summary>
     public required IReadOnlySettingCollection EffectiveSettings { get; init; }
+
+    /// <summary>
+    /// Gets the provider of the resource server's own secret keys — the keys an access token can be encrypted to so
+    /// that only this resource server can read it. The provider is owned by the
+    /// <see cref="ResourceServerCredentialResolution"/> that carries this resource server and is released when the
+    /// resolution is disposed. Access tokens are never signed with a resource server's key.
+    /// </summary>
+    public required ISecretKeyCollectionProvider SecretsProvider { get; init; }
 }

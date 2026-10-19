@@ -212,4 +212,26 @@ internal class DefaultSettingCollection : ISettingCollection
 
         return new DefaultSettingCollection(SettingDescriptorCollectionProvider, newStore);
     }
+
+    /// <inheritdoc />
+    public ISettingCollection Combine(IEnumerable<Setting> otherCollection)
+    {
+        var otherSettings = otherCollection.ToList();
+
+        // Every contributed setting must merge with a lattice operation whether or not this collection carries it, so a
+        // descriptor that cannot be combined fails the same way for every pair of collections (ADR-0154).
+        foreach (var otherSetting in otherSettings)
+        {
+            var descriptor = otherSetting.Descriptor;
+            if (!descriptor.HasLatticeMerge)
+            {
+                throw new InvalidOperationException(
+                    $"The setting '{descriptor.Name}' cannot be combined across sibling scopes because it does not "
+                        + "merge with a lattice operation (Min, Max, And, Or, Intersect, or Union)."
+                );
+            }
+        }
+
+        return Merge(otherSettings);
+    }
 }

@@ -23,18 +23,18 @@ namespace NCode.Identity.OpenId.Authentication.ResourceServers;
 
 /// <summary>
 /// Resolves the resource servers an access token targets — the tenant's enabled resource servers that own at least one
-/// of the token's effective scopes — and materializes the per-audience encryption material consumed at token issuance.
-/// When exactly one resource server is targeted, its effective settings and own secret keys govern the
-/// token's encryption; the token is always signed with the tenant's key. Register a custom implementation to replace
-/// the default behavior.
+/// of the token's effective scopes — and materializes, for each, its effective settings and its own secret keys. The
+/// resolution supplies data only: access-token issuance combines every targeted resource server's settings with the
+/// requesting client's, and chooses the token's credentials, itself. The token is always signed with the tenant's key.
+/// Register a custom implementation to replace the default behavior.
 /// </summary>
-// See ADR-0075.
+// See ADR-0075 and ADR-0154.
 [PublicAPI]
 public interface IResourceServerCredentialResolver
 {
     /// <summary>
     /// Resolves the resource servers that own at least one of the specified effective scopes within the current
-    /// tenant, returning their audiences and — when exactly one is targeted — its own secret-key provider. When
+    /// tenant, returning their audiences, effective settings, and own secret-key providers. When
     /// <paramref name="requestedResources"/> is non-empty (RFC 8707 Resource Indicators), the result is narrowed to
     /// those resource servers; a requested resource that does not correspond to an enabled resource server owning one
     /// of the effective scopes is rejected with an <c>invalid_target</c> error.

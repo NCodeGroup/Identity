@@ -5,7 +5,9 @@
   `token_endpoint_auth_method` is a `client_secret_basic` client, so only `none` registers a public client; the profile
   registry amended by [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md): the catalog resolves
   every profile a scope's effective `security_profiles` selects, runs all of their requirements, and a profile
-  contributes its ceiling through `ISecurityProfileCeilingBuilder`)
+  contributes its ceiling through `ISecurityProfileCeilingBuilder`; the sender-constrained-token rule amended by
+  [ADR-0158](0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md): it is the ceiling
+  `access_token_sender_constraint_required = true`, and `SenderConstrainedAccessTokenRequirement` is removed)
 - **Date:** 2026-10-16
 - **Deciders:** NCode Group
 

@@ -75,7 +75,23 @@ internal class DefaultProofOfPossessionService(
             X509CertificateSha256Thumbprint = certificateThumbprint,
         };
 
-        // Apply any security-profile token-request requirements (e.g. FAPI's sender-constrained-token rule).
+        // A client whose effective settings require a sender-constrained access token — set on the client, inherited
+        // from its tenant, or the ceiling of a security profile it selects — is refused here, before its grant is spent.
+        // Issuance checks the requirement again together with every targeted resource server's (ADR-0158).
+        if (
+            settings.GetValue(OpenIdSettingKeys.AccessTokenSenderConstraintRequired)
+            && !confirmation.HasValue
+        )
+        {
+            throw errorFactory
+                .InvalidRequest(
+                    "The client's access tokens must be sender-constrained; present a DPoP proof or a bound client "
+                        + "certificate."
+                )
+                .AsException();
+        }
+
+        // Apply any other security-profile token-request requirements a registered profile composes.
         await SecurityProfileCatalog.EvaluateRequirementsAsync(
             settings,
             new TokenRequestProfileContext(openIdContext, openIdClient, confirmation),

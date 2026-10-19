@@ -45,13 +45,13 @@ export function ClientFormDialog({
   onCancel,
 }: ClientFormDialogProps) {
   const [values, setValues] = useState<ClientFormValues>(initialValues);
-  const wasOpen = useRef(open);
+  const wasOpenRef = useRef(open);
 
   useEffect(() => {
-    if (open && !wasOpen.current) {
+    if (open && !wasOpenRef.current) {
       setValues(initialValues);
     }
-    wasOpen.current = open;
+    wasOpenRef.current = open;
   }, [open, initialValues]);
 
   return (

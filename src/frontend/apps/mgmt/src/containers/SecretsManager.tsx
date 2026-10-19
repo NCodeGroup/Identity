@@ -74,6 +74,8 @@ export function SecretsManager({
   onDelete,
   onExportPublicKey,
 }: SecretsManagerProps) {
+  // Read the clock once, in a state initializer: reading it during render would make the table's output impure.
+  const [now] = useState(() => Date.now());
   const [dialog, setDialog] = useState<SecretDialogState>(closed);
   const [formError, setFormError] = useState<string>();
   const [deleteError, setDeleteError] = useState<string>();
@@ -168,6 +170,7 @@ export function SecretsManager({
       >
         <SecretTable
           secrets={[...secrets]}
+          now={now}
           onDelete={openDelete}
           onExportPublicKey={openExport}
           exportableSecretTypes={exportableSecretTypes}

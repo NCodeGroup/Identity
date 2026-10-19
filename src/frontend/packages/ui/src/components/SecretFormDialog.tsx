@@ -94,13 +94,13 @@ export function SecretFormDialog({
   onCancel,
 }: SecretFormDialogProps) {
   const [values, setValues] = useState<SecretFormValues>(initialValues);
-  const wasOpen = useRef(open);
+  const wasOpenRef = useRef(open);
 
   useEffect(() => {
-    if (open && !wasOpen.current) {
+    if (open && !wasOpenRef.current) {
       setValues(initialValues);
     }
-    wasOpen.current = open;
+    wasOpenRef.current = open;
   }, [open, initialValues]);
 
   // When the server advertises algorithms, the algorithm, use, and key-size inputs are driven by discovery

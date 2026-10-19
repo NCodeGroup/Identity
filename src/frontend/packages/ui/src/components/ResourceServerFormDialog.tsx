@@ -55,13 +55,13 @@ export function ResourceServerFormDialog({
   onCancel,
 }: ResourceServerFormDialogProps) {
   const [values, setValues] = useState<ResourceServerFormValues>(initialValues);
-  const wasOpen = useRef(open);
+  const wasOpenRef = useRef(open);
 
   useEffect(() => {
-    if (open && !wasOpen.current) {
+    if (open && !wasOpenRef.current) {
       setValues(initialValues);
     }
-    wasOpen.current = open;
+    wasOpenRef.current = open;
   }, [open, initialValues]);
 
   const identifier = values.identifier.trim();

@@ -183,29 +183,22 @@ internal class ClientSecretBasicClientAuthenticationHandler(
 
         var indexOfColon = decodeSpan.IndexOf(':');
 
-        var encodedClientId = indexOfColon == -1 ? decodeSpan : decodeSpan[..indexOfColon];
-        var clientId = UriDecode(encodedClientId);
-
+        // RFC 7617 §2: the credentials are the user-id and the password separated by a colon, so credentials without
+        // one carry no client_secret and are a failed authentication.
         if (indexOfColon == -1)
-        {
-            return await AuthenticateClientAsync(
-                openIdContext,
-                clientId,
-                ReadOnlyMemory<char>.Empty,
-                hasClientSecret: false,
-                cancellationToken
-            );
-        }
+            return CreateInvalidClientResult(openIdContext);
+
+        var encodedClientId = decodeSpan[..indexOfColon];
+        var clientId = UriDecode(encodedClientId);
 
         var encodedClientSecret = decodeBuffer[(indexOfColon + 1)..];
 
         using var secretLease = UriDecodeSensitive(encodedClientSecret, out var clientSecret);
 
-        return await AuthenticateClientAsync(
+        return await AuthenticateClientSecretAsync(
             openIdContext,
             clientId,
             clientSecret,
-            hasClientSecret: true,
             cancellationToken
         );
     }

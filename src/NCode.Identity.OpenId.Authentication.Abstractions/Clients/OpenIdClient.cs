@@ -51,14 +51,18 @@ public abstract class OpenIdClient
     public abstract IReadOnlyCollection<string> RedirectUris { get; }
 
     /// <summary>
-    /// Gets a <see cref="bool"/> value indicating whether the client is confidential.
-    /// If <c>true</c>, the <see cref="ConfidentialClient"/> property will be non-null; otherwise, the client is public.
+    /// Gets a <see cref="bool"/> value indicating whether the current request authenticated the client as a confidential
+    /// client. If <c>true</c>, the <see cref="ConfidentialClient"/> property will be non-null. A client authenticates only
+    /// with the client-authentication method it is registered to use, so wherever the client is authenticated this is
+    /// the type it is registered as; where it is only identified by its <c>client_id</c> (the authorization endpoint),
+    /// this is <c>false</c>.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ConfidentialClient))]
     public abstract bool IsConfidential { get; }
 
     /// <summary>
-    /// Gets the <see cref="OpenIdConfidentialClient"/> for a confidential client, or <c>null</c> if the client is public.
+    /// Gets the <see cref="OpenIdConfidentialClient"/> for a client the current request authenticated as confidential, or
+    /// <c>null</c> otherwise.
     /// </summary>
     public abstract OpenIdConfidentialClient? ConfidentialClient { get; }
 

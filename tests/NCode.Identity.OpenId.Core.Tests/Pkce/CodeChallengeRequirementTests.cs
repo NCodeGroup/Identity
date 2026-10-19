@@ -38,7 +38,10 @@ public class CodeChallengeRequirementTests : BaseTests
 
     private static readonly Policy Relaxed = new(RequirePkce: false, NonceExemption: true);
 
-    private Mock<OpenIdClient> CreateClient(Policy policy, string registeredAuthMethod = "")
+    private Mock<OpenIdClient> CreateClient(
+        Policy policy,
+        string registeredAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic
+    )
     {
         var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         mockSettings
@@ -108,16 +111,12 @@ public class CodeChallengeRequirementTests : BaseTests
         Assert.False(required);
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("none")]
-    public void IsRequiredForAuthorization_WhenTheClientIsRegisteredAsPublic_ReturnsTrue(
-        string registeredAuthMethod
-    )
+    [Fact]
+    public void IsRequiredForAuthorization_WhenTheClientIsRegisteredAsPublic_ReturnsTrue()
     {
         var required = IsRequiredForAuthorization(
             Relaxed,
-            registeredAuthMethod,
+            OpenIdConstants.ClientAuthenticationMethods.None,
             OpenIdScopes,
             Nonce
         );

@@ -78,6 +78,62 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
     }
 
     [Fact]
+    public async Task GetAuthorize_IdentifiesAConfidentialClientWithoutAuthenticatingIt()
+    {
+        // The authorization endpoint identifies a client without authenticating it, so a confidential FAPI 2.0
+        // client, which may not authenticate as public, reaches the profile's rules: here, its PAR requirement.
+        const string clientId = "it-authorize-fapi2";
+        await Factory.SeedConfidentialClientWithSecurityProfileAsync(
+            clientId,
+            "fapi2-client-secret",
+            OpenIdConstants.SecurityProfiles.Fapi2
+        );
+        var client = CreateClient();
+
+        using var response = await client.GetAsync(
+            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}={clientId}"
+                + $"&{OpenIdConstants.Parameters.RedirectUri}=https://client.example/callback"
+                + $"&{OpenIdConstants.Parameters.ResponseType}=code"
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, await GetErrorCodeAsync(response));
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithClientSecret_ReturnsInvalidRequest()
+    {
+        // The authorization request travels through the user agent, so it never carries client credentials.
+        var client = CreateClient();
+
+        using var response = await client.GetAsync(
+            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=any-client"
+                + $"&{OpenIdConstants.Parameters.ClientSecret}=any-secret"
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, await GetErrorCodeAsync(response));
+    }
+
+    [Fact]
+    public async Task PostAuthorize_WithClientSecret_ReturnsInvalidRequest()
+    {
+        var client = CreateClient();
+
+        using var content = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                [OpenIdConstants.Parameters.ClientId] = "any-client",
+                [OpenIdConstants.Parameters.ClientSecret] = "any-secret",
+            }
+        );
+        using var response = await client.PostAsync(AuthorizePath, content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, await GetErrorCodeAsync(response));
+    }
+
+    [Fact]
     public async Task DeleteAuthorize_ReturnsMethodNotAllowed()
     {
         var client = CreateClient();

@@ -119,6 +119,29 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.ClientAuthenticationMethodNotRegistered,
+        Level = LogLevel.Information,
+        Message = "Client authentication failed: client '{ClientId}' authenticated with '{AuthenticationMethod}', but it is registered to authenticate with '{RegisteredAuthenticationMethod}'."
+    )]
+    internal static partial void ClientAuthenticationMethodNotRegistered(
+        this ILogger logger,
+        string clientId,
+        string authenticationMethod,
+        string registeredAuthenticationMethod
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientAuthenticationMethodNotPermitted,
+        Level = LogLevel.Warning,
+        Message = "Client authentication failed: client '{ClientId}' is registered to authenticate with '{RegisteredAuthenticationMethod}', which its token_endpoint_auth_methods_supported does not permit."
+    )]
+    internal static partial void ClientAuthenticationMethodNotPermitted(
+        this ILogger logger,
+        string clientId,
+        string registeredAuthenticationMethod
+    );
+
+    [LoggerMessage(
         EventId = EventIds.ClientAssertionInvalid,
         Level = LogLevel.Information,
         Message = "Client authentication failed: the client_assertion presented by client '{ClientId}' could not be validated (signature, issuer/subject, audience, lifetime, or claims)."
@@ -139,7 +162,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.TokenRequestClientAuthenticationRequired,
         Level = LogLevel.Warning,
-        Message = "The token request was rejected as invalid_client because no client authentication was recognized (every client authentication handler returned undefined; the request carried no usable client_secret_post, client_secret_basic, or other recognized credential)."
+        Message = "The token request was rejected as invalid_client because no client authentication was recognized (every client authentication handler returned undefined; the request carried no credential of the method the client is registered to use)."
     )]
     internal static partial void TokenRequestClientAuthenticationRequired(this ILogger logger);
 

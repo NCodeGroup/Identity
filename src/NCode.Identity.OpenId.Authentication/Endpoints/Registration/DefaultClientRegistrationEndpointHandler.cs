@@ -807,23 +807,41 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that the tenant supports every resolved grant type and response type, returning an
-    /// <c>invalid_client_metadata</c> error (RFC 7591 §3.2.2) for the first value it does not support, or
-    /// <see langword="null"/> when it supports them all; an unset list is unrestricted. The authorization and token
-    /// endpoints refuse a value the tenant does not support, so registering it would report a capability the client can
-    /// never use.
+    /// Verifies that the tenant supports the resolved client-authentication method and every resolved grant type and
+    /// response type, returning an <c>invalid_client_metadata</c> error (RFC 7591 §3.2.2) for the first value it does
+    /// not support, or <see langword="null"/> when it supports them all; an unset list is unrestricted. The endpoints
+    /// refuse a value the tenant does not support — a client whose registered method the tenant's
+    /// <c>token_endpoint_auth_methods_supported</c> excludes cannot authenticate at all — so registering it would report
+    /// a capability the client can never use.
     /// </summary>
     /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
     /// <param name="tenantSettings">The settings of the tenant the client registers with.</param>
     /// <param name="resolved">The resolved client metadata.</param>
     /// <returns>The error, or <see langword="null"/> when the tenant supports every value.</returns>
-    // See ADR-0141.
+    // See ADR-0141 and ADR-0145.
     internal virtual IOpenIdError? ValidateSupportedMetadata(
         IOpenIdErrorFactory errorFactory,
         IReadOnlySettingCollection tenantSettings,
         ResolvedMetadata resolved
     )
     {
+        if (
+            tenantSettings.TryGetValue(
+                OpenIdSettingKeys.TokenEndpointAuthMethodsSupported,
+                out var tokenEndpointAuthMethodsSupported
+            )
+            && !tokenEndpointAuthMethodsSupported.Contains(
+                resolved.TokenEndpointAuthMethod,
+                StringComparer.Ordinal
+            )
+        )
+        {
+            return errorFactory.InvalidRequest(
+                $"The 'token_endpoint_auth_method' value '{resolved.TokenEndpointAuthMethod}' is not supported.",
+                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+            );
+        }
+
         if (
             tenantSettings.TryGetValue(
                 OpenIdSettingKeys.GrantTypesSupported,

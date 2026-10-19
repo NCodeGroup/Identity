@@ -40,7 +40,8 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// signature against the client's registered keys, enforces the audience/lifetime/single-use rules, and promotes the
 /// client to a confidential client on success. The two concrete handlers differ only in the signing-key family they
 /// own (asymmetric for <c>private_key_jwt</c>, symmetric for <c>client_secret_jwt</c>), selected from the assertion's
-/// <c>alg</c> header so each assertion is handled exactly once.
+/// <c>alg</c> header so each assertion is handled exactly once; the handler that owns it authenticates only a client
+/// registered for its method.
 /// </summary>
 internal abstract class ClientAssertionClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,
@@ -200,36 +201,19 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
             );
         }
 
-        OpenIdClient? publicClient;
-        try
-        {
-            publicClient = await ClientResolver.ResolveClientOrDefaultAsync(
-                openIdContext,
-                clientId,
-                cancellationToken
-            );
-        }
-        catch (Exception exception)
-            when (exception
-                    is System.Security.Cryptography.CryptographicException
-                        or FormatException
-                        or InvalidOperationException
-            )
-        {
-            Logger.ClientAuthenticationCredentialDeserializationFailed(clientId, exception);
-            return await FailAsync(
-                openIdContext,
-                clientId,
-                "credential_deserialization_failed",
-                cancellationToken
-            );
-        }
+        var resolution = await ResolveClientAsync(openIdContext, clientId, cancellationToken);
+        if (!resolution.HasClient)
+            return resolution;
 
-        if (publicClient is null)
-        {
-            Logger.ClientAuthenticationClientNotFound(clientId, openIdContext.Tenant.TenantId);
-            return await FailAsync(openIdContext, clientId, "client_not_found", cancellationToken);
-        }
+        var publicClient = resolution.Client;
+
+        var rejection = await RejectUnlessRegisteredAsync(
+            openIdContext,
+            publicClient,
+            cancellationToken
+        );
+        if (rejection is { } rejected)
+            return rejected;
 
         var validAudiences = GetValidAudiences(openIdContext);
 
@@ -347,22 +331,6 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         );
 
         return new ClientAuthenticationResult(confidentialClient);
-    }
-
-    private async ValueTask<ClientAuthenticationResult> FailAsync(
-        OpenIdContext openIdContext,
-        string clientId,
-        string reason,
-        CancellationToken cancellationToken
-    )
-    {
-        await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
-            openIdContext,
-            clientId,
-            reason,
-            cancellationToken
-        );
-        return CreateInvalidClientResult(openIdContext);
     }
 
     private static IReadOnlyCollection<string> GetValidAudiences(OpenIdContext openIdContext)

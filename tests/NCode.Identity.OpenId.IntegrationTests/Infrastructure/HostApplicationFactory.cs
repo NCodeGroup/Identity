@@ -88,7 +88,11 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         }
 
         var settingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
-            new Dictionary<string, object> { ["redirect_uris"] = redirectUris }
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = redirectUris,
+                ["token_endpoint_auth_method"] = OpenIdConstants.ClientAuthenticationMethods.None,
+            }
         );
 
         using var scope = Services.CreateScope();
@@ -197,15 +201,77 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     }
 
     /// <summary>
-    /// Ensures the tenant exists and seeds a confidential client (<c>client_secret_post</c>) whose symmetric
-    /// secret matches <paramref name="clientSecret"/>, so the <c>client_credentials</c> grant can be exercised.
-    /// When <paramref name="grantTypes"/> is supplied, the client's effective <c>grant_types_supported</c> setting
-    /// is restricted to those values (required for grants a client must explicitly allow, such as <c>password</c>).
+    /// Ensures the tenant exists and seeds a confidential client registered for <c>client_secret_post</c> whose
+    /// symmetric secret matches <paramref name="clientSecret"/>, so the <c>client_credentials</c> grant can be
+    /// exercised. When <paramref name="grantTypes"/> is supplied, the client's effective <c>grant_types_supported</c>
+    /// setting is restricted to those values (required for grants a client must explicitly allow, such as
+    /// <c>password</c>).
     /// </summary>
-    public async Task SeedConfidentialClientAsync(
+    public Task SeedConfidentialClientAsync(
         string clientId,
         string clientSecret,
         params string[] grantTypes
+    ) =>
+        SeedSharedSecretClientAsync(
+            clientId,
+            clientSecret,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            grantTypes
+        );
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client registered for <c>client_secret_basic</c> whose
+    /// symmetric secret matches <paramref name="clientSecret"/>, so it authenticates with HTTP Basic authentication.
+    /// When <paramref name="grantTypes"/> is supplied, the client's effective <c>grant_types_supported</c> setting is
+    /// restricted to those values.
+    /// </summary>
+    public Task SeedClientSecretBasicClientAsync(
+        string clientId,
+        string clientSecret,
+        params string[] grantTypes
+    ) =>
+        SeedSharedSecretClientAsync(
+            clientId,
+            clientSecret,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            grantTypes
+        );
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client registered for <c>client_secret_jwt</c> whose
+    /// symmetric secret matches <paramref name="clientSecret"/>, so it authenticates with a <c>client_assertion</c> it
+    /// signs with that secret. When <paramref name="grantTypes"/> is supplied, the client's effective
+    /// <c>grant_types_supported</c> setting is restricted to those values.
+    /// </summary>
+    public Task SeedClientSecretJwtClientAsync(
+        string clientId,
+        string clientSecret,
+        params string[] grantTypes
+    ) =>
+        SeedSharedSecretClientAsync(
+            clientId,
+            clientSecret,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt,
+            grantTypes
+        );
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client that registers no client-authentication method, so it
+    /// uses the default (<c>client_secret_basic</c>), with a symmetric secret matching <paramref name="clientSecret"/>.
+    /// When <paramref name="grantTypes"/> is supplied, the client's effective <c>grant_types_supported</c> setting is
+    /// restricted to those values.
+    /// </summary>
+    public Task SeedClientWithoutAuthenticationMethodAsync(
+        string clientId,
+        string clientSecret,
+        params string[] grantTypes
+    ) => SeedSharedSecretClientAsync(clientId, clientSecret, null, grantTypes);
+
+    private async Task SeedSharedSecretClientAsync(
+        string clientId,
+        string clientSecret,
+        string? tokenEndpointAuthMethod,
+        string[] grantTypes
     )
     {
         // A first request forces the static tenant provider to persist the tenant entity,
@@ -234,39 +300,18 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 Encoding.UTF8.GetBytes(clientSecret)
             );
 
-        var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
-            grantTypes.Length > 0
-                ? new Dictionary<string, object> { ["grant_types_supported"] = grantTypes }
-                : []
+        var settings = new Dictionary<string, object>();
+        if (tokenEndpointAuthMethod is not null)
+            settings["token_endpoint_auth_method"] = tokenEndpointAuthMethod;
+        if (grantTypes.Length > 0)
+            settings["grant_types_supported"] = grantTypes;
+
+        await AddClientAsync(
+            serviceProvider,
+            clientId,
+            System.Text.Json.JsonSerializer.SerializeToElement(settings),
+            [persistedSecret]
         );
-
-        var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
-        var store = storeManager.GetStore<IClientStore>();
-
-        var persistedClient = new PersistedClient
-        {
-            TenantId = TenantId,
-            ClientId = clientId,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                Value = emptySettingsJson,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                Value = [persistedSecret],
-            },
-        };
-
-        await store.AddAsync(persistedClient, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 
     /// <summary>
@@ -314,39 +359,21 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
         };
 
-        var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
-            grantTypes.Length > 0
-                ? new Dictionary<string, object> { ["grant_types_supported"] = grantTypes }
-                : []
-        );
-
-        var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
-        var store = storeManager.GetStore<IClientStore>();
-
-        var persistedClient = new PersistedClient
+        var settings = new Dictionary<string, object>
         {
-            TenantId = TenantId,
-            ClientId = clientId,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                Value = emptySettingsJson,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                Value = [persistedSecret],
-            },
+            ["token_endpoint_auth_method"] = OpenIdConstants
+                .ClientAuthenticationMethods
+                .PrivateKeyJwt,
         };
+        if (grantTypes.Length > 0)
+            settings["grant_types_supported"] = grantTypes;
 
-        await store.AddAsync(persistedClient, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
+        await AddClientAsync(
+            serviceProvider,
+            clientId,
+            System.Text.Json.JsonSerializer.SerializeToElement(settings),
+            [persistedSecret]
+        );
     }
 
     /// <summary>
@@ -365,7 +392,13 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             using var _ = await warmupClient.GetAsync("/oauth2/jwks");
         }
 
-        var settings = new Dictionary<string, object> { ["jwks_uri"] = jwksUri };
+        var settings = new Dictionary<string, object>
+        {
+            ["jwks_uri"] = jwksUri,
+            ["token_endpoint_auth_method"] = OpenIdConstants
+                .ClientAuthenticationMethods
+                .PrivateKeyJwt,
+        };
         if (grantTypes.Length > 0)
             settings["grant_types_supported"] = grantTypes;
 
@@ -573,7 +606,12 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
         };
 
-        var settings = new Dictionary<string, object>();
+        var settings = new Dictionary<string, object>
+        {
+            ["token_endpoint_auth_method"] = OpenIdConstants
+                .ClientAuthenticationMethods
+                .ClientSecretPost,
+        };
         if (!string.IsNullOrEmpty(securityProfile))
             settings["security_profile"] = securityProfile;
         if (grantTypes.Length > 0)
@@ -670,7 +708,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// Directly persists the tenant and a confidential client whose stored secret is protected from
     /// <paramref name="storedSecret"/>, without an HTTP warm-up that would let a configured bootstrap seeder create
     /// the client first. Use this to stage a pre-existing client (for example with a stale secret) that a later
-    /// request's provisioning pass must reconcile.
+    /// request's provisioning pass must reconcile. The client registers no client-authentication method, so it uses the
+    /// default, <c>client_secret_basic</c>.
     /// </summary>
     public async Task SeedClientDirectlyAsync(string clientId, string storedSecret)
     {

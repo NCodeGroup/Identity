@@ -126,6 +126,14 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   thrown), use a strict mock with `IsEnabled(level)` returning `true` and a `.Verifiable()`
   `Log(level, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), …, It.IsAny<Func<It.IsAnyType, Exception?, string>>())`
   setup; `It.IsAnyType` matches the generated state struct.
+- 👁 **Mock the enumerator the code actually calls.** `OfType<T>()` and `Cast<T>()` enumerate through the
+  **non-generic** `IEnumerable.GetEnumerator()`, so a strict mock of a collection interface consumed that way needs
+  `mock.As<IEnumerable>().Setup(x => x.GetEnumerator())`; a setup of the generic `GetEnumerator()` is never hit and the
+  strict mock throws.
+- 👁 **Moq cannot match a `ReadOnlySpan<T>` / `Span<T>` argument.** A ref struct cannot be an `It.IsAny<T>()` type
+  argument, so a collaborator member that takes a span (for example `ISecretGenerator.ImportSharedSecret`) cannot be
+  set up. Exercise the code that calls it through an integration test against the real collaborator instead of
+  widening the member's signature for the mock.
 
 ## Persistence & integration tests
 
@@ -178,6 +186,13 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   authorization request endpoint) and redeems it with `TestPkce.CodeVerifier`; a test without them exercises the
   refusal, not the flow. Sign a user in with `InteractiveLogin.SignInAsync` rather than another copy of the antiforgery
   dance.
+- 👁 **Seed a client registered for the method the test authenticates with.** A client authenticates only with its
+  registered `token_endpoint_auth_method`
+  ([ADR-0145](../../docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md)), so each integration-test
+  seeder registers one: `SeedConfidentialClientAsync` (`client_secret_post`), `SeedClientSecretBasicClientAsync`,
+  `SeedClientSecretJwtClientAsync`, the certificate and `jwks_uri` seeders (`private_key_jwt`), the mutual-TLS seeders,
+  and `SeedPublicClientAsync` (`none`). A negative test whose client is registered for another method is refused for the
+  wrong reason — `invalid_client` from the method mismatch — and passes without exercising the rule it names.
 - 👁 **Validate new tests in Release before running `dod.ps1`.** The gate builds and tests in **Release**, where
   `Debug.Assert` and `#if DEBUG` blocks disappear; run `dotnet test <proj> --configuration Release` first to catch
   Debug-vs-Release differences fast (a `#if DEBUG` auth bypass, a stripped assertion).

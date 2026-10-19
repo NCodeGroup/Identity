@@ -1,6 +1,8 @@
 # 109. FAPI 2.0 behavioral rules and discovery/validation details
 
-- **Status:** Accepted
+- **Status:** Accepted (confidential-client rule amended by
+  [ADR-0145](0145-a-client-authenticates-only-with-its-registered-method.md): a client that registers no
+  `token_endpoint_auth_method` is a `client_secret_basic` client, so only `none` registers a public client)
 - **Date:** 2026-10-16
 - **Deciders:** NCode Group
 

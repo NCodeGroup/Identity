@@ -279,9 +279,11 @@ public class AuthorizationCodePkceTests
             new Dictionary<string, string> { ["client_id"] = clientId }
         );
 
-        // A code that is not bound to PKCE is worthless to anyone who cannot authenticate as the client.
+        // A confidential client authenticates only with its registered method, so a redemption that presents just the
+        // client_id is refused before the code is examined; a code that is not bound to PKCE is worthless to anyone who
+        // cannot authenticate as the client.
         Assert.Equal(HttpStatusCode.BadRequest, statusCode);
-        Assert.Equal("invalid_grant", body.GetProperty("error").GetString());
+        Assert.Equal("invalid_client", body.GetProperty("error").GetString());
     }
 
     [Fact]

@@ -31,7 +31,9 @@ using NCode.Identity.Secrets.Keys;
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 
 /// <summary>
-/// Provides a common base for <see cref="IClientAuthenticationHandler"/> implementations.
+/// Provides a common base for <see cref="IClientAuthenticationHandler"/> implementations. A handler authenticates only
+/// a client registered to use its <see cref="AuthenticationMethod"/> whose ceiling permits it, so the credential a client
+/// presents never authenticates it with a method other than the one it is registered for.
 /// </summary>
 internal abstract class CommonClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,
@@ -88,28 +90,25 @@ internal abstract class CommonClientAuthenticationHandler(
         );
 
     /// <summary>
-    /// Authenticates the client using the specified <paramref name="clientId"/> and <paramref name="clientSecret"/>.
+    /// Resolves the client named by <paramref name="clientId"/>. The result contains the client, or the conclusive
+    /// <c>invalid_client</c> failure when no enabled client with that identifier belongs to the tenant or its stored
+    /// credentials cannot be read.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="clientId">Contains the client identifier.</param>
-    /// <param name="clientSecret">Contains the client secret.</param>
-    /// <param name="hasClientSecret">Indicates whether the client secret was specified.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="ClientAuthenticationResult"/>.</returns>
-    protected async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="ClientAuthenticationResult"/>
+    /// with the resolved client or the failure.</returns>
+    protected async ValueTask<ClientAuthenticationResult> ResolveClientAsync(
         OpenIdContext openIdContext,
         string clientId,
-        ReadOnlyMemory<char> clientSecret,
-        bool hasClientSecret,
         CancellationToken cancellationToken
     )
     {
-        var tenantId = openIdContext.Tenant.TenantId;
-
-        OpenIdClient? publicClient;
+        OpenIdClient? client;
         try
         {
-            publicClient = await ClientResolver.ResolveClientOrDefaultAsync(
+            client = await ClientResolver.ResolveClientOrDefaultAsync(
                 openIdContext,
                 clientId,
                 cancellationToken
@@ -125,29 +124,141 @@ internal abstract class CommonClientAuthenticationHandler(
             // A stored credential could not be deserialized (for example a secret protected by a
             // data-protection key that is no longer available); surface it as invalid_client with a diagnostic.
             Logger.ClientAuthenticationCredentialDeserializationFailed(clientId, exception);
-            await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+            return await FailAsync(
                 openIdContext,
                 clientId,
                 "credential_deserialization_failed",
                 cancellationToken
             );
-            return CreateInvalidClientResult(openIdContext);
         }
 
-        if (publicClient is null)
+        if (client is null)
         {
-            Logger.ClientAuthenticationClientNotFound(clientId, tenantId);
-            await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+            Logger.ClientAuthenticationClientNotFound(clientId, openIdContext.Tenant.TenantId);
+            return await FailAsync(openIdContext, clientId, "client_not_found", cancellationToken);
+        }
+
+        return new ClientAuthenticationResult(client);
+    }
+
+    /// <summary>
+    /// Rejects the <paramref name="client"/> unless it may authenticate with this handler's
+    /// <see cref="AuthenticationMethod"/>: the method must be the one the client is registered to use, and the client's
+    /// <c>token_endpoint_auth_methods_supported</c> ceiling must permit it.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="client">The client presenting this handler's credentials.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <c>invalid_client</c>
+    /// failure, or <see langword="null"/> when the client may authenticate with this handler's method.</returns>
+    // See ADR-0145.
+    protected async ValueTask<ClientAuthenticationResult?> RejectUnlessRegisteredAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient client,
+        CancellationToken cancellationToken
+    )
+    {
+        var registeredMethod = client.RegisteredAuthenticationMethod;
+        if (!string.Equals(registeredMethod, AuthenticationMethod, StringComparison.Ordinal))
+        {
+            Logger.ClientAuthenticationMethodNotRegistered(
+                client.ClientId,
+                AuthenticationMethod,
+                registeredMethod
+            );
+            return await FailAsync(
                 openIdContext,
-                clientId,
-                "client_not_found",
+                client.ClientId,
+                "authentication_method_not_registered",
                 cancellationToken
             );
-            return CreateInvalidClientResult(openIdContext);
         }
 
-        if (!hasClientSecret)
-            return new ClientAuthenticationResult(publicClient);
+        return await RejectUnlessPermittedAsync(openIdContext, client, cancellationToken);
+    }
+
+    /// <summary>
+    /// Rejects the <paramref name="client"/> unless its <c>token_endpoint_auth_methods_supported</c> ceiling permits the
+    /// client-authentication method it is registered to use. A handler that owns a request only for the clients
+    /// registered for its method checks the registration itself and the ceiling with this.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="client">The client registered for this handler's method.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <c>invalid_client</c>
+    /// failure, or <see langword="null"/> when the ceiling permits the client's registered method.</returns>
+    protected async ValueTask<ClientAuthenticationResult?> RejectUnlessPermittedAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient client,
+        CancellationToken cancellationToken
+    )
+    {
+        if (client.IsRegisteredAuthenticationMethodPermitted)
+            return null;
+
+        Logger.ClientAuthenticationMethodNotPermitted(
+            client.ClientId,
+            client.RegisteredAuthenticationMethod
+        );
+        return await FailAsync(
+            openIdContext,
+            client.ClientId,
+            "authentication_method_not_permitted",
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Records a failed client authentication and creates the <c>invalid_client</c> result for it.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="clientId">Contains the identifier of the client that failed to authenticate.</param>
+    /// <param name="reason">Contains the audited reason for the failure.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <c>invalid_client</c>
+    /// <see cref="ClientAuthenticationResult"/>.</returns>
+    protected async ValueTask<ClientAuthenticationResult> FailAsync(
+        OpenIdContext openIdContext,
+        string clientId,
+        string reason,
+        CancellationToken cancellationToken
+    )
+    {
+        await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+            openIdContext,
+            clientId,
+            reason,
+            cancellationToken
+        );
+        return CreateInvalidClientResult(openIdContext);
+    }
+
+    /// <summary>
+    /// Authenticates the client identified by <paramref name="clientId"/> with the shared
+    /// <paramref name="clientSecret"/> it presented: the client must be registered for this handler's method, and the
+    /// secret must match one of the client's stored secrets.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="clientId">Contains the client identifier.</param>
+    /// <param name="clientSecret">Contains the client secret.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="ClientAuthenticationResult"/>.</returns>
+    protected async ValueTask<ClientAuthenticationResult> AuthenticateClientSecretAsync(
+        OpenIdContext openIdContext,
+        string clientId,
+        ReadOnlyMemory<char> clientSecret,
+        CancellationToken cancellationToken
+    )
+    {
+        var resolution = await ResolveClientAsync(openIdContext, clientId, cancellationToken);
+        if (!resolution.HasClient)
+            return resolution;
+
+        var client = resolution.Client;
+
+        var rejection = await RejectUnlessRegisteredAsync(openIdContext, client, cancellationToken);
+        if (rejection is { } rejected)
+            return rejected;
 
         var clientSecretChars = clientSecret.Span;
         var byteCount = SecureEncoding.UTF8.GetByteCount(clientSecretChars);
@@ -164,23 +275,15 @@ internal abstract class CommonClientAuthenticationHandler(
         );
         Debug.Assert(decodeResult && bytesWritten == byteCount);
 
-        return await AuthenticateClientAsync(
+        return await VerifyClientSecretAsync(
             openIdContext,
-            publicClient,
+            client,
             clientSecretBytes,
             cancellationToken
         );
     }
 
-    /// <summary>
-    /// Authenticates the client using the specified <paramref name="publicClient"/> and <paramref name="clientSecretBytes"/>.
-    /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
-    /// <param name="publicClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
-    /// <param name="clientSecretBytes">Contains the client secret as a byte buffer.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="ClientAuthenticationResult"/>.</returns>
-    protected async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
+    private async ValueTask<ClientAuthenticationResult> VerifyClientSecretAsync(
         OpenIdContext openIdContext,
         OpenIdClient publicClient,
         ReadOnlyMemory<byte> clientSecretBytes,
@@ -206,13 +309,12 @@ internal abstract class CommonClientAuthenticationHandler(
 
         // client secret was specified but failed to verify
         Logger.ClientAuthenticationSecretMismatch(publicClient.ClientId);
-        await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+        return await FailAsync(
             openIdContext,
             publicClient.ClientId,
             "invalid_client_secret",
             cancellationToken
         );
-        return CreateInvalidClientResult(openIdContext);
     }
 
     /// <summary>

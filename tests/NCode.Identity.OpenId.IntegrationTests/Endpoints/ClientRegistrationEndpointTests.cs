@@ -273,6 +273,41 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
+    public async Task PostRegister_WhenTheServerDoesNotPermitTheAuthMethod_ReturnsInvalidClientMetadata()
+    {
+        // A client whose registered method the server's ceiling excludes could never authenticate.
+        using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
+                ["OpenId:Server:Settings:token_endpoint_auth_methods_supported:0"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .ClientSecretBasic,
+            }
+        );
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { RedirectUri },
+                ["token_endpoint_auth_method"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            "token_endpoint_auth_method"
+        );
+    }
+
+    [Fact]
     public async Task PostRegister_WhenAResponseTypeUsesAnUnregisteredGrantType_ReturnsInvalidClientMetadata()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();

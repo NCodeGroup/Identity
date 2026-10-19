@@ -60,8 +60,10 @@ internal class DefaultClientSettingDescriptorDataSource(
     {
         get
         {
-            // token_endpoint_auth_methods_supported: client authentication methods the token endpoint accepts (default derived from the registered handlers).
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // token_endpoint_auth_methods_supported: the client-authentication methods the server, tenant, or security
+            // profile permits (default derived from the registered handlers). A ceiling over the registered method,
+            // never a choice between methods. Ceiling (Intersect): a child narrows the parent's set; unset =
+            // unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthMethodsSupported,
@@ -72,15 +74,16 @@ internal class DefaultClientSettingDescriptorDataSource(
                 OnMerge = SettingMerge.Intersect,
             };
 
-            // token_endpoint_auth_method: the single client-authentication method a client is registered to use at the
-            // token endpoint (per-client; selects which mutual-TLS handler, if any, owns the request); empty (the
-            // default) means the client registered none. Not advertised. Override (Replace): a child fully replaces
-            // the parent value.
+            // token_endpoint_auth_method: the one client-authentication method a client is registered to use (RFC 7591
+            // §2); it decides the client type (none = public) and is the only method that authenticates the client.
+            // A client that registers none gets the RFC 7591 default, client_secret_basic, unless its server or tenant
+            // configures another. Not advertised. Override (Replace): a child fully replaces the parent value
+            // (ADR-0145).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthMethod,
-                Rule = SettingRules.EmptyOr(AuthMethod()),
-                Default = string.Empty,
+                Rule = AuthMethod(),
+                Default = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
 
                 IsDiscoverable = false,
                 OnMerge = SettingMerge.Replace,

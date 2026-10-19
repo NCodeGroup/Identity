@@ -22,8 +22,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Identity.Cryptography;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -33,7 +35,8 @@ using NCode.Mediator;
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Seeds the configured bootstrap administrator client into the workload tenant as part of the tenant seed fan-out.
+/// Seeds the configured bootstrap administrator client into the workload tenant as part of the tenant seed fan-out. The
+/// client registers <c>client_secret_basic</c>, so it presents the configured secret with HTTP Basic authentication.
 /// The client's management-audience tokens are stamped with the <c>GlobalAdmin</c> role by
 /// <see cref="BootstrapAdminAccessTokenClaimsHandler"/>, so an operator can make the first authorized management call.
 /// The handler is idempotent and inert unless a bootstrap client id and secret are configured; it never targets the
@@ -147,7 +150,15 @@ internal sealed class BootstrapAdminSeedHandler(
     {
         var persistedSecret = CreatePersistedSecret(clientSecret);
 
-        var emptySettings = JsonSerializer.SerializeToElement(new Dictionary<string, object>());
+        // The bootstrap credential is a shared secret, which RFC 6749 §2.3.1 has the client present with HTTP Basic.
+        var settings = JsonSerializer.SerializeToElement(
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .ClientSecretBasic,
+            }
+        );
 
         return new PersistedClient
         {
@@ -158,7 +169,7 @@ internal sealed class BootstrapAdminSeedHandler(
             {
                 TenantId = tenantId,
                 ClientId = clientId,
-                Value = emptySettings,
+                Value = settings,
             },
             Secrets = new PersistedClientSecrets
             {

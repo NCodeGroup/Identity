@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amends [ADR-0079](0079-extensible-pkce-code-challenge-methods.md),
   [ADR-0083](0083-secure-by-default-discovery-metadata.md), and
-  [ADR-0140](0140-setting-values-are-validated-against-their-domain.md))
+  [ADR-0140](0140-setting-values-are-validated-against-their-domain.md); amended by
+  [ADR-0145](0145-a-client-authenticates-only-with-its-registered-method.md): a client authenticates only with its
+  registered method, so the type it authenticates as at the token endpoint is the type it is registered as)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -103,10 +105,10 @@ the status every other OAuth error response uses.
 - `OpenIdConstants.CodeChallengeMethods.Plain` and the developer seed's explicit `require_pkce` leave the code;
   `AuthorizationRequest.CodeChallengeMethod` is `null` when the request names no method.
 - The pushed authorization request endpoint returns `400` for every validation refusal, not only PKCE's.
-- Follow-up (backlog `F58`): the token endpoint accepts any client-authentication method the client's
-  `token_endpoint_auth_methods_supported` permits, not only its registered `token_endpoint_auth_method`, so a client
-  registered as confidential can still authenticate as public where that list includes `none`. The binding check above
-  holds regardless, because it uses how the client actually authenticated.
+- The token endpoint authenticates a client only with its registered `token_endpoint_auth_method`
+  ([ADR-0145](0145-a-client-authenticates-only-with-its-registered-method.md)), so a client registered as confidential
+  cannot redeem a code as public. The binding check above reads how the client authenticated, which is therefore its
+  registered type.
 
 ## References
 

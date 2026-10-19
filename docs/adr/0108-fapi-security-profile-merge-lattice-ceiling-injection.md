@@ -1,6 +1,9 @@
 # 108. FAPI security profile via merge-lattice ceiling injection
 
-- **Status:** Accepted
+- **Status:** Accepted (permitted-method enforcement amended by
+  [ADR-0145](0145-a-client-authenticates-only-with-its-registered-method.md): the ceiling bounds the client's registered
+  `token_endpoint_auth_method`, which is the only method the client authenticates with, and an empty ceiling permits
+  nothing)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
 

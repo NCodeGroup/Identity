@@ -63,4 +63,6 @@ internal static class EventIds
     public const int ClientAssertionReplayed = Base + 32;
     public const int ClientJwksFetchFailed = Base + 33;
     public const int ClientJwksKeyImportFailed = Base + 34;
+    public const int ClientAuthenticationMethodNotRegistered = Base + 35;
+    public const int ClientAuthenticationMethodNotPermitted = Base + 36;
 }

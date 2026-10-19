@@ -911,6 +911,39 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   idempotent re-apply), and the way to write and verify such a migration is now a convention in
   `csharp-production.instructions.md`._
 
+- **`F58` — Enforce the client's registered `token_endpoint_auth_method` at every endpoint that authenticates it.** The
+  client-authentication service checks the method a client authenticated with only against its effective
+  `token_endpoint_auth_methods_supported`, whose default is every registered handler, `none` included — not against the
+  client's registered `token_endpoint_auth_method` (RFC 7591 §2). A client registered as confidential (every dynamically
+  registered `client_secret_*` client) can therefore present only its `client_id` and be treated as public: at the token
+  endpoint for the `refresh_token` grant and other grants that rely on client authentication, and at the pushed
+  authorization request endpoint. Authorization codes are safe — a code that is not bound to PKCE is redeemable only by a
+  client that actually authenticates ([ADR-0144](docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)) —
+  but the client type should be one fact. Require the method a client authenticates with to be its registered method
+  (normalizing an unset registration, and treating `token_endpoint_auth_methods_supported` as the server/profile
+  ceiling it is), and decide how a management-API client that registers no method is typed (the conformance seeder
+  already registers one method and permits only it). Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientAuthenticationService.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Clients/OpenIdClientRegistrationExtensions.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/RefreshToken/DefaultValidateRefreshTokenGrantHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`.
+  Capture the design in an ADR.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0145](docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md). The registered method is the one
+  fact: the client-authentication service accepts a client only with it and within the
+  `token_endpoint_auth_methods_supported` ceiling (an empty ceiling now permits nothing), every built-in handler
+  authenticates only clients registered for its method (so a `client_secret_basic` refusal keeps its `401` challenge),
+  and `none` is one handler that owns a credential-less form post from a client registered as public. An unset
+  registration is the RFC 7591 default `client_secret_basic` (configurable per server or tenant), which types a
+  management-API client that registers none; dynamic registration checks the method against the tenant's ceiling. The
+  refresh-token grant needed no change of its own: enforcement sits in the one service every authenticating endpoint
+  calls. The authorization endpoint now identifies the client by `client_id` instead of through client authentication,
+  which also fixed FAPI 2.0 clients being refused there. Seeds register their method explicitly (the developer SPAs
+  `none`, the bootstrap administrator `client_secret_basic`, with the API reference sending Basic credentials), and the
+  `RegisterClientAuthenticationMethod` migration (verified against Postgres, including rollback and idempotent re-apply)
+  turns a single-method ceiling into a registration and removes empty registrations._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

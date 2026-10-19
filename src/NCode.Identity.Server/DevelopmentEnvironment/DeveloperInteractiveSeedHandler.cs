@@ -19,6 +19,7 @@
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Environments;
@@ -50,8 +51,6 @@ internal sealed class DeveloperInteractiveSeedHandler(
     IOpenIdEnvironmentProvider openIdEnvironmentProvider
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
-    private static readonly string[] PublicClientAuthMethods = ["none"];
-
     private DeveloperInteractiveSeedOptions Options { get; } = options;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
@@ -105,11 +104,14 @@ internal sealed class DeveloperInteractiveSeedHandler(
             return;
         }
 
+        // A single-page application cannot keep a secret, so it registers as a public client (RFC 7591 §2 'none').
         var settings = JsonSerializer.SerializeToElement(
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.RedirectUris] = spaClient.RedirectUris,
-                [OpenIdSettingNames.TokenEndpointAuthMethodsSupported] = PublicClientAuthMethods,
+                [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .None,
                 [OpenIdSettingNames.RequireConsent] = spaClient.RequireConsent,
             }
         );

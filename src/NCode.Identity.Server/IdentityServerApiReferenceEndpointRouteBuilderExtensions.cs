@@ -75,9 +75,10 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
                 );
 
                 // Wire the non-secret parts of the client-credentials login in every environment so an operator can
-                // authenticate the dashboard out of the box (body credentials to match the token endpoint, correct
-                // token URL and audience-binding scope) -- this is the production bootstrap path too. Only the secret
-                // is pre-filled, and only during development, so it is never embedded in the served configuration.
+                // authenticate the dashboard out of the box (HTTP Basic credentials, matching the bootstrap client's
+                // registered client_secret_basic, the token URL, and the audience-binding scope) -- this is the
+                // production bootstrap path too. Only the secret is pre-filled, and only during development, so it is
+                // never embedded in the served configuration.
                 scalarOptions.AddClientCredentialsFlow(
                     SecuritySchemeDocumentTransformer.OAuth2SchemeName,
                     flow =>
@@ -86,7 +87,7 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
                             .WithSelectedScopes(
                                 SecuritySchemeDocumentTransformer.ManagementAudienceScope
                             )
-                            .WithCredentialsLocation(CredentialsLocation.Body);
+                            .WithCredentialsLocation(CredentialsLocation.Header);
 
                         if (
                             environment.IsDevelopment()

@@ -3,7 +3,9 @@
 - **Status:** Accepted (response-type domain amended by [ADR-0141](0141-response-types-are-whole-values.md): a
   response type is a whole value in canonical form, enforced exactly; PKCE-method domain amended by
   [ADR-0144](0144-authorization-codes-are-bound-to-pkce-by-default.md): it is the registered `ICodeChallengeMethod`
-  transformations, not a fixed vocabulary, and excludes `plain`)
+  transformations, not a fixed vocabulary, and excludes `plain`; client-authentication-method domain amended by
+  [ADR-0145](0145-a-client-authenticates-only-with-its-registered-method.md): `token_endpoint_auth_method` is always a
+  registered method, `client_secret_basic` by default, never empty)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

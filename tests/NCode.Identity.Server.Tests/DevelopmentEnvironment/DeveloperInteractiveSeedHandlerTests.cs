@@ -16,8 +16,12 @@
 
 #endregion
 
+using System.Text.Json;
+using Moq;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Settings;
@@ -39,11 +43,16 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
             CreateStrictMock<IOpenIdEnvironmentProvider>().Object
         );
 
-    private SeedTenantCommand CreateCommand(string tenantId, TenantPlane plane)
-    {
+    private SeedTenantCommand CreateCommand(string tenantId, TenantPlane plane) =>
         // Strict mock: the store manager is untouched on the guard paths under test.
-        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        CreateCommand(tenantId, plane, CreateStrictMock<IStoreManager>().Object);
 
+    private static SeedTenantCommand CreateCommand(
+        string tenantId,
+        TenantPlane plane,
+        IStoreManager storeManager
+    )
+    {
         var persistedTenant = new PersistedTenant
         {
             TenantId = tenantId,
@@ -61,7 +70,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
                 Tenant = persistedTenant,
                 Plane = plane,
                 IsNewlyProvisioned = true,
-                StoreManager = mockStoreManager.Object,
+                StoreManager = storeManager,
             }
         );
     }
@@ -105,6 +114,74 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         await handler.HandleAsync(
             CreateCommand("tenant-b", TenantPlane.Workload),
             CancellationToken.None
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSpaClientConfigured_RegistersItAsAPublicClient()
+    {
+        // A single-page application cannot keep a secret, so it registers 'none': its one method, and its type.
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
+        mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(jsonOptions);
+        var mockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
+        mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
+
+        // The validation result stops the seeding before the client is stored, once the document is captured.
+        JsonElement? capturedSettings = null;
+        var mockSettingSerializer = CreateStrictMock<ISettingSerializer>();
+        mockSettingSerializer
+            .Setup(x => x.ValidateSettings(It.IsAny<JsonElement>(), jsonOptions))
+            .Callback(
+                (JsonElement settings, JsonSerializerOptions _) => capturedSettings = settings
+            )
+            .Returns([new SettingError("redirect_uris", "stop")])
+            .Verifiable();
+
+        var options = new DeveloperInteractiveSeedOptions
+        {
+            SpaClients =
+            [
+                new DeveloperSpaClientSeed
+                {
+                    ClientId = "spa",
+                    RedirectUris = ["https://spa.example/callback"],
+                },
+            ],
+            AdminPassword = null,
+        };
+        var handler = new DeveloperInteractiveSeedHandler(
+            options,
+            mockSettingSerializer.Object,
+            mockEnvironmentProvider.Object
+        );
+
+        var mockClientStore = CreateStrictMock<IClientStore>();
+        mockClientStore
+            .Setup(x => x.GetOrDefaultAsync("spa", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        mockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(mockClientStore.Object)
+            .Verifiable();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler.HandleAsync(
+                CreateCommand(WorkloadTenantId, TenantPlane.Workload, mockStoreManager.Object),
+                CancellationToken.None
+            )
+        );
+
+        Assert.NotNull(capturedSettings);
+        var settingsDocument = capturedSettings.Value;
+        Assert.Equal(
+            OpenIdConstants.ClientAuthenticationMethods.None,
+            settingsDocument.GetProperty("token_endpoint_auth_method").GetString()
+        );
+        Assert.False(
+            settingsDocument.TryGetProperty("token_endpoint_auth_methods_supported", out _)
         );
     }
 

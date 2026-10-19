@@ -102,6 +102,36 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     }
 
     [Fact]
+    public async Task PostPar_WhenAConfidentialClientPresentsOnlyItsClientId_ReturnsInvalidClient()
+    {
+        // The PAR endpoint authenticates the client, and a client registered as confidential never authenticates as
+        // public by omitting its credentials.
+        const string confidentialClientId = "it-par-confidential";
+        using var factory = new HostApplicationFactory();
+        await factory.SeedClientSecretBasicClientAsync(confidentialClientId, "par-client-secret");
+
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        var values = new List<KeyValuePair<string, string>>
+        {
+            new("client_id", confidentialClientId),
+            new("redirect_uri", RedirectUri),
+            new("response_type", "code"),
+            new("scope", "openid"),
+            new("state", "abc123"),
+        };
+        values.AddRange(TestPkce.FormFields);
+        using var form = new FormUrlEncodedContent(values);
+        using var response = await client.PostAsync("/oauth2/par", form);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("invalid_client", document.RootElement.GetProperty("error").GetString());
+    }
+
+    [Fact]
     public async Task PostPar_WithRequestUriParameter_ReturnsBadRequest()
     {
         await Factory.SeedPublicClientAsync(ClientId, RedirectUri);

@@ -42,7 +42,8 @@ public class BootstrapAdminOptions
     /// <summary>
     /// Gets or sets the Base64Url-encoded client secret of the bootstrap administrator client. It is supplied encoded
     /// (rather than as plaintext) so a raw process-memory snapshot does not expose it directly; the handler decodes it
-    /// into a pinned, zeroed buffer, protects it before it is persisted, and never logs it.
+    /// into a pinned, zeroed buffer, protects it before it is persisted, and never logs it. The client registers
+    /// <c>client_secret_basic</c>, so it presents the decoded secret with HTTP Basic authentication.
     /// </summary>
     public string? ClientSecret { get; set; }
 

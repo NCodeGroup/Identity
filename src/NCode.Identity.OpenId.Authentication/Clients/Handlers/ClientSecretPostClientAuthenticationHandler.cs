@@ -24,7 +24,9 @@ using NCode.Identity.OpenId.Contexts;
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 
 /// <summary>
-/// Provides an implementation of <see cref="IClientAuthenticationHandler"/> that uses <c>client_id</c> and <c>client_secret</c> from the HTTP Request Body.
+/// Provides an implementation of <see cref="IClientAuthenticationHandler"/> for <c>client_secret_post</c>: the client
+/// presents its <c>client_id</c> and <c>client_secret</c> in the HTTP request body. A request without a
+/// <c>client_secret</c> carries no credential of this method, so the handler leaves it to the others.
 /// </summary>
 internal class ClientSecretPostClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,
@@ -47,24 +49,23 @@ internal class ClientSecretPostClientAuthenticationHandler(
     {
         var httpRequest = openIdContext.Http.Request;
 
-        if (!HttpMethods.IsPost(httpRequest.Method))
+        if (!HttpMethods.IsPost(httpRequest.Method) || !httpRequest.HasFormContentType)
             return ClientAuthenticationResult.Undefined;
 
         var form = await httpRequest.ReadFormAsync(cancellationToken);
 
-        if (!form.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId))
+        if (
+            !form.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId)
+            || !form.TryGetValue(OpenIdConstants.Parameters.ClientSecret, out var clientSecret)
+        )
+        {
             return ClientAuthenticationResult.Undefined;
+        }
 
-        var hasClientSecret = form.TryGetValue(
-            OpenIdConstants.Parameters.ClientSecret,
-            out var clientSecret
-        );
-
-        return await AuthenticateClientAsync(
+        return await AuthenticateClientSecretAsync(
             openIdContext,
             clientId.ToString(),
             clientSecret.ToString().AsMemory(),
-            hasClientSecret,
             cancellationToken
         );
     }

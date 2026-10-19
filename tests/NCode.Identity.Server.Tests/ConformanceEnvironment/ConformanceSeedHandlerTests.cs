@@ -264,8 +264,9 @@ public class ConformanceSeedHandlerTests : BaseTests
     public async Task HandleAsync_WhenClientConfigured_RegistersItsMethodAndAppliesDefaults()
     {
         // The registered token_endpoint_auth_method decides the client type, so a seeded client is confidential the
-        // way a dynamically registered one is, and it is the only method the client may use. Unconfigured lists take
-        // their defaults: the Basic OP grant types, and the server's PKCE methods (the setting is left out).
+        // way a dynamically registered one is, and it is the only method the client may use — the registration alone
+        // says so, without a per-client token_endpoint_auth_methods_supported. Unconfigured lists take their
+        // defaults: the Basic OP grant types, and the server's PKCE methods (the setting is left out).
         var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
         mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(jsonOptions);
@@ -327,9 +328,8 @@ public class ConformanceSeedHandlerTests : BaseTests
             "client_secret_post",
             settingsDocument.GetProperty("token_endpoint_auth_method").GetString()
         );
-        Assert.Equal(
-            ["client_secret_post"],
-            GetStrings(settingsDocument, "token_endpoint_auth_methods_supported")
+        Assert.False(
+            settingsDocument.TryGetProperty("token_endpoint_auth_methods_supported", out _)
         );
         Assert.Equal(
             ["authorization_code", "refresh_token"],

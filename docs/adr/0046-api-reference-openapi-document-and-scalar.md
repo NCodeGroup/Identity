@@ -4,7 +4,9 @@
   [ADR-0044](0044-management-api-authentication-and-globaladmin-bootstrap.md); reinforces
   [ADR-0011](0011-secret-management-api.md) — no secret material on the surface —, the opaque-id rule of
   [ADR-0014](0014-server-generated-opaque-resource-ids.md), and the composition boundary of
-  [ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md))
+  [ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md); credentials location amended by
+  [ADR-0145](0145-a-client-authenticates-only-with-its-registered-method.md): the bootstrap administrator registers
+  `client_secret_basic`, so the client-credentials login sends its credentials in the `Authorization` header)
 - **Date:** 2026-10-04
 - **Deciders:** NCode Group
 

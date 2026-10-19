@@ -132,6 +132,7 @@ public sealed class DefaultRegistrationTests
     [InlineData("security_profile", "fapi-2")]
     [InlineData("subject_type", "pairwse")]
     [InlineData("token_endpoint_auth_method", "client_secret")]
+    [InlineData("token_endpoint_auth_method", "")]
     [InlineData("refresh_token_expiration_policy", "none")]
     [InlineData("backchannel_token_delivery_mode", "pull")]
     [InlineData("access_token_type", "JWT")]

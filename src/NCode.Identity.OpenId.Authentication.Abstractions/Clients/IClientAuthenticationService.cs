@@ -23,13 +23,19 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
 /// Provides the ability to authenticate an OpenID client from the current HTTP request using various registered authentication methods.
+/// A client is authenticated only with the client-authentication method it is registered to use (its
+/// <c>token_endpoint_auth_method</c>, RFC 7591 §2), and only when its <c>token_endpoint_auth_methods_supported</c> ceiling
+/// permits that method, so an authenticated client is always of the type it is registered as: a client registered with
+/// <c>none</c> is a public client, and any other registration is a confidential client that must present its credential.
 /// </summary>
 [PublicAPI]
 public interface IClientAuthenticationService
 {
     /// <summary>
     /// Attempts to authenticate an OpenID client from the current HTTP request.
-    /// The authentication result may be undefined, contain a public client, a confidential client, or an error.
+    /// The authentication result may be undefined, contain a public client, a confidential client, or an error. A client
+    /// that presents a credential of a method other than its registered one, or none when it is registered for one, is
+    /// not authenticated.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

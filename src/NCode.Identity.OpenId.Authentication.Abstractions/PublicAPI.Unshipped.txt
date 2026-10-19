@@ -225,7 +225,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthoriza
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.CodeVerifier.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.DisplayType.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.DPoPJwkThumbprint.get -> string?
-NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.GrantType.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.GrantedScopes.get -> System.Collections.Generic.IReadOnlyList<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.GrantedScopes.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.IdTokenHint.get -> string?

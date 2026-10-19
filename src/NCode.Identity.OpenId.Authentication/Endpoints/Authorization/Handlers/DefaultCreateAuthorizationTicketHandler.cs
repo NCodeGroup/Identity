@@ -85,10 +85,12 @@ internal class DefaultCreateAuthorizationTicketHandler(
             ticket.AuthorizationCode = securityToken.TokenValue;
         }
 
+        // Only a token returned by the authorization endpoint is created from this request, and such a token is issued
+        // through the implicit grant — in a hybrid flow too, whose code is redeemed later at the token endpoint.
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = ticket.CreatedWhen,
-            GrantType = authorizationRequest.GrantType,
+            GrantType = OpenIdConstants.GrantTypes.Implicit,
             Nonce = authorizationRequest.Nonce,
             State = authorizationRequest.State,
             OriginalScopes = authorizationRequest.Scopes,

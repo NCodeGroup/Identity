@@ -17,12 +17,15 @@
 #endregion
 
 using Moq;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using Xunit;
 
@@ -76,6 +79,259 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
             mockSettings.Object,
             mockRequest.Object
         );
+    }
+
+    private (
+        OpenIdContext context,
+        OpenIdClient client,
+        Func<string?> capturedCode
+    ) CreateResponseTypeScaffold(
+        Mock<IReadOnlySettingCollection> mockTenantSettings,
+        Mock<IReadOnlySettingCollection> mockClientSettings
+    )
+    {
+        string? capturedCode = null;
+        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+        var mockError = CreateLooseMock<IOpenIdError>();
+        mockErrorFactory
+            .Setup(x => x.Create(It.IsAny<string>()))
+            .Callback<string>(code => capturedCode = code)
+            .Returns(mockError.Object);
+
+        var mockSettingsProvider = CreateLooseMock<IReadOnlySettingCollectionProvider>();
+        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockTenantSettings.Object);
+
+        var mockTenant = CreateLooseMock<OpenIdTenant>();
+        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
+
+        var mockContext = CreateLooseMock<OpenIdContext>();
+        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
+
+        var mockClient = CreateLooseMock<OpenIdClient>();
+        mockClient.SetupGet(x => x.Settings).Returns(mockClientSettings.Object);
+
+        return (mockContext.Object, mockClient.Object, () => capturedCode);
+    }
+
+    private static void SetupSupported(
+        Mock<IReadOnlySettingCollection> mockSettings,
+        IReadOnlyCollection<string>? responseTypesSupported,
+        IReadOnlyCollection<string>? grantTypesSupported
+    )
+    {
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(OpenIdSettingKeys.ResponseTypesSupported, out responseTypesSupported)
+            )
+            .Returns(true);
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out grantTypesSupported)
+            )
+            .Returns(true);
+    }
+
+    private Mock<IAuthorizationRequest> CreateRequest(params string[] responseTypes)
+    {
+        var mockRequest = CreateLooseMock<IAuthorizationRequest>();
+        IReadOnlyList<string> values = responseTypes;
+        mockRequest.SetupGet(x => x.ResponseTypes).Returns(values);
+        return mockRequest;
+    }
+
+    #endregion
+
+    #region ValidateResponseType Tests
+
+    [Fact]
+    public void ValidateResponseType_WhenTheWholeResponseTypeIsSupported_DoesNotThrow()
+    {
+        var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        SetupSupported(
+            mockTenantSettings,
+            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeIdToken],
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+        );
+        SetupSupported(
+            mockClientSettings,
+            [OpenIdConstants.ResponseTypes.CodeIdToken],
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+        );
+        var (context, client, _) = CreateResponseTypeScaffold(
+            mockTenantSettings,
+            mockClientSettings
+        );
+        var mockRequest = CreateRequest(
+            OpenIdConstants.ResponseTypes.IdToken,
+            OpenIdConstants.ResponseTypes.Code
+        );
+
+        var exception = Record.Exception(() =>
+            DefaultValidateAuthorizationRequestHandler.ValidateResponseType(
+                context,
+                client,
+                mockRequest.Object
+            )
+        );
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void ValidateResponseType_WhenOnlyItsNamesAreSupportedSeparately_ThrowsUnsupportedResponseType()
+    {
+        var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        SetupSupported(
+            mockTenantSettings,
+            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.IdToken],
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+        );
+        var (context, client, capturedCode) = CreateResponseTypeScaffold(
+            mockTenantSettings,
+            mockClientSettings
+        );
+        var mockRequest = CreateRequest(
+            OpenIdConstants.ResponseTypes.Code,
+            OpenIdConstants.ResponseTypes.IdToken
+        );
+
+        Assert.Throws<OpenIdException>(() =>
+            DefaultValidateAuthorizationRequestHandler.ValidateResponseType(
+                context,
+                client,
+                mockRequest.Object
+            )
+        );
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.UnsupportedResponseType, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateResponseType_WhenTheTenantDoesNotSupportAGrantTypeItUses_ThrowsUnsupportedResponseType()
+    {
+        var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        SetupSupported(
+            mockTenantSettings,
+            [OpenIdConstants.ResponseTypes.CodeIdToken],
+            [OpenIdConstants.GrantTypes.AuthorizationCode]
+        );
+        var (context, client, capturedCode) = CreateResponseTypeScaffold(
+            mockTenantSettings,
+            mockClientSettings
+        );
+        var mockRequest = CreateRequest(
+            OpenIdConstants.ResponseTypes.Code,
+            OpenIdConstants.ResponseTypes.IdToken
+        );
+
+        Assert.Throws<OpenIdException>(() =>
+            DefaultValidateAuthorizationRequestHandler.ValidateResponseType(
+                context,
+                client,
+                mockRequest.Object
+            )
+        );
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.UnsupportedResponseType, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateResponseType_WhenTheClientMayNotUseIt_ThrowsUnauthorizedClient()
+    {
+        var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        SetupSupported(
+            mockTenantSettings,
+            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeIdToken],
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+        );
+        SetupSupported(
+            mockClientSettings,
+            [OpenIdConstants.ResponseTypes.Code],
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+        );
+        var (context, client, capturedCode) = CreateResponseTypeScaffold(
+            mockTenantSettings,
+            mockClientSettings
+        );
+        var mockRequest = CreateRequest(
+            OpenIdConstants.ResponseTypes.Code,
+            OpenIdConstants.ResponseTypes.IdToken
+        );
+
+        Assert.Throws<OpenIdException>(() =>
+            DefaultValidateAuthorizationRequestHandler.ValidateResponseType(
+                context,
+                client,
+                mockRequest.Object
+            )
+        );
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateResponseType_WhenTheClientLacksAGrantTypeItUses_ThrowsUnauthorizedClient()
+    {
+        var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        SetupSupported(
+            mockTenantSettings,
+            [OpenIdConstants.ResponseTypes.CodeIdToken],
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+        );
+        SetupSupported(
+            mockClientSettings,
+            [OpenIdConstants.ResponseTypes.CodeIdToken],
+            [OpenIdConstants.GrantTypes.AuthorizationCode]
+        );
+        var (context, client, capturedCode) = CreateResponseTypeScaffold(
+            mockTenantSettings,
+            mockClientSettings
+        );
+        var mockRequest = CreateRequest(
+            OpenIdConstants.ResponseTypes.Code,
+            OpenIdConstants.ResponseTypes.IdToken
+        );
+
+        Assert.Throws<OpenIdException>(() =>
+            DefaultValidateAuthorizationRequestHandler.ValidateResponseType(
+                context,
+                client,
+                mockRequest.Object
+            )
+        );
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateResponseType_WhenNoListIsSet_DoesNotThrow()
+    {
+        var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        var (context, client, _) = CreateResponseTypeScaffold(
+            mockTenantSettings,
+            mockClientSettings
+        );
+        var mockRequest = CreateRequest(
+            OpenIdConstants.ResponseTypes.Code,
+            OpenIdConstants.ResponseTypes.Token
+        );
+
+        var exception = Record.Exception(() =>
+            DefaultValidateAuthorizationRequestHandler.ValidateResponseType(
+                context,
+                client,
+                mockRequest.Object
+            )
+        );
+
+        Assert.Null(exception);
     }
 
     #endregion

@@ -120,11 +120,6 @@ public interface IAuthorizationRequest
     string DisplayType { get; }
 
     /// <summary>
-    /// Gets the <c>grant_type</c> parameter.
-    /// </summary>
-    string GrantType { get; }
-
-    /// <summary>
     /// Gets the <c>id_token_hint</c> parameter.
     /// </summary>
     string? IdTokenHint { get; }
@@ -166,7 +161,8 @@ public interface IAuthorizationRequest
     string ResponseMode { get; }
 
     /// <summary>
-    /// Gets the <c>response_type</c> parameter.
+    /// Gets the <c>response_type</c> parameter: the response-type names of the requested response type, whose order
+    /// does not matter (RFC 6749 §3.1.1).
     /// </summary>
     IReadOnlyList<string> ResponseTypes { get; }
 

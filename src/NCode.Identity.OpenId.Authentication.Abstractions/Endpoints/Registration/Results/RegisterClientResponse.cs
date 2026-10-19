@@ -96,7 +96,9 @@ public sealed record RegisterClientResponse
     public IReadOnlyList<string>? GrantTypes { get; init; }
 
     /// <summary>
-    /// Gets the array of OAuth 2.0 response types registered for the client.
+    /// Gets the array of OAuth 2.0 response types registered for the client, each a whole <c>response_type</c> value
+    /// in canonical form (its names in ordinal order); empty for a client that does not use the authorization
+    /// endpoint.
     /// </summary>
     [JsonPropertyName("response_types")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

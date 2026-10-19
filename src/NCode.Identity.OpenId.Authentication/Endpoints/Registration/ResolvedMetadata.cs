@@ -35,7 +35,8 @@ internal readonly record struct ResolvedMetadata
     public required IReadOnlyList<string> GrantTypes { get; init; }
 
     /// <summary>
-    /// Gets the resolved OAuth 2.0 response types.
+    /// Gets the resolved OAuth 2.0 response types, each a whole <c>response_type</c> value in canonical form; empty for
+    /// a client that does not use the authorization endpoint.
     /// </summary>
     public required IReadOnlyList<string> ResponseTypes { get; init; }
 

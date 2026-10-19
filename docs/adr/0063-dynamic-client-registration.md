@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (metadata storage and the registration `scope` amended by
   [ADR-0139](0139-setting-names-are-a-closed-vocabulary.md): informational metadata are registered client settings, the
-  requested `scope` is not stored, and the response reports the scopes the client may request)
+  requested `scope` is not stored, and the response reports the scopes the client may request; `response_types` and
+  `grant_types` amended by [ADR-0141](0141-response-types-are-whole-values.md): whole response types in canonical form,
+  defaulted and checked consistently with the grant types and with what the tenant supports)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

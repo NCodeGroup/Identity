@@ -52,7 +52,10 @@ public sealed class RegisterClientRequest
     public IReadOnlyList<string>? GrantTypes { get; init; }
 
     /// <summary>
-    /// Gets the array of OAuth 2.0 response types the client may use.
+    /// Gets the array of OAuth 2.0 response types the client may use. Each value is a whole <c>response_type</c> value
+    /// (for example <c>code</c> or <c>code id_token</c>) whose names may appear in any order; the server stores and
+    /// reports it in canonical form, its names in ordinal order. When omitted, a client that uses the authorization
+    /// endpoint registers <c>code</c>.
     /// </summary>
     [JsonPropertyName("response_types")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

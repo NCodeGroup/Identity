@@ -32,14 +32,11 @@ public static partial class OpenIdConstants
         public const string AuthorizationCode = "authorization_code";
 
         /// <summary>
-        /// Contains the constant value 'implicit'.
+        /// Contains the constant value 'implicit'. A token issued directly by the authorization endpoint is issued
+        /// through the implicit grant, including in an OpenID Connect hybrid flow, which uses both this grant and
+        /// <see cref="AuthorizationCode"/>.
         /// </summary>
         public const string Implicit = "implicit";
-
-        /// <summary>
-        /// Contains the constant value 'hybrid'.
-        /// </summary>
-        public const string Hybrid = "hybrid";
 
         /// <summary>
         /// Contains the constant value 'password'.

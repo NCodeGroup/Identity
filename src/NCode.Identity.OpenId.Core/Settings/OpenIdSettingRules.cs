@@ -42,7 +42,6 @@ internal static class OpenIdSettingRules
     [
         OpenIdConstants.GrantTypes.AuthorizationCode,
         OpenIdConstants.GrantTypes.Implicit,
-        OpenIdConstants.GrantTypes.Hybrid,
         OpenIdConstants.GrantTypes.Password,
         OpenIdConstants.GrantTypes.ClientCredentials,
         OpenIdConstants.GrantTypes.RefreshToken,
@@ -68,14 +67,20 @@ internal static class OpenIdSettingRules
         );
 
     /// <summary>
-    /// Gets the rule for a single <c>response_type</c> value; a setting lists the values, and the authorization endpoint
-    /// accepts any combination of them.
+    /// Gets the rule for a <c>response_type</c> value: one of the response types defined by OAuth 2.0 and OAuth 2.0
+    /// Multiple Response Type Encoding Practices, written in canonical form — its names in ordinal order, separated by a
+    /// single space (<c>code id_token</c>, not <c>id_token code</c>). A setting lists the whole values the server
+    /// accepts, and the authorization endpoint accepts exactly those, so the canonical form is the form compared.
     /// </summary>
     public static SettingRule<string> ResponseType() =>
         SettingRules.OneOf(
             OpenIdConstants.ResponseTypes.Code,
             OpenIdConstants.ResponseTypes.IdToken,
-            OpenIdConstants.ResponseTypes.Token
+            OpenIdConstants.ResponseTypes.Token,
+            OpenIdConstants.ResponseTypes.CodeIdToken,
+            OpenIdConstants.ResponseTypes.CodeToken,
+            OpenIdConstants.ResponseTypes.IdTokenToken,
+            OpenIdConstants.ResponseTypes.CodeIdTokenToken
         );
 
     /// <summary>

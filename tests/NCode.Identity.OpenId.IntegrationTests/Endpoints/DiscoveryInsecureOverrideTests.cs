@@ -18,6 +18,7 @@
 
 using System.Net;
 using System.Text.Json;
+using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
@@ -50,11 +51,17 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var root = document.RootElement;
 
-        // The implicit/hybrid response-type combinations are advertised once the ceiling is widened.
+        // The implicit and hybrid response types the operator listed are advertised exactly as listed: discovery does
+        // not expand them into combinations the operator did not enable ('id_token' alone, 'code token', ...).
         var responseTypes = GetStringArray(root, "response_types_supported");
-        Assert.Contains(OpenIdConstants.ResponseTypes.Token, responseTypes);
-        Assert.Contains(OpenIdConstants.ResponseTypes.IdToken, responseTypes);
-        Assert.Contains("code id_token", responseTypes); // a hybrid combination
+        Assert.Equal(
+            [
+                OpenIdConstants.ResponseTypes.Code,
+                OpenIdConstants.ResponseTypes.CodeIdToken,
+                OpenIdConstants.ResponseTypes.Token,
+            ],
+            responseTypes.Order(StringComparer.Ordinal)
+        );
 
         // The 'implicit' grant type is advertised.
         var grantTypes = GetStringArray(root, "grant_types_supported");
@@ -90,6 +97,61 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
             location.OriginalString.StartsWith(RedirectUri, StringComparison.Ordinal),
             "Expected an interactive challenge, not an error redirected back to the client."
         );
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithAResponseTypeThatIsNotListed_IsRejectedAsUnsupported()
+    {
+        const string clientId = "it-insecure-unlisted-client";
+        await Factory.SeedPublicClientAsync(clientId, RedirectUri);
+
+        var query =
+            $"?client_id={clientId}"
+            + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+            + "&response_type=id_token"
+            + "&scope=openid"
+            + "&nonce=n-0S6_WzA2Mj"
+            + "&state=abc123";
+
+        using var response = await CreateClient().GetAsync("/oauth2/authorize" + query);
+
+        // 'id_token' is not listed, although 'code id_token' is: a response type is enabled as a whole value, never
+        // through the names it contains. The error returns to the client in the fragment, the default for 'id_token'.
+        Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.StartsWith(RedirectUri, location.GetLeftPart(UriPartial.Path));
+        var parameters = HttpUtility.ParseQueryString(location.Fragment.TrimStart('#'));
+        Assert.Equal(OpenIdConstants.ErrorCodes.UnsupportedResponseType, parameters["error"]);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WithAHybridResponseType_ReturnsTheResponseInTheFragment()
+    {
+        const string clientId = "it-insecure-hybrid-client";
+        await Factory.SeedPublicClientAsync(clientId, RedirectUri);
+
+        var query =
+            $"?client_id={clientId}"
+            + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+            + "&response_type=id_token%20code"
+            + "&scope=openid"
+            + "&nonce=n-0S6_WzA2Mj"
+            + "&state=abc123"
+            + "&prompt=none";
+
+        using var response = await CreateClient().GetAsync("/oauth2/authorize" + query);
+
+        // A response type that returns an ID token is answered in the fragment by default, never in the query string:
+        // with no end-user session, prompt=none yields login_required, which travels the same way a token would.
+        Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.Equal(RedirectUri, location.GetLeftPart(UriPartial.Path));
+        Assert.Empty(location.Query);
+        var parameters = HttpUtility.ParseQueryString(location.Fragment.TrimStart('#'));
+        Assert.Equal(OpenIdConstants.ErrorCodes.LoginRequired, parameters["error"]);
+        Assert.Equal("abc123", parameters["state"]);
     }
 
     private static string[] GetStringArray(JsonElement root, string propertyName)

@@ -163,6 +163,102 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         Assert.Null(error);
         Assert.Empty(resolved.RedirectUris);
+        Assert.Empty(resolved.ResponseTypes);
+    }
+
+    [Fact]
+    public void ValidateMetadata_ResponseTypeNamesInAnyOrder_ResolvesTheCanonicalForm()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            GrantTypes =
+            [
+                OpenIdConstants.GrantTypes.AuthorizationCode,
+                OpenIdConstants.GrantTypes.Implicit,
+            ],
+            ResponseTypes = ["id_token code", OpenIdConstants.ResponseTypes.CodeIdToken],
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out var resolved);
+
+        Assert.Null(error);
+        Assert.Equal([OpenIdConstants.ResponseTypes.CodeIdToken], resolved.ResponseTypes);
+    }
+
+    [Fact]
+    public void ValidateMetadata_ResponseTypesWithoutGrantTypes_DefaultsToTheGrantTypesTheyUse()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            ResponseTypes = [OpenIdConstants.ResponseTypes.CodeIdToken],
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out var resolved);
+
+        Assert.Null(error);
+        Assert.Equal(
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
+            resolved.GrantTypes
+        );
+    }
+
+    [Fact]
+    public void ValidateMetadata_GrantTypeOfAResponseTypeNotRegistered_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdConstants.ResponseTypes.CodeIdToken],
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateMetadata_ImplicitGrantWithoutResponseTypes_ReturnsInvalidClientMetadata()
+    {
+        // The default response type is 'code', which uses the authorization_code grant the client did not register.
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            GrantTypes = [OpenIdConstants.GrantTypes.Implicit],
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateMetadata_EmptyResponseTypeValue_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            ResponseTypes = [string.Empty],
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -232,6 +328,117 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         Assert.Null(error);
         Assert.Equal("https://sector.example.com/uris.json", resolved.SectorIdentifierUri);
+    }
+
+    #endregion
+
+    #region ValidateSupportedMetadata
+
+    private static ResolvedMetadata CreateHybridMetadata() =>
+        new()
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes =
+            [
+                OpenIdConstants.GrantTypes.AuthorizationCode,
+                OpenIdConstants.GrantTypes.Implicit,
+            ],
+            ResponseTypes = [OpenIdConstants.ResponseTypes.CodeIdToken],
+            RedirectUris = ["https://example.com/callback"],
+        };
+
+    private Mock<IReadOnlySettingCollection> CreateTenantSettings(
+        IReadOnlyCollection<string>? grantTypesSupported,
+        IReadOnlyCollection<string>? responseTypesSupported
+    )
+    {
+        var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out grantTypesSupported)
+            )
+            .Returns(true);
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(OpenIdSettingKeys.ResponseTypesSupported, out responseTypesSupported)
+            )
+            .Returns(true);
+        return mockSettings;
+    }
+
+    [Fact]
+    public void ValidateSupportedMetadata_WhenTheTenantSupportsEveryValue_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var mockTenantSettings = CreateTenantSettings(
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
+            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeIdToken]
+        );
+
+        var error = handler.ValidateSupportedMetadata(
+            factory,
+            mockTenantSettings.Object,
+            CreateHybridMetadata()
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidateSupportedMetadata_WhenTheTenantDoesNotSupportAResponseType_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateTenantSettings(
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
+            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.IdToken]
+        );
+
+        var error = handler.ValidateSupportedMetadata(
+            factory,
+            mockTenantSettings.Object,
+            CreateHybridMetadata()
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateSupportedMetadata_WhenTheTenantDoesNotSupportAGrantType_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateTenantSettings(
+            [OpenIdConstants.GrantTypes.AuthorizationCode],
+            [OpenIdConstants.ResponseTypes.CodeIdToken]
+        );
+
+        var error = handler.ValidateSupportedMetadata(
+            factory,
+            mockTenantSettings.Object,
+            CreateHybridMetadata()
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateSupportedMetadata_WhenTheTenantListsAreUnset_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
+
+        var error = handler.ValidateSupportedMetadata(
+            factory,
+            mockTenantSettings.Object,
+            CreateHybridMetadata()
+        );
+
+        Assert.Null(error);
     }
 
     #endregion
@@ -382,6 +589,28 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.Equal(["https://example.com/callback"], response.RedirectUris);
         Assert.Equal([OpenIdConstants.GrantTypes.AuthorizationCode], response.GrantTypes);
         Assert.Equal([OpenIdConstants.ResponseTypes.Code], response.ResponseTypes);
+    }
+
+    [Fact]
+    public void ToResponse_WhenNoResponseTypeIsRegistered_ReportsAnEmptyList()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest();
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            ResponseTypes = [],
+            RedirectUris = [],
+        };
+        var settings = handler.BuildSettingsObject(request, resolved);
+        var client = CreateClient(JsonSerializer.SerializeToElement(settings));
+
+        var response = handler.ToResponse(client);
+
+        // An omitted response_types would read as the RFC 7591 default ('code').
+        Assert.NotNull(response.ResponseTypes);
+        Assert.Empty(response.ResponseTypes);
     }
 
     #endregion

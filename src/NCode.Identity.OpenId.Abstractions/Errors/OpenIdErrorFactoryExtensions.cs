@@ -245,6 +245,20 @@ public static class OpenIdErrorFactoryExtensions
 
         /// <summary>
         /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
+        /// message produces an <see cref="OpenIdConstants.ErrorCodes.UnsupportedResponseType"/> error: the
+        /// authorization server does not support the requested <c>response_type</c>.
+        /// </summary>
+        /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>.</param>
+        /// <returns>The newly created <see cref="IOpenIdError"/> instance.</returns>
+        public IOpenIdError UnsupportedResponseType(string errorDescription)
+        {
+            return factory
+                .Create(OpenIdConstants.ErrorCodes.UnsupportedResponseType)
+                .WithDescription(errorDescription);
+        }
+
+        /// <summary>
+        /// Creates an <see cref="IOpenIdError"/> for when processing an <c>OAuth</c> or <c>OpenID Connect</c>
         /// message produces an <see cref="OpenIdConstants.ErrorCodes.UnauthorizedClient"/> error.
         /// </summary>
         /// <param name="errorDescription">The value for <see cref="IOpenIdError.Description"/>.</param>

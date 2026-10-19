@@ -1,6 +1,7 @@
 # 140. Setting values are validated against their domain, not only their type
 
-- **Status:** Accepted
+- **Status:** Accepted (response-type domain amended by [ADR-0141](0141-response-types-are-whole-values.md): a
+  response type is a whole value in canonical form, enforced exactly)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 
@@ -54,11 +55,14 @@ ADR-0139: name, type, and domain are checked together, at the same entry points,
      (RFC 9449 forbids it for DPoP; a shared key cannot authenticate the issuer to a third party), which amends
      [ADR-0083](0083-secure-by-default-discovery-metadata.md). Request-object and client-assertion signing keep
      symmetric algorithms, because `client_secret_jwt` legitimately uses the client's secret.
-   - A grant type is one the server names (`authorization_code`, `implicit`, `hybrid`, `password`,
-     `client_credentials`, `refresh_token`) or an absolute URI, which is how RFC 6749 §4.5 names an extension grant —
-     the device code, CIBA, and token exchange grants among them — so an extension grant needs no catalog change.
-3. **Fixed protocol vocabularies are enumerated.** Subject types, CIBA delivery modes, single response types (the
-   authorization endpoint accepts any combination of them), response modes, prompt and display values, PKCE methods,
+   - A grant type is one the server names (`authorization_code`, `implicit`, `password`, `client_credentials`,
+     `refresh_token`; a hybrid flow uses `authorization_code` and `implicit` —
+     [ADR-0141](0141-response-types-are-whole-values.md)) or an absolute URI, which is how RFC 6749 §4.5 names an
+     extension grant — the device code, CIBA, and token exchange grants among them — so an extension grant needs no
+     catalog change.
+3. **Fixed protocol vocabularies are enumerated.** Subject types, CIBA delivery modes, response types (whole values in
+   canonical form, which the authorization endpoint enforces exactly —
+   [ADR-0141](0141-response-types-are-whole-values.md)), response modes, prompt and display values, PKCE methods,
    and claim types (only `normal` is implemented). `access_token_type` is the RFC 9068 type `at+jwt`, with or without
    its `application/` prefix, so explicit typing (RFC 8725 §3.11) cannot be configured away.
    `refresh_token_expiration_policy` is `absolute` or `sliding`: a refresh token always expires (RFC 9700 §4.14.2), so
@@ -112,12 +116,13 @@ ADR-0139: name, type, and domain are checked together, at the same entry points,
 - Narrowing a domain — unregistering a security profile or an algorithm, removing a vocabulary value — makes stored
   documents that use the removed value fail closed, so it ships with a data migration, as renaming a setting does
   (ADR-0139).
-- Dynamic client registration rejects a combined `response_types` value such as `code id_token`: the server models
-  response types as single values whose combinations the authorization endpoint accepts.
+- A response type is a whole value, so dynamic client registration stores a combined `response_types` value such as
+  `code id_token` as registered and the authorization endpoint enforces exactly it
+  ([ADR-0141](0141-response-types-are-whole-values.md)).
 - `client_notification_endpoint` has an empty default, so a ping or push client that registered none is reported as a
   missing endpoint rather than failing to read the setting.
 - Follow-ups: backlog `F54` (a parent's security profile is un-loosenable only when it is `fapi2`) and `F55`
-  (registration of combined `response_types`).
+  (registration of combined `response_types`, decided in [ADR-0141](0141-response-types-are-whole-values.md)).
 
 ## References
 

@@ -50,7 +50,6 @@ internal class DefaultAuthorizationCodeGrantHandler(
         new HashSet<string>(StringComparer.Ordinal)
         {
             OpenIdConstants.GrantTypes.AuthorizationCode,
-            OpenIdConstants.GrantTypes.Hybrid,
         };
 
     /// <inheritdoc />

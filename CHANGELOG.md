@@ -153,10 +153,45 @@ change to the public API is a **major** version bump.
   ID tokens, UserInfo responses, or access tokens. `OpenIdConstants.RefreshTokenExpirationPolicy.None` is removed:
   a refresh token always expires (RFC 9700 §4.14.2). The `token_endpoint_auth_method` descriptor is contributed by the
   authentication library. `client_notification_endpoint` defaults to empty. A list setting that contains `null` is a
-  type error. Dynamic client registration rejects a combined `response_types` value such as `code id_token`. Stored
-  documents that hold an out-of-domain value now fail when they are loaded and must be corrected.
+  type error. Stored documents that hold an out-of-domain value now fail when they are loaded and must be corrected.
+
+- **Response types are whole values, enforced exactly and kept consistent with grant types.**
+  `response_types_supported` lists whole `response_type` values — `code`, `id_token`, `token`, `code id_token`,
+  `code token`, `id_token token`, `code id_token token` — in canonical form (names in ordinal order), the shape OpenID
+  Connect Discovery, RFC 8414, and RFC 7591 define. Discovery advertises the list as configured instead of expanding its
+  names into every combination, and the authorization endpoint accepts exactly a listed value (its names in any order),
+  so an operator enables one implicit or hybrid flow by listing it — `code id_token` no longer drags in `id_token`,
+  `token`, or `code token`. A response type also needs the grant types it uses (OpenID Connect Registration §2:
+  `authorization_code` for `code`, `implicit` for `id_token` or `token`); a response type the tenant does not support is
+  rejected with `unsupported_response_type`, and one the client may not use with `unauthorized_client`.
+
+  Dynamic client registration registers combined values such as `code id_token`, stores and reports them in canonical
+  form, defaults omitted `grant_types` to the grant types the registered response types use (and omitted
+  `response_types` to `code` only for a client that uses the authorization endpoint), and refuses with
+  `invalid_client_metadata` a response type whose grant type is not registered or a grant type or response type the
+  tenant does not support. The registration response reports an empty list (`"response_types": []`) instead of omitting
+  it. ([ADR-0141](docs/adr/0141-response-types-are-whole-values.md))
+
+  **Breaking:** a `response_types_supported` value lists a whole response type, so a configuration that listed names to
+  enable their combinations (`[code, id_token]`) now enables only those names and must list the combination
+  (`code id_token`); a value in non-canonical order (`id_token code`) is outside the domain. The `hybrid` grant type is
+  removed (`OpenIdConstants.GrantTypes.Hybrid`, and as a `grant_types_supported` value): a hybrid flow uses
+  `authorization_code` and `implicit`, and the token endpoint answers only `grant_type=authorization_code` for a code.
+  `IAuthorizationRequest.GrantType` is removed. `OpenIdConstants.ResponseTypes` gains the four combined values, and the
+  error factory gains `UnsupportedResponseType`.
 
 ### Fixed
+
+- **An implicit or hybrid response could be redirected in the query string.** Without a `response_mode`, the
+  authorization endpoint returned its first-pass response — tokens or an error — in the query, whatever the response
+  type, while validation assumed the fragment. A response type that returns a token or an ID token now defaults to the
+  fragment on every path, as OAuth 2.0 Multiple Response Type Encoding Practices requires, so no token is placed in a
+  URL query. ([ADR-0141](docs/adr/0141-response-types-are-whole-values.md))
+
+- **A hybrid client registered the standard way could not use the authorization endpoint.** The hybrid flow was checked
+  against a `hybrid` grant type that OAuth does not define, so a client registered with `authorization_code` and
+  `implicit` (OpenID Connect Registration §2) was refused, and the token endpoint accepted `grant_type=hybrid` to redeem
+  a code. ([ADR-0141](docs/adr/0141-response-types-are-whole-values.md))
 
 - **A CIBA ping or push client with no notification endpoint failed to read the setting.** `client_notification_endpoint`
   had no default, so a client that registered none faulted the request instead of being rejected for the missing

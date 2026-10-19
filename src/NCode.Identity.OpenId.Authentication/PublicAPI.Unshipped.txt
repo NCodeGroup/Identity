@@ -17,7 +17,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.Authorizat
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.CodeVerifier.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.DisplayType.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.DPoPJwkThumbprint.get -> string?
-NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.GrantType.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.GrantedScopes.get -> System.Collections.Generic.IReadOnlyList<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.GrantedScopes.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.AuthorizationRequest.IdTokenHint.get -> string?

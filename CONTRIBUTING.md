@@ -139,6 +139,12 @@ require, rebase onto `main` if it has moved, and push. Dependabot stops rebasing
 to it, which is what you want: it would otherwise discard your fix. Do not close it to get a fresh one; the next run
 would just bring back the same break.
 
+When the **update job itself** fails (the "Dependabot Updates" workflow run, before any pull request exists), its log
+names the exact command it ran (`gh run view <run-id> --log`; search for `with command:`). To reproduce a pnpm failure,
+run that command in a copy of `src/frontend` with `--config.cache-dir` and `--config.store-dir` pointing at empty
+directories. Dependabot starts with no cache, and a warm local metadata cache can hide the failure. Pushing a change to
+`dependabot.yml` starts an update run for every ecosystem right away, so expect one when you change it.
+
 When an upgrade **cannot land yet** (the upstream ecosystem has not caught up), hold it with an `ignore` rule in
 `dependabot.yml` that explains why, plus a backlog item for lifting it. That is how TypeScript majors and `@types/node`
 majors are held today
@@ -146,7 +152,10 @@ majors are held today
 every weekly group PR fails on the same package.
 
 The frontend has no lockfile-free path: after changing a `package.json`, run `pnpm install` in `src/frontend` and commit
-`pnpm-lock.yaml`, because CI installs with `--frozen-lockfile`.
+`pnpm-lock.yaml`, because CI installs with `--frozen-lockfile`. Frontend versions must be three days old before anyone
+installs them: pnpm's `minimumReleaseAge` gates people and Dependabot's npm `cooldown` gates its updates. Keep the two
+windows equal, because Dependabot fails while the lockfile holds a version younger than its cooldown
+([ADR-0153](docs/adr/0153-one-release-age-window-gates-frontend-dependencies.md)).
 
 Workflows reference GitHub's own `actions/*` by major tag (`actions/checkout@v7`) and every **third-party** action by
 full commit SHA with its version in a trailing comment

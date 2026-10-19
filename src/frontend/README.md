@@ -31,7 +31,9 @@ it moves only by a deliberate change (backlog `U21`,
 
 Every pnpm setting lives in [`pnpm-workspace.yaml`](pnpm-workspace.yaml), not `.npmrc` or the `package.json` `pnpm`
 field. Dependency install scripts are denied unless reviewed: `strictDepBuilds` fails an install on any script nobody
-has decided about, and `allowBuilds` records each decision.
+has decided about, and `allowBuilds` records each decision. A version must also be published for three days before pnpm
+resolves it (`minimumReleaseAge`), the same window Dependabot waits for its npm updates
+([ADR-0153](../../docs/adr/0153-one-release-age-window-gates-frontend-dependencies.md)).
 
 We deliberately use pnpm's strict, symlinked `node_modules` rather than Yarn Plug'n'Play or
 zero-installs: PnP needs patches for the Vite + Storybook + emotion/MUI stack and zero-installs would
@@ -353,6 +355,14 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   `false` unless the package cannot work without it. pnpm keeps a skipped script in `node_modules/.modules.yaml` for
   any package it does not rebuild, so a `node_modules` installed before the decision keeps failing; delete it and
   reinstall.
+- **A version younger than three days is refused.** `minimumReleaseAge` makes `pnpm add` and `pnpm install` resolve only
+  versions published at least three days ago; asking for a newer one fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`.
+  The window equals Dependabot's npm `cooldown` and must never be shorter: Dependabot enforces its cooldown on every
+  version already in the lockfile, so its npm update fails with that same error while a younger version is locked, and
+  passes again once the version ages. When a fix cannot wait (and is not arriving as a Dependabot security update,
+  which bypasses both gates), list the package in `minimumReleaseAgeExclude` with a comment and remove the entry once
+  the version is three days old
+  ([ADR-0153](../../docs/adr/0153-one-release-age-window-gates-frontend-dependencies.md)).
 - **A non-interactive `pnpm install` cannot replace `node_modules` on its own.** After a pnpm major or a store-layout
   change, pnpm must purge `node_modules` first and asks for confirmation; without a terminal (an agent's shell, a script
   run from another tool) it fails with `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`. Run

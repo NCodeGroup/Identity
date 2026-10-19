@@ -22,3 +22,9 @@ overrides:
 strictDepBuilds: true
 allowBuilds:
   esbuild: false
+
+# A version must be published for three days (in minutes) before pnpm resolves it, so a compromised release is usually
+# caught and pulled before it can reach the lockfile. This is the same window as the npm `cooldown` in
+# .github/dependabot.yml, and it must never be shorter: Dependabot enforces its cooldown on every version already in the
+# lockfile, so a younger one would fail its updates until it aged (ADR-0153). Security updates bypass both gates.
+minimumReleaseAge: 4320

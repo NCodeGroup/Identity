@@ -44,6 +44,18 @@ $ErrorActionPreference = 'Stop'
 
 $invariant = [System.Globalization.CultureInfo]::InvariantCulture
 $onGitHub = $env:GITHUB_ACTIONS -eq 'true'
+
+# The backstop for "reporting only": a defect in this script surfaces as a warning (annotated on GitHub) rather than
+# failing the caller's step, so a reporting bug can never turn a passing test run red.
+trap {
+    $location = "test-report.ps1:$($_.InvocationInfo.ScriptLineNumber)"
+    $message = "The test report could not be produced ($location): $($_.Exception.Message)"
+    Write-Warning $message
+    if ($onGitHub) {
+        Write-Host "::warning title=Test report::$($message.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A'))"
+    }
+    exit 0
+}
 $maxAnnotations = 10
 $maxDetailedFailures = 50
 $maxFailureText = 4000
@@ -223,8 +235,15 @@ $rows = [System.Collections.Generic.List[object]]::new()
 $failures = [System.Collections.Generic.List[object]]::new()
 
 foreach ($report in $reports) {
+    # An empty file is a run that never finished (a runner killed mid-suite creates the file before writing it). It
+    # must be caught explicitly: an empty read is $null, and [xml]$null is $null rather than an exception.
+    $xml = $null
     try {
-        $xml = [xml](Get-Content -LiteralPath $report.FullName -Raw)
+        $content = Get-Content -LiteralPath $report.FullName -Raw
+        if ([string]::IsNullOrWhiteSpace($content)) {
+            throw 'the file is empty, so its test run did not finish'
+        }
+        $xml = [xml]$content
     }
     catch {
         $message = "Skipping unreadable JUnit report $(Get-RepositoryRelativePath $report.FullName): $($_.Exception.Message)"
@@ -254,7 +273,7 @@ foreach ($report in $reports) {
                     Suite    = $label
                     Name     = Get-TestDisplayName $className $case.GetAttribute('name')
                     Message  = if ($message) { $message.Trim() } else { ($body -split "`n" | Select-Object -First 1).Trim() }
-                    Detail   = $body.Trim("`r", "`n")
+                    Detail   = $body.TrimStart("`r", "`n").TrimEnd()
                     Location = Find-FailureLocation "$body`n$message" $className $report.DirectoryName
                 })
         }

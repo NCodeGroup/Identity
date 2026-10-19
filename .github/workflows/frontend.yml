@@ -111,7 +111,9 @@ jobs:
         run: pnpm run typecheck
 
       # The same Vitest run as `pnpm test`, plus a JUnit report (<package>/test-results/junit.xml) and Cobertura + HTML
-      # coverage (<package>/coverage/) per package, for the reports below and Codecov.
+      # coverage (<package>/coverage/) per package, for the reports below and Codecov. `test:report` runs turbo with
+      # --continue=always: by default turbo cancels the remaining packages' tests when one fails, which leaves their
+      # JUnit files empty and the report missing exactly the packages nobody looked at.
       - name: Test
         id: test
         if: always()

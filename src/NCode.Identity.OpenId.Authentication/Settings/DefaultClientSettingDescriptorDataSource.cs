@@ -26,10 +26,12 @@ using NCode.Identity.Settings;
 namespace NCode.Identity.OpenId.Authentication.Settings;
 
 /// <summary>
-/// Provides an additive <see cref="SettingDescriptor"/> data source for settings whose default value depends on the
-/// registered client-authentication handlers (an authentication-slice concern), composed with the base descriptor
-/// catalog from the core slice.
+/// Provides an additive <see cref="SettingDescriptor"/> data source for the settings whose default value or domain
+/// depends on the registered client-authentication handlers (an authentication-slice concern), composed with the base
+/// descriptor catalog from the core slice. Each such setting accepts only the authentication methods of the registered
+/// handlers, so a misspelled or unsupported method is rejected rather than stored and never matched.
 /// </summary>
+// See ADR-0140.
 internal class DefaultClientSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IServiceProvider serviceProvider
@@ -63,11 +65,28 @@ internal class DefaultClientSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthMethodsSupported,
+                Rule = SettingRules.Each(AuthMethod()),
                 Default = AuthMethods,
 
                 IsDiscoverable = true,
                 OnMerge = SettingMerge.Intersect,
             };
+
+            // token_endpoint_auth_method: the single client-authentication method a client is registered to use at the
+            // token endpoint (per-client; selects which mutual-TLS handler, if any, owns the request); empty (the
+            // default) means the client registered none. Not advertised. Override (Replace): a child fully replaces
+            // the parent value.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.TokenEndpointAuthMethod,
+                Rule = SettingRules.EmptyOr(AuthMethod()),
+                Default = string.Empty,
+
+                IsDiscoverable = false,
+                OnMerge = SettingMerge.Replace,
+            };
         }
     }
+
+    private SettingRule<string> AuthMethod() => SettingRules.OneOf(AuthMethods);
 }

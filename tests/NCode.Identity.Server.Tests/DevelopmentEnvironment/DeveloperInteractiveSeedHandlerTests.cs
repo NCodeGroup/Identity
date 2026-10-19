@@ -16,9 +16,11 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.DevelopmentEnvironment;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -28,9 +30,14 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
 {
     private const string WorkloadTenantId = "default";
 
-    private static DeveloperInteractiveSeedHandler CreateHandler(
+    private DeveloperInteractiveSeedHandler CreateHandler(
         DeveloperInteractiveSeedOptions options
-    ) => new(options);
+    ) =>
+        new(
+            options,
+            CreateStrictMock<ISettingSerializer>().Object,
+            CreateStrictMock<IOpenIdEnvironmentProvider>().Object
+        );
 
     private SeedTenantCommand CreateCommand(string tenantId, TenantPlane plane)
     {

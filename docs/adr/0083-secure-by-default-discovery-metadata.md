@@ -1,6 +1,7 @@
 # 83. Secure-by-default discovery metadata, overridable by operators
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0140](0140-setting-values-are-validated-against-their-domain.md): symmetric
+  signing of a token that crosses a trust boundary is outside the signing settings' domain, so it cannot be re-enabled)
 - **Date:** 2026-10-12
 - **Deciders:** NCode.Identity maintainers
 

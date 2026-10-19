@@ -545,11 +545,7 @@ internal class DefaultTokenService(
         };
 
         var createdWhen = tokenRequest.CreatedWhen;
-        var expirationPolicy = settings.GetValue(OpenIdSettingKeys.RefreshTokenExpirationPolicy);
-        var lifetime =
-            expirationPolicy != OpenIdConstants.RefreshTokenExpirationPolicy.None
-                ? settings.GetValue(OpenIdSettingKeys.RefreshTokenLifetime)
-                : (TimeSpan?)null;
+        var lifetime = settings.GetValue(OpenIdSettingKeys.RefreshTokenLifetime);
 
         await PersistedGrantService.AddAsync(
             openIdContext,

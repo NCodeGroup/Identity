@@ -5,7 +5,10 @@ abstract NCode.Identity.Settings.SettingDescriptor.CreateDefault() -> NCode.Iden
 abstract NCode.Identity.Settings.SettingDescriptor.Format(NCode.Identity.Settings.Setting! setting) -> object!
 abstract NCode.Identity.Settings.SettingDescriptor.HasDefault.get -> bool
 abstract NCode.Identity.Settings.SettingDescriptor.Merge(NCode.Identity.Settings.Setting! current, NCode.Identity.Settings.Setting! other) -> NCode.Identity.Settings.Setting!
+abstract NCode.Identity.Settings.SettingDescriptor.TryValidate(object! value, out string? failure) -> bool
 abstract NCode.Identity.Settings.SettingDescriptor.ValueType.get -> System.Type!
+abstract NCode.Identity.Settings.SettingRule<TValue>.Description.get -> string!
+abstract NCode.Identity.Settings.SettingRule<TValue>.TryValidate(TValue value, out string? failure) -> bool
 NCode.Identity.Settings.IReadOnlySettingCollection
 NCode.Identity.Settings.IReadOnlySettingCollection.GetValue<TValue>(NCode.Identity.Settings.SettingKey<TValue> key) -> TValue
 NCode.Identity.Settings.IReadOnlySettingCollection.Merge(System.Collections.Generic.IEnumerable<NCode.Identity.Settings.Setting!>! otherCollection) -> NCode.Identity.Settings.ISettingCollection!
@@ -58,6 +61,8 @@ NCode.Identity.Settings.SettingDescriptor<TValue>.OnFormat.get -> System.Func<NC
 NCode.Identity.Settings.SettingDescriptor<TValue>.OnFormat.init -> void
 NCode.Identity.Settings.SettingDescriptor<TValue>.OnMerge.get -> System.Func<TValue, TValue, TValue>!
 NCode.Identity.Settings.SettingDescriptor<TValue>.OnMerge.init -> void
+NCode.Identity.Settings.SettingDescriptor<TValue>.Rule.get -> NCode.Identity.Settings.SettingRule<TValue>!
+NCode.Identity.Settings.SettingDescriptor<TValue>.Rule.init -> void
 NCode.Identity.Settings.SettingDescriptor<TValue>.SettingDescriptor() -> void
 NCode.Identity.Settings.SettingError
 NCode.Identity.Settings.SettingError.Message.get -> string!
@@ -73,12 +78,16 @@ NCode.Identity.Settings.SettingKey<TValue>.SettingName.get -> string!
 NCode.Identity.Settings.SettingKey<TValue>.SettingName.init -> void
 NCode.Identity.Settings.SettingKey<TValue>.ValueType.get -> System.Type!
 NCode.Identity.Settings.SettingMerge
+NCode.Identity.Settings.SettingRule<TValue>
+NCode.Identity.Settings.SettingRule<TValue>.SettingRule() -> void
+NCode.Identity.Settings.SettingRules
 override NCode.Identity.Settings.Setting<TValue>.GetValue() -> object!
 override NCode.Identity.Settings.SettingDescriptor<TValue>.Create(object! value) -> NCode.Identity.Settings.Setting!
 override NCode.Identity.Settings.SettingDescriptor<TValue>.CreateDefault() -> NCode.Identity.Settings.Setting!
 override NCode.Identity.Settings.SettingDescriptor<TValue>.Format(NCode.Identity.Settings.Setting! setting) -> object!
 override NCode.Identity.Settings.SettingDescriptor<TValue>.HasDefault.get -> bool
 override NCode.Identity.Settings.SettingDescriptor<TValue>.Merge(NCode.Identity.Settings.Setting! current, NCode.Identity.Settings.Setting! other) -> NCode.Identity.Settings.Setting!
+override NCode.Identity.Settings.SettingDescriptor<TValue>.TryValidate(object! value, out string? failure) -> bool
 override NCode.Identity.Settings.SettingDescriptor<TValue>.ValueType.get -> System.Type!
 static NCode.Identity.Settings.SettingDescriptor<TValue>.implicit operator NCode.Identity.Settings.SettingKey<TValue>(NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor) -> NCode.Identity.Settings.SettingKey<TValue>
 static NCode.Identity.Settings.SettingMerge.And(bool current, bool other) -> bool
@@ -89,6 +98,15 @@ static NCode.Identity.Settings.SettingMerge.Min<T>(T current, T other) -> T
 static NCode.Identity.Settings.SettingMerge.Or(bool current, bool other) -> bool
 static NCode.Identity.Settings.SettingMerge.Replace<T>(T _, T other) -> T
 static NCode.Identity.Settings.SettingMerge.Union<T>(System.Collections.Generic.IEnumerable<T>! current, System.Collections.Generic.IEnumerable<T>! other) -> System.Collections.Generic.List<T>!
+static NCode.Identity.Settings.SettingRules.Any<TValue>() -> NCode.Identity.Settings.SettingRule<TValue>!
+static NCode.Identity.Settings.SettingRules.AtLeast<TValue>(TValue minimum) -> NCode.Identity.Settings.SettingRule<TValue>!
+static NCode.Identity.Settings.SettingRules.Between<TValue>(TValue minimum, TValue maximum) -> NCode.Identity.Settings.SettingRule<TValue>!
+static NCode.Identity.Settings.SettingRules.Each<TElement>(NCode.Identity.Settings.SettingRule<TElement>! rule) -> NCode.Identity.Settings.SettingRule<System.Collections.Generic.IReadOnlyCollection<TElement>!>!
+static NCode.Identity.Settings.SettingRules.EmptyOr(NCode.Identity.Settings.SettingRule<string!>! rule) -> NCode.Identity.Settings.SettingRule<string!>!
+static NCode.Identity.Settings.SettingRules.Must<TValue>(string! description, System.Func<TValue, bool>! predicate) -> NCode.Identity.Settings.SettingRule<TValue>!
+static NCode.Identity.Settings.SettingRules.NonEmpty() -> NCode.Identity.Settings.SettingRule<string!>!
+static NCode.Identity.Settings.SettingRules.OneOf(params System.Collections.Generic.IEnumerable<string!>! values) -> NCode.Identity.Settings.SettingRule<string!>!
 virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Create(TValue value) -> NCode.Identity.Settings.Setting<TValue>!
 virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Format(NCode.Identity.Settings.Setting<TValue>! setting) -> object!
 virtual NCode.Identity.Settings.SettingDescriptor<TValue>.Merge(NCode.Identity.Settings.Setting<TValue>! current, NCode.Identity.Settings.Setting<TValue>! other) -> NCode.Identity.Settings.Setting<TValue>!
+virtual NCode.Identity.Settings.SettingDescriptor<TValue>.TryValidate(TValue value, out string? failure) -> bool

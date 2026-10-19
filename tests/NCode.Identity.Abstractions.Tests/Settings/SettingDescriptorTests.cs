@@ -238,4 +238,65 @@ public class SettingDescriptorTests
     }
 
     #endregion
+
+    #region Rule Property Tests
+
+    [Fact]
+    public void Rule_WhenNotSet_AcceptsEveryValue()
+    {
+        var descriptor = new SettingDescriptor<string> { Name = "example" };
+
+        Assert.Equal("any value", descriptor.Rule.Description);
+    }
+
+    #endregion
+
+    #region TryValidate Tests
+
+    [Fact]
+    public void TryValidate_WhenValueSatisfiesTheRule_ReturnsTrue()
+    {
+        var descriptor = new SettingDescriptor<string>
+        {
+            Name = "example",
+            Rule = SettingRules.OneOf("public", "pairwise"),
+        };
+
+        var valid = descriptor.TryValidate("public", out var failure);
+
+        Assert.True(valid);
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void TryValidate_WhenValueIsOutsideTheDomain_ReturnsTheRuleFailure()
+    {
+        var descriptor = new SettingDescriptor<string>
+        {
+            Name = "example",
+            Rule = SettingRules.OneOf("public", "pairwise"),
+        };
+
+        var valid = descriptor.TryValidate("pairwse", out var failure);
+
+        Assert.False(valid);
+        Assert.Equal("must be one of 'public' or 'pairwise'", failure);
+    }
+
+    [Fact]
+    public void TryValidate_WithBoxedValue_EvaluatesTheRule()
+    {
+        SettingDescriptor descriptor = new SettingDescriptor<TimeSpan>
+        {
+            Name = "example",
+            Rule = SettingRules.AtLeast(TimeSpan.Zero),
+        };
+
+        var valid = descriptor.TryValidate(TimeSpan.FromMinutes(-1), out var failure);
+
+        Assert.False(valid);
+        Assert.NotNull(failure);
+    }
+
+    #endregion
 }

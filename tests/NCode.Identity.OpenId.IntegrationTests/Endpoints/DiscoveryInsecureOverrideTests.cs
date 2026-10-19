@@ -25,9 +25,9 @@ using Xunit;
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
 /// <summary>
-/// Confirms that an operator can re-enable the insecure/not-recommended capabilities the library omits from its
-/// secure defaults (ADR-0083) purely through configuration, and that the widened values are then both advertised
-/// in discovery and accepted by the authorization endpoint.
+/// Confirms that an operator can re-enable the not-recommended capabilities the library omits from its secure
+/// defaults (ADR-0083) purely through configuration, and that the widened values are then both advertised in
+/// discovery and accepted by the authorization endpoint.
 /// </summary>
 public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory factory)
     : IClassFixture<InsecureConfigApplicationFactory>
@@ -63,10 +63,6 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
         // PKCE 'plain' is advertised alongside 'S256'.
         var codeChallengeMethods = GetStringArray(root, "code_challenge_methods_supported");
         Assert.Contains(OpenIdConstants.CodeChallengeMethods.Plain, codeChallengeMethods);
-
-        // Symmetric HS256 id-token signing is advertised once the operator opts in.
-        var idTokenSigningAlgs = GetStringArray(root, "id_token_signing_alg_values_supported");
-        Assert.Contains("HS256", idTokenSigningAlgs);
     }
 
     [Fact]

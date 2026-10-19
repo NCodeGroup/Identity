@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -54,7 +55,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             CreateStrictMock<IPersistedGrantService>().Object,
             CreateStrictMock<IInitialAccessTokenValidator>().Object,
             CreateStrictMock<ISectorIdentifierValidator>().Object,
-            clientScopeService
+            clientScopeService,
+            CreateStrictMock<ISettingSerializer>().Object
         );
 
     private (IOpenIdErrorFactory factory, Func<string?> capturedCode) CreateErrorFactory()

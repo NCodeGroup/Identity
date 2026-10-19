@@ -125,7 +125,46 @@ change to the public API is a **major** version bump.
   group's prefix can come from configuration. **Breaking** for custom endpoint groups, which return a `RoutePattern`.
   ([ADR-0138](docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md))
 
+- **Setting values are validated against their domain, not only their type.** A value of the right type that the
+  server would not honor is now rejected wherever a setting enters, exactly as an unregistered name is: configuration
+  stops the host (and a reload is rejected), a management write returns `400` keyed by setting name, a stored document
+  fails the request that loads it, dynamic client registration returns `invalid_client_metadata` (or
+  `invalid_redirect_uri`), and the conformance and developer seeders stop with an error naming the client. Every
+  library setting declares its domain:
+  - `security_profile` must be empty or name a registered security profile — a misspelled `fapi2` no longer leaves a
+    client silently without the FAPI 2.0 baseline. The security-profile catalog also throws, rather than applying no
+    profile, for a profile name that is not registered.
+  - `token_endpoint_auth_method` and `token_endpoint_auth_methods_supported` accept only the methods of the registered
+    client-authentication handlers; the enumerated settings (`subject_type`, `backchannel_token_delivery_mode`,
+    `refresh_token_reuse_policy`, `access_token_type`, the response-type, response-mode, prompt, display, PKCE,
+    subject-type, delivery-mode, and claim-type lists) accept only their protocol vocabularies; a grant type is a named
+    grant type or an absolute URI (an extension grant).
+  - Algorithm lists accept only registered algorithms of their kind, never `none` or `dir`; the signing lists for ID
+    tokens, UserInfo responses, access tokens, and DPoP proofs accept only asymmetric algorithms.
+  - Lifetimes and intervals are at least one second, timeouts are positive, sizes are at least one, durations that zero
+    disables are not negative, and `user_code_length` is between 8 and 32.
+  - URIs, host allow-lists, the mutual-TLS alias authority, the expected `request_uri` media type, the `tls_client_auth`
+    identities, and `jwks` are checked the way the runtime uses them (`jwks_uri`, `sector_identifier_uri`, and
+    `client_notification_endpoint` are https; redirect URIs are absolute without a fragment).
+  ([ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md))
+
+  **Breaking:** `SettingDescriptor` gains the abstract `TryValidate`, and `SettingDescriptor<TValue>` gains `Rule`
+  (`SettingRule<TValue>`, built with the new `SettingRules`). Symmetric (`HS*`) signing can no longer be configured for
+  ID tokens, UserInfo responses, or access tokens. `OpenIdConstants.RefreshTokenExpirationPolicy.None` is removed:
+  a refresh token always expires (RFC 9700 §4.14.2). The `token_endpoint_auth_method` descriptor is contributed by the
+  authentication library. `client_notification_endpoint` defaults to empty. A list setting that contains `null` is a
+  type error. Dynamic client registration rejects a combined `response_types` value such as `code id_token`. Stored
+  documents that hold an out-of-domain value now fail when they are loaded and must be corrected.
+
 ### Fixed
+
+- **A CIBA ping or push client with no notification endpoint failed to read the setting.** `client_notification_endpoint`
+  had no default, so a client that registered none faulted the request instead of being rejected for the missing
+  endpoint. It now defaults to empty. ([ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md))
+
+- **A zero fetch timeout removed the bound on outbound fetches.** A `request_uri`, `jwks_uri`, or
+  `sector_identifier_uri` fetch timeout of zero (or less) disabled the timeout. Such a value is now rejected.
+  ([ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md))
 
 - **The reference host could not start in Production.** `UseDeveloperCors()` added the CORS middleware
   unconditionally, but the developer CORS policy — and with it the CORS services — is registered only outside

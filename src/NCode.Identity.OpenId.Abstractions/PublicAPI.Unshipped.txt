@@ -247,7 +247,6 @@ const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.Login = "login" -> strin
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.None = "none" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.SelectAccount = "select_account" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.Absolute = "absolute" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.None = "none" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.Sliding = "sliding" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy.None = "none" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy.RevokeAll = "revoke_all" -> string!

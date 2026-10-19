@@ -442,15 +442,10 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
-    /// Contains constants for various types of expiration policies for refresh tokens.
+    /// Contains constants for the expiration policies of refresh tokens. A refresh token always expires.
     /// </summary>
     public static class RefreshTokenExpirationPolicy
     {
-        /// <summary>
-        /// Indicates that refresh tokens do not expire.
-        /// </summary>
-        public const string None = "none";
-
         /// <summary>
         /// Indicates that refresh tokens expire at a fixed point in time regardless of use.
         /// </summary>

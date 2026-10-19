@@ -21,6 +21,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using NCode.Identity.OpenId.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
@@ -92,5 +93,105 @@ public class ClientRegistrationEndpointTests
 
         var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
         Assert.True(tokenResponse.StatusCode == HttpStatusCode.OK, tokenBody);
+    }
+
+    [Theory]
+    [InlineData("grant_types", "authorisation_code", OpenIdSettingNames.GrantTypesSupported)]
+    [InlineData("response_types", "code id_token", OpenIdSettingNames.ResponseTypesSupported)]
+    public async Task PostRegister_WhenAListValueIsOutsideItsDomain_ReturnsInvalidClientMetadata(
+        string metadataName,
+        string value,
+        string settingName
+    )
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { "https://client.example/callback" },
+                [metadataName] = new[] { value },
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            settingName
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenJwksUriIsNotHttps_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["jwks_uri"] = "http://client.example/jwks",
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdSettingNames.JwksUri
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenRedirectUriIsRelative_ReturnsInvalidRedirectUri()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["redirect_uris"] = new[] { "/callback" },
+            }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidRedirectUri,
+            document.RootElement.GetProperty("error").GetString()
+        );
+    }
+
+    private static async Task AssertRegistrationErrorAsync(
+        HttpResponseMessage response,
+        string expectedError,
+        string expectedSettingName
+    )
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        Assert.Equal(expectedError, root.GetProperty("error").GetString());
+        Assert.Contains(
+            $"'{expectedSettingName}'",
+            root.GetProperty("error_description").GetString(),
+            StringComparison.Ordinal
+        );
     }
 }

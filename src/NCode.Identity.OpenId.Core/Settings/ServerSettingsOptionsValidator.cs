@@ -22,10 +22,10 @@ namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Validates the server settings carried by <see cref="OpenIdServerOptions.Settings"/>, so a setting name with no
-/// registered descriptor, or a value that does not convert to its descriptor's type, stops the host when it starts
-/// instead of being loaded without effect on the first request.
+/// registered descriptor, a value that does not convert to its descriptor's type, or a value outside the setting's
+/// domain stops the host when it starts instead of being loaded without effect on the first request.
 /// </summary>
-// See ADR-0137 (fail at startup) and ADR-0139 (setting names are a closed vocabulary).
+// See ADR-0137 (fail at startup), ADR-0139 (setting names are a closed vocabulary), and ADR-0140 (value domains).
 internal class ServerSettingsOptionsValidator(
     ISettingConfigurationReader settingConfigurationReader
 ) : IValidateOptions<OpenIdOptions>

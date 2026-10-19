@@ -1,6 +1,7 @@
 # 139. Setting names are a closed vocabulary, and configuration the server cannot honor fails loudly
 
-- **Status:** Accepted
+- **Status:** Accepted (extended by [ADR-0140](0140-setting-values-are-validated-against-their-domain.md): setting
+  values are validated against their domain, not only their type)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 
@@ -87,9 +88,8 @@ accepts traffic.
   writer, and the consent page already reads `client_name` as a setting.
 - **Store the requested `scope` as registration metadata.** Rejected: the response would claim scopes the client cannot
   obtain, and it would be a second source of truth beside resource servers and grants.
-- **Validate setting values against their domain (allowed values, ranges) in the same change.** Deferred: types are
-  what a descriptor declares today; a value-domain rule (for example, that `security_profile` names a registered
-  profile) is a descriptor extension recorded as backlog `F53`.
+- **Validate setting values against their domain (allowed values, ranges) in the same change.** Deferred to a
+  descriptor extension, decided in [ADR-0140](0140-setting-values-are-validated-against-their-domain.md).
 
 ## Consequences
 

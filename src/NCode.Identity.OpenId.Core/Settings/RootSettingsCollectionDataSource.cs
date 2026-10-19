@@ -25,7 +25,6 @@ using NCode.Collections.Providers;
 using NCode.Disposables;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Logging;
-using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Settings;
@@ -254,11 +253,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
         foreach (var algorithm in AlgorithmCollectionProvider.Collection)
         {
-            if (string.IsNullOrEmpty(algorithm.Code))
-                continue;
-            if (algorithm.Code == "dir")
-                continue;
-            if (algorithm.Code == "none")
+            if (!SettingAlgorithms.IsSelectable(algorithm))
                 continue;
 
             switch (algorithm.Type)
@@ -267,10 +262,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
                     signingAlgValuesSupported.Add(algorithm.Code);
                     // Secure-by-default: tokens that cross a trust boundary (id_token, userinfo, access_token)
                     // advertise only asymmetric signing algorithms — never symmetric HS* (RFC 9700 posture).
-                    if (
-                        algorithm is KeyedAlgorithm keyedAlgorithm
-                        && typeof(AsymmetricSecretKey).IsAssignableFrom(keyedAlgorithm.KeyType)
-                    )
+                    if (SettingAlgorithms.IsAsymmetricSignature(algorithm))
                     {
                         asymmetricSigningAlgValuesSupported.Add(algorithm.Code);
                     }
@@ -290,8 +282,8 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             }
         }
 
-        // Cross-trust-boundary token signing advertises asymmetric algorithms only (no HS*); an operator may
-        // widen any of these via configuration.
+        // Cross-trust-boundary token signing advertises asymmetric algorithms only (no HS*); configuration may narrow
+        // these lists but never name a symmetric algorithm, because the settings' domain excludes them (ADR-0140).
         settings.Set(
             OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
             asymmetricSigningAlgValuesSupported

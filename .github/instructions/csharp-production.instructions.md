@@ -307,11 +307,14 @@ rationale.
   server owns. Validate only what is in force (for example the selected tenant strategy's options), since a JSON overlay
   cannot delete a lower layer's key. **Validate a value the way it will be used:** a lenient parser can turn a typo into
   a different value instead of an error (`IPAddress.TryParse("10.0.0")` is `10.0.0.0`; `IPNetwork.TryParse` masks
-  `10.0.0.4/8` to `10.0.0.0/8`), and a value compared verbatim (a CORS origin) must be in the form it is compared in —
-  reject anything that parses to something other than what was written. A setting the server cannot honor in an
+  `10.0.0.4/8` to `10.0.0.0/8`; `Uri.TryCreate(value, UriKind.Absolute, …)` accepts an implicit file path — `/path` on
+  Unix, `C:\path` on Windows — and trims surrounding whitespace, so an absolute URI must also start with its own
+  `scheme:` and contain no whitespace), and a value compared verbatim (a CORS origin) must be in the form it is compared
+  in — reject anything that parses to something other than what was written. A setting the server cannot honor in an
   environment (a development-only section in Production) is a startup error, not an inert key. See
-  [ADR-0137](../../docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md) and
-  [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md).
+  [ADR-0137](../../docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md),
+  [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md), and
+  [ADR-0140](../../docs/adr/0140-setting-values-are-validated-against-their-domain.md).
 - 👁 **Setting names are a closed vocabulary.** Every setting a server, tenant, client, or resource server carries has a
   registered `SettingDescriptor`, contributed through `ICollectionDataSource<SettingDescriptor>` by the package that
   reads or writes it; never read or write a setting through an ad-hoc `new SettingKey<T>("…")` without a descriptor.
@@ -319,6 +322,16 @@ rationale.
   → `400`), and stored documents on read (fail closed) — so retiring or renaming a setting ships with a data migration
   of the stored documents. A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`)
   is still a registered setting. See [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md).
+- 👁 **A setting declares its domain, not only its type.** Give every descriptor whose type admits values the server
+  would not honor a `Rule` (`SettingRules.OneOf`/`EmptyOr`/`AtLeast`/`Between`/`Each`/`Must`): an enumerated string is a
+  `OneOf`, a lifetime or interval is at least one second, a timeout is positive, a list applies `Each` to its values, and
+  a domain defined by registered strategies (security profiles, algorithms, client-authentication handlers) consults
+  them with a `Must` predicate or a `OneOf` built from their names. Check a shape the way the runtime uses the value (a
+  URI written with its scheme, a host exactly as `Uri.Host` reports it). The rule is enforced at every entry point
+  alongside the name and type — configuration, management writes, dynamic client registration and seeders (validate the
+  document before storing it), and stored documents (fail closed); it is **not** checked by `ISettingCollection.Set`, so
+  a code-set value is trusted and a descriptor's `Default` must satisfy its own rule (a composed-server test pins it).
+  See [ADR-0140](../../docs/adr/0140-setting-values-are-validated-against-their-domain.md).
 - 👁 **A package registers its own services from `DefaultRegistration.cs`** (the class is **always** `DefaultRegistration`)
   using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
   [ADR-0069](../../docs/adr/0069-registration-library-compile-time-marker-nesting.md). **The receiver marker is the
@@ -434,6 +447,10 @@ rationale.
   non-correctness stages (coverage collection + packing) for a quicker edit-run cycle, while keeping CSharpier,
   analyzers, and compile warnings-as-errors. It is the **local pre-push gate** (the push protocol's final check); the
   plain `./build/dod.ps1` is the CI-parity gate that CI runs.
+- 👁 **Never run two `dotnet build` / `dotnet test` invocations concurrently in one clone.** They share every project's
+  `obj/` output, and Nerdbank.GitVersioning rewrites `obj/<config>/<tfm>/<Project>.Version.cs.new` on each build, so
+  concurrent runs fail with `MSB4018` (the file is in use by another process) — a spurious build error, not a code
+  defect. Run test projects one after another, or let `./build/dod.ps1 -Fast` parallelize within a single invocation.
 - 👁 **Run the full `dod.ps1` (no `-Fast`, a clean Release build over the whole solution) before calling a structural
   change done —
   an incremental Debug build of a single project can mask errors a clean build catches.** Notably, a `git mv` of a file

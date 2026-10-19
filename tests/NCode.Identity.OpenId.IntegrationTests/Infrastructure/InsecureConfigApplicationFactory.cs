@@ -23,9 +23,11 @@ namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 
 /// <summary>
 /// A <see cref="HostApplicationFactory"/> that re-enables — purely through host configuration — the
-/// insecure/not-recommended capabilities the library omits from its secure defaults
+/// not-recommended capabilities the library omits from its secure defaults
 /// ([ADR-0083](../../../docs/adr/0083-secure-by-default-discovery-metadata.md)): the implicit/hybrid response
-/// types and <c>implicit</c> grant, PKCE <c>plain</c>, and symmetric (<c>HS256</c>) id-token signing.
+/// types and <c>implicit</c> grant, and PKCE <c>plain</c>. Symmetric signing of a token that crosses a trust boundary
+/// is outside the signing settings' domain, so it cannot be re-enabled
+/// ([ADR-0140](../../../docs/adr/0140-setting-values-are-validated-against-their-domain.md)).
 /// </summary>
 /// <remarks>
 /// Server settings read from <c>OpenId:Server:Settings</c> are applied last and overwrite the baseline, so an
@@ -77,10 +79,6 @@ public sealed class InsecureConfigApplicationFactory : HostApplicationFactory
                     ["OpenId:Server:Settings:code_challenge_methods_supported:1"] = OpenIdConstants
                         .CodeChallengeMethods
                         .S256,
-
-                    // Re-add symmetric HS256 id-token signing alongside an asymmetric algorithm.
-                    ["OpenId:Server:Settings:id_token_signing_alg_values_supported:0"] = "HS256",
-                    ["OpenId:Server:Settings:id_token_signing_alg_values_supported:1"] = "RS256",
                 }
             );
         });

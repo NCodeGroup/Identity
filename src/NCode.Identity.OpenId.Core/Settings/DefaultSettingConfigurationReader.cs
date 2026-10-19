@@ -26,9 +26,10 @@ namespace NCode.Identity.OpenId.Settings;
 /// <summary>
 /// Provides the default implementation of <see cref="ISettingConfigurationReader"/>. A list-valued setting is read from
 /// indexed entries (an empty list from an empty array); a single-valued setting is converted from its value by the
-/// configuration binder. A value whose shape or type does not match the descriptor is reported, never skipped.
+/// configuration binder. A value whose shape or type does not match the descriptor, or that is outside the setting's
+/// domain, is reported, never skipped.
 /// </summary>
-// See ADR-0139.
+// See ADR-0139 (closed vocabulary) and ADR-0140 (value domains).
 internal class DefaultSettingConfigurationReader(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : ISettingConfigurationReader
@@ -80,14 +81,19 @@ internal class DefaultSettingConfigurationReader(
                 continue;
             }
 
-            if (TryReadValue(child, descriptor.ValueType, out var value, out var error))
-            {
-                settings.Add(descriptor.Create(value));
-            }
-            else
+            if (!TryReadValue(child, descriptor.ValueType, out var value, out var error))
             {
                 errors.Add(error);
+                continue;
             }
+
+            if (!descriptor.TryValidate(value, out var failure))
+            {
+                errors.Add($"'{child.Path}' {failure}.");
+                continue;
+            }
+
+            settings.Add(descriptor.Create(value));
         }
     }
 

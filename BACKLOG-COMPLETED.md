@@ -809,6 +809,36 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   that the reference host could not start in Production (`UseDeveloperCors` ran without CORS services); it is now a
   no-op there and any `Cors` section is a production-safety violation. Follow-up: `F53` (value-domain rules)._
 
+- **`F53` — Validate setting values against their domain, not only their type.** Setting names are a closed vocabulary
+  and every value must convert to its descriptor's type
+  ([ADR-0139](docs/adr/0139-setting-names-are-a-closed-vocabulary.md)), but a value of the right type is still accepted
+  without being honored when it is outside the setting's domain. The sharpest case is `security_profile`: a value that
+  names no registered `ISecurityProfile` (a typo of `fapi2`) is stored and loaded, and `DefaultSecurityProfileCatalog`
+  then applies no profile at all — the client silently runs without the FAPI 2.0 ceiling and requirements it was
+  configured for. Enumerated string settings (`subject_type`, `token_endpoint_auth_method`, `access_token_type`,
+  `refresh_token_expiration_policy`, `refresh_token_reuse_policy`, `backchannel_token_delivery_mode`, …) accept any
+  string, and numeric/duration settings accept out-of-range values (a negative lifetime). Give `SettingDescriptor<T>` a
+  value rule (an allowed set, a range, or a validator that can consult registered strategies such as the security
+  profiles) and enforce it at the same three entry points — configuration on start, management writes, and stored
+  documents failing closed on read. Touch points: `src/NCode.Identity.Settings.Abstractions/SettingDescriptor.cs`,
+  `src/NCode.Identity/Settings/DefaultSettingSerializer.cs`,
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingConfigurationReader.cs`,
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSecurityProfileCatalog.cs`,
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`. Capture the design in an ADR.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md). `SettingDescriptor<TValue>.Rule` (a
+  `SettingRule<TValue>` built with `SettingRules`) declares every library setting's domain, and the domain is enforced
+  with the name and type at every entry point: configuration on start and reload, management writes, stored documents
+  (fail closed), and — because they also write settings documents — dynamic client registration and the conformance and
+  developer seeders. Domains defined by registered strategies consult them: `security_profile` names a registered
+  profile (and the catalog throws rather than applying none), the client-authentication method settings name
+  registered handlers (so their descriptors moved to the authentication library), and algorithm lists name registered
+  algorithms of their kind, never `none` or `dir`. Declaring the domains surfaced three corrections: the signing lists
+  for tokens that cross a trust boundary are asymmetric-only (amending ADR-0083), the never-expiring refresh-token
+  policy is removed, and `client_notification_endpoint` gained an empty default. A composed-server test pins every
+  default to its own rule._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

@@ -16,16 +16,20 @@
 
 #endregion
 
+using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Server.ConformanceEnvironment;
+using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -35,7 +39,18 @@ public class ConformanceSeedHandlerTests : BaseTests
 {
     private const string WorkloadTenantId = "default";
 
-    private ConformanceSeedHandler CreateHandler(ConformanceSeedOptions options)
+    private ConformanceSeedHandler CreateHandler(ConformanceSeedOptions options) =>
+        CreateHandler(
+            options,
+            CreateStrictMock<ISettingSerializer>().Object,
+            CreateStrictMock<IOpenIdEnvironmentProvider>().Object
+        );
+
+    private ConformanceSeedHandler CreateHandler(
+        ConformanceSeedOptions options,
+        ISettingSerializer settingSerializer,
+        IOpenIdEnvironmentProvider openIdEnvironmentProvider
+    )
     {
         // Strict mocks: on the guard paths under test the secret, crypto, and time dependencies are untouched.
         var mockSecretGenerator = CreateStrictMock<ISecretGenerator>();
@@ -46,6 +61,8 @@ public class ConformanceSeedHandlerTests : BaseTests
             mockSecretGenerator.Object,
             mockCryptoService.Object,
             TimeProvider.System,
+            settingSerializer,
+            openIdEnvironmentProvider,
             NullLogger<ConformanceSeedHandler>.Instance
         );
     }
@@ -179,6 +196,68 @@ public class ConformanceSeedHandlerTests : BaseTests
         Assert.Equal("Conformance", claims[JoseClaimNames.Payload.GivenName]);
         Assert.Equal("User", claims[JoseClaimNames.Payload.FamilyName]);
         Assert.Equal("Conformance User", claims[JoseClaimNames.Payload.Name]);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenClientSettingsCannotBeHonored_ThrowsNamingTheClient()
+    {
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
+        mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(jsonOptions);
+        var mockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
+        mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
+
+        var mockSettingSerializer = CreateStrictMock<ISettingSerializer>();
+        mockSettingSerializer
+            .Setup(x => x.ValidateSettings(It.IsAny<JsonElement>(), jsonOptions))
+            .Returns([
+                new SettingError(
+                    "grant_types_supported",
+                    "The setting 'grant_types_supported' must list only grant types."
+                ),
+            ])
+            .Verifiable();
+
+        var options = new ConformanceSeedOptions
+        {
+            Clients =
+            [
+                new ConformanceClientSeed
+                {
+                    ClientId = "client",
+                    ClientSecret = "Y29uZm9ybWFuY2Utc2VjcmV0LWNsaWVudA",
+                    RedirectUris = ["https://client.example/callback"],
+                    GrantTypes = ["authorisation_code"],
+                },
+            ],
+            TestUserPassword = null,
+        };
+        var handler = CreateHandler(
+            options,
+            mockSettingSerializer.Object,
+            mockEnvironmentProvider.Object
+        );
+
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        var mockClientStore = CreateStrictMock<IClientStore>();
+        mockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(mockClientStore.Object)
+            .Verifiable();
+        mockClientStore
+            .Setup(x => x.GetOrDefaultAsync("client", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler.HandleAsync(
+                CreateCommand(WorkloadTenantId, TenantPlane.Workload, mockStoreManager.Object),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Contains("'client'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("'grant_types_supported'", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

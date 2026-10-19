@@ -26,9 +26,10 @@ namespace NCode.Identity.Settings;
 /// </summary>
 /// <remarks>
 /// Setting names are a closed vocabulary: every setting in a document must have a registered
-/// <see cref="SettingDescriptor"/>, and its value must conform to that descriptor's <see cref="SettingDescriptor.ValueType"/>.
-/// A document that names an unregistered setting, or carries a value of the wrong type, is rejected rather than loaded
-/// with the offending setting silently ignored.
+/// <see cref="SettingDescriptor"/>, its value must conform to that descriptor's <see cref="SettingDescriptor.ValueType"/>,
+/// and the value must be in the setting's domain (<see cref="SettingDescriptor.TryValidate"/>). A document that names an
+/// unregistered setting, carries a value of the wrong type, or carries a value outside the setting's domain is rejected
+/// rather than loaded with the offending setting silently ignored or silently not honored.
 /// </remarks>
 [PublicAPI]
 public interface ISettingSerializer
@@ -50,7 +51,8 @@ public interface ISettingSerializer
     /// <summary>
     /// Validates a settings document against the registered setting descriptors, reporting every setting that
     /// <see cref="DeserializeSettings"/> would reject: a name with no registered descriptor, a value that does not
-    /// conform to the descriptor's type, or a <c>null</c> value for a setting with no default.
+    /// conform to the descriptor's type, a <c>null</c> value for a setting with no default, or a value outside the
+    /// setting's domain.
     /// </summary>
     /// <param name="settingsJson">The JSON settings document to validate.</param>
     /// <param name="jsonOptions">The <see cref="JsonSerializerOptions"/> to use for deserialization.</param>

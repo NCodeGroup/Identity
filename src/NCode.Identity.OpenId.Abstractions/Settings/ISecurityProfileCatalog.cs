@@ -44,12 +44,14 @@ public interface ISecurityProfileCatalog
     /// <paramref name="settings"/> select (via their effective <c>security_profile</c> value) and invokes each of its
     /// requirements assignable to <c>ISecurityProfileRequirement&lt;TContext&gt;</c> against <paramref name="context"/>,
     /// in order. A requirement throws to reject the request; this method does nothing when the settings select no
-    /// recognized profile or it imposes no requirement for the phase.
+    /// profile or the profile imposes no requirement for the phase.
     /// </summary>
     /// <typeparam name="TContext">The phase-specific evaluation context type, which selects the applicable requirements.</typeparam>
     /// <param name="settings">The effective settings of the scope (typically a client) to evaluate.</param>
     /// <param name="context">The phase-specific evaluation context passed to each requirement.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> for the operation.</param>
+    /// <exception cref="InvalidOperationException">The settings select a profile that is not registered; the scope is
+    /// never treated as if it selected none.</exception>
     ValueTask EvaluateRequirementsAsync<TContext>(
         IReadOnlySettingCollection settings,
         TContext context,
@@ -58,10 +60,11 @@ public interface ISecurityProfileCatalog
 
     /// <summary>
     /// Returns the supplied <paramref name="scopeSettings"/> expanded with the ceiling settings of the
-    /// <c>security_profile</c> it declares, or the settings unchanged when it declares no recognized profile.
+    /// <c>security_profile</c> it declares, or the settings unchanged when it declares no profile.
     /// </summary>
     /// <param name="scopeSettings">The scope's own (not-yet-cascaded) settings.</param>
     /// <returns>The expanded settings.</returns>
+    /// <exception cref="InvalidOperationException">The settings declare a profile that is not registered.</exception>
     IReadOnlyCollection<Setting> Expand(IReadOnlyCollection<Setting> scopeSettings);
 
     /// <summary>
@@ -71,6 +74,8 @@ public interface ISecurityProfileCatalog
     /// <param name="settingsJson">The scope's persisted settings as a JSON document.</param>
     /// <param name="jsonOptions">The <see cref="JsonSerializerOptions"/> used to deserialize the settings.</param>
     /// <returns>The deserialized, profile-expanded settings.</returns>
+    /// <exception cref="JsonException">The document cannot be honored, including a <c>security_profile</c> that names
+    /// no registered profile.</exception>
     IReadOnlyCollection<Setting> Expand(
         JsonElement settingsJson,
         JsonSerializerOptions jsonOptions

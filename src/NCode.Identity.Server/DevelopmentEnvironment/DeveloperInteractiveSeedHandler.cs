@@ -21,11 +21,13 @@ using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Settings;
 using NCode.Mediator;
 
 namespace NCode.Identity.Server.DevelopmentEnvironment;
@@ -36,13 +38,24 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 /// interactive authorization-code + PKCE flow and every frontend surface end to end. It is idempotent, inert unless
 /// its inputs are configured, and never targets the control-plane root tenant.
 /// </summary>
-internal sealed class DeveloperInteractiveSeedHandler(DeveloperInteractiveSeedOptions options)
-    : ICommandHandler<SeedTenantCommand>,
-        ISupportMediatorPriority
+/// <remarks>
+/// A seeded client's settings come from configuration, so the document is validated against the registered setting
+/// descriptors before it is stored: a value the server cannot honor stops the seeding with an error naming the client,
+/// rather than storing a client that fails every request that loads it.
+/// </remarks>
+// See ADR-0140.
+internal sealed class DeveloperInteractiveSeedHandler(
+    DeveloperInteractiveSeedOptions options,
+    ISettingSerializer settingSerializer,
+    IOpenIdEnvironmentProvider openIdEnvironmentProvider
+) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
     private static readonly string[] PublicClientAuthMethods = ["none"];
 
     private DeveloperInteractiveSeedOptions Options { get; } = options;
+    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
+        openIdEnvironmentProvider;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.Low;
@@ -73,7 +86,7 @@ internal sealed class DeveloperInteractiveSeedHandler(DeveloperInteractiveSeedOp
         }
     }
 
-    private static async ValueTask SeedSpaClientAsync(
+    private async ValueTask SeedSpaClientAsync(
         TenantSeedContext context,
         DeveloperSpaClientSeed spaClient,
         CancellationToken cancellationToken
@@ -101,6 +114,7 @@ internal sealed class DeveloperInteractiveSeedHandler(DeveloperInteractiveSeedOp
                 [OpenIdSettingNames.RequireConsent] = spaClient.RequireConsent,
             }
         );
+        EnsureSettingsCanBeHonored(clientId, settings);
 
         var persistedClient = new PersistedClient
         {
@@ -123,6 +137,20 @@ internal sealed class DeveloperInteractiveSeedHandler(DeveloperInteractiveSeedOp
         };
 
         await store.AddAsync(persistedClient, cancellationToken);
+    }
+
+    private void EnsureSettingsCanBeHonored(string clientId, JsonElement settings)
+    {
+        var jsonOptions = OpenIdEnvironmentProvider.Get().JsonSerializerOptions;
+        var settingErrors = SettingSerializer.ValidateSettings(settings, jsonOptions);
+        if (settingErrors.Count == 0)
+            return;
+
+        var messages = settingErrors.Select(error => error.Message);
+        var details = string.Join(" ", messages);
+        throw new InvalidOperationException(
+            $"The developer client '{clientId}' cannot be seeded: {details}"
+        );
     }
 
     private async ValueTask SeedAdminUserAsync(

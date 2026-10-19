@@ -104,4 +104,32 @@ public class TokenEndpointSecurityProfileTests
             document.RootElement.GetProperty("error").GetString()
         );
     }
+
+    [Fact]
+    public async Task PostToken_WhenStoredProfileIsNotRegistered_IsRefusedRatherThanServedWithoutIt()
+    {
+        const string clientId = "it-profile-unknown";
+
+        using var factory = new HostApplicationFactory();
+        // The store is written directly, past every entry point that would reject the misspelled profile name.
+        await factory.SeedConfidentialClientWithSecurityProfileAsync(
+            clientId,
+            ClientSecret,
+            securityProfile: "fapi-2",
+            OpenIdConstants.GrantTypes.ClientCredentials
+        );
+        await factory.SeedResourceServerWithClientGrantAsync(
+            clientId,
+            "it-profile-unknown-rs-api",
+            "https://api.profile-unknown.integration.test",
+            TestServerSettingsProvider.ApiScope
+        );
+
+        var client = CreateClient(factory);
+        using var response = await client.PostAsync(TokenPath, ClientSecretPostBody(clientId));
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.False(response.IsSuccessStatusCode, body);
+        Assert.DoesNotContain("access_token", body, StringComparison.Ordinal);
+    }
 }

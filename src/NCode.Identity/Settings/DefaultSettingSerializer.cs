@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using NCode.Json;
@@ -25,9 +26,11 @@ namespace NCode.Identity.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingSerializer"/> abstraction. Each setting is typed by its
 /// registered <see cref="SettingDescriptor"/>; a setting without one is an error rather than an ad-hoc value, so a
-/// misspelled or retired setting name can never be stored or loaded without being honored.
+/// misspelled or retired setting name can never be stored or loaded without being honored. A value of the right type
+/// must also be in the setting's domain (<see cref="SettingDescriptor.TryValidate"/>), so a value the server would not
+/// honor — an unknown security profile, a negative lifetime — is rejected in the same way.
 /// </summary>
-// See ADR-0139.
+// See ADR-0139 (closed vocabulary) and ADR-0140 (value domains).
 internal class DefaultSettingSerializer(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
 ) : ISettingSerializer
@@ -97,18 +100,27 @@ internal class DefaultSettingSerializer(
                 continue;
             }
 
-            if (TryCreateSetting(descriptor, jsonProperty.Value, jsonOptions, out var setting))
+            if (!TryCreateSetting(descriptor, jsonProperty.Value, jsonOptions, out var setting))
             {
-                settings.Add(setting);
+                var expected = DescribeValueType(descriptor.ValueType);
+                var message =
+                    jsonProperty.Value.ValueKind == JsonValueKind.Null
+                        ? $"The setting '{settingName}' has no default, so it must be {expected}, not null."
+                        : $"The setting '{settingName}' must be {expected}.";
+                errors.Add(new SettingError(settingName, message));
                 continue;
             }
 
-            var expected = DescribeValueType(descriptor.ValueType);
-            var message =
-                jsonProperty.Value.ValueKind == JsonValueKind.Null
-                    ? $"The setting '{settingName}' has no default, so it must be {expected}, not null."
-                    : $"The setting '{settingName}' must be {expected}.";
-            errors.Add(new SettingError(settingName, message));
+            // A value of the right type is still rejected when it is outside the setting's domain (ADR-0140).
+            if (!descriptor.TryValidate(setting.GetValue(), out var failure))
+            {
+                errors.Add(
+                    new SettingError(settingName, $"The setting '{settingName}' {failure}.")
+                );
+                continue;
+            }
+
+            settings.Add(setting);
         }
     }
 
@@ -132,6 +144,13 @@ internal class DefaultSettingSerializer(
 
         if (value is not null)
         {
+            // A JSON array can carry a null that the declared non-nullable element type does not admit.
+            if (ContainsNull(value))
+            {
+                setting = null;
+                return false;
+            }
+
             setting = descriptor.Create(value);
             return true;
         }
@@ -145,6 +164,10 @@ internal class DefaultSettingSerializer(
         setting = null;
         return false;
     }
+
+    private static bool ContainsNull(object value) =>
+        value is IEnumerable enumerable and not string
+        && enumerable.Cast<object?>().Any(item => item is null);
 
     private static string DescribeValueType(Type valueType)
     {

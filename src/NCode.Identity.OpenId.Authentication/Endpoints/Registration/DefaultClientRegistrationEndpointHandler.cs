@@ -38,6 +38,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Settings;
 using NCode.Json;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
@@ -58,7 +59,8 @@ internal class DefaultClientRegistrationEndpointHandler(
     IPersistedGrantService persistedGrantService,
     IInitialAccessTokenValidator initialAccessTokenValidator,
     ISectorIdentifierValidator sectorIdentifierValidator,
-    IClientScopeService clientScopeService
+    IClientScopeService clientScopeService,
+    ISettingSerializer settingSerializer
 ) : IEndpointProvider
 {
     private const int ClientSecretKeySizeBits = 256;
@@ -94,6 +96,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     private ISectorIdentifierValidator SectorIdentifierValidator { get; } =
         sectorIdentifierValidator;
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
+    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -230,6 +233,17 @@ internal class DefaultClientRegistrationEndpointHandler(
         var clientId = CryptoService.GenerateResourceId();
         var createdWhen = TimeProvider.GetUtcNow();
 
+        var settingsJson = BuildSettingsJson(request, resolved);
+        var settingsError = ValidateSettings(
+            errorFactory,
+            settingsJson,
+            openIdEnvironment.JsonSerializerOptions
+        );
+        if (settingsError is not null)
+        {
+            return settingsError;
+        }
+
         var isConfidential =
             resolved.TokenEndpointAuthMethod != OpenIdConstants.ClientAuthenticationMethods.None;
 
@@ -246,8 +260,6 @@ internal class DefaultClientRegistrationEndpointHandler(
             return secretsError;
         }
 
-        var settings = BuildSettingsObject(request, resolved);
-
         var client = new PersistedClient
         {
             TenantId = tenantId,
@@ -259,7 +271,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 TenantId = tenantId,
                 ClientId = clientId,
                 ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(settings),
+                Value = settingsJson,
             },
             Secrets = new PersistedClientSecrets
             {
@@ -473,6 +485,17 @@ internal class DefaultClientRegistrationEndpointHandler(
             return sectorError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
         }
 
+        var settingsJson = BuildSettingsJson(request, resolved);
+        var settingsError = ValidateSettings(
+            errorFactory,
+            settingsJson,
+            openIdContext.Environment.JsonSerializerOptions
+        );
+        if (settingsError is not null)
+        {
+            return settingsError;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -480,8 +503,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (client is null)
             return TypedResults.NotFound();
 
-        var settings = BuildSettingsObject(request, resolved);
-        client.Settings.Value = JsonSerializer.SerializeToElement(settings);
+        client.Settings.Value = settingsJson;
 
         await store.UpdateSettingsAsync(client.Settings, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
@@ -865,6 +887,50 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     private static string? ReadStringMember(JsonElement element, string memberName) =>
         element.TryGetPropertyValue<string>(memberName, out var value) ? value : null;
+
+    private JsonElement BuildSettingsJson(RegisterClientRequest request, ResolvedMetadata resolved)
+    {
+        var settings = BuildSettingsObject(request, resolved);
+        return JsonSerializer.SerializeToElement(settings);
+    }
+
+    /// <summary>
+    /// Validates the settings document a registration stores against the registered setting descriptors, returning an
+    /// error result when the document cannot be honored — a value outside a setting's domain, such as an unsupported
+    /// grant type or a <c>jwks_uri</c> that is not https — so the registration is refused rather than stored as a client
+    /// that fails every request that loads it; otherwise <see langword="null"/>.
+    /// </summary>
+    // See ADR-0140.
+    private IResult? ValidateSettings(
+        IOpenIdErrorFactory errorFactory,
+        JsonElement settingsJson,
+        JsonSerializerOptions jsonOptions
+    )
+    {
+        var settingErrors = SettingSerializer.ValidateSettings(settingsJson, jsonOptions);
+        if (settingErrors.Count == 0)
+            return null;
+
+        // RFC 7591 §3.2.2 reserves invalid_redirect_uri for the redirection URIs; every other value is client metadata.
+        var isRedirectUriError = settingErrors.Any(error =>
+            string.Equals(
+                error.SettingName,
+                OpenIdSettingNames.RedirectUris,
+                StringComparison.Ordinal
+            )
+        );
+        var errorCode = isRedirectUriError
+            ? OpenIdConstants.ErrorCodes.InvalidRedirectUri
+            : OpenIdConstants.ErrorCodes.InvalidClientMetadata;
+
+        var messages = settingErrors.Select(error => error.Message);
+        var description = string.Join(" ", messages);
+
+        return errorFactory
+            .InvalidRequest(description, errorCode)
+            .WithStatusCode(StatusCodes.Status400BadRequest)
+            .AsHttpResult();
+    }
 
     /// <summary>
     /// Projects the submitted metadata and the resolved values into the client's persisted settings document. Every

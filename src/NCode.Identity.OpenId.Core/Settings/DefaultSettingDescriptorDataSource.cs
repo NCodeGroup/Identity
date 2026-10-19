@@ -16,11 +16,14 @@
 
 #endregion
 
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Settings;
 using static NCode.Identity.Settings.SettingMerge;
 
@@ -29,13 +32,33 @@ namespace NCode.Identity.OpenId.Settings;
 /// <summary>
 /// Provides the default implementation for a data source collection of <see cref="SettingDescriptor"/> instances supported by this library.
 /// </summary>
-internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeToken)
-    : ICollectionDataSource<SettingDescriptor>
+/// <remarks>
+/// Every descriptor declares its domain through <see cref="SettingDescriptor{TValue}.Rule"/>. A rule whose domain is
+/// defined by registered strategies consults them: an algorithm setting accepts the registered algorithms of its kind,
+/// and <c>security_profile</c> accepts the names of the registered <see cref="ISecurityProfile"/> implementations.
+/// </remarks>
+// See ADR-0140.
+internal class DefaultSettingDescriptorDataSource(
+    INullChangeToken nullChangeToken,
+    IAlgorithmCollectionProvider algorithmCollectionProvider,
+    IEnumerable<ISecurityProfile> securityProfiles
+) : ICollectionDataSource<SettingDescriptor>
 {
     private const bool IsStdDiscoverable = true;
     private const bool IsNonStdDiscoverable = false;
 
+    // RFC 8628 §6.1: eight characters from the 20-character default alphabet give about 34.5 bits of entropy, the
+    // floor that keeps a user_code impractical to guess under rate limiting; the ceiling keeps it typeable.
+    private const int MinUserCodeLength = 8;
+    private const int MaxUserCodeLength = 32;
+
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
+
+    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
+        algorithmCollectionProvider;
+
+    private ImmutableArray<string> SecurityProfileNames { get; } =
+    [.. securityProfiles.Select(profile => profile.ProfileName).Order(StringComparer.Ordinal)];
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken;
@@ -50,6 +73,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SubjectClaimTypes,
+                Rule = OpenIdSettingRules.ClaimTypes(),
                 Default = OpenIdConstants.DefaultSubjectClaimTypes,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -61,6 +85,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.PrincipalIssuerClaim,
+                Rule = OpenIdSettingRules.Token(),
                 Default = "iss",
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -72,6 +97,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.FederatedIdentityJoinClaim,
+                Rule = OpenIdSettingRules.Token(),
                 Default = "email",
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -83,6 +109,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.FederatedIdentityVerifiedClaim,
+                Rule = OpenIdSettingRules.Token(),
                 Default = "email_verified",
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -116,6 +143,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported,
+                Rule = KeyManagementAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -126,6 +154,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionEncValuesSupported,
+                Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -147,6 +176,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionZipValuesSupported,
+                Rule = CompressionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -157,6 +187,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.AccessTokenLifetime,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(5.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -168,6 +199,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
+                Rule = AsymmetricSignatureAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -179,6 +211,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AccessTokenType,
+                Rule = OpenIdSettingRules.AccessTokenType(),
                 Default = JoseTokenTypes.AccessTokenJwt,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -190,6 +223,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AcrValuesSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.Token()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -200,6 +234,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.DefaultAcr,
+                Rule = OpenIdSettingRules.Token(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -244,6 +279,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AllowedIdentityProviders,
+                Rule = SettingRules.Each(SettingRules.NonEmpty()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -254,6 +290,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AuthorizationAuthenticateScheme,
+                Rule = SettingRules.NonEmpty(),
 
                 // we are compatible with Microsoft.AspNetCore.Identity
                 // do not use the "Identity.External" scheme as it is only for external identity providers
@@ -268,6 +305,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AuthorizationChallengeScheme,
+                Rule = SettingRules.NonEmpty(),
 
                 // we are compatible with Microsoft.AspNetCore.Identity
                 // do not use the "Identity.External" scheme as it is only for external identity providers
@@ -282,6 +320,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.AuthorizationCodeLifetime,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(5.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -305,6 +344,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ClaimsLocalesSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.Token()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -326,6 +366,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ClaimsSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.Token()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Replace,
@@ -347,6 +388,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ClaimTypesSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.ClaimType()),
                 Default = [OpenIdConstants.ClaimTypes.Normal],
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -359,6 +401,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.ClientAssertionMaxLifetime,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(5),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -370,6 +413,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.ClockSkew,
+                Rule = OpenIdSettingRules.NonNegativeDuration(),
                 Default = TimeSpan.FromMinutes(5),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -383,6 +427,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.CodeChallengeMethodsSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.CodeChallengeMethod()),
                 Default = [OpenIdConstants.CodeChallengeMethods.S256],
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -394,6 +439,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.ContinueAuthorizationLifetime,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(15),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -405,6 +451,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.DeviceCodeLifetime,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(10),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -416,6 +463,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.DeviceCodePollingInterval,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromSeconds(5),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -427,6 +475,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.UserCodeLength,
+                Rule = SettingRules.Between(MinUserCodeLength, MaxUserCodeLength),
                 Default = 8,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -438,17 +487,21 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.BackchannelTokenDeliveryMode,
+                Rule = OpenIdSettingRules.BackchannelTokenDeliveryMode(),
                 Default = OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
             };
 
-            // client_notification_endpoint: per-client CIBA endpoint the OP POSTs ping/push notifications to.
-            // Override (Replace): each client specifies its own endpoint.
+            // client_notification_endpoint: per-client CIBA endpoint the OP POSTs ping/push notifications to. CIBA
+            // Core §4 requires an https URL; empty (the default) means the client registered none, which a ping or
+            // push client is rejected for. Override (Replace): each client specifies its own endpoint.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.ClientNotificationEndpoint,
+                Rule = SettingRules.EmptyOr(OpenIdSettingRules.HttpsUri()),
+                Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -459,6 +512,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.BackchannelTokenDeliveryModesSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.BackchannelTokenDeliveryMode()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -480,6 +534,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported,
+                Rule = SignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -493,6 +548,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             {
                 Name =
                     OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionAlgValuesSupported,
+                Rule = KeyManagementAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -505,6 +561,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             {
                 Name =
                     OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionEncValuesSupported,
+                Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -516,6 +573,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             {
                 Name =
                     OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionZipValuesSupported,
+                Rule = CompressionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -526,6 +584,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.CibaRequestLifetime,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(10),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -537,6 +596,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.CibaPollingInterval,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromSeconds(5),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -548,6 +608,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.DisplayValuesSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.DisplayValue()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -558,6 +619,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.GrantTypesSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.GrantType()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -568,6 +630,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionAlgValuesSupported,
+                Rule = KeyManagementAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -578,6 +641,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionEncValuesSupported,
+                Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -599,6 +663,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionZipValuesSupported,
+                Rule = CompressionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -609,6 +674,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.IdTokenLifetime,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromMinutes(5.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -620,6 +686,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
+                Rule = AsymmetricSignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -630,6 +697,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.OpenIdProviderPolicyUri,
+                Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Replace,
@@ -640,6 +708,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.OpenIdProviderTermsOfServiceUri,
+                Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Replace,
@@ -650,6 +719,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.PromptValuesSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.PromptValue()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -660,6 +730,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RedirectUris,
+                Rule = SettingRules.Each(OpenIdSettingRules.RedirectUri()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -670,6 +741,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.PostLogoutRedirectUris,
+                Rule = SettingRules.Each(OpenIdSettingRules.RedirectUri()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -680,6 +752,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.BackChannelLogoutUri,
+                Rule = OpenIdSettingRules.LogoutUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -721,6 +794,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.FrontChannelLogoutUri,
+                Rule = OpenIdSettingRules.LogoutUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -779,6 +853,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SessionAbsoluteLifetime,
+                Rule = OpenIdSettingRules.NonNegativeDuration(),
                 Default = TimeSpan.Zero,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -791,6 +866,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SessionIdleTimeout,
+                Rule = OpenIdSettingRules.NonNegativeDuration(),
                 Default = TimeSpan.Zero,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -803,6 +879,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.MaxConcurrentSessions,
+                Rule = SettingRules.AtLeast(0),
                 Default = 0,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -821,11 +898,13 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = And,
             };
 
-            // refresh_token_expiration_policy: how a refresh token's expiration is computed — absolute or sliding (default absolute).
+            // refresh_token_expiration_policy: how a refresh token's expiration is computed — absolute or sliding (default
+            // absolute). Either way the token expires; a never-expiring refresh token is not offered (RFC 9700 §4.14.2).
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.RefreshTokenExpirationPolicy,
+                Rule = OpenIdSettingRules.RefreshTokenExpirationPolicy(),
                 Default = OpenIdConstants.RefreshTokenExpirationPolicy.Absolute,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -839,6 +918,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.RefreshTokenReusePolicy,
+                Rule = OpenIdSettingRules.RefreshTokenReusePolicy(),
                 Default = OpenIdConstants.RefreshTokenReusePolicy.RevokeAll,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -850,6 +930,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.RefreshTokenLifetime,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromDays(30.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -872,6 +953,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported,
+                Rule = KeyManagementAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -882,6 +964,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported,
+                Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -892,6 +975,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionZipValuesSupported,
+                Rule = CompressionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -902,6 +986,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectSigningAlgValuesSupported,
+                Rule = SignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -956,6 +1041,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.RequestUriExpectedContentType,
+                Rule = OpenIdSettingRules.MediaType(),
                 Default = "application/oauth-authz-req+jwt",
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -969,6 +1055,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestUriAllowedHosts,
+                Rule = SettingRules.Each(OpenIdSettingRules.HostName()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -979,6 +1066,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.RequestUriFetchTimeout,
+                Rule = OpenIdSettingRules.Timeout(),
                 Default = TimeSpan.FromSeconds(10),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -991,6 +1079,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.RequestUriMaxSizeBytes,
+                Rule = SettingRules.AtLeast(1),
                 Default = 100 * 1024,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1059,6 +1148,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.PushedAuthorizationRequestLifetime,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromSeconds(90),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1071,6 +1161,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.DPoPSigningAlgValuesSupported,
+                Rule = AsymmetricSignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -1081,6 +1172,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.DPoPProofLifetime,
+                Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromSeconds(60),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1128,18 +1220,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.MtlsEndpointAliasAuthority,
-                Default = string.Empty,
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
-            };
-
-            // token_endpoint_auth_method: the single client-authentication method a client is registered to use at the
-            // token endpoint (per-client; selects which mutual-TLS handler, if any, owns the request). Not advertised.
-            // Override (Replace): a child fully replaces the parent value.
-            yield return new SettingDescriptor<string>
-            {
-                Name = OpenIdSettingNames.TokenEndpointAuthMethod,
+                Rule = SettingRules.EmptyOr(OpenIdSettingRules.HttpsOrigin()),
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1152,6 +1233,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthSubjectDn,
+                Rule = SettingRules.EmptyOr(OpenIdSettingRules.DistinguishedName()),
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1161,6 +1243,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthSanDns,
+                Rule = SettingRules.EmptyOr(OpenIdSettingRules.DnsName()),
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1170,6 +1253,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthSanUri,
+                Rule = SettingRules.EmptyOr(OpenIdSettingRules.AbsoluteUri()),
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1179,6 +1263,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthSanIp,
+                Rule = SettingRules.EmptyOr(OpenIdSettingRules.IpAddress()),
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1188,6 +1273,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthSanEmail,
+                Rule = SettingRules.EmptyOr(OpenIdSettingRules.EmailAddress()),
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1199,6 +1285,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ResponseModesSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.ResponseMode()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -1209,6 +1296,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ResponseTypesSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.ResponseType()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -1316,6 +1404,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.ServiceDocumentation,
+                Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Replace,
@@ -1326,6 +1415,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SubjectMaxAge,
+                Rule = OpenIdSettingRules.NonNegativeDuration(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Min,
@@ -1337,6 +1427,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.SubjectType,
+                Rule = OpenIdSettingRules.SubjectType(),
                 Default = OpenIdConstants.SubjectTypes.Public,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1350,6 +1441,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.SectorIdentifierUri,
+                Rule = OpenIdSettingRules.HttpsUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1361,6 +1453,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.JwksUri,
+                Rule = OpenIdSettingRules.HttpsUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1382,6 +1475,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.ClientUri,
+                Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1390,6 +1484,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.LogoUri,
+                Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1398,6 +1493,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TosUri,
+                Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1406,6 +1502,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.PolicyUri,
+                Rule = OpenIdSettingRules.WebUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1414,6 +1511,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.Contacts,
+                Rule = SettingRules.Each(SettingRules.NonEmpty()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1422,6 +1520,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<JsonElement>
             {
                 Name = OpenIdSettingNames.Jwks,
+                Rule = OpenIdSettingRules.JwkSet(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1449,6 +1548,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.JwksUriAllowedHosts,
+                Rule = SettingRules.Each(OpenIdSettingRules.HostName()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -1459,6 +1559,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.JwksUriFetchTimeout,
+                Rule = OpenIdSettingRules.Timeout(),
                 Default = TimeSpan.FromSeconds(10),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1471,6 +1572,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.JwksUriMaxSizeBytes,
+                Rule = SettingRules.AtLeast(1),
                 Default = 100 * 1024,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1483,6 +1585,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.JwksUriCacheDuration,
+                Rule = OpenIdSettingRules.NonNegativeDuration(),
                 Default = TimeSpan.FromMinutes(15),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1496,6 +1599,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SectorIdentifierUriAllowedHosts,
+                Rule = SettingRules.Each(OpenIdSettingRules.HostName()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -1506,6 +1610,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SectorIdentifierUriFetchTimeout,
+                Rule = OpenIdSettingRules.Timeout(),
                 Default = TimeSpan.FromSeconds(10),
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1518,6 +1623,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.SectorIdentifierUriMaxSizeBytes,
+                Rule = SettingRules.AtLeast(1),
                 Default = 100 * 1024,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1536,12 +1642,15 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
                 OnMerge = Replace,
             };
 
-            // security_profile: the named security baseline (e.g. fapi2) a scope selects to tighten the OP. Not
-            // advertised. Un-loosenable floor: once any scope in the cascade selects fapi2 a child cannot clear it (so
-            // a tenant can mandate the profile); otherwise the child's value wins.
+            // security_profile: the named security baseline (e.g. fapi2) a scope selects to tighten the OP; empty (the
+            // default) selects none, and any other value must name a registered profile, because a name that matches
+            // none would silently leave the scope without the baseline it asked for. Not advertised. Un-loosenable
+            // floor: once any scope in the cascade selects fapi2 a child cannot clear it (so a tenant can mandate the
+            // profile); otherwise the child's value wins.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.SecurityProfile,
+                Rule = SecurityProfile(),
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
@@ -1553,6 +1662,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SubjectTypesSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.SubjectType()),
                 Default =
                 [
                     OpenIdConstants.SubjectTypes.Public,
@@ -1568,6 +1678,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported,
+                Rule = SignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -1578,6 +1689,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UiLocalesSupported,
+                Rule = SettingRules.Each(OpenIdSettingRules.Token()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -1588,6 +1700,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionAlgValuesSupported,
+                Rule = KeyManagementAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -1598,6 +1711,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionEncValuesSupported,
+                Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -1608,6 +1722,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionZipValuesSupported,
+                Rule = CompressionAlgorithms(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
@@ -1618,6 +1733,7 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoSigningAlgValuesSupported,
+                Rule = AsymmetricSignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -1628,6 +1744,97 @@ internal class DefaultSettingDescriptorDataSource(INullChangeToken nullChangeTok
     // The number of combinations grows as (2^n - 1) in the input size, so refuse an input large enough to risk a
     // combinatorial blow-up rather than emitting an unbounded (or truncated, and therefore wrong) document.
     private const int MaxCombinationInputCount = 10;
+
+    /// <summary>
+    /// Gets the rule for <c>security_profile</c>: empty, which selects no profile, or the name of a registered
+    /// <see cref="ISecurityProfile"/>.
+    /// </summary>
+    private SettingRule<string> SecurityProfile() =>
+        SecurityProfileNames.IsEmpty
+            ? SettingRules.Must<string>(
+                "empty, because no security profile is registered",
+                value => value.Length == 0
+            )
+            : SettingRules.EmptyOr(SettingRules.OneOf(SecurityProfileNames));
+
+    /// <summary>
+    /// Gets the rule for a list of signature algorithms a client or the server may choose from, symmetric ones
+    /// included: every value names a registered signature algorithm.
+    /// </summary>
+    private SettingRule<IReadOnlyCollection<string>> SignatureAlgorithms() =>
+        RegisteredAlgorithms(
+            AlgorithmType.DigitalSignature,
+            "a registered signature algorithm such as 'ES256'"
+        );
+
+    /// <summary>
+    /// Gets the rule for a list of algorithms that sign a token crossing a trust boundary (an ID token, a UserInfo
+    /// response, an access token, a DPoP proof): every value names a registered asymmetric signature algorithm, never a
+    /// symmetric one.
+    /// </summary>
+    private SettingRule<IReadOnlyCollection<string>> AsymmetricSignatureAlgorithms() =>
+        SettingRules.Each(
+            SettingRules.Must<string>(
+                "a registered asymmetric signature algorithm such as 'ES256'",
+                code =>
+                    TryGetSelectableAlgorithm(
+                        AlgorithmType.DigitalSignature,
+                        code,
+                        out var algorithm
+                    ) && SettingAlgorithms.IsAsymmetricSignature(algorithm)
+            )
+        );
+
+    /// <summary>
+    /// Gets the rule for a list of key management (<c>alg</c>) algorithms for encryption.
+    /// </summary>
+    private SettingRule<IReadOnlyCollection<string>> KeyManagementAlgorithms() =>
+        RegisteredAlgorithms(
+            AlgorithmType.KeyManagement,
+            "a registered key management algorithm such as 'RSA-OAEP-256'"
+        );
+
+    /// <summary>
+    /// Gets the rule for a list of content encryption (<c>enc</c>) algorithms.
+    /// </summary>
+    private SettingRule<IReadOnlyCollection<string>> ContentEncryptionAlgorithms() =>
+        RegisteredAlgorithms(
+            AlgorithmType.AuthenticatedEncryption,
+            "a registered content encryption algorithm such as 'A256GCM'"
+        );
+
+    /// <summary>
+    /// Gets the rule for a list of compression (<c>zip</c>) algorithms.
+    /// </summary>
+    private SettingRule<IReadOnlyCollection<string>> CompressionAlgorithms() =>
+        RegisteredAlgorithms(
+            AlgorithmType.Compression,
+            "a registered compression algorithm such as 'DEF'"
+        );
+
+    // The rule consults the algorithm collection each time it validates, so it follows the registered algorithms as
+    // they change.
+    private SettingRule<IReadOnlyCollection<string>> RegisteredAlgorithms(
+        AlgorithmType algorithmType,
+        string description
+    ) =>
+        SettingRules.Each(
+            SettingRules.Must<string>(
+                description,
+                code => TryGetSelectableAlgorithm(algorithmType, code, out _)
+            )
+        );
+
+    private bool TryGetSelectableAlgorithm(
+        AlgorithmType algorithmType,
+        string code,
+        [NotNullWhen(true)] out Algorithm? algorithm
+    ) =>
+        AlgorithmCollectionProvider.Collection.TryGetAlgorithm<Algorithm>(
+            algorithmType,
+            code,
+            out algorithm
+        ) && SettingAlgorithms.IsSelectable(algorithm);
 
     /// <summary>
     /// Merges the <c>security_profile</c> setting as an un-loosenable floor: once any scope in the cascade selects

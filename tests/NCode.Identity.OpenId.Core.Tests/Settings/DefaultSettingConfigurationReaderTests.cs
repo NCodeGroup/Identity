@@ -34,7 +34,22 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
             new SettingDescriptor<bool> { Name = "flag" },
             new SettingDescriptor<int> { Name = "count" },
             new SettingDescriptor<TimeSpan> { Name = "lifetime" },
-            new SettingDescriptor<IReadOnlyCollection<string>> { Name = "list" }
+            new SettingDescriptor<IReadOnlyCollection<string>> { Name = "list" },
+            new SettingDescriptor<string>
+            {
+                Name = "mode",
+                Rule = SettingRules.OneOf("poll", "ping", "push"),
+            },
+            new SettingDescriptor<TimeSpan>
+            {
+                Name = "timeout",
+                Rule = SettingRules.AtLeast(TimeSpan.FromSeconds(1)),
+            },
+            new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = "methods",
+                Rule = SettingRules.Each(SettingRules.OneOf("S256", "plain")),
+            }
         );
 
         var mockProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
@@ -115,6 +130,17 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         Assert.Contains($"{SectionPath}:flag", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Read_WhenValueIsOutsideTheDomain_ThrowsInsteadOfLoadingIt()
+    {
+        var reader = CreateReader();
+        var section = CreateSection(("mode", "pull"), ("text", "value"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => reader.Read(section));
+
+        Assert.Contains($"{SectionPath}:mode", exception.Message, StringComparison.Ordinal);
+    }
+
     #endregion
 
     #region Validate Tests
@@ -188,6 +214,55 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var error = Assert.Single(reader.Validate(section));
 
         Assert.Contains("must be a single value", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_WhenValueIsOutsideTheDomain_ReportsItsPathAndDomain()
+    {
+        var reader = CreateReader();
+        var section = CreateSection(("mode", "pull"));
+
+        var error = Assert.Single(reader.Validate(section));
+
+        Assert.Equal($"'{SectionPath}:mode' must be one of 'poll', 'ping', or 'push'.", error);
+    }
+
+    [Fact]
+    public void Validate_WhenDurationIsBelowTheDomain_ReportsIt()
+    {
+        var reader = CreateReader();
+        var section = CreateSection(("timeout", "-00:05:00"));
+
+        var error = Assert.Single(reader.Validate(section));
+
+        Assert.Equal($"'{SectionPath}:timeout' must be at least 00:00:01.", error);
+    }
+
+    [Fact]
+    public void Validate_WhenListValueIsOutsideTheDomain_NamesTheValue()
+    {
+        var reader = CreateReader();
+        var section = CreateSection(("methods:0", "S256"), ("methods:1", "S512"));
+
+        var error = Assert.Single(reader.Validate(section));
+
+        Assert.Contains($"'{SectionPath}:methods'", error, StringComparison.Ordinal);
+        Assert.Contains("'S512' is not", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_WhenValuesAreInTheirDomains_ReturnsNoErrors()
+    {
+        var reader = CreateReader();
+        var section = CreateSection(
+            ("mode", "ping"),
+            ("timeout", "00:00:30"),
+            ("methods:0", "S256")
+        );
+
+        var errors = reader.Validate(section);
+
+        Assert.Empty(errors);
     }
 
     #endregion

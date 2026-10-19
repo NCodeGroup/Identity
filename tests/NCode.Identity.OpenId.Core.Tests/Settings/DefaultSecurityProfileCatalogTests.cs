@@ -105,20 +105,79 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
     }
 
     [Fact]
-    public async Task EvaluateRequirementsAsync_WhenProfileUnknown_InvokesNothing()
+    public async Task EvaluateRequirementsAsync_WhenProfileUnknown_FailsClosed()
     {
         var requirement = new FakeRequirement<string>();
         var catalog = CreateCatalog(new FakeProfile("fake", requirement));
         var settings = CreateSettings("other");
 
-        await catalog.EvaluateRequirementsAsync(settings.Object, "hello", CancellationToken.None);
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await catalog.EvaluateRequirementsAsync(
+                settings.Object,
+                "hello",
+                CancellationToken.None
+            )
+        );
 
+        Assert.Contains("'other'", exception.Message, StringComparison.Ordinal);
         Assert.Equal(0, requirement.InvocationCount);
     }
 
     #endregion
 
+    #region Expand Tests
+
+    [Fact]
+    public void Expand_WhenNoProfileSelected_ReturnsTheSettingsUnchanged()
+    {
+        var mockFactory = CreateStrictMock<ISettingCollectionFactory>();
+        var catalog = new DefaultSecurityProfileCatalog(
+            [new FakeProfile("fake")],
+            CreateStrictMock<ISettingSerializer>().Object,
+            mockFactory.Object
+        );
+        IReadOnlyCollection<Setting> scopeSettings = [];
+        var collection = CreateSettingCollection(profileName: null);
+        mockFactory.Setup(x => x.Create(scopeSettings)).Returns(collection.Object).Verifiable();
+
+        var result = catalog.Expand(scopeSettings);
+
+        Assert.Same(scopeSettings, result);
+    }
+
+    [Fact]
+    public void Expand_WhenProfileUnknown_FailsClosed()
+    {
+        var mockFactory = CreateStrictMock<ISettingCollectionFactory>();
+        var catalog = new DefaultSecurityProfileCatalog(
+            [new FakeProfile("fake")],
+            CreateStrictMock<ISettingSerializer>().Object,
+            mockFactory.Object
+        );
+        IReadOnlyCollection<Setting> scopeSettings = [];
+        var collection = CreateSettingCollection("fapi-2");
+        mockFactory.Setup(x => x.Create(scopeSettings)).Returns(collection.Object).Verifiable();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            catalog.Expand(scopeSettings)
+        );
+
+        Assert.Contains("'fapi-2'", exception.Message, StringComparison.Ordinal);
+    }
+
+    #endregion
+
     #region Scaffolding
+
+    private Mock<ISettingCollection> CreateSettingCollection(string? profileName)
+    {
+        var settings = CreateLooseMock<ISettingCollection>();
+        var value = profileName;
+        settings
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.SecurityProfile, out value))
+            .Returns(!string.IsNullOrEmpty(profileName));
+        return settings;
+    }
 
     private sealed class FakeProfile(string name, params ISecurityProfileRequirement[] requirements)
         : ISecurityProfile

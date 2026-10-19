@@ -112,5 +112,81 @@ public sealed class DefaultRegistrationTests
         );
     }
 
+    [Fact]
+    public void AddIdentityServer_EveryDefaultIsInItsOwnDomain()
+    {
+        // A default is set in code and never passes an entry point, so the composed catalog pins it to its own rule.
+        using var host = BuildHost([]);
+        var descriptors = host.Services.GetRequiredService<ISettingDescriptorCollectionProvider>();
+
+        foreach (var descriptor in descriptors.Collection.Where(x => x.HasDefault))
+        {
+            var setting = descriptor.CreateDefault();
+            var valid = descriptor.TryValidate(setting.GetValue(), out var failure);
+
+            Assert.True(valid, $"The default of '{descriptor.Name}' {failure}.");
+        }
+    }
+
+    [Theory]
+    [InlineData("security_profile", "fapi-2")]
+    [InlineData("subject_type", "pairwse")]
+    [InlineData("token_endpoint_auth_method", "client_secret")]
+    [InlineData("refresh_token_expiration_policy", "none")]
+    [InlineData("backchannel_token_delivery_mode", "pull")]
+    [InlineData("access_token_type", "JWT")]
+    [InlineData("access_token_lifetime", "-00:05:00")]
+    [InlineData("request_uri_fetch_timeout", "00:00:00")]
+    [InlineData("user_code_length", "4")]
+    [InlineData("jwks_uri_allowed_hosts:0", "10.0.0")]
+    [InlineData("grant_types_supported:0", "authorisation_code")]
+    [InlineData("token_endpoint_auth_methods_supported:0", "client_secret")]
+    [InlineData("id_token_signing_alg_values_supported:0", "HS256")]
+    [InlineData("request_object_signing_alg_values_supported:0", "none")]
+    [InlineData("id_token_encryption_alg_values_supported:0", "dir")]
+    public async Task AddIdentityServer_WhenServerSettingIsOutsideItsDomain_FailsToStart(
+        string key,
+        string value
+    )
+    {
+        using var host = BuildHost(
+            new Dictionary<string, string?> { [$"OpenId:Server:Settings:{key}"] = value }
+        );
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        var settingName = key.Split(':')[0];
+        Assert.Contains(
+            $"OpenId:Server:Settings:{settingName}' must",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenServerSettingsAreInTheirDomains_BindsThem()
+    {
+        using var host = BuildHost(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Server:Settings:security_profile"] = "fapi2",
+                ["OpenId:Server:Settings:token_endpoint_auth_method"] = "private_key_jwt",
+                ["OpenId:Server:Settings:id_token_signing_alg_values_supported:0"] = "ES256",
+                ["OpenId:Server:Settings:request_object_signing_alg_values_supported:0"] = "HS256",
+                ["OpenId:Server:Settings:grant_types_supported:0"] =
+                    "urn:ietf:params:oauth:grant-type:device_code",
+                ["OpenId:Server:Settings:jwks_uri_allowed_hosts:0"] = "keys.example.com",
+                ["OpenId:Server:Settings:user_code_length"] = "12",
+            }
+        );
+
+        // Resolving the options runs their validators, which read the server settings through the descriptors.
+        var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
+
+        Assert.Equal("OpenId:Server:Settings", options.Server.Settings?.Path);
+    }
+
     #endregion
 }

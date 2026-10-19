@@ -133,6 +133,48 @@ public class DefaultSettingSerializerTests : BaseTests
         Assert.Contains("'require_pkce'", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void DeserializeSettings_WhenValueIsOutsideTheDomain_ThrowsNamingIt()
+    {
+        var serializer = CreateSerializer(
+            new SettingDescriptor<string>
+            {
+                Name = "security_profile",
+                Rule = SettingRules.EmptyOr(SettingRules.OneOf("fapi2")),
+            }
+        );
+
+        var exception = Assert.Throws<JsonException>(() =>
+            serializer.DeserializeSettings(Parse("""{"security_profile":"fapi-2"}"""), _jsonOptions)
+        );
+
+        Assert.Contains(
+            "The setting 'security_profile' must be empty or 'fapi2'.",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void DeserializeSettings_WhenValueIsInTheDomain_CreatesTheSetting()
+    {
+        var serializer = CreateSerializer(
+            new SettingDescriptor<TimeSpan>
+            {
+                Name = "lifetime",
+                Rule = SettingRules.AtLeast(TimeSpan.FromSeconds(1)),
+            }
+        );
+
+        var result = serializer.DeserializeSettings(
+            Parse("""{"lifetime":"00:05:00"}"""),
+            _jsonOptions
+        );
+
+        var setting = Assert.Single(result);
+        Assert.Equal(TimeSpan.FromMinutes(5), setting.GetValue());
+    }
+
     #endregion
 
     #region ValidateSettings Tests
@@ -192,6 +234,72 @@ public class DefaultSettingSerializerTests : BaseTests
         Assert.Contains("true or false", errors[1].Message, StringComparison.Ordinal);
         Assert.Contains("an array of strings", errors[2].Message, StringComparison.Ordinal);
         Assert.Contains("not null", errors[3].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateSettings_WhenListContainsNull_ReportsATypeError()
+    {
+        var serializer = CreateSerializer(
+            new SettingDescriptor<IReadOnlyCollection<string>> { Name = "list" }
+        );
+
+        var errors = serializer.ValidateSettings(Parse("""{"list":["a",null]}"""), _jsonOptions);
+
+        var error = Assert.Single(errors);
+        Assert.Equal("list", error.SettingName);
+        Assert.Equal("The setting 'list' must be an array of strings.", error.Message);
+    }
+
+    [Fact]
+    public void ValidateSettings_WhenValuesAreOutsideTheirDomains_ReportsEachOne()
+    {
+        var serializer = CreateSerializer(
+            new SettingDescriptor<string>
+            {
+                Name = "subject_type",
+                Rule = SettingRules.OneOf("public", "pairwise"),
+            },
+            new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = "code_challenge_methods_supported",
+                Rule = SettingRules.Each(SettingRules.OneOf("S256", "plain")),
+            },
+            new SettingDescriptor<int> { Name = "length", Rule = SettingRules.Between(8, 32) }
+        );
+
+        var errors = serializer.ValidateSettings(
+            Parse(
+                """{"subject_type":"pairwse","code_challenge_methods_supported":["S256","S512"],"length":4}"""
+            ),
+            _jsonOptions
+        );
+
+        Assert.Equal(
+            [
+                "The setting 'subject_type' must be one of 'public' or 'pairwise'.",
+                "The setting 'code_challenge_methods_supported' must list only values that are one of 'S256' or "
+                    + "'plain'; 'S512' is not.",
+                "The setting 'length' must be between 8 and 32.",
+            ],
+            errors.Select(x => x.Message)
+        );
+    }
+
+    [Fact]
+    public void ValidateSettings_WhenNullValueUsesTheDefault_DoesNotReport()
+    {
+        var serializer = CreateSerializer(
+            new SettingDescriptor<string>
+            {
+                Name = "subject_type",
+                Default = "public",
+                Rule = SettingRules.OneOf("public", "pairwise"),
+            }
+        );
+
+        var errors = serializer.ValidateSettings(Parse("""{"subject_type":null}"""), _jsonOptions);
+
+        Assert.Empty(errors);
     }
 
     #endregion

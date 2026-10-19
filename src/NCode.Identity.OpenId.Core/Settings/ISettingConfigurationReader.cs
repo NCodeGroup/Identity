@@ -23,8 +23,9 @@ namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Reads the settings carried by a configuration section, keyed by setting name, typing each one by its registered
-/// <see cref="SettingDescriptor"/>. Setting names are a closed vocabulary: a child with no registered descriptor, or
-/// whose value does not convert to the descriptor's type, cannot be honored and is reported rather than skipped.
+/// <see cref="SettingDescriptor"/>. Setting names are a closed vocabulary: a child with no registered descriptor, whose
+/// value does not convert to the descriptor's type, or whose value is outside the setting's domain cannot be honored and
+/// is reported rather than skipped.
 /// </summary>
 internal interface ISettingConfigurationReader
 {

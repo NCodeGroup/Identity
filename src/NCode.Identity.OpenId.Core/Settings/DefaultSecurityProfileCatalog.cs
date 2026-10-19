@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using NCode.Identity.Settings;
@@ -26,25 +27,23 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides the default implementation of <see cref="ISecurityProfileCatalog"/> over the registered
 /// <see cref="ISecurityProfile"/> strategy collection. Profiles are keyed by their <see cref="ISecurityProfile.ProfileName"/>.
 /// </summary>
-internal sealed class DefaultSecurityProfileCatalog : ISecurityProfileCatalog
+/// <remarks>
+/// A scope whose effective <c>security_profile</c> names no registered profile is an error, never "no profile": every
+/// entry point rejects such a value, so one that still arrives here was set in code, and applying no profile would
+/// silently drop the baseline the scope selected.
+/// </remarks>
+// See ADR-0108 (profiles) and ADR-0140 (the security_profile domain).
+internal sealed class DefaultSecurityProfileCatalog(
+    IEnumerable<ISecurityProfile> profiles,
+    ISettingSerializer settingSerializer,
+    ISettingCollectionFactory settingCollectionFactory
+) : ISecurityProfileCatalog
 {
-    private ISettingSerializer SettingSerializer { get; }
-    private ISettingCollectionFactory SettingCollectionFactory { get; }
-    private Dictionary<string, ISecurityProfile> ProfilesByName { get; }
+    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    private ISettingCollectionFactory SettingCollectionFactory { get; } = settingCollectionFactory;
 
-    public DefaultSecurityProfileCatalog(
-        IEnumerable<ISecurityProfile> profiles,
-        ISettingSerializer settingSerializer,
-        ISettingCollectionFactory settingCollectionFactory
-    )
-    {
-        SettingSerializer = settingSerializer;
-        SettingCollectionFactory = settingCollectionFactory;
-        ProfilesByName = profiles.ToDictionary(
-            profile => profile.ProfileName,
-            StringComparer.Ordinal
-        );
-    }
+    private FrozenDictionary<string, ISecurityProfile> ProfilesByName { get; } =
+        profiles.ToFrozenDictionary(profile => profile.ProfileName, StringComparer.Ordinal);
 
     /// <inheritdoc />
     public bool TryGetProfile(
@@ -68,13 +67,8 @@ internal sealed class DefaultSecurityProfileCatalog : ISecurityProfileCatalog
         CancellationToken cancellationToken
     )
     {
-        if (
-            !settings.TryGetValue(OpenIdSettingKeys.SecurityProfile, out var profileName)
-            || !TryGetProfile(profileName, out var profile)
-        )
-        {
+        if (!TryGetSelectedProfile(settings, out var profile))
             return;
-        }
 
         foreach (var requirement in profile.Requirements)
         {
@@ -88,13 +82,8 @@ internal sealed class DefaultSecurityProfileCatalog : ISecurityProfileCatalog
     {
         var collection = SettingCollectionFactory.Create(scopeSettings);
 
-        if (
-            !collection.TryGetValue(OpenIdSettingKeys.SecurityProfile, out var profileName)
-            || !TryGetProfile(profileName, out var profile)
-        )
-        {
+        if (!TryGetSelectedProfile(collection, out var profile))
             return scopeSettings;
-        }
 
         var ceiling = SettingCollectionFactory.Create();
         profile.ApplyCeilingSettings(ceiling);
@@ -107,4 +96,27 @@ internal sealed class DefaultSecurityProfileCatalog : ISecurityProfileCatalog
         JsonElement settingsJson,
         JsonSerializerOptions jsonOptions
     ) => Expand(SettingSerializer.DeserializeSettings(settingsJson, jsonOptions));
+
+    private bool TryGetSelectedProfile(
+        IReadOnlySettingCollection settings,
+        [NotNullWhen(true)] out ISecurityProfile? profile
+    )
+    {
+        if (
+            !settings.TryGetValue(OpenIdSettingKeys.SecurityProfile, out var profileName)
+            || string.IsNullOrEmpty(profileName)
+        )
+        {
+            profile = null;
+            return false;
+        }
+
+        if (ProfilesByName.TryGetValue(profileName, out profile))
+            return true;
+
+        throw new InvalidOperationException(
+            $"The security profile '{profileName}' is not registered, so the scope that selects it cannot be "
+                + "given the baseline it asked for."
+        );
+    }
 }

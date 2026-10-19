@@ -78,6 +78,18 @@ public abstract class SettingDescriptor
     /// <param name="setting">The <see cref="Setting"/> to format.</param>
     /// <returns>The setting's formatted value.</returns>
     public abstract object Format(Setting setting);
+
+    /// <summary>
+    /// Determines whether a value is in the setting's domain: beyond conforming to <see cref="ValueType"/>, it satisfies
+    /// the rule the descriptor declares. A value outside the domain is one the server would accept without honoring, so
+    /// every entry point that accepts a setting — configuration, management writes, and stored documents when they are
+    /// read — rejects it. The <paramref name="value"/> must be castable to <see cref="ValueType"/>.
+    /// </summary>
+    /// <param name="value">The value to validate.</param>
+    /// <param name="failure">When this method returns <see langword="false"/>, a phrase that states why the value is
+    /// rejected, written to follow the name of the setting; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> when the value is in the setting's domain; otherwise, <see langword="false"/>.</returns>
+    public abstract bool TryValidate(object value, [NotNullWhen(false)] out string? failure);
 }
 
 /// <summary>
@@ -154,6 +166,17 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// </summary>
     public Func<Setting<TValue>, object> OnFormat { get; init; } = setting => setting.Value;
 
+    /// <summary>
+    /// Gets the rule the setting's value must satisfy beyond its type — the setting's domain, such as an allowed set, a
+    /// range, or a predicate over registered strategies. The default accepts every value of the type.
+    /// </summary>
+    /// <remarks>
+    /// The rule guards the entry points where a value is supplied from outside the code: configuration, management
+    /// writes, and stored documents when they are read. A value set in code (a default, a security profile's ceiling)
+    /// is not checked when it is set, so the <see cref="Default"/> must itself satisfy the rule.
+    /// </remarks>
+    public SettingRule<TValue> Rule { get; init; } = SettingRules.Any<TValue>();
+
     /// <inheritdoc />
     public override Setting Create(object value) => Create((TValue)value);
 
@@ -193,6 +216,21 @@ public class SettingDescriptor<TValue> : SettingDescriptor
     /// <param name="setting">The <see cref="Setting"/> to format.</param>
     /// <returns>The setting's formatted value.</returns>
     public virtual object Format(Setting<TValue> setting) => OnFormat(setting);
+
+    /// <inheritdoc />
+    public override bool TryValidate(object value, [NotNullWhen(false)] out string? failure) =>
+        TryValidate((TValue)value, out failure);
+
+    /// <summary>
+    /// Determines whether a value is in the setting's domain.
+    /// The default implementation evaluates the <see cref="Rule"/>.
+    /// </summary>
+    /// <param name="value">The value to validate.</param>
+    /// <param name="failure">When this method returns <see langword="false"/>, a phrase that states why the value is
+    /// rejected, written to follow the name of the setting; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> when the value is in the setting's domain; otherwise, <see langword="false"/>.</returns>
+    public virtual bool TryValidate(TValue value, [NotNullWhen(false)] out string? failure) =>
+        Rule.TryValidate(value, out failure);
 
     /// <summary>
     /// Operator overload to convert a <see cref="SettingDescriptor{TValue}"/> instance to a <see cref="SettingKey{TValue}"/> instance.

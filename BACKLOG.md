@@ -66,7 +66,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
-| `F` — Feature gaps                    | `F54`     | `F53`      |
+| `F` — Feature gaps                    | `F56`     | `F55`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U15`     | `U14`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
@@ -442,22 +442,29 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`,
   `src/NCode.Identity.OpenId.Core/Tenants/TenantResolutionOptionsValidator.cs` (share the issuer rule).
 
-- **`F53` — Validate setting values against their domain, not only their type.** Setting names are a closed vocabulary
-  and every value must convert to its descriptor's type
-  ([ADR-0139](docs/adr/0139-setting-names-are-a-closed-vocabulary.md)), but a value of the right type is still accepted
-  without being honored when it is outside the setting's domain. The sharpest case is `security_profile`: a value that
-  names no registered `ISecurityProfile` (a typo of `fapi2`) is stored and loaded, and `DefaultSecurityProfileCatalog`
-  then applies no profile at all — the client silently runs without the FAPI 2.0 ceiling and requirements it was
-  configured for. Enumerated string settings (`subject_type`, `token_endpoint_auth_method`, `access_token_type`,
-  `refresh_token_expiration_policy`, `refresh_token_reuse_policy`, `backchannel_token_delivery_mode`, …) accept any
-  string, and numeric/duration settings accept out-of-range values (a negative lifetime). Give `SettingDescriptor<T>` a
-  value rule (an allowed set, a range, or a validator that can consult registered strategies such as the security
-  profiles) and enforce it at the same three entry points — configuration on start, management writes, and stored
-  documents failing closed on read. Touch points: `src/NCode.Identity.Settings.Abstractions/SettingDescriptor.cs`,
-  `src/NCode.Identity/Settings/DefaultSettingSerializer.cs`,
-  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingConfigurationReader.cs`,
-  `src/NCode.Identity.OpenId.Core/Settings/DefaultSecurityProfileCatalog.cs`,
-  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`. Capture the design in an ADR.
+- **`F54` — Make every registered security profile un-loosenable down the cascade, not only `fapi2`.** The
+  `security_profile` domain is the set of registered `ISecurityProfile` names
+  ([ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md)), so a deployment can add a profile by
+  registering one. Its merge is not generic: `MergeSecurityProfile` keeps a parent's selection only when it is `fapi2`,
+  so a tenant that mandates any other registered profile can have it cleared (or replaced by a weaker one) by a client.
+  Make the merge honor every registered profile — a child may not clear or replace a parent's profile, or may only
+  select one the parent's profile declares as at least as strict — and let the profile itself declare that ordering
+  rather than hard-coding a name. Touch points:
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs` (`MergeSecurityProfile`),
+  `src/NCode.Identity.OpenId.Abstractions/Settings/ISecurityProfile.cs`. Capture the design in an ADR (amending
+  [ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
+
+- **`F55` — Accept combined `response_types` values in dynamic client registration.** RFC 7591 §2 registers
+  `response_types` as whole `response_type` values (`code id_token`), but the server models
+  `response_types_supported` as single values whose combinations the authorization endpoint accepts, so a registration
+  that lists a combination is refused as outside the setting's domain
+  ([ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md)). Implicit and hybrid flows are off by
+  default, so only a deployment that re-enables them is affected. Decide the model — store the registered combinations
+  and enforce them exactly, or map a combination to its single values (which also admits each value alone) — and make
+  registration, the registration response, and the authorization endpoint agree. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultValidateAuthorizationRequestHandler.cs`,
+  `src/NCode.Identity.OpenId.Core/Settings/OpenIdSettingRules.cs`.
 
 ## Conformance & interop testing (group `T`)
 

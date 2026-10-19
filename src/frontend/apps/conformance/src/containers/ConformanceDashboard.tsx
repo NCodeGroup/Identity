@@ -20,7 +20,7 @@ import {
   type CoverageReport,
   type RawDiscovery,
 } from '@ncode/conformance-core';
-import { loadDiscovery as defaultLoadDiscovery } from '../bootstrap.js';
+import { loadDiscovery as defaultLoadDiscovery } from '../discovery.js';
 import { CoverageMatrix } from '../components/CoverageMatrix.js';
 import { CoverageStatusChip } from '../components/CoverageStatusChip.js';
 import { FindingsList } from '../components/FindingsList.js';

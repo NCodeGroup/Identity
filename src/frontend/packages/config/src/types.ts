@@ -6,8 +6,12 @@
  * discovery document, and merges them into a {@link RuntimeConfig}. See docs/adr/0064.
  */
 
-/** Which presentation surface a bundle represents. */
-export type SurfaceKind = 'mgmt' | 'auth' | 'playground' | 'conformance';
+/**
+ * Which presentation surface a bundle represents. An open vocabulary (ADR-0150): the host maps any surface name to its
+ * coordinates (`FrontendBootstrapOptions.Surfaces`), so a new surface needs no change here. The listed names are the
+ * surfaces this repository ships.
+ */
+export type SurfaceKind = 'mgmt' | 'auth' | 'playground' | 'conformance' | (string & {});
 
 /**
  * The bootstrap document the serving host publishes at a well-known path. It carries only the

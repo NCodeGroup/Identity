@@ -1,6 +1,8 @@
 # 151. Frontend tests treat warnings as errors and hold coverage floors
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0157](0157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md): the gates live in the shared
+  `@ncode/vite-config` preset, and each workspace states only its coverage floors)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

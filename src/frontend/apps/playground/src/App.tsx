@@ -5,8 +5,8 @@ import Container from '@mui/material/Container';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import { useAppSelector } from '@ncode/store';
-import { createFlowDeps } from './bootstrap.js';
 import { FlowExplorer } from './containers/FlowExplorer.js';
+import { createFlowDeps } from './flow.js';
 
 /**
  * The Playground shell. Reads the discovered runtime config (guaranteed present by the bootstrap gate), builds the

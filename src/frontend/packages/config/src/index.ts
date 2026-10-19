@@ -16,7 +16,9 @@ export {
 export {
   BOOTSTRAP_PATH,
   DISCOVERY_PATH,
+  createRuntimeConfigLoader,
   loadRuntimeConfig,
   type FetchLike,
   type LoadRuntimeConfigOptions,
+  type RuntimeConfigLoader,
 } from './loader.js';

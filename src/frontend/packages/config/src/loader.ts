@@ -23,8 +23,11 @@ export type FetchLike = (
 }>;
 
 export type LoadRuntimeConfigOptions = {
-  /** Origin that serves the static bundle and publishes the bootstrap document. */
-  readonly origin: string;
+  /**
+   * Origin that serves the static bundle and publishes the bootstrap document; defaults to the page's own origin
+   * (`location.origin`), which is the serving host of every bundle — a standalone dev server proxies the document.
+   */
+  readonly origin?: string;
   /**
    * Which presentation surface is loading. When set, it is sent as the `surface` query parameter so the host can
    * return surface-specific coordinates (for example, each SPA's own public client id) from the one bootstrap
@@ -48,13 +51,22 @@ async function fetchJson(fetchFn: FetchLike, url: string, signal?: AbortSignal):
  * Discovers runtime configuration at boot. Fetches the host bootstrap document, then the OpenID
  * discovery metadata for the advertised issuer, and merges them into a validated {@link RuntimeConfig}.
  */
-export async function loadRuntimeConfig(options: LoadRuntimeConfigOptions): Promise<RuntimeConfig> {
+export async function loadRuntimeConfig(
+  options: LoadRuntimeConfigOptions = {},
+): Promise<RuntimeConfig> {
   const fetchFn = options.fetchFn ?? (globalThis.fetch as FetchLike | undefined);
   if (!fetchFn) {
     throw new RuntimeConfigError('No fetch implementation available to load runtime config.');
   }
 
-  const origin = options.origin.endsWith('/') ? options.origin.slice(0, -1) : options.origin;
+  // Typed structurally: the package also compiles without the DOM library (the headless runner).
+  const servingOrigin =
+    options.origin ?? (globalThis as { location?: { origin?: string } }).location?.origin;
+  if (!servingOrigin) {
+    throw new RuntimeConfigError('No serving origin available to load runtime config.');
+  }
+
+  const origin = servingOrigin.endsWith('/') ? servingOrigin.slice(0, -1) : servingOrigin;
   const bootstrapUrl = options.surface
     ? `${origin}${BOOTSTRAP_PATH}?surface=${encodeURIComponent(options.surface)}`
     : `${origin}${BOOTSTRAP_PATH}`;
@@ -69,4 +81,17 @@ export async function loadRuntimeConfig(options: LoadRuntimeConfigOptions): Prom
   const discovery = parseOpenIdDiscovery(discoveryRaw);
 
   return mergeRuntimeConfig(bootstrap, discovery);
+}
+
+/**
+ * Loads one bundle's runtime configuration, abandoning the load when the signal aborts. The boot gate takes one as a
+ * dependency, so a bundle binds its surface in its composition root and a test injects its own.
+ */
+export type RuntimeConfigLoader = (signal: AbortSignal) => Promise<RuntimeConfig>;
+
+/** Binds {@link loadRuntimeConfig} to a bundle's options — typically just its `surface` — as a loader. */
+export function createRuntimeConfigLoader(
+  options: Omit<LoadRuntimeConfigOptions, 'signal'> = {},
+): RuntimeConfigLoader {
+  return (signal) => loadRuntimeConfig({ ...options, signal });
 }

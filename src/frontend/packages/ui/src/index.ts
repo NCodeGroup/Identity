@@ -2,6 +2,7 @@ export { createAppTheme } from './theme/createAppTheme.js';
 export { AppThemeProvider, type AppThemeProviderProps } from './theme/AppThemeProvider.js';
 export { ScopeBadge, type ScopeBadgeProps, type ScopeKind } from './components/ScopeBadge.js';
 export { DataStateBoundary, type DataStateBoundaryProps } from './components/DataStateBoundary.js';
+export { BootstrapScreen, type BootstrapScreenProps } from './components/BootstrapScreen.js';
 export { TenantTable, type TenantRow, type TenantTableProps } from './components/TenantTable.js';
 export { ClientTable, type ClientRow, type ClientTableProps } from './components/ClientTable.js';
 export { ServerTable, type ServerRow, type ServerTableProps } from './components/ServerTable.js';

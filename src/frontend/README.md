@@ -70,8 +70,10 @@ src/frontend/
     api/      @ncode/api     — RTK Query client + management scope model (no UI)
     store/    @ncode/store   — Redux store assembly, slices, typed hooks
     ui/       @ncode/ui      — MUI design system + stateless components + Storybook
+    shell/    @ncode/shell   — stateful app-shell containers shared by the surfaces (the runtime-config BootstrapGate)
     conformance-core/ @ncode/conformance-core — framework-free conformance logic (discovery, audit, spec-coverage, probes)
     test-support/ @ncode/test-support — test-only Vitest support shared by every workspace (the console guard)
+    vite-config/  @ncode/vite-config — the Vite/Vitest preset every workspace builds and tests from
   apps/
     mgmt/     @ncode/app-mgmt — Management console (first surface)
     auth/     @ncode/app-auth — Interactive login/consent surface (OP-hosted under /account/*)
@@ -88,7 +90,10 @@ src/frontend/
    They render as a pure function of their props: ambient values such as the clock come in as props
    (e.g. `GrantTable`'s `now`), never from a read during render — the React lint rules (`purity`) flag it.
 2. **Stateful containers at the top.** State and side effects live in container components
-   (`apps/*/src/containers/`) and the shell, which wire Redux + RTK Query and pass plain props down.
+   (`apps/*/src/containers/`) and the shell, which wire Redux + RTK Query and pass plain props down. A container that
+   more than one surface needs (the runtime-config `BootstrapGate`) lives in `@ncode/shell`, the one package that may
+   depend on both `@ncode/store` and `@ncode/ui`: `@ncode/ui` stays store-free and `@ncode/store` stays UI-free
+   ([ADR-0156](../../docs/adr/0156-shared-app-shell-containers-live-in-ncode-shell.md)).
 3. **UI-free services/logic are unit-tested directly.** Validation, discovery parsing, PKCE, and the
    global-vs-tenant boundary rules live in plain modules (`@ncode/config`, `@ncode/api/scope`) with
    their own Vitest suites.
@@ -124,7 +129,9 @@ pnpm build                # build all packages/apps
 
 ### Test gates — warnings are errors
 
-A green run means more than "no assertion failed" ([ADR-0151](../../docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md)):
+A green run means more than "no assertion failed" ([ADR-0151](../../docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md)).
+The gates are set once, in the [`@ncode/vite-config`](packages/vite-config) preset that every workspace's Vite or Vitest
+config calls with its own coverage floors ([ADR-0157](../../docs/adr/0157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)):
 
 - **A test that logs `console.error` or `console.warn` fails.** Every workspace's `vitest.setup.ts` registers
   `failOnConsole` from [`@ncode/test-support`](packages/test-support). The usual cause is a React
@@ -135,18 +142,20 @@ A green run means more than "no assertion failed" ([ADR-0151](../../docs/adr/015
   Redux Toolkit's load-dependent "…StateInvariantMiddleware took Nms" timing warning, which the guard drops: it would
   otherwise fail store-backed tests at random under coverage. Keep that list to timing diagnostics.
 - **Lint warnings fail** (`--max-warnings 0`), and so does a stale `eslint-disable` comment.
-- **A test that makes no assertion fails** (`expect.requireAssertions` in every Vitest config).
+- **A test that makes no assertion fails** (`expect.requireAssertions`).
 - **Tests, stories, and setup files are type-checked** — no tsconfig excludes them.
-- **Coverage measures every source file and holds a floor.** Each workspace's coverage `include` spans all `.ts`/`.tsx`
-  sources except its entry point (`main.ts[x]`) and barrel (`index.ts`), and its Vitest config sets
-  `coverage.thresholds` at the level reached, rounded down. Vitest enforces them whenever coverage is collected
-  (`pnpm run test:report`, which CI runs). When a change raises a workspace's coverage, raise its floor in the same
-  change; lowering one needs a stated reason.
+- **Coverage measures every source file and holds a floor.** Every workspace collects `src/**/*.test.{ts,tsx}` and
+  measures all `.ts`/`.tsx` sources except tests, stories, its entry point (`main.ts[x]`), and its barrel
+  (`index.ts`), against the `coverage` floors its config passes to the preset: the level reached, rounded down.
+  Vitest enforces them whenever coverage is collected (`pnpm run test:report`, which CI runs). When a change raises a
+  workspace's coverage, raise its floor in the same change; lowering one needs a stated reason.
 
-A new workspace joins these gates by adding `"@ncode/test-support": "workspace:*"` to its `devDependencies`, a
-`vitest.setup.ts` that calls `failOnConsole({ beforeEach, afterEach })` (listed in `setupFiles` and in the tsconfig
-`include`), `--max-warnings 0` on its `lint` script, and `expect.requireAssertions` plus coverage thresholds in its
-Vitest config.
+A new workspace joins these gates by adding `"@ncode/test-support": "workspace:*"` and
+`"@ncode/vite-config": "workspace:*"` to its `devDependencies`, a `vitest.setup.ts` that calls
+`failOnConsole({ beforeEach, afterEach })` (listed in the tsconfig `include`), `--max-warnings 0` on its `lint` script,
+and a one-call config: `defineTestConfig({ environment, coverage })` in `vitest.config.ts` for a package, or a surface
+preset in `vite.config.ts` for an app (below). `@ncode/test-support` itself keeps a hand-written config that states the
+same gates, because the preset depends on it and turbo rejects a cyclic workspace graph.
 
 ### The `dev` script encodes each app's serving model
 
@@ -157,9 +166,11 @@ served:
 - **Backend-served SPAs** — served by the .NET host from a static `dist` (e.g. `apps/auth`, which the
   Playground serves through the interactive-login endpoint) — use **`vite build --watch`**. This keeps
   `dist` continuously rebuilt so a browser refresh shows edits. (There is no HMR dev server because the
-  .NET host, not Vite, serves these bundles.)
+  .NET host, not Vite, serves these bundles.) Their config is `defineBackendServedSurfaceConfig({ base, coverage })`.
 - **Standalone SPAs** — served directly by Vite on their own port (e.g. `apps/mgmt`) — use **`vite`**,
-  a full HMR dev server.
+  a full HMR dev server. Their config is `defineStandaloneSurfaceConfig({ port, bootstrapHost, coverage })`, which pins
+  the port with `strictPort` (the surface's redirect URI, CORS origin, and AppHost endpoint all assume it) and proxies
+  the bootstrap document to the OP host (see [Runtime configuration](#runtime-configuration)).
 
 ## Runtime configuration
 
@@ -176,12 +187,30 @@ The serving host must publish `/config/bootstrap.json`:
 
 Every bundle gets this document from the host at runtime — there is no static dev copy to drift.
 
+Each standalone surface boots through the one [`BootstrapGate`](packages/shell/src/BootstrapGate.tsx) from
+`@ncode/shell`, given the surface's loader in its `main.tsx`:
+
+```tsx
+const loadRuntimeConfig = createRuntimeConfigLoader({ surface: 'playground' });
+// …
+<BootstrapGate load={loadRuntimeConfig}>
+  <App />
+</BootstrapGate>;
+```
+
+The gate shows the stateless `BootstrapScreen` (from `@ncode/ui`, default theme) until the configuration is in the
+store, then renders the app themed by the discovered branding. The loader defaults the serving origin to the page's own
+`location.origin`, so the surface name is the only per-app binding. Pass the gate a stable loader: a new one abandons an
+unfinished load and starts over.
+
 > **Surface-aware.** Each bundle declares its `SurfaceKind` when it loads config, which `@ncode/config` sends as
 > `?surface=` (for example `/config/bootstrap.json?surface=playground`). The host maps that to a per-surface override
 > (`FrontendBootstrapOptions.Surfaces`) so every surface gets its **own** public client id and scopes from the one
 > endpoint — the Playground discovers `playground-spa`, while the read-only conformance dashboard gets no client at all
 > ([ADR-0082](../../docs/adr/0082-playground-and-conformance-surfaces.md)). A surface with no override, or no
-> `?surface=`, receives the host default (the Management console's).
+> `?surface=`, receives the host default (the Management console's). `SurfaceKind` is an open vocabulary: it lists the
+> shipped surfaces but accepts any name, so a new surface needs only its host override, not a change to
+> `@ncode/config`.
 
 `NCode.Identity.Server` binds the `Frontend` configuration section and registers the endpoint through the
 single `IIdentityServerBuilder.AddFrontendBootstrap(configuration)` seam — the host's existing
@@ -191,12 +220,12 @@ single-origin host needs no configuration.
 
 - **Backend-served bundles** (e.g. `apps/auth`, served by the OpenID Provider host) fetch the document
   straight from their serving host.
-- **Standalone bundles** (`apps/mgmt`, served by its own Vite dev server) don't share the OP's origin, so the
-  Vite dev server **proxies** `/config/bootstrap.json` to the Playground host instead of shipping a static
-  copy (see [`apps/mgmt/vite.config.ts`](apps/mgmt/vite.config.ts)). The proxy target comes from the Aspire
-  service-discovery variable the `mgmt` resource receives via `WithReference(api)`
-  ([ADR-0071](../../docs/adr/0071-aspire-local-dev-orchestrator.md)), falling back to the pinned
-  `https://localhost:5001` when run outside Aspire — so local dev exercises the real runtime endpoint.
+- **Standalone bundles** (e.g. `apps/mgmt`, served by its own Vite dev server) don't share the OP's origin, so the
+  Vite dev server **proxies** `/config/bootstrap.json` to the OP host instead of shipping a static copy (the
+  `bootstrapHost` of `defineStandaloneSurfaceConfig` in [`@ncode/vite-config`](packages/vite-config/src/preset.ts)).
+  The proxy target comes from the Aspire service-discovery variable the surface's resource receives via
+  `WithReference(api)` ([ADR-0071](../../docs/adr/0071-aspire-local-dev-orchestrator.md)), falling back to the pinned
+  origin (`https://localhost:5001`) when run outside Aspire — so local dev exercises the real runtime endpoint.
 
 ## Authentication (authorization-code + PKCE)
 
@@ -262,6 +291,17 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   **no `tsc --build`/`composite`/project-references** — those emit `.d.ts` that get resolved _alongside_
   the source, producing "two different types ... unrelated" errors. Package `build` is type-check only
   (`tsc --noEmit`); only the app emits a bundle.
+- **`@ncode/vite-config` is loaded by Node itself, so it follows stricter rules.** Vite bundles a `vite.config.ts` but
+  leaves its bare imports external, so Node imports the preset's TypeScript source directly by stripping its types.
+  It is one module, [`src/preset.ts`](packages/vite-config/src/preset.ts) (its `exports` point there, not at an
+  `index.ts`), that uses only erasable syntax (`erasableSyntaxOnly`) and has no relative or workspace imports: Node
+  cannot map the `.js` specifiers the other packages use to their `.ts` files. The configs that call it are not
+  type-checked, so it validates its own options. Keep new presets in that module
+  ([ADR-0157](../../docs/adr/0157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)).
+- **Turborepo re-runs a task when anything it reads changes.** A task's hash covers only its own package by default, so
+  `test` and `typecheck` depend on a no-op `transit` task that links the package graph: editing an internal package
+  re-runs its dependents' tests and type-checks (still in parallel), and `globalDependencies` re-runs everything when
+  `tsconfig.base.json` or `eslint.config.js` changes. A new root file that tasks read belongs in `globalDependencies`.
 - **RTK Query store assembly.** `@reduxjs/toolkit/query/react` (used by `createApi`) bundles its own
   copies of the core `Reducer`/`Middleware`/`Tuple` declarations, which TypeScript treats as nominally
   distinct from the root `@reduxjs/toolkit` entry used by `configureStore`. The store in
@@ -274,12 +314,12 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   read `input instanceof Request ? input.url : String(input)` and return a real `Response`
   (`new Response(JSON.stringify(body), { status, headers })`) — a plain object lacks `.clone()`, which
   `fetchBaseQuery` calls.
-- **jsdom test timeout.** Every `environment: 'jsdom'` suite sets `testTimeout: 15_000` instead of Vitest's 5 s default.
-  A jsdom test that renders a full MUI screen spends seconds in the first render (theme and emotion setup), and v8
-  coverage instrumentation — which CI always collects (`pnpm run test:report`) — slows it further on a shared runner:
-  CI measured 2.7–7.1 s for single tests across the jsdom suites, so the default failed them intermittently. The
-  timeout is a hang guard, not a performance assertion; keep it uniform across the jsdom suites, and leave the
-  `environment: 'node'` suites (milliseconds per test) on the default.
+- **jsdom test timeout.** The preset gives every browser-simulating suite `testTimeout: 15_000` instead of Vitest's
+  5 s default. A jsdom test that renders a full MUI screen spends seconds in the first render (theme and emotion setup),
+  and v8 coverage instrumentation — which CI always collects (`pnpm run test:report`) — slows it further on a shared
+  runner: CI measured 2.7–7.1 s for single tests across the jsdom suites, so the default failed them intermittently. The
+  timeout is a hang guard, not a performance assertion; the `environment: 'node'` suites (milliseconds per test) keep
+  the default.
 - **jsdom + undici cross-realm `AbortSignal`.** Under `environment: 'jsdom'`, `fetch`/`Request`/`Response`
   stay Node's (undici) globals while jsdom overrides `AbortController`/`AbortSignal`. `fetchBaseQuery`
   builds `new Request(url, { signal })` from the global (jsdom) `AbortController`, and undici's `Request`
@@ -302,6 +342,12 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   StrictMode remount, so the second invocation short-circuits. Set the ref only when the work actually
   begins (not on an early bail-out such as pre-discovery `authConfig === null`) so the single attempt
   is not wasted.
+- **A test that a superseded async result is dropped must settle it last.** When a container abandons one load for
+  another, settle the current load first and the abandoned one afterwards (inside `act`), then assert the state still
+  holds the current result. Settling the abandoned one first passes even without the guard, because the current
+  result overwrites it. To prove an aborted failure is ignored, assert while the replacement load is still pending:
+  once it resolves, its result hides the error. [`BootstrapGate.test.tsx`](packages/shell/src/BootstrapGate.test.tsx)
+  shows both. Check such a test by removing the guard and watching the test fail.
 - **Management writes are JSON Patch + `If-Match`, not whole-object PUT.** The Management update endpoints
   bind `JsonPatchDocument<T>` and hydrate the current resource before applying the document, and they gate
   on an `If-Match` concurrency token (optimistic concurrency). RTK Query mutations express an edit as a
@@ -362,7 +408,11 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   passes again once the version ages. When a fix cannot wait (and is not arriving as a Dependabot security update,
   which bypasses both gates), list the package in `minimumReleaseAgeExclude` with a comment and remove the entry once
   the version is three days old
-  ([ADR-0153](../../docs/adr/0153-one-release-age-window-gates-frontend-dependencies.md)).
+  ([ADR-0153](../../docs/adr/0153-one-release-age-window-gates-frontend-dependencies.md)). The gate also re-checks the
+  locked versions a non-frozen install re-resolves, so adding a workspace or a dependency can move a locked transitive
+  version younger than three days back to an older one. Review the lockfile diff for such unrelated moves. When a change
+  adds no external version (a new workspace, or a workspace dependency), keep the locked versions by running that one
+  install with `--config.minimum-release-age=0` and confirm the diff only adds importers.
 - **A non-interactive `pnpm install` cannot replace `node_modules` on its own.** After a pnpm major or a store-layout
   change, pnpm must purge `node_modules` first and asks for confirmation; without a terminal (an agent's shell, a script
   run from another tool) it fails with `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`. Run

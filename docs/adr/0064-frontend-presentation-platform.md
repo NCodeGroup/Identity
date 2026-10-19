@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-0152](0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): pnpm is installed from
-  its `packageManager` pin by its own tooling, because Node no longer ships Corepack)
+  its `packageManager` pin by its own tooling, because Node no longer ships Corepack; and by
+  [ADR-0156](0156-shared-app-shell-containers-live-in-ncode-shell.md): stateful containers shared by more than one
+  surface live in `@ncode/shell`, the one package that may depend on both `@ncode/store` and `@ncode/ui`)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 
@@ -153,5 +155,3 @@ services/logic — so every layer is independently testable.** Concretely:
   [`ServerApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/Servers/ServerApiEndpointHandler.cs)
   (global scope).
 - Platform guide: [`src/frontend/README.md`](../../src/frontend/README.md).
-  </content>
-  </invoke>

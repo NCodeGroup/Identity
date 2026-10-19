@@ -5,10 +5,10 @@ import { AppThemeProvider } from '@ncode/ui';
 import { createAppStore, runtimeConfigLoaded, type AppStore } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
 import { App } from './App.js';
-import { loadDiscovery } from './bootstrap.js';
+import { loadDiscovery } from './discovery.js';
 
 // The dashboard loads discovery on mount; keep the shell test off the network.
-vi.mock(import('./bootstrap.js'), async (importOriginal) => ({
+vi.mock(import('./discovery.js'), async (importOriginal) => ({
   ...(await importOriginal()),
   loadDiscovery: vi.fn(() => new Promise<never>(() => {})),
 }));

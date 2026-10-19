@@ -282,6 +282,21 @@ change to the public API is a **major** version bump.
   administrator presents its secret with HTTP Basic, not in the request body. A deployment that stores settings
   documents in its own database must apply the same rewrite there.
 
+- **The developer seed registers only the SPA clients its configuration declares.**
+  `DeveloperInteractiveSeedOptions.SpaClients` used to start with `mgmt-spa` and `playground-spa`, and the
+  configuration binder appends to a list that already holds entries, so `DeveloperInteractiveSeed:SpaClients` could
+  add clients but never replace or remove those two. The list now starts empty and the seeder registers exactly the
+  configured clients, or none when nothing is configured. That makes the seed inert in a host that does not ask for
+  it, as `AddDevelopmentEnvironment` documents; previously every non-Production host, the Conformance environment
+  included, persisted the two loopback clients.
+
+  The reference host declares both clients in `appsettings.Development.json`, beside the `Frontend` section that
+  publishes the same client ids, so local development, the Aspire stack, and the integration tests are unchanged. An
+  integration test fails if the bootstrap document publishes a client id the seed does not register.
+  ([ADR-0146](docs/adr/0146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md))
+
+  **Breaking:** a host that relied on the built-in clients declares them under `DeveloperInteractiveSeed:SpaClients`.
+
 ### Fixed
 
 - **A FAPI 2.0 client could not reach the authorization endpoint.** The endpoint identified the client through client

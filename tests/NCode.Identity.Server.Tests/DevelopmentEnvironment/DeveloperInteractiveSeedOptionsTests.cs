@@ -16,7 +16,9 @@
 
 #endregion
 
+using Microsoft.Extensions.Configuration;
 using NCode.Identity.Server.DevelopmentEnvironment;
+using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;
@@ -26,25 +28,38 @@ public class DeveloperInteractiveSeedOptionsTests
     #region SpaClients Tests
 
     [Fact]
-    public void SpaClients_ByDefault_SeedsManagementAndPlayground()
+    public void SpaClients_ByDefault_IsEmpty()
     {
+        // There are no built-in clients: the seed registers only what configuration declares.
         var options = new DeveloperInteractiveSeedOptions();
 
-        Assert.Contains(options.SpaClients, client => client.ClientId == "mgmt-spa");
-        Assert.Contains(options.SpaClients, client => client.ClientId == "playground-spa");
+        Assert.Empty(options.SpaClients);
     }
 
     [Fact]
-    public void SpaClients_ByDefault_RequiresConsentOnlyForPlayground()
+    public void SpaClients_WhenBoundFromConfiguration_HoldsExactlyTheConfiguredClients()
     {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["DeveloperInteractiveSeed:SpaClients:0:ClientId"] = "custom-spa",
+                    ["DeveloperInteractiveSeed:SpaClients:0:RedirectUris:0"] =
+                        "https://localhost:6000/callback",
+                    ["DeveloperInteractiveSeed:SpaClients:0:RequireConsent"] = "true",
+                }
+            )
+            .Build();
         var options = new DeveloperInteractiveSeedOptions();
 
-        Assert.True(
-            options.SpaClients.Single(client => client.ClientId == "playground-spa").RequireConsent
-        );
-        Assert.False(
-            options.SpaClients.Single(client => client.ClientId == "mgmt-spa").RequireConsent
-        );
+        configuration
+            .GetSection(DeveloperInteractiveSeedOptions.DefaultSectionName)
+            .BindStrictly(options);
+
+        var client = Assert.Single(options.SpaClients);
+        Assert.Equal("custom-spa", client.ClientId);
+        Assert.Equal(["https://localhost:6000/callback"], client.RedirectUris);
+        Assert.True(client.RequireConsent);
     }
 
     [Fact]

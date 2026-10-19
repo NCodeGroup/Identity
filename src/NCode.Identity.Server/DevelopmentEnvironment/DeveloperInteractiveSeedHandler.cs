@@ -34,10 +34,10 @@ using NCode.Mediator;
 namespace NCode.Identity.Server.DevelopmentEnvironment;
 
 /// <summary>
-/// A <strong>development-only</strong> seed handler that provisions the public (PKCE-only) single-page-application
-/// clients and a deterministic administrator user into each workload tenant, so a local host can exercise the
-/// interactive authorization-code + PKCE flow and every frontend surface end to end. It is idempotent, inert unless
-/// its inputs are configured, and never targets the control-plane root tenant.
+/// A <strong>development-only</strong> seed handler that provisions the configured public (PKCE-only)
+/// single-page-application clients and a deterministic administrator user into each workload tenant, so a local host
+/// can exercise the interactive authorization-code + PKCE flow and every frontend surface end to end. It is
+/// idempotent, inert unless its inputs are configured, and never targets the control-plane root tenant.
 /// </summary>
 /// <remarks>
 /// A seeded client's settings come from configuration, so the document is validated against the registered setting

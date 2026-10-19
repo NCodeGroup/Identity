@@ -29,10 +29,10 @@ using NCode.Registration;
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Provides an explicit, <strong>development-only</strong> opt-in that seeds a public (PKCE-only)
-/// single-page-application client and a deterministic administrator user into each workload tenant, so a local host
-/// can exercise the interactive authorization-code + PKCE flow and the management console end to end. It is
-/// intentionally NOT part of the default registrations and must not be used in production.
+/// Provides an explicit, <strong>development-only</strong> opt-in that seeds the public (PKCE-only)
+/// single-page-application clients its configuration declares and a deterministic administrator user into each
+/// workload tenant, so a local host can exercise the interactive authorization-code + PKCE flow and its frontend
+/// surfaces end to end. It is intentionally NOT part of the default registrations and must not be used in production.
 /// </summary>
 [PublicAPI]
 public static class DeveloperInteractiveSeedRegistration
@@ -40,10 +40,10 @@ public static class DeveloperInteractiveSeedRegistration
     extension(IServiceBuilder<IdentityServer> builder)
     {
         /// <summary>
-        /// Registers the development-only seeder for a public single-page-application client and an administrator user.
+        /// Registers the development-only seeder for public single-page-application clients and an administrator user.
         /// Its inputs are read from the <c>DeveloperInteractiveSeed</c> configuration section, bound strictly; each
-        /// half is inert unless its inputs are configured (the administrator user requires an explicitly configured
-        /// password). Must not be used in production.
+        /// half is inert unless its inputs are configured (there are no built-in clients, and the administrator user
+        /// requires an explicitly configured password). Must not be used in production.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the seeder's settings.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>

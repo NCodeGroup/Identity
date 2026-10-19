@@ -69,7 +69,9 @@ public static class DevelopmentEnvironmentRegistration
 
             builder.ServiceCollection.AddDeveloperCors(configuration, hostEnvironment);
 
-            // Seeds a development administrator and a public SPA client so the management console can sign in.
+            // Seeds the public SPA clients and the development administrator its section declares, so the frontend
+            // surfaces can sign in. Inert unless its section is configured (the reference host's Development overlay
+            // declares its clients).
             builder.AddDeveloperInteractiveSeed(configuration);
 
             // Seeds the confidential clients and deterministic test user the OpenID Foundation conformance suite

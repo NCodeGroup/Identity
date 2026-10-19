@@ -318,7 +318,11 @@ rationale.
   which   leave a misspelled sibling unnoticed; bind eagerly only when the value decides what gets registered. A collection
   option the binder fills starts **empty**: the binder appends the configured values to an array or list that already
   holds some, so a default set in the initializer can never be narrowed by configuration — apply the default when
-  nothing is configured instead. Each section
+  nothing is configured instead. A host's own identifiers are not a library default at all: a collection that would
+  default to them (a seeded client's id and redirect URIs) has none, and the host's environment overlay declares the
+  entries beside the configuration that publishes them
+  ([ADR-0146](../../docs/adr/0146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)).
+  Each section
   has one owner that declares its whole shape; an extension binds its own section rather than adding keys to one the
   server owns. Validate only what is in force (for example the selected tenant strategy's options), since a JSON overlay
   cannot delete a lower layer's key. **Validate a value the way it will be used:** a lenient parser can turn a typo into
@@ -436,7 +440,10 @@ rationale.
   (CS8652). The gate is `dotnet csharpier check .` and it accepts the constructor form; if `format` ever emits
   `[with(…)]`, revert to the constructor form. CSharpier 1.x formats XML too; generated output is excluded via
   [`.csharpierignore`](../../.csharpierignore). The house style CSharpier enforces: **file-scoped namespaces**,
-  4-space indentation, and a **trailing comma** on every multi-line object / collection / enum member list.
+  4-space indentation, and a **trailing comma** on every multi-line object / collection / enum member list. Line
+  endings are **LF** ([`.gitattributes`](../../.gitattributes), [`.editorconfig`](../../.editorconfig)), and the check
+  fails a file with CRLF endings ("different line endings than formatting it would result in") — which a file created
+  on Windows by a tool that ignores `.editorconfig` gets; `dotnet csharpier format <file>` fixes it.
 - ⏳ **Code-style analyzers run on build.** `EnforceCodeStyleInBuild` makes the `IDExxxx` rules execute during
   `dotnet build`; combined with warnings-as-errors, rules set to `warning` in [`.editorconfig`](../../.editorconfig)
   become build errors on shipping code.

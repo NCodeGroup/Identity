@@ -69,6 +69,12 @@ jobs:
 
       # OIDC needs no stored secret. A pull request from a fork cannot mint an OIDC token, and Codecov accepts
       # tokenless uploads from forks of public repositories instead.
+      #
+      # `plugins: noop` turns off the uploader's default preparation plugins (xcode, gcov, pycoverage), which probe for
+      # Swift, C/C++, and Python coverage data, run those toolchains over whatever they find, and log a warning each
+      # when they find nothing. This repository's coverage arrives as one finished Cobertura file, so they have nothing
+      # to prepare. They do not affect WHAT is uploaded — `disable_search` already limits the upload to `files` — this
+      # only stops the runner image's gcov/coverage.py from being executed and keeps the log free of false alarms.
       - name: Upload coverage
         if: steps.coverage.outcome == 'success'
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -76,6 +82,7 @@ jobs:
           use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
           files: ${{ runner.temp }}/codecov/coverage/Cobertura.xml
           disable_search: true
+          plugins: noop
           flags: ${{ inputs.flag }}
           name: ${{ inputs.flag }}
           fail_ci_if_error: false

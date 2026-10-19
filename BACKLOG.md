@@ -656,6 +656,9 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   generators — ReportGenerator also warns that these files "do not exist" because they are build intermediates). Decide
   what the headline number should measure — exclude generated code (`[GeneratedCode]`, `**/obj/**`, `**/Migrations/**`)
   and the host/composition assemblies via coverlet `ExcludeByFile`/`Exclude` or ReportGenerator filters, applied
-  identically to the job summary and to Codecov (`codecov.yml` `ignore`) so the two never disagree. Touch points:
+  identically to the job summary and to Codecov (`codecov.yml` `ignore`) so the two never disagree. They already
+  disagree: on the first CI run (`d02ca805`) the job summary reported 35.8% .NET line coverage over 75,871 coverable
+  lines, while Codecov's `dotnet` flag reported 52.8% over ≈49,600 — Codecov silently drops every report file that is
+  not in the repository (the generated `obj/` sources) and scores partially-covered lines differently. Touch points:
   [`build/coverage-report.ps1`](build/coverage-report.ps1), [`tests/Directory.Build.props`](tests/Directory.Build.props),
   [`codecov.yml`](codecov.yml). Coverage thresholds are a separate, later policy decision.

@@ -29,5 +29,8 @@
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Accounts.Abstractions\NCode.Identity.OpenId.Accounts.Abstractions.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Accounts.Authentication\NCode.Identity.OpenId.Accounts.Authentication.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Authentication\NCode.Identity.OpenId.Authentication.csproj" />
+        <!-- The algorithm setting rules are evaluated against the real registered JOSE algorithms. -->
+        <ProjectReference Include="..\..\src\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
     </ItemGroup>
 </Project>

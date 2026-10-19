@@ -29,6 +29,19 @@ namespace NCode.Identity.Jwt.Validation;
 /// via the fluent extension methods) and are executed by registered <see cref="IJwtValidationHandler"/> strategies;
 /// this type carries no validation logic.
 /// </summary>
+/// <remarks>
+/// <para>
+/// A JWT is accepted only when it is signed: a compact JWS, or a compact JWE whose <c>cty</c> header is <c>JWT</c> and
+/// whose content is a compact JWS (a Nested JWT, <c>RFC 7519</c> §5.2). An unsecured JWS (<c>alg</c> <c>none</c>) and
+/// an encrypted JWT that encloses no signature are always rejected; no parameter relaxes this.
+/// </para>
+/// <para>
+/// The algorithm lists (<see cref="ValidSignatureAlgorithms"/>, <see cref="ValidKeyManagementAlgorithms"/>,
+/// <see cref="ValidContentEncryptionAlgorithms"/>, and <see cref="ValidCompressionAlgorithms"/>) are checked against the
+/// token's headers before any cryptographic operation is performed (<c>RFC 8725</c> §3.1). A <c>null</c> list does not
+/// restrict its algorithm; a list that is set permits only the algorithms it names, so an empty list permits none.
+/// </para>
+/// </remarks>
 [PublicAPI]
 public class JwtValidationParameters
 {
@@ -68,6 +81,39 @@ public class JwtValidationParameters
     /// <c>kid</c>/thumbprint resolution over the ambient secret-key collection.
     /// </summary>
     public IReadOnlyCollection<SecretKey>? ValidationKeys { get; set; }
+
+    /// <summary>
+    /// Gets or sets the collection of <see cref="SecretKey"/> instances that decrypt the enclosing JWE of a Nested JWT —
+    /// the recipient's keys, for example the server's key that a client encrypted its request object to. The keys that
+    /// verify the enclosed signature are the signer's (<see cref="ValidationKeys"/>). When <c>null</c>, an encrypted
+    /// token is rejected: decryption keys are never inferred from the keys that verify signatures.
+    /// </summary>
+    public IReadOnlyCollection<SecretKey>? DecryptionKeys { get; set; }
+
+    /// <summary>
+    /// Gets or sets the signature (<c>alg</c>) algorithms the token may be signed with. When <c>null</c>, any
+    /// registered signature algorithm other than <c>none</c> is accepted; when set, only the algorithms it names.
+    /// </summary>
+    public IReadOnlyCollection<string>? ValidSignatureAlgorithms { get; set; }
+
+    /// <summary>
+    /// Gets or sets the key management (<c>alg</c>) algorithms the enclosing JWE of a Nested JWT may use. When
+    /// <c>null</c>, any registered key management algorithm is accepted; when set, only the algorithms it names.
+    /// </summary>
+    public IReadOnlyCollection<string>? ValidKeyManagementAlgorithms { get; set; }
+
+    /// <summary>
+    /// Gets or sets the content encryption (<c>enc</c>) algorithms the enclosing JWE of a Nested JWT may use. When
+    /// <c>null</c>, any registered content encryption algorithm is accepted; when set, only the algorithms it names.
+    /// </summary>
+    public IReadOnlyCollection<string>? ValidContentEncryptionAlgorithms { get; set; }
+
+    /// <summary>
+    /// Gets or sets the compression (<c>zip</c>) algorithms the enclosing JWE of a Nested JWT may use. When
+    /// <c>null</c>, any registered compression algorithm is accepted; when set, only the algorithms it names. A JWE
+    /// without a <c>zip</c> header is uncompressed and always accepted.
+    /// </summary>
+    public IReadOnlyCollection<string>? ValidCompressionAlgorithms { get; set; }
 
     /// <summary>
     /// Gets the collection of <see cref="IJwtValidationRequirement"/> instances that the JSON Web Token (JWT) must satisfy.

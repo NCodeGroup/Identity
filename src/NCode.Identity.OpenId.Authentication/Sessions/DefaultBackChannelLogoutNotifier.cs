@@ -16,16 +16,17 @@
 
 #endregion
 
+using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Dispatch;
 using NCode.Identity.Jose;
-using NCode.Identity.Jose.Algorithms;
-using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Sessions;
@@ -34,17 +35,18 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 /// Provides a default implementation of <see cref="IBackChannelLogoutNotifier"/> that builds a signed
 /// <c>logout_token</c> (OpenID Connect Back-Channel Logout 1.0) and dispatches a retryable
 /// <see cref="BackChannelLogoutDeliveryJob"/> that <c>POST</c>s it to the relying party's registered
-/// <c>backchannel_logout_uri</c>. A client without a configured endpoint, or without a resolvable subject/session or
-/// signing credentials, is skipped and does not fail logout; a reachable-but-failing endpoint is retried out of band.
+/// <c>backchannel_logout_uri</c>. The token is protected like the client's ID tokens. A client without a configured
+/// endpoint or without a resolvable subject/session is skipped, and one whose registered protection cannot be honored
+/// is skipped with a warning; neither fails logout. A reachable-but-failing endpoint is retried out of band.
 /// </summary>
 internal class DefaultBackChannelLogoutNotifier(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
-    IAlgorithmCollectionProvider algorithmCollectionProvider,
-    ICredentialSelector credentialSelector,
+    IClientJwtCredentialSelector clientJwtCredentialSelector,
     IJwtEncoder jwtEncoder,
     ISubjectIdentifierService subjectIdentifierService,
-    IJobDispatcher jobDispatcher
+    IJobDispatcher jobDispatcher,
+    ILogger<DefaultBackChannelLogoutNotifier> logger
 ) : IBackChannelLogoutNotifier
 {
     // https://openid.net/specs/openid-connect-backchannel-1_0.html#LogoutToken
@@ -52,12 +54,12 @@ internal class DefaultBackChannelLogoutNotifier(
 
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
-    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
-        algorithmCollectionProvider;
-    private ICredentialSelector CredentialSelector { get; } = credentialSelector;
+    private IClientJwtCredentialSelector ClientJwtCredentialSelector { get; } =
+        clientJwtCredentialSelector;
     private IJwtEncoder JwtEncoder { get; } = jwtEncoder;
     private ISubjectIdentifierService SubjectIdentifierService { get; } = subjectIdentifierService;
     private IJobDispatcher JobDispatcher { get; } = jobDispatcher;
+    private ILogger<DefaultBackChannelLogoutNotifier> Logger { get; } = logger;
 
     /// <inheritdoc />
     public async ValueTask NotifyAsync(
@@ -86,15 +88,30 @@ internal class DefaultBackChannelLogoutNotifier(
 
         var openIdTenant = openIdContext.Tenant;
 
-        if (
-            !CredentialSelector.TryGetSigningCredentials(
-                AlgorithmCollectionProvider.Collection,
-                settings.GetValue(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported),
-                openIdTenant.SecretsProvider.Collection,
-                out var signingCredentials
-            )
-        )
+        // A logout token is protected like the client's ID tokens: signed with its id_token_signed_response_alg and,
+        // when it registers ID token encryption, encrypted to its public key (OpenID Connect Back-Channel Logout 1.0
+        // §2.4). A registration the server cannot honor skips the client rather than failing logout or sending a
+        // weaker token (ADR-0155).
+        ClientJwtCredentials credentials;
+        try
         {
+            credentials = await ClientJwtCredentialSelector.SelectCredentialsAsync(
+                openIdContext,
+                openIdClient,
+                ClientJwtProtectionSettings.IdToken,
+                cancellationToken
+            );
+        }
+        catch (OpenIdException exception)
+        {
+            Logger.BackChannelLogoutTokenNotProtected(openIdClient.ClientId, exception);
+            return;
+        }
+
+        // A logout token is always signed (OpenID Connect Back-Channel Logout 1.0 §2.4).
+        if (credentials.SigningCredentials is not { } signingCredentials)
+        {
+            Logger.BackChannelLogoutTokenNotProtected(openIdClient.ClientId, exception: null);
             return;
         }
 
@@ -131,12 +148,19 @@ internal class DefaultBackChannelLogoutNotifier(
         {
             TokenType = OpenIdConstants.SecurityTokenTypes.LogoutToken,
             SigningCredentials = signingCredentials,
+            EncryptionCredentials = credentials.EncryptionCredentials,
             Issuer = openIdTenant.Issuer,
             Audience = openIdClient.ClientId,
             IssuedAt = createdWhen,
             NotBefore = createdWhen,
             Expires = createdWhen + LogoutTokenLifetime,
             ExtraPayloadClaims = payloadClaims,
+            // An encrypted logout token replicates its issuer in the JWE header (OpenID Connect Back-Channel Logout
+            // 1.0 §2.4).
+            ExtraEncryptionHeaderClaims = new Dictionary<string, object>(StringComparer.Ordinal)
+            {
+                [JoseClaimNames.Payload.Iss] = openIdTenant.Issuer,
+            },
         };
 
         var logoutToken = JwtEncoder.Encode(parameters);

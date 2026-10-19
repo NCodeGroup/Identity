@@ -69,6 +69,11 @@ public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
     ) => JsonSerializer.Deserialize<T1>(ref reader, options);
 
     /// <inheritdoc />
+    /// <remarks>
+    /// In the <see cref="SerializationFormat.OpenId"/> format a parameter's value is its string form, so a JSON string is
+    /// parsed as that form, and so is a JSON number or boolean: a request object (<c>RFC 9101</c>) carries
+    /// <c>max_age</c> and the JWT's own numeric claims (<c>iat</c>, <c>exp</c>) as JSON numbers.
+    /// </remarks>
     public override IParameter Read(
         ref Utf8JsonReader reader,
         OpenIdEnvironment openIdEnvironment,
@@ -77,17 +82,33 @@ public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
         JsonSerializerOptions options
     )
     {
-        if (reader.TokenType == JsonTokenType.String && format != SerializationFormat.Json)
+        if (format != SerializationFormat.Json)
         {
-            var stringValues = Deserialize<StringValues>(ref reader, options);
-            var parsedValue = Parse(openIdEnvironment, descriptor, stringValues);
-            return Create(openIdEnvironment, descriptor, this, parsedValue);
+            switch (reader.TokenType)
+            {
+                case JsonTokenType.String:
+                {
+                    var stringValues = Deserialize<StringValues>(ref reader, options);
+                    var parsedValue = Parse(openIdEnvironment, descriptor, stringValues);
+                    return Create(openIdEnvironment, descriptor, this, parsedValue);
+                }
+
+                case JsonTokenType.Number:
+                case JsonTokenType.True:
+                case JsonTokenType.False:
+                {
+                    var rawValue = reader.HasValueSequence
+                        ? System.Buffers.BuffersExtensions.ToArray(reader.ValueSequence)
+                        : reader.ValueSpan;
+                    var stringValue = System.Text.Encoding.UTF8.GetString(rawValue);
+                    var parsedValue = Parse(openIdEnvironment, descriptor, stringValue);
+                    return Create(openIdEnvironment, descriptor, this, parsedValue);
+                }
+            }
         }
-        else
-        {
-            var parsedValue = Deserialize<T>(ref reader, options);
-            return Create(openIdEnvironment, descriptor, this, parsedValue);
-        }
+
+        var deserializedValue = Deserialize<T>(ref reader, options);
+        return Create(openIdEnvironment, descriptor, this, deserializedValue);
     }
 
     /// <inheritdoc />

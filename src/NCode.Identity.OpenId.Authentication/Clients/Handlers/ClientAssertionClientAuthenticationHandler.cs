@@ -26,6 +26,7 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 using NCode.Json;
@@ -203,14 +204,13 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
             return rejected;
 
         // The client's effective settings carry the server's and tenant's lists and the ceiling of every security profile
-        // the client is under (ADR-0148). An unset list is unrestricted; a set list, even an empty one, permits only
-        // what it names (ADR-0010).
-        if (
-            publicClient.Settings.TryGetValue(
-                OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported,
-                out var allowedAlgorithms
-            ) && !allowedAlgorithms.Contains(alg, StringComparer.Ordinal)
-        )
+        // the client is under (ADR-0148). At this trust boundary an unset list permits nothing, and a set list, even an
+        // empty one, permits only what it names (ADR-0155). The algorithm is checked here to report it precisely, and
+        // the validator checks it again before verifying the signature (ADR-0154).
+        var permittedAlgorithms = publicClient.Settings.GetPermittedAlgorithms(
+            OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported
+        );
+        if (!permittedAlgorithms.Contains(alg, StringComparer.Ordinal))
         {
             return await FailAsync(
                 openIdContext,
@@ -241,7 +241,11 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         JwtValidationResult result;
         try
         {
-            var parameters = new JwtValidationParameters() { ClockSkew = clockSkew }
+            var parameters = new JwtValidationParameters
+            {
+                ClockSkew = clockSkew,
+                ValidSignatureAlgorithms = permittedAlgorithms,
+            }
                 .UseValidationKeys(validationKeys)
                 .ValidateIssuer(clientId)
                 .ValidateClaim(
@@ -330,7 +334,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
             openIdContext,
             publicClient,
             AuthenticationMethod,
-            result.DecodedJwt.SecretKey,
+            result.DecodedJwt.SigningKey,
             confirmation: null,
             cancellationToken
         );

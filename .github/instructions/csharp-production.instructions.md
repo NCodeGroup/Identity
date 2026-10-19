@@ -368,15 +368,20 @@ rationale.
   registered `SettingDescriptor`, contributed through `ICollectionDataSource<SettingDescriptor>` by the package that
   reads or writes it; never read or write a setting through an ad-hoc `new SettingKey<T>("…")` without a descriptor.
   Settings are rejected wherever they enter — configuration on start, management writes (`ISettingSerializer.ValidateSettings`
-  → `400`), and stored documents on read (fail closed) — so retiring, renaming, or narrowing the scopes of a setting ships with a data migration
+  → `400`), and stored documents on read (fail closed) — so retiring, renaming, narrowing the scopes of a setting, or
+  narrowing its domain ships with a data migration
   of the stored documents. That migration is an EF migration in `NCode.Identity.OpenId.Host.Database`
   (`dotnet ef migrations add`, then hand-written SQL in `Up`) that rewrites **every** settings table (`Servers`,
   `Tenants`, `Clients`, `ResourceServers`); it **translates** the setting's meaning into the current vocabulary rather
   than dropping it (dropping a restriction silently loosens the document), leaves a document whose value was already
-  invalid untouched (it keeps failing closed), and gives each rewritten row a new `SettingsConcurrencyToken`. The model
+  invalid untouched (it keeps failing closed), and gives each rewritten row a new `SettingsConcurrencyToken`. A value
+  stripped from a list because the domain narrowed never leaves the list unset: an emptied list stays `[]`, which
+  permits nothing, while an unset one is unrestricted (ADR-0010). The model
   drift gate cannot see a data migration, so verify it by applying it to a throwaway Postgres over seeded documents
-  ([ADR-0142](../../docs/adr/0142-listed-response-types-are-the-only-front-channel-token-control.md) is the worked
-  example). A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`)
+  ([ADR-0142](../../docs/adr/0142-listed-response-types-are-the-only-front-channel-token-control.md) and the
+  `RetireUnsafeJoseSettingValues` migration of
+  [ADR-0155](../../docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) are worked
+  examples). A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`)
   is still a registered setting. See [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md).
 - 👁 **A setting declares its domain, not only its type.** Give every descriptor whose type admits values the server
   would not honor a `Rule` (`SettingRules.OneOf`/`EmptyOr`/`AtLeast`/`Between`/`Each`/`Must`): an enumerated string is a
@@ -610,6 +615,22 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   `Min`-merged `*_max_lifetime` setting; it measures from the earliest asserted `iat`/`nbf` (or now plus skew), so the
   client cannot game it. A replay record for such a JWT is retained until `exp` plus the **effective** `clock_skew`, not
   a fixed margin. See [ADR-0124](../../docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md).
+- 👁 **Validate a received JWT only through `IJwtValidator`, stating its whole policy in the parameters.** Set
+  `ValidSignatureAlgorithms` (and, for an encrypted token, `ValidKeyManagementAlgorithms`,
+  `ValidContentEncryptionAlgorithms`, and `ValidCompressionAlgorithms = []`) from the governing setting, read at a trust
+  boundary with `GetPermittedAlgorithms` so an **unset list permits nothing** — never `TryGetValue`-unset-means-all
+  there. Name the decryption keys with `UseDecryptionKeys` (the recipient's keys, never the signer's); the validator
+  never infers them. Never re-check `alg` by hand after validation in place of the allow-list — a check after decoding
+  runs after the cryptography it must precede; an early check that only picks a precise error code is fine alongside it.
+  The validator accepts only signed compact JWTs (a JWE only as a Nested JWT); there is no opt-in for `alg:none`. See
+  [ADR-0154](../../docs/adr/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md).
+- 👁 **Protect a JWT addressed to a client through `IClientJwtCredentialSelector`.** It signs with the algorithm the
+  client registered (`*_signed_response_alg`) and encrypts to a public key the client published, within the client's
+  effective `*_values_supported` ceilings, and fails with `server_error` rather than substitute an algorithm. Never pick
+  "the first listed algorithm" for a client-addressed token, never encrypt one to a tenant or shared key, and never
+  compress a JWT the server produces (RFC 8725 §3.6). Add a new kind of client-addressed JWT as a new
+  `ClientJwtProtectionSettings` profile. See
+  [ADR-0155](../../docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 - **Give a typed `Claim` its value in the declared type's XML Schema lexical form** — numbers via
   `value.ToString(CultureInfo.InvariantCulture)`, never culture-formatted (`"1,000"`). The JWT claim ⇄ JSON mapping
   (`ClaimValueMapper`, the single place a `Claim.ValueType` is interpreted) parses each value strictly in its declared

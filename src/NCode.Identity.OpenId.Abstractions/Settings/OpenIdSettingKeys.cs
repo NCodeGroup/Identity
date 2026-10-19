@@ -84,12 +84,6 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.AccessTokenEncryptionRequired);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'access_token_encryption_zip_values_supported' setting.
-    /// </summary>
-    public static SettingKey<IReadOnlyCollection<string>> AccessTokenEncryptionZipValuesSupported =>
-        new(OpenIdSettingNames.AccessTokenEncryptionZipValuesSupported);
-
-    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'access_token_lifetime' setting.
     /// </summary>
     public static SettingKey<TimeSpan> AccessTokenLifetime =>
@@ -263,33 +257,6 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the
-    /// 'backchannel_authentication_request_encryption_alg_values_supported' setting.
-    /// </summary>
-    public static SettingKey<
-        IReadOnlyCollection<string>
-    > BackchannelAuthenticationRequestEncryptionAlgValuesSupported =>
-        new(OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionAlgValuesSupported);
-
-    /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the
-    /// 'backchannel_authentication_request_encryption_enc_values_supported' setting.
-    /// </summary>
-    public static SettingKey<
-        IReadOnlyCollection<string>
-    > BackchannelAuthenticationRequestEncryptionEncValuesSupported =>
-        new(OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionEncValuesSupported);
-
-    /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the
-    /// 'backchannel_authentication_request_encryption_zip_values_supported' setting.
-    /// </summary>
-    public static SettingKey<
-        IReadOnlyCollection<string>
-    > BackchannelAuthenticationRequestEncryptionZipValuesSupported =>
-        new(OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionZipValuesSupported);
-
-    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'ciba_request_lifetime' setting.
     /// </summary>
     public static SettingKey<TimeSpan> CibaRequestLifetime =>
@@ -314,6 +281,18 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.GrantTypesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'id_token_encrypted_response_alg' setting.
+    /// </summary>
+    public static SettingKey<string> IdTokenEncryptedResponseAlg =>
+        new(OpenIdSettingNames.IdTokenEncryptedResponseAlg);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'id_token_encrypted_response_enc' setting.
+    /// </summary>
+    public static SettingKey<string> IdTokenEncryptedResponseEnc =>
+        new(OpenIdSettingNames.IdTokenEncryptedResponseEnc);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'id_token_encryption_alg_values_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> IdTokenEncryptionAlgValuesSupported =>
@@ -332,15 +311,15 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.IdTokenEncryptionRequired);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'id_token_encryption_zip_values_supported' setting.
-    /// </summary>
-    public static SettingKey<IReadOnlyCollection<string>> IdTokenEncryptionZipValuesSupported =>
-        new(OpenIdSettingNames.IdTokenEncryptionZipValuesSupported);
-
-    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'id_token_lifetime' setting.
     /// </summary>
     public static SettingKey<TimeSpan> IdTokenLifetime => new(OpenIdSettingNames.IdTokenLifetime);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'id_token_signed_response_alg' setting.
+    /// </summary>
+    public static SettingKey<string> IdTokenSignedResponseAlg =>
+        new(OpenIdSettingNames.IdTokenSignedResponseAlg);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'id_token_signing_alg_values_supported' setting.
@@ -524,14 +503,6 @@ public static class OpenIdSettingKeys
         IReadOnlyCollection<string>
     > RequestObjectEncryptionEncValuesSupported =>
         new(OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported);
-
-    /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_encryption_zip_values_supported' setting.
-    /// </summary>
-    public static SettingKey<
-        IReadOnlyCollection<string>
-    > RequestObjectEncryptionZipValuesSupported =>
-        new(OpenIdSettingNames.RequestObjectEncryptionZipValuesSupported);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_signing_alg_values_supported' setting.
@@ -772,6 +743,18 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.UiLocalesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'userinfo_encrypted_response_alg' setting.
+    /// </summary>
+    public static SettingKey<string> UserInfoEncryptedResponseAlg =>
+        new(OpenIdSettingNames.UserInfoEncryptedResponseAlg);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'userinfo_encrypted_response_enc' setting.
+    /// </summary>
+    public static SettingKey<string> UserInfoEncryptedResponseEnc =>
+        new(OpenIdSettingNames.UserInfoEncryptedResponseEnc);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'userinfo_encryption_alg_values_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> UserInfoEncryptionAlgValuesSupported =>
@@ -784,10 +767,10 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.UserInfoEncryptionEncValuesSupported);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'userinfo_encryption_zip_values_supported' setting.
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'userinfo_signed_response_alg' setting.
     /// </summary>
-    public static SettingKey<IReadOnlyCollection<string>> UserInfoEncryptionZipValuesSupported =>
-        new(OpenIdSettingNames.UserInfoEncryptionZipValuesSupported);
+    public static SettingKey<string> UserInfoSignedResponseAlg =>
+        new(OpenIdSettingNames.UserInfoSignedResponseAlg);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'userinfo_signing_alg_values_supported' setting.

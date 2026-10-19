@@ -336,4 +336,15 @@ internal static partial class Log
         string clientId,
         Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.BackChannelLogoutTokenNotProtected,
+        Level = LogLevel.Warning,
+        Message = "The back-channel logout notification for client '{ClientId}' was not sent because its logout token cannot be signed and encrypted as the client registers."
+    )]
+    internal static partial void BackChannelLogoutTokenNotProtected(
+        this ILogger logger,
+        string clientId,
+        Exception? exception
+    );
 }

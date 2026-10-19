@@ -50,6 +50,7 @@ internal class DefaultTokenService(
     ICryptoService cryptoService,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,
+    IClientJwtCredentialSelector clientJwtCredentialSelector,
     IJwtEncoder jwtEncoder,
     IPersistedGrantService persistedGrantService,
     IResourceServerCredentialResolver resourceServerCredentialResolver,
@@ -60,6 +61,8 @@ internal class DefaultTokenService(
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
+    private IClientJwtCredentialSelector ClientJwtCredentialSelector { get; } =
+        clientJwtCredentialSelector;
     private IJwtEncoder JwtEncoder { get; } = jwtEncoder;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private IResourceServerCredentialResolver ResourceServerCredentialResolver { get; } =
@@ -394,22 +397,23 @@ internal class DefaultTokenService(
         var settings = openIdClient.Settings;
         var mediator = openIdContext.Mediator;
         var openIdTenant = openIdContext.Tenant;
-        var secretKeys = openIdTenant.SecretsProvider.Collection;
 
-        var signingCredentials = GetSigningCredentials(
-            AlgorithmCollectionProvider.Collection,
-            settings.GetValue(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported),
-            secretKeys
+        // An ID token is addressed to the client: signed with the tenant's key using the client's registered
+        // id_token_signed_response_alg and, when the client registers an encryption algorithm, encrypted to the client's
+        // public key (ADR-0155).
+        var credentials = await ClientJwtCredentialSelector.SelectCredentialsAsync(
+            openIdContext,
+            openIdClient,
+            ClientJwtProtectionSettings.IdToken,
+            cancellationToken
         );
 
-        var encryptionCredentials = GetEncryptionCredentials(
-            AlgorithmCollectionProvider.Collection,
-            settings.GetValue(OpenIdSettingKeys.IdTokenEncryptionRequired),
-            settings.GetValue(OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported),
-            settings.GetValue(OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported),
-            settings.GetValue(OpenIdSettingKeys.IdTokenEncryptionZipValuesSupported),
-            secretKeys
-        );
+        var signingCredentials =
+            credentials.SigningCredentials
+            ?? throw new JoseCredentialsNotFoundException(
+                "An ID token is always signed, but the client's 'id_token_signed_response_alg' is unset."
+            );
+        var encryptionCredentials = credentials.EncryptionCredentials;
 
         var ticket = tokenRequest.SubjectAuthentication;
         var tokenContext = new SecurityTokenContext(
@@ -590,7 +594,8 @@ internal class DefaultTokenService(
     }
 
     // Selects the access token's encryption credentials when encryption is required, preferring the single targeted
-    // resource server's own key so only it can read the token, and falling back to the tenant's key (ADR-0075).
+    // resource server's own key so only it can read the token, and falling back to the tenant's key (ADR-0075). The
+    // server never compresses what it encrypts (RFC 8725 §3.6).
     private JoseEncryptionCredentials? GetAccessTokenEncryptionCredentials(
         IAlgorithmCollection candidateAlgorithms,
         IReadOnlySettingCollection settings,
@@ -609,9 +614,6 @@ internal class DefaultTokenService(
         var encryptionEncValuesSupported = settings.GetValue(
             OpenIdSettingKeys.AccessTokenEncryptionEncValuesSupported
         );
-        var encryptionZipValuesSupported = settings.GetValue(
-            OpenIdSettingKeys.AccessTokenEncryptionZipValuesSupported
-        );
 
         if (
             resourceServerSecretKeys is not null
@@ -619,7 +621,7 @@ internal class DefaultTokenService(
                 candidateAlgorithms,
                 encryptionAlgValuesSupported,
                 encryptionEncValuesSupported,
-                encryptionZipValuesSupported,
+                [],
                 resourceServerSecretKeys,
                 out var resourceServerCredentials
             )
@@ -628,14 +630,21 @@ internal class DefaultTokenService(
             return resourceServerCredentials;
         }
 
-        return GetEncryptionCredentials(
-            candidateAlgorithms,
-            encryptionRequired: true,
-            encryptionAlgValuesSupported,
-            encryptionEncValuesSupported,
-            encryptionZipValuesSupported,
-            tenantSecretKeys
-        );
+        if (
+            !CredentialSelector.TryGetEncryptionCredentials(
+                candidateAlgorithms,
+                encryptionAlgValuesSupported,
+                encryptionEncValuesSupported,
+                [],
+                tenantSecretKeys,
+                out var tenantCredentials
+            )
+        )
+        {
+            throw new JoseCredentialsNotFoundException("Unable to locate encryption credentials.");
+        }
+
+        return tenantCredentials;
     }
 
     private JoseSigningCredentials GetSigningCredentials(
@@ -657,34 +666,5 @@ internal class DefaultTokenService(
         }
 
         return signingCredentials;
-    }
-
-    private JoseEncryptionCredentials? GetEncryptionCredentials(
-        IAlgorithmCollection candidateAlgorithms,
-        bool encryptionRequired,
-        IEnumerable<string> encryptionAlgValuesSupported,
-        IEnumerable<string> encryptionEncValuesSupported,
-        IEnumerable<string> encryptionZipValuesSupported,
-        ISecretKeyCollection secretKeys
-    )
-    {
-        if (!encryptionRequired)
-            return null;
-
-        if (
-            !CredentialSelector.TryGetEncryptionCredentials(
-                candidateAlgorithms,
-                encryptionAlgValuesSupported,
-                encryptionEncValuesSupported,
-                encryptionZipValuesSupported,
-                secretKeys,
-                out var encryptionCredentials
-            )
-        )
-        {
-            throw new JoseCredentialsNotFoundException("Unable to locate encryption credentials.");
-        }
-
-        return encryptionCredentials;
     }
 }

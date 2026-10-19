@@ -196,4 +196,67 @@ public sealed record RegisterClientResponse
     [JsonPropertyName("software_version")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SoftwareVersion { get; init; }
+
+    /// <summary>
+    /// Gets the JWS <c>alg</c> the client requires for signing its ID tokens (OpenID Connect Dynamic Client Registration 1.0 §2); <c>RS256</c> when omitted.
+    /// </summary>
+    [JsonPropertyName("id_token_signed_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IdTokenSignedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>alg</c> the client requires for encrypting its ID tokens to its public key (OpenID Connect Dynamic Client Registration 1.0 §2); ID tokens are not encrypted when omitted.
+    /// </summary>
+    [JsonPropertyName("id_token_encrypted_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IdTokenEncryptedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>enc</c> the client requires for encrypting its ID tokens (OpenID Connect Dynamic Client Registration 1.0 §2); <c>A128CBC-HS256</c> when omitted, and allowed only with <see cref="IdTokenEncryptedResponseAlg"/>.
+    /// </summary>
+    [JsonPropertyName("id_token_encrypted_response_enc")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IdTokenEncryptedResponseEnc { get; init; }
+
+    /// <summary>
+    /// Gets the JWS <c>alg</c> the client requires for signing its UserInfo responses (OpenID Connect Dynamic Client Registration 1.0 §2); UserInfo responses are not signed when omitted.
+    /// </summary>
+    [JsonPropertyName("userinfo_signed_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? UserInfoSignedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>alg</c> the client requires for encrypting its UserInfo responses to its public key (OpenID Connect Dynamic Client Registration 1.0 §2); UserInfo responses are not encrypted when omitted.
+    /// </summary>
+    [JsonPropertyName("userinfo_encrypted_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? UserInfoEncryptedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>enc</c> the client requires for encrypting its UserInfo responses (OpenID Connect Dynamic Client Registration 1.0 §2); <c>A128CBC-HS256</c> when omitted, and allowed only with <see cref="UserInfoEncryptedResponseAlg"/>.
+    /// </summary>
+    [JsonPropertyName("userinfo_encrypted_response_enc")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? UserInfoEncryptedResponseEnc { get; init; }
+
+    /// <summary>
+    /// Gets the JWS <c>alg</c> every request object from the client must be signed with (OpenID Connect Dynamic Client Registration 1.0 §2); any algorithm the server permits when omitted.
+    /// </summary>
+    [JsonPropertyName("request_object_signing_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RequestObjectSigningAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>alg</c> the client uses when it encrypts a request object to the server (OpenID Connect Dynamic Client Registration 1.0 §2); an encrypted request object must use it when registered.
+    /// </summary>
+    [JsonPropertyName("request_object_encryption_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RequestObjectEncryptionAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>enc</c> the client uses when it encrypts a request object to the server (OpenID Connect Dynamic Client Registration 1.0 §2); an encrypted request object must use it when registered.
+    /// </summary>
+    [JsonPropertyName("request_object_encryption_enc")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RequestObjectEncryptionEnc { get; init; }
 }

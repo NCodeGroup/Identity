@@ -1,6 +1,7 @@
 # 149. Settings declare the scopes they apply to
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0155](0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): the
+  request-object, UserInfo, and ID token algorithm lists apply to clients)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -113,8 +114,9 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
   a defined, non-empty set of scopes and every discoverable descriptor to tenants.
 - Moving a reader to another scope changes the setting's scopes, and narrowing them ships with a data migration, as
   renaming a setting does (ADR-0139).
-- The request-object and UserInfo algorithm settings are read only by discovery, so they apply to tenants; enforcing
-  them per client widens their scopes (backlog `F63`).
+- The request-object and UserInfo algorithm settings were read only by discovery, so they applied to tenants;
+  [ADR-0155](0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) enforces them, and the ID token
+  lists, per client, so they apply to tenants and clients.
 - **Breaking:** `SettingDescriptor.AppliesTo`, `SettingScopeDescriptor`, `ISettingScopeCollection`,
   `ISettingScopeCollectionProvider`, `OpenIdSettingScopes`, and the scope-name parameters of
   `ISettingSerializer.DeserializeSettings`, `ISettingSerializer.ValidateSettings`, and `ISecurityProfileCatalog.Expand`

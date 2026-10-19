@@ -669,6 +669,256 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
     #endregion
 
+    #region ValidateKeyMetadata
+
+    private static JsonElement CreateJwks() =>
+        JsonElement.Parse(
+            """{"keys":[{"kty":"RSA","kid":"k","use":"enc","n":"AQAB","e":"AQAB"}]}"""
+        );
+
+    [Fact]
+    public void ValidateKeyMetadata_WhenJwksAndJwksUriBothPresent_ReturnsInvalidClientMetadata()
+    {
+        // OpenID Connect Dynamic Client Registration 1.0 §2: 'jwks_uri' and 'jwks' must not both be present.
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            Jwks = CreateJwks(),
+            JwksUri = "https://client.example/jwks",
+        };
+
+        var error = handler.ValidateKeyMetadata(factory, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Theory]
+    [InlineData("id_token")]
+    [InlineData("userinfo")]
+    [InlineData("request_object")]
+    public void ValidateKeyMetadata_WhenEncRegisteredWithoutAlg_ReturnsInvalidClientMetadata(
+        string kind
+    )
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = kind switch
+        {
+            "id_token" => new RegisterClientRequest { IdTokenEncryptedResponseEnc = "A256GCM" },
+            "userinfo" => new RegisterClientRequest { UserInfoEncryptedResponseEnc = "A256GCM" },
+            _ => new RegisterClientRequest { RequestObjectEncryptionEnc = "A256GCM" },
+        };
+
+        var error = handler.ValidateKeyMetadata(factory, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateKeyMetadata_WhenEncryptedResponseWithoutClientKeys_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest { IdTokenEncryptedResponseAlg = "RSA-OAEP-256" };
+
+        var error = handler.ValidateKeyMetadata(factory, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateKeyMetadata_WhenEncryptedResponseWithClientKeys_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            Jwks = CreateJwks(),
+            UserInfoEncryptedResponseAlg = "RSA-OAEP-256",
+            UserInfoEncryptedResponseEnc = "A256GCM",
+        };
+
+        var error = handler.ValidateKeyMetadata(factory, request);
+
+        Assert.Null(error);
+    }
+
+    #endregion
+
+    #region ValidateAlgorithmMetadata
+
+    private Mock<IReadOnlySettingCollection> CreateAlgorithmTenantSettings(
+        IReadOnlyCollection<string>? idTokenSigningAlgValuesSupported,
+        string? idTokenSignedResponseAlg = "RS256",
+        bool idTokenEncryptionRequired = false
+    )
+    {
+        var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
+                    out idTokenSigningAlgValuesSupported
+                )
+            )
+            .Returns(idTokenSigningAlgValuesSupported is not null);
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.IdTokenSignedResponseAlg,
+                    out idTokenSignedResponseAlg
+                )
+            )
+            .Returns(idTokenSignedResponseAlg is not null);
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.IdTokenEncryptionRequired,
+                    out idTokenEncryptionRequired
+                )
+            )
+            .Returns(true);
+        return mockSettings;
+    }
+
+    [Fact]
+    public void ValidateAlgorithmMetadata_WhenTheTenantPermitsEveryAlgorithm_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256", "PS256"]);
+        var request = new RegisterClientRequest { IdTokenSignedResponseAlg = "PS256" };
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidateAlgorithmMetadata_WhenTheRegisteredAlgorithmIsNotPermitted_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["PS256"]);
+        var request = new RegisterClientRequest { IdTokenSignedResponseAlg = "ES256" };
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAlgorithmMetadata_WhenTheOmittedDefaultIsNotPermitted_ReturnsInvalidClientMetadata()
+    {
+        // An omitted id_token_signed_response_alg is the tenant's effective default (RS256), which a FAPI ceiling
+        // excludes, so the client must register a permitted algorithm.
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["PS256", "ES256"]);
+        var request = new RegisterClientRequest();
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAlgorithmMetadata_WhenTheTenantRequiresEncryptedIdTokens_RequiresTheRegistration()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(
+            ["RS256"],
+            idTokenEncryptionRequired: true
+        );
+        var request = new RegisterClientRequest();
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    #endregion
+
+    #region Response Protection Metadata
+
+    [Fact]
+    public void BuildSettingsObject_WhenResponseProtectionAndRequestObjectMetadata_RoundTripsThem()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest
+        {
+            IdTokenSignedResponseAlg = "PS256",
+            IdTokenEncryptedResponseAlg = "RSA-OAEP-256",
+            IdTokenEncryptedResponseEnc = "A256GCM",
+            UserInfoSignedResponseAlg = "ES256",
+            UserInfoEncryptedResponseAlg = "ECDH-ES",
+            UserInfoEncryptedResponseEnc = "A128GCM",
+            RequestObjectSigningAlg = "PS256",
+            RequestObjectEncryptionAlg = "RSA-OAEP-256",
+            RequestObjectEncryptionEnc = "A256GCM",
+        };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            ResponseTypes = [],
+            RedirectUris = [],
+        };
+
+        var settings = handler.BuildSettingsObject(request, resolved);
+        var response = handler.ToResponse(
+            CreateClient(JsonSerializer.SerializeToElement(settings))
+        );
+
+        // A registered request-object algorithm narrows the client's own list to it, which the endpoint enforces.
+        Assert.Equal(
+            ["PS256"],
+            settings[OpenIdSettingNames.RequestObjectSigningAlgValuesSupported]!
+                .AsArray()
+                .Select(node => node!.GetValue<string>())
+        );
+        Assert.Equal("PS256", response.IdTokenSignedResponseAlg);
+        Assert.Equal("RSA-OAEP-256", response.IdTokenEncryptedResponseAlg);
+        Assert.Equal("A256GCM", response.IdTokenEncryptedResponseEnc);
+        Assert.Equal("ES256", response.UserInfoSignedResponseAlg);
+        Assert.Equal("ECDH-ES", response.UserInfoEncryptedResponseAlg);
+        Assert.Equal("A128GCM", response.UserInfoEncryptedResponseEnc);
+        Assert.Equal("PS256", response.RequestObjectSigningAlg);
+        Assert.Equal("RSA-OAEP-256", response.RequestObjectEncryptionAlg);
+        Assert.Equal("A256GCM", response.RequestObjectEncryptionEnc);
+    }
+
+    [Fact]
+    public void ToResponse_WhenRequestObjectListNamesSeveralAlgorithms_ReportsNoRegistration()
+    {
+        var handler = CreateHandler();
+        var client = CreateClient(
+            JsonSerializer.SerializeToElement(
+                new Dictionary<string, object>
+                {
+                    [OpenIdSettingNames.RequestObjectSigningAlgValuesSupported] = new[]
+                    {
+                        "PS256",
+                        "ES256",
+                    },
+                }
+            )
+        );
+
+        var response = handler.ToResponse(client);
+
+        Assert.Null(response.RequestObjectSigningAlg);
+    }
+
+    #endregion
     #region ToResponseAsync
 
     [Fact]

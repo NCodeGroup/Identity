@@ -100,6 +100,32 @@ public class AdditionalParameterParserTests : BaseTests
         );
     }
 
+    [Theory]
+    [InlineData("1712345678", "1712345678")]
+    [InlineData("12.5", "12.5")]
+    [InlineData("true", "true")]
+    [InlineData("false", "false")]
+    public void StringParser_Read_WhenOpenIdFormatAndJsonScalar_ReadsItsStringForm(
+        string json,
+        string expected
+    )
+    {
+        // A request object (RFC 9101) carries max_age and the JWT's iat/exp as JSON numbers.
+        var parser = new StringParser();
+        var reader = new System.Text.Json.Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes(json));
+        reader.Read();
+
+        var parameter = parser.Read(
+            ref reader,
+            _environment,
+            _allowMissingDescriptor,
+            SerializationFormat.OpenId,
+            new System.Text.Json.JsonSerializerOptions()
+        );
+
+        Assert.Equal(expected, Assert.IsAssignableFrom<IParameter<string>>(parameter).ParsedValue);
+    }
+
     #endregion
 
     #region StringListParser Tests

@@ -30,6 +30,8 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
+using NCode.Identity.OpenId.Authentication.Settings;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
@@ -40,7 +42,9 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="LoadAuthorizationRequestCommand"/> message.
+/// Provides a default implementation of a handler for the <see cref="LoadAuthorizationRequestCommand"/> message. A
+/// request object (<c>RFC 9101</c>) must be signed by the client — a JWS, or a JWS encrypted to the server's key — with
+/// algorithms the client's effective settings permit, and is verified with the client's keys.
 /// </summary>
 internal class DefaultLoadAuthorizationRequestHandler(
     ILogger<DefaultLoadAuthorizationRequestHandler> logger,
@@ -82,7 +86,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
         requestMessage.AuthorizationSourceType = openIdRequestValues.SourceType;
 
         var requestObject = await LoadRequestObjectAsync(
-            openIdEnvironment,
+            openIdContext,
             openIdClient,
             requestMessage,
             cancellationToken
@@ -99,12 +103,13 @@ internal class DefaultLoadAuthorizationRequestHandler(
     }
 
     private async ValueTask<IAuthorizationRequestObject?> LoadRequestObjectAsync(
-        OpenIdEnvironment openIdEnvironment,
+        OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         AuthorizationRequestMessage requestMessage,
         CancellationToken cancellationToken
     )
     {
+        var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdEnvironment.ErrorFactory;
 
         var requestJwt = requestMessage.RequestJwt;
@@ -151,8 +156,8 @@ internal class DefaultLoadAuthorizationRequestHandler(
 
         // OpenID Connect Core 1.0 §6.1: an OP that does not support unsigned request objects must answer exactly
         // 'request_not_supported' (not a generic 'invalid_request_object' decode error) for an 'alg':'none' request
-        // object. The OP advertises only asymmetric request-object signing algorithms (RFC 9700 / FAPI), so detect
-        // the unsigned case up front and reject it with the precise error the spec requires.
+        // object. The OP never accepts an unsigned request object (ADR-0154), so detect the unsigned case up front and
+        // reject it with the precise error the spec requires.
         if (IsUnsignedRequestObject(requestJwt))
         {
             throw errorFactory
@@ -166,23 +171,41 @@ internal class DefaultLoadAuthorizationRequestHandler(
         JsonElement jwtPayload;
         try
         {
+            var settings = openIdClient.Settings;
+
             var validationKeys = await ClientKeyResolver.ResolveSecretKeysAsync(
                 openIdClient,
                 cancellationToken
             );
 
-            var parameters = new JwtValidationParameters()
+            // The client signs the request object with its own key and may encrypt it to the server's, so the signature
+            // is verified with the client's keys and the encryption removed with the tenant's. The algorithms are those
+            // the client's effective settings permit — which carry the tenant's lists and the ceiling of every security
+            // profile the client selects — checked before any cryptographic operation; the server never accepts a
+            // compressed request object (ADR-0154, ADR-0155).
+            var parameters = new JwtValidationParameters
             {
                 // Honor the client's effective clock_skew setting (the FAPI 2.0 profile tightens this to ≤ 60s via the
                 // merge-lattice ceiling); without this the JWT validator would fall back to its 5-minute default.
-                ClockSkew = openIdClient.Settings.GetValue(OpenIdSettingKeys.ClockSkew),
+                ClockSkew = settings.GetValue(OpenIdSettingKeys.ClockSkew),
+                ValidSignatureAlgorithms = settings.GetPermittedAlgorithms(
+                    OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported
+                ),
+                ValidKeyManagementAlgorithms = settings.GetPermittedAlgorithms(
+                    OpenIdSettingKeys.RequestObjectEncryptionAlgValuesSupported
+                ),
+                ValidContentEncryptionAlgorithms = settings.GetPermittedAlgorithms(
+                    OpenIdSettingKeys.RequestObjectEncryptionEncValuesSupported
+                ),
+                ValidCompressionAlgorithms = [],
             }
                 .UseValidationKeys(validationKeys)
+                .UseDecryptionKeys(openIdContext.Tenant.SecretsProvider.Collection)
                 .ValidateIssuer(openIdClient.ClientId)
                 .ValidateCertificateLifeTime()
                 .ValidateTokenLifeTime();
 
-            var expectedAudience = openIdClient.Settings.GetValue(
+            var expectedAudience = settings.GetValue(
                 OpenIdSettingKeys.RequestObjectExpectedAudience
             );
             if (!string.IsNullOrEmpty(expectedAudience))

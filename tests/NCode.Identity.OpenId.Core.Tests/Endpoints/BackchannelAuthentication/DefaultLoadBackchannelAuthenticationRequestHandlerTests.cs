@@ -28,8 +28,10 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Collections;
+using NCode.Identity.Settings;
 using NCode.PropertyBag;
 using Xunit;
 
@@ -37,17 +39,98 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.BackchannelAuthentication;
 
 public class DefaultLoadBackchannelAuthenticationRequestHandlerTests : BaseTests
 {
-    private Mock<IJwtValidator> MockJsonWebTokenService { get; }
+    private Mock<IJwtValidator> MockJwtValidator { get; }
+    private Mock<IClientKeyResolver> MockClientKeyResolver { get; }
     private DefaultLoadBackchannelAuthenticationRequestHandler Handler { get; }
 
     public DefaultLoadBackchannelAuthenticationRequestHandlerTests()
     {
-        MockJsonWebTokenService = CreateStrictMock<IJwtValidator>();
+        MockJwtValidator = CreateStrictMock<IJwtValidator>();
+        MockClientKeyResolver = CreateStrictMock<IClientKeyResolver>();
         Handler = new DefaultLoadBackchannelAuthenticationRequestHandler(
             NullLogger<DefaultLoadBackchannelAuthenticationRequestHandler>.Instance,
-            MockJsonWebTokenService.Object
+            MockJwtValidator.Object,
+            MockClientKeyResolver.Object
         );
     }
+
+    #region Scaffolding
+
+    private (
+        LoadBackchannelAuthenticationRequestCommand Command,
+        ISecretKeyCollection ClientKeys
+    ) CreateSignedRequestScaffold(IReadOnlyCollection<string>? permittedAlgorithms)
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
+        var mockClient = CreateStrictMock<OpenIdClient>();
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        var clientKeys = CreateLooseMock<ISecretKeyCollection>().Object;
+        var mockRequest = CreateStrictMock<IBackchannelAuthenticationRequest>();
+        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+        var mockError = CreateLooseMock<IOpenIdError>();
+
+        mockRequest.SetupGet(x => x.RequestJwt).Returns("a.b.c").Verifiable();
+        mockContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object).Verifiable();
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.SetupGet(x => x.Issuer).Returns("https://op.test").Verifiable();
+        mockEnvironment.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+        mockClient.SetupGet(x => x.ClientId).Returns("client-1").Verifiable();
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+        mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
+
+        var permitted = permittedAlgorithms ?? [];
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported,
+                    out permitted
+                )
+            )
+            .Returns(permittedAlgorithms is not null)
+            .Verifiable();
+
+        MockClientKeyResolver
+            .Setup(x => x.ResolveSecretKeysAsync(mockClient.Object, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(clientKeys)
+            .Verifiable();
+
+        var command = new LoadBackchannelAuthenticationRequestCommand(
+            mockContext.Object,
+            mockClient.Object,
+            mockRequest.Object
+        );
+
+        return (command, clientKeys);
+    }
+
+    private JwtValidationParameters? CapturedParameters { get; set; }
+
+    private void SetupValidatorFailure() =>
+        MockJwtValidator
+            .Setup(x =>
+                x.ValidateAsync(
+                    "a.b.c",
+                    It.IsAny<JwtValidationParameters>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<string, JwtValidationParameters, CancellationToken>(
+                (_, parameters, _) => CapturedParameters = parameters
+            )
+            .ReturnsAsync(
+                JwtValidationResult.Fail(
+                    new JwtValidationParameters(),
+                    PropertyBagFactory.Create(),
+                    "a.b.c",
+                    new InvalidOperationException("tampered")
+                )
+            )
+            .Verifiable();
+    #endregion
+
+    #region HandleAsync Tests
 
     [Fact]
     public async Task HandleAsync_WhenNoRequestObject_ReturnsSameRequest()
@@ -72,54 +155,46 @@ public class DefaultLoadBackchannelAuthenticationRequestHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenRequestObjectInvalid_ThrowsOpenIdException()
     {
-        var mockContext = CreateStrictMock<OpenIdContext>();
-        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        var mockTenant = CreateStrictMock<OpenIdTenant>();
-        var mockClient = CreateStrictMock<OpenIdClient>();
-        var mockSecretKeys = CreateLooseMock<ISecretKeyCollection>();
-        var mockRequest = CreateStrictMock<IBackchannelAuthenticationRequest>();
-        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
-        var mockError = CreateLooseMock<IOpenIdError>();
-
-        mockRequest.SetupGet(x => x.RequestJwt).Returns("a.b.c").Verifiable();
-        mockContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object).Verifiable();
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockTenant.SetupGet(x => x.Issuer).Returns("https://op.test").Verifiable();
-        mockEnvironment.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
-        mockClient.SetupGet(x => x.SecretKeys).Returns(mockSecretKeys.Object).Verifiable();
-        mockClient.SetupGet(x => x.ClientId).Returns("client-1").Verifiable();
-
-        mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
-
-        MockJsonWebTokenService
-            .Setup(x =>
-                x.ValidateAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<JwtValidationParameters>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(
-                JwtValidationResult.Fail(
-                    new JwtValidationParameters(),
-                    PropertyBagFactory.Create(),
-                    "a.b.c",
-                    new InvalidOperationException("tampered")
-                )
-            )
-            .Verifiable();
+        var (command, _) = CreateSignedRequestScaffold(["PS256"]);
+        SetupValidatorFailure();
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            Handler
-                .HandleAsync(
-                    new LoadBackchannelAuthenticationRequestCommand(
-                        mockContext.Object,
-                        mockClient.Object,
-                        mockRequest.Object
-                    ),
-                    CancellationToken.None
-                )
-                .AsTask()
+            Handler.HandleAsync(command, CancellationToken.None).AsTask()
         );
     }
+
+    [Fact]
+    public async Task HandleAsync_WhenRequestObject_VerifiesWithClientKeysAndPermittedAlgorithmsOnly()
+    {
+        IReadOnlyCollection<string> permitted = ["PS256", "ES256"];
+        var (command, clientKeys) = CreateSignedRequestScaffold(permitted);
+        SetupValidatorFailure();
+
+        await Assert.ThrowsAsync<OpenIdException>(() =>
+            Handler.HandleAsync(command, CancellationToken.None).AsTask()
+        );
+
+        Assert.NotNull(CapturedParameters);
+        Assert.Same(clientKeys, CapturedParameters.ValidationKeys);
+        Assert.Equal(permitted, CapturedParameters.ValidSignatureAlgorithms);
+        // CIBA defines no encrypted authentication request, so no decryption keys are given.
+        Assert.Null(CapturedParameters.DecryptionKeys);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSigningAlgorithmsUnset_PermitsNone()
+    {
+        var (command, _) = CreateSignedRequestScaffold(permittedAlgorithms: null);
+        SetupValidatorFailure();
+
+        await Assert.ThrowsAsync<OpenIdException>(() =>
+            Handler.HandleAsync(command, CancellationToken.None).AsTask()
+        );
+
+        Assert.NotNull(CapturedParameters);
+        Assert.NotNull(CapturedParameters.ValidSignatureAlgorithms);
+        Assert.Empty(CapturedParameters.ValidSignatureAlgorithms);
+    }
+
+    #endregion
 }

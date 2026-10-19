@@ -259,9 +259,11 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         var signingAlgValuesSupported = new List<string>();
         var asymmetricSigningAlgValuesSupported = new List<string>();
         var encryptionAlgValuesSupported = new List<string>();
+        var asymmetricEncryptionAlgValuesSupported = new List<string>();
         var encryptionEncValuesSupported = new List<string>();
-        var encryptionZipValuesSupported = new List<string>();
 
+        // Compression algorithms are never offered: the server compresses nothing it encrypts and accepts no compressed
+        // JWT (RFC 8725 §3.6), so no setting names one.
         foreach (var algorithm in AlgorithmCollectionProvider.Collection)
         {
             if (!SettingAlgorithms.IsSelectable(algorithm))
@@ -281,14 +283,16 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
                 case AlgorithmType.KeyManagement:
                     encryptionAlgValuesSupported.Add(algorithm.Code);
+                    // A response addressed to a client is encrypted to the client's public key, and a request object
+                    // addressed to the server to the server's, so only asymmetric key management applies to them.
+                    if (SettingAlgorithms.IsAsymmetricKeyManagement(algorithm))
+                    {
+                        asymmetricEncryptionAlgValuesSupported.Add(algorithm.Code);
+                    }
                     break;
 
                 case AlgorithmType.AuthenticatedEncryption:
                     encryptionEncValuesSupported.Add(algorithm.Code);
-                    break;
-
-                case AlgorithmType.Compression:
-                    encryptionZipValuesSupported.Add(algorithm.Code);
                     break;
             }
         }
@@ -312,24 +316,28 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             OpenIdSettingKeys.DPoPSigningAlgValuesSupported,
             asymmetricSigningAlgValuesSupported
         );
-        // request_object signing may legitimately be symmetric (client_secret_jwt), so it keeps the full set.
+        // A signed CIBA authentication request must use an asymmetric signature (CIBA Core §7.1.1).
+        settings.Set(
+            OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported,
+            asymmetricSigningAlgValuesSupported
+        );
+        // A request object may legitimately be signed with the client secret (OpenID Connect Core §10.1), so it keeps
+        // the full set.
         settings.Set(
             OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported,
             signingAlgValuesSupported
         );
-        // Signed CIBA backchannel request objects, like request objects, may be symmetric (client_secret_jwt).
-        settings.Set(
-            OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported,
-            signingAlgValuesSupported
-        );
 
+        // ID tokens and UserInfo responses are encrypted to the client's public key, and request objects to the
+        // server's, so they advertise asymmetric key management only (ADR-0155). An access token may be encrypted to a
+        // resource server that holds a shared key, so it keeps the full set.
         settings.Set(
             OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported,
-            encryptionAlgValuesSupported
+            asymmetricEncryptionAlgValuesSupported
         );
         settings.Set(
             OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported,
-            encryptionAlgValuesSupported
+            asymmetricEncryptionAlgValuesSupported
         );
         settings.Set(
             OpenIdSettingKeys.AccessTokenEncryptionAlgValuesSupported,
@@ -337,12 +345,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         );
         settings.Set(
             OpenIdSettingKeys.RequestObjectEncryptionAlgValuesSupported,
-            encryptionAlgValuesSupported
-        );
-        // Encrypted CIBA backchannel request objects, like request objects, advertise the asymmetric encryption set.
-        settings.Set(
-            OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionAlgValuesSupported,
-            encryptionAlgValuesSupported
+            asymmetricEncryptionAlgValuesSupported
         );
 
         settings.Set(
@@ -360,31 +363,6 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         settings.Set(
             OpenIdSettingKeys.RequestObjectEncryptionEncValuesSupported,
             encryptionEncValuesSupported
-        );
-        settings.Set(
-            OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionEncValuesSupported,
-            encryptionEncValuesSupported
-        );
-
-        settings.Set(
-            OpenIdSettingKeys.IdTokenEncryptionZipValuesSupported,
-            encryptionZipValuesSupported
-        );
-        settings.Set(
-            OpenIdSettingKeys.UserInfoEncryptionZipValuesSupported,
-            encryptionZipValuesSupported
-        );
-        settings.Set(
-            OpenIdSettingKeys.AccessTokenEncryptionZipValuesSupported,
-            encryptionZipValuesSupported
-        );
-        settings.Set(
-            OpenIdSettingKeys.RequestObjectEncryptionZipValuesSupported,
-            encryptionZipValuesSupported
-        );
-        settings.Set(
-            OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionZipValuesSupported,
-            encryptionZipValuesSupported
         );
 
         settings.Set(

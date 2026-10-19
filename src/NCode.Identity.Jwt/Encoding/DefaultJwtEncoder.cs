@@ -48,6 +48,7 @@ internal sealed class DefaultJwtEncoder(
     {
         string? encodedToken = null;
         object valueToEncode = GetEffectivePayload(parameters);
+        var isNested = false;
 
         if (parameters.SigningCredentials is not null)
         {
@@ -62,8 +63,9 @@ internal sealed class DefaultJwtEncoder(
 
             encodedToken = JoseSerializer.CreateEncoder(signingOptions).Encode(valueToEncode);
 
-            // for the possibility of a nested token
+            // the signed token becomes the content of the enclosing JWE, if any
             valueToEncode = encodedToken;
+            isNested = true;
         }
 
         if (parameters.EncryptionCredentials is not null)
@@ -85,7 +87,7 @@ internal sealed class DefaultJwtEncoder(
             {
                 CompressionAlgorithm = encryptionCredentials.CompressionAlgorithm,
                 TokenType = parameters.TokenType,
-                ProtectedHeaders = parameters.ExtraEncryptionHeaderClaims,
+                ProtectedHeaders = GetEncryptionHeaders(parameters, isNested),
                 Recipients = [recipient],
             };
 
@@ -99,6 +101,26 @@ internal sealed class DefaultJwtEncoder(
             );
 
         return encodedToken;
+    }
+
+    // RFC 7519 §5.2: the JWE that encloses a signed JWT (a Nested JWT) must carry a 'cty' of 'JWT', which is how a
+    // recipient knows its content is itself a JWT to validate.
+    private static IReadOnlyDictionary<string, object>? GetEncryptionHeaders(
+        JwtEncodingParameters parameters,
+        bool isNested
+    )
+    {
+        var extraHeaders = parameters.ExtraEncryptionHeaderClaims;
+        if (!isNested)
+            return extraHeaders;
+
+        var headers = extraHeaders is null
+            ? new Dictionary<string, object>(StringComparer.Ordinal)
+            : new Dictionary<string, object>(extraHeaders, StringComparer.Ordinal);
+
+        headers[JoseClaimNames.Header.Cty] = JoseTokenTypes.Jwt;
+
+        return headers;
     }
 
     private Dictionary<string, object> GetEffectivePayload(JwtEncodingParameters parameters)

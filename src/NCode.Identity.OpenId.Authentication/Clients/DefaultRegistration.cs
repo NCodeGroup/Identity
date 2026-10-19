@@ -49,6 +49,11 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<IClientKeyResolver, DefaultClientKeyResolver>();
 
+            serviceCollection.TryAddSingleton<
+                IClientJwtCredentialSelector,
+                DefaultClientJwtCredentialSelector
+            >();
+
             // The client jwks_uri fetch targets a client-supplied URL, so it uses a dedicated HTTP client whose
             // connections are pinned away from private/loopback/link-local addresses (SSRF floor) and which never
             // follows redirects, so a redirect cannot bounce the fetch to an internal host.

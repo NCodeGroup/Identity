@@ -68,12 +68,17 @@ internal class NoneSignatureAlgorithm : SignatureAlgorithm
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// An unsecured JWS carries no signature to verify, so it is accepted only when the caller explicitly asks for that
+    /// by passing the empty key (a key of zero bits); against any real key it fails, so a caller verifying with its
+    /// keys never accepts an unsigned token by accident (<c>RFC 7518</c> §3.6).
+    /// </remarks>
     public override bool Verify(
         SecretKey secretKey,
         ReadOnlySpan<byte> inputData,
         ReadOnlySpan<byte> signature
     )
     {
-        return signature.Length == 0;
+        return secretKey.KeySizeBits == 0 && signature.Length == 0;
     }
 }

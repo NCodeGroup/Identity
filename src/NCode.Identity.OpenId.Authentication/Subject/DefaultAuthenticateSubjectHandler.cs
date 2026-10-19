@@ -32,20 +32,23 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
-/// Provides a default implementation of a handler for the <see cref="AuthenticateSubjectCommand"/> message. When the
-/// request presents a bearer access token (the UserInfo path) it validates that self-issued token against the resolved
-/// tenant's keys, issuer, and the OpenID identity audience — the same in-environment validation the management API uses,
-/// because the per-tenant signing keys and issuer are only known after the request environment resolves the
-/// tenant, so a pre-routing authentication scheme cannot validate it. When no bearer token is present the request
-/// carries an interactive session, so it falls back to the host's default authentication scheme (the session cookie).
-/// Applications replace this handler to change how the subject's credentials are validated.
+/// Provides a default implementation of the handlers for the <see cref="AuthenticateSubjectCommand"/> and
+/// <see cref="AuthenticateResourceRequestCommand"/> messages. An interactive endpoint authenticates the request's
+/// session through the host's default authentication scheme (the session cookie). A protected resource such as
+/// UserInfo authenticates only the access token the request presents, validated in-environment against the resolved
+/// tenant's keys, issuer, and the required audience — the same in-environment validation the management API uses,
+/// because the per-tenant signing keys and issuer are only known after the request environment resolves the tenant, so
+/// a pre-routing authentication scheme cannot validate it. Applications replace these handlers to change how the
+/// subject's credentials are validated.
 /// </summary>
-// See ADR-0044.
+// See ADR-0044 and ADR-0155.
 internal class DefaultAuthenticateSubjectHandler(
     IStoreManagerFactory storeManagerFactory,
     IPrincipalResolver principalResolver,
     IAuditEventRecorder auditEventRecorder
-) : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>
+)
+    : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,
+        ICommandResponseHandler<AuthenticateResourceRequestCommand, AuthenticateSubjectDisposition>
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
@@ -55,19 +58,36 @@ internal class DefaultAuthenticateSubjectHandler(
     private const string BearerScheme = "Bearer";
     private const string DPoPPrefix = "DPoP ";
 
-    // A UserInfo access token binds the OpenID identity resource server, which owns the openid/profile/email scopes
-    // (ADR-0027); require that audience so a token minted for a different resource server is rejected.
-    private static readonly string[] UserInfoAudiences =
-    [
-        OpenIdConstants.SystemResourceServerIdentifiers.OpenId,
-    ];
-
     internal virtual AuthenticateSubjectDisposition Undefined() => new();
 
     internal virtual AuthenticateSubjectDisposition Failed(IOpenIdError error) => new(error);
 
     internal virtual AuthenticateSubjectDisposition Authenticated(SubjectAuthentication ticket) =>
         new(ticket);
+
+    /// <inheritdoc />
+    public async ValueTask<AuthenticateSubjectDisposition> HandleAsync(
+        AuthenticateResourceRequestCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var (openIdContext, requiredAudiences) = command;
+
+        // A protected resource is reached only with an access token (OpenID Connect Core 1.0 §5.3.1); an interactive
+        // session never authenticates it, so a request without a token is undefined (ADR-0155).
+        var accessToken = await ResolveBearerTokenAsync(openIdContext.Http);
+        if (string.IsNullOrEmpty(accessToken))
+        {
+            return Undefined();
+        }
+
+        return await AuthenticateAccessTokenAsync(
+            openIdContext,
+            accessToken,
+            requiredAudiences,
+            cancellationToken
+        );
+    }
 
     /// <inheritdoc />
     public async ValueTask<AuthenticateSubjectDisposition> HandleAsync(
@@ -79,20 +99,8 @@ internal class DefaultAuthenticateSubjectHandler(
         var httpContext = openIdContext.Http;
         var errorFactory = openIdContext.ErrorFactory;
 
-        // A presented bearer access token (the UserInfo path) is validated in-environment against the resolved tenant,
-        // not via a pre-routing authentication scheme the host cannot tenant-scope (ADR-0044).
-        var accessToken = await ResolveBearerTokenAsync(httpContext);
-        if (!string.IsNullOrEmpty(accessToken))
-        {
-            return await AuthenticateAccessTokenAsync(
-                openIdContext,
-                accessToken,
-                cancellationToken
-            );
-        }
-
-        // No bearer token: the request carries an interactive session, so use the host's default authenticate scheme
-        // (the session cookie).
+        // The request carries an interactive session, so use the host's default authenticate scheme (the session
+        // cookie).
         var baseResult = await httpContext.AuthenticateAsync();
 
         if (baseResult.None)
@@ -130,6 +138,7 @@ internal class DefaultAuthenticateSubjectHandler(
     private async ValueTask<AuthenticateSubjectDisposition> AuthenticateAccessTokenAsync(
         OpenIdContext openIdContext,
         string accessToken,
+        IReadOnlyCollection<string> requiredAudiences,
         CancellationToken cancellationToken
     )
     {
@@ -137,7 +146,7 @@ internal class DefaultAuthenticateSubjectHandler(
             AuthenticateAccessTokenCommand,
             AuthenticateAccessTokenDisposition
         >(
-            new AuthenticateAccessTokenCommand(openIdContext, accessToken, UserInfoAudiences),
+            new AuthenticateAccessTokenCommand(openIdContext, accessToken, requiredAudiences),
             cancellationToken
         );
 

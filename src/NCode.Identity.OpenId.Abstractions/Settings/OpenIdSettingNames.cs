@@ -81,12 +81,6 @@ public static class OpenIdSettingNames
     public const string AccessTokenEncryptionRequired = "access_token_encryption_required";
 
     /// <summary>
-    /// Contains the name of <c>access_token_encryption_zip_values_supported</c> setting.
-    /// </summary>
-    public const string AccessTokenEncryptionZipValuesSupported =
-        "access_token_encryption_zip_values_supported";
-
-    /// <summary>
     /// Contains the name of <c>access_token_lifetime</c> setting.
     /// </summary>
     public const string AccessTokenLifetime = "access_token_lifetime";
@@ -252,30 +246,6 @@ public static class OpenIdSettingNames
         "backchannel_authentication_request_signing_alg_values_supported";
 
     /// <summary>
-    /// Contains the name of the server <c>backchannel_authentication_request_encryption_alg_values_supported</c>
-    /// discovery setting (OpenID Connect CIBA / FAPI-CIBA): the permitted key-management <c>alg</c> values for an
-    /// encrypted backchannel request object.
-    /// </summary>
-    public const string BackchannelAuthenticationRequestEncryptionAlgValuesSupported =
-        "backchannel_authentication_request_encryption_alg_values_supported";
-
-    /// <summary>
-    /// Contains the name of the server <c>backchannel_authentication_request_encryption_enc_values_supported</c>
-    /// discovery setting (OpenID Connect CIBA / FAPI-CIBA): the permitted content-encryption <c>enc</c> values for an
-    /// encrypted backchannel request object.
-    /// </summary>
-    public const string BackchannelAuthenticationRequestEncryptionEncValuesSupported =
-        "backchannel_authentication_request_encryption_enc_values_supported";
-
-    /// <summary>
-    /// Contains the name of the server <c>backchannel_authentication_request_encryption_zip_values_supported</c>
-    /// discovery setting (OpenID Connect CIBA): the permitted <c>zip</c> compression values for an encrypted
-    /// backchannel request object.
-    /// </summary>
-    public const string BackchannelAuthenticationRequestEncryptionZipValuesSupported =
-        "backchannel_authentication_request_encryption_zip_values_supported";
-
-    /// <summary>
     /// Contains the name of <c>ciba_request_lifetime</c> setting (the validity window of a pending CIBA backchannel
     /// authentication request).
     /// </summary>
@@ -298,6 +268,20 @@ public static class OpenIdSettingNames
     public const string GrantTypesSupported = "grant_types_supported";
 
     /// <summary>
+    /// Contains the name of the per-client <c>id_token_encrypted_response_alg</c> setting (OpenID Connect Dynamic
+    /// Client Registration 1.0 §2): the key-management algorithm the client registers for encrypting its ID tokens to
+    /// its public key. When it is absent, ID tokens are not encrypted.
+    /// </summary>
+    public const string IdTokenEncryptedResponseAlg = "id_token_encrypted_response_alg";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>id_token_encrypted_response_enc</c> setting (OpenID Connect Dynamic
+    /// Client Registration 1.0 §2): the content-encryption algorithm of the client's encrypted ID tokens
+    /// (<c>A128CBC-HS256</c> unless registered).
+    /// </summary>
+    public const string IdTokenEncryptedResponseEnc = "id_token_encrypted_response_enc";
+
+    /// <summary>
     /// Contains the name of <c>id_token_encryption_alg_values_supported</c> setting.
     /// </summary>
     public const string IdTokenEncryptionAlgValuesSupported =
@@ -315,15 +299,16 @@ public static class OpenIdSettingNames
     public const string IdTokenEncryptionRequired = "id_token_encryption_required";
 
     /// <summary>
-    /// Contains the name of <c>id_token_encryption_zip_values_supported</c> setting.
-    /// </summary>
-    public const string IdTokenEncryptionZipValuesSupported =
-        "id_token_encryption_zip_values_supported";
-
-    /// <summary>
     /// Contains the name of <c>id_token_lifetime</c> setting.
     /// </summary>
     public const string IdTokenLifetime = "id_token_lifetime";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>id_token_signed_response_alg</c> setting (OpenID Connect Dynamic Client
+    /// Registration 1.0 §2): the signature algorithm the client registers for its ID tokens (<c>RS256</c> unless
+    /// registered).
+    /// </summary>
+    public const string IdTokenSignedResponseAlg = "id_token_signed_response_alg";
 
     /// <summary>
     /// Contains the name of <c>id_token_signing_alg_values_supported</c> setting.
@@ -510,12 +495,6 @@ public static class OpenIdSettingNames
     /// </summary>
     public const string RequestObjectEncryptionEncValuesSupported =
         "request_object_encryption_enc_values_supported";
-
-    /// <summary>
-    /// Contains the name of <c>request_object_encryption_zip_values_supported</c> setting.
-    /// </summary>
-    public const string RequestObjectEncryptionZipValuesSupported =
-        "request_object_encryption_zip_values_supported";
 
     /// <summary>
     /// Contains the name of <c>request_object_signing_alg_values_supported</c> setting.
@@ -744,6 +723,20 @@ public static class OpenIdSettingNames
     public const string UiLocalesSupported = "ui_locales_supported";
 
     /// <summary>
+    /// Contains the name of the per-client <c>userinfo_encrypted_response_alg</c> setting (OpenID Connect Dynamic
+    /// Client Registration 1.0 §2): the key-management algorithm the client registers for encrypting its UserInfo
+    /// responses to its public key. When it is absent, UserInfo responses are not encrypted.
+    /// </summary>
+    public const string UserInfoEncryptedResponseAlg = "userinfo_encrypted_response_alg";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>userinfo_encrypted_response_enc</c> setting (OpenID Connect Dynamic
+    /// Client Registration 1.0 §2): the content-encryption algorithm of the client's encrypted UserInfo responses
+    /// (<c>A128CBC-HS256</c> unless registered).
+    /// </summary>
+    public const string UserInfoEncryptedResponseEnc = "userinfo_encrypted_response_enc";
+
+    /// <summary>
     /// Contains the name of <c>userinfo_encryption_alg_values_supported</c> setting.
     /// </summary>
     public const string UserInfoEncryptionAlgValuesSupported =
@@ -756,10 +749,11 @@ public static class OpenIdSettingNames
         "userinfo_encryption_enc_values_supported";
 
     /// <summary>
-    /// Contains the name of <c>userinfo_encryption_zip_values_supported</c> setting.
+    /// Contains the name of the per-client <c>userinfo_signed_response_alg</c> setting (OpenID Connect Dynamic Client
+    /// Registration 1.0 §2): the signature algorithm the client registers for its UserInfo responses. When it is
+    /// absent, UserInfo responses are not signed.
     /// </summary>
-    public const string UserInfoEncryptionZipValuesSupported =
-        "userinfo_encryption_zip_values_supported";
+    public const string UserInfoSignedResponseAlg = "userinfo_signed_response_alg";
 
     /// <summary>
     /// Contains the name of <c>userinfo_signing_alg_values_supported</c> setting.

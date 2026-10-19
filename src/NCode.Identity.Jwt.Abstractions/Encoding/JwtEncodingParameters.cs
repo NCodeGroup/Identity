@@ -44,15 +44,17 @@ public class JwtEncodingParameters
 
     /// <summary>
     /// Gets the <see cref="JoseSigningCredentials"/> that is used to sign the token.
-    /// If both <see cref="SigningCredentials"/> and <see cref="EncryptionCredentials"/> are specified,
-    /// then the result will be a nested JWS+JWE token. Both credentials cannot be <c>null</c>.
+    /// If both <see cref="SigningCredentials"/> and <see cref="EncryptionCredentials"/> are specified, then the result
+    /// will be a Nested JWT: the signed JWS is encrypted into a JWE whose <c>cty</c> header is <c>JWT</c>
+    /// (<c>RFC 7519</c> §5.2). Both credentials cannot be <c>null</c>.
     /// </summary>
     public JoseSigningCredentials? SigningCredentials { get; init; }
 
     /// <summary>
     /// Gets the <see cref="JoseEncryptionCredentials"/> that is used to encrypt the token.
-    /// If both <see cref="SigningCredentials"/> and <see cref="EncryptionCredentials"/> are specified,
-    /// then the result will be a nested JWS+JWE token. Both credentials cannot be <c>null</c>.
+    /// If both <see cref="SigningCredentials"/> and <see cref="EncryptionCredentials"/> are specified, then the result
+    /// will be a Nested JWT: the signed JWS is encrypted into a JWE whose <c>cty</c> header is <c>JWT</c>
+    /// (<c>RFC 7519</c> §5.2). Both credentials cannot be <c>null</c>.
     /// </summary>
     public JoseEncryptionCredentials? EncryptionCredentials { get; init; }
 

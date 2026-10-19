@@ -65,4 +65,5 @@ internal static class EventIds
     public const int ClientJwksKeyImportFailed = Base + 34;
     public const int ClientAuthenticationMethodNotRegistered = Base + 35;
     public const int ClientAuthenticationMethodNotPermitted = Base + 36;
+    public const int BackChannelLogoutTokenNotProtected = Base + 37;
 }

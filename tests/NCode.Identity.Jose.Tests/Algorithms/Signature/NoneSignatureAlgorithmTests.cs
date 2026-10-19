@@ -23,7 +23,7 @@ using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose.Tests.Algorithms.Signature;
 
-public class NoneSignatureAlgorithmTests
+public class NoneSignatureAlgorithmTests : BaseTests
 {
     private static SignatureAlgorithm Algorithm => NoneSignatureAlgorithm.Singleton;
 
@@ -64,5 +64,26 @@ public class NoneSignatureAlgorithmTests
         );
         Assert.True(result);
         Assert.Equal(0, bytesWritten);
+    }
+
+    [Fact]
+    public void Verify_WhenEmptyKeyAndEmptySignature_ReturnsTrue()
+    {
+        var result = Algorithm.Verify(SecretKeyFactory.Empty, Span<byte>.Empty, Span<byte>.Empty);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void Verify_WhenRealKey_ReturnsFalse()
+    {
+        var realKey = SecretKeyFactory.CreateSymmetric(
+            new KeyMetadata { KeyId = "real" },
+            new byte[32]
+        );
+
+        var result = Algorithm.Verify(realKey, Span<byte>.Empty, Span<byte>.Empty);
+
+        Assert.False(result);
     }
 }

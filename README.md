@@ -107,7 +107,7 @@ PostgreSQL container, the schema migration worker, and the frontend apps — wit
 
 ```pwsh
 dotnet tool restore                      # once per clone
-./build/frontend-install.ps1             # once per clone (Node 22 via NVS + pnpm workspace)
+./build/frontend-install.ps1             # once per clone (pinned Node via NVS + pinned pnpm + pnpm workspace)
 dotnet run --project src/NCode.Identity.OpenId.LocalDev
 ```
 

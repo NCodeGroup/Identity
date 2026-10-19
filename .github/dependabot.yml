@@ -34,8 +34,8 @@ updates:
     open-pull-requests-limit: 5
     ignore:
       # `@types/node` describes the Node runtime, so its major must equal the one pinned in src/frontend/.node-version
-      # (and the CI `node-version`). Types from a newer major let code compile against APIs the runtime lacks. Bump
-      # the runtime and this major together, deliberately.
+      # (which CI, NVS, and the Aspire AppHost all read). Types from a newer major let code compile against APIs the
+      # runtime lacks. Bump the runtime and this major together, deliberately (ADR-0147).
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
       # TypeScript 7 (the native compiler) no longer ships the JavaScript compiler API that typescript-eslint parses

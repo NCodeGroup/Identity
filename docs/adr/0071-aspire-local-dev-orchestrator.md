@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (amended by [ADR-0073](0073-postgres-dev-database-and-aspire-migration-worker.md): the AppHost
   now also orchestrates a PostgreSQL database and a migration-worker resource, so a **container runtime (Docker or
-  Podman) is required** — reversing this ADR's original "no container-runtime prerequisite" note)
+  Podman) is required** — reversing this ADR's original "no container-runtime prerequisite" note; amended by
+  [ADR-0152](0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): the AppHost prepends the
+  newest NVS install of the major pinned in `src/frontend/.node-version`, where `build/frontend-install.ps1` installs
+  the pinned pnpm, and Corepack is no longer involved)
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
 

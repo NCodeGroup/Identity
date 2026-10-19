@@ -17,18 +17,22 @@
 
 #endregion
 
+using System.Globalization;
+
 // ASPIRE ORCHESTRATION-ONLY HOST (ADR-0071): a flat resource graph that is the single one-stop entry to build, run,
 // and debug the whole local stack (the OpenID host + the frontend apps) with deterministic startup ordering.
 // This is a SIBLING of the host, not nested inside it — the host stays a single reference OP process.
 // Keep this file declarative (Add*/With*/WaitFor); no reusable logic belongs here.
 
 // Aspire spawns pnpm/node for the frontend resources and discovers them on PATH. When Node is NVS-managed and not
-// globally linked, the AppHost (launched by VS Code) does not inherit it, so the mgmt/auth resources fail to start.
-// Prepend the newest NVS-managed Node 22 to this process's PATH; the child resources inherit it. No-op if Node is
-// already resolvable or NVS is absent (run `nvs add 22` + `build/frontend-install.ps1` once for a fresh clone).
-EnsureNvsNodeOnPath();
-
+// globally linked, the AppHost (launched by VS Code) does not inherit it, so the frontend resources fail to start.
 var builder = DistributedApplication.CreateBuilder(args);
+
+// The frontend's Node major is pinned once, in src/frontend/.node-version, which CI and NVS read too. Prepend the
+// newest NVS-managed install of that major to this process's PATH before any resource starts; the child resources
+// inherit it, ahead of any other Node on PATH. No-op if NVS or that major is absent (`build/frontend-install.ps1` adds
+// it through NVS and installs the pinned pnpm beside it, once per clone).
+EnsurePinnedNodeOnPath(Path.Combine(builder.AppHostDirectory, "..", "frontend"));
 
 // The dev database is Postgres in a container (ADR-0073). WithDataVolume gives it a STABLE, named volume so data
 // survives restarts (persistent by default); the matching build/dev-db-reset.ps1 removes exactly this volume for an
@@ -159,7 +163,7 @@ builder.Build().Run();
 
 return;
 
-static void EnsureNvsNodeOnPath()
+static void EnsurePinnedNodeOnPath(string frontendDirectory)
 {
     if (!OperatingSystem.IsWindows())
         return;
@@ -169,14 +173,29 @@ static void EnsureNvsNodeOnPath()
     if (!Directory.Exists(nvsNodeRoot))
         return;
 
-    // NVS lays each install out as <root>/node/<version>/<arch>; take the newest Node 22 x64 bin directory. Corepack
-    // (bundled with Node) places the `pnpm` shim here once `corepack enable` has run (build/frontend-install.ps1).
+    // .node-version holds the major ("26"), optionally a full version or a leading "v"; only the major selects.
+    var pinned = File.ReadAllText(Path.Combine(frontendDirectory, ".node-version"))
+        .Trim()
+        .TrimStart('v');
+    var major = int.Parse(pinned.Split('.')[0], NumberStyles.None, CultureInfo.InvariantCulture);
+
+    // NVS lays each install out as <root>/node/<version>/<arch>; take the x64 directory of the highest version of the
+    // pinned major. Versions compare numerically (22.9.0 < 22.22.2), never as strings. build/frontend-install.ps1
+    // installs the pinned pnpm into this same directory, so it resolves alongside node.
     var nodeDir = Directory
-        .EnumerateDirectories(nvsNodeRoot, "22*")
-        .Select(versionDir => Path.Combine(versionDir, "x64"))
-        .Where(Directory.Exists)
-        .OrderByDescending(dir => dir, StringComparer.OrdinalIgnoreCase)
-        .FirstOrDefault();
+        .EnumerateDirectories(nvsNodeRoot, $"{major}.*")
+        .Select(versionDir =>
+            (
+                VersionDir: versionDir,
+                Version: Version.TryParse(Path.GetFileName(versionDir), out var version)
+                    ? version
+                    : null
+            )
+        )
+        .Where(install => install.Version?.Major == major)
+        .OrderByDescending(install => install.Version)
+        .Select(install => Path.Combine(install.VersionDir, "x64"))
+        .FirstOrDefault(Directory.Exists);
     if (nodeDir is null)
         return;
 

@@ -1,6 +1,8 @@
 # 64. A single cohesive frontend presentation platform
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0152](0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): pnpm is installed from
+  its `packageManager` pin by its own tooling, because Node no longer ships Corepack)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

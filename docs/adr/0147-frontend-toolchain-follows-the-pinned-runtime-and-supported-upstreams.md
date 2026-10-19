@@ -1,6 +1,9 @@
 # 147. The frontend toolchain follows the pinned runtime and supported upstreams
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0152](0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): the runtime is Node 26,
+  CI reads `.node-version` itself, `engines.node` states the runtime's floor, and the `@types/node` override lives in
+  `pnpm-workspace.yaml`)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

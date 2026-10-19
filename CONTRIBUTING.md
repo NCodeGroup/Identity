@@ -10,7 +10,9 @@ enforced quality bar.
 - Local tools: run `dotnet tool restore` once after cloning to install the repo-pinned **CSharpier** formatter.
 - Git hooks: run `git config core.hooksPath .githooks` once after cloning to enable the repo-versioned hooks (see
   [Commit attribution](#commit-attribution)).
-- Frontend / full-stack (Aspire F5): **Node 22 via NVS** — see [`src/frontend/README.md`](src/frontend/README.md).
+- Frontend / full-stack (Aspire F5): [NVS](https://github.com/jasongin/nvs); `build/frontend-install.ps1` adds the
+  Node major pinned in `src/frontend/.node-version` and the pinned pnpm — see
+  [`src/frontend/README.md`](src/frontend/README.md).
 - Conformance harness only: Docker, Python 3, and hosts-file entries — see
   [`build/conformance/README.md`](build/conformance/README.md).
 
@@ -145,6 +147,11 @@ every weekly group PR fails on the same package.
 
 The frontend has no lockfile-free path: after changing a `package.json`, run `pnpm install` in `src/frontend` and commit
 `pnpm-lock.yaml`, because CI installs with `--frozen-lockfile`.
+
+Workflows reference GitHub's own `actions/*` by major tag (`actions/checkout@v7`) and every **third-party** action by
+full commit SHA with its version in a trailing comment
+(`pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0`). A tag can be moved to different code after
+review; a commit cannot. Dependabot's GitHub Actions group updates the SHA and the comment together.
 
 ## Public API surface guard (`PublicAPI.*.txt`)
 

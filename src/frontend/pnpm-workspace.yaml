@@ -1,3 +1,24 @@
 packages:
   - 'packages/*'
   - 'apps/*'
+
+# Every pnpm setting lives in this file, the only place pnpm 11 and later read them from (pnpm 10 also accepts .npmrc
+# and the package.json "pnpm" field), so a pnpm major never has to move them.
+
+# Strict, isolated node_modules: each package sees only the dependencies it declares (ADR-0064).
+shamefullyHoist: false
+# Install missing peer dependencies, and report (rather than fail on) peer-range mismatches between toolchain plugins.
+autoInstallPeers: true
+strictPeerDependencies: false
+
+# `@types/node` describes the Node runtime pinned in .node-version, so every copy (including the peers Vite and Vitest
+# auto-install) resolves to the root devDependency's range instead of the newest major (ADR-0147).
+overrides:
+  '@types/node': '$@types/node'
+
+# Dependency install scripts are a supply-chain risk, so none runs unless it is reviewed and allowed here, and an
+# unreviewed one fails the install rather than warning. esbuild's postinstall only re-verifies the platform binary that
+# pnpm already installs as an optional dependency, so it is not needed.
+strictDepBuilds: true
+allowBuilds:
+  esbuild: false

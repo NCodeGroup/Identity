@@ -12,8 +12,8 @@ import {
   createPublicKey,
   randomUUID,
   sign,
-  type JsonWebKey,
   type KeyObject,
+  type webcrypto,
 } from 'node:crypto';
 import type { ClientAssertionSigner, DpopProofFactory } from './probeRunner.js';
 
@@ -38,7 +38,7 @@ export type JwaSignatureAlg = (typeof SUPPORTED_SIGNATURE_ALGS)[number];
 export type SigningKey = {
   readonly alg: JwaSignatureAlg;
   readonly privateKey: KeyObject;
-  readonly publicJwk: JsonWebKey;
+  readonly publicJwk: webcrypto.JsonWebKey;
   readonly kid?: string;
 };
 
@@ -108,7 +108,7 @@ export function createDpopProofFactory(key: SigningKey): DpopProofFactory {
 function parsePrivateKey(material: string): { privateKey: KeyObject; kid?: string } {
   const trimmed = material.trim();
   if (trimmed.startsWith('{')) {
-    const jwk = JSON.parse(trimmed) as JsonWebKey & { kid?: unknown };
+    const jwk = JSON.parse(trimmed) as webcrypto.JsonWebKey & { kid?: unknown };
     const privateKey = createPrivateKey({ key: jwk, format: 'jwk' });
     return { privateKey, ...(typeof jwk.kid === 'string' ? { kid: jwk.kid } : {}) };
   }
@@ -153,8 +153,8 @@ function resolveAlg(privateKey: KeyObject, override?: JwaSignatureAlg): JwaSigna
   throw new Error(`Unsupported key type '${type ?? 'unknown'}'.`);
 }
 
-function toPublicJwk(privateKey: KeyObject): JsonWebKey {
-  const jwk = createPublicKey(privateKey).export({ format: 'jwk' }) as JsonWebKey;
+function toPublicJwk(privateKey: KeyObject): webcrypto.JsonWebKey {
+  const jwk = createPublicKey(privateKey).export({ format: 'jwk' });
   if (jwk.kty === 'EC') {
     return {
       kty: 'EC',

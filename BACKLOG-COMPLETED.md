@@ -1059,6 +1059,28 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   only, and `RSA1_5` is offered by no setting; the `RetireUnsafeJoseSettingValues` migration was verified against
   Postgres. Follow-ups recorded: `F40` (request-object audience and typing), `F65`–`F68`._
 
+- **`F64` — Release the `cloudflare-zone` module that turns Universal SSL off, and apply it to the zone.** The
+  [hosting analysis](docs/hosting-analysis.md#domain-and-dns--nidentityio) intends that no CA but Let's Encrypt may
+  issue for `nidentity.io`, but Cloudflare Universal SSL, on by default for every zone, publishes hidden CAA records for
+  its own CAs (`pki.goog`, `digicert.com`, `ssl.com`, `comodoca.com`) that never appear in OpenTofu state, so the domain
+  authorizes five CAs (observed 2026-10-19). The `cloudflare-zone` module now always manages
+  `cloudflare_universal_ssl_setting` with `enabled = false`, its test asserts it, and its cloudflare provider floor is
+  `>= 5.13`, the first release with that resource (`NCodeGroup/identity-platform` branch
+  `feat/cloudflare-zone-universal-ssl-off`); the bootstrap token carries *Zone → SSL and Certificates → Edit* (runbook
+  section [3. Cloudflare](docs/platform-bootstrap.md#3-cloudflare-dns-and-inbound-email)). Remaining: merge that
+  branch and release `v0.3.0`; consume it in `live/bootstrap` (`cloudflare.tf` zone `ref`, the README's module table,
+  and *Universal SSL off* in its *Creates* table); apply `live/bootstrap` with a bootstrap token that carries the new
+  permission. Verify: `Resolve-DnsName nidentity.io -Type CAA -Server 1.1.1.1` lists only `letsencrypt.org` and the
+  `iodef` record.
+  _Closed: `NCodeGroup/identity-platform` #6 (released as `v0.3.0`) and #7 (`live/bootstrap` consumes it), applied
+  2026-10-19 with `tofu plan '-target=module.zone'`; an unexpired bootstrap token gained the new permission by editing
+  it. `nidentity.io` now publishes only `issue` / `issuewild` `letsencrypt.org` and the `iodef` record, DNSSEC-validated
+  at Cloudflare's and Google's resolvers. The verify command above does not work on Windows, whose `Resolve-DnsName` has
+  no CAA type; check over DNS-over-HTTPS instead:
+  `(Invoke-RestMethod 'https://cloudflare-dns.com/dns-query?name=nidentity.io&type=CAA' -Headers @{ accept = 'application/dns-json' }).Answer.data`.
+  The provider cannot destroy `cloudflare_universal_ssl_setting`: removing the resource leaves Universal SSL off, so
+  turning it back on takes `enabled = true`, not a deletion._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

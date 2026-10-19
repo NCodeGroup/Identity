@@ -79,6 +79,7 @@ internal class ClientApiEndpointHandler(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
+    ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IOpenIdServerProvider serverProvider,
     ISecurityProfileCatalog securityProfileCatalog,
     IResourceOwnershipService resourceOwnershipService,
@@ -95,6 +96,9 @@ internal class ClientApiEndpointHandler(
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+
+    private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
+        settingScopeCollectionProvider;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
     private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
@@ -230,8 +234,16 @@ internal class ClientApiEndpointHandler(
 
         var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
         var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
-        var tenantScopeSettings = SecurityProfileCatalog.Expand(tenantSettings.Value, jsonOptions);
-        var clientScopeSettings = SecurityProfileCatalog.Expand(client.Settings.Value, jsonOptions);
+        var tenantScopeSettings = SecurityProfileCatalog.Expand(
+            tenantSettings.Value,
+            OpenIdSettingScopes.Tenant,
+            jsonOptions
+        );
+        var clientScopeSettings = SecurityProfileCatalog.Expand(
+            client.Settings.Value,
+            OpenIdSettingScopes.Client,
+            jsonOptions
+        );
 
         var tenantEffective = server.SettingsProvider.Collection.Merge(tenantScopeSettings);
         return tenantEffective.Merge(clientScopeSettings);
@@ -253,7 +265,11 @@ internal class ClientApiEndpointHandler(
         {
             TenantId = client.TenantId,
             ClientId = client.ClientId,
-            Settings = ToEffectiveSettingsElement(settings),
+            Settings = ToEffectiveSettingsElement(
+                settings,
+                SettingScopeCollectionProvider.Collection,
+                OpenIdSettingScopes.Client
+            ),
         };
     }
 
@@ -395,10 +411,12 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        // Setting names are a closed vocabulary (ADR-0139): a settings document that cannot be honored is rejected
-        // here rather than stored and failed on every request that resolves the client.
+        // Setting names are a closed vocabulary (ADR-0139), and a client carries only the settings that apply within it
+        // (ADR-0149): a settings document that cannot be honored is rejected here rather than stored and failed on every
+        // request that resolves the client.
         var settingErrors = SettingSerializer.ValidateSettings(
             request.Settings,
+            OpenIdSettingScopes.Client,
             openIdContext.Environment.JsonSerializerOptions
         );
         if (settingErrors.Count > 0)
@@ -707,7 +725,11 @@ internal class ClientApiEndpointHandler(
 
         var settingsValue = SerializeToElement(jsonObject);
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettings(settingsValue, jsonOptions);
+        var settingErrors = SettingSerializer.ValidateSettings(
+            settingsValue,
+            OpenIdSettingScopes.Client,
+            jsonOptions
+        );
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);

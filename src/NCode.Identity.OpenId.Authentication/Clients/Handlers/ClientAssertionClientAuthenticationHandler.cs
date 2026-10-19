@@ -188,19 +188,6 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
 
         var clientId = sub;
 
-        var allowedAlgorithms = openIdContext.Tenant.SettingsProvider.Collection.GetValue(
-            OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported
-        );
-        if (allowedAlgorithms.Count > 0 && !allowedAlgorithms.Contains(alg, StringComparer.Ordinal))
-        {
-            return await FailAsync(
-                openIdContext,
-                clientId,
-                "assertion_alg_not_supported",
-                cancellationToken
-            );
-        }
-
         var resolution = await ResolveClientAsync(openIdContext, clientId, cancellationToken);
         if (!resolution.HasClient)
             return resolution;
@@ -214,6 +201,24 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         );
         if (rejection is { } rejected)
             return rejected;
+
+        // The client's effective settings carry the server's and tenant's lists and the ceiling of every security profile
+        // the client is under (ADR-0148). An unset list is unrestricted; a set list, even an empty one, permits only
+        // what it names (ADR-0010).
+        if (
+            publicClient.Settings.TryGetValue(
+                OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported,
+                out var allowedAlgorithms
+            ) && !allowedAlgorithms.Contains(alg, StringComparer.Ordinal)
+        )
+        {
+            return await FailAsync(
+                openIdContext,
+                clientId,
+                "assertion_alg_not_supported",
+                cancellationToken
+            );
+        }
 
         var validAudiences = GetValidAudiences(openIdContext);
 

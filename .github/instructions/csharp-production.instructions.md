@@ -93,11 +93,40 @@ rationale.
 - 👁 **Correct-by-default.** There is **no public API** to disable issuer / audience / signature / lifetime / algorithm
   validation, or to weaken a security control below its safe baseline. A knob may only supply values or swap a control
   for an equal-or-stronger one.
-- 👁 **Enums for genuinely closed vocabularies; extensible vocabularies are string constants; no secret material on the
-  surface.** A closed, non-extensible set is an `enum`. A vocabulary a consumer or sibling package must be able to
-  **extend** (claim types, algorithm codes, grant types, `$type` discriminators) is a set of `public const string`
-  values instead, so a new member is a non-breaking add rather than an enum edit. Never put secret material on the
-  public surface.
+- 👁 **Extensibility is the default: a vocabulary is open unless it is provably closed.** The family exists to be
+  extended — by consumers and by sibling packages — without editing it, so every set of named values (kinds, types,
+  modes, scopes, formats, methods, reasons, statuses, plans) is **open** by default and modeled as:
+  - **Names** — `public const string` values in a static class (`OpenIdSettingNames`, `OpenIdSettingScopes`,
+    `OpenIdConstants.GrantTypes`), compared ordinally and documented as the **known** values, never as all of them.
+  - **Registered data or strategies**, when a member carries behavior or relationships (a rule, a parent, an
+    implementation) — a descriptor contributed through `ICollectionDataSource<T>` or a strategy collection from DI
+    ([ADR-0001](../../docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md)), resolved by name through a
+    catalog that validates the whole set when it is composed (duplicate names, dangling references, cycles) — the
+    pattern of `SettingDescriptor`, `SettingScopeDescriptor`, `ISecurityProfile`, and the client-authentication
+    handlers. Input naming an unregistered member is **rejected** (the vocabulary of _registered_ values is closed,
+    [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md)), never ignored.
+
+  An **`enum` is allowed only when the reviewer can state all three:** (1) the members are fixed by something that
+  cannot grow without this library changing — a finite enumeration of an external spec that the library implements in
+  full (`RequestObjectSource`), the outcome set of one library-owned operation's contract (`PasswordVerificationResult`,
+  `OutboundHttpReadResult`), or a mirror of a framework type (`ObjectJson*Handling`); (2) no consumer, deployment, or
+  sibling package could reasonably need another member — ask **"could a package that is not this one ever need to add
+  one?"**, never "does this package own today's members?"; and (3) a new member would require a change to this library
+  anyway. Whatever the representation:
+  - 🚫 **No `[Flags]` for a vocabulary that may grow** — its bit space and the meaning of every combination are closed.
+  - 🚫 **No relationships among members encoded in code.** A `switch`, a bit mask, or a hard-coded chain describing a
+    vocabulary's hierarchy, compatibility, or order is lock-in even when the names are strings; make the relationship
+    registered data and let the catalog derive it.
+  - 🚫 **No exhaustive `switch` over an open vocabulary to choose behavior** — dispatch to the strategy registered for
+    the name.
+  - A persisted or wire value is its string name, never an ordinal, so an older node that meets a newer member fails
+    closed by name instead of misreading a number.
+
+  The lesson behind the rule: setting scopes were first a `[Flags]` enum of the server, tenant, client, and resource
+  server, with their cascade hard-coded in a `switch`, judged closed because the library owned all four entities — which
+  shut out every extension that stores settings for an entity of its own. They are registered `SettingScopeDescriptor`
+  data. See [ADR-0150](../../docs/adr/0150-vocabularies-are-open-unless-provably-closed.md).
+- 👁 **No secret material on the public surface.**
 - 👁 Data / options / context / event types are `sealed`, with `init` / get-only members and **concrete, buffered**
   collections (`List<T>`, not `IList<T>`) — AOT-friendly, cheap to re-enumerate, free of deferred-execution surprises.
   Interfaces appear only for a replaceable DI seam or a read-only slice.
@@ -339,7 +368,7 @@ rationale.
   registered `SettingDescriptor`, contributed through `ICollectionDataSource<SettingDescriptor>` by the package that
   reads or writes it; never read or write a setting through an ad-hoc `new SettingKey<T>("…")` without a descriptor.
   Settings are rejected wherever they enter — configuration on start, management writes (`ISettingSerializer.ValidateSettings`
-  → `400`), and stored documents on read (fail closed) — so retiring or renaming a setting ships with a data migration
+  → `400`), and stored documents on read (fail closed) — so retiring, renaming, or narrowing the scopes of a setting ships with a data migration
   of the stored documents. That migration is an EF migration in `NCode.Identity.OpenId.Host.Database`
   (`dotnet ef migrations add`, then hand-written SQL in `Up`) that rewrites **every** settings table (`Servers`,
   `Tenants`, `Clients`, `ResourceServers`); it **translates** the setting's meaning into the current vocabulary rather
@@ -374,6 +403,21 @@ rationale.
   (`SettingDescriptor.HasLatticeMerge`); a setting a profile must constrain gets a lattice merge, never a projection
   (`Replace`/`Keep`), which a child would override or which would ignore the ceiling. See
   [ADR-0148](../../docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md).
+- 👁 **A setting declares the scopes it applies to.** Every descriptor sets the required `AppliesTo` — the names of the
+  scopes whose effective settings the runtime reads it from (`OpenIdSettingScopes.Tenant` for discovery and the
+  tenant-wide services, `.Client` for the protocol endpoints, `.ResourceServer` for access-token encryption; a
+  discoverable setting always includes the tenant). Scopes are registered data, not a fixed set: a
+  `SettingScopeDescriptor` (a name and its parent) contributed through `ICollectionDataSource<SettingScopeDescriptor>`,
+  so a package that stores settings for an entity of its own registers that entity's scope beneath the scope it
+  inherits from and declares its settings for it. A document may carry a setting only at a scope that applies it or
+  cascades into one that does (`ISettingScopeCollection.AppliesWithin`), so every entry point passes the document's
+  scope name (`ISettingSerializer.ValidateSettings`/`DeserializeSettings` and `ISecurityProfileCatalog.Expand`), and a
+  management effective-settings preview shows only the settings that apply within its scope. **Read a per-client
+  control from the client's effective settings** (`openIdClient.Settings`), never from
+  `openIdContext.Tenant.SettingsProvider` — the tenant's collection ignores the client's narrowing and the ceilings of
+  the profiles the client selects. Adding a reader at a new scope widens `AppliesTo`; narrowing it ships with a data
+  migration that removes the setting from the documents of the scopes it leaves. See
+  [ADR-0149](../../docs/adr/0149-settings-declare-the-scopes-they-apply-to.md).
 - 👁 **A package registers its own services from `DefaultRegistration.cs`** (the class is **always** `DefaultRegistration`)
   using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
   [ADR-0069](../../docs/adr/0069-registration-library-compile-time-marker-nesting.md). **The receiver marker is the

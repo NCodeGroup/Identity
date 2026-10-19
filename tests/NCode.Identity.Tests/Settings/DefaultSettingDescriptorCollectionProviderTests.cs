@@ -44,8 +44,8 @@ public class DefaultSettingDescriptorCollectionProviderTests
             CreateFactory(),
             [
                 DataSource(
-                    new SettingDescriptor<string> { Name = "a" },
-                    new SettingDescriptor<int> { Name = "b" }
+                    new SettingDescriptor<string> { Name = "a", AppliesTo = ["client"] },
+                    new SettingDescriptor<int> { Name = "b", AppliesTo = ["client"] }
                 ),
             ]
         );
@@ -66,7 +66,7 @@ public class DefaultSettingDescriptorCollectionProviderTests
     {
         await using var provider = new DefaultSettingDescriptorCollectionProvider(
             CreateFactory(),
-            [DataSource(new SettingDescriptor<string> { Name = "a" })]
+            [DataSource(new SettingDescriptor<string> { Name = "a", AppliesTo = ["client"] })]
         );
 
         Assert.NotNull(provider.GetChangeToken());

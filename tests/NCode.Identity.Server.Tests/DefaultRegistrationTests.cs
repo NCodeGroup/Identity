@@ -17,11 +17,14 @@
 #endregion
 
 using System.Reflection;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Collections.Providers;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
@@ -32,7 +35,13 @@ namespace NCode.Identity.Server.Tests;
 
 public sealed class DefaultRegistrationTests
 {
-    private static IHost BuildHost(Dictionary<string, string?> configurationData)
+    private static IHost BuildHost(Dictionary<string, string?> configurationData) =>
+        BuildHost(configurationData, _ => { });
+
+    private static IHost BuildHost(
+        Dictionary<string, string?> configurationData,
+        Action<IServiceCollection> configureServices
+    )
     {
         var hostBuilder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
         hostBuilder.Configuration.AddInMemoryCollection(configurationData);
@@ -42,6 +51,8 @@ public sealed class DefaultRegistrationTests
         hostBuilder.Services.AddSingleton(
             new Mock<IStoreManagerFactory>(MockBehavior.Strict).Object
         );
+
+        configureServices(hostBuilder.Services);
 
         return hostBuilder.Build();
     }
@@ -126,6 +137,161 @@ public sealed class DefaultRegistrationTests
 
             Assert.True(valid, $"The default of '{descriptor.Name}' {failure}.");
         }
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheOpenIdSettingScopeCascade()
+    {
+        // The server's settings cascade into every tenant's, and a tenant's into its clients' and resource servers'.
+        using var host = BuildHost([]);
+        var scopes = host.Services.GetRequiredService<ISettingScopeCollectionProvider>().Collection;
+
+        Assert.True(scopes.TryGet(OpenIdSettingScopes.Server, out var server));
+        Assert.Null(server.ParentName);
+        Assert.True(scopes.TryGet(OpenIdSettingScopes.Tenant, out var tenant));
+        Assert.Equal(OpenIdSettingScopes.Server, tenant.ParentName);
+        Assert.True(scopes.TryGet(OpenIdSettingScopes.Client, out var client));
+        Assert.Equal(OpenIdSettingScopes.Tenant, client.ParentName);
+        Assert.True(scopes.TryGet(OpenIdSettingScopes.ResourceServer, out var resourceServer));
+        Assert.Equal(OpenIdSettingScopes.Tenant, resourceServer.ParentName);
+    }
+
+    [Fact]
+    public void AddIdentityServer_EveryDescriptorAppliesOnlyToRegisteredScopes()
+    {
+        // A setting that names no registered scope could never be configured, and a misspelled scope name is never read.
+        using var host = BuildHost([]);
+        var descriptors = host.Services.GetRequiredService<ISettingDescriptorCollectionProvider>();
+        var scopes = host.Services.GetRequiredService<ISettingScopeCollectionProvider>().Collection;
+
+        foreach (var descriptor in descriptors.Collection)
+        {
+            Assert.False(
+                descriptor.AppliesTo.IsDefaultOrEmpty,
+                $"The setting '{descriptor.Name}' declares no scope it applies to."
+            );
+            foreach (var scopeName in descriptor.AppliesTo)
+            {
+                Assert.True(
+                    scopes.TryGet(scopeName, out _),
+                    $"The setting '{descriptor.Name}' applies to the unregistered scope '{scopeName}'."
+                );
+            }
+        }
+    }
+
+    [Fact]
+    public void AddIdentityServer_EveryDiscoverableSettingAppliesToTenants()
+    {
+        // Discovery advertises a tenant's effective settings, so a discoverable setting is read at the tenant scope.
+        using var host = BuildHost([]);
+        var descriptors = host.Services.GetRequiredService<ISettingDescriptorCollectionProvider>();
+
+        foreach (var descriptor in descriptors.Collection.Where(x => x.IsDiscoverable))
+        {
+            Assert.True(
+                descriptor.AppliesTo.Contains(OpenIdSettingScopes.Tenant),
+                $"The discoverable setting '{descriptor.Name}' does not apply to tenants."
+            );
+        }
+    }
+
+    [Theory]
+    [InlineData(OpenIdSettingNames.SecurityProfiles, OpenIdSettingScopes.Client, true)]
+    [InlineData(OpenIdSettingNames.SecurityProfiles, OpenIdSettingScopes.ResourceServer, false)]
+    [InlineData(OpenIdSettingNames.RequireCodeChallenge, OpenIdSettingScopes.ResourceServer, false)]
+    [InlineData(OpenIdSettingNames.AccessTokenEncryptionRequired, OpenIdSettingScopes.Client, true)]
+    [InlineData(
+        OpenIdSettingNames.AccessTokenEncryptionRequired,
+        OpenIdSettingScopes.ResourceServer,
+        true
+    )]
+    [InlineData(
+        OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported,
+        OpenIdSettingScopes.ResourceServer,
+        true
+    )]
+    [InlineData(OpenIdSettingNames.AccessTokenLifetime, OpenIdSettingScopes.ResourceServer, false)]
+    [InlineData(OpenIdSettingNames.SessionIdleTimeout, OpenIdSettingScopes.Client, false)]
+    [InlineData(OpenIdSettingNames.SessionIdleTimeout, OpenIdSettingScopes.Tenant, true)]
+    [InlineData(OpenIdSettingNames.SubjectClaimTypes, OpenIdSettingScopes.Client, false)]
+    [InlineData(
+        OpenIdSettingNames.SendProfileMetadataInUserInfo,
+        OpenIdSettingScopes.Client,
+        false
+    )]
+    [InlineData(OpenIdSettingNames.SendProfileMetadataInIdToken, OpenIdSettingScopes.Client, true)]
+    [InlineData(OpenIdSettingNames.ServiceDocumentation, OpenIdSettingScopes.Client, false)]
+    [InlineData(
+        OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported,
+        OpenIdSettingScopes.Client,
+        true
+    )]
+    [InlineData(OpenIdSettingNames.TokenEndpointAuthMethod, OpenIdSettingScopes.Client, true)]
+    [InlineData(OpenIdSettingNames.CodeChallengeMethodsSupported, OpenIdSettingScopes.Client, true)]
+    [InlineData(OpenIdSettingNames.ClientName, OpenIdSettingScopes.ResourceServer, false)]
+    public void AddIdentityServer_ASettingAppliesWithinTheScopesThatReadIt(
+        string settingName,
+        string scopeName,
+        bool expected
+    )
+    {
+        using var host = BuildHost([]);
+        var descriptors = host.Services.GetRequiredService<ISettingDescriptorCollectionProvider>();
+        var scopes = host.Services.GetRequiredService<ISettingScopeCollectionProvider>().Collection;
+
+        Assert.True(descriptors.Collection.TryGet(settingName, out var descriptor));
+        Assert.Equal(expected, scopes.AppliesWithin(descriptor, scopeName));
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenAnExtensionRegistersASettingScope_ItsSettingsCascadeFromTheTenant()
+    {
+        // An extension that stores settings for an entity of its own registers the entity's scope and its settings;
+        // nothing in the library changes, and the scopes above the new one accept the settings while its siblings do
+        // not (ADR-0149, ADR-0150).
+        const string Organization = "organization";
+        using var host = BuildHost(
+            [],
+            serviceCollection =>
+            {
+                serviceCollection.AddSingleton<ICollectionDataSource<SettingScopeDescriptor>>(
+                    new StaticDataSource<SettingScopeDescriptor>([
+                        new SettingScopeDescriptor
+                        {
+                            Name = Organization,
+                            ParentName = OpenIdSettingScopes.Tenant,
+                        },
+                    ])
+                );
+                serviceCollection.AddSingleton<ICollectionDataSource<SettingDescriptor>>(
+                    new StaticDataSource<SettingDescriptor>([
+                        new SettingDescriptor<bool>
+                        {
+                            Name = "organization_mfa_required",
+                            AppliesTo = [Organization],
+                            Default = false,
+                            OnMerge = SettingMerge.Or,
+                        },
+                    ])
+                );
+            }
+        );
+        var serializer = host.Services.GetRequiredService<ISettingSerializer>();
+        var document = JsonElement.Parse("""{"organization_mfa_required":true}""");
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        Assert.Empty(
+            serializer.ValidateSettings(document, OpenIdSettingScopes.Server, jsonOptions)
+        );
+        Assert.Empty(
+            serializer.ValidateSettings(document, OpenIdSettingScopes.Tenant, jsonOptions)
+        );
+        Assert.Empty(serializer.ValidateSettings(document, Organization, jsonOptions));
+        var error = Assert.Single(
+            serializer.ValidateSettings(document, OpenIdSettingScopes.Client, jsonOptions)
+        );
+        Assert.Equal("organization_mfa_required", error.SettingName);
     }
 
     [Fact]
@@ -218,4 +384,11 @@ public sealed class DefaultRegistrationTests
     }
 
     #endregion
+
+    private sealed class StaticDataSource<T>(IEnumerable<T> items) : ICollectionDataSource<T>
+    {
+        public IEnumerable<T> Collection { get; } = [.. items];
+
+        public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
+    }
 }

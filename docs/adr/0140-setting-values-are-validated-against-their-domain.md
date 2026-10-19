@@ -7,7 +7,8 @@
   [ADR-0145](0145-a-client-authenticates-only-with-its-registered-method.md): `token_endpoint_auth_method` is always a
   registered method, `client_secret_basic` by default, never empty; security-profile domain amended by
   [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md): `security_profiles` is a list whose every
-  value names a registered profile)
+  value names a registered profile; extended by [ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md): the same
+  entry points also reject a setting at a scope that never reads it)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

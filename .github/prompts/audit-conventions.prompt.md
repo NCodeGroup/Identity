@@ -55,9 +55,12 @@ Scan production code only (test projects are exempt from several rules). Check e
   `CancellationToken` **last**. `Task` is allowed only at framework boundaries (middleware `InvokeAsync`, minimal-API
   handlers, mediator handlers). Collection expressions, `const` for literals, and `u8` for UTF-8 bytes. Fields only for
   `ref`/`Interlocked`/`fixed`/`stackalloc`; everything else an auto-property. Constants/statics at the top.
-- **§2 public API** — enums only for closed vocabularies (extensible ones are `public const string`); no secret material
-  on the surface; no behavior-selecting `bool`/`enum` flag arguments; data/options/event types are `sealed` with
-  concrete collections; **no cross-assembly `InternalsVisibleTo`** (only `*Tests` + `DynamicProxyGenAssembly2`).
+- **§2 public API** — vocabularies are **open by default** (ADR-0150): every `enum` must pass the three-part closed test
+  (members fixed outside the package's control or by its own operation contract; no other package could need a member;
+  a new member would need a library change anyway), and an open vocabulary is `public const string` names plus
+  registered descriptors/strategies — never `[Flags]`, never a `switch`/mask encoding relationships among members; no
+  secret material on the surface; no behavior-selecting `bool`/`enum` flag arguments; data/options/event types are
+  `sealed` with concrete collections; **no cross-assembly `InternalsVisibleTo`** (only `*Tests` + `DynamicProxyGenAssembly2`).
 - **§3 organization** — one type per file; **no nested types** except a private type closing over the enclosing generic
   parameter or a nested `static` constant-vocabulary class; the single canonical impl of `IFoo` is `DefaultFoo`;
   namespaces flat per package.
@@ -70,7 +73,8 @@ Scan production code only (test projects are exempt from several rules). Check e
 Fast mechanical checks (grep production `.cs`, adapt as needed):
 
 - **Nested types**: a `class`/`struct`/`interface`/`enum`/`record` declaration indented inside another type.
-- `enum ` on a public surface · `IList<` returns · `bool ` parameters that switch behavior · `async void` · empty
+- `enum ` on a public surface (apply the ADR-0150 closed test to each) · `[Flags]` · a `switch` over a vocabulary's
+  members that encodes their relationships · `IList<` returns · `bool ` parameters that switch behavior · `async void` · empty
   `catch` · `.Result` / `.Wait()` / `.GetAwaiter().GetResult()` (banned) · `Newtonsoft` (banned).
 - **Primary-constructor candidates** (§1): grep `^\s+(public|internal|protected)\s+[A-Z]\w*\(` — one identifier
   immediately before `(` is a **constructor** (a method has `type name(`). Any type whose single ctor body is only

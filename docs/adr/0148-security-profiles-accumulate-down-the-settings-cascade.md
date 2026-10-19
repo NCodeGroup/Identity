@@ -1,6 +1,7 @@
 # 148. Security profiles accumulate down the settings cascade
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md): a resource server
+  selects no security profile, and `security_profiles` is rejected on a resource-server document)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

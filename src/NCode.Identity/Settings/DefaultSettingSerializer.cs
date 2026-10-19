@@ -26,28 +26,36 @@ namespace NCode.Identity.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingSerializer"/> abstraction. Each setting is typed by its
 /// registered <see cref="SettingDescriptor"/>; a setting without one is an error rather than an ad-hoc value, so a
-/// misspelled or retired setting name can never be stored or loaded without being honored. A value of the right type
-/// must also be in the setting's domain (<see cref="SettingDescriptor.TryValidate"/>), so a value the server would not
-/// honor — an unknown security profile, a negative lifetime — is rejected in the same way.
+/// misspelled or retired setting name can never be stored or loaded without being honored. A setting must also apply
+/// within the registered scope whose document carries it
+/// (<see cref="ISettingScopeCollection.AppliesWithin(SettingDescriptor, string, out string?)"/>), and a value of the right
+/// type must be in the setting's domain (<see cref="SettingDescriptor.TryValidate"/>), so a setting the scope never
+/// reads, or a value the server would not honor — an unknown security profile, a negative lifetime — is rejected in the
+/// same way.
 /// </summary>
-// See ADR-0139 (closed vocabulary) and ADR-0140 (value domains).
+// See ADR-0139 (closed vocabulary), ADR-0140 (value domains), and ADR-0149 (scopes).
 internal class DefaultSettingSerializer(
-    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
+    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
+    ISettingScopeCollectionProvider settingScopeCollectionProvider
 ) : ISettingSerializer
 {
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } =
         settingDescriptorCollectionProvider;
 
+    private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
+        settingScopeCollectionProvider;
+
     /// <inheritdoc />
     public IReadOnlyCollection<Setting> DeserializeSettings(
         JsonElement settingsJson,
+        string scopeName,
         JsonSerializerOptions jsonOptions
     )
     {
         var settings = new List<Setting>();
         var errors = new List<SettingError>();
 
-        ReadSettings(settingsJson, jsonOptions, settings, errors);
+        ReadSettings(settingsJson, scopeName, jsonOptions, settings, errors);
 
         if (errors.Count > 0)
         {
@@ -62,23 +70,34 @@ internal class DefaultSettingSerializer(
     /// <inheritdoc />
     public IReadOnlyList<SettingError> ValidateSettings(
         JsonElement settingsJson,
+        string scopeName,
         JsonSerializerOptions jsonOptions
     )
     {
         var errors = new List<SettingError>();
 
-        ReadSettings(settingsJson, jsonOptions, [], errors);
+        ReadSettings(settingsJson, scopeName, jsonOptions, [], errors);
 
         return errors;
     }
 
     private void ReadSettings(
         JsonElement settingsJson,
+        string scopeName,
         JsonSerializerOptions jsonOptions,
         List<Setting> settings,
         List<SettingError> errors
     )
     {
+        var scopes = SettingScopeCollectionProvider.Collection;
+        if (!scopes.TryGet(scopeName, out _))
+        {
+            throw new ArgumentException(
+                $"'{scopeName}' is not a registered setting scope.",
+                nameof(scopeName)
+            );
+        }
+
         if (settingsJson.IsNullOrUndefined())
             return;
 
@@ -96,6 +115,15 @@ internal class DefaultSettingSerializer(
             {
                 errors.Add(
                     new SettingError(settingName, $"'{settingName}' is not a registered setting.")
+                );
+                continue;
+            }
+
+            // A setting the scope never reads would be stored without effect, whatever its value (ADR-0149).
+            if (!scopes.AppliesWithin(descriptor, scopeName, out var scopeFailure))
+            {
+                errors.Add(
+                    new SettingError(settingName, $"The setting '{settingName}' {scopeFailure}.")
                 );
                 continue;
             }

@@ -53,6 +53,15 @@ internal static class DefaultRegistration
                 >()
             );
 
+            // The scopes of the settings cascade are registered data, so an extension adds a scope for an entity of its
+            // own beneath the scope it inherits from (ADR-0149, ADR-0150).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<SettingScopeDescriptor>,
+                    DefaultSettingScopeDataSource
+                >()
+            );
+
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IDefaultSettingsProvider, DefaultSettingsProvider>()
             );

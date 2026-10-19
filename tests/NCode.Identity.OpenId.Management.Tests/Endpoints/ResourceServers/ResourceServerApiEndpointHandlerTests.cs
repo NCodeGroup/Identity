@@ -61,6 +61,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private Mock<ISecretImporter> MockSecretImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
+    private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
@@ -81,6 +82,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockSecretImporter = MockRepository.Create<ISecretImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
+        MockSettingScopeCollectionProvider =
+            MockRepository.Create<ISettingScopeCollectionProvider>();
         MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
         MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
@@ -150,6 +153,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             TimeProvider.System,
             MockCryptoService.Object,
             MockSettingSerializer.Object,
+            MockSettingScopeCollectionProvider.Object,
             MockServerProvider.Object,
             MockSecurityProfileCatalog.Object,
             MockResourceOwnershipService.Object,
@@ -190,7 +194,11 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private void SetupValidSettings() =>
         MockSettingSerializer
             .Setup(x =>
-                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+                x.ValidateSettings(
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.ResourceServer,
+                    It.IsAny<JsonSerializerOptions>()
+                )
             )
             .Returns([])
             .Verifiable();
@@ -198,7 +206,11 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private void SetupInvalidSettings() =>
         MockSettingSerializer
             .Setup(x =>
-                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+                x.ValidateSettings(
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.ResourceServer,
+                    It.IsAny<JsonSerializerOptions>()
+                )
             )
             .Returns([
                 new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
@@ -485,13 +497,27 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
                 }
             )
             .Verifiable();
-        var descriptor = new SettingDescriptor<bool> { Name = "require_pkce" };
-        IReadOnlyCollection<Setting> tenantScopeSettings = [descriptor.Create(true)];
+        var descriptor = new SettingDescriptor<bool>
+        {
+            Name = "access_token_encryption_required",
+            AppliesTo = ["client", "resource_server"],
+        };
+        var clientOnlyDescriptor = new SettingDescriptor<bool>
+        {
+            Name = "require_pkce",
+            AppliesTo = ["client"],
+        };
+        IReadOnlyCollection<Setting> tenantScopeSettings =
+        [
+            descriptor.Create(true),
+            clientOnlyDescriptor.Create(true),
+        ];
         IReadOnlyCollection<Setting> resourceServerScopeSettings = [];
         MockSecurityProfileCatalog
             .Setup(x =>
                 x.Expand(
                     It.Is<JsonElement>(element => IsTenantDocument(element)),
+                    OpenIdSettingScopes.Tenant,
                     It.IsAny<JsonSerializerOptions>()
                 )
             )
@@ -501,12 +527,18 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.DeserializeSettings(
                     It.Is<JsonElement>(element => !IsTenantDocument(element)),
+                    OpenIdSettingScopes.ResourceServer,
                     It.IsAny<JsonSerializerOptions>()
                 )
             )
             .Returns(resourceServerScopeSettings)
             .Verifiable();
         SetupServerProvider(tenantScopeSettings, resourceServerScopeSettings);
+        SetupSettingScopes(
+            OpenIdSettingScopes.ResourceServer,
+            (descriptor, true),
+            (clientOnlyDescriptor, false)
+        );
 
         var result = await Handler.GetEffectiveSettingsAsync(
             CreateHttpContext(),
@@ -516,11 +548,36 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         );
 
         var json = Assert.IsType<JsonHttpResult<ResourceServerEffectiveSettingsResource>>(result);
-        Assert.True(json.Value!.Settings.GetProperty("require_pkce").GetBoolean());
+        Assert.True(
+            json.Value!.Settings.GetProperty("access_token_encryption_required").GetBoolean()
+        );
+
+        // A client setting does not govern a resource server, so its preview omits it (ADR-0149).
+        Assert.False(json.Value.Settings.TryGetProperty("require_pkce", out _));
     }
 
     private static bool IsTenantDocument(JsonElement element) =>
         element.TryGetProperty("scope", out _);
+
+    private void SetupSettingScopes(
+        string scopeName,
+        params (SettingDescriptor Descriptor, bool AppliesWithin)[] results
+    )
+    {
+        var mockScopes = MockRepository.Create<ISettingScopeCollection>();
+        foreach (var (descriptor, appliesWithin) in results)
+        {
+            mockScopes
+                .Setup(x => x.AppliesWithin(descriptor, scopeName))
+                .Returns(appliesWithin)
+                .Verifiable();
+        }
+
+        MockSettingScopeCollectionProvider
+            .Setup(x => x.Collection)
+            .Returns(mockScopes.Object)
+            .Verifiable();
+    }
 
     private void SetupServerProvider(
         IReadOnlyCollection<Setting> tenantScopeSettings,

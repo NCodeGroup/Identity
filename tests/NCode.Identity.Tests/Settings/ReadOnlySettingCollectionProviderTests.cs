@@ -32,7 +32,7 @@ public class ReadOnlySettingCollectionProviderTests : BaseTests
     }
 
     private static Setting<string> Setting(string name, string value) =>
-        new SettingDescriptor<string> { Name = name }.Create(value);
+        new SettingDescriptor<string> { Name = name, AppliesTo = ["client"] }.Create(value);
 
     private static ICollectionDataSource<Setting> DataSource(params Setting[] settings) =>
         new StaticCollectionDataSource<Setting>(settings);
@@ -82,7 +82,9 @@ public class DefaultReadOnlySettingCollectionProviderFactoryTests : BaseTests
             mockDescriptorProvider.Object
         );
 
-        var setting = new SettingDescriptor<string> { Name = "a" }.Create("1");
+        var setting = new SettingDescriptor<string> { Name = "a", AppliesTo = ["client"] }.Create(
+            "1"
+        );
         var dataSource = new StaticCollectionDataSource<Setting>([setting]);
 
         await using var provider = factory.Create([dataSource]);

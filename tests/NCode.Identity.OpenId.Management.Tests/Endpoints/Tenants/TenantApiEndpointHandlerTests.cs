@@ -61,6 +61,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ISecretValidator> MockSecretValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
+    private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
@@ -84,6 +85,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Returns((ManagementError?)null);
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
+        MockSettingScopeCollectionProvider =
+            MockRepository.Create<ISettingScopeCollectionProvider>();
         MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
         MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
@@ -137,6 +140,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             TimeProvider.System,
             MockCryptoService.Object,
             MockSettingSerializer.Object,
+            MockSettingScopeCollectionProvider.Object,
             MockServerProvider.Object,
             MockSecurityProfileCatalog.Object,
             MockResourceOwnershipService.Object,
@@ -210,7 +214,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private void SetupValidSettings() =>
         MockSettingSerializer
             .Setup(x =>
-                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+                x.ValidateSettings(
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Tenant,
+                    It.IsAny<JsonSerializerOptions>()
+                )
             )
             .Returns([])
             .Verifiable();
@@ -218,7 +226,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private void SetupInvalidSettings() =>
         MockSettingSerializer
             .Setup(x =>
-                x.ValidateSettings(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>())
+                x.ValidateSettings(
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Tenant,
+                    It.IsAny<JsonSerializerOptions>()
+                )
             )
             .Returns([
                 new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
@@ -440,12 +452,23 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateSettings("settings-ct"))
             .Verifiable();
         MockSecurityProfileCatalog
-            .Setup(x => x.Expand(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>()))
+            .Setup(x =>
+                x.Expand(
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Tenant,
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
             .Returns(Array.Empty<Setting>())
             .Verifiable();
 
-        var descriptor = new SettingDescriptor<bool> { Name = "claims_parameter_supported" };
+        var descriptor = new SettingDescriptor<bool>
+        {
+            Name = "claims_parameter_supported",
+            AppliesTo = ["client"],
+        };
         var effective = CreateSettingCollection(descriptor.Create(true));
+        SetupSettingScopes(OpenIdSettingScopes.Tenant, (descriptor, true));
         SetupServerProvider(effective);
         SetupAuthorization(AuthorizationResult.Success());
 
@@ -491,7 +514,13 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateSettings("settings-ct"))
             .Verifiable();
         MockSecurityProfileCatalog
-            .Setup(x => x.Expand(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>()))
+            .Setup(x =>
+                x.Expand(
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Tenant,
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
             .Returns(Array.Empty<Setting>())
             .Verifiable();
         SetupServerProvider(CreateSettingCollection());
@@ -533,6 +562,26 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var mock = new Mock<ISettingCollection>(MockBehavior.Loose);
         mock.Setup(x => x.GetEnumerator()).Returns(() => list.GetEnumerator());
         return mock.Object;
+    }
+
+    private void SetupSettingScopes(
+        string scopeName,
+        params (SettingDescriptor Descriptor, bool AppliesWithin)[] results
+    )
+    {
+        var mockScopes = MockRepository.Create<ISettingScopeCollection>();
+        foreach (var (descriptor, appliesWithin) in results)
+        {
+            mockScopes
+                .Setup(x => x.AppliesWithin(descriptor, scopeName))
+                .Returns(appliesWithin)
+                .Verifiable();
+        }
+
+        MockSettingScopeCollectionProvider
+            .Setup(x => x.Collection)
+            .Returns(mockScopes.Object)
+            .Verifiable();
     }
 
     private static HttpContext CreateHttpContextWithEnvironment(bool authenticated)

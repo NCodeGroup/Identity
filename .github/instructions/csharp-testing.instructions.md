@@ -62,6 +62,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   straight to assertion helpers, which stay inline (`CA1861` is off for tests).
 - 👁 **Prefer the size-specific xUnit assertions**: `Assert.Empty(x)` for count 0 and `Assert.Single(x)` for count 1,
   not `Assert.Equal(0/1, x.Count)`. `Assert.Equal(n, x.Count)` is fine for n > 1.
+- 👁 **Compare an `ImmutableArray<T>` by its elements: `Assert.Equal<T>(expected, actual)`.** `ImmutableArray<T>` is
+  `IEquatable<ImmutableArray<T>>` by **reference** to its backing array, so `Assert.Equal(["a"], immutableArray)` binds
+  the collection expression to a new `ImmutableArray<T>` and fails on equal elements; the explicit element type selects
+  the sequence overload.
 - 👁 **Assert on the exception type the contract guarantees, not the one a platform happens to throw.**
   `Assert.Throws<T>` demands an **exact** type match, so it fails on a derived exception. When the concrete type is an
   implementation detail that varies by platform or provider, assert the documented base type with

@@ -42,7 +42,9 @@ public class DefaultSettingCollectionFactoryTests : BaseTests
     [Fact]
     public void Create_WithSettings_ReturnsPopulatedCollection()
     {
-        var setting = new SettingDescriptor<string> { Name = "a" }.Create("1");
+        var setting = new SettingDescriptor<string> { Name = "a", AppliesTo = ["client"] }.Create(
+            "1"
+        );
 
         var collection = _factory.Create([setting]);
 

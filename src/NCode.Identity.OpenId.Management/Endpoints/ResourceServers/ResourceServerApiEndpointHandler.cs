@@ -90,6 +90,7 @@ internal class ResourceServerApiEndpointHandler(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
+    ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IOpenIdServerProvider serverProvider,
     ISecurityProfileCatalog securityProfileCatalog,
     IResourceOwnershipService resourceOwnershipService,
@@ -106,6 +107,9 @@ internal class ResourceServerApiEndpointHandler(
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+
+    private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
+        settingScopeCollectionProvider;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
     private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
@@ -341,10 +345,12 @@ internal class ResourceServerApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        // Setting names are a closed vocabulary (ADR-0139): a settings document that cannot be honored is rejected
-        // here rather than stored and failed when the resource server's settings are next loaded.
+        // Setting names are a closed vocabulary (ADR-0139), and a resource server carries only the settings that apply
+        // within it (ADR-0149): a settings document that cannot be honored is rejected here rather than stored and failed
+        // when the resource server's settings are next loaded.
         var settingErrors = SettingSerializer.ValidateSettings(
             request.Settings,
+            OpenIdSettingScopes.ResourceServer,
             openIdContext.Environment.JsonSerializerOptions
         );
         if (settingErrors.Count > 0)
@@ -871,14 +877,19 @@ internal class ResourceServerApiEndpointHandler(
         {
             TenantId = resourceServer.TenantId,
             ResourceServerId = resourceServer.ResourceServerId,
-            Settings = ToEffectiveSettingsElement(settings),
+            Settings = ToEffectiveSettingsElement(
+                settings,
+                SettingScopeCollectionProvider.Collection,
+                OpenIdSettingScopes.ResourceServer
+            ),
         };
 
     /// <summary>
     /// Merges a resource server's persisted settings onto the addressed tenant's effective settings, producing the same
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves at runtime (server baseline
     /// merged with the tenant's — expanded with the ceilings of the security profiles it selects — and then the resource
-    /// server's persisted overrides).
+    /// server's persisted overrides). A resource server selects no security profile, so its document is merged
+    /// unexpanded (ADR-0149).
     /// </summary>
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeResourceServerSettingsAsync(
         OpenIdContext openIdContext,
@@ -899,9 +910,14 @@ internal class ResourceServerApiEndpointHandler(
         var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
         var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
 
-        var tenantScopeSettings = SecurityProfileCatalog.Expand(tenantSettings.Value, jsonOptions);
+        var tenantScopeSettings = SecurityProfileCatalog.Expand(
+            tenantSettings.Value,
+            OpenIdSettingScopes.Tenant,
+            jsonOptions
+        );
         var resourceServerScopeSettings = SettingSerializer.DeserializeSettings(
             resourceServer.Settings.Value,
+            OpenIdSettingScopes.ResourceServer,
             jsonOptions
         );
 
@@ -995,7 +1011,11 @@ internal class ResourceServerApiEndpointHandler(
 
         var settingsValue = SerializeToElement(jsonObject);
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettings(settingsValue, jsonOptions);
+        var settingErrors = SettingSerializer.ValidateSettings(
+            settingsValue,
+            OpenIdSettingScopes.ResourceServer,
+            jsonOptions
+        );
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);

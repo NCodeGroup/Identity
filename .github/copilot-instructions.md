@@ -11,6 +11,17 @@ shims. Surface a fork for the user to decide **only** when the options are genui
 value/security/semantics trade-off), not when one is merely more work. Full statement: the standing posture in
 [`BACKLOG.md`](../BACKLOG.md).
 
+### Extensibility is the goal — nothing closed by default
+
+The family exists to be extended easily and without restriction: a consumer or a sibling package adds a setting, a
+setting scope, a security profile, a grant type, a client-authentication method, a claim, a store, or an endpoint by
+**registering** it, never by editing the library. Every vocabulary is therefore **open by default** — string names plus
+registered descriptors or strategies, validated as a whole when composed — and a closed construct (an `enum`, a
+`switch` over a vocabulary, a hard-coded relationship between its members) must be justified as provably closed. Before
+adding one, ask "could a package that is not this one ever need another member?"; if the answer is not a clear no, it
+is open. The rule and its test: [`csharp-production.instructions.md`](instructions/csharp-production.instructions.md)
+§2 and [ADR-0150](../docs/adr/0150-vocabularies-are-open-unless-provably-closed.md).
+
 ### Security-practice default — decide, don't ask
 
 Default **autonomously** to the modern, secure, recommended practice for OIDC / OAuth 2.x / identity platforms; do

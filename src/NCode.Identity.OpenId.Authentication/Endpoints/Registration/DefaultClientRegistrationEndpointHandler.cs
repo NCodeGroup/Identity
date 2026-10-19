@@ -1081,7 +1081,11 @@ internal class DefaultClientRegistrationEndpointHandler(
         JsonSerializerOptions jsonOptions
     )
     {
-        var settingErrors = SettingSerializer.ValidateSettings(settingsJson, jsonOptions);
+        var settingErrors = SettingSerializer.ValidateSettings(
+            settingsJson,
+            OpenIdSettingScopes.Client,
+            jsonOptions
+        );
         if (settingErrors.Count == 0)
             return null;
 

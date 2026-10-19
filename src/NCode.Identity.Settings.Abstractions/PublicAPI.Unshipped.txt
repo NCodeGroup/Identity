@@ -31,9 +31,14 @@ NCode.Identity.Settings.ISettingDescriptorCollection
 NCode.Identity.Settings.ISettingDescriptorCollection.TryGet(string! settingName, out NCode.Identity.Settings.SettingDescriptor! descriptor) -> bool
 NCode.Identity.Settings.ISettingDescriptorCollection.TryGet<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, out NCode.Identity.Settings.SettingDescriptor<TValue>! descriptor) -> bool
 NCode.Identity.Settings.ISettingDescriptorCollectionProvider
+NCode.Identity.Settings.ISettingScopeCollection
+NCode.Identity.Settings.ISettingScopeCollection.AppliesWithin(NCode.Identity.Settings.SettingDescriptor! descriptor, string! scopeName, out string? failure) -> bool
+NCode.Identity.Settings.ISettingScopeCollection.AppliesWithin(NCode.Identity.Settings.SettingDescriptor! descriptor, string! scopeName) -> bool
+NCode.Identity.Settings.ISettingScopeCollection.TryGet(string! scopeName, out NCode.Identity.Settings.SettingScopeDescriptor! descriptor) -> bool
+NCode.Identity.Settings.ISettingScopeCollectionProvider
 NCode.Identity.Settings.ISettingSerializer
-NCode.Identity.Settings.ISettingSerializer.DeserializeSettings(System.Text.Json.JsonElement settingsJson, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
-NCode.Identity.Settings.ISettingSerializer.ValidateSettings(System.Text.Json.JsonElement settingsJson, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Settings.SettingError>!
+NCode.Identity.Settings.ISettingSerializer.DeserializeSettings(System.Text.Json.JsonElement settingsJson, string! scopeName, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.Settings.ISettingSerializer.ValidateSettings(System.Text.Json.JsonElement settingsJson, string! scopeName, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Settings.SettingError>!
 NCode.Identity.Settings.Setting
 NCode.Identity.Settings.Setting.Descriptor.get -> NCode.Identity.Settings.SettingDescriptor!
 NCode.Identity.Settings.Setting.Setting(NCode.Identity.Settings.SettingDescriptor! descriptor) -> void
@@ -45,6 +50,8 @@ NCode.Identity.Settings.SettingCollectionExtensions
 NCode.Identity.Settings.SettingCollectionExtensions.extension(NCode.Identity.Settings.IReadOnlySettingCollection!)
 NCode.Identity.Settings.SettingCollectionExtensions.extension(NCode.Identity.Settings.IReadOnlySettingCollection!).GetValueOrNull<TValue>(NCode.Identity.Settings.SettingKey<TValue> key) -> TValue?
 NCode.Identity.Settings.SettingDescriptor
+NCode.Identity.Settings.SettingDescriptor.AppliesTo.get -> System.Collections.Immutable.ImmutableArray<string!>
+NCode.Identity.Settings.SettingDescriptor.AppliesTo.init -> void
 NCode.Identity.Settings.SettingDescriptor.IsDiscoverable.get -> bool
 NCode.Identity.Settings.SettingDescriptor.IsDiscoverable.init -> void
 NCode.Identity.Settings.SettingDescriptor.Name.get -> string!
@@ -82,6 +89,12 @@ NCode.Identity.Settings.SettingMerge
 NCode.Identity.Settings.SettingRule<TValue>
 NCode.Identity.Settings.SettingRule<TValue>.SettingRule() -> void
 NCode.Identity.Settings.SettingRules
+NCode.Identity.Settings.SettingScopeDescriptor
+NCode.Identity.Settings.SettingScopeDescriptor.Name.get -> string!
+NCode.Identity.Settings.SettingScopeDescriptor.Name.init -> void
+NCode.Identity.Settings.SettingScopeDescriptor.ParentName.get -> string?
+NCode.Identity.Settings.SettingScopeDescriptor.ParentName.init -> void
+NCode.Identity.Settings.SettingScopeDescriptor.SettingScopeDescriptor() -> void
 override NCode.Identity.Settings.Setting<TValue>.GetValue() -> object!
 override NCode.Identity.Settings.SettingDescriptor<TValue>.Create(object! value) -> NCode.Identity.Settings.Setting!
 override NCode.Identity.Settings.SettingDescriptor<TValue>.CreateDefault() -> NCode.Identity.Settings.Setting!

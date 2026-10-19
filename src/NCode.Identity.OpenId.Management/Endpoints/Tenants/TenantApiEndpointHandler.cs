@@ -79,6 +79,7 @@ internal class TenantApiEndpointHandler(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
+    ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IOpenIdServerProvider serverProvider,
     ISecurityProfileCatalog securityProfileCatalog,
     IResourceOwnershipService resourceOwnershipService,
@@ -95,6 +96,9 @@ internal class TenantApiEndpointHandler(
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+
+    private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
+        settingScopeCollectionProvider;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
     private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
@@ -214,7 +218,11 @@ internal class TenantApiEndpointHandler(
         return new TenantEffectiveSettingsResource
         {
             TenantId = tenantId,
-            Settings = ToEffectiveSettingsElement(settings),
+            Settings = ToEffectiveSettingsElement(
+                settings,
+                SettingScopeCollectionProvider.Collection,
+                OpenIdSettingScopes.Tenant
+            ),
         };
     }
 
@@ -347,10 +355,12 @@ internal class TenantApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        // Setting names are a closed vocabulary (ADR-0139): a settings document that cannot be honored is rejected
-        // here rather than stored and failed on every request that resolves the tenant.
+        // Setting names are a closed vocabulary (ADR-0139), and a tenant carries only the settings that apply within it
+        // (ADR-0149): a settings document that cannot be honored is rejected here rather than stored and failed on every
+        // request that resolves the tenant.
         var settingErrors = SettingSerializer.ValidateSettings(
             request.Settings,
+            OpenIdSettingScopes.Tenant,
             openIdContext.Environment.JsonSerializerOptions
         );
         if (settingErrors.Count > 0)
@@ -602,7 +612,11 @@ internal class TenantApiEndpointHandler(
     )
     {
         var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var expandedSettings = SecurityProfileCatalog.Expand(tenantSettings.Value, jsonOptions);
+        var expandedSettings = SecurityProfileCatalog.Expand(
+            tenantSettings.Value,
+            OpenIdSettingScopes.Tenant,
+            jsonOptions
+        );
         var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
         return server.SettingsProvider.Collection.Merge(expandedSettings);
     }
@@ -671,7 +685,11 @@ internal class TenantApiEndpointHandler(
 
         var settingsValue = SerializeToElement(jsonObject);
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettings(settingsValue, jsonOptions);
+        var settingErrors = SettingSerializer.ValidateSettings(
+            settingsValue,
+            OpenIdSettingScopes.Tenant,
+            jsonOptions
+        );
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);

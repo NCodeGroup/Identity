@@ -138,9 +138,10 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         JsonElement? capturedSettings = null;
         var mockSettingSerializer = CreateStrictMock<ISettingSerializer>();
         mockSettingSerializer
-            .Setup(x => x.ValidateSettings(It.IsAny<JsonElement>(), jsonOptions))
+            .Setup(x => x.ValidateSettings(It.IsAny<JsonElement>(), "client", jsonOptions))
             .Callback(
-                (JsonElement settings, JsonSerializerOptions _) => capturedSettings = settings
+                (JsonElement settings, string _, JsonSerializerOptions _) =>
+                    capturedSettings = settings
             )
             .Returns([new SettingError("redirect_uris", "stop")])
             .Verifiable();

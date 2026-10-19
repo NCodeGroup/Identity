@@ -51,6 +51,12 @@ preferred over shims, adapters, or "add-only" compromises. Only call out a fork 
 genuinely equivalent in quality_ and the choice is a real value judgment (e.g. a security/semantics trade-off), not when
 one option is merely more work.
 
+**Extensibility is the goal.** The family is built to be extended easily and without restriction — by registering, never
+by editing the library — so every vocabulary is open by default and a closed construct (an `enum`, a `switch` or bit
+mask over a vocabulary) must be provably closed
+([ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)). A design that would make a consumer or
+sibling package edit this library to add a member is the minimal patch, not the comprehensive model.
+
 ---
 
 ## Backlog ID ledger — never reuse a number
@@ -65,8 +71,8 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
-| `F` — Feature gaps                    | `F62`     | `F61`      |
+| `D` — Deferred, intentionally not-yet | `D16`     | `D15`      |
+| `F` — Feature gaps                    | `F64`     | `F63`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U18`     | `U17`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
@@ -108,6 +114,19 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.Jose.Abstractions/Extensions/DateTimeOffsetExtensions.cs`,
   `src/NCode.Identity.Jose.Abstractions/Extensions/TimeProviderExtensions.cs`, and every
   `NCode.Identity.Jose.Extensions` consumer.
+
+- **`D15` — Re-evaluate the existing public enums against the open-vocabulary rule.** Vocabularies are open unless
+  provably closed ([ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)), and the public enums
+  predate the three-part test. Several look open: `SessionTerminationReason` (carried to consumer handlers; an extension
+  can end a session for its own reason — risk, password change, account disabled), `MutualTlsClientCertificateFormat`
+  (each proxy, load balancer, or mesh forwards the certificate its own way; a decoder registered by name would let a
+  deployment add one), `SecretKeyImportFormat` (PKCS #12, OpenSSH, or a key-vault reference), `PersistedGrantStatus`
+  (persisted; a lifecycle a grant type may extend), and `HashAlgorithmType` / `BinaryEncodingType` (closed only because
+  the implementation is a `switch`). `AlgorithmType`, `RequestObjectSource`, `TenantPlane`, `SerializationFormat`,
+  `DeveloperKeyMode`, the `ObjectJson*Handling` mirrors, and the operation outcomes (`PasswordVerificationResult`,
+  `OutboundHttpReadResult`, `OwnerRemovalResult`) appear to pass. Apply the test to each and convert the ones that fail
+  to names plus registered strategies, with data migrations for any persisted value. Touch points: the enum files under
+  `src/**/` and their `switch` consumers.
 
 ## Feature gaps — not yet implemented (group `F`)
 
@@ -446,24 +465,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`,
   `src/NCode.Identity.OpenId.Core/Tenants/TenantResolutionOptionsValidator.cs` (share the issuer rule).
 
-- **`F60` — Make the setting vocabulary scope-aware: reject a setting at a scope that never honors it.** Setting names
-  and values are validated against one catalog for every document type
-  ([ADR-0139](docs/adr/0139-setting-names-are-a-closed-vocabulary.md),
-  [ADR-0140](docs/adr/0140-setting-values-are-validated-against-their-domain.md)), so a server, tenant, client, or
-  resource-server document accepts any registered setting even where the runtime never reads it. The sharpest case is
-  `security_profiles` on a resource server: it is accepted and stored, but resource-server settings are merged
-  unexpanded and requirements are evaluated against client settings, so the profile neither tightens nor enforces
-  anything there ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)). Client-only
-  settings on a resource server, and resource-server-only settings on a client, are the same class. Give each descriptor
-  the scopes it applies to, reject a setting outside them at every entry point (configuration, management writes,
-  dynamic client registration and seeders, and stored documents failing closed), and ship the migration that removes —
-  or translates — what stored documents carry at a scope that never honored it. Decide separately whether a resource
-  server may select a security profile with its own enforcement (for example refusing to issue an access token that
-  is not sender-constrained for an audience that requires it). Touch points:
-  `src/NCode.Identity.Settings.Abstractions/SettingDescriptor.cs`, `src/NCode.Identity/Settings/DefaultSettingSerializer.cs`,
-  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`,
-  `src/NCode.Identity.OpenId.Management/Endpoints/*/*ApiEndpointHandler.cs`. Capture the design in an ADR.
-
 - **`F61` — Combine the client's and the targeted resource server's settings for access-token encryption.** When an
   access token targets a single resource server, `DefaultTokenService` takes the encryption settings from that resource
   server's effective settings (server ∩ tenant ∩ resource server) and ignores the client's
@@ -475,6 +476,35 @@ entry and/or ADR that closed it.
   settings today. Combine the two policies with their lattice merges (`Or` for the requirement, `Intersect` for the
   algorithm lists) before choosing credentials, and decide which side's preference order wins. Touch points:
   `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultTokenService.cs`. Amend ADR-0075.
+
+- **`F62` — Let a resource server constrain the access tokens issued for it.** A resource server's settings govern only
+  the encryption of the access tokens issued for it ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)),
+  and it selects no security profile ([ADR-0149](docs/adr/0149-settings-declare-the-scopes-they-apply-to.md)), so an
+  API cannot require that its tokens be sender-constrained, short-lived, or signed with particular algorithms. Auth0
+  exposes all three per API, and RFC 9728 lets a protected resource advertise `dpop_bound_access_tokens_required`. Make
+  them resource-server settings — a sender-constraint requirement (`Or`), an access-token lifetime ceiling (`Min`), and
+  the signing algorithms (`Intersect`) — read from the effective settings of every targeted resource server and combined
+  with the client's by their lattice merges at issuance, refusing a token request that cannot satisfy them (every
+  audience of a multi-audience token binds). Widen `AppliesTo` of the settings it reuses to resource servers, and share
+  the combination with `F61`. Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultTokenService.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultProofOfPossessionService.cs`,
+  `src/NCode.Identity.OpenId.Authentication/ResourceServers/DefaultResourceServerCredentialResolver.cs`,
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`. Capture the design in an ADR.
+
+- **`F63` — Honor the request-object and UserInfo algorithm settings, or stop advertising them.** Discovery advertises
+  `request_object_signing_alg_values_supported`, `request_object_encryption_{alg,enc}_values_supported`,
+  `userinfo_signing_alg_values_supported`, and `userinfo_encryption_{alg,enc}_values_supported`, but no runtime path
+  reads them, so they apply to tenants only ([ADR-0149](docs/adr/0149-settings-declare-the-scopes-they-apply-to.md)) and
+  their non-standard `_zip_` companions are read by nothing. A request object's `alg` is checked only against `none`, so
+  the FAPI 2.0 profile's ceiling on request-object signing algorithms does not bind; and the UserInfo endpoint returns
+  only plain JSON, so the UserInfo metadata advertises a capability the server lacks. Enforce the request-object
+  algorithms against the requesting client's effective settings (widening their scopes to clients), and either
+  implement signed and encrypted UserInfo responses (`userinfo_signed_response_alg` / `userinfo_encrypted_response_*`
+  client metadata) or stop advertising and retire the UserInfo algorithm settings with a data migration. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/`,
+  `src/NCode.Identity.OpenId.Core/Settings/RootSettingsCollectionDataSource.cs`,
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`.
 
 ## Conformance & interop testing (group `T`)
 

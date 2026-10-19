@@ -59,6 +59,7 @@ internal class DefaultPkceSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.CodeChallengeMethodsSupported,
+                AppliesTo = [OpenIdSettingScopes.Tenant, OpenIdSettingScopes.Client],
                 Rule = SettingRules.Each(SettingRules.OneOf(MethodNames)),
                 Default = [.. DefaultMethods.Intersect(MethodNames, StringComparer.Ordinal)],
 

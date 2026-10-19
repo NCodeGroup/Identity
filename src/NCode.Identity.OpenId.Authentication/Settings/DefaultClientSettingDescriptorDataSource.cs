@@ -67,6 +67,7 @@ internal class DefaultClientSettingDescriptorDataSource(
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthMethodsSupported,
+                AppliesTo = [OpenIdSettingScopes.Tenant, OpenIdSettingScopes.Client],
                 Rule = SettingRules.Each(AuthMethod()),
                 Default = AuthMethods,
 
@@ -82,6 +83,7 @@ internal class DefaultClientSettingDescriptorDataSource(
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthMethod,
+                AppliesTo = [OpenIdSettingScopes.Client],
                 Rule = AuthMethod(),
                 Default = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
 

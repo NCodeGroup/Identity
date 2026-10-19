@@ -63,16 +63,29 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     /// <summary>
     /// Serializes an effective (merged) <see cref="IReadOnlySettingCollection"/> into a flat <see cref="JsonElement"/>
     /// of setting name to formatted value, ordered by name for a stable dump and using the same value representation
-    /// as the discovery document.
+    /// as the discovery document. Only the settings that apply within the scope are included, so the preview shows what
+    /// governs that scope and omits what the runtime never reads there — a tenant-wide session setting in a client's
+    /// preview, or a client setting in a resource server's.
     /// </summary>
     /// <param name="settings">The effective <see cref="IReadOnlySettingCollection"/> to serialize.</param>
+    /// <param name="scopes">The registered <see cref="ISettingScopeCollection"/> that decides where a setting applies.</param>
+    /// <param name="scopeName">The name of the scope whose effective settings <paramref name="settings"/> are.</param>
     /// <returns>The serialized <see cref="JsonElement"/>.</returns>
-    internal virtual JsonElement ToEffectiveSettingsElement(IReadOnlySettingCollection settings)
+    // See ADR-0149.
+    internal virtual JsonElement ToEffectiveSettingsElement(
+        IReadOnlySettingCollection settings,
+        ISettingScopeCollection scopes,
+        string scopeName
+    )
     {
         var values = new SortedDictionary<string, object>(StringComparer.Ordinal);
         foreach (var setting in settings)
         {
-            values[setting.Descriptor.Name] = setting.Descriptor.Format(setting);
+            var descriptor = setting.Descriptor;
+            if (scopes.AppliesWithin(descriptor, scopeName))
+            {
+                values[descriptor.Name] = descriptor.Format(setting);
+            }
         }
 
         return JsonSerializer.SerializeToElement(values);

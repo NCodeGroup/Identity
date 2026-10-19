@@ -127,8 +127,9 @@ internal sealed class DefaultSecurityProfileCatalog(
     /// <inheritdoc />
     public IReadOnlyCollection<Setting> Expand(
         JsonElement settingsJson,
+        string scopeName,
         JsonSerializerOptions jsonOptions
-    ) => Expand(SettingSerializer.DeserializeSettings(settingsJson, jsonOptions));
+    ) => Expand(SettingSerializer.DeserializeSettings(settingsJson, scopeName, jsonOptions));
 
     // Each profile's ceiling is built in its own collection and merged on its own: collecting several profiles into one
     // collection would let a later profile's value for a setting replace an earlier profile's instead of merging with it.

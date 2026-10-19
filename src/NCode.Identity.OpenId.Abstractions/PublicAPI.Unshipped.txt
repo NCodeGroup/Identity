@@ -445,7 +445,7 @@ NCode.Identity.OpenId.Settings.ISecurityProfile.Requirements.get -> System.Colle
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.EvaluateRequirementsAsync<TContext>(NCode.Identity.Settings.IReadOnlySettingCollection! settings, TContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
-NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Text.Json.JsonElement settingsJson, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Text.Json.JsonElement settingsJson, string! scopeName, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.TryGetProfile(string! profileName, out NCode.Identity.OpenId.Settings.ISecurityProfile! profile) -> bool
 NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder
 NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder.Set<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, TValue value) -> void
@@ -991,3 +991,8 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenExchangeAllowRefres
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TokenExchangeAllowRefreshToken.get -> NCode.Identity.Settings.SettingKey<bool>
 NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.Issuer.get -> string?
 NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.Issuer.set -> void
+const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Client = "client" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.ResourceServer = "resource_server" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Server = "server" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Tenant = "tenant" -> string!
+NCode.Identity.OpenId.Settings.OpenIdSettingScopes

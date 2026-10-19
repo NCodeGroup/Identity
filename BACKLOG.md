@@ -68,7 +68,7 @@ entry and/or ADR that closed it.
 | `D` — Deferred, intentionally not-yet | `D15`     | `D14`      |
 | `F` — Feature gaps                    | `F60`     | `F59`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
-| `U` — Frontend presentation platform  | `U15`     | `U14`      |
+| `U` — Frontend presentation platform  | `U17`     | `U16`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
 | `X` — Tooling & agent customization   | `X5`      | `X4`       |
 
@@ -504,16 +504,24 @@ failures, 0 warnings`); the **Basic OP** (browser-driven) plan runs end-to-end u
 The platform foundation landed under [`src/frontend`](src/frontend) with the Management console as the first surface
 ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). Remaining work builds additively on it.
 
-- **`U14` — Frontend dev-dependency security advisories.** `pnpm audit` reports 10 advisories (3 critical, 1 high,
-  6 moderate) against [`src/frontend/pnpm-lock.yaml`](src/frontend/pnpm-lock.yaml); GitHub Dependabot counts the same
-  advisories per workspace path and reports them as 47 alerts on the default branch. Every one is a **`devDependency`
-  of the test/dev toolchain** — `vitest` 2.1.9 and `@vitest/mocker`, `vite`, `esbuild`, `tinypool`, `launch-editor`,
-  `uuid` — reachable only when the Vitest UI server or the Vite dev server is running locally. **None ship**: the
-  `apps/auth` bundle served by the OP host is static build output, and no NuGet package is affected
-  (`dotnet list package --vulnerable --include-transitive` is clean). Clearing them means a `vitest` 2 → 4 major
-  upgrade across every app plus the matching `vite`/`esbuild` bumps — and `@vitest/coverage-v8`, which must always match
-  the installed `vitest` version (it drives the CI coverage report, ADR-0143); do it with `U5` so the new CI job proves
-  the upgrade rather than discovering it later.
+- **`U15` — Adopt TypeScript 7 once typescript-eslint supports it.** TypeScript 7 is the native (Go) compiler and its
+  npm package no longer exposes the JavaScript compiler API (`ts.createSourceFile` and friends) that
+  `typescript-eslint` parses with; `typescript-eslint` 8.72 caps its `typescript` peer at `<6.1.0`. The workspace holds
+  the newest 6.x and [`.github/dependabot.yml`](.github/dependabot.yml) ignores TypeScript majors
+  ([ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). When
+  `typescript-eslint` widens its peer range to 7, bump every workspace's `typescript` together, drop the Dependabot
+  ignore, and keep `pnpm typecheck` (`tsc --noEmit`) and `pnpm lint` green. Touch points: `src/frontend/package.json`
+  and each `apps/*` / `packages/*` `package.json`, `.github/dependabot.yml`.
+- **`U16` — Move the frontend toolchain runtime to the next Node LTS.** The frontend runs on Node 22
+  ([`.node-version`](src/frontend/.node-version), the CI `node-version`), which is in Maintenance LTS until
+  2027-04-30; Node 24 is Active LTS until 2026-10-20 and Node 26 enters Active LTS on 2026-10-28. `@types/node` tracks
+  the runtime major and Dependabot ignores its majors
+  ([ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)), so the move is
+  one deliberate change: `.node-version`, `node-version` in
+  [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml), `engines.node` and the `@types/node` range in
+  [`src/frontend/package.json`](src/frontend/package.json) (plus `apps/conformance-runner`), the Aspire AppHost's NVS
+  lookup ([ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)), and the Node 22 mentions in
+  [`src/frontend/README.md`](src/frontend/README.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
 - **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML

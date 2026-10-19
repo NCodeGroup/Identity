@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ScopeTable } from './ScopeTable.js';
 
 const meta: Meta<typeof ScopeTable> = {

@@ -5,7 +5,11 @@
   by [ADR-0141](0141-response-types-are-whole-values.md): `response_types_supported` lists whole response types,
   advertised as listed, so an operator re-enables one implicit or hybrid flow by listing exactly that flow; and by
   [ADR-0144](0144-authorization-codes-are-bound-to-pkce-by-default.md): PKCE `plain` cannot be re-enabled, and every
-  authorization code is bound to an `S256` challenge by default)
+  authorization code is bound to an `S256` challenge by default; and by
+  [ADR-0155](0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): the ID token, UserInfo, and
+  request-object encryption lists admit only asymmetric key management, `RSA1_5` is offered by no list, and a client's
+  registered `id_token_signed_response_alg` / `userinfo_signed_response_alg` — not the first listed algorithm — selects
+  the signature)
 - **Date:** 2026-10-12
 - **Deciders:** NCode.Identity maintainers
 

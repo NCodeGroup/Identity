@@ -1,6 +1,8 @@
 # 90. Durable outbound delivery via a generic job-dispatch adapter (BYO orchestration)
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0155](0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): the
+  backchannel request-object encryption settings are retired and an encrypted backchannel request is rejected, because
+  CIBA Core §7.1.1 defines only an asymmetrically signed request)
 - **Date:** 2026-10-13
 - **Deciders:** NCode Group
 

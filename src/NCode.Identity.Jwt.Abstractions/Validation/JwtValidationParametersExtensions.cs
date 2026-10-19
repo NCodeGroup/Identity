@@ -47,6 +47,19 @@ public static class JwtValidationParametersExtensions
         }
 
         /// <summary>
+        /// Sets <see cref="JwtValidationParameters.DecryptionKeys"/> to the specified <paramref name="secretKeys"/>.
+        /// </summary>
+        /// <param name="secretKeys">The collection of <see cref="SecretKey"/> instances that decrypt the enclosing JWE
+        /// of a Nested JSON Web Token (JWT).</param>
+        /// <returns>The <see cref="JwtValidationParameters"/> instance for method chaining.</returns>
+        public JwtValidationParameters UseDecryptionKeys(IEnumerable<SecretKey> secretKeys)
+        {
+            parameters.DecryptionKeys =
+                secretKeys as IReadOnlyCollection<SecretKey> ?? [.. secretKeys];
+            return parameters;
+        }
+
+        /// <summary>
         /// Adds the specified <paramref name="requirement"/> to <see cref="JwtValidationParameters.Requirements"/>.
         /// </summary>
         /// <param name="requirement">The <see cref="IJwtValidationRequirement"/> to add.</param>

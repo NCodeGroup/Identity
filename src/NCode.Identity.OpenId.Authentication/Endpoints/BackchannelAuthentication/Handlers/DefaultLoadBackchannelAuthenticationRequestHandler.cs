@@ -19,27 +19,29 @@
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using NCode.Identity.Jose;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Settings;
-using NCode.Json;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Handlers;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="LoadBackchannelAuthenticationRequestCommand"/> handler. When the
-/// client sends a signed <c>request</c> JWT (OpenID Connect CIBA §7.1.1), it validates the JWT against the client's
-/// registered keys and uses its claims as the authoritative request; otherwise the form-based request is returned as-is.
+/// client sends a signed <c>request</c> JWT (OpenID Connect CIBA §7.1.1), it validates the JWT against the client's keys
+/// and uses its claims as the authoritative request; otherwise the form-based request is returned as-is. The JWT must
+/// carry an asymmetric signature the client's effective settings permit, and is never encrypted: CIBA defines no
+/// encrypted authentication request (ADR-0155).
 /// </summary>
 internal class DefaultLoadBackchannelAuthenticationRequestHandler(
     ILogger<DefaultLoadBackchannelAuthenticationRequestHandler> logger,
-    IJwtValidator jwtValidator
+    IJwtValidator jwtValidator,
+    IClientKeyResolver clientKeyResolver
 )
     : ICommandResponseHandler<
         LoadBackchannelAuthenticationRequestCommand,
@@ -48,6 +50,7 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
 {
     private ILogger<DefaultLoadBackchannelAuthenticationRequestHandler> Logger { get; } = logger;
     private IJwtValidator JwtValidator { get; } = jwtValidator;
+    private IClientKeyResolver ClientKeyResolver { get; } = clientKeyResolver;
 
     /// <inheritdoc />
     public async ValueTask<IBackchannelAuthenticationRequest> HandleAsync(
@@ -66,11 +69,22 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
         const string errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
 
         JsonElement jwtPayload;
-        JsonElement jwtHeader;
         try
         {
-            var parameters = new JwtValidationParameters()
-                .UseValidationKeys(openIdClient.SecretKeys)
+            var validationKeys = await ClientKeyResolver.ResolveSecretKeysAsync(
+                openIdClient,
+                cancellationToken
+            );
+
+            // No decryption keys are given, so an encrypted request is rejected; the signature algorithm is one the
+            // client's effective settings permit, checked before the signature is verified (ADR-0154).
+            var parameters = new JwtValidationParameters
+            {
+                ValidSignatureAlgorithms = openIdClient.Settings.GetPermittedAlgorithms(
+                    OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported
+                ),
+            }
+                .UseValidationKeys(validationKeys)
                 .ValidateIssuer(openIdClient.ClientId)
                 .ValidateAudience(openIdContext.Tenant.Issuer)
                 .ValidateCertificateLifeTime()
@@ -88,15 +102,12 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
             }
 
             jwtPayload = result.DecodedJwt.Payload;
-            jwtHeader = result.DecodedJwt.Header;
         }
         catch (Exception exception)
         {
             Logger.FailedToDecodeJwt(exception);
             throw errorFactory.FailedToDecodeJwt(errorCode).WithException(exception).AsException();
         }
-
-        ValidateRequestObjectAlgorithms(openIdClient, jwtHeader, errorFactory, errorCode);
 
         BackchannelAuthenticationRequest requestObject;
         try
@@ -127,100 +138,5 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
         }
 
         return requestObject;
-    }
-
-    // Enforces the request object's algorithms against the advertised sets: the key-management/content-encryption/zip
-    // values for an encrypted (JWE) request object, or the signing value for a signed (JWS) one. A narrowed set rejects
-    // everything outside it; an unset (empty) set is unrestricted (ADR-0010).
-    private static void ValidateRequestObjectAlgorithms(
-        OpenIdClient openIdClient,
-        JsonElement jwtHeader,
-        IOpenIdErrorFactory errorFactory,
-        string errorCode
-    )
-    {
-        var settings = openIdClient.Settings;
-
-        var algorithm = jwtHeader.TryGetPropertyValue<string>(
-            JoseClaimNames.Header.Alg,
-            out var alg
-        )
-            ? alg
-            : null;
-
-        // The presence of an "enc" header identifies an encrypted (JWE) request object.
-        if (jwtHeader.TryGetProperty(JoseClaimNames.Header.Enc, out var encElement))
-        {
-            EnforceAdvertised(
-                settings.GetValue(
-                    OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionAlgValuesSupported
-                ),
-                algorithm,
-                "encrypted with an unsupported key-management algorithm",
-                errorFactory,
-                errorCode
-            );
-
-            EnforceAdvertised(
-                settings.GetValue(
-                    OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionEncValuesSupported
-                ),
-                encElement.GetString(),
-                "encrypted with an unsupported content-encryption algorithm",
-                errorFactory,
-                errorCode
-            );
-
-            if (
-                jwtHeader.TryGetPropertyValue<string>(JoseClaimNames.Header.Zip, out var zip)
-                && zip is { Length: > 0 }
-            )
-            {
-                EnforceAdvertised(
-                    settings.GetValue(
-                        OpenIdSettingKeys.BackchannelAuthenticationRequestEncryptionZipValuesSupported
-                    ),
-                    zip,
-                    "compressed with an unsupported compression algorithm",
-                    errorFactory,
-                    errorCode
-                );
-            }
-
-            return;
-        }
-
-        // Otherwise it is a signed (JWS) request object.
-        EnforceAdvertised(
-            settings.GetValue(
-                OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported
-            ),
-            algorithm,
-            "signed with an unsupported algorithm",
-            errorFactory,
-            errorCode
-        );
-    }
-
-    private static void EnforceAdvertised(
-        IReadOnlyCollection<string> advertised,
-        string? value,
-        string reason,
-        IOpenIdErrorFactory errorFactory,
-        string errorCode
-    )
-    {
-        if (advertised.Count == 0)
-            return;
-
-        if (!string.IsNullOrEmpty(value) && advertised.Contains(value))
-            return;
-
-        throw errorFactory
-            .InvalidRequest(
-                $"The backchannel authentication request object is {reason}.",
-                errorCode
-            )
-            .AsException();
     }
 }

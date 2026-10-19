@@ -72,7 +72,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F65`     | `F64`      |
+| `F` — Feature gaps                    | `F69`     | `F68`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U22`     | `U21`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
@@ -334,7 +334,8 @@ entry and/or ADR that closed it.
   [`src/NCode.Identity.Jose/Algorithms/KeyManagement`](src/NCode.Identity.Jose/Algorithms/KeyManagement),
   [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms).
 
-- **`F40` — Bound the lifetime of signed request objects (JAR, CIBA, FAPI Message Signing).** Signed request objects —
+- **`F40` — Harden signed request objects: lifetime, audience, and explicit typing (JAR, CIBA, FAPI Message
+  Signing).** Signed request objects —
   the authorization endpoint's inline `request` / `request_uri` (RFC 9101) and CIBA signed authentication requests —
   have their `nbf` / `iat` / `exp` validated (and `exp` required) but no lifetime cap, so a pre-generated request object
   stays usable until an arbitrarily distant `exp`. FAPI 1.0 Advanced and FAPI 2.0 Message Signing
@@ -343,10 +344,12 @@ entry and/or ADR that closed it.
   request. The general `TokenLifetimeRequirement.MaxLifetime` cap built for `F39`
   ([ADR-0124](docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)) provides the lifetime half: add a
   `request_object_max_lifetime` setting (`Min` ceiling, pinned by the FAPI profile), require the claims each profile
-  demands (`nbf`, and CIBA's `iat` / `jti`) in both loaders, and decide the default. The CIBA loader also still
-  validates with the JWT library's default 5-minute clock skew rather than the client's `clock_skew` setting, and with
-  only the client's stored keys rather than `IClientKeyResolver` (runtime `jwks_uri`); align it with the JAR loader in
-  the same pass. Touch points:
+  demands (`nbf`, and CIBA's `iat` / `jti`) in both loaders, and decide the default. The authorization endpoint also
+  checks a request object's `aud` only when `request_object_expected_audience` is set, although RFC 9101 §4 expects the
+  issuer and FAPI 2.0 Message Signing requires it; validate `aud` against the issuer by default, and decide whether to
+  require the explicit `typ` `oauth-authz-req+jwt` (RFC 9101 §10.8) so a request object cannot be confused with another
+  JWT the client signs. The CIBA loader also still validates with the JWT library's default 5-minute clock skew rather
+  than the client's `clock_skew` setting; align it with the JAR loader in the same pass. Touch points:
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/Handlers/DefaultLoadBackchannelAuthenticationRequestHandler.cs`,
   `OpenIdSettingKeys`, `Fapi2SecurityProfile`.
@@ -504,21 +507,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication/ResourceServers/DefaultResourceServerCredentialResolver.cs`,
   `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`. Capture the design in an ADR.
 
-- **`F63` — Honor the request-object and UserInfo algorithm settings, or stop advertising them.** Discovery advertises
-  `request_object_signing_alg_values_supported`, `request_object_encryption_{alg,enc}_values_supported`,
-  `userinfo_signing_alg_values_supported`, and `userinfo_encryption_{alg,enc}_values_supported`, but no runtime path
-  reads them, so they apply to tenants only ([ADR-0149](docs/adr/0149-settings-declare-the-scopes-they-apply-to.md)) and
-  their non-standard `_zip_` companions are read by nothing. A request object's `alg` is checked only against `none`, so
-  the FAPI 2.0 profile's ceiling on request-object signing algorithms does not bind; and the UserInfo endpoint returns
-  only plain JSON, so the UserInfo metadata advertises a capability the server lacks. Enforce the request-object
-  algorithms against the requesting client's effective settings (widening their scopes to clients), and either
-  implement signed and encrypted UserInfo responses (`userinfo_signed_response_alg` / `userinfo_encrypted_response_*`
-  client metadata) or stop advertising and retire the UserInfo algorithm settings with a data migration. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/`,
-  `src/NCode.Identity.OpenId.Core/Settings/RootSettingsCollectionDataSource.cs`,
-  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`.
-
 - **`F64` — Make the zone's CAA records the only certificate authorities that can issue for it.** The `cloudflare-zone`
   module publishes CAA `issue` / `issuewild` records for `caa_issuers` only (default `letsencrypt.org`), and the
   [hosting analysis](docs/hosting-analysis.md#domain-and-dns--nidentityio) intends that no other CA may issue for the
@@ -534,6 +522,60 @@ entry and/or ADR that closed it.
   `Resolve-DnsName nidentity.io -Type CAA -Server 1.1.1.1` lists only `letsencrypt.org` and the `iodef` record.
   Touch points (`NCodeGroup/identity-platform`): `modules/cloudflare-zone/main.tf` (and its tests and README),
   `live/bootstrap/cloudflare.tf`.
+
+- **`F65` — Validate client key material at every entry point.** A client's `jwks` and the keys its `jwks_uri`
+  publishes are the keys the server verifies its signatures with and encrypts its ID tokens and UserInfo responses to
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), but only dynamic client
+  registration checks them, and only that `jwks` and `jwks_uri` are not both present. RFC 7591 §2 requires a registered
+  key set to hold public keys: reject a JWK that carries private or symmetric key material (`d`, `p`, `q`, `k`, …) at
+  registration, in the management API, in the seeders, and when a `jwks_uri` document is fetched; require a `kid` that is
+  unique within the set; reject a key whose `use` / `alg` / `key_ops` are inconsistent; and decide whether
+  `IClientKeyResolver` merges a stored `jwks` with a `jwks_uri` or uses only one (OpenID Connect Dynamic Client
+  Registration 1.0 §2 forbids registering both). Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientKeyResolver.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`, the
+  management client endpoints, and the development seeders.
+
+- **`F66` — Accept the remaining algorithm and CIBA metadata at dynamic client registration.** Registration accepts the
+  ID token, UserInfo, and request-object algorithm metadata
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)) but not
+  `token_endpoint_auth_signing_alg` (OpenID Connect Dynamic Client Registration 1.0 §2) or the CIBA registration
+  metadata (`backchannel_token_delivery_mode`, `backchannel_client_notification_endpoint`,
+  `backchannel_authentication_request_signing_alg`, `backchannel_user_code_parameter`, CIBA Core §4), so a dynamically
+  registered client cannot narrow its assertion algorithm or use CIBA at all and must be provisioned through the
+  management API. Map each algorithm to a single-element client list as `request_object_signing_alg` is, validate it
+  against the tenant's ceiling, and report it in the client information response. Pairs with the `F16` follow-up that
+  accepts the non-secret `token_endpoint_auth_method` values. Touch points:
+  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`.
+
+- **`F67` — Validate the access tokens the server encrypted itself.** When `access_token_encryption_required` applies,
+  an access token is a Nested JWT encrypted to the single targeted resource server's key or, for a multi-audience token
+  or a resource server without a key, to the tenant's ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)).
+  The server's own consumers of access tokens — UserInfo, introspection, token exchange, and the management API —
+  name no decryption keys and no algorithm lists, so they reject every encrypted access token
+  ([ADR-0154](docs/adr/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)): an
+  encrypted token for the OpenID system resource server cannot call UserInfo, and a resource server cannot introspect
+  a token encrypted to it. Name the tenant's keys (and, for introspection, the calling resource server's keys) as
+  decryption keys, and state the access-token signing and encryption lists as allow-lists. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultAuthenticateAccessTokenHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Introspection/Handlers/DefaultIntrospectTokenHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/TokenExchange/DefaultSubjectTokenValidator.cs`.
+
+- **`F68` — Check a client's registered response algorithms when its settings are written, and let a security profile
+  supply compliant defaults.** A client's `id_token_signed_response_alg` and its other registered response algorithms
+  must be in its effective `*_values_supported` lists
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). Dynamic client
+  registration checks them, but the management API, the seeders, and configuration do not, so a mismatch surfaces only
+  when issuance fails with `server_error`. The common case is a security profile: the FAPI 2.0 ceiling excludes the
+  registration default `RS256`, so every client under it needs an explicit `id_token_signed_response_alg`, and a profile
+  can contribute only lattice-merged ceilings, not a default
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)). Validate the registered values
+  against the client's effective ceilings wherever a client's or its tenant's settings are written, and let a profile
+  contribute overridable defaults (for example `PS256`) that its own ceiling then bounds. Touch points:
+  `src/NCode.Identity.OpenId.Abstractions/Settings/ISecurityProfile.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Settings/Fapi2SecurityProfile.cs`, the management client and tenant
+  endpoints.
 
 ## Conformance & interop testing (group `T`)
 

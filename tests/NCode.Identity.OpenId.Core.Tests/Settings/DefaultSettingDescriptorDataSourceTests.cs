@@ -16,9 +16,12 @@
 
 #endregion
 
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Collections.Providers;
+using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets;
 using NCode.Identity.Settings;
 using Xunit;
 
@@ -26,13 +29,28 @@ namespace NCode.Identity.OpenId.Core.Tests.Settings;
 
 public class DefaultSettingDescriptorDataSourceTests : BaseTests
 {
+    // The algorithm rules consult the registered algorithms, so the descriptors are evaluated against the real JOSE
+    // algorithm registrations.
+    private static IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
+        CreateAlgorithmCollectionProvider();
+
+    private static IAlgorithmCollectionProvider CreateAlgorithmCollectionProvider()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        return serviceCollection
+            .BuildServiceProvider()
+            .GetRequiredService<IAlgorithmCollectionProvider>();
+    }
+
     private DefaultSettingDescriptorDataSource CreateDataSource(params string[] profileNames)
     {
         var profiles = profileNames.Select(ISecurityProfile (name) => new FakeProfile(name));
 
         return new DefaultSettingDescriptorDataSource(
             CreateStrictMock<INullChangeToken>().Object,
-            CreateStrictMock<IAlgorithmCollectionProvider>().Object,
+            AlgorithmCollectionProvider,
             profiles
         );
     }
@@ -119,6 +137,100 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
 
             Assert.True(valid, $"The default of '{descriptor.Name}' {failure}.");
         }
+    }
+
+    [Theory]
+    [InlineData(OpenIdSettingNames.UserInfoEncryptedResponseAlg, "RSA-OAEP-256", true)]
+    [InlineData(OpenIdSettingNames.UserInfoEncryptedResponseAlg, "ECDH-ES+A128KW", true)]
+    [InlineData(OpenIdSettingNames.UserInfoEncryptedResponseAlg, "A128KW", false)]
+    [InlineData(OpenIdSettingNames.UserInfoEncryptedResponseAlg, "PBES2-HS256+A128KW", false)]
+    [InlineData(OpenIdSettingNames.UserInfoEncryptedResponseAlg, "RSA1_5", false)]
+    [InlineData(OpenIdSettingNames.IdTokenEncryptedResponseAlg, "dir", false)]
+    [InlineData(OpenIdSettingNames.IdTokenSignedResponseAlg, "PS256", true)]
+    [InlineData(OpenIdSettingNames.IdTokenSignedResponseAlg, "HS256", false)]
+    [InlineData(OpenIdSettingNames.IdTokenSignedResponseAlg, "none", false)]
+    [InlineData(OpenIdSettingNames.UserInfoSignedResponseAlg, "ES256", true)]
+    [InlineData(OpenIdSettingNames.UserInfoEncryptedResponseEnc, "A256GCM", true)]
+    [InlineData(OpenIdSettingNames.UserInfoEncryptedResponseEnc, "RSA-OAEP-256", false)]
+    public void Collection_ResponseProtectionRegistration_AcceptsOnlyItsDomain(
+        string settingName,
+        string value,
+        bool expected
+    )
+    {
+        // A response is signed with an asymmetric key and encrypted to the client's public key (ADR-0155).
+        var dataSource = CreateDataSource();
+        var descriptor = GetDescriptor(dataSource, settingName);
+
+        var valid = descriptor.TryValidate(value, out _);
+
+        Assert.Equal(expected, valid);
+    }
+
+    [Theory]
+    [InlineData(OpenIdSettingNames.IdTokenEncryptionAlgValuesSupported, "RSA-OAEP", true)]
+    [InlineData(OpenIdSettingNames.IdTokenEncryptionAlgValuesSupported, "A256KW", false)]
+    [InlineData(OpenIdSettingNames.UserInfoEncryptionAlgValuesSupported, "ECDH-ES", true)]
+    [InlineData(OpenIdSettingNames.UserInfoEncryptionAlgValuesSupported, "A128GCMKW", false)]
+    [InlineData(OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported, "RSA-OAEP-256", true)]
+    [InlineData(OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported, "A128KW", false)]
+    [InlineData(OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported, "A128KW", true)]
+    [InlineData(OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported, "RSA1_5", false)]
+    [InlineData(OpenIdSettingNames.RequestObjectSigningAlgValuesSupported, "HS256", true)]
+    [InlineData(
+        OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported,
+        "PS256",
+        true
+    )]
+    [InlineData(
+        OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported,
+        "HS256",
+        false
+    )]
+    public void Collection_AlgorithmList_AcceptsOnlyItsDomain(
+        string settingName,
+        string value,
+        bool expected
+    )
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = GetDescriptor(dataSource, settingName);
+
+        var valid = descriptor.TryValidate((IReadOnlyCollection<string>)[value], out _);
+
+        Assert.Equal(expected, valid);
+    }
+
+    [Theory]
+    [InlineData(OpenIdSettingNames.IdTokenSignedResponseAlg, "RS256")]
+    [InlineData(OpenIdSettingNames.IdTokenEncryptedResponseEnc, "A128CBC-HS256")]
+    [InlineData(OpenIdSettingNames.UserInfoEncryptedResponseEnc, "A128CBC-HS256")]
+    public void Collection_ResponseProtectionRegistration_DefaultsToTheOpenIdRegistrationDefault(
+        string settingName,
+        string expected
+    )
+    {
+        // OpenID Connect Dynamic Client Registration 1.0 §2 defines these defaults.
+        var dataSource = CreateDataSource();
+        var descriptor = GetDescriptor(dataSource, settingName);
+
+        Assert.True(descriptor.HasDefault);
+        Assert.Equal(expected, descriptor.CreateDefault().GetValue());
+    }
+
+    [Theory]
+    [InlineData(OpenIdSettingNames.IdTokenEncryptedResponseAlg)]
+    [InlineData(OpenIdSettingNames.UserInfoSignedResponseAlg)]
+    [InlineData(OpenIdSettingNames.UserInfoEncryptedResponseAlg)]
+    public void Collection_ResponseProtectionRegistration_IsAbsentUnlessRegistered(
+        string settingName
+    )
+    {
+        // Absent means the response is not signed or not encrypted, so these have no default.
+        var dataSource = CreateDataSource();
+        var descriptor = GetDescriptor(dataSource, settingName);
+
+        Assert.False(descriptor.HasDefault);
     }
 
     [Fact]

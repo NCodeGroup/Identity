@@ -1,15 +1,30 @@
 #nullable enable
+NCode.Identity.Jwt.DecodedJwt.DecodedJwt(NCode.Identity.Jose.JoseToken! token, System.Text.Json.JsonElement payload, NCode.Identity.Secrets.Keys.SecretKey! signingKey) -> void
+NCode.Identity.Jwt.DecodedJwt.DecryptionKey.get -> NCode.Identity.Secrets.Keys.SecretKey?
+NCode.Identity.Jwt.DecodedJwt.DecryptionKey.init -> void
+NCode.Identity.Jwt.DecodedJwt.EncryptionHeader.get -> System.Text.Json.JsonElement?
+NCode.Identity.Jwt.DecodedJwt.EncryptionHeader.init -> void
+NCode.Identity.Jwt.DecodedJwt.SigningKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Jwt.Validation.JwtValidationParameters.DecryptionKeys.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>?
+NCode.Identity.Jwt.Validation.JwtValidationParameters.DecryptionKeys.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ValidCompressionAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<string!>?
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ValidCompressionAlgorithms.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ValidContentEncryptionAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<string!>?
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ValidContentEncryptionAlgorithms.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ValidKeyManagementAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<string!>?
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ValidKeyManagementAlgorithms.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ValidSignatureAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<string!>?
+NCode.Identity.Jwt.Validation.JwtValidationParameters.ValidSignatureAlgorithms.set -> void
+NCode.Identity.Jwt.Validation.JwtValidationParametersExtensions.extension(NCode.Identity.Jwt.Validation.JwtValidationParameters!).UseDecryptionKeys(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Keys.SecretKey!>! secretKeys) -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
 const NCode.Identity.Jwt.Claims.JsonClaimValueTypes.Json = "JSON" -> string!
 const NCode.Identity.Jwt.Claims.JsonClaimValueTypes.JsonArray = "JSON_ARRAY" -> string!
 const NCode.Identity.Jwt.Claims.JsonClaimValueTypes.JsonNull = "JSON_NULL" -> string!
 const NCode.Identity.Jwt.Validation.JwtDecodeException.DefaultMessage = "Token validation failed. Unable to decode the token with any of the provided keys." -> string!
 NCode.Identity.Jwt.Claims.JsonClaimValueTypes
 NCode.Identity.Jwt.DecodedJwt
-NCode.Identity.Jwt.DecodedJwt.DecodedJwt(NCode.Identity.Jose.JoseToken! token, System.Text.Json.JsonElement payload, NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> void
 NCode.Identity.Jwt.DecodedJwt.EncodedToken.get -> string!
 NCode.Identity.Jwt.DecodedJwt.Header.get -> System.Text.Json.JsonElement
 NCode.Identity.Jwt.DecodedJwt.Payload.get -> System.Text.Json.JsonElement
-NCode.Identity.Jwt.DecodedJwt.SecretKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
 NCode.Identity.Jwt.Encoding.IJwtEncoder
 NCode.Identity.Jwt.Encoding.IJwtEncoder.Encode(NCode.Identity.Jwt.Encoding.JwtEncodingParameters! parameters) -> string!
 NCode.Identity.Jwt.Encoding.JwtEncodingParameters

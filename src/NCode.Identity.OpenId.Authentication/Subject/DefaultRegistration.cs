@@ -60,6 +60,14 @@ internal static class DefaultRegistration
                 DefaultAuthenticateSubjectHandler
             >();
 
+            serviceCollection.TryAddSingleton<
+                ICommandResponseHandler<
+                    AuthenticateResourceRequestCommand,
+                    AuthenticateSubjectDisposition
+                >,
+                DefaultAuthenticateSubjectHandler
+            >();
+
             return builder;
         }
     }

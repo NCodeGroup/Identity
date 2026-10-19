@@ -18,9 +18,15 @@
 
 using System.Buffers.Text;
 using System.Net;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.Keys;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
@@ -137,6 +143,89 @@ public class TokenEndpointPasswordTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.True(document.RootElement.TryGetProperty("error", out _));
+    }
+
+    [Fact]
+    public async Task PostToken_WhenClientRegistersEncryptedIdToken_ReturnsIdTokenEncryptedToClientKey()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var clientRsa = RSA.Create(2048);
+        var publicParameters = clientRsa.ExportParameters(includePrivateParameters: false);
+
+        // Registering an encryption algorithm without a content-encryption algorithm takes A128CBC-HS256 (OpenID Connect
+        // Dynamic Client Registration 1.0 §2).
+        using var registerResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.Password },
+                ["token_endpoint_auth_method"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["id_token_encrypted_response_alg"] = "RSA-OAEP-256",
+                ["jwks"] = new Dictionary<string, object>
+                {
+                    ["keys"] = new[]
+                    {
+                        new Dictionary<string, string>
+                        {
+                            ["kty"] = "RSA",
+                            ["kid"] = "client-enc",
+                            ["use"] = "enc",
+                            ["n"] = Base64Url.EncodeToString(publicParameters.Modulus),
+                            ["e"] = Base64Url.EncodeToString(publicParameters.Exponent),
+                        },
+                    },
+                },
+            }
+        );
+        var registerBody = await registerResponse.Content.ReadAsStringAsync();
+        Assert.True(registerResponse.StatusCode == HttpStatusCode.Created, registerBody);
+        using var registration = JsonDocument.Parse(registerBody);
+        var clientId = registration.RootElement.GetProperty("client_id").GetString()!;
+        var clientSecret = registration.RootElement.GetProperty("client_secret").GetString()!;
+
+        using var content = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                ["client_id"] = clientId,
+                ["client_secret"] = clientSecret,
+                ["username"] = UserName,
+                ["password"] = Password,
+                ["scope"] = OpenIdConstants.ScopeTypes.OpenId,
+            }
+        );
+        using var response = await client.PostAsync("/oauth2/token", content);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        using var document = JsonDocument.Parse(body);
+        var idToken = document.RootElement.GetProperty("id_token").GetString()!;
+
+        // Signed by the tenant, then encrypted (a Nested JWT) to the client's key: only the client's private key opens it.
+        var joseSerializer = factory.Services.GetRequiredService<IJoseSerializer>();
+        var clientKey = factory
+            .Services.GetRequiredService<ISecretKeyFactory>()
+            .CreateRsa(new KeyMetadata { KeyId = "client-enc" }, clientRsa);
+        var encrypted = joseSerializer.Parse(idToken);
+        Assert.Equal(JoseProtectionTypes.Jwe, encrypted.ProtectionType);
+        Assert.Equal("client-enc", encrypted.Header.GetProperty("kid").GetString());
+        Assert.Equal("RSA-OAEP-256", encrypted.Header.GetProperty("alg").GetString());
+        Assert.Equal("A128CBC-HS256", encrypted.Header.GetProperty("enc").GetString());
+        Assert.Equal("JWT", encrypted.Header.GetProperty("cty").GetString());
+        Assert.False(encrypted.Header.TryGetProperty("zip", out _));
+
+        var signed = joseSerializer.Decode(encrypted, clientKey);
+        var segments = signed.Split('.');
+        Assert.Equal(3, segments.Length);
+        using var signedHeader = JsonDocument.Parse(Base64Url.DecodeFromChars(segments[0]));
+        Assert.Equal("RS256", signedHeader.RootElement.GetProperty("alg").GetString());
+        using var payload = DecodeJwtPayload(signed);
+        Assert.Equal(clientId, payload.RootElement.GetProperty("aud").GetString());
     }
 
     private static JsonDocument DecodeJwtPayload(string jwt)

@@ -55,6 +55,19 @@ change to the public API is a **major** version bump.
   A Production deployment therefore has to state its intent explicitly rather than inherit it, and an unset
   `DeveloperKeys:Mode` is reported as a violation precisely because it silently means `Ephemeral`.
 
+- **UserInfo responses can be signed and encrypted, and a client registers how its ID tokens and UserInfo responses are
+  protected.** The OpenID Connect registration metadata `id_token_signed_response_alg` (default `RS256`),
+  `id_token_encrypted_response_alg` / `_enc`, `userinfo_signed_response_alg`, and `userinfo_encrypted_response_alg` /
+  `_enc` (`enc` defaults to `A128CBC-HS256`) are client settings — a server or tenant may set the default for its
+  clients — and dynamic client registration accepts them, together with `request_object_signing_alg` and
+  `request_object_encryption_alg` / `_enc`. A client that registers a UserInfo algorithm receives an `application/jwt`
+  response carrying `iss` and `aud`; one that registers encryption receives an ID token, logout token, or UserInfo
+  response encrypted to a public key from its `jwks` or `jwks_uri` (signed and encrypted is a Nested JWT with `cty`
+  `JWT`). Each registered value must be in the matching `*_values_supported` list: registration refuses one that is not
+  with `invalid_client_metadata`, and issuance fails with `server_error` rather than substitute another algorithm.
+  Registering an encrypted response requires `jwks` or `jwks_uri`, and the two may no longer both be registered. See
+  [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
+
 ### Changed
 
 - **The frontend runs on React 19 and Material UI 9.** This covers every surface, including the login and consent
@@ -426,8 +439,71 @@ change to the public API is a **major** version bump.
   `ISecurityProfileCatalog.Expand` take the name of the scope whose document they read. A deployment that stores
   settings documents in its own database must apply the same removal there.
 
+- **The JWT validator takes an explicit algorithm and key policy, and the server never compresses a JWT.**
+  `JwtValidationParameters` gains `DecryptionKeys` (`UseDecryptionKeys`) and the allow-lists
+  `ValidSignatureAlgorithms`, `ValidKeyManagementAlgorithms`, `ValidContentEncryptionAlgorithms`, and
+  `ValidCompressionAlgorithms` (`null` is unrestricted, empty permits none), checked against every header before any
+  cryptographic operation. An encrypted token is decrypted only with the keys the caller names — never with the
+  verification keys — and must enclose a signed JWT (`cty` `JWT`); a key is used only for the `use` and `alg` its
+  metadata declares; the JSON serializations are rejected. `DecodedJwt.SecretKey` is now `DecodedJwt.SigningKey`, and
+  a Nested JWT also reports its `EncryptionHeader` and `DecryptionKey`. The encoder marks a Nested JWT with `cty`
+  `JWT`. See [ADR-0154](docs/adr/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md).
+
+- **Algorithm settings name only what the server can safely honor, and the unsafe and non-standard ones are retired.**
+  The four `*_encryption_zip_values_supported` settings and
+  `backchannel_authentication_request_encryption_{alg,enc,zip}_values_supported` are removed: the server neither
+  compresses what it encrypts nor accepts a compressed JWT (RFC 8725 §3.6), and CIBA defines no encrypted
+  authentication request. The ID token, UserInfo, and request-object encryption lists admit only asymmetric key
+  management (`RSA-OAEP*`, `ECDH-ES*`), because those tokens are encrypted to a party's published key; the CIBA signing
+  list admits only asymmetric signatures; and no list offers `RSA1_5`. The request-object, UserInfo, and ID token lists
+  now apply to clients as well as tenants. The `RetireUnsafeJoseSettingValues` migration removes the retired settings
+  from every stored settings document and strips the values the narrowed lists no longer admit (an emptied list stays
+  empty); each rewritten document gets a new settings concurrency token.
+
+  **Breaking:** the seven retired `OpenIdSettingNames` / `OpenIdSettingKeys` members are removed and six are added;
+  `AuthenticateSubjectCommand` now authenticates only the end-user session, and the new
+  `AuthenticateResourceRequestCommand` authenticates a bearer access token for a set of required audiences;
+  `RegisterClientRequest` and `RegisterClientResponse` gain the registration metadata above. A deployment that stores
+  settings documents in its own database must apply the same migration there.
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
+
+### Security
+
+- **The JWT validator accepted an unsigned (`alg:none`) token as authentic.** The `none` signature algorithm verified
+  with any key, so a token whose header named `none` and whose signature was empty validated against any key
+  collection: a forged access token authenticated at UserInfo, introspection, token exchange, and the management API.
+  The validator now rejects an unsigned token at every level, with no option to accept one, and the `none` algorithm
+  verifies only with an empty key.
+  ([ADR-0154](docs/adr/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md))
+
+- **Request objects, CIBA requests, and client assertions are accepted only with the algorithms the client's settings
+  permit.** A request object's `alg` was checked only against `none`, so a narrower client list — or the FAPI 2.0
+  profile's ceiling — did not bind. A request object is now verified under the client's effective
+  `request_object_signing_alg_values_supported` and decrypted (with the tenant's keys) under its
+  `request_object_encryption_{alg,enc}_values_supported`; a CIBA request under its asymmetric-only
+  `backchannel_authentication_request_signing_alg_values_supported`, with an encrypted one rejected; and a client
+  assertion under its `token_endpoint_auth_signing_alg_values_supported`. At these trust boundaries an unset list
+  permits nothing instead of every registered algorithm.
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
+
+- **The UserInfo endpoint requires an access token.** It accepted the end-user's session cookie in place of an access
+  token, which made a protected resource answer an ambient credential. It now authenticates only a bearer access token
+  (in the `Authorization` header or the form body) whose audience includes the OpenID resource server, issued to an
+  enabled client; anything else is `401` `invalid_token`.
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
+
 ### Fixed
 
+- **An encrypted ID token was encrypted to the tenant's key, which the client cannot decrypt.** With
+  `id_token_encryption_required`, the ID token was encrypted to a tenant key chosen from the server's lists. It is now
+  encrypted to the client's own public key with the algorithms the client registered, and a client that registers no
+  `id_token_encrypted_response_alg` under that policy is refused rather than given a guess. Logout tokens follow the
+  client's ID token registration; one the server cannot protect as registered is skipped with a warning instead of
+  silently. ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
+
+- **A request object that carried a numeric or boolean claim could not be read.** Standard JWT claims such as `iat`,
+  `nbf`, and `exp` — and parameters such as `max_age` — are JSON numbers, which the request-object parser rejected, so
+  a conformant signed request object failed with `invalid_request_object`. They are now read as their string form.
 - **A client's narrower `token_endpoint_auth_signing_alg_values_supported`, and the ceiling of a security profile the
   client selects, now bind its client assertions.** The algorithm of a `private_key_jwt` or `client_secret_jwt`
   assertion was checked against the tenant's list only, so a client-level narrowing — including the FAPI 2.0 profile's

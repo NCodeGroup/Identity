@@ -37,6 +37,8 @@ namespace NCode.Identity.OpenId.Core.Tests.Subject;
 
 public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 {
+    private static readonly string[] RequiredAudiences = ["urn:test:resource"];
+
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; set; } = null!;
     private Mock<OpenIdContext> MockContext { get; set; } = null!;
 
@@ -250,9 +252,10 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
     #region Bearer Access Token Tests
 
-    private (AuthenticateSubjectCommand command, Mock<IMediator> mediator) CreateBearerScaffold(
-        AuthenticateAccessTokenDisposition disposition
-    )
+    private (
+        AuthenticateResourceRequestCommand command,
+        Mock<IMediator> mediator
+    ) CreateBearerScaffold(AuthenticateAccessTokenDisposition disposition)
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         MockContext = mockContext;
@@ -269,14 +272,16 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         mockMediator
             .Setup(x =>
                 x.SendAsync<AuthenticateAccessTokenCommand, AuthenticateAccessTokenDisposition>(
-                    It.IsAny<AuthenticateAccessTokenCommand>(),
+                    It.Is<AuthenticateAccessTokenCommand>(c =>
+                        ReferenceEquals(c.RequiredAudiences, RequiredAudiences)
+                    ),
                     It.IsAny<CancellationToken>()
                 )
             )
             .Returns(new ValueTask<AuthenticateAccessTokenDisposition>(disposition))
             .Verifiable();
 
-        var command = new AuthenticateSubjectCommand(mockContext.Object);
+        var command = new AuthenticateResourceRequestCommand(mockContext.Object, RequiredAudiences);
         return (command, mockMediator);
     }
 
@@ -340,11 +345,41 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         Assert.True(result.IsUndefined);
     }
 
-    #endregion
+    [Fact]
+    public async Task HandleAsync_WhenResourceRequestWithoutAccessToken_ReturnsUndefinedWithoutSession()
+    {
+        // A protected resource is never authenticated by an interactive session (OpenID Connect Core 1.0 §5.3.1).
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        MockContext = mockContext;
+        mockContext.SetupGet(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        var command = new AuthenticateResourceRequestCommand(mockContext.Object, RequiredAudiences);
 
+        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsUndefined);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSessionRequestPresentsAccessToken_AuthenticatesTheSessionOnly()
+    {
+        // An interactive endpoint authenticates its session; a presented access token is not a credential there.
+        var (command, mockAuthService, _) = CreateScaffold();
+        command.OpenIdContext.Http.Request.Headers.Authorization = "Bearer some-access-token";
+        SetupAuthenticate(mockAuthService, AuthenticateResult.NoResult());
+
+        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsUndefined);
+        mockAuthService.Verify();
+    }
+
+    #endregion
     #region Form-Body Access Token Tests
 
-    private (AuthenticateSubjectCommand command, Mock<IMediator> mediator) CreateFormBodyScaffold(
+    private (
+        AuthenticateResourceRequestCommand command,
+        Mock<IMediator> mediator
+    ) CreateFormBodyScaffold(
         AuthenticateAccessTokenDisposition disposition,
         string expectedAccessToken,
         bool includeAuthorizationHeader = false
@@ -384,7 +419,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             .Returns(new ValueTask<AuthenticateAccessTokenDisposition>(disposition))
             .Verifiable();
 
-        var command = new AuthenticateSubjectCommand(mockContext.Object);
+        var command = new AuthenticateResourceRequestCommand(mockContext.Object, RequiredAudiences);
         return (command, mockMediator);
     }
 

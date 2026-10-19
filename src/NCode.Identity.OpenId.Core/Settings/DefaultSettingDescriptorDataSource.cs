@@ -199,18 +199,6 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Or,
             };
 
-            // access_token_encryption_zip_values_supported: permitted "zip" compression values for access-token encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
-            yield return new SettingDescriptor<IReadOnlyCollection<string>>
-            {
-                Name = OpenIdSettingNames.AccessTokenEncryptionZipValuesSupported,
-                AppliesTo = ClientsAndResourceServers,
-                Rule = CompressionAlgorithms(),
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect,
-            };
-
             // access_token_lifetime: validity window for issued access tokens (default 5 minutes).
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
@@ -562,56 +550,16 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // backchannel_authentication_request_signing_alg_values_supported: permitted "alg" values for a signed CIBA request object.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). CIBA Core §7.1.1
+            // requires an asymmetric signature (and defines no encrypted request), so the domain excludes symmetric
+            // algorithms; enforced against the requesting client's effective settings (ADR-0155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported,
                 AppliesTo = TenantsAndClients,
-                Rule = SignatureAlgorithms(),
+                Rule = AsymmetricSignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
-                OnMerge = Intersect,
-            };
-
-            // backchannel_authentication_request_encryption_alg_values_supported: permitted key-management "alg" values for an encrypted CIBA request object.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
-            // Non-discoverable: CIBA Core defines no encryption metadata for the backchannel request (only the signing
-            // alg variant), so advertising it is a non-standard parameter — the capability is still honored un-advertised.
-            yield return new SettingDescriptor<IReadOnlyCollection<string>>
-            {
-                Name =
-                    OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionAlgValuesSupported,
-                AppliesTo = Clients,
-                Rule = KeyManagementAlgorithms(),
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect,
-            };
-
-            // backchannel_authentication_request_encryption_enc_values_supported: permitted content-encryption "enc" values for an encrypted CIBA request object.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
-            // Non-discoverable: see the alg variant above — no standard CIBA discovery parameter exists for this.
-            yield return new SettingDescriptor<IReadOnlyCollection<string>>
-            {
-                Name =
-                    OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionEncValuesSupported,
-                AppliesTo = Clients,
-                Rule = ContentEncryptionAlgorithms(),
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect,
-            };
-
-            // backchannel_authentication_request_encryption_zip_values_supported: permitted "zip" compression values for an encrypted CIBA request object.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
-            yield return new SettingDescriptor<IReadOnlyCollection<string>>
-            {
-                Name =
-                    OpenIdSettingNames.BackchannelAuthenticationRequestEncryptionZipValuesSupported,
-                AppliesTo = Clients,
-                Rule = CompressionAlgorithms(),
-
-                IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Intersect,
             };
 
@@ -665,13 +613,43 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect,
             };
 
+            // id_token_encrypted_response_alg: the key-management "alg" the client registers for encrypting its ID tokens
+            // to its public key (OpenID Connect Dynamic Client Registration 1.0 §2); absent = ID tokens are not encrypted.
+            // Override (Replace): a child fully replaces the parent value. The effective
+            // id_token_encryption_alg_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.IdTokenEncryptedResponseAlg,
+                AppliesTo = Clients,
+                Rule = AsymmetricKeyManagementAlgorithm(),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // id_token_encrypted_response_enc: the content-encryption "enc" of the client's encrypted ID tokens
+            // (OpenID Connect Dynamic Client Registration 1.0 §2: A128CBC-HS256 unless registered).
+            // Override (Replace): a child fully replaces the parent value. The effective
+            // id_token_encryption_enc_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.IdTokenEncryptedResponseEnc,
+                AppliesTo = Clients,
+                Rule = ContentEncryptionAlgorithm(),
+                Default = AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // id_token_encryption_alg_values_supported: permitted "alg" values for id-token encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). An ID token is
+            // encrypted to the client's public key, so only asymmetric key management applies (ADR-0155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionAlgValuesSupported,
                 AppliesTo = TenantsAndClients,
-                Rule = KeyManagementAlgorithms(),
+                Rule = AsymmetricKeyManagementAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -689,7 +667,8 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect,
             };
 
-            // id_token_encryption_required: whether issued id tokens must be encrypted (default false).
+            // id_token_encryption_required: whether issued id tokens must be encrypted (default false); a client that
+            // registers no id_token_encrypted_response_alg then cannot be issued an ID token (ADR-0155).
             // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
@@ -699,18 +678,6 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Or,
-            };
-
-            // id_token_encryption_zip_values_supported: permitted "zip" compression values for id-token encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
-            yield return new SettingDescriptor<IReadOnlyCollection<string>>
-            {
-                Name = OpenIdSettingNames.IdTokenEncryptionZipValuesSupported,
-                AppliesTo = Clients,
-                Rule = CompressionAlgorithms(),
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect,
             };
 
             // id_token_lifetime: validity window for issued id tokens (default 5 minutes).
@@ -724,6 +691,21 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Min,
+            };
+
+            // id_token_signed_response_alg: the signature "alg" the client registers for its ID tokens (OpenID Connect
+            // Dynamic Client Registration 1.0 §2: RS256 unless registered); also signs its logout tokens.
+            // Override (Replace): a child fully replaces the parent value, so a server or tenant sets the default for
+            // its clients. The effective id_token_signing_alg_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.IdTokenSignedResponseAlg,
+                AppliesTo = Clients,
+                Rule = AsymmetricSignatureAlgorithm(),
+                Default = AlgorithmCodes.DigitalSignature.RsaSha256,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
             };
 
             // id_token_signing_alg_values_supported: permitted "alg" values for id-token signing.
@@ -1017,48 +999,42 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // request_object_encryption_alg_values_supported: permitted "alg" values for encrypting request objects.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set. A request object is encrypted to the server's public
+            // key, so only asymmetric key management applies; advertised from the tenant's settings and enforced against
+            // the requesting client's before the request object is decrypted, where an unset list permits nothing
+            // (ADR-0155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported,
-                AppliesTo = Tenants,
-                Rule = KeyManagementAlgorithms(),
+                AppliesTo = TenantsAndClients,
+                Rule = AsymmetricKeyManagementAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
             };
 
             // request_object_encryption_enc_values_supported: permitted "enc" values for encrypting request objects.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set. Advertised from the tenant's settings and enforced
+            // against the requesting client's before the request object is decrypted, where an unset list permits nothing
+            // (ADR-0155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported,
-                AppliesTo = Tenants,
+                AppliesTo = TenantsAndClients,
                 Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
             };
 
-            // request_object_encryption_zip_values_supported: permitted "zip" compression values for encrypting request objects.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
-            yield return new SettingDescriptor<IReadOnlyCollection<string>>
-            {
-                Name = OpenIdSettingNames.RequestObjectEncryptionZipValuesSupported,
-                AppliesTo = Tenants,
-                Rule = CompressionAlgorithms(),
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect,
-            };
-
             // request_object_signing_alg_values_supported: permitted "alg" values for signing request objects.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). Scopes: only
-            // discovery reads it today, so it applies to tenants (backlog F63).
+            // Ceiling (Intersect): a child narrows the parent's set. Advertised from the tenant's settings and enforced
+            // against the requesting client's before the signature is verified, where an unset list permits nothing; a
+            // client that registers a request_object_signing_alg narrows its own list to it (ADR-0155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectSigningAlgValuesSupported,
-                AppliesTo = Tenants,
+                AppliesTo = TenantsAndClients,
                 Rule = SignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1853,49 +1829,83 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect,
             };
 
+            // userinfo_encrypted_response_alg: the key-management "alg" the client registers for encrypting its UserInfo
+            // responses to its public key (OpenID Connect Dynamic Client Registration 1.0 §2); absent = not encrypted.
+            // Override (Replace): a child fully replaces the parent value. The effective
+            // userinfo_encryption_alg_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.UserInfoEncryptedResponseAlg,
+                AppliesTo = Clients,
+                Rule = AsymmetricKeyManagementAlgorithm(),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // userinfo_encrypted_response_enc: the content-encryption "enc" of the client's encrypted UserInfo responses
+            // (OpenID Connect Dynamic Client Registration 1.0 §2: A128CBC-HS256 unless registered).
+            // Override (Replace): a child fully replaces the parent value. The effective
+            // userinfo_encryption_enc_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.UserInfoEncryptedResponseEnc,
+                AppliesTo = Clients,
+                Rule = ContentEncryptionAlgorithm(),
+                Default = AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // userinfo_encryption_alg_values_supported: permitted "alg" values for UserInfo response encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). A UserInfo response
+            // is encrypted to the client's public key, so only asymmetric key management applies; advertised from the
+            // tenant's settings and enforced against the client's (ADR-0155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionAlgValuesSupported,
-                AppliesTo = Tenants,
-                Rule = KeyManagementAlgorithms(),
+                AppliesTo = TenantsAndClients,
+                Rule = AsymmetricKeyManagementAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
             };
 
             // userinfo_encryption_enc_values_supported: permitted "enc" values for UserInfo response encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). Advertised from the
+            // tenant's settings and enforced against the client's (ADR-0155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionEncValuesSupported,
-                AppliesTo = Tenants,
+                AppliesTo = TenantsAndClients,
                 Rule = ContentEncryptionAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
             };
 
-            // userinfo_encryption_zip_values_supported: permitted "zip" compression values for UserInfo response encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
-            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            // userinfo_signed_response_alg: the signature "alg" the client registers for its UserInfo responses (OpenID
+            // Connect Dynamic Client Registration 1.0 §2); absent = the response is not signed.
+            // Override (Replace): a child fully replaces the parent value. The effective
+            // userinfo_signing_alg_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
             {
-                Name = OpenIdSettingNames.UserInfoEncryptionZipValuesSupported,
-                AppliesTo = Tenants,
-                Rule = CompressionAlgorithms(),
+                Name = OpenIdSettingNames.UserInfoSignedResponseAlg,
+                AppliesTo = Clients,
+                Rule = AsymmetricSignatureAlgorithm(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Intersect,
+                OnMerge = Replace,
             };
 
             // userinfo_signing_alg_values_supported: permitted "alg" values for signing the UserInfo response.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). Scopes: only
-            // discovery reads it today, so it applies to tenants (backlog F63).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). Advertised from the
+            // tenant's settings and enforced against the client's (ADR-0155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoSigningAlgValuesSupported,
-                AppliesTo = Tenants,
+                AppliesTo = TenantsAndClients,
                 Rule = AsymmetricSignatureAlgorithms(),
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -1921,67 +1931,87 @@ internal class DefaultSettingDescriptorDataSource(
     /// included: every value names a registered signature algorithm.
     /// </summary>
     private SettingRule<IReadOnlyCollection<string>> SignatureAlgorithms() =>
-        RegisteredAlgorithms(
-            AlgorithmType.DigitalSignature,
-            "a registered signature algorithm such as 'ES256'"
+        SettingRules.Each(
+            SelectableAlgorithm(
+                AlgorithmType.DigitalSignature,
+                "a registered signature algorithm such as 'ES256'"
+            )
         );
 
     /// <summary>
-    /// Gets the rule for a list of algorithms that sign a token crossing a trust boundary (an ID token, a UserInfo
-    /// response, an access token, a DPoP proof): every value names a registered asymmetric signature algorithm, never a
-    /// symmetric one.
+    /// Gets the rule for an algorithm that signs a token crossing a trust boundary (an ID token, a UserInfo response, an
+    /// access token, a DPoP proof): the value names a registered asymmetric signature algorithm, never a symmetric one.
+    /// </summary>
+    private SettingRule<string> AsymmetricSignatureAlgorithm() =>
+        SettingRules.Must<string>(
+            "a registered asymmetric signature algorithm such as 'ES256'",
+            code =>
+                TryGetSelectableAlgorithm(AlgorithmType.DigitalSignature, code, out var algorithm)
+                && SettingAlgorithms.IsAsymmetricSignature(algorithm)
+        );
+
+    /// <summary>
+    /// Gets the rule for a list of algorithms that sign a token crossing a trust boundary: every value satisfies
+    /// <see cref="AsymmetricSignatureAlgorithm"/>.
     /// </summary>
     private SettingRule<IReadOnlyCollection<string>> AsymmetricSignatureAlgorithms() =>
-        SettingRules.Each(
-            SettingRules.Must<string>(
-                "a registered asymmetric signature algorithm such as 'ES256'",
-                code =>
-                    TryGetSelectableAlgorithm(
-                        AlgorithmType.DigitalSignature,
-                        code,
-                        out var algorithm
-                    ) && SettingAlgorithms.IsAsymmetricSignature(algorithm)
-            )
-        );
+        SettingRules.Each(AsymmetricSignatureAlgorithm());
 
     /// <summary>
     /// Gets the rule for a list of key management (<c>alg</c>) algorithms for encryption.
     /// </summary>
     private SettingRule<IReadOnlyCollection<string>> KeyManagementAlgorithms() =>
-        RegisteredAlgorithms(
-            AlgorithmType.KeyManagement,
-            "a registered key management algorithm such as 'RSA-OAEP-256'"
+        SettingRules.Each(
+            SelectableAlgorithm(
+                AlgorithmType.KeyManagement,
+                "a registered key management algorithm such as 'RSA-OAEP-256'"
+            )
+        );
+
+    /// <summary>
+    /// Gets the rule for a key management (<c>alg</c>) algorithm that encrypts to a party by its public key (a response
+    /// addressed to a client, a request object addressed to the server): the value names a registered asymmetric key
+    /// management algorithm, never one that needs a shared key.
+    /// </summary>
+    private SettingRule<string> AsymmetricKeyManagementAlgorithm() =>
+        SettingRules.Must<string>(
+            "a registered asymmetric key management algorithm such as 'RSA-OAEP-256'",
+            code =>
+                TryGetSelectableAlgorithm(AlgorithmType.KeyManagement, code, out var algorithm)
+                && SettingAlgorithms.IsAsymmetricKeyManagement(algorithm)
+        );
+
+    /// <summary>
+    /// Gets the rule for a list of key management algorithms that encrypt to a party by its public key: every value
+    /// satisfies <see cref="AsymmetricKeyManagementAlgorithm"/>.
+    /// </summary>
+    private SettingRule<IReadOnlyCollection<string>> AsymmetricKeyManagementAlgorithms() =>
+        SettingRules.Each(AsymmetricKeyManagementAlgorithm());
+
+    /// <summary>
+    /// Gets the rule for a content encryption (<c>enc</c>) algorithm.
+    /// </summary>
+    private SettingRule<string> ContentEncryptionAlgorithm() =>
+        SelectableAlgorithm(
+            AlgorithmType.AuthenticatedEncryption,
+            "a registered content encryption algorithm such as 'A256GCM'"
         );
 
     /// <summary>
     /// Gets the rule for a list of content encryption (<c>enc</c>) algorithms.
     /// </summary>
     private SettingRule<IReadOnlyCollection<string>> ContentEncryptionAlgorithms() =>
-        RegisteredAlgorithms(
-            AlgorithmType.AuthenticatedEncryption,
-            "a registered content encryption algorithm such as 'A256GCM'"
-        );
-
-    /// <summary>
-    /// Gets the rule for a list of compression (<c>zip</c>) algorithms.
-    /// </summary>
-    private SettingRule<IReadOnlyCollection<string>> CompressionAlgorithms() =>
-        RegisteredAlgorithms(
-            AlgorithmType.Compression,
-            "a registered compression algorithm such as 'DEF'"
-        );
+        SettingRules.Each(ContentEncryptionAlgorithm());
 
     // The rule consults the algorithm collection each time it validates, so it follows the registered algorithms as
     // they change.
-    private SettingRule<IReadOnlyCollection<string>> RegisteredAlgorithms(
+    private SettingRule<string> SelectableAlgorithm(
         AlgorithmType algorithmType,
         string description
     ) =>
-        SettingRules.Each(
-            SettingRules.Must<string>(
-                description,
-                code => TryGetSelectableAlgorithm(algorithmType, code, out _)
-            )
+        SettingRules.Must<string>(
+            description,
+            code => TryGetSelectableAlgorithm(algorithmType, code, out _)
         );
 
     private bool TryGetSelectableAlgorithm(

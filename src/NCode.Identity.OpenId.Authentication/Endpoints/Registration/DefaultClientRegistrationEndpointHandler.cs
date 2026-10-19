@@ -66,6 +66,12 @@ internal class DefaultClientRegistrationEndpointHandler(
 {
     private const int ClientSecretKeySizeBits = 256;
 
+    // The request-object metadata (OpenID Connect Dynamic Client Registration 1.0 §2) is stored as the client's own
+    // algorithm lists, each narrowed to the one registered value, which the authorization endpoint enforces (ADR-0155).
+    private const string RequestObjectSigningAlgMetadata = "request_object_signing_alg";
+    private const string RequestObjectEncryptionAlgMetadata = "request_object_encryption_alg";
+    private const string RequestObjectEncryptionEncMetadata = "request_object_encryption_enc";
+
     private static readonly string[] DefaultGrantTypes =
     [
         OpenIdConstants.GrantTypes.AuthorizationCode,
@@ -246,7 +252,9 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
-        var supportError = ValidateSupportedMetadata(errorFactory, tenantSettings, resolved);
+        var supportError =
+            ValidateSupportedMetadata(errorFactory, tenantSettings, resolved)
+            ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request);
         if (supportError is not null)
         {
             return supportError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
@@ -505,7 +513,9 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
-        var supportError = ValidateSupportedMetadata(errorFactory, tenantSettings, resolved);
+        var supportError =
+            ValidateSupportedMetadata(errorFactory, tenantSettings, resolved)
+            ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request);
         if (supportError is not null)
         {
             return supportError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
@@ -715,6 +725,12 @@ internal class DefaultClientRegistrationEndpointHandler(
             );
         }
 
+        var keysError = ValidateKeyMetadata(errorFactory, request);
+        if (keysError is not null)
+        {
+            return keysError;
+        }
+
         var sectorIdentifierUri = request.SectorIdentifierUri;
 
         // OpenID Connect Core 1.0 §8.1 requires a sector_identifier_uri for a pairwise client whose redirect_uris span
@@ -882,6 +898,202 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         return null;
     }
+
+    /// <summary>
+    /// Verifies the key and encryption metadata of a registration request (OpenID Connect Dynamic Client Registration
+    /// 1.0 §2): <c>jwks</c> and <c>jwks_uri</c> are not both present, an <c>*_enc</c> value is registered only with its
+    /// <c>*_alg</c>, and a client that registers an encrypted response publishes the public keys it is encrypted to.
+    /// Returns an <c>invalid_client_metadata</c> error, or <see langword="null"/> when the metadata is consistent.
+    /// </summary>
+    // See ADR-0155.
+    internal virtual IOpenIdError? ValidateKeyMetadata(
+        IOpenIdErrorFactory errorFactory,
+        RegisterClientRequest request
+    )
+    {
+        var hasJwks = request.Jwks is { ValueKind: JsonValueKind.Object };
+        var hasJwksUri = !string.IsNullOrEmpty(request.JwksUri);
+        if (hasJwks && hasJwksUri)
+        {
+            return InvalidClientMetadata(
+                errorFactory,
+                "The 'jwks_uri' and 'jwks' parameters must not both be present."
+            );
+        }
+
+        (string AlgName, string? Alg, string EncName, string? Enc)[] encryptions =
+        [
+            (
+                OpenIdSettingNames.IdTokenEncryptedResponseAlg,
+                request.IdTokenEncryptedResponseAlg,
+                OpenIdSettingNames.IdTokenEncryptedResponseEnc,
+                request.IdTokenEncryptedResponseEnc
+            ),
+            (
+                OpenIdSettingNames.UserInfoEncryptedResponseAlg,
+                request.UserInfoEncryptedResponseAlg,
+                OpenIdSettingNames.UserInfoEncryptedResponseEnc,
+                request.UserInfoEncryptedResponseEnc
+            ),
+            (
+                RequestObjectEncryptionAlgMetadata,
+                request.RequestObjectEncryptionAlg,
+                RequestObjectEncryptionEncMetadata,
+                request.RequestObjectEncryptionEnc
+            ),
+        ];
+
+        foreach (var (algName, alg, encName, enc) in encryptions)
+        {
+            if (!string.IsNullOrEmpty(enc) && string.IsNullOrEmpty(alg))
+            {
+                return InvalidClientMetadata(
+                    errorFactory,
+                    $"The '{encName}' parameter requires '{algName}'."
+                );
+            }
+        }
+
+        // A response is encrypted to a public key the client publishes; without one it could never be delivered.
+        var registersEncryptedResponse =
+            !string.IsNullOrEmpty(request.IdTokenEncryptedResponseAlg)
+            || !string.IsNullOrEmpty(request.UserInfoEncryptedResponseAlg);
+        if (registersEncryptedResponse && !hasJwks && !hasJwksUri)
+        {
+            return InvalidClientMetadata(
+                errorFactory,
+                "An encrypted response requires the client's public keys in 'jwks' or 'jwks_uri'."
+            );
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Verifies that the tenant permits the algorithms a registration requests for the responses addressed to the client
+    /// and for its request objects, and that a client of a tenant that requires encrypted ID tokens registers an
+    /// encryption algorithm for them. An omitted <c>id_token_signed_response_alg</c> is the tenant's effective default
+    /// (<c>RS256</c> unless the server or tenant sets another). Returns an <c>invalid_client_metadata</c> error, or
+    /// <see langword="null"/> when the tenant permits them all; an unset list is unrestricted.
+    /// </summary>
+    /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
+    /// <param name="tenantSettings">The settings of the tenant the client registers with.</param>
+    /// <param name="request">The registration request.</param>
+    /// <returns>The error, or <see langword="null"/> when the tenant permits every algorithm.</returns>
+    // See ADR-0155.
+    internal virtual IOpenIdError? ValidateAlgorithmMetadata(
+        IOpenIdErrorFactory errorFactory,
+        IReadOnlySettingCollection tenantSettings,
+        RegisterClientRequest request
+    )
+    {
+        var idTokenSignedResponseAlg =
+            request.IdTokenSignedResponseAlg
+            ?? (
+                tenantSettings.TryGetValue(
+                    OpenIdSettingKeys.IdTokenSignedResponseAlg,
+                    out var defaultAlg
+                )
+                    ? defaultAlg
+                    : null
+            );
+
+        (string Name, string? Value, SettingKey<IReadOnlyCollection<string>> Permitted)[] checks =
+        [
+            (
+                OpenIdSettingNames.IdTokenSignedResponseAlg,
+                idTokenSignedResponseAlg,
+                OpenIdSettingKeys.IdTokenSigningAlgValuesSupported
+            ),
+            (
+                OpenIdSettingNames.IdTokenEncryptedResponseAlg,
+                request.IdTokenEncryptedResponseAlg,
+                OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported
+            ),
+            (
+                OpenIdSettingNames.IdTokenEncryptedResponseEnc,
+                request.IdTokenEncryptedResponseEnc,
+                OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported
+            ),
+            (
+                OpenIdSettingNames.UserInfoSignedResponseAlg,
+                request.UserInfoSignedResponseAlg,
+                OpenIdSettingKeys.UserInfoSigningAlgValuesSupported
+            ),
+            (
+                OpenIdSettingNames.UserInfoEncryptedResponseAlg,
+                request.UserInfoEncryptedResponseAlg,
+                OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported
+            ),
+            (
+                OpenIdSettingNames.UserInfoEncryptedResponseEnc,
+                request.UserInfoEncryptedResponseEnc,
+                OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported
+            ),
+            (
+                RequestObjectSigningAlgMetadata,
+                request.RequestObjectSigningAlg,
+                OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported
+            ),
+            (
+                RequestObjectEncryptionAlgMetadata,
+                request.RequestObjectEncryptionAlg,
+                OpenIdSettingKeys.RequestObjectEncryptionAlgValuesSupported
+            ),
+            (
+                RequestObjectEncryptionEncMetadata,
+                request.RequestObjectEncryptionEnc,
+                OpenIdSettingKeys.RequestObjectEncryptionEncValuesSupported
+            ),
+        ];
+
+        foreach (var (name, value, permittedKey) in checks)
+        {
+            if (
+                !string.IsNullOrEmpty(value)
+                && tenantSettings.TryGetValue(permittedKey, out var permitted)
+                && !permitted.Contains(value, StringComparer.Ordinal)
+            )
+            {
+                return InvalidClientMetadata(
+                    errorFactory,
+                    $"The '{name}' value '{value}' is not supported."
+                );
+            }
+        }
+
+        var idTokenEncryptedResponseAlg =
+            request.IdTokenEncryptedResponseAlg
+            ?? (
+                tenantSettings.TryGetValue(
+                    OpenIdSettingKeys.IdTokenEncryptedResponseAlg,
+                    out var defaultEncryptionAlg
+                )
+                    ? defaultEncryptionAlg
+                    : null
+            );
+        if (
+            string.IsNullOrEmpty(idTokenEncryptedResponseAlg)
+            && tenantSettings.TryGetValue(
+                OpenIdSettingKeys.IdTokenEncryptionRequired,
+                out var required
+            )
+            && required
+        )
+        {
+            return InvalidClientMetadata(
+                errorFactory,
+                $"The tenant requires encrypted ID tokens, so '{OpenIdSettingNames.IdTokenEncryptedResponseAlg}' is required."
+            );
+        }
+
+        return null;
+    }
+
+    private static IOpenIdError InvalidClientMetadata(
+        IOpenIdErrorFactory errorFactory,
+        string description
+    ) => errorFactory.InvalidRequest(description, OpenIdConstants.ErrorCodes.InvalidClientMetadata);
 
     private static bool HasMultipleDistinctHosts(IReadOnlyCollection<string> redirectUris)
     {
@@ -1150,6 +1362,53 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (request.Jwks is { ValueKind: JsonValueKind.Object } jwks)
             settings[OpenIdSettingNames.Jwks] = JsonSerializer.SerializeToNode(jwks);
 
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.IdTokenSignedResponseAlg,
+            request.IdTokenSignedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.IdTokenEncryptedResponseAlg,
+            request.IdTokenEncryptedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.IdTokenEncryptedResponseEnc,
+            request.IdTokenEncryptedResponseEnc
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.UserInfoSignedResponseAlg,
+            request.UserInfoSignedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.UserInfoEncryptedResponseAlg,
+            request.UserInfoEncryptedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.UserInfoEncryptedResponseEnc,
+            request.UserInfoEncryptedResponseEnc
+        );
+
+        SetListIfPresent(
+            settings,
+            OpenIdSettingNames.RequestObjectSigningAlgValuesSupported,
+            request.RequestObjectSigningAlg
+        );
+        SetListIfPresent(
+            settings,
+            OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported,
+            request.RequestObjectEncryptionAlg
+        );
+        SetListIfPresent(
+            settings,
+            OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported,
+            request.RequestObjectEncryptionEnc
+        );
+
         return settings;
     }
 
@@ -1212,6 +1471,42 @@ internal class DefaultClientRegistrationEndpointHandler(
             Jwks = ReadElement(settings, OpenIdSettingNames.Jwks),
             SoftwareId = ReadString(settings, OpenIdSettingNames.SoftwareId),
             SoftwareVersion = ReadString(settings, OpenIdSettingNames.SoftwareVersion),
+            IdTokenSignedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.IdTokenSignedResponseAlg
+            ),
+            IdTokenEncryptedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.IdTokenEncryptedResponseAlg
+            ),
+            IdTokenEncryptedResponseEnc = ReadString(
+                settings,
+                OpenIdSettingNames.IdTokenEncryptedResponseEnc
+            ),
+            UserInfoSignedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.UserInfoSignedResponseAlg
+            ),
+            UserInfoEncryptedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.UserInfoEncryptedResponseAlg
+            ),
+            UserInfoEncryptedResponseEnc = ReadString(
+                settings,
+                OpenIdSettingNames.UserInfoEncryptedResponseEnc
+            ),
+            RequestObjectSigningAlg = ReadSingleValue(
+                settings,
+                OpenIdSettingNames.RequestObjectSigningAlgValuesSupported
+            ),
+            RequestObjectEncryptionAlg = ReadSingleValue(
+                settings,
+                OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported
+            ),
+            RequestObjectEncryptionEnc = ReadSingleValue(
+                settings,
+                OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported
+            ),
         };
     }
 
@@ -1231,6 +1526,17 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (!string.IsNullOrEmpty(value))
             settings[key] = value;
     }
+
+    // A single registered value narrows the client's own list to it, which the endpoint enforces.
+    private static void SetListIfPresent(JsonObject settings, string key, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+            settings[key] = new JsonArray(JsonValue.Create(value));
+    }
+
+    // A list narrowed to one value reports it as the registered metadata; any other list names no single registration.
+    private static string? ReadSingleValue(JsonObject settings, string key) =>
+        ReadStringArray(settings, key) is [var value] ? value : null;
 
     private static JsonObject ToJsonObject(JsonElement element) =>
         element.ValueKind == JsonValueKind.Object ? JsonObject.Create(element) ?? [] : [];

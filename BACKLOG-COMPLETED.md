@@ -1025,6 +1025,40 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   migration was verified against Postgres, including rollback and idempotent re-apply. The tracing also surfaced `F63`
   (request-object and UserInfo algorithm settings that only discovery reads)._
 
+- **`F63` — Honor the request-object and UserInfo algorithm settings, or stop advertising them.** Discovery advertises
+  `request_object_signing_alg_values_supported`, `request_object_encryption_{alg,enc}_values_supported`,
+  `userinfo_signing_alg_values_supported`, and `userinfo_encryption_{alg,enc}_values_supported`, but no runtime path
+  reads them, so they apply to tenants only ([ADR-0149](docs/adr/0149-settings-declare-the-scopes-they-apply-to.md)) and
+  their non-standard `_zip_` companions are read by nothing. A request object's `alg` is checked only against `none`, so
+  the FAPI 2.0 profile's ceiling on request-object signing algorithms does not bind; and the UserInfo endpoint returns
+  only plain JSON, so the UserInfo metadata advertises a capability the server lacks. Enforce the request-object
+  algorithms against the requesting client's effective settings (widening their scopes to clients), and either
+  implement signed and encrypted UserInfo responses (`userinfo_signed_response_alg` / `userinfo_encrypted_response_*`
+  client metadata) or stop advertising and retire the UserInfo algorithm settings with a data migration. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/`,
+  `src/NCode.Identity.OpenId.Core/Settings/RootSettingsCollectionDataSource.cs`,
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0154](docs/adr/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) and
+  [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md). Signed and encrypted
+  UserInfo responses are implemented rather than retired: the six OpenID Connect registration settings
+  (`id_token_signed_response_alg`, `id_token_encrypted_response_{alg,enc}`, `userinfo_signed_response_alg`,
+  `userinfo_encrypted_response_{alg,enc}`) are client settings with the registration defaults, accepted by dynamic
+  client registration, and one `IClientJwtCredentialSelector` protects ID tokens, logout tokens, and UserInfo responses
+  as the client registered — signed with the tenant's key, encrypted to the client's published key, never compressed.
+  Request objects are validated under the client's effective request-object lists (now applying to tenants and
+  clients), CIBA requests and client assertions under theirs, with an unset list permitting nothing at these trust
+  boundaries. The work surfaced and fixed a critical gap: the JWT validator accepted an unsigned (`alg:none`) token
+  against any key, so a forged access token authenticated at UserInfo and the management API. The validator now
+  accepts only signed compact JWTs (and Nested JWTs), under caller-stated algorithm allow-lists and explicit decryption
+  keys. It also fixed the ID token being encrypted to the tenant's key instead of the client's, UserInfo accepting the
+  session cookie in place of an access token, and request objects with numeric claims failing to deserialize. The
+  `_zip_` lists and the non-standard CIBA request-encryption settings are retired, encryption to a party is asymmetric
+  only, and `RSA1_5` is offered by no setting; the `RetireUnsafeJoseSettingValues` migration was verified against
+  Postgres. Follow-ups recorded: `F40` (request-object audience and typing), `F65`–`F68`._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

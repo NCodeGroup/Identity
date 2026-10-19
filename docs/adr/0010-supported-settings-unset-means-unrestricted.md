@@ -1,6 +1,7 @@
 # 0010. `*_supported` settings: unset means unrestricted; a replaceable baseline supplies defaults
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0155](0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): an
+  algorithm list that decides what the server accepts from another party permits nothing when unset)
 - **Date:** 2026-09-28
 - **Deciders:** NCode.Identity maintainers
 

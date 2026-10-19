@@ -118,7 +118,7 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
     {
         var payload = JsonSerializer.SerializeToElement(payloadObject);
         var compactJwt = new CompactJwt("JWS", default, "aaa.bbb.ccc", []);
-        var decodedJwt = new DecodedJwt(compactJwt, payload, secretKey: null!);
+        var decodedJwt = new DecodedJwt(compactJwt, payload, signingKey: null!);
         var result = JwtValidationResult.Success(
             new JwtValidationParameters(),
             PropertyBagFactory.Create(),

@@ -1,4 +1,47 @@
 #nullable enable
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenEncryptedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenEncryptedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenEncryptedResponseEnc.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenEncryptedResponseEnc.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenSignedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenSignedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.RequestObjectEncryptionAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.RequestObjectEncryptionAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.RequestObjectEncryptionEnc.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.RequestObjectEncryptionEnc.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.RequestObjectSigningAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.RequestObjectSigningAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.UserInfoEncryptedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.UserInfoEncryptedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.UserInfoEncryptedResponseEnc.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.UserInfoEncryptedResponseEnc.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.UserInfoSignedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.UserInfoSignedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IdTokenEncryptedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IdTokenEncryptedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IdTokenEncryptedResponseEnc.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IdTokenEncryptedResponseEnc.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IdTokenSignedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IdTokenSignedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RequestObjectEncryptionAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RequestObjectEncryptionAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RequestObjectEncryptionEnc.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RequestObjectEncryptionEnc.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RequestObjectSigningAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RequestObjectSigningAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoEncryptedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoEncryptedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoEncryptedResponseEnc.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoEncryptedResponseEnc.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoSignedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoSignedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand
+NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand.AuthenticateResourceRequestCommand() -> void
+NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand.AuthenticateResourceRequestCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, System.Collections.Generic.IReadOnlyCollection<string!>! RequiredAudiences) -> void
+NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand.RequiredAudiences.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand.RequiredAudiences.init -> void
 abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdClient.ClientId.get -> string!
 abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdClient.ConfidentialClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdConfidentialClient?
 abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdClient.IsConfidential.get -> bool

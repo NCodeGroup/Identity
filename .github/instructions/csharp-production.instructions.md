@@ -63,6 +63,11 @@ rationale.
   with `Debug.Assert` is a security bug: the malformed value is accepted in Release. Use an explicit `if (!ok) throw`
   for anything derived from input; reserve `Debug.Assert` for facts the surrounding code already guarantees (a buffer
   length you just allocated, an unreachable `default` branch).
+- 👁 **Validate untrusted text as written, not only as parsed.** Anchor a validating regular expression with `\z`,
+  never `$`: .NET's `$` also matches before a trailing newline, so `^[a-z]+$` accepts `"acme\n"`. When the value is an
+  identifier compared byte for byte — an issuer, a redirect URI — check the raw string as well as the parsed `Uri`:
+  `Uri` trims surrounding whitespace and reports an empty query (`?`) or fragment (`#`) as absent, so a string it
+  accepts can still differ from the one clients must match (`TenantAddressRules.TryParseIssuer`).
 - 👁 Prefer **auto-properties over fields** for state (static or instance) — **including `private` members**. Use a
   field only for a low-level need a property cannot express (a `ref` / `Interlocked` / `fixed` / `stackalloc` target).
   **A `System.Threading.Lock` does _not_ qualify** — declare it as a get-only auto-property
@@ -857,3 +862,13 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
 - 👁 **Inject `IOptions<T>` for start-up-fixed configuration and `IOptionsMonitor<T>` for values that may change at
   runtime.** An options class is a data type (§2): `sealed`, `init` / get-only members, concrete collections,
   correct-by-default (§2 — no knob weakens a security control below its safe baseline).
+- 👁 **A rule that validates configured data also validates the same data written at runtime.** When startup validation
+  checks a value that another path can also write — the management API, dynamic registration, a seeder — both paths
+  apply one implementation of the rule, shared through the seam that owns the concept (the tenant-selection seam judges a
+  tenant's address for configuration and the management API alike). A check that exists only for configuration lets the
+  runtime path store exactly what startup refuses. An options validator never resolves the services that read the
+  options it validates; share a stateless rule set with them instead. See
+  [ADR-0160](../../docs/adr/0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md).
+- 👁 **Each strategy validates its own options.** An `IValidateOptions<T>` for a strategy's section is registered beside
+  the strategy and skips when another strategy is selected; a shared validator never branches on the strategy code, so a
+  strategy registered by another package brings its own validation (§2, open vocabularies).

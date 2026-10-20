@@ -44,7 +44,7 @@ function jsonResponse(body: unknown) {
 const acmeTenant = {
   tenantId: 'acme',
   displayName: 'Acme',
-  domainName: null,
+  issuer: null,
   isDisabled: false,
   concurrencyToken: 'c',
 };
@@ -76,7 +76,7 @@ describe('App (global ↔ tenant boundary)', () => {
             {
               tenantId: 'acme',
               displayName: 'Acme',
-              domainName: null,
+              issuer: null,
               isDisabled: false,
               concurrencyToken: 'c',
             },
@@ -135,7 +135,7 @@ describe('App (global ↔ tenant boundary)', () => {
             {
               tenantId: 'acme',
               displayName: 'Acme',
-              domainName: null,
+              issuer: null,
               isDisabled: false,
               concurrencyToken: 'c',
             },

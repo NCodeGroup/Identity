@@ -10,10 +10,11 @@ import Stack from '@mui/material/Stack';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 
-/** The tenant form's own field shape. `domainName` is a string here (empty means "no domain"). */
+/** The tenant form's own field shape. `issuer` is a string here (empty means "no issuer"). */
 export type TenantFormValues = {
+  readonly tenantId: string;
   readonly displayName: string;
-  readonly domainName: string;
+  readonly issuer: string;
   readonly isDisabled: boolean;
 };
 
@@ -22,6 +23,8 @@ export type TenantFormDialogProps = {
   readonly title: string;
   readonly submitLabel: string;
   readonly initialValues: TenantFormValues;
+  /** Whether the tenant ID is fixed, because the tenant already exists and its ID cannot change. */
+  readonly isTenantIdLocked?: boolean;
   readonly isSubmitting?: boolean;
   readonly error?: string | undefined;
   readonly onSubmit: (values: TenantFormValues) => void;
@@ -29,10 +32,17 @@ export type TenantFormDialogProps = {
 };
 
 export const emptyTenantFormValues: TenantFormValues = {
+  tenantId: '',
   displayName: '',
-  domainName: '',
+  issuer: '',
   isDisabled: false,
 };
+
+/**
+ * The tenant ID rule the server enforces, mirrored here only to guide input: 1 to 63 lowercase
+ * letters, digits, or hyphens that starts and ends with a letter or digit.
+ */
+const tenantIdPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 /**
  * Stateless tenant create/edit form rendered in a dialog. The field state is local because it is
@@ -45,6 +55,7 @@ export function TenantFormDialog({
   title,
   submitLabel,
   initialValues,
+  isTenantIdLocked = false,
   isSubmitting = false,
   error,
   onSubmit,
@@ -62,16 +73,20 @@ export function TenantFormDialog({
     wasOpenRef.current = open;
   }, [open, initialValues]);
 
+  const tenantId = values.tenantId.trim();
   const displayName = values.displayName.trim();
-  const canSubmit = displayName.length > 0 && !isSubmitting;
+  const isTenantIdValid = isTenantIdLocked || tenantIdPattern.test(tenantId);
+  const showTenantIdError = !isTenantIdLocked && tenantId.length > 0 && !isTenantIdValid;
+  const canSubmit = isTenantIdValid && displayName.length > 0 && !isSubmitting;
 
   const handleSubmit = () => {
     if (!canSubmit) {
       return;
     }
     onSubmit({
+      tenantId,
       displayName,
-      domainName: values.domainName.trim(),
+      issuer: values.issuer.trim(),
       isDisabled: values.isDisabled,
     });
   };
@@ -87,21 +102,39 @@ export function TenantFormDialog({
             </Alert>
           )}
           <TextField
+            label="Tenant ID"
+            value={values.tenantId}
+            onChange={(event) => setValues((v) => ({ ...v, tenantId: event.target.value }))}
+            required={!isTenantIdLocked}
+            disabled={isTenantIdLocked}
+            error={showTenantIdError}
+            helperText={
+              isTenantIdLocked
+                ? 'A tenant ID cannot be changed.'
+                : 'Lowercase letters, digits, and hyphens, starting and ending with a letter or digit. It cannot be changed later.'
+            }
+            placeholder="e.g. acme-dev"
+            fullWidth
+            autoFocus={!isTenantIdLocked}
+            slotProps={{ htmlInput: { 'data-testid': 'tenant-id' } }}
+          />
+          <TextField
             label="Display name"
             value={values.displayName}
             onChange={(event) => setValues((v) => ({ ...v, displayName: event.target.value }))}
             required
             fullWidth
-            autoFocus
+            autoFocus={isTenantIdLocked}
             slotProps={{ htmlInput: { 'data-testid': 'tenant-display-name' } }}
           />
           <TextField
-            label="Domain name"
-            value={values.domainName}
-            onChange={(event) => setValues((v) => ({ ...v, domainName: event.target.value }))}
-            placeholder="e.g. id.example.com"
+            label="Issuer"
+            value={values.issuer}
+            onChange={(event) => setValues((v) => ({ ...v, issuer: event.target.value }))}
+            helperText="The https URL the tenant is served under. Leave empty only for local development."
+            placeholder="e.g. https://acme.auth.example.com"
             fullWidth
-            slotProps={{ htmlInput: { 'data-testid': 'tenant-domain-name' } }}
+            slotProps={{ htmlInput: { 'data-testid': 'tenant-issuer' } }}
           />
           <FormControlLabel
             control={

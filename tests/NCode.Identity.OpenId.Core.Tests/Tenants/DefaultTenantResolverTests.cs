@@ -16,16 +16,25 @@
 
 #endregion
 
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tenants;
 
 public sealed class DefaultTenantResolverTests
 {
+    private const string TenantId = "acme";
+    private const string Issuer = "https://op.example/acme";
+
+    #region TryGetTenantId Tests
+
     [Fact]
     public void TryGetTenantId_DelegatesToSelectedStrategy()
     {
@@ -58,4 +67,168 @@ public sealed class DefaultTenantResolverTests
         Assert.Equal("tenant-1", tenantId);
         mocks.Verify();
     }
+
+    #endregion
+
+    #region ValidateTenantAsync Tests
+
+    private static DefaultTenantResolver CreateResolver(ITenantStrategy strategy) =>
+        new(
+            Options.Create(
+                new TenantResolutionOptions
+                {
+                    StrategyCode = OpenIdConstants.TenantStrategyCodes.DynamicByPath,
+                }
+            ),
+            [strategy]
+        );
+
+    private static Mock<ITenantStrategy> CreateStrategy(MockRepository mocks)
+    {
+        var strategy = mocks.Create<ITenantStrategy>();
+        strategy
+            .Setup(x => x.StrategyCode)
+            .Returns(OpenIdConstants.TenantStrategyCodes.DynamicByPath);
+        return strategy;
+    }
+
+    private static PersistedTenant CreatePersistedTenant(string tenantId) =>
+        new()
+        {
+            TenantId = tenantId,
+            ConcurrencyToken = "ct",
+            Issuer = Issuer,
+            IsDisabled = false,
+            DisplayName = tenantId,
+            Settings = new PersistedTenantSettings
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = "ct",
+                Value = JsonSerializer.SerializeToElement(new { }),
+            },
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = "ct",
+                Value = [],
+            },
+        };
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenIdentifierAndIssuerAreInvalid_ReportsBothWithoutConsultingTheStrategy()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = mocks.Create<ITenantStrategy>();
+        var storeManager = mocks.Create<IStoreManager>();
+
+        // The strategy is never selected: the remaining rules are only meaningful for a well-formed address.
+        var failures = await CreateResolver(strategy.Object)
+            .ValidateTenantAsync(
+                "Acme",
+                "http://op.example",
+                storeManager.Object,
+                CancellationToken.None
+            );
+
+        Assert.Equal(2, failures.Count);
+        Assert.All(failures, failure => Assert.False(failure.IsConflict));
+        Assert.Contains("'Acme'", failures[0].Detail, StringComparison.Ordinal);
+        Assert.Contains("'http://op.example'", failures[1].Detail, StringComparison.Ordinal);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenIssuerIsAbsent_DelegatesToTheStrategyWithoutAnIssuerLookup()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        var storeManager = mocks.Create<IStoreManager>();
+
+        strategy
+            .Setup(x =>
+                x.ValidateTenantAsync(TenantId, null, storeManager.Object, CancellationToken.None)
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+
+        var failures = await CreateResolver(strategy.Object)
+            .ValidateTenantAsync(
+                TenantId,
+                string.Empty,
+                storeManager.Object,
+                CancellationToken.None
+            );
+
+        Assert.Empty(failures);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenAnotherTenantHoldsTheIssuer_ReportsAConflictAndTheStrategysFailures()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        var storeManager = mocks.Create<IStoreManager>();
+        var store = mocks.Create<ITenantStore>();
+
+        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
+        store
+            .Setup(x => x.GetOrDefaultByIssuerAsync(Issuer, CancellationToken.None))
+            .ReturnsAsync(CreatePersistedTenant("globex"))
+            .Verifiable();
+        strategy
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    TenantId,
+                    It.Is<Uri>(uri => uri.OriginalString == Issuer),
+                    storeManager.Object,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync([new TenantValidationFailure { Detail = "route" }])
+            .Verifiable();
+
+        var failures = await CreateResolver(strategy.Object)
+            .ValidateTenantAsync(TenantId, Issuer, storeManager.Object, CancellationToken.None);
+
+        Assert.Equal(2, failures.Count);
+        Assert.True(failures[0].IsConflict);
+        Assert.Contains(Issuer, failures[0].Detail, StringComparison.Ordinal);
+        Assert.Equal("route", failures[1].Detail);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenTheTenantItselfHoldsTheIssuer_Succeeds()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        var storeManager = mocks.Create<IStoreManager>();
+        var store = mocks.Create<ITenantStore>();
+
+        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
+        store
+            .Setup(x => x.GetOrDefaultByIssuerAsync(Issuer, CancellationToken.None))
+            .ReturnsAsync(CreatePersistedTenant(TenantId))
+            .Verifiable();
+        strategy
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    TenantId,
+                    It.IsAny<Uri>(),
+                    storeManager.Object,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+
+        var failures = await CreateResolver(strategy.Object)
+            .ValidateTenantAsync(TenantId, Issuer, storeManager.Object, CancellationToken.None);
+
+        Assert.Empty(failures);
+        mocks.Verify();
+    }
+
+    #endregion
 }

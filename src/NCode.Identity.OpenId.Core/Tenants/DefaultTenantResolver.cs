@@ -23,12 +23,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="ITenantResolver"/> abstraction that selects the configured
-/// <see cref="ITenantStrategy"/> by <see cref="TenantResolutionOptions.StrategyCode"/> and delegates to it.
+/// <see cref="ITenantStrategy"/> by <see cref="TenantResolutionOptions.StrategyCode"/> and delegates to it. It validates
+/// the addressing rules every strategy shares itself, and the selected strategy validates its own.
 /// </summary>
 internal class DefaultTenantResolver(
     IOptions<TenantResolutionOptions> optionsAccessor,
@@ -66,4 +69,79 @@ internal class DefaultTenantResolver(
         HttpContext httpContext,
         CancellationToken cancellationToken
     ) => await Selected.ResolveTenantAsync(httpContext, cancellationToken);
+
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
+        string tenantId,
+        string? issuer,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        var failures = new List<TenantValidationFailure>();
+
+        if (!TenantAddressRules.IsValidTenantId(tenantId))
+        {
+            failures.Add(
+                new TenantValidationFailure
+                {
+                    Detail =
+                        $"The tenant identifier '{tenantId}' must be {TenantAddressRules.TenantIdRequirement}.",
+                }
+            );
+        }
+
+        Uri? issuerUri = null;
+        if (
+            !string.IsNullOrEmpty(issuer)
+            && !TenantAddressRules.TryParseIssuer(issuer, out issuerUri)
+        )
+        {
+            failures.Add(
+                new TenantValidationFailure
+                {
+                    Detail =
+                        $"The issuer '{issuer}' must be {TenantAddressRules.IssuerRequirement}.",
+                }
+            );
+        }
+
+        // The remaining rules, the strategy's included, are only meaningful for a well-formed identifier and issuer.
+        if (failures.Count > 0)
+            return failures;
+
+        // The issuer is the tenant's identity and is asserted in every token it mints, so two tenants sharing one
+        // would mint tokens a relying party cannot tell apart (ADR-0129).
+        if (issuerUri is not null)
+        {
+            var store = storeManager.GetStore<ITenantStore>();
+            var holder = await store.GetOrDefaultByIssuerAsync(
+                issuerUri.OriginalString,
+                cancellationToken
+            );
+            if (
+                holder is not null
+                && !string.Equals(holder.TenantId, tenantId, StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                failures.Add(
+                    new TenantValidationFailure
+                    {
+                        Detail = $"Another tenant already has the issuer '{issuer}'.",
+                        IsConflict = true,
+                    }
+                );
+            }
+        }
+
+        var strategyFailures = await Selected.ValidateTenantAsync(
+            tenantId,
+            issuerUri,
+            storeManager,
+            cancellationToken
+        );
+        failures.AddRange(strategyFailures);
+
+        return failures;
+    }
 }

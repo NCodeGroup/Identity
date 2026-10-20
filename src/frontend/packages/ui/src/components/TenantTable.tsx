@@ -14,7 +14,7 @@ import EditIcon from '@mui/icons-material/Edit';
 export type TenantRow = {
   readonly tenantId: string;
   readonly displayName: string;
-  readonly domainName: string | null;
+  readonly issuer: string | null;
   readonly isDisabled: boolean;
 };
 
@@ -38,7 +38,7 @@ export function TenantTable({ tenants, onSelect, onEdit, onDelete }: TenantTable
         <TableRow>
           <TableCell>Display name</TableCell>
           <TableCell>Tenant ID</TableCell>
-          <TableCell>Domain</TableCell>
+          <TableCell>Issuer</TableCell>
           <TableCell>Status</TableCell>
           {showActions && <TableCell align="right">Actions</TableCell>}
         </TableRow>
@@ -55,7 +55,7 @@ export function TenantTable({ tenants, onSelect, onEdit, onDelete }: TenantTable
           >
             <TableCell>{tenant.displayName}</TableCell>
             <TableCell>{tenant.tenantId}</TableCell>
-            <TableCell>{tenant.domainName ?? '—'}</TableCell>
+            <TableCell>{tenant.issuer ?? '—'}</TableCell>
             <TableCell>
               <Chip
                 size="small"

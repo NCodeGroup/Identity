@@ -19,6 +19,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Persistence.Stores;
@@ -31,17 +33,37 @@ namespace NCode.Identity.OpenId.Tenants.Strategies;
 /// </summary>
 internal class DynamicByPathTenantStrategy(
     IStoreManagerFactory storeManagerFactory,
-    IOptions<TenantResolutionOptions> optionsAccessor
+    IOptions<TenantResolutionOptions> optionsAccessor,
+    TemplateBinderFactory templateBinderFactory
 ) : TenantStrategy(storeManagerFactory)
 {
     private DynamicByPathTenantOptions Options =>
         optionsAccessor.Value.DynamicByPath ?? new DynamicByPathTenantOptions();
+
+    private TemplateBinder? TenantRouteBinderOrNull { get; set; }
+
+    private TemplateBinder TenantRouteBinder =>
+        TenantRouteBinderOrNull ??= templateBinderFactory.Create(GetTenantRoute());
 
     /// <inheritdoc />
     public override string StrategyCode => OpenIdConstants.TenantStrategyCodes.DynamicByPath;
 
     /// <inheritdoc />
     protected override PathString TenantPath => Options.TenantPath;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The tenant route carries only the tenant parameter, which is validated when the host starts, so binding it
+    /// with the tenant's identifier yields the exact path the tenant is served under (for example <c>/acme</c>).
+    /// </remarks>
+    protected override string GetTenantRoutePath(string tenantId)
+    {
+        var values = new RouteValueDictionary { [Options.TenantIdRouteParameterName] = tenantId };
+        return TenantRouteBinder.BindValues(values)
+            ?? throw new InvalidOperationException(
+                $"The tenant route '{TenantPath}' cannot be bound from the tenant identifier alone."
+            );
+    }
 
     /// <inheritdoc />
     public override bool TryGetTenantId(

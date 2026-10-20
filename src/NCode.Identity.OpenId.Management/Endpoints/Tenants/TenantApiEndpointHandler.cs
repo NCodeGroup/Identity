@@ -320,13 +320,14 @@ internal class TenantApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var tenantId = CryptoService.GenerateResourceId();
+        // A tenant is named by its creator (ADR-0159); the validator checks the name with the rest of its address.
+        var tenantId = request.TenantId;
 
         var tenant = new PersistedTenant
         {
             TenantId = tenantId,
             ConcurrencyToken = string.Empty,
-            Issuer = request.Issuer,
+            Issuer = NullIfEmpty(request.Issuer),
             IsDisabled = request.IsDisabled,
             DisplayName = request.DisplayName,
             Settings = new PersistedTenantSettings
@@ -343,7 +344,8 @@ internal class TenantApiEndpointHandler(
             },
         };
 
-        // Core preconditions (authorization + uniqueness) are asserted by the validator (ADR-0014).
+        // Core preconditions (authorization + the tenant's address + uniqueness) are asserted by the validator
+        // (ADR-0014, ADR-0160).
         var error = await TenantValidator.ValidateCreateAsync(
             httpContext.User,
             tenant,
@@ -442,8 +444,10 @@ internal class TenantApiEndpointHandler(
             );
         }
 
-        // Core preconditions (authorization + If-Match + required fields + domain uniqueness) are asserted by the
-        // validator against the hydrated model (ADR-0014).
+        model.Issuer = NullIfEmpty(model.Issuer);
+
+        // Core preconditions (authorization + If-Match + required fields + the tenant's address + issuer uniqueness)
+        // are asserted by the validator against the hydrated model (ADR-0014, ADR-0160).
         var error = await TenantValidator.ValidateUpdateAsync(
             httpContext.User,
             tenant,
@@ -1219,4 +1223,7 @@ internal class TenantApiEndpointHandler(
     ) =>
         await storeManager.GetStore<ITenantStore>().GetOrDefaultAsync(tenantId, cancellationToken)
             is not null;
+
+    // An empty issuer means the tenant has none; storing it as empty would put it under the issuer's unique index.
+    private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
 }

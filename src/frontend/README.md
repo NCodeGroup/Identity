@@ -352,9 +352,10 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   bind `JsonPatchDocument<T>` and hydrate the current resource before applying the document, and they gate
   on an `If-Match` concurrency token (optimistic concurrency). RTK Query mutations express an edit as a
   `replace`-only patch built from the stable wire property names via the UI-free
-  [`replacePatch`](packages/api/src/jsonPatch.ts) helper (`/displayName`, `/domainName`, …), and send the
+  [`replacePatch`](packages/api/src/jsonPatch.ts) helper (`/displayName`, `/issuer`, …), and send the
   resource's `concurrencyToken` as the `If-Match` header. Creates are plain `POST` (the id is
-  server-generated; the response carries the new `concurrencyToken`), deletes are `DELETE` (a `409` means
+  server-generated, except a tenant's, which its creator chooses; the response carries the new
+  `concurrencyToken`), deletes are `DELETE` (a `409` means
   the resource still has dependents). Invalidate both the `LIST` tag and the per-id tag so the scoped
   caches reconcile. Server failures are RFC 7807 Problem Details; surface them through
   [`apiErrorMessage`](packages/store/src/apiError.ts) rather than re-deriving messages in each container.

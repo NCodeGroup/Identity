@@ -783,6 +783,28 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   tenant route, and the base-address and link-generation defects on that path are fixed. Follow-ups: `F50`, `F51`,
   `F52`._
 
+- **`F51` — Validate a tenant's issuer against the tenant route in the management API.** The static tenant's configured
+  issuer is checked when the host starts: an absolute `http`/`https` URL ending in the tenant path
+  ([ADR-0137](docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md)). A tenant created or updated
+  through the management API gets no such check, so it can be given an issuer that no endpoint is served under — a
+  `DynamicByPath` tenant `acme` whose issuer does not end in `/acme`, or any tenant with a query or fragment in its
+  issuer — and conforming clients reject its discovery document. Apply the same rules in the tenant validator, binding
+  the tenant route with the tenant's own identifier for the path strategy. Touch points:
+  `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`,
+  `src/NCode.Identity.OpenId.Core/Tenants/TenantResolutionOptionsValidator.cs` (share the issuer rule).
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md),
+  [ADR-0160](docs/adr/0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md). Scoping it exposed that a
+  server-minted tenant identifier made a path tenant's issuer unknowable before the tenant existed, so tenants are named
+  by their creator (Auth0's model): an immutable lowercase host label. The address rules moved onto the tenant-selection
+  seam (`ITenantResolver.ValidateTenantAsync`), shared with startup validation, which each strategy now performs for its
+  own options. Beyond the scoped rules, the host strategy now requires an issuer, rejects a host pattern that does not
+  map the issuer host to itself, and enforces the host uniqueness ADR-0129 assigned to it; `http` issuers are limited to
+  loopback hosts; and the management console's tenant form, which still sent the removed `domainName`, sends the
+  issuer. Follow-ups: `F70` (never reissue a retired name or issuer), `F71` (derive an issuer from a template), `U22`
+  (the console's tenant scope in its URL)._
+
 - **`F52` — Fail loudly on the configuration that is still accepted without being honored.** Every options section the
   server binds is strict ([ADR-0137](docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md)); three
   inputs remain lenient. (a) Setting **names** under `OpenId:Server:Settings` (and in persisted settings) are an open

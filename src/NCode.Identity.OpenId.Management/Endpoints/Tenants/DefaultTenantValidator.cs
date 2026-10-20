@@ -23,17 +23,24 @@ using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 
 /// <summary>
-/// Provides the default implementation of <see cref="ITenantValidator"/>.
+/// Provides the default implementation of <see cref="ITenantValidator"/>. A tenant's identifier and issuer are judged by
+/// <see cref="ITenantResolver.ValidateTenantAsync"/>, the same rules the configured tenant strategy routes requests by,
+/// so a tenant can never be written with an address nothing is served under.
 /// </summary>
-internal class DefaultTenantValidator(IAuthorizationService authorizationService)
-    : DefaultResourceValidator(authorizationService),
-        ITenantValidator
+// See ADR-0160 (a tenant's address is validated wherever it is written).
+internal class DefaultTenantValidator(
+    IAuthorizationService authorizationService,
+    ITenantResolver tenantResolver
+) : DefaultResourceValidator(authorizationService), ITenantValidator
 {
+    private ITenantResolver TenantResolver { get; } = tenantResolver;
+
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateCreateAsync(
         ClaimsPrincipal user,
@@ -54,6 +61,19 @@ internal class DefaultTenantValidator(IAuthorizationService authorizationService
             return error;
         }
 
+        var failures = await TenantResolver.ValidateTenantAsync(
+            tenant.TenantId,
+            tenant.Issuer,
+            storeManager,
+            cancellationToken
+        );
+
+        var invalidError = ToInvalidError(failures);
+        if (invalidError is not null)
+        {
+            return invalidError;
+        }
+
         var store = storeManager.GetStore<ITenantStore>();
 
         var existing = await store.GetOrDefaultAsync(tenant.TenantId, cancellationToken);
@@ -66,24 +86,7 @@ internal class DefaultTenantValidator(IAuthorizationService authorizationService
             };
         }
 
-        // the issuer is optional; the unique constraint only applies when one is supplied
-        if (!string.IsNullOrEmpty(tenant.Issuer))
-        {
-            var existingByIssuer = await store.GetOrDefaultByIssuerAsync(
-                tenant.Issuer,
-                cancellationToken
-            );
-            if (existingByIssuer is not null)
-            {
-                return new ManagementError
-                {
-                    StatusCode = StatusCodes.Status409Conflict,
-                    Detail = "A tenant with the specified issuer already exists.",
-                };
-            }
-        }
-
-        return null;
+        return ToConflictError(failures);
     }
 
     /// <inheritdoc />
@@ -129,35 +132,27 @@ internal class DefaultTenantValidator(IAuthorizationService authorizationService
             };
         }
 
-        // check issuer uniqueness only when it actually changed, excluding this same tenant
+        // The address is judged only when the issuer changes, so a tenant written under an earlier configuration can
+        // still have its other metadata edited.
         if (
-            !string.IsNullOrEmpty(model.Issuer)
-            && !string.Equals(model.Issuer, tenant.Issuer, StringComparison.Ordinal)
+            string.Equals(
+                model.Issuer ?? string.Empty,
+                tenant.Issuer ?? string.Empty,
+                StringComparison.Ordinal
+            )
         )
         {
-            var store = storeManager.GetStore<ITenantStore>();
-            var existingByIssuer = await store.GetOrDefaultByIssuerAsync(
-                model.Issuer,
-                cancellationToken
-            );
-            if (
-                existingByIssuer is not null
-                && !string.Equals(
-                    existingByIssuer.TenantId,
-                    tenant.TenantId,
-                    StringComparison.Ordinal
-                )
-            )
-            {
-                return new ManagementError
-                {
-                    StatusCode = StatusCodes.Status409Conflict,
-                    Detail = "A tenant with the specified issuer already exists.",
-                };
-            }
+            return null;
         }
 
-        return null;
+        var failures = await TenantResolver.ValidateTenantAsync(
+            tenant.TenantId,
+            model.Issuer,
+            storeManager,
+            cancellationToken
+        );
+
+        return ToInvalidError(failures) ?? ToConflictError(failures);
     }
 
     /// <inheritdoc />
@@ -193,5 +188,29 @@ internal class DefaultTenantValidator(IAuthorizationService authorizationService
         }
 
         return null;
+    }
+
+    private static ManagementError? ToInvalidError(
+        IReadOnlyList<TenantValidationFailure> failures
+    ) => ToError(failures, isConflict: false, StatusCodes.Status400BadRequest);
+
+    private static ManagementError? ToConflictError(
+        IReadOnlyList<TenantValidationFailure> failures
+    ) => ToError(failures, isConflict: true, StatusCodes.Status409Conflict);
+
+    private static ManagementError? ToError(
+        IReadOnlyList<TenantValidationFailure> failures,
+        bool isConflict,
+        int statusCode
+    )
+    {
+        var details = failures
+            .Where(failure => failure.IsConflict == isConflict)
+            .Select(failure => failure.Detail)
+            .ToList();
+
+        return details.Count == 0
+            ? null
+            : new ManagementError { StatusCode = statusCode, Detail = string.Join(" ", details) };
     }
 }

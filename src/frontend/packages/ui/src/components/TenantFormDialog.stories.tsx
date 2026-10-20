@@ -22,11 +22,19 @@ export const Create: Story = {
   },
 };
 
+const acme = {
+  tenantId: 'acme',
+  displayName: 'Acme Inc',
+  issuer: 'https://acme.auth.example',
+  isDisabled: false,
+};
+
 export const Edit: Story = {
   args: {
     title: 'Edit tenant',
     submitLabel: 'Save',
-    initialValues: { displayName: 'Acme Inc', domainName: 'acme.example', isDisabled: false },
+    initialValues: acme,
+    isTenantIdLocked: true,
   },
 };
 
@@ -34,7 +42,8 @@ export const Submitting: Story = {
   args: {
     title: 'Edit tenant',
     submitLabel: 'Save',
-    initialValues: { displayName: 'Acme Inc', domainName: 'acme.example', isDisabled: false },
+    initialValues: acme,
+    isTenantIdLocked: true,
     isSubmitting: true,
   },
 };
@@ -44,6 +53,6 @@ export const WithError: Story = {
     title: 'Create tenant',
     submitLabel: 'Create',
     initialValues: emptyTenantFormValues,
-    error: 'A tenant with that domain already exists.',
+    error: 'A tenant with the specified identifier already exists.',
   },
 };

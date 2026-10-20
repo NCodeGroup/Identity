@@ -82,6 +82,62 @@ internal abstract class TenantStrategy(IStoreManagerFactory storeManagerFactory)
         CancellationToken cancellationToken
     );
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// The base rule is that an issuer ends with the tenant route bound for the tenant, the path its endpoints and its
+    /// discovery document are served under.
+    /// </remarks>
+    public virtual ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
+        string tenantId,
+        Uri? issuer,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        IReadOnlyList<TenantValidationFailure> failures = ValidateIssuerRoute(tenantId, issuer)
+            is { } failure
+            ? [failure]
+            : [];
+        return ValueTask.FromResult(failures);
+    }
+
+    /// <summary>
+    /// Validates that the specified issuer ends with the tenant route bound for the specified tenant. OpenID Connect
+    /// Discovery requires the issuer to be the URL the tenant's discovery document is fetched beneath, and the tenant's
+    /// configured issuer is its base address as-is, so an issuer that does not end with the route names a location
+    /// nothing is served under.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <param name="issuer">The proposed issuer of the tenant, or <c>null</c> when it has none.</param>
+    /// <returns>The failure, or <c>null</c> when the issuer is absent or ends with the route.</returns>
+    // See ADR-0138 (an issuer is its tenant's base address) and ADR-0160.
+    protected TenantValidationFailure? ValidateIssuerRoute(string tenantId, Uri? issuer)
+    {
+        if (issuer is null)
+            return null;
+
+        var routePath = GetTenantRoutePath(tenantId);
+        if (TenantAddressRules.IssuerEndsWithRoutePath(issuer, routePath))
+            return null;
+
+        return new TenantValidationFailure
+        {
+            Detail =
+                $"The issuer '{issuer.OriginalString}' must end with '{routePath}', the path the tenant's endpoints "
+                + "and discovery document are served under.",
+        };
+    }
+
+    /// <summary>
+    /// Gets the tenant route bound for the specified tenant: the path, with a leading slash, that the tenant's
+    /// endpoints are served under, or empty when the tenant is served at the root. The default implementation returns
+    /// the literal tenant path.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <returns>The bound tenant route.</returns>
+    protected virtual string GetTenantRoutePath(string tenantId) =>
+        TenantPath.Value ?? string.Empty;
+
     /// <summary>
     /// Loads the <see cref="PersistedTenant"/> for the specified identifier, throwing <c>404</c> when it is missing
     /// or disabled.

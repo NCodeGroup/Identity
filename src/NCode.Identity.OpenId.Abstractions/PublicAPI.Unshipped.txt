@@ -759,11 +759,19 @@ NCode.Identity.OpenId.Tenants.ITenantResolver
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
 NCode.Identity.OpenId.Tenants.ITenantResolver.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantResolver.TryGetTenantId(Microsoft.AspNetCore.Http.HttpContext! httpContext, out string? tenantId) -> bool
+NCode.Identity.OpenId.Tenants.ITenantResolver.ValidateTenantAsync(string! tenantId, string? issuer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Tenants.TenantValidationFailure>!>
 NCode.Identity.OpenId.Tenants.ITenantStrategy
 NCode.Identity.OpenId.Tenants.ITenantStrategy.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
 NCode.Identity.OpenId.Tenants.ITenantStrategy.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantStrategy.StrategyCode.get -> string!
 NCode.Identity.OpenId.Tenants.ITenantStrategy.TryGetTenantId(Microsoft.AspNetCore.Http.HttpContext! httpContext, out string? tenantId) -> bool
+NCode.Identity.OpenId.Tenants.ITenantStrategy.ValidateTenantAsync(string! tenantId, System.Uri? issuer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Tenants.TenantValidationFailure>!>
+NCode.Identity.OpenId.Tenants.TenantValidationFailure
+NCode.Identity.OpenId.Tenants.TenantValidationFailure.Detail.get -> string!
+NCode.Identity.OpenId.Tenants.TenantValidationFailure.Detail.init -> void
+NCode.Identity.OpenId.Tenants.TenantValidationFailure.IsConflict.get -> bool
+NCode.Identity.OpenId.Tenants.TenantValidationFailure.IsConflict.init -> void
+NCode.Identity.OpenId.Tenants.TenantValidationFailure.TenantValidationFailure() -> void
 NCode.Identity.OpenId.Tenants.OpenIdTenant
 NCode.Identity.OpenId.Tenants.OpenIdTenant.DisposeAsync() -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.OpenIdTenant.OpenIdTenant() -> void

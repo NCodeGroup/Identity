@@ -117,7 +117,7 @@ describe('managementApi tenant mutations', () => {
         JSON.stringify({
           tenantId: 'new',
           concurrencyToken: 'c1',
-          domainName: null,
+          issuer: 'https://new.auth.test',
           isDisabled: false,
           displayName: 'New',
         }),
@@ -128,7 +128,8 @@ describe('managementApi tenant mutations', () => {
 
     const result = await store.dispatch(
       managementApi.endpoints.createTenant.initiate({
-        domainName: null,
+        tenantId: 'new',
+        issuer: 'https://new.auth.test',
         displayName: 'New',
         isDisabled: false,
         settings: {},
@@ -141,7 +142,8 @@ describe('managementApi tenant mutations', () => {
     expect(captured[0]?.method).toBe('POST');
     expect(captured[0]?.authorization).toBe('Bearer token-123');
     expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual({
-      domainName: null,
+      tenantId: 'new',
+      issuer: 'https://new.auth.test',
       displayName: 'New',
       isDisabled: false,
       settings: {},
@@ -156,7 +158,7 @@ describe('managementApi tenant mutations', () => {
       managementApi.endpoints.updateTenant.initiate({
         tenantId: 'acme/1',
         concurrencyToken: 'etag-7',
-        fields: { domainName: 'acme.example', displayName: 'Acme', isDisabled: true },
+        fields: { issuer: 'https://acme.auth.test', displayName: 'Acme', isDisabled: true },
       }),
     );
 
@@ -165,7 +167,7 @@ describe('managementApi tenant mutations', () => {
     expect(captured[0]?.method).toBe('PATCH');
     expect(captured[0]?.ifMatch).toBe('etag-7');
     expect(JSON.parse(captured[0]?.body ?? '[]')).toEqual([
-      { op: 'replace', path: '/domainName', value: 'acme.example' },
+      { op: 'replace', path: '/issuer', value: 'https://acme.auth.test' },
       { op: 'replace', path: '/displayName', value: 'Acme' },
       { op: 'replace', path: '/isDisabled', value: true },
     ]);
@@ -1738,7 +1740,8 @@ const invalidationCases: readonly InvalidationCase[] = [
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.createTenant.initiate({
-          domainName: null,
+          tenantId: 'new',
+          issuer: null,
           displayName: 'New',
           isDisabled: false,
           settings: {},
@@ -1753,7 +1756,7 @@ const invalidationCases: readonly InvalidationCase[] = [
         managementApi.endpoints.updateTenant.initiate({
           tenantId: 'acme',
           concurrencyToken: 'etag',
-          fields: { domainName: null, displayName: 'Acme', isDisabled: false },
+          fields: { issuer: null, displayName: 'Acme', isDisabled: false },
         }),
       ),
     refetches: ['tenants', 'tenant:acme'],
@@ -2099,7 +2102,7 @@ describe('managementApi cache invalidation', () => {
       managementApi.endpoints.updateTenant.initiate({
         tenantId: 'acme',
         concurrencyToken: 'stale',
-        fields: { domainName: null, displayName: 'Acme', isDisabled: false },
+        fields: { issuer: null, displayName: 'Acme', isDisabled: false },
       }),
     );
     await settle(store);

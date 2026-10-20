@@ -22,13 +22,16 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Selects the tenant for the current HTTP request by choosing the configured <see cref="ITenantStrategy"/> and
 /// delegating to it. This is the low-level tenant-selection seam shared by the OpenID runtime (which materializes a
-/// full tenant on top of it) and the management API (which enforces a tenant boundary on top of it).
+/// full tenant on top of it) and the management API (which enforces a tenant boundary on top of it). It also judges
+/// whether a proposed tenant can be served, so every place a tenant is written applies the same addressing rules as
+/// the requests that later reach it.
 /// </summary>
 [PublicAPI]
 public interface ITenantResolver
@@ -61,6 +64,27 @@ public interface ITenantResolver
     /// <see cref="PersistedTenant"/>.</returns>
     ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Validates that a tenant with the specified identifier and issuer can be served: the identifier is 1 to 63
+    /// lowercase letters, digits, or hyphens that starts and ends with a letter or digit; the issuer, when present, is
+    /// an absolute <c>https</c> URL (<c>http</c> only for a loopback host) with no user information, query, or fragment;
+    /// no other tenant holds the issuer; and the configured <see cref="ITenantStrategy"/> can route a request to the
+    /// tenant beneath that issuer. Call it wherever a tenant's identifier or issuer is written, so a tenant can never be
+    /// given an address nothing is served under.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <param name="issuer">The proposed issuer of the tenant, or <c>null</c> or empty when it has none.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> for the unit of work the tenant is written in.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the failures; empty
+    /// when the tenant can be served.</returns>
+    ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
+        string tenantId,
+        string? issuer,
+        IStoreManager storeManager,
         CancellationToken cancellationToken
     );
 }

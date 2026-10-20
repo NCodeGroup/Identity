@@ -22,6 +22,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Tenants;
 
@@ -66,6 +67,27 @@ public interface ITenantStrategy
     /// <see cref="PersistedTenant"/>.</returns>
     ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Validates the rules this strategy places on a tenant's issuer: that a request routed by this strategy reaches
+    /// the tenant beneath that issuer. The <see cref="ITenantResolver"/> has already validated the rules every strategy
+    /// shares — the form of the identifier and the issuer, and that no other tenant holds the issuer — before it calls
+    /// the selected strategy.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant, already validated as a tenant identifier.</param>
+    /// <param name="issuer">The proposed issuer of the tenant, already validated as an absolute <c>https</c> URL
+    /// (<c>http</c> only for a loopback host) with no user information, query, or fragment; or <c>null</c> when it has
+    /// none.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> for the unit of work the tenant is written in.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the failures; empty
+    /// when this strategy can serve the tenant.</returns>
+    ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
+        string tenantId,
+        Uri? issuer,
+        IStoreManager storeManager,
         CancellationToken cancellationToken
     );
 }

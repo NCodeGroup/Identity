@@ -1,7 +1,9 @@
 # 137. Configuration binds strictly and is validated when the host starts
 
 - **Status:** Accepted (extended by [ADR-0139](0139-setting-names-are-a-closed-vocabulary.md): setting names are a
-  closed vocabulary, and the remaining lenient configuration inputs are bound and validated)
+  closed vocabulary, and the remaining lenient configuration inputs are bound and validated; extended by
+  [ADR-0160](0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md): each tenant strategy validates its
+  own options, by the same rules that judge the tenants written while the host runs)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

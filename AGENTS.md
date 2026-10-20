@@ -68,3 +68,21 @@ best long-term, cohesive design**: when a change forks between a minimal compati
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage, and surface a fork for the user only when the options are genuinely equal in quality. Full statement: the
 standing posture in [`BACKLOG.md`](BACKLOG.md).
+
+## Copilot cloud agent sessions
+
+A cloud-agent session stops at **59 minutes**, a hard limit that cannot be raised, and its runner is discarded with
+everything on it. Only commits pushed from the repository clone survive — work on any other branch or `git worktree`
+(for example under `/tmp`) is lost even when it is committed. So:
+
+- **Size a session to fit.** Give one session one dependency chain of backlog items (one to three items), not a whole
+  group. Run independent chains as separate sessions; each gets its own runner and its own 59 minutes.
+- **Push each finished item at once**, from the clone, before starting the next. Do not leave finished work on a side
+  branch or worktree to integrate later.
+- **Do not run parallel sub-agents that build.** The standard runner has four cores; concurrent .NET, pnpm, and Docker
+  builds slow every agent down rather than finishing more items.
+- **Budget the gates.** On the standard runner a cold `dotnet build` takes about two minutes and `./build/dod.ps1 -Fast`
+  about five; iterate with targeted tests and run the full gate once per item.
+
+[`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml) installs the pinned .NET SDK,
+Node, and pnpm and restores the NuGet and pnpm packages before a session starts.

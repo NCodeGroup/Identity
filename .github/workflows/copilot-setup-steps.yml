@@ -1,0 +1,70 @@
+# Copilot cloud agent environment — prepared before the agent starts work.
+#
+# A cloud-agent session runs for at most 59 minutes, and these steps run inside that window. They do only what every
+# session needs anyway — the repo-pinned .NET SDK, Node, and pnpm, plus the restored NuGet and pnpm packages — from
+# cache and deterministically, instead of the agent finding and installing the toolchain itself (the runner image ships
+# neither Node 26 nor pnpm). The agent's first build then starts from restored packages. How to size a session so it
+# fits the window: AGENTS.md, "Copilot cloud agent sessions".
+#
+# GitHub runs this job for the agent only from the default branch; the push and pull_request triggers validate edits.
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+  push:
+    paths: [.github/workflows/copilot-setup-steps.yml]
+  pull_request:
+    paths: [.github/workflows/copilot-setup-steps.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  # The job MUST be named copilot-setup-steps, or the agent does not pick it up.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    # The whole agent session ends at this limit, and 59 is the most the agent allows.
+    timeout-minutes: 59
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # The same key as the .NET CI gate, so a session reuses the packages CI already restored.
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props', 'global.json', '.config/dotnet-tools.json', '**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore .NET tools and packages
+        run: |
+          dotnet tool restore
+          dotnet restore NCode.Identity.slnx
+
+      # The Node major and the pnpm version are each pinned once (ADR-0152); these steps read the same pins the
+      # Frontend CI workflow reads.
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: src/frontend/.node-version
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: src/frontend/package.json
+          cache: true
+          cache_dependency_path: src/frontend/pnpm-lock.yaml
+
+      - name: Install frontend packages
+        working-directory: src/frontend
+        run: pnpm install --frozen-lockfile

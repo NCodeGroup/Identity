@@ -10,6 +10,12 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The end-session endpoint accepts an `id_token_hint` the client re-encrypted to the server.** OpenID Connect
+  RP-Initiated Logout 1.0 §2 lets a relying party that received an encrypted ID token re-encrypt the signed token to
+  the OP. The hint is decrypted with the tenant's keys under the tenant's advertised `id_token_encryption_*` lists,
+  and the enclosed ID token is checked as before. A tenant without an encryption key still accepts only a signed hint,
+  and an ID token presented anywhere else is never decrypted. Backlog `F76` is complete
+  ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md)).
 - **Dynamic client registration accepts the token endpoint and CIBA metadata.** A client registers
   `token_endpoint_auth_signing_alg` (OpenID Connect Dynamic Client Registration 1.0 §2) and
   `backchannel_token_delivery_mode`, `backchannel_client_notification_endpoint`,

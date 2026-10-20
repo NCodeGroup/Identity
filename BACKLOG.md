@@ -472,17 +472,6 @@ entry and/or ADR that closed it.
   `TenantScopeEndpointFilter`, `OwnershipHandler`,
   `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultAuthenticateAccessTokenHandler.cs`.
 
-- **`F76` — Accept an `id_token_hint` the client re-encrypted to the server.** OpenID Connect RP-Initiated Logout 1.0
-  §2 lets a relying party that received an encrypted ID token re-encrypt it to the OP's public key before passing it as
-  `id_token_hint`. The server validates a hint under the ID-token policy, which names no decryption keys because an ID
-  token is encrypted only to its client
-  ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md)), so a re-encrypted hint is
-  rejected and logout proceeds without one. Accept a hint encrypted to the tenant's encryption keys under the tenant's
-  advertised `id_token_encryption_*` lists, keep the enclosed ID token's checks unchanged, and decide whether the OP
-  advertises the keys a relying party re-encrypts to. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultIssuedTokenValidator.cs` (`ValidateIdTokenHintAsync`),
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/Handlers/DefaultResolveEndSessionSubjectHandler.cs`.
-
 - **`F77` — Register a resource-server client through dynamic client registration.** A resource server introspects
   through a client bound to it, and the binding is set only through the management API, by a caller allowed to update
   that resource server ([ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).

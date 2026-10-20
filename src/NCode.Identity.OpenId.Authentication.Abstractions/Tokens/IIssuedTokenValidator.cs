@@ -85,7 +85,8 @@ public interface IIssuedTokenValidator
     /// <summary>
     /// Validates an ID token the tenant issued that a client presents as a hint to the end-user's session, as the
     /// <c>id_token_hint</c> of an end-session request. A hint identifies a session that may already have outlived the
-    /// token, so its lifetime is not checked; every other check of an ID token is.
+    /// token, so its lifetime is not checked; every other check of an ID token is. A client may re-encrypt the hint to
+    /// the server, so a hint encrypted to the tenant's keys under the tenant's ID-token encryption lists is decrypted.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> whose tenant issued the token.</param>
     /// <param name="idTokenHint">The encoded ID token.</param>

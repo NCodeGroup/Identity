@@ -114,6 +114,12 @@ internal sealed class DefaultClientCertificateChainValidator(
             Logger.ClientCertificateUntrusted(openIdClient.ClientId, chainStatus);
             return ValueTask.FromResult(false);
         }
+        catch (CryptographicException exception)
+        {
+            // A stored trust anchor that no longer parses, or a chain the platform cannot build, trusts nothing.
+            Logger.ClientCertificateUntrusted(openIdClient.ClientId, exception.Message);
+            return ValueTask.FromResult(false);
+        }
         finally
         {
             foreach (var element in chain.ChainElements)

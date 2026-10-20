@@ -435,10 +435,40 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// given <paramref name="jwksUri"/> (resolved at runtime), with no stored secrets, so the client can authenticate
     /// via <c>private_key_jwt</c> by signing a <c>client_assertion</c> with the corresponding private key.
     /// </summary>
-    public async Task SeedConfidentialClientWithJwksUriAsync(
+    public Task SeedConfidentialClientWithJwksUriAsync(
         string clientId,
         string jwksUri,
         params string[] grantTypes
+    ) =>
+        SeedClientWithJwksUriAsync(
+            clientId,
+            jwksUri,
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            grantTypes
+        );
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client registered for <c>self_signed_tls_client_auth</c>
+    /// whose certificates are published, as the <c>x5c</c> of its keys, at the given <paramref name="jwksUri"/>
+    /// (resolved at runtime), with no stored secrets (RFC 8705 §2.2).
+    /// </summary>
+    public Task SeedSelfSignedTlsClientWithJwksUriAsync(
+        string clientId,
+        string jwksUri,
+        params string[] grantTypes
+    ) =>
+        SeedClientWithJwksUriAsync(
+            clientId,
+            jwksUri,
+            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+            grantTypes
+        );
+
+    private async Task SeedClientWithJwksUriAsync(
+        string clientId,
+        string jwksUri,
+        string authenticationMethod,
+        string[] grantTypes
     )
     {
         using (var warmupClient = CreateClient())
@@ -449,9 +479,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         var settings = new Dictionary<string, object>
         {
             ["jwks_uri"] = jwksUri,
-            ["token_endpoint_auth_method"] = OpenIdConstants
-                .ClientAuthenticationMethods
-                .PrivateKeyJwt,
+            ["token_endpoint_auth_method"] = authenticationMethod,
         };
         if (grantTypes.Length > 0)
             settings["grant_types_supported"] = grantTypes;

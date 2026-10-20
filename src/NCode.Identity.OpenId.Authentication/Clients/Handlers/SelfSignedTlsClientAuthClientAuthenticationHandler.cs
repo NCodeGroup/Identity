@@ -30,7 +30,8 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// client-authentication method (<see href="https://datatracker.ietf.org/doc/html/rfc8705">RFC 8705</see> §2.2): the
 /// presented mutual-TLS client certificate must match one of the certificates among the client's keys, compared by
 /// SHA-256 thumbprint. The client's keys are resolved through <see cref="IClientKeyResolver"/>, so a client that
-/// publishes its keys at a <c>jwks_uri</c> is matched against those rather than any stored certificate.
+/// publishes its keys at a <c>jwks_uri</c> is matched against those rather than any stored certificate; a JSON Web Key
+/// carries its certificate as the first entry of its <c>x5c</c>.
 /// </summary>
 internal sealed class SelfSignedTlsClientAuthClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,

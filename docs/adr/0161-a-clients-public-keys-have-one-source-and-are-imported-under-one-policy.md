@@ -117,8 +117,11 @@ client key enters.**
   keys are no longer used; `AsymmetricSecretKeyTypeDescriptor.ExpectedJwkKeyType` becomes the public `JwkKeyType`
   member every descriptor implements; `PersistedSecret`, `SecretEntity`, and `SecretKeyImportRequest` gain `KeyId`
   (a schema migration adds the nullable column).
-- A `self_signed_tls_client_auth` client that publishes a `jwks_uri` has no registered certificate until certificates
-  in a published set (`x5c`) are imported — a follow-up recorded in the backlog.
+- A JSON Web Key's certificate is imported with it: the first `x5c` entry (RFC 7517 §4.7) is kept as the key's
+  certificate once it is shown to carry the key's public key, and a key whose `x5c` is empty, malformed, or names
+  another key is refused. A `self_signed_tls_client_auth` client can therefore register its certificates through
+  `jwks` or publish them at a `jwks_uri` (RFC 8705 §2.2). The rest of the chain is not kept, since a self-signed
+  certificate is matched by thumbprint, not by chain.
 - Tenant, server, and resource-server key imports and updates keep their existing checks; applying the key-to-algorithm
   rule to them is a follow-up recorded in the backlog.
 

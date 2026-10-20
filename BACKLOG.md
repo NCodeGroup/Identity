@@ -497,19 +497,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`, `TenantApiEndpointHandler`
   (`DeleteTenantAsync`, `GetAddressAsync`).
 
-- **`F72` — Match `self_signed_tls_client_auth` against the certificates in a client's JSON Web Key Set.** RFC 8705
-  §2.2 lets a client register its self-signed certificates through `jwks` or `jwks_uri`, as the `x5c` of its keys. The
-  handler matches the presented certificate against the client's keys resolved through `IClientKeyResolver`
-  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)), but a key
-  imported from a JSON Web Key is a bare public key — its `x5c` chain is dropped — so a client that publishes its keys at
-  a `jwks_uri`, or registers them as a `jwks`, cannot authenticate with `self_signed_tls_client_auth`; only a
-  certificate imported through the management API matches. Import the leaf certificate of a key's `x5c` in the
-  key-type descriptors' JSON Web Key import, after checking that it carries the key's public key, so a registered or
-  published certificate is matched by thumbprint. Touch points:
-  `src/NCode.Identity.Secrets/KeyTypes/AsymmetricSecretKeyTypeDescriptor.cs` (JSON Web Key import),
-  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientKeyImporter.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/SelfSignedTlsClientAuthClientAuthenticationHandler.cs`.
-
 - **`F73` — Apply the key policy to every secret owner in the management API, and report a key's `kid`.** A client's
   keys are imported and updated under one policy
   ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)), but the

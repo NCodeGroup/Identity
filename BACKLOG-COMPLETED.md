@@ -1310,6 +1310,24 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   Follow-ups recorded: `F74` (the frontend bootstrap document's request-derived issuer) and `F75` (the management API's
   authenticating tenant under the dynamic strategies)._
 
+- **`F72` — Match `self_signed_tls_client_auth` against the certificates in a client's JSON Web Key Set.** RFC 8705
+  §2.2 lets a client register its self-signed certificates through `jwks` or `jwks_uri`, as the `x5c` of its keys. The
+  handler matches the presented certificate against the client's keys resolved through `IClientKeyResolver`
+  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)), but a key
+  imported from a JSON Web Key is a bare public key — its `x5c` chain is dropped — so a client that publishes its keys at
+  a `jwks_uri`, or registers them as a `jwks`, cannot authenticate with `self_signed_tls_client_auth`; only a
+  certificate imported through the management API matches. Import the leaf certificate of a key's `x5c` in the
+  key-type descriptors' JSON Web Key import, after checking that it carries the key's public key, so a registered or
+  published certificate is matched by thumbprint. Touch points:
+  `src/NCode.Identity.Secrets/KeyTypes/AsymmetricSecretKeyTypeDescriptor.cs` (JSON Web Key import),
+  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientKeyImporter.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/SelfSignedTlsClientAuthClientAuthenticationHandler.cs`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md) (consequences
+  amended). The JSON Web Key import keeps the leaf `x5c` certificate once its public key equals the key's, and refuses
+  an empty, malformed, or mismatched `x5c`; the self-signed handler matches it by thumbprint unchanged._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

@@ -10,6 +10,12 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **`self_signed_tls_client_auth` matches the certificates in a client's JSON Web Key Set.** Importing a JSON Web Key
+  keeps the first certificate of its `x5c` (RFC 7517 §4.7) after checking that it carries the key's public key, so a
+  client that registers its keys as `jwks` or publishes them at a `jwks_uri` authenticates with a certificate listed
+  there (RFC 8705 §2.2). A key whose `x5c` is empty, malformed, or carries another key is refused.
+  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md))
+
 - **A resource server can introspect through a client that acts for it, and receive the answer as a signed JWT.** A
   client created with `CreateClientRequest.resourceServerId` acts for that resource server: it authenticates like any
   confidential client but is accepted only at the introspection endpoint, and the binding never changes. The resource

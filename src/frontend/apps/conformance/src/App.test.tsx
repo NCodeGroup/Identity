@@ -37,16 +37,16 @@ function renderApp(store: AppStore) {
 }
 
 describe('Conformance App', () => {
-  it('renders the dashboard header once runtime config is loaded', () => {
+  it('renders the dashboard header once runtime config is loaded', async () => {
     const store = createAppStore();
     store.dispatch(runtimeConfigLoaded(runtime));
 
-    const { getByRole, getByText, getByTestId } = renderApp(store);
+    const { getByRole, getByText, findByTestId } = renderApp(store);
 
     expect(getByRole('heading', { name: 'NCode.Identity · Conformance' })).toBeInTheDocument();
     expect(getByText('https://op.test')).toBeInTheDocument();
-    // The dashboard audits the discovered issuer.
-    expect(getByTestId('data-loading')).toBeInTheDocument();
+    // The dashboard is a lazily loaded chunk; once loaded, it audits the discovered issuer.
+    expect(await findByTestId('data-loading')).toBeInTheDocument();
     expect(vi.mocked(loadDiscovery)).toHaveBeenCalledWith(
       'https://op.test',
       expect.any(AbortSignal),

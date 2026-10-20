@@ -1579,6 +1579,21 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased] — `scopeTagId` in `packages/api/src/scope.ts` derives every tag
   id from the scope that owns the resource (`global:…`, `tenant:{tenantId}:…`, with the tenant id URI-encoded), and the
   invalidation matrix subscribes the same resource ids in the global scope and a second tenant to pin the isolation._
+- **`U20` — Split the standalone SPA bundles below Vite's chunk-size warning.** `pnpm build` warns that `apps/mgmt`,
+  `apps/playground`, and `apps/conformance` each emit a chunk larger than 500 kB after minification — React, MUI,
+  emotion, and Redux all land in one entry chunk. Raising `build.chunkSizeWarningLimit` would only hide it. Split
+  instead: lazy-load the route-level containers (`React.lazy` + `Suspense`) and separate the vendor libraries into their
+  own chunks in the Vite build options, then make a chunk-size warning fail the build so it stays fixed — the
+  build-time counterpart of the test gates in
+  [ADR-0151](docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md). Every app's build
+  options come from the shared preset
+  ([ADR-0157](docs/adr/0157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)), so the chunking and the
+  failing warning land there once. Touch points:
+  [`packages/vite-config/src/preset.ts`](src/frontend/packages/vite-config/src/preset.ts) and each app's `src/App.tsx`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0175](docs/adr/0175-bundles-split-into-vendor-and-surface-chunks-and-an-oversized-chunk-fails-the-build.md) —
+  the preset's `VENDOR_CHUNKS` code-splitting groups and `failOnOversizedChunks` plugin, and `React.lazy` surface
+  containers in `apps/mgmt`, `apps/playground`, and `apps/conformance`._
 - **`U22` — Put the management console's tenant scope in its URL.** The console keeps its active scope (global or one
   tenant) and surface in React state, so a tenant view cannot be bookmarked, linked, or restored on reload, and the
   browser's back button leaves the console. Auth0's dashboard addresses a tenant in its route

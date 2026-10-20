@@ -1,14 +1,9 @@
-import { Fragment } from 'react';
+import { Fragment, lazy, Suspense } from 'react';
+import CircularProgress from '@mui/material/CircularProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import { signedOut, useAppDispatch, useAppSelector } from '@ncode/store';
 import { AppLayout } from './components/AppLayout.js';
-import { TenantsPage } from './containers/TenantsPage.js';
-import { ServersPage } from './containers/ServersPage.js';
-import { ClientsPage } from './containers/ClientsPage.js';
-import { ResourceServersPage } from './containers/ResourceServersPage.js';
-import { GrantsPage } from './containers/GrantsPage.js';
-import { TenantDetailPage } from './containers/TenantDetailPage.js';
 import { endSessionUrlFromRuntime } from './auth.js';
 import { useConsoleRoute, navigateTo } from './navigation.js';
 import {
@@ -18,6 +13,28 @@ import {
   type GlobalSurface,
   type TenantSurface,
 } from './routes.js';
+
+// Each surface's container is its own chunk, loaded when the surface is first visited (ADR-0175).
+const TenantsPage = lazy(() =>
+  import('./containers/TenantsPage.js').then((m) => ({ default: m.TenantsPage })),
+);
+const ServersPage = lazy(() =>
+  import('./containers/ServersPage.js').then((m) => ({ default: m.ServersPage })),
+);
+const ClientsPage = lazy(() =>
+  import('./containers/ClientsPage.js').then((m) => ({ default: m.ClientsPage })),
+);
+const ResourceServersPage = lazy(() =>
+  import('./containers/ResourceServersPage.js').then((m) => ({ default: m.ResourceServersPage })),
+);
+const GrantsPage = lazy(() =>
+  import('./containers/GrantsPage.js').then((m) => ({ default: m.GrantsPage })),
+);
+const TenantDetailPage = lazy(() =>
+  import('./containers/TenantDetailPage.js').then((m) => ({ default: m.TenantDetailPage })),
+);
+
+const surfaceFallback = <CircularProgress aria-label="Loading" data-testid="surface-loading" />;
 
 /**
  * Stateful shell. The address bar owns the navigation state (ADR-0174): the route names the active
@@ -70,11 +87,13 @@ export function App() {
             <Tab value="tenants" label="Tenants" data-testid="global-tab-tenants" />
             <Tab value="servers" label="Servers" data-testid="global-tab-servers" />
           </Tabs>
-          {route.surface === 'tenants' ? (
-            <TenantsPage onOpenTenant={openTenant} />
-          ) : (
-            <ServersPage />
-          )}
+          <Suspense fallback={surfaceFallback}>
+            {route.surface === 'tenants' ? (
+              <TenantsPage onOpenTenant={openTenant} />
+            ) : (
+              <ServersPage />
+            )}
+          </Suspense>
         </>
       ) : (
         // Keyed by tenant: moving between tenants (e.g. back/forward) remounts the surface, so no per-tenant UI
@@ -96,15 +115,17 @@ export function App() {
             <Tab value="grants" label="Grants" data-testid="tenant-tab-grants" />
             <Tab value="settings" label="Settings" data-testid="tenant-tab-settings" />
           </Tabs>
-          {route.surface === 'clients' ? (
-            <ClientsPage scope={scope} />
-          ) : route.surface === 'resource-servers' ? (
-            <ResourceServersPage scope={scope} />
-          ) : route.surface === 'grants' ? (
-            <GrantsPage tenantId={route.tenantId} />
-          ) : (
-            <TenantDetailPage tenantId={route.tenantId} />
-          )}
+          <Suspense fallback={surfaceFallback}>
+            {route.surface === 'clients' ? (
+              <ClientsPage scope={scope} />
+            ) : route.surface === 'resource-servers' ? (
+              <ResourceServersPage scope={scope} />
+            ) : route.surface === 'grants' ? (
+              <GrantsPage tenantId={route.tenantId} />
+            ) : (
+              <TenantDetailPage tenantId={route.tenantId} />
+            )}
+          </Suspense>
         </Fragment>
       )}
     </AppLayout>

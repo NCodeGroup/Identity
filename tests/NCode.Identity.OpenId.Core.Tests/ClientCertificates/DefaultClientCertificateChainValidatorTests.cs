@@ -96,6 +96,19 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
     }
 
     [Fact]
+    public async Task ValidateAsync_MalformedTrustAnchor_ReturnsFalse()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(root, "CN=client");
+        var client = CreateClient(["-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----"]);
+
+        var result = await CreateValidator()
+            .ValidateAsync(client, Present(leaf), CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
     public async Task ValidateAsync_LeafIssuedByTrustAnchor_ReturnsTrue()
     {
         using var root = TestCertificates.CreateRootAuthority("Root");

@@ -440,19 +440,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`, `TenantApiEndpointHandler`
   (`DeleteTenantAsync`, `GetAddressAsync`).
 
-- **`F73` — Apply the key policy to every secret owner in the management API, and report a key's `kid`.** A client's
-  keys are imported and updated under one policy
-  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)), but the
-  tenant, server, and resource-server secret endpoints keep their earlier checks: an imported key's `use` and `alg` are
-  not checked against each other or the key, an update can give a key an `alg` its type does not accept, and a JSON Web
-  Key's `kid` is discarded in favor of the secret identifier. Check those imports and updates with the same
-  key-to-algorithm rule (`IAlgorithmCollection.ValidateKeyAlgorithm`), keep a JSON Web Key's `kid` (unique among the
-  owner's keys), and report every key's `kid` (its `KeyId`, or its secret identifier) in the management
-  `SecretResource` and the admin console's secret tables, which show only the secret identifier. Touch points:
-  `src/NCode.Identity.OpenId.Management/Endpoints/{Tenants,Servers,ResourceServers}/*ApiEndpointHandler.cs`,
-  `src/NCode.Identity.OpenId.Management.Abstractions/Contracts/Secrets/SecretResource.cs`, and the `@ncode/api`
-  contracts and secret tables in `src/frontend`.
-
 - **`F75` — Authenticate the management API against the control plane, not the tenant the request resolves.** The
   management `/api` surface materializes its OpenID context through `CreateForRequestAsync`, so the tenant that
   validates the caller's access token is whichever tenant the protocol strategy resolves from the request. That holds

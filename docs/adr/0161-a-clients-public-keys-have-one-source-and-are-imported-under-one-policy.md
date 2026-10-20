@@ -1,6 +1,7 @@
 # 161. A client's public keys have one source and are imported under one policy
 
-- **Status:** Accepted
+- **Status:** Accepted (applied to every owner's keys by
+  [ADR-0186](0186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md))
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

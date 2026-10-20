@@ -25,13 +25,14 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// Imports a client's public keys under one policy at every point they enter the server: the JSON Web Key Set a client
-/// registers by value at dynamic client registration, the JSON Web Key Set a client publishes at its <c>jwks_uri</c>,
-/// and a single key registered for a client through the management API. A client key is a public key of a registered
-/// key type, carries no private or symmetric material, declares a <c>use</c>, <c>key_ops</c>, and <c>alg</c> that agree
-/// with each other and with the key, and has a <c>kid</c> that is unique among the client's keys.
+/// Imports public keys under one policy at every point they enter the server: the JSON Web Key Set a client registers
+/// by value at dynamic client registration, the JSON Web Key Set a client publishes at its <c>jwks_uri</c>, and a
+/// single key imported through the management API for a client, a tenant, a server, or a resource server. An imported
+/// key is a public key of a registered key type, carries no private or symmetric material, declares a <c>use</c>,
+/// <c>key_ops</c>, and <c>alg</c> that agree with each other and with the key, and has a <c>kid</c> that is unique
+/// among its owner's keys.
 /// </summary>
-// See ADR-0161.
+// See ADR-0161 and ADR-0186.
 [PublicAPI]
 public interface IClientKeyImporter
 {

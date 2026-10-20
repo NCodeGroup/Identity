@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Accounts.Authentication;
@@ -113,6 +114,9 @@ serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 // Because the ring sits beside the data it protects, a Production deployment also wraps it with a key held elsewhere
 // — a 'DataProtection:KeyProtection' certificate bound by AddConfiguration, or a key management service — and the
 // production gate refuses to start while it is unprotected (ADR-0177).
+// The tag shared by every health check that decides whether a replica is ready to serve requests.
+const string readinessTag = "ready";
+
 var connectionString = configuration.GetConnectionString("openiddb");
 if (!string.IsNullOrEmpty(connectionString))
 {
@@ -126,6 +130,11 @@ if (!string.IsNullOrEmpty(connectionString))
         .AddDataProtection()
         .PersistKeysToDbContext<DeveloperDataProtectionDbContext>()
         .SetApplicationName("NCode.Identity.OpenId.Host");
+
+    // The replica is ready only while it can reach the database it serves every request from.
+    serviceCollection
+        .AddHealthChecks()
+        .AddDbContextCheck<OpenIdDbContext>("openiddb", tags: [readinessTag]);
 }
 else
 {
@@ -176,6 +185,16 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapEndpointGroups();
-app.MapHealthChecks("/health").WithName("health_endpoint");
+
+// Liveness runs no checks: it reports only that the process answers, so a dependency outage never restarts a replica.
+// Readiness runs the checks tagged 'ready' (the database, and Valkey when configured) and takes the replica out of
+// rotation while a dependency it needs is unreachable.
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
+    .WithName("health_live_endpoint");
+app.MapHealthChecks(
+        "/health/ready",
+        new HealthCheckOptions { Predicate = check => check.Tags.Contains(readinessTag) }
+    )
+    .WithName("health_ready_endpoint");
 
 await app.RunAsync();

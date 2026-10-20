@@ -353,14 +353,15 @@ entry and/or ADR that closed it.
 
 - **`F46` — Kubernetes deployment artifacts for the host.** `NCode.Identity.OpenId.Host` is the deployable
   ([ADR-0130](docs/adr/0130-distinct-names-for-host-local-dev-orchestrator-and-library.md)); it already trusts forwarded
-  headers only from configured proxies (`ReverseProxy:KnownNetworks` — set it to the cluster's pod CIDR) and refuses
-  development-only settings in Production (`AddProductionSafety`). Still missing for a rolling deployment behind
-  Traefik: the [`Dockerfile`](src/NCode.Identity.OpenId.Host/Dockerfile) is development-shaped (copies the whole repo,
+  headers only from configured proxies (`ReverseProxy:KnownNetworks` — set it to the cluster's pod CIDR), refuses
+  development-only settings and an unprotected Data Protection key ring in Production (`AddProductionSafety`), and
+  separates liveness (`/health/live`, no checks) from readiness (`/health/ready`: the database, and Valkey when
+  configured). Still missing for a rolling deployment behind Traefik, in three session-sized slices (image, chart,
+  migration Job): the [`Dockerfile`](src/NCode.Identity.OpenId.Host/Dockerfile) is development-shaped (copies the whole repo,
   exposes 80/443 although .NET listens on 8080, runs as root, amd64 only) and never builds the `apps/auth` interactive
   bundle — `InteractiveAuthentication:BundleRootPath` is set only in `launchSettings.json` — so the container cannot
-  render login or consent; `/health` runs only the `valkey` check (tagged `ready`), so readiness (database, Valkey) is not
-  separated from liveness; no Helm chart (probes, `preStop` drain, PodDisruptionBudget, restricted security context,
-  the `valkey` connection string required when `replicas > 1` — ADR-0164 leaves that rule to the chart); and
+  render login or consent; no Helm chart (probes on `/health/live` and `/health/ready`, `preStop` drain,
+  PodDisruptionBudget, restricted security context, the `valkey` connection string required when `replicas > 1` — ADR-0164 leaves that rule to the chart); and
   `Host.MigrationService` (which has no image) should run as a pre-deploy Job with expand/contract schema changes so a
   rolling update never breaks the running version; the chart mounts the `DataProtection:KeyProtection` certificate
   that the production-safety gate requires

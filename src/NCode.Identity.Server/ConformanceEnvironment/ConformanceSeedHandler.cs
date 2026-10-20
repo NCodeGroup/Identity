@@ -40,9 +40,9 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 
 /// <summary>
 /// A <strong>conformance-only</strong> seed handler that provisions the confidential clients and the deterministic
-/// test user that the OpenID Foundation conformance suite drives, into each workload tenant, so a launched OpenID
-/// host always exposes the same identities with no manual API calls. It is idempotent, inert unless its inputs are
-/// configured, and never targets the control-plane root tenant. It must not be used in production.
+/// test user that the OpenID Foundation conformance suite drives, into the one tenant its options name, so a launched
+/// OpenID host always exposes the same identities with no manual API calls. It is idempotent and inert unless its
+/// inputs are configured. It must not be used in production.
 /// </summary>
 /// <remarks>
 /// A seeded client's settings come from configuration, so the document is validated against the registered setting
@@ -294,19 +294,10 @@ internal sealed class ConformanceSeedHandler(
         return claims;
     }
 
-    private bool TargetsTenant(TenantSeedContext context)
-    {
-        // The conformance clients and test user are workload-plane artifacts; never seed them into the control-plane
-        // root tenant.
-        if (context.Plane != TenantPlane.Workload)
-        {
-            return false;
-        }
-
-        var configuredTenantId = Options.TenantId;
-        return string.IsNullOrEmpty(configuredTenantId)
-            || string.Equals(context.TenantId, configuredTenantId, StringComparison.Ordinal);
-    }
+    private bool TargetsTenant(TenantSeedContext context) =>
+        // The registration requires the tenant whenever there is something to seed (ADR-0166): a tenant created at
+        // runtime must not inherit the conformance clients and test user.
+        string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 
     private PersistedSecret CreatePersistedSecret(ReadOnlyMemory<byte> clientSecret)
     {

@@ -25,6 +25,8 @@ export type {
   SecretTypeCapability,
   ServerResource,
   SettingsResource,
+  TenantAddressFailure,
+  TenantAddressResource,
   TenantResource,
   UpdateClientFields,
   UpdateResourceServerFields,

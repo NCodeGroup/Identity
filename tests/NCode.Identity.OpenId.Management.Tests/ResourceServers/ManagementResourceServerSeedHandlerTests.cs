@@ -44,7 +44,6 @@ public sealed class ManagementResourceServerSeedHandlerTests
                     Secrets = null!,
                 },
                 Plane = plane,
-                IsNewlyProvisioned = true,
                 StoreManager = storeManager,
             }
         );

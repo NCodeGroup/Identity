@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
@@ -37,6 +38,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -51,6 +53,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 /*
 
 GET   api/tenants/{tenantId}
+GET   api/tenants/{tenantId}/address
 
 GET   api/tenants/{tenantId}/settings
 PATCH api/tenants/{tenantId}/settings
@@ -72,6 +75,7 @@ internal class TenantApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     ITenantValidator tenantValidator,
+    ITenantResolver tenantResolver,
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
     ISecretImporter secretImporter,
@@ -90,6 +94,7 @@ internal class TenantApiEndpointHandler(
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ITenantValidator TenantValidator { get; } = tenantValidator;
+    private ITenantResolver TenantResolver { get; } = tenantResolver;
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private ISecretImporter SecretImporter { get; } = secretImporter;
@@ -129,6 +134,7 @@ internal class TenantApiEndpointHandler(
         tenants
             .MapDelete("/{tenantId}", DeleteTenantAsync)
             .Produces(StatusCodes.Status204NoContent);
+        tenants.MapGet("/{tenantId}/address", GetAddressAsync).Produces<TenantAddressResource>();
 
         tenants.MapGet("/{tenantId}/settings", GetSettingsAsync).Produces<TenantSettingsResource>();
         tenants
@@ -323,11 +329,17 @@ internal class TenantApiEndpointHandler(
         // A tenant is named by its creator (ADR-0159); the validator checks the name with the rest of its address.
         var tenantId = request.TenantId;
 
+        // A tenant written without an issuer gets the one its strategy derives for it, judged like an explicit one
+        // (ADR-0165).
+        var issuer =
+            NullIfEmpty(request.Issuer)
+            ?? await TenantResolver.GetDefaultIssuerAsync(tenantId, cancellationToken);
+
         var tenant = new PersistedTenant
         {
             TenantId = tenantId,
             ConcurrencyToken = string.Empty,
-            Issuer = NullIfEmpty(request.Issuer),
+            Issuer = issuer,
             IsDisabled = request.IsDisabled,
             DisplayName = request.DisplayName,
             Settings = new PersistedTenantSettings
@@ -371,6 +383,12 @@ internal class TenantApiEndpointHandler(
         }
 
         await store.AddAsync(tenant, cancellationToken);
+
+        // The tenant row commits first: the creator's ownership is a row the tenant owns, and the stores resolve an
+        // owning tenant from the database rather than the change tracker — the same reason the provisioner commits a
+        // tenant before seeding it.
+        await storeManager.SaveChangesAsync(cancellationToken);
+
         await ResourceOwnershipService.AssignCreatorAsync(
             openIdContext,
             httpContext.User,
@@ -382,6 +400,16 @@ internal class TenantApiEndpointHandler(
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        // The tenant is seeded as soon as it exists — after the root tenant — so its system resource servers and keys
+        // are in place before its first request, through the one pipeline every tenant is seeded by (ADR-0166). The
+        // provisioner is scoped (its mediator is request-scoped), so it is resolved from the request's services.
+        var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
+        await provisioner.SeedAsync(tenant.TenantId, cancellationToken);
+
+        // A seed contributor may write to the tenant row (a seeded signing key changes its secrets), which replaces its
+        // concurrency token, so the response reflects the tenant as it now stands.
+        tenant = await ReloadTenantAsync(tenant, cancellationToken);
+
         var resource = ToTenantResource(tenant);
 
         await ManagementAuditRecorder.RecordTenantChangedAsync(
@@ -392,9 +420,77 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
-        // The store assigns the row token on insert (ADR-0012), so no re-read is needed.
         httpContext.Response.Headers.ETag = tenant.ConcurrencyToken;
         return TypedResults.Created($"/tenants/{tenant.TenantId}", resource);
+    }
+
+    /// <summary>
+    /// Previews the address of an OpenID tenant: the issuer it has, or would have, and every reason it could not be served
+    /// there. A caller checks a tenant's name and issuer with it before creating the tenant or changing its issuer; the
+    /// same rules judge the write itself.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant, whether or not it exists.</param>
+    /// <param name="issuer">The proposed issuer; when omitted, the tenant's current issuer, or for a tenant without one
+    /// the issuer its strategy derives for it.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The tenant's address and the reasons it cannot be served there, if any.</response>
+    // See ADR-0165 (the address is previewed through the seam that judges it).
+    [EndpointName("api/tenants/address")]
+    internal virtual async ValueTask<IResult> GetAddressAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromQuery] string? issuer,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        var exists = tenant is not null;
+
+        // Previewing an existing tenant's address reads it; previewing a new one is part of creating it, which is
+        // authority at the parent node rather than ownership (ADR-0034).
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            exists ? Operations.Read : Operations.Create
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var proposedIssuer = NullIfEmpty(issuer) ?? NullIfEmpty(tenant?.Issuer);
+        var effectiveIssuer =
+            proposedIssuer
+            ?? await TenantResolver.GetDefaultIssuerAsync(tenantId, cancellationToken);
+
+        var failures = await TenantResolver.ValidateTenantAsync(
+            tenantId,
+            effectiveIssuer,
+            storeManager,
+            cancellationToken
+        );
+
+        return TypedResults.Ok(
+            new TenantAddressResource
+            {
+                TenantId = tenantId,
+                Issuer = effectiveIssuer,
+                IsIssuerDerived = proposedIssuer is null && effectiveIssuer is not null,
+                Exists = exists,
+                Failures = failures
+                    .Select(failure => new TenantAddressFailure
+                    {
+                        Detail = failure.Detail,
+                        IsConflict = failure.IsConflict,
+                    })
+                    .ToList(),
+            }
+        );
     }
 
     /// <summary>
@@ -444,7 +540,10 @@ internal class TenantApiEndpointHandler(
             );
         }
 
-        model.Issuer = NullIfEmpty(model.Issuer);
+        // An update that clears the issuer restores the one the tenant's strategy derives for it (ADR-0165).
+        model.Issuer =
+            NullIfEmpty(model.Issuer)
+            ?? await TenantResolver.GetDefaultIssuerAsync(tenant.TenantId, cancellationToken);
 
         // Core preconditions (authorization + If-Match + required fields + the tenant's address + issuer uniqueness)
         // are asserted by the validator against the hydrated model (ADR-0014, ADR-0160).
@@ -1223,6 +1322,16 @@ internal class TenantApiEndpointHandler(
     ) =>
         await storeManager.GetStore<ITenantStore>().GetOrDefaultAsync(tenantId, cancellationToken)
             is not null;
+
+    private async ValueTask<PersistedTenant> ReloadTenantAsync(
+        PersistedTenant tenant,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+        return await store.GetOrDefaultAsync(tenant.TenantId, cancellationToken) ?? tenant;
+    }
 
     // An empty issuer means the tenant has none; storing it as empty would put it under the issuer's unique index.
     private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;

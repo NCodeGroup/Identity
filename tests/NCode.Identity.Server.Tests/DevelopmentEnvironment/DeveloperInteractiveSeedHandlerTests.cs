@@ -69,7 +69,6 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
             {
                 Tenant = persistedTenant,
                 Plane = plane,
-                IsNewlyProvisioned = true,
                 StoreManager = storeManager,
             }
         );
@@ -93,7 +92,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenRootPlane_DoesNothing()
+    public async Task HandleAsync_WhenNoTenantIsNamed_DoesNothing()
     {
         var handler = CreateHandler(
             new DeveloperInteractiveSeedOptions
@@ -148,6 +147,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
 
         var options = new DeveloperInteractiveSeedOptions
         {
+            TenantId = WorkloadTenantId,
             SpaClients = [CreateSpaClient()],
             AdminPassword = null,
         };

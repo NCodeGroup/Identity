@@ -35,7 +35,7 @@ public enum TenantPlane
 
     /// <summary>
     /// The control plane, which administers servers and tenants. This is the plane of the root tenant, whose
-    /// identifier is <see cref="TenantResolutionOptions.RootTenantId"/>.
+    /// identifier is <see cref="RootTenantOptions.TenantId"/>.
     /// </summary>
     Root = 1,
 }

@@ -92,7 +92,6 @@ public class ConformanceSeedHandlerTests : BaseTests
             {
                 Tenant = persistedTenant,
                 Plane = plane,
-                IsNewlyProvisioned = true,
                 StoreManager = storeManager,
             }
         );
@@ -114,7 +113,7 @@ public class ConformanceSeedHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenRootPlane_DoesNothing()
+    public async Task HandleAsync_WhenNoTenantIsNamed_DoesNothing()
     {
         var handler = CreateHandler(
             new ConformanceSeedOptions { TestUserPassword = "conformance-password" }
@@ -145,6 +144,7 @@ public class ConformanceSeedHandlerTests : BaseTests
     {
         var options = new ConformanceSeedOptions
         {
+            TenantId = WorkloadTenantId,
             Clients = [],
             TestUserName = "conformance-user",
             TestUserEmail = "conformance-user@localhost",
@@ -220,6 +220,7 @@ public class ConformanceSeedHandlerTests : BaseTests
 
         var options = new ConformanceSeedOptions
         {
+            TenantId = WorkloadTenantId,
             Clients =
             [
                 new ConformanceClientSeed
@@ -287,6 +288,7 @@ public class ConformanceSeedHandlerTests : BaseTests
 
         var options = new ConformanceSeedOptions
         {
+            TenantId = WorkloadTenantId,
             Clients =
             [
                 new ConformanceClientSeed

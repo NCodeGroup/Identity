@@ -18,8 +18,10 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
@@ -218,4 +220,135 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
     }
 
     #endregion
+
+    #region GetDefaultIssuerAsync Tests
+
+    [Fact]
+    public async Task GetDefaultIssuerAsync_WhenTemplateIsConfigured_ExpandsItForTheTenant()
+    {
+        var strategy = CreateStrategy(
+            new DynamicByHostTenantOptions { IssuerTemplate = "https://{tenantId}.auth.example" }
+        );
+
+        var issuer = await strategy.GetDefaultIssuerAsync(TenantId, CancellationToken.None);
+
+        Assert.Equal($"https://{IssuerHost}", issuer);
+    }
+
+    #endregion
+
+    #region ResolveTenantAsync Tests
+
+    [Fact]
+    public async Task ResolveTenantAsync_WhenATenantHoldsTheHost_ReturnsIt()
+    {
+        var holder = CreatePersistedTenant(TenantId);
+        var strategy = CreateResolvingStrategy(IssuerHost, holder);
+
+        var result = await strategy.ResolveTenantAsync(
+            CreateHttpContext(IssuerHost, provisioner: null),
+            CancellationToken.None
+        );
+
+        Assert.Same(holder, result);
+    }
+
+    [Fact]
+    public async Task ResolveTenantAsync_WhenNoTenantHoldsTheHost_ThrowsNotFound()
+    {
+        var strategy = CreateResolvingStrategy(IssuerHost, holder: null);
+
+        // A missing workload tenant is never created on demand: only the management API creates one.
+        await Assert.ThrowsAsync<HttpResultException>(async () =>
+            await strategy.ResolveTenantAsync(
+                CreateHttpContext(IssuerHost, provisioner: null),
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task ResolveTenantAsync_WhenTheRootTenantsHostIsNotYetHeld_CreatesTheRootTenant()
+    {
+        const string rootHost = "auth.example";
+        var root = CreatePersistedTenant(RootTenantOptions.DefaultTenantId);
+        var provisioner = MockRepository.Create<ITenantProvisioner>();
+        provisioner
+            .Setup(x =>
+                x.EnsureCreatedAsync(
+                    RootTenantOptions.DefaultTenantId,
+                    RootTenantOptions.DefaultDisplayName,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(root)
+            .Verifiable();
+        var strategy = CreateResolvingStrategy(
+            rootHost,
+            holder: null,
+            rootIssuer: $"https://{rootHost}"
+        );
+
+        var result = await strategy.ResolveTenantAsync(
+            CreateHttpContext(rootHost, provisioner.Object),
+            CancellationToken.None
+        );
+
+        Assert.Same(root, result);
+    }
+
+    #endregion
+
+    private DynamicByHostTenantStrategy CreateResolvingStrategy(
+        string issuerHost,
+        PersistedTenant? holder,
+        string? rootIssuer = null
+    )
+    {
+        var storeManagerFactory = MockRepository.Create<IStoreManagerFactory>();
+        storeManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultByIssuerHostAsync(issuerHost, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(holder)
+            .Verifiable();
+
+        return new DynamicByHostTenantStrategy(
+            storeManagerFactory.Object,
+            Options.Create(
+                new TenantResolutionOptions
+                {
+                    Root = { Issuer = rootIssuer },
+                    DynamicByHost = new DynamicByHostTenantOptions
+                    {
+                        IssuerTemplate = "https://{tenantId}.auth.example",
+                    },
+                }
+            )
+        );
+    }
+
+    private static DefaultHttpContext CreateHttpContext(
+        string host,
+        ITenantProvisioner? provisioner
+    )
+    {
+        var services = new ServiceCollection();
+        if (provisioner is not null)
+            services.AddSingleton(provisioner);
+
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = services.BuildServiceProvider(),
+        };
+        httpContext.Request.Host = new HostString(host);
+        return httpContext;
+    }
 }

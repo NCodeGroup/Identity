@@ -58,9 +58,10 @@ var migrations = builder
 
 // The reference OpenID Provider host. Its default launch profile supplies the Development environment variables and
 // the fixed dev endpoints (https://localhost:5001, http://localhost:5000) the rest of the stack is pinned to — the
-// issuer, the browser-published bootstrap document, the seeded SPA redirect URIs, and the developer CORS origins all
-// assume those ports. WithHttpHealthCheck gates dependents on the app being HEALTHY (its /health returns 200 once
-// Kestrel is listening), not merely "process started", which is what deterministically removes the UI-before-API race.
+// tenant's issuer (pinned by the same profile), the browser-published bootstrap document, the seeded SPA redirect URIs,
+// and the developer CORS origins all assume those ports. WithHttpHealthCheck gates dependents on the app being HEALTHY
+// (its /health returns 200 once Kestrel is listening), not merely "process started", which is what deterministically
+// removes the UI-before-API race.
 // WithReference injects the 'openiddb' connection string; WaitForCompletion holds the api until migrations succeed.
 var api = builder
     .AddProject<Projects.NCode_Identity_OpenId_Host>("api")
@@ -78,7 +79,10 @@ var api = builder
 // (Session Management, Front-Channel Logout, the client_credentials grant — ADR-0088) so the conformance dashboard
 // reports them, while the `api` above stays the locked-down secure default. The same overlay sets Cors:AllowedOrigins
 // (the Development CORS default does not apply outside Development) so the 5175 dashboard can read its discovery
-// cross-origin. WaitForCompletion(migrations) holds it until the shared schema is applied.
+// cross-origin, and serves its own `conformance` tenant: every tenant is published under its own stored issuer
+// (ADR-0165), so the two instances cannot share the `default` tenant in the shared database — the launch profile pins
+// this one's issuer to https://localhost:5003. WaitForCompletion(migrations) holds it until the shared schema is
+// applied.
 var conformanceApi = builder
     .AddProject<Projects.NCode_Identity_OpenId_Host>(
         "conformanceapi",

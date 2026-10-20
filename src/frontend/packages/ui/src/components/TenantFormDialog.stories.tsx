@@ -56,3 +56,36 @@ export const WithError: Story = {
     error: 'A tenant with the specified identifier already exists.',
   },
 };
+
+export const WithDerivedIssuer: Story = {
+  args: {
+    title: 'Create tenant',
+    submitLabel: 'Create',
+    initialValues: { ...emptyTenantFormValues, tenantId: 'acme', displayName: 'Acme Inc' },
+    addressPreview: {
+      issuer: 'https://acme.auth.example',
+      isIssuerDerived: true,
+      exists: false,
+      failures: [],
+    },
+  },
+};
+
+export const WithUnavailableAddress: Story = {
+  args: {
+    title: 'Create tenant',
+    submitLabel: 'Create',
+    initialValues: { ...acme, issuer: 'https://auth.example' },
+    addressPreview: {
+      issuer: 'https://auth.example',
+      isIssuerDerived: false,
+      exists: true,
+      failures: [
+        {
+          detail: "The issuer 'https://auth.example' is reserved for the root tenant.",
+          isConflict: true,
+        },
+      ],
+    },
+  },
+};

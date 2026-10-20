@@ -199,4 +199,113 @@ describe('TenantFormDialog', () => {
     fireEvent.click(screen.getByTestId('tenant-form-cancel'));
     expect(onCancel).toHaveBeenCalledOnce();
   });
+
+  it('reports the trimmed address as it is entered', () => {
+    const onAddressChange = vi.fn();
+    render(
+      <TenantFormDialog
+        open
+        title="Create tenant"
+        submitLabel="Create"
+        initialValues={emptyTenantFormValues}
+        onAddressChange={onAddressChange}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: ' acme ' } });
+    fireEvent.change(screen.getByTestId('tenant-issuer'), {
+      target: { value: ' https://acme.example ' },
+    });
+    expect(onAddressChange).toHaveBeenLastCalledWith({
+      tenantId: 'acme',
+      issuer: 'https://acme.example',
+    });
+  });
+
+  it('shows the derived issuer an empty issuer field resolves to', () => {
+    render(
+      <TenantFormDialog
+        open
+        title="Create tenant"
+        submitLabel="Create"
+        initialValues={{ ...emptyTenantFormValues, tenantId: 'acme', displayName: 'Acme' }}
+        addressPreview={{
+          issuer: 'https://acme.auth.example',
+          isIssuerDerived: true,
+          exists: false,
+          failures: [],
+        }}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Leave empty to use https://acme.auth.example.')).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-issuer')).toHaveAttribute(
+      'placeholder',
+      'https://acme.auth.example',
+    );
+    expect(screen.getByTestId('tenant-form-submit')).toBeEnabled();
+  });
+
+  it('flags a taken tenant ID and blocks submit', () => {
+    render(
+      <TenantFormDialog
+        open
+        title="Create tenant"
+        submitLabel="Create"
+        initialValues={{ ...emptyTenantFormValues, tenantId: 'acme', displayName: 'Acme' }}
+        addressPreview={{ issuer: null, isIssuerDerived: false, exists: true, failures: [] }}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('A tenant with this ID already exists.')).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-id')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
+  });
+
+  it('ignores the existing tenant when its own ID is locked', () => {
+    render(
+      <TenantFormDialog
+        open
+        title="Edit tenant"
+        submitLabel="Save"
+        initialValues={acme}
+        isTenantIdLocked
+        addressPreview={{
+          issuer: 'https://acme.auth.example',
+          isIssuerDerived: false,
+          exists: true,
+          failures: [],
+        }}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('tenant-form-submit')).toBeEnabled();
+  });
+
+  it('lists the reasons the address cannot be served and blocks submit', () => {
+    render(
+      <TenantFormDialog
+        open
+        title="Create tenant"
+        submitLabel="Create"
+        initialValues={{ ...acme, issuer: 'https://taken.example' }}
+        addressPreview={{
+          issuer: 'https://taken.example',
+          isIssuerDerived: false,
+          exists: false,
+          failures: [{ detail: 'Another tenant already has the issuer.', isConflict: true }],
+        }}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('tenant-address-failures')).toHaveTextContent(
+      'Another tenant already has the issuer.',
+    );
+    expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
+  });
 });

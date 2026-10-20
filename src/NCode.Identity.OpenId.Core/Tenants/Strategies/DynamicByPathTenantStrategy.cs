@@ -35,10 +35,10 @@ internal class DynamicByPathTenantStrategy(
     IStoreManagerFactory storeManagerFactory,
     IOptions<TenantResolutionOptions> optionsAccessor,
     TemplateBinderFactory templateBinderFactory
-) : TenantStrategy(storeManagerFactory)
+) : TenantStrategy(storeManagerFactory, optionsAccessor)
 {
     private DynamicByPathTenantOptions Options =>
-        optionsAccessor.Value.DynamicByPath ?? new DynamicByPathTenantOptions();
+        ResolutionOptions.DynamicByPath ?? new DynamicByPathTenantOptions();
 
     private TemplateBinder? TenantRouteBinderOrNull { get; set; }
 
@@ -50,6 +50,9 @@ internal class DynamicByPathTenantStrategy(
 
     /// <inheritdoc />
     protected override PathString TenantPath => Options.TenantPath;
+
+    /// <inheritdoc />
+    protected override string? IssuerTemplate => Options.IssuerTemplate;
 
     /// <inheritdoc />
     /// <remarks>
@@ -89,6 +92,9 @@ internal class DynamicByPathTenantStrategy(
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// A request for the root tenant's route finds the root tenant even on a fresh deployment: it is created on demand.
+    /// </remarks>
     public override async ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
@@ -104,6 +110,6 @@ internal class DynamicByPathTenantStrategy(
                 $"The value for route parameter '{Options.TenantIdRouteParameterName}' is missing or empty."
             );
 
-        return await GetTenantByIdAsync(tenantId, cancellationToken);
+        return await GetTenantByIdAsync(httpContext, tenantId, cancellationToken);
     }
 }

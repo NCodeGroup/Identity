@@ -35,7 +35,8 @@ public sealed class ConformanceSeedOptions
     public const string DefaultSectionName = "ConformanceSeed";
 
     /// <summary>
-    /// Gets or sets the workload tenant id to seed into. When empty, every workload tenant is seeded.
+    /// Gets or sets the identifier of the one tenant to seed into. It is required whenever there is something to seed:
+    /// seeding every tenant would hand each tenant created at runtime the suite's well-known credentials.
     /// </summary>
     public string? TenantId { get; set; }
 

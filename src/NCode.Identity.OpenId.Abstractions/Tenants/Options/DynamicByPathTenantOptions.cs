@@ -41,4 +41,13 @@ public sealed class DynamicByPathTenantOptions
     /// The default value is '/{tenantId}'.
     /// </summary>
     public PathString TenantPath { get; set; } = "/{tenantId}";
+
+    /// <summary>
+    /// Gets or sets the template a tenant's issuer is derived from when the tenant is written without one — an absolute
+    /// URL whose path ends with <see cref="TenantPath"/>, carrying <see cref="TenantResolutionOptions.TenantIdPlaceholder"/>
+    /// where the route carries the tenant identifier, for example <c>https://op.example/{tenantId}</c>. The derived
+    /// issuer is stored with the tenant, so changing the template never moves an existing tenant. When unset, every
+    /// tenant must be given an issuer explicitly.
+    /// </summary>
+    public string? IssuerTemplate { get; set; }
 }

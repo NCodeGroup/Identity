@@ -36,6 +36,8 @@ public class TenantRouteTests
 {
     private const string DiscoveryPath = "/.well-known/openid-configuration";
 
+    private const string PathIssuerTemplate = "http://localhost/{tenantId}";
+
     private static async Task<JsonElement> GetDiscoveryAsync(
         HostApplicationFactory factory,
         string discoveryPath
@@ -59,6 +61,7 @@ public class TenantRouteTests
             new Dictionary<string, string?>
             {
                 ["OpenId:TenantResolution:StaticSingle:TenantPath"] = "/identity",
+                ["OpenId:TenantResolution:StaticSingle:Issuer"] = "http://localhost/identity",
             }
         );
 
@@ -82,6 +85,7 @@ public class TenantRouteTests
             new Dictionary<string, string?>
             {
                 ["OpenId:TenantResolution:StaticSingle:TenantPath"] = "/identity",
+                ["OpenId:TenantResolution:StaticSingle:Issuer"] = "http://localhost/identity",
             }
         );
         using var client = factory.CreateClient();
@@ -126,9 +130,10 @@ public class TenantRouteTests
                 ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
                     .TenantStrategyCodes
                     .DynamicByPath,
+                ["OpenId:TenantResolution:DynamicByPath:IssuerTemplate"] = PathIssuerTemplate,
             }
         );
-        await SeedTenantAsync(factory, tenantId);
+        await SeedTenantAsync(factory, tenantId, $"http://localhost/{tenantId}");
 
         var discovery = await GetDiscoveryAsync(factory, $"/{tenantId}{DiscoveryPath}");
 
@@ -148,6 +153,7 @@ public class TenantRouteTests
                 ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
                     .TenantStrategyCodes
                     .DynamicByPath,
+                ["OpenId:TenantResolution:DynamicByPath:IssuerTemplate"] = PathIssuerTemplate,
             }
         );
         using var client = factory.CreateClient();
@@ -157,7 +163,56 @@ public class TenantRouteTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
-    private static async Task SeedTenantAsync(HostApplicationFactory factory, string tenantId)
+    [Fact]
+    public async Task GetDiscovery_WhenTheRootTenantIsReachedByPath_CreatesItAtItsDerivedIssuer()
+    {
+        using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
+                    .TenantStrategyCodes
+                    .DynamicByPath,
+                ["OpenId:TenantResolution:DynamicByPath:IssuerTemplate"] = PathIssuerTemplate,
+            }
+        );
+
+        // Nothing is seeded: the control plane is bootstrapped by the first request that reaches its address.
+        var discovery = await GetDiscoveryAsync(factory, $"/root{DiscoveryPath}");
+
+        Assert.Equal("http://localhost/root", discovery.GetProperty("issuer").GetString());
+    }
+
+    [Fact]
+    public async Task GetDiscovery_WhenTenantIsStoredWithoutAnIssuer_IsNotServed()
+    {
+        const string tenantId = "legacy";
+
+        using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
+                    .TenantStrategyCodes
+                    .DynamicByPath,
+                ["OpenId:TenantResolution:DynamicByPath:IssuerTemplate"] = PathIssuerTemplate,
+            }
+        );
+        await SeedTenantAsync(factory, tenantId, issuer: null);
+        using var client = factory.CreateClient();
+
+        // Nothing derives an issuer from the request, so the tenant fails closed instead of publishing the caller's
+        // Host header as the place to send credentials.
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/{tenantId}{DiscoveryPath}");
+        request.Headers.Host = "attacker.example";
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+    }
+
+    private static async Task SeedTenantAsync(
+        HostApplicationFactory factory,
+        string tenantId,
+        string? issuer
+    )
     {
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
@@ -170,7 +225,7 @@ public class TenantRouteTests
             new PersistedTenant
             {
                 TenantId = tenantId,
-                Issuer = null,
+                Issuer = issuer,
                 ConcurrencyToken = Guid.NewGuid().ToString("N"),
                 IsDisabled = false,
                 DisplayName = tenantId,

@@ -39,6 +39,11 @@ Accept: application/json
 GET {{host}}/api/tenants?limit=50
 Accept: application/json
 
+### Preview a new tenant's address — the issuer it would be created with, whether the name is taken, and every
+### reason it could not be served there (add &issuer=... to check an explicit issuer instead of the derived one)
+GET {{host}}/api/tenants/acme-dev/address
+Accept: application/json
+
 ### List resource servers (APIs) — scoped to the addressed tenant
 GET {{host}}/api/tenants/{{tenantId}}/resource-servers?limit=50
 Accept: application/json

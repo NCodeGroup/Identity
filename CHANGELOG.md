@@ -10,6 +10,31 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A tenant can be created without an issuer, and is given the one its tenant strategy derives.** The host and path
+  strategies take an issuer template — `OpenId:TenantResolution:DynamicByHost:IssuerTemplate =
+  https://{tenantId}.auth.example`, `DynamicByPath:IssuerTemplate = https://op.example/{tenantId}` — and a tenant created
+  through the management API without an issuer is given its expansion, stored with it and judged by the same rules as an
+  explicit issuer. Changing the template never moves an existing tenant, and clearing a tenant's issuer restores the
+  derived one. The root tenant takes `OpenId:TenantResolution:Root:Issuer` when it is set (the hosted platform's
+  `https://auth.<apex>` beside `https://{tenantId}.auth.<apex>`), and its address is reserved for it. A template is
+  validated when the host starts: it carries `{tenantId}` once, varies the host under the host strategy, and ends with
+  the tenant route under the path strategy. See
+  [ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md).
+
+- **The management API previews a tenant's address before it is written.** `GET /api/tenants/{tenantId}/address`
+  (optionally `?issuer=`) returns the issuer the tenant has or would be given, whether it is the derived one, whether
+  the tenant already exists, and every reason the tenant could not be served there — the same rules the create and update
+  apply. The management console's tenant form previews the address as you type: it shows the issuer an empty field
+  resolves to, flags a taken tenant ID, and lists why a proposed issuer cannot be used.
+
+- **The root tenant is provisioned under every tenant strategy, and every tenant is seeded.** Under the host and path
+  strategies the root (control-plane) tenant is created when the first request reaches its address, so a multi-tenant
+  deployment boots from configuration alone: the bootstrap administrator, named into the root tenant, obtains the first
+  management token there. A tenant created through the management API is seeded before the response — its OpenID and
+  management resource servers exist before its first request — and every tenant is re-seeded when it is next
+  materialized, so a seed contributor added by a deploy reaches existing tenants under every strategy. See
+  [ADR-0166](docs/adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md).
+
 - **Several replicas can now share DPoP nonces and single-use records through Valkey.** The new
   `NCode.Identity.SharedState.Abstractions` package defines `IExpiringKeySet`, an atomic add-if-absent set of
   expiring keys; `NCode.Identity.SharedState` provides the in-process adapter `AddIdentityServer()` registers by default
@@ -79,6 +104,31 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Every tenant a strategy serves has an issuer, and nothing derives one from the request.** A tenant without an issuer
+  used to publish URLs built from the incoming request — a development convenience that let a caller's `Host` header
+  choose where clients send their credentials. The tenant factory now takes a tenant's issuer and base address from its
+  stored issuer alone and fails closed for a served tenant without one. **Breaking:**
+  `OpenId:TenantResolution:StaticSingle:Issuer` is required, so a host without it does not start (the reference host's
+  launch profiles pin `https://localhost:5001`, `https://localhost:44369`, `https://host.docker.internal:5001`,
+  `https://localhost:5003`, and the Docker profile's now-fixed `https://localhost:5011`), and the host and path strategies
+  require an address for the root tenant — `Root:Issuer` or their issuer template. A host is reached at the origin its
+  issuer names. A development database that holds a tenant stored without an issuer must be reset
+  (`build/dev-db-reset.ps1`) or the tenant given an issuer. An issuer's host labels may be at most 63 characters. A
+  disabled static tenant is no longer served, like any other disabled tenant. `DefaultOpenIdTenantFactory` no longer
+  takes a `TemplateBinderFactory`, and resolves `GetTenantIssuerAsync` before `GetTenantBaseAddressAsync`, which now
+  receives the issuer. See
+  [ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md).
+
+- **Tenant provisioning is split into creating and seeding, and the root tenant's options are grouped.**
+  **Breaking:** `ITenantProvisioner.ProvisionAsync(tenantId, displayName, issuer)` is replaced by
+  `EnsureCreatedAsync(tenantId, displayName)` — which creates a configuration-defined tenant at its strategy's default
+  issuer, judged like any other write — and `SeedAsync(tenantId)`. `ITenantStrategy` and `ITenantResolver` gain
+  `GetDefaultIssuerAsync`, which a custom strategy implements. `TenantResolution:RootTenantId` moves to
+  `TenantResolution:Root:TenantId`, beside the new `Root:DisplayName` and `Root:Issuer`, and
+  `TenantSeedContext.IsNewlyProvisioned` is removed. The Aspire conformance instance serves its own `conformance` tenant
+  rather than sharing the development host's. See
+  [ADR-0166](docs/adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md).
 
 - **DPoP nonces and the DPoP-proof and client-assertion replay records are stored in the shared-state port, scoped by
   tenant.** They are recorded in `IExpiringKeySet` under keys that name the tenant and digest the request-supplied
@@ -586,6 +636,21 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **No published URL follows the request's `Host` header any more.** A tenant without an issuer published its
+  discovery endpoints, `registration_client_uri`, and device `verification_uri` under the origin of whatever request
+  materialized it, so a forged `Host` could point a client's credentials elsewhere. Every served tenant now has an
+  issuer, and a tenant stored without one fails closed.
+  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md))
+
+- **The bootstrap administrator, the development administrator, and the conformance clients are seeded into one named
+  tenant only.** With no tenant configured they were seeded into every workload tenant, which, now that tenants created
+  at runtime are seeded, would have given each new tenant a client whose tokens carry `GlobalAdmin` or accounts with
+  well-known passwords. **Breaking:** `BootstrapAdmin:TenantId`, `DeveloperInteractiveSeed:TenantId`, and
+  `ConformanceSeed:TenantId` are required whenever their seeder has something to seed, and the host does not start
+  without them; the named tenant may be the root tenant. `GlobalAdmin` is conferred only on the bootstrap client in its
+  tenant, not on a client that shares its identifier elsewhere.
+  ([ADR-0166](docs/adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md))
+
 - **A DPoP proof or client assertion could be accepted twice.** The replay stores checked for a record and then wrote
   one, so two concurrent presentations of the same proof or `private_key_jwt` / `client_secret_jwt` assertion could
   both pass. Each replica also kept its own records, so a replay sent to a different replica was accepted. Recording is
@@ -637,6 +702,11 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **Creating a tenant through the management API failed.** The creator's ownership role assignment looks its tenant up
+  in the database, but it was written in the same unit of work as the tenant row, before that row was committed, so
+  every create ended in an error. The tenant row is now committed first, then the ownership, and the response carries
+  the tenant's concurrency token after seeding.
 
 - **The management API could give a tenant an issuer nothing is served under.** Only the static tenant's configured
   issuer was checked, so a tenant created or updated through the management API could have an issuer with a query or

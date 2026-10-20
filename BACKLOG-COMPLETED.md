@@ -1206,6 +1206,31 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   were verified up and down against Postgres 18.3. Follow-ups recorded: `F72` (`x5c` certificates for
   `self_signed_tls_client_auth`) and `F73` (the key policy and `kid` for the other secret owners)._
 
+- **`F71` — Derive a tenant's issuer from a configured template.** A tenant served at a request-independent address
+  needs an issuer, and a production deployment must not rely on the request-derived fallback
+  ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md); the production-safety part of
+  `F46`). Auth0 derives a tenant's canonical domain from its name, and tenant names are readable host labels
+  ([ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md)), so a strategy can do the same: a configured issuer
+  template (for example `https://{tenantId}.auth.nidentity.io` for `DynamicByHost`, `https://op.example/{tenantId}` for
+  `DynamicByPath`) fills in, and persists, the issuer of a tenant created without one, judged by the same rules as an
+  explicit issuer ([ADR-0160](docs/adr/0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)). A custom
+  domain stays an explicit issuer. Touch points: `DynamicByHostTenantOptions`, `DynamicByPathTenantOptions` and their
+  options validators, `ITenantStrategy`, `TenantApiEndpointHandler.CreateTenantAsync`, `DefaultTenantProvisioner`.
+  _Closed: [ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md) and
+  [ADR-0166](docs/adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md); see the
+  [`CHANGELOG.md`](CHANGELOG.md) entries "A tenant can be created without an issuer…", "Every tenant a strategy serves
+  has an issuer…", and "The root tenant is provisioned under every tenant strategy…". The host and path strategies take
+  an `IssuerTemplate`, the root tenant a `Root:Issuer`, and `ITenantStrategy.GetDefaultIssuerAsync` (through
+  `ITenantResolver`) supplies the default that management create and update persist and judge. The request-derived
+  issuer fallback is removed rather than gated: `StaticSingle:Issuer` is required, the dynamic strategies require a root
+  address, and a served tenant without an issuer fails closed. Folded in: the root tenant is provisioned on demand under
+  every strategy, a management-created tenant is seeded before its create returns, every tenant is re-seeded when next
+  materialized, and the configuration seeders (`BootstrapAdmin`, `DeveloperInteractiveSeed`, `ConformanceSeed`) target
+  exactly one named tenant; `GET /api/tenants/{tenantId}/address` and the console's tenant form preview the address.
+  The work also fixed management tenant creation, which wrote the creator's ownership before the tenant was committed.
+  Follow-ups recorded: `F74` (the frontend bootstrap document's request-derived issuer) and `F75` (the management API's
+  authenticating tenant under the dynamic strategies)._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

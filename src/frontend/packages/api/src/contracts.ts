@@ -35,11 +35,34 @@ export type CreateTenantRequest = {
 /**
  * The mutable tenant metadata a JSON Patch may modify (mirror of `UpdateTenantRequest`). The store
  * turns this into a `replace`-only JSON Patch document; keys match the server's wire property names.
+ * A `null` issuer restores the one the server's tenant strategy derives for the tenant.
  */
 export type UpdateTenantFields = {
   readonly issuer: string | null;
   readonly displayName: string;
   readonly isDisabled: boolean;
+};
+
+/** Mirror of `TenantAddressFailure`: one reason a tenant cannot be served at a proposed address. */
+export type TenantAddressFailure = {
+  readonly detail: string;
+  /** A conflict with another tenant (the write would answer `409`) rather than an invalid value (`400`). */
+  readonly isConflict: boolean;
+};
+
+/**
+ * Mirror of `TenantAddressResource`: the preview of a tenant's address (its id and issuer) before it
+ * is created or its issuer changes, judged by the same rules as the write itself.
+ */
+export type TenantAddressResource = {
+  readonly tenantId: string;
+  /** The proposed issuer, else the tenant's current one, else the one its strategy derives; or `null`. */
+  readonly issuer: string | null;
+  /** Whether {@link TenantAddressResource.issuer} is the one the tenant strategy derives. */
+  readonly isIssuerDerived: boolean;
+  /** Whether a tenant with the id already exists, so a new tenant cannot take it. */
+  readonly exists: boolean;
+  readonly failures: readonly TenantAddressFailure[];
 };
 
 /** Mirror of `ServerResource` (global scope). */

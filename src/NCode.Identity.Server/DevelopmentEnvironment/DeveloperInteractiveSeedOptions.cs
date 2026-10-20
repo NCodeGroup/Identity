@@ -35,7 +35,8 @@ public sealed class DeveloperInteractiveSeedOptions
     public const string DefaultSectionName = "DeveloperInteractiveSeed";
 
     /// <summary>
-    /// Gets or sets the workload tenant id to seed into. When empty, every workload tenant is seeded.
+    /// Gets or sets the identifier of the one tenant to seed into. It is required whenever there is something to seed:
+    /// seeding every tenant would hand each tenant created at runtime a well-known administrator.
     /// </summary>
     public string? TenantId { get; set; }
 

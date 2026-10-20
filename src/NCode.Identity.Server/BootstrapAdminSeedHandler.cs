@@ -35,13 +35,15 @@ using NCode.Mediator;
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Seeds the configured bootstrap administrator client into the workload tenant as part of the tenant seed fan-out. The
-/// client registers <c>client_secret_basic</c>, so it presents the configured secret with HTTP Basic authentication.
-/// The client's management-audience tokens are stamped with the <c>GlobalAdmin</c> role by
+/// Seeds the configured bootstrap administrator client into the configured bootstrap tenant as part of the tenant seed
+/// fan-out. The client registers <c>client_secret_basic</c>, so it presents the configured secret with HTTP Basic
+/// authentication. The client's management-audience tokens are stamped with the <c>GlobalAdmin</c> role by
 /// <see cref="BootstrapAdminAccessTokenClaimsHandler"/>, so an operator can make the first authorized management call.
-/// The handler is idempotent and inert unless a bootstrap client id and secret are configured; it never targets the
-/// control-plane root tenant.
+/// The handler is idempotent and inert unless a bootstrap client id and secret are configured, and it seeds exactly the
+/// one tenant <see cref="BootstrapAdminOptions.TenantId"/> names — never every tenant, which would hand a GlobalAdmin
+/// credential to each tenant created at runtime.
 /// </summary>
+// See ADR-0044 (the bootstrap administrator) and ADR-0166 (a seeder that names a tenant seeds exactly that tenant).
 internal sealed class BootstrapAdminSeedHandler(
     IOptions<BootstrapAdminOptions> bootstrapOptionsAccessor,
     ISecretGenerator secretGenerator,
@@ -129,18 +131,10 @@ internal sealed class BootstrapAdminSeedHandler(
         );
     }
 
-    private bool TargetsTenant(TenantSeedContext context)
-    {
-        // The bootstrap administrator is a workload-plane client; it is never seeded into the control-plane root tenant.
-        if (context.Plane != TenantPlane.Workload)
-        {
-            return false;
-        }
-
-        var configuredTenantId = Options.TenantId;
-        return string.IsNullOrEmpty(configuredTenantId)
-            || string.Equals(context.TenantId, configuredTenantId, StringComparison.Ordinal);
-    }
+    private bool TargetsTenant(TenantSeedContext context) =>
+        // BootstrapAdminOptionsValidator requires the tenant whenever the bootstrap administrator is configured. The root
+        // (control-plane) tenant is a legitimate home for it, wherever a host serves the root tenant.
+        string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 
     private PersistedClient CreateClient(
         string tenantId,

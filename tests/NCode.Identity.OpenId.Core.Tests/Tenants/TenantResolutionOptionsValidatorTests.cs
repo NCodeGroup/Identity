@@ -55,15 +55,19 @@ public sealed class TenantResolutionOptionsValidatorTests
     }
 
     [Fact]
+    public void Validate_WhenRootIsNull_Fails()
+    {
+        var failures = Failures(new TenantResolutionOptions { Root = null! });
+
+        Assert.Contains("Root is required", failures, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Validate_WhenRootTenantIdIsEmpty_Fails()
     {
-        var failures = Failures(new TenantResolutionOptions { RootTenantId = string.Empty });
+        var failures = Failures(new TenantResolutionOptions { Root = { TenantId = string.Empty } });
 
-        Assert.Contains(
-            nameof(TenantResolutionOptions.RootTenantId),
-            failures,
-            StringComparison.Ordinal
-        );
+        Assert.Contains("Root:TenantId is required", failures, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -72,10 +76,42 @@ public sealed class TenantResolutionOptionsValidatorTests
     [InlineData("-root")]
     public void Validate_WhenRootTenantIdIsNotATenantIdentifier_Fails(string rootTenantId)
     {
-        var failures = Failures(new TenantResolutionOptions { RootTenantId = rootTenantId });
+        var failures = Failures(new TenantResolutionOptions { Root = { TenantId = rootTenantId } });
 
-        Assert.Contains($"RootTenantId '{rootTenantId}'", failures, StringComparison.Ordinal);
+        Assert.Contains($"Root:TenantId '{rootTenantId}'", failures, StringComparison.Ordinal);
         Assert.Contains("lowercase letters", failures, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_WhenRootDisplayNameIsEmpty_Fails()
+    {
+        var failures = Failures(
+            new TenantResolutionOptions { Root = { DisplayName = string.Empty } }
+        );
+
+        Assert.Contains("Root:DisplayName is required", failures, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("auth.example")]
+    [InlineData("http://auth.example")]
+    [InlineData("https://auth.example?x=1")]
+    public void Validate_WhenRootIssuerIsNotAnIssuer_Fails(string rootIssuer)
+    {
+        var failures = Failures(new TenantResolutionOptions { Root = { Issuer = rootIssuer } });
+
+        Assert.Contains($"Root:Issuer '{rootIssuer}'", failures, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_WhenRootIssuerIsAnIssuer_Succeeds()
+    {
+        var result = Validator.Validate(
+            name: null,
+            new TenantResolutionOptions { Root = { Issuer = "https://auth.example" } }
+        );
+
+        Assert.True(result.Succeeded);
     }
 
     [Fact]

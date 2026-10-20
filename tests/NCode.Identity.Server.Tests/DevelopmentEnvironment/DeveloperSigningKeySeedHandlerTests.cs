@@ -222,7 +222,6 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
             {
                 Tenant = tenant,
                 Plane = TenantPlane.Workload,
-                IsNewlyProvisioned = true,
                 StoreManager = storeManager.Object,
             }
         );

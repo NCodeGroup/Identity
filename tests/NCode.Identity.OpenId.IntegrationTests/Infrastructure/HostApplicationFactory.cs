@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Extensions.DataProtection;
@@ -58,6 +59,12 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 {
     /// <summary>The tenant id used by the host's static single-tenant provider.</summary>
     public const string TenantId = "default";
+
+    /// <summary>
+    /// The issuer pinned on the static tenant: the origin <see cref="Microsoft.AspNetCore.TestHost.TestServer"/> serves
+    /// requests under, so the URLs the server publishes are ones a test client can call.
+    /// </summary>
+    public const string TestServerIssuer = "http://localhost";
 
     /// <summary>The header the test host reads a forwarded mutual-TLS client certificate (base64 DER) from.</summary>
     public const string MutualTlsCertificateHeaderName = "X-Client-Cert";
@@ -913,7 +920,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         new()
         {
             TenantId = tenantId,
-            Issuer = null,
+            Issuer = TestServerIssuer,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             IsDisabled = false,
             DisplayName = tenantId,
@@ -937,6 +944,18 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         // Resolve the content root to the host project so its appsettings.json is loaded.
         builder.UseSolutionRelativeContentRoot("src/NCode.Identity.OpenId.Host");
         builder.UseEnvironment(Microsoft.Extensions.Hosting.Environments.Development);
+
+        // A tenant is served only beneath its issuer, so the static tenant is pinned to the TestServer's own origin,
+        // the way a deployment pins its public one. A derived factory that changes the tenant path or strategy layers
+        // its own issuer over this one.
+        builder.ConfigureAppConfiguration(configurationBuilder =>
+            configurationBuilder.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["OpenId:TenantResolution:StaticSingle:Issuer"] = TestServerIssuer,
+                }
+            )
+        );
 
         builder.ConfigureTestServices(serviceCollection =>
         {

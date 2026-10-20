@@ -59,7 +59,10 @@ public interface ITenantStrategy
     bool TryGetTenantId(HttpContext httpContext, [NotNullWhen(true)] out string? tenantId);
 
     /// <summary>
-    /// Resolves the <see cref="PersistedTenant"/> for the current HTTP request using this strategy.
+    /// Resolves the <see cref="PersistedTenant"/> for the current HTTP request using this strategy. When the request
+    /// addresses a tenant that configuration defines — the root tenant, or a static strategy's own tenant — and it does
+    /// not exist yet, the strategy creates it through <see cref="ITenantProvisioner.EnsureCreatedAsync"/>. A strategy
+    /// never seeds a tenant; the caller that materializes it does.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -71,10 +74,23 @@ public interface ITenantStrategy
     );
 
     /// <summary>
-    /// Validates the rules this strategy places on a tenant's issuer: that a request routed by this strategy reaches
-    /// the tenant beneath that issuer. The <see cref="ITenantResolver"/> has already validated the rules every strategy
-    /// shares — the form of the identifier and the issuer, and that no other tenant holds the issuer — before it calls
-    /// the selected strategy.
+    /// Gets the issuer this strategy assigns a tenant that is written without one: the root tenant's configured issuer,
+    /// a static strategy's configured issuer for its own tenant, or the expansion of the strategy's issuer template.
+    /// The derived issuer is stored with the tenant and judged by <see cref="ValidateTenantAsync"/> like an explicit
+    /// one.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant, already validated as a tenant identifier.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the default issuer, or
+    /// <c>null</c> when this strategy assigns the tenant none.</returns>
+    ValueTask<string?> GetDefaultIssuerAsync(string tenantId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Validates the rules this strategy places on a tenant's issuer: whether the tenant needs one — every tenant this
+    /// strategy serves does, because a tenant is served only beneath its issuer — and that a request routed by this
+    /// strategy reaches the tenant beneath that issuer. The <see cref="ITenantResolver"/> has already validated the rules
+    /// every strategy shares — the form of the identifier and the issuer, and that no other tenant holds the issuer —
+    /// before it calls the selected strategy.
     /// </summary>
     /// <param name="tenantId">The identifier of the tenant, already validated as a tenant identifier.</param>
     /// <param name="issuer">The proposed issuer of the tenant, already validated as an absolute <c>https</c> URL

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -9,6 +9,8 @@ import {
   TenantFormDialog,
   TenantTable,
   emptyTenantFormValues,
+  isValidTenantId,
+  type TenantAddressInput,
   type TenantFormValues,
 } from '@ncode/ui';
 import type { TenantResource } from '@ncode/api';
@@ -16,6 +18,7 @@ import {
   apiErrorMessage,
   useCreateTenantMutation,
   useDeleteTenantMutation,
+  useGetTenantAddressQuery,
   useListTenantsQuery,
   useUpdateTenantMutation,
   type ApiError,
@@ -32,6 +35,18 @@ type DialogState =
   | { readonly kind: 'delete'; readonly tenant: TenantResource };
 
 const closed: DialogState = { kind: 'none' };
+
+/** How long the address must stay unchanged before it is previewed, so typing sends no burst of requests. */
+const addressPreviewDelayMs = 300;
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+  return debounced;
+}
 
 /**
  * Container: the global-scope tenant browser and CRUD surface. Wires the RTK Query tenant list and
@@ -50,6 +65,10 @@ export function TenantsPage({ onOpenTenant }: TenantsPageProps) {
   const [dialog, setDialog] = useState<DialogState>(closed);
   const [formError, setFormError] = useState<string>();
   const [deleteError, setDeleteError] = useState<string>();
+  const [addressInput, setAddressInput] = useState<TenantAddressInput>();
+  const handleAddressChange = useCallback((address: TenantAddressInput) => {
+    setAddressInput(address);
+  }, []);
 
   const openCreate = () => {
     setFormError(undefined);
@@ -82,6 +101,33 @@ export function TenantsPage({ onOpenTenant }: TenantsPageProps) {
           isDisabled: dialog.tenant.isDisabled,
         }
       : emptyTenantFormValues;
+
+  // The address is previewed against the server's own rules: for a new tenant always, and for an existing
+  // one only when its issuer changes, because the server judges an address only when it can change.
+  const debouncedAddress = useDebouncedValue(addressInput, addressPreviewDelayMs);
+  const originalIssuer = dialog.kind === 'edit' ? (dialog.tenant.issuer ?? '') : undefined;
+  const shouldPreview =
+    formOpen &&
+    debouncedAddress !== undefined &&
+    isValidTenantId(debouncedAddress.tenantId) &&
+    debouncedAddress.issuer !== originalIssuer;
+  const { data: preview, originalArgs: previewArgs } = useGetTenantAddressQuery(
+    {
+      tenantId: debouncedAddress?.tenantId ?? '',
+      ...(debouncedAddress?.issuer ? { issuer: debouncedAddress.issuer } : {}),
+    },
+    { skip: !shouldPreview, refetchOnMountOrArgChange: true },
+  );
+
+  // A preview is shown only while it describes the address as it is entered now.
+  const addressPreview =
+    shouldPreview &&
+    preview &&
+    addressInput &&
+    previewArgs?.tenantId === addressInput.tenantId &&
+    (previewArgs.issuer ?? '') === addressInput.issuer
+      ? preview
+      : undefined;
 
   const handleSubmit = async (values: TenantFormValues) => {
     setFormError(undefined);
@@ -162,6 +208,8 @@ export function TenantsPage({ onOpenTenant }: TenantsPageProps) {
         isTenantIdLocked={dialog.kind === 'edit'}
         isSubmitting={isCreating || isUpdating}
         error={formError}
+        addressPreview={addressPreview}
+        onAddressChange={handleAddressChange}
         onSubmit={handleSubmit}
         onCancel={() => setDialog(closed)}
       />

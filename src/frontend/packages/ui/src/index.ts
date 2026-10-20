@@ -16,6 +16,10 @@ export { ScopeTable, type ScopeRow, type ScopeTableProps } from './components/Sc
 export {
   TenantFormDialog,
   emptyTenantFormValues,
+  isValidTenantId,
+  type TenantAddressInput,
+  type TenantAddressPreview,
+  type TenantAddressPreviewFailure,
   type TenantFormDialogProps,
   type TenantFormValues,
 } from './components/TenantFormDialog.js';

@@ -20,6 +20,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Results;
@@ -29,9 +31,13 @@ namespace NCode.Identity.OpenId.Tenants.Strategies;
 
 /// <summary>
 /// Provides a common base implementation of the <see cref="ITenantStrategy"/> abstraction, including route-pattern
-/// caching and tenant loading with a <c>404</c> for a missing or disabled tenant.
+/// caching, the default issuer a strategy derives from its issuer template, tenant loading with a <c>404</c> for a
+/// missing or disabled tenant, and creating the root tenant on demand when a request reaches its address.
 /// </summary>
-internal abstract class TenantStrategy(IStoreManagerFactory storeManagerFactory) : ITenantStrategy
+internal abstract class TenantStrategy(
+    IStoreManagerFactory storeManagerFactory,
+    IOptions<TenantResolutionOptions> optionsAccessor
+) : ITenantStrategy
 {
     [MemberNotNullWhen(true, nameof(TenantRouteOrNull))]
     private bool TenantRouteHasValue { get; set; }
@@ -43,6 +49,16 @@ internal abstract class TenantStrategy(IStoreManagerFactory storeManagerFactory)
     /// </summary>
     protected IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
+    /// <summary>
+    /// Gets the tenant-resolution options, which every strategy reads its own section from.
+    /// </summary>
+    protected TenantResolutionOptions ResolutionOptions => optionsAccessor.Value;
+
+    /// <summary>
+    /// Gets the options for the root tenant, which every strategy can create on demand.
+    /// </summary>
+    protected RootTenantOptions RootOptions => ResolutionOptions.Root;
+
     /// <inheritdoc />
     public abstract string StrategyCode { get; }
 
@@ -50,6 +66,12 @@ internal abstract class TenantStrategy(IStoreManagerFactory storeManagerFactory)
     /// Gets the relative base path for the tenant.
     /// </summary>
     protected abstract PathString TenantPath { get; }
+
+    /// <summary>
+    /// Gets the template a tenant's default issuer is expanded from, or <c>null</c> when the strategy has none. The
+    /// default implementation has none.
+    /// </summary>
+    protected virtual string? IssuerTemplate => null;
 
     /// <inheritdoc />
     public virtual bool TryGetTenantId(
@@ -84,8 +106,31 @@ internal abstract class TenantStrategy(IStoreManagerFactory storeManagerFactory)
 
     /// <inheritdoc />
     /// <remarks>
-    /// The base rule is that an issuer ends with the tenant route bound for the tenant, the path its endpoints and its
-    /// discovery document are served under.
+    /// The root tenant is given its configured issuer when it has one; every tenant otherwise gets the expansion of the
+    /// strategy's issuer template, or none when the strategy has no template.
+    /// </remarks>
+    // See ADR-0165 (every served tenant has an issuer, and its strategy supplies the default).
+    public virtual ValueTask<string?> GetDefaultIssuerAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var rootIssuer = RootOptions.Issuer;
+        if (IsRootTenant(tenantId) && !string.IsNullOrEmpty(rootIssuer))
+            return ValueTask.FromResult<string?>(rootIssuer);
+
+        var issuerTemplate = IssuerTemplate;
+        var defaultIssuer = string.IsNullOrEmpty(issuerTemplate)
+            ? null
+            : TenantAddressRules.ExpandIssuerTemplate(issuerTemplate, tenantId);
+
+        return ValueTask.FromResult(defaultIssuer);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The base rules are that a tenant this strategy serves has an issuer, and that the issuer ends with the tenant route
+    /// bound for the tenant, the path its endpoints and its discovery document are served under.
     /// </remarks>
     public virtual ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
         string tenantId,
@@ -94,28 +139,56 @@ internal abstract class TenantStrategy(IStoreManagerFactory storeManagerFactory)
         CancellationToken cancellationToken
     )
     {
-        IReadOnlyList<TenantValidationFailure> failures = ValidateIssuerRoute(tenantId, issuer)
-            is { } failure
-            ? [failure]
-            : [];
+        var failure = issuer is null
+            ? ValidateIssuerPresence(tenantId)
+            : ValidateIssuerRoute(tenantId, issuer);
+
+        IReadOnlyList<TenantValidationFailure> failures = failure is { } value ? [value] : [];
         return ValueTask.FromResult(failures);
+    }
+
+    /// <summary>
+    /// Determines whether this strategy serves the specified tenant, and therefore whether the tenant needs an issuer: a
+    /// tenant is served only beneath its issuer. The default implementation serves every tenant.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <returns><see langword="true"/> when the tenant needs an issuer; otherwise, <see langword="false"/>.</returns>
+    protected virtual bool RequiresIssuer(string tenantId) => true;
+
+    /// <summary>
+    /// Validates that a tenant without an issuer is one this strategy does not serve.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <returns>The failure, or <c>null</c> when the tenant needs no issuer.</returns>
+    // See ADR-0165: nothing derives a tenant's issuer from the request, so a tenant without one cannot be served.
+    protected TenantValidationFailure? ValidateIssuerPresence(string tenantId)
+    {
+        if (!RequiresIssuer(tenantId))
+            return null;
+
+        var remedy = string.IsNullOrEmpty(IssuerTemplate)
+            ? "Supply one, or configure the tenant strategy's issuer template."
+            : "Supply one.";
+
+        return new TenantValidationFailure
+        {
+            Detail =
+                $"The tenant requires an issuer: it is served only beneath its issuer. {remedy}",
+        };
     }
 
     /// <summary>
     /// Validates that the specified issuer ends with the tenant route bound for the specified tenant. OpenID Connect
     /// Discovery requires the issuer to be the URL the tenant's discovery document is fetched beneath, and the tenant's
-    /// configured issuer is its base address as-is, so an issuer that does not end with the route names a location
-    /// nothing is served under.
+    /// issuer is its base address as-is, so an issuer that does not end with the route names a location nothing is
+    /// served under.
     /// </summary>
     /// <param name="tenantId">The identifier of the tenant.</param>
-    /// <param name="issuer">The proposed issuer of the tenant, or <c>null</c> when it has none.</param>
-    /// <returns>The failure, or <c>null</c> when the issuer is absent or ends with the route.</returns>
+    /// <param name="issuer">The proposed issuer of the tenant.</param>
+    /// <returns>The failure, or <c>null</c> when the issuer ends with the route.</returns>
     // See ADR-0138 (an issuer is its tenant's base address) and ADR-0160.
-    protected TenantValidationFailure? ValidateIssuerRoute(string tenantId, Uri? issuer)
+    protected TenantValidationFailure? ValidateIssuerRoute(string tenantId, Uri issuer)
     {
-        if (issuer is null)
-            return null;
-
         var routePath = GetTenantRoutePath(tenantId);
         if (TenantAddressRules.IssuerEndsWithRoutePath(issuer, routePath))
             return null;
@@ -139,28 +212,82 @@ internal abstract class TenantStrategy(IStoreManagerFactory storeManagerFactory)
         TenantPath.Value ?? string.Empty;
 
     /// <summary>
-    /// Loads the <see cref="PersistedTenant"/> for the specified identifier, throwing <c>404</c> when it is missing
-    /// or disabled.
+    /// Determines whether the specified identifier is the root tenant's.
     /// </summary>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <returns><see langword="true"/> when it is the root tenant's identifier; otherwise, <see langword="false"/>.</returns>
+    protected bool IsRootTenant(string tenantId) =>
+        string.Equals(tenantId, RootOptions.TenantId, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Creates the root tenant, which configuration defines, when it does not exist yet. A request that reaches the root
+    /// tenant's address therefore finds it on a fresh deployment, which is how the control plane is bootstrapped under a
+    /// strategy whose tenants are otherwise created through the management API.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the root tenant.</returns>
+    // See ADR-0166 (a tenant is provisioned through one pipeline under every strategy).
+    protected async ValueTask<PersistedTenant> EnsureRootTenantAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
+    {
+        // The provisioner is scoped (its mediator is request-scoped), so it is resolved from the request's services.
+        var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
+        return await provisioner.EnsureCreatedAsync(
+            RootOptions.TenantId,
+            RootOptions.DisplayName,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Loads the <see cref="PersistedTenant"/> for the specified identifier, creating the root tenant on demand, and
+    /// throwing <c>404</c> when the tenant is missing or disabled.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant.</returns>
     protected async ValueTask<PersistedTenant> GetTenantByIdAsync(
+        HttpContext httpContext,
         string tenantId,
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
+        PersistedTenant? persistedTenant;
+        await using (var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken))
+        {
+            var store = storeManager.GetStore<ITenantStore>();
+            persistedTenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        }
 
-        var persistedTenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        if (persistedTenant is null && IsRootTenant(tenantId))
+            persistedTenant = await EnsureRootTenantAsync(httpContext, cancellationToken);
 
         if (persistedTenant is null)
             throw TypedResults
                 .NotFound()
                 .AsException($"The tenant with identifier '{tenantId}' could not be found.");
 
+        return ThrowIfDisabled(persistedTenant);
+    }
+
+    /// <summary>
+    /// Throws <c>404</c> when the specified tenant is disabled, so a disabled tenant is indistinguishable from a missing
+    /// one.
+    /// </summary>
+    /// <param name="persistedTenant">The tenant.</param>
+    /// <returns>The tenant, when it is enabled.</returns>
+    protected static PersistedTenant ThrowIfDisabled(PersistedTenant persistedTenant)
+    {
         if (persistedTenant.IsDisabled)
             throw TypedResults
                 .NotFound()
-                .AsException($"The tenant with identifier '{tenantId}' is disabled.");
+                .AsException(
+                    $"The tenant with identifier '{persistedTenant.TenantId}' is disabled."
+                );
 
         return persistedTenant;
     }

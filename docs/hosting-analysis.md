@@ -217,6 +217,16 @@ Why this shape:
   anchors every published URL ([ADR-0129](adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)) — so a
   custom domain (`login.customer.com`, CNAME'd to the platform) *becomes* the tenant's issuer. Choose it before clients
   integrate; cert-manager issues its certificate over HTTP-01.
+- **The server derives these hosts from configuration**
+  ([ADR-0165](adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
+  `OpenId:TenantResolution:StrategyCode = DynamicByHost`, `DynamicByHost:IssuerTemplate =
+  https://{tenantId}.auth.nidentity.io`, and `Root:Issuer = https://auth.nidentity.io`. A tenant created without an
+  issuer is given (and keeps) the one the template derives; a custom domain is set as an explicit issuer. The root tenant
+  is created when the first request reaches `auth.nidentity.io`, with the bootstrap administrator named into it
+  (`BootstrapAdmin:TenantId = root`,
+  [ADR-0166](adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). Serving `/api` on
+  `manage.nidentity.io`, which is no tenant's host, still needs the management API to authenticate against the root
+  tenant rather than the host it is called on (backlog `F75`).
 
 **Environments.** Customer environments are just tenants on production (`acme-dev.auth.nidentity.io`), so they need no
 extra hostnames. The platform's private **lab** inserts a `lab` label after the function: `auth.lab.nidentity.io`,

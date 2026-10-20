@@ -111,7 +111,9 @@ public class OwnershipHandlerTests
         var accessor = mocks.Create<IHttpContextAccessor>();
         accessor.Setup(x => x.HttpContext).Returns(httpContext);
 
-        var options = Options.Create(new TenantResolutionOptions { RootTenantId = RootTenantId });
+        var options = Options.Create(
+            new TenantResolutionOptions { Root = { TenantId = RootTenantId } }
+        );
         var handler = new OwnershipHandler(
             factory.Object,
             resolver.Object,

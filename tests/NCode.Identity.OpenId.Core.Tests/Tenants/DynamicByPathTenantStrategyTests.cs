@@ -21,6 +21,9 @@ using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.Exceptions;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Strategies;
 using NCode.Persistence.Stores;
@@ -202,9 +205,8 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateTenantAsync_WhenIssuerIsAbsent_Succeeds()
+    public async Task ValidateTenantAsync_WhenIssuerIsAbsent_FailsBecauseTheTenantIsServedOnlyBeneathOne()
     {
-        // Without an issuer the tenant's base address is derived from the request it is served under.
         var mocks = new MockRepository(MockBehavior.Strict);
         var strategy = CreateStrategy(mocks.Create<IStoreManagerFactory>().Object);
 
@@ -215,9 +217,209 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.Empty(failures);
+        var failure = Assert.Single(failures);
+        Assert.Contains("requires an issuer", failure.Detail, StringComparison.Ordinal);
+        Assert.Contains("issuer template", failure.Detail, StringComparison.Ordinal);
         mocks.Verify();
     }
 
     #endregion
+
+    #region GetDefaultIssuerAsync Tests
+
+    [Fact]
+    public async Task GetDefaultIssuerAsync_WhenTemplateIsConfigured_ExpandsItForTheTenant()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new DynamicByPathTenantOptions { IssuerTemplate = "https://op.example/{tenantId}" }
+        );
+
+        var issuer = await strategy.GetDefaultIssuerAsync("acme", CancellationToken.None);
+
+        Assert.Equal("https://op.example/acme", issuer);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task GetDefaultIssuerAsync_WhenNoTemplate_ReturnsNone()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks.Create<IStoreManagerFactory>().Object);
+
+        var issuer = await strategy.GetDefaultIssuerAsync("acme", CancellationToken.None);
+
+        Assert.Null(issuer);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task GetDefaultIssuerAsync_WhenRootTenantHasAConfiguredIssuer_PrefersItOverTheTemplate()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = new DynamicByPathTenantStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            Options.Create(
+                new TenantResolutionOptions
+                {
+                    Root = { Issuer = "https://control.example/root" },
+                    DynamicByPath = new DynamicByPathTenantOptions
+                    {
+                        IssuerTemplate = "https://op.example/{tenantId}",
+                    },
+                }
+            ),
+            ServiceProvider.GetRequiredService<TemplateBinderFactory>()
+        );
+
+        var rootIssuer = await strategy.GetDefaultIssuerAsync(
+            RootTenantOptions.DefaultTenantId,
+            CancellationToken.None
+        );
+        var workloadIssuer = await strategy.GetDefaultIssuerAsync("acme", CancellationToken.None);
+
+        Assert.Equal("https://control.example/root", rootIssuer);
+        Assert.Equal("https://op.example/acme", workloadIssuer);
+        mocks.Verify();
+    }
+
+    #endregion
+
+    #region ResolveTenantAsync Tests
+
+    [Fact]
+    public async Task ResolveTenantAsync_WhenTenantExists_ReturnsIt()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var tenant = CreateTenant("acme", isDisabled: false);
+        var storeManagerFactory = SetupStore(mocks, "acme", tenant);
+        var strategy = CreateStrategy(storeManagerFactory.Object);
+
+        var result = await strategy.ResolveTenantAsync(
+            CreateHttpContext("acme", provisioner: null),
+            CancellationToken.None
+        );
+
+        Assert.Same(tenant, result);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ResolveTenantAsync_WhenTenantIsMissing_ThrowsNotFound()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var storeManagerFactory = SetupStore(mocks, "acme", tenant: null);
+        var strategy = CreateStrategy(storeManagerFactory.Object);
+
+        // A missing workload tenant is never created on demand: only the management API creates one.
+        await Assert.ThrowsAsync<HttpResultException>(async () =>
+            await strategy.ResolveTenantAsync(
+                CreateHttpContext("acme", provisioner: null),
+                CancellationToken.None
+            )
+        );
+
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ResolveTenantAsync_WhenTenantIsDisabled_ThrowsNotFound()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var storeManagerFactory = SetupStore(mocks, "acme", CreateTenant("acme", isDisabled: true));
+        var strategy = CreateStrategy(storeManagerFactory.Object);
+
+        await Assert.ThrowsAsync<HttpResultException>(async () =>
+            await strategy.ResolveTenantAsync(
+                CreateHttpContext("acme", provisioner: null),
+                CancellationToken.None
+            )
+        );
+
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ResolveTenantAsync_WhenRootTenantIsMissing_CreatesItOnDemand()
+    {
+        const string rootTenantId = RootTenantOptions.DefaultTenantId;
+
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var storeManagerFactory = SetupStore(mocks, rootTenantId, tenant: null);
+        var provisioner = mocks.Create<ITenantProvisioner>();
+        var root = CreateTenant(rootTenantId, isDisabled: false);
+        provisioner
+            .Setup(x =>
+                x.EnsureCreatedAsync(
+                    rootTenantId,
+                    RootTenantOptions.DefaultDisplayName,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(root)
+            .Verifiable();
+        var strategy = CreateStrategy(storeManagerFactory.Object);
+
+        var result = await strategy.ResolveTenantAsync(
+            CreateHttpContext(rootTenantId, provisioner.Object),
+            CancellationToken.None
+        );
+
+        Assert.Same(root, result);
+        mocks.Verify();
+    }
+
+    #endregion
+
+    private static Mock<IStoreManagerFactory> SetupStore(
+        MockRepository mocks,
+        string tenantId,
+        PersistedTenant? tenant
+    )
+    {
+        var storeManagerFactory = mocks.Create<IStoreManagerFactory>();
+        var storeManager = mocks.Create<IStoreManager>();
+        var store = mocks.Create<ITenantStore>();
+        storeManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(storeManager.Object)
+            .Verifiable();
+        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
+        storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        store
+            .Setup(x => x.GetOrDefaultAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tenant)
+            .Verifiable();
+        return storeManagerFactory;
+    }
+
+    private static DefaultHttpContext CreateHttpContext(
+        string tenantId,
+        ITenantProvisioner? provisioner
+    )
+    {
+        var services = new ServiceCollection();
+        if (provisioner is not null)
+            services.AddSingleton(provisioner);
+
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = services.BuildServiceProvider(),
+        };
+        httpContext.Request.RouteValues["tenantId"] = tenantId;
+        return httpContext;
+    }
+
+    private static PersistedTenant CreateTenant(string tenantId, bool isDisabled) =>
+        new()
+        {
+            TenantId = tenantId,
+            Issuer = $"https://op.example/{tenantId}",
+            ConcurrencyToken = "token",
+            IsDisabled = isDisabled,
+            DisplayName = tenantId,
+            Settings = null!,
+            Secrets = null!,
+        };
 }

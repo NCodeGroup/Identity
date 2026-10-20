@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Tenants.Strategies;
 internal class DynamicByHostTenantStrategy(
     IStoreManagerFactory storeManagerFactory,
     IOptions<TenantResolutionOptions> optionsAccessor
-) : TenantStrategy(storeManagerFactory)
+) : TenantStrategy(storeManagerFactory, optionsAccessor)
 {
     private Regex? IssuerHostRegexOrNull { get; set; }
 
@@ -44,7 +44,7 @@ internal class DynamicByHostTenantStrategy(
         );
 
     private DynamicByHostTenantOptions Options =>
-        optionsAccessor.Value.DynamicByHost ?? new DynamicByHostTenantOptions();
+        ResolutionOptions.DynamicByHost ?? new DynamicByHostTenantOptions();
 
     /// <inheritdoc />
     public override string StrategyCode => OpenIdConstants.TenantStrategyCodes.DynamicByHost;
@@ -53,13 +53,36 @@ internal class DynamicByHostTenantStrategy(
     protected override PathString TenantPath => Options.TenantPath;
 
     /// <inheritdoc />
+    protected override string? IssuerTemplate => Options.IssuerTemplate;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// A request to the host of the root tenant's issuer finds the root tenant even on a fresh deployment: it is created
+    /// on demand.
+    /// </remarks>
     public override async ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
     {
-        var issuerHost = MapToIssuerHost(httpContext.Request.Host.Host);
-        return await GetTenantByIssuerHostAsync(issuerHost, cancellationToken);
+        var issuerHost = TenantAddressRules.MapToIssuerHost(
+            IssuerHostRegex,
+            httpContext.Request.Host.Host
+        );
+
+        var persistedTenant = await GetTenantByIssuerHostAsync(issuerHost, cancellationToken);
+
+        if (persistedTenant is null && await IsRootIssuerHostAsync(issuerHost, cancellationToken))
+        {
+            persistedTenant = await EnsureRootTenantAsync(httpContext, cancellationToken);
+        }
+
+        if (persistedTenant is null)
+            throw TypedResults
+                .NotFound()
+                .AsException($"A tenant with issuer host '{issuerHost}' could not be found.");
+
+        return ThrowIfDisabled(persistedTenant);
     }
 
     /// <inheritdoc />
@@ -76,24 +99,15 @@ internal class DynamicByHostTenantStrategy(
         CancellationToken cancellationToken
     )
     {
-        if (issuer is null)
-        {
-            return
-            [
-                new TenantValidationFailure
-                {
-                    Detail =
-                        "The tenant requires an issuer: requests reach a tenant only through the host of its issuer.",
-                },
-            ];
-        }
-
         var failures = new List<TenantValidationFailure>(
             await base.ValidateTenantAsync(tenantId, issuer, storeManager, cancellationToken)
         );
 
+        if (issuer is null)
+            return failures;
+
         var issuerHost = issuer.Host;
-        var mappedHost = MapToIssuerHost(issuerHost);
+        var mappedHost = TenantAddressRules.MapToIssuerHost(IssuerHostRegex, issuerHost);
         if (!string.Equals(mappedHost, issuerHost, StringComparison.OrdinalIgnoreCase))
         {
             failures.Add(
@@ -127,15 +141,19 @@ internal class DynamicByHostTenantStrategy(
         return failures;
     }
 
-    private string MapToIssuerHost(string host)
+    private async ValueTask<bool> IsRootIssuerHostAsync(
+        string issuerHost,
+        CancellationToken cancellationToken
+    )
     {
-        var match = IssuerHostRegex.Match(host);
-        return match.Success ? match.Value : host;
+        var rootIssuer = await GetDefaultIssuerAsync(RootOptions.TenantId, cancellationToken);
+        return Uri.TryCreate(rootIssuer, UriKind.Absolute, out var rootIssuerUri)
+            && string.Equals(rootIssuerUri.Host, issuerHost, StringComparison.OrdinalIgnoreCase);
     }
 
     // The host is matched against the host component of each tenant's issuer, which is derived from that issuer rather
     // than stored alongside it — so the value routed on cannot drift from the identity the tenant publishes.
-    private async ValueTask<PersistedTenant> GetTenantByIssuerHostAsync(
+    private async ValueTask<PersistedTenant?> GetTenantByIssuerHostAsync(
         string issuerHost,
         CancellationToken cancellationToken
     )
@@ -143,21 +161,6 @@ internal class DynamicByHostTenantStrategy(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var persistedTenant = await store.GetOrDefaultByIssuerHostAsync(
-            issuerHost,
-            cancellationToken
-        );
-
-        if (persistedTenant is null)
-            throw TypedResults
-                .NotFound()
-                .AsException($"A tenant with issuer host '{issuerHost}' could not be found.");
-
-        if (persistedTenant.IsDisabled)
-            throw TypedResults
-                .NotFound()
-                .AsException($"The tenant with issuer host '{issuerHost}' is disabled.");
-
-        return persistedTenant;
+        return await store.GetOrDefaultByIssuerHostAsync(issuerHost, cancellationToken);
     }
 }

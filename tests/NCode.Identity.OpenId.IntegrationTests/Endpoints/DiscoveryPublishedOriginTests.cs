@@ -115,13 +115,17 @@ public class DiscoveryPublishedOriginTests(HostApplicationFactory factory)
     }
 
     [Fact]
-    public async Task GetDiscovery_WhenTenantHasNoIssuer_FollowsTheRequest()
+    public async Task GetDiscovery_WhenHostHeaderIsForeign_EveryTenantPublishesItsOwnIssuer()
     {
-        // Guards against the two tests above being vacuous. They are only evidence if the Host header would otherwise
-        // reach the published URLs — so pin the documented development fallback: with no issuer, the origin IS derived
-        // from the request. That is exactly the behaviour a deployment must not rely on.
-        var json = await GetDiscoveryAsync(Factory, "derived.example");
+        // Nothing derives an issuer from the request, so even the default test host — pinned to the TestServer's own
+        // origin — ignores a foreign Host header. The pinned-issuer tests above are therefore not the only guard.
+        var json = await GetDiscoveryAsync(Factory, "attacker.example");
+        using var document = JsonDocument.Parse(json);
 
-        Assert.Contains("derived.example", json, StringComparison.Ordinal);
+        Assert.Equal(
+            HostApplicationFactory.TestServerIssuer,
+            document.RootElement.GetProperty("issuer").GetString()
+        );
+        Assert.DoesNotContain("attacker.example", json, StringComparison.Ordinal);
     }
 }

@@ -48,11 +48,14 @@ public class RootTenantSeedingTests(HostApplicationFactory factory)
         var store = storeManager.GetStore<ITenantStore>();
 
         var rootTenant = await store.GetOrDefaultAsync(
-            TenantResolutionOptions.DefaultRootTenantId,
+            RootTenantOptions.DefaultTenantId,
             CancellationToken.None
         );
 
         Assert.NotNull(rootTenant);
-        Assert.Equal(TenantResolutionOptions.DefaultRootTenantId, rootTenant.TenantId);
+        Assert.Equal(RootTenantOptions.DefaultTenantId, rootTenant.TenantId);
+
+        // The static strategy serves only its own tenant, so the root tenant is given no address.
+        Assert.Null(rootTenant.Issuer);
     }
 }

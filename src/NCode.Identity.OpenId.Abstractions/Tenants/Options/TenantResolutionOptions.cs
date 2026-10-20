@@ -29,9 +29,10 @@ namespace NCode.Identity.OpenId.Tenants;
 public sealed class TenantResolutionOptions
 {
     /// <summary>
-    /// Contains the default value for the root (control-plane) tenant's identifier.
+    /// Contains the placeholder an issuer template carries where the tenant's identifier goes — the single variable of
+    /// an RFC 6570 level-1 template. A tenant identifier is a lowercase host label, so it is substituted as-is.
     /// </summary>
-    public const string DefaultRootTenantId = "root";
+    public const string TenantIdPlaceholder = "{tenantId}";
 
     /// <summary>
     /// Gets or sets the strategy code that selects the tenant-resolution strategy.
@@ -41,11 +42,10 @@ public sealed class TenantResolutionOptions
     public string StrategyCode { get; set; } = OpenIdConstants.TenantStrategyCodes.StaticSingle;
 
     /// <summary>
-    /// Gets or sets the identifier of the root (control-plane) tenant, into which the control-plane management
-    /// resource server is seeded.
-    /// The default value is <see cref="DefaultRootTenantId"/>.
+    /// Gets or sets the options for the root (control-plane) tenant, into which the control-plane management resource
+    /// server is seeded.
     /// </summary>
-    public string RootTenantId { get; set; } = DefaultRootTenantId;
+    public RootTenantOptions Root { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the options used when <see cref="StrategyCode"/> is

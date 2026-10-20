@@ -48,8 +48,10 @@ public class BootstrapAdminOptions
     public string? ClientSecret { get; set; }
 
     /// <summary>
-    /// Gets the identifier of the tenant the bootstrap administrator client is seeded into. When absent, the configured
-    /// root (control-plane) tenant is used.
+    /// Gets the identifier of the tenant the bootstrap administrator client is seeded into, and the only tenant in which
+    /// its tokens carry the <c>GlobalAdmin</c> role. It is required when the bootstrap administrator is configured: a
+    /// default of every tenant would give each tenant created at runtime a GlobalAdmin credential. Name the tenant a host
+    /// serves the operator from — the static tenant of a single-tenant host, or the root tenant of a multi-tenant one.
     /// </summary>
     public string? TenantId { get; set; }
 

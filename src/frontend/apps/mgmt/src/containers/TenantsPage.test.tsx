@@ -116,6 +116,101 @@ describe('TenantsPage (CRUD wiring)', () => {
     vi.restoreAllMocks();
   });
 
+  function addressHandler(address: unknown) {
+    return (url: string, method: string) => {
+      if (url.includes('/address')) {
+        return jsonResponse(address);
+      }
+      if (url.endsWith('/api/tenants')) {
+        return jsonResponse({ items: [acme] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    };
+  }
+
+  it('previews the issuer a new tenant would be given', async () => {
+    const calls = installFetch(
+      addressHandler({
+        tenantId: 'new-co',
+        issuer: 'https://new-co.auth.test',
+        isIssuerDerived: true,
+        exists: false,
+        failures: [],
+      }),
+    );
+
+    renderPage();
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('create-tenant'));
+    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'new-co' } });
+
+    expect(
+      await screen.findByText('Leave empty to use https://new-co.auth.test.'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-issuer')).toHaveAttribute(
+      'placeholder',
+      'https://new-co.auth.test',
+    );
+    expect(calls.some((c) => c.url === 'https://api.test/api/tenants/new-co/address')).toBe(true);
+  });
+
+  it('blocks creating a tenant whose ID is already taken', async () => {
+    installFetch(
+      addressHandler({
+        tenantId: 'acme',
+        issuer: 'https://acme.auth.test',
+        isIssuerDerived: true,
+        exists: true,
+        failures: [],
+      }),
+    );
+
+    renderPage();
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('create-tenant'));
+    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'acme' } });
+    fireEvent.change(screen.getByTestId('tenant-display-name'), { target: { value: 'Acme 2' } });
+
+    expect(await screen.findByText('A tenant with this ID already exists.')).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
+  });
+
+  it('reports why a proposed issuer cannot be used', async () => {
+    const calls = installFetch(
+      addressHandler({
+        tenantId: 'new-co',
+        issuer: 'https://taken.test',
+        isIssuerDerived: false,
+        exists: false,
+        failures: [
+          {
+            detail: "Another tenant already has the issuer 'https://taken.test'.",
+            isConflict: true,
+          },
+        ],
+      }),
+    );
+
+    renderPage();
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('create-tenant'));
+    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'new-co' } });
+    fireEvent.change(screen.getByTestId('tenant-issuer'), {
+      target: { value: 'https://taken.test' },
+    });
+
+    expect(await screen.findByTestId('tenant-address-failures')).toHaveTextContent(
+      "Another tenant already has the issuer 'https://taken.test'.",
+    );
+    expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
+    expect(
+      calls.some(
+        (c) =>
+          c.url === 'https://api.test/api/tenants/new-co/address?issuer=https%3A%2F%2Ftaken.test',
+      ),
+    ).toBe(true);
+  });
+
   it('creates a tenant through the form dialog', async () => {
     const calls = installFetch((url, method) => {
       if (url.endsWith('/api/tenants') && method === 'POST') {

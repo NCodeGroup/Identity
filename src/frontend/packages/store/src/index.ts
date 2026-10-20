@@ -14,6 +14,7 @@ export {
   managementApi,
   useGetCapabilitiesQuery,
   useGetTenantQuery,
+  useGetTenantAddressQuery,
   useListClientsQuery,
   useListResourceServersQuery,
   useListServersQuery,

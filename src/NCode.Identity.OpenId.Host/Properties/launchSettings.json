@@ -19,7 +19,9 @@
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
-        "DeveloperInteractiveSeed__AdminPassword": "dev-password"
+        "DeveloperInteractiveSeed__AdminPassword": "dev-password",
+        "BootstrapAdmin__TenantId": "default",
+        "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:44369"
       }
     },
     "NCode.Identity.OpenId.Host": {
@@ -33,7 +35,9 @@
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
-        "DeveloperInteractiveSeed__AdminPassword": "dev-password"
+        "DeveloperInteractiveSeed__AdminPassword": "dev-password",
+        "BootstrapAdmin__TenantId": "default",
+        "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:5001"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:5001;http://localhost:5000"
@@ -48,6 +52,7 @@
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
+        "BootstrapAdmin__TenantId": "conformance",
         "OpenId__TenantResolution__StaticSingle__Issuer": "https://host.docker.internal:5001"
       },
       "dotnetRunMessages": true,
@@ -62,7 +67,9 @@
         "DeveloperKeys__Mode": "PersistentSigningKey",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
-        "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist"
+        "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
+        "BootstrapAdmin__TenantId": "conformance",
+        "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:5003"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:5003;http://localhost:5002"
@@ -71,7 +78,11 @@
       "commandName": "Docker",
       "launchBrowser": true,
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/scalar/v1",
-      "publishAllPorts": true,
+      "environmentVariables": {
+        "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:5011"
+      },
+      "httpPort": 5010,
+      "sslPort": 5011,
       "useSSL": true
     }
   }

@@ -17,75 +17,124 @@
 #endregion
 
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.Results;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Provides the default implementation of <see cref="ITenantProvisioner"/> that ensures the root tenant exists before
-/// the target tenant, then seeds the target tenant by fanning out <see cref="SeedTenantCommand"/> to every registered
-/// handler within a single unit of work.
+/// Provides the default implementation of <see cref="ITenantProvisioner"/>. It creates a tenant at the address its
+/// strategy derives for it, judged by the same rules as every other tenant written, and it seeds a tenant — after the root
+/// tenant — by fanning out <see cref="SeedTenantCommand"/> to every registered handler within a single unit of work.
 /// </summary>
+// See ADR-0045 (one seeding pipeline) and ADR-0166 (a tenant is provisioned through one pipeline under every strategy).
 internal sealed class DefaultTenantProvisioner(
     IStoreManagerFactory storeManagerFactory,
     IAmbientTenantAccessor ambientTenantAccessor,
+    ITenantResolver tenantResolver,
     IOptions<TenantResolutionOptions> optionsAccessor,
     IMediator mediator
 ) : ITenantProvisioner
 {
-    private const string RootDisplayName = "Root Tenant";
-
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
+    private ITenantResolver TenantResolver { get; } = tenantResolver;
     private IMediator Mediator { get; } = mediator;
 
-    private string RootTenantId => optionsAccessor.Value.RootTenantId;
+    private RootTenantOptions RootOptions => optionsAccessor.Value.Root;
 
     /// <inheritdoc />
-    public async ValueTask<PersistedTenant> ProvisionAsync(
+    public async ValueTask<PersistedTenant> EnsureCreatedAsync(
         string tenantId,
         string displayName,
-        string? issuer,
         CancellationToken cancellationToken
     )
     {
-        var isRootTenant = string.Equals(tenantId, RootTenantId, StringComparison.Ordinal);
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
 
-        // The root (control-plane) tenant must exist so that its control-plane data is seeded, even when the target
-        // tenant differs from it (ADR-0024). Provision it first, on this same path, so root and workload tenants are
-        // provisioned and seeded identically. It is not addressed by clients, so it carries no issuer of its own.
-        if (!isRootTenant)
+        var existing = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        if (existing is not null)
+            return existing;
+
+        // A tenant created on demand is written like any other: at the address its strategy derives for it, judged by
+        // the rules every tenant write applies (ADR-0160, ADR-0165).
+        var issuer = await TenantResolver.GetDefaultIssuerAsync(tenantId, cancellationToken);
+        var failures = await TenantResolver.ValidateTenantAsync(
+            tenantId,
+            issuer,
+            storeManager,
+            cancellationToken
+        );
+        if (failures.Count > 0)
         {
-            await ProvisionAsync(RootTenantId, RootDisplayName, issuer: null, cancellationToken);
+            var details = string.Join(" ", failures.Select(failure => failure.Detail));
+            throw new InvalidOperationException(
+                $"The tenant '{tenantId}' cannot be created at its default address: {details}"
+            );
         }
 
-        // Scope the whole provision+seed to this tenant so every seed handler's tenant-bound queries resolve to it.
+        var persistedTenant = CreateEmptyPersistedTenant(tenantId, displayName, issuer);
+        await store.AddAsync(persistedTenant, cancellationToken);
+
+        try
+        {
+            await storeManager.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // Another node or request may have created the tenant between the read above and this write — two replicas
+            // reaching the root tenant on a fresh deployment, say. The row it wrote is the tenant; anything else is a
+            // genuine failure.
+            var concurrent = await FindTenantAsync(tenantId, cancellationToken);
+            if (concurrent is null)
+                throw;
+
+            return concurrent;
+        }
+
+        return persistedTenant;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedTenant> SeedAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var rootTenantId = RootOptions.TenantId;
+        var isRootTenant = string.Equals(tenantId, rootTenantId, StringComparison.Ordinal);
+
+        // The root (control-plane) tenant must exist and be seeded whatever tenant is seeded, so its control-plane data is
+        // in place under every strategy (ADR-0024, ADR-0166). It is seeded on this same path, so root and workload tenants
+        // are seeded identically.
+        if (!isRootTenant)
+        {
+            await EnsureCreatedAsync(rootTenantId, RootOptions.DisplayName, cancellationToken);
+            await SeedAsync(rootTenantId, cancellationToken);
+        }
+
+        // Scope the whole seed to this tenant so every seed handler's tenant-bound queries resolve to it.
         using var tenantScope = AmbientTenantAccessor.BeginScope(tenantId);
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var persistedTenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
-        var isNewlyProvisioned = persistedTenant is null;
-        if (persistedTenant is null)
-        {
-            persistedTenant = CreateEmptyPersistedTenant(tenantId, displayName, issuer);
-            await store.AddAsync(persistedTenant, cancellationToken);
-
-            // Commit the tenant row before seeding so seed handlers can attach child rows (resource servers,
-            // clients, secrets) to it; those stores resolve the owning tenant from the database, not the tracker.
-            await storeManager.SaveChangesAsync(cancellationToken);
-        }
+        var persistedTenant =
+            await store.GetOrDefaultAsync(tenantId, cancellationToken)
+            ?? throw TypedResults
+                .NotFound()
+                .AsException($"The tenant with identifier '{tenantId}' could not be found.");
 
         var context = new TenantSeedContext
         {
             Tenant = persistedTenant,
             Plane = isRootTenant ? TenantPlane.Root : TenantPlane.Workload,
-            IsNewlyProvisioned = isNewlyProvisioned,
             StoreManager = storeManager,
         };
 
@@ -95,6 +144,16 @@ internal sealed class DefaultTenantProvisioner(
         await storeManager.SaveChangesAsync(cancellationToken);
 
         return persistedTenant;
+    }
+
+    private async ValueTask<PersistedTenant?> FindTenantAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+        return await store.GetOrDefaultAsync(tenantId, cancellationToken);
     }
 
     private static PersistedTenant CreateEmptyPersistedTenant(
@@ -120,8 +179,7 @@ internal sealed class DefaultTenantProvisioner(
         return new PersistedTenant
         {
             TenantId = tenantId,
-            // The tenant's request-independent identity. When absent, its origin is derived from the request it is
-            // materialized for, which is a development-only convenience.
+            // The tenant's request-independent identity; only a tenant its strategy does not serve has none.
             Issuer = issuer,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             IsDisabled = false,

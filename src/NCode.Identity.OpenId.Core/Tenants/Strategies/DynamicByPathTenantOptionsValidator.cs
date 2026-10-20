@@ -23,10 +23,13 @@ namespace NCode.Identity.OpenId.Tenants.Strategies;
 /// <summary>
 /// Validates <see cref="TenantResolutionOptions.DynamicByPath"/> when the path-based strategy is selected. The tenant
 /// route must carry the tenant's identifier as its only parameter, and as a plain one, so the route — and therefore the
-/// issuer a tenant must end with — is determined by the tenant's identifier alone. The options of an unselected
-/// strategy are inert, and a layered configuration may legitimately carry them, so they are skipped.
+/// issuer a tenant must end with — is determined by the tenant's identifier alone. An issuer template must end with the
+/// route bound for a tenant, and the root tenant, which is created on demand when a request reaches its route, needs an
+/// address. The options of an unselected strategy are inert, and a layered configuration may legitimately carry them, so
+/// they are skipped.
 /// </summary>
-// See ADR-0137 (fail at startup) and ADR-0160 (a path tenant's issuer is checked against its bound route).
+// See ADR-0137 (fail at startup), ADR-0160 (a path tenant's issuer is checked against its bound route), and ADR-0165
+// (every served tenant has an issuer, and its strategy supplies the default).
 internal class DynamicByPathTenantOptionsValidator : IValidateOptions<TenantResolutionOptions>
 {
     private const string Prefix = OpenIdConstants.TenantStrategyCodes.DynamicByPath;
@@ -40,14 +43,19 @@ internal class DynamicByPathTenantOptionsValidator : IValidateOptions<TenantReso
         var dynamicByPath = options.DynamicByPath ?? new DynamicByPathTenantOptions();
         var failures = new List<string>();
 
-        ValidateTenantRoute(dynamicByPath, failures);
+        // The address rules below need a tenant route they can bind for a tenant.
+        if (ValidateTenantRoute(dynamicByPath, failures))
+        {
+            ValidateIssuerTemplate(dynamicByPath, failures);
+            ValidateRootIssuer(options.Root, dynamicByPath, failures);
+        }
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);
     }
 
-    private static void ValidateTenantRoute(
+    private static bool ValidateTenantRoute(
         DynamicByPathTenantOptions options,
         List<string> failures
     )
@@ -56,7 +64,7 @@ internal class DynamicByPathTenantOptionsValidator : IValidateOptions<TenantReso
         if (string.IsNullOrEmpty(parameterName))
         {
             failures.Add($"{Prefix}:{nameof(options.TenantIdRouteParameterName)} is required.");
-            return;
+            return false;
         }
 
         var key = $"{Prefix}:{nameof(options.TenantPath)}";
@@ -68,7 +76,7 @@ internal class DynamicByPathTenantOptionsValidator : IValidateOptions<TenantReso
                 out var tenantRoute
             )
         )
-            return;
+            return false;
 
         var parameter = tenantRoute.GetParameter(parameterName);
         if (parameter is null || tenantRoute.Parameters.Count != 1)
@@ -77,7 +85,7 @@ internal class DynamicByPathTenantOptionsValidator : IValidateOptions<TenantReso
                 $"{key} '{options.TenantPath}' must contain the route parameter '{{{parameterName}}}' that identifies "
                     + "the tenant, and no other parameter."
             );
-            return;
+            return false;
         }
 
         if (
@@ -92,6 +100,95 @@ internal class DynamicByPathTenantOptionsValidator : IValidateOptions<TenantReso
                     + "constraint, default value, optional marker, or catch-all: the server validates tenant "
                     + "identifiers itself."
             );
+            return false;
         }
+
+        return true;
+    }
+
+    private static void ValidateIssuerTemplate(
+        DynamicByPathTenantOptions options,
+        List<string> failures
+    )
+    {
+        var issuerTemplate = options.IssuerTemplate;
+        if (string.IsNullOrEmpty(issuerTemplate))
+            return;
+
+        var key = $"{Prefix}:{nameof(options.IssuerTemplate)}";
+        if (!TenantAddressRules.TryValidateIssuerTemplate(issuerTemplate, key, failures))
+            return;
+
+        var tenantId = TenantAddressRules.ProbeTenantIds[0];
+        var probeIssuer = new Uri(
+            TenantAddressRules.ExpandIssuerTemplate(issuerTemplate, tenantId)
+        );
+        ValidateServedIssuer(probeIssuer, tenantId, key, issuerTemplate, options, failures);
+    }
+
+    private static void ValidateRootIssuer(
+        RootTenantOptions? root,
+        DynamicByPathTenantOptions options,
+        List<string> failures
+    )
+    {
+        // An absent or malformed root section is reported by the shared validator.
+        if (root is null || !TenantAddressRules.IsValidTenantId(root.TenantId))
+            return;
+
+        var rootIssuerKey = $"{nameof(TenantResolutionOptions.Root)}:{nameof(root.Issuer)}";
+        var rootIssuer = root.Issuer;
+        if (string.IsNullOrEmpty(rootIssuer))
+        {
+            var issuerTemplate = options.IssuerTemplate;
+            if (string.IsNullOrEmpty(issuerTemplate))
+            {
+                failures.Add(
+                    $"The root tenant needs an address under the {Prefix} strategy, which creates it when a request "
+                        + $"reaches its route: configure {rootIssuerKey} or "
+                        + $"{Prefix}:{nameof(options.IssuerTemplate)}."
+                );
+                return;
+            }
+
+            rootIssuer = TenantAddressRules.ExpandIssuerTemplate(issuerTemplate, root.TenantId);
+        }
+
+        // A malformed configured root issuer is reported by the shared validator, and a malformed template by the template
+        // rule above.
+        if (TenantAddressRules.TryParseIssuer(rootIssuer, out var rootIssuerUri))
+            ValidateServedIssuer(
+                rootIssuerUri,
+                root.TenantId,
+                rootIssuerKey,
+                rootIssuer,
+                options,
+                failures
+            );
+    }
+
+    // The route carries the tenant parameter as its only, plain parameter (checked above), so substituting the identifier
+    // for it binds the route exactly as the strategy's template binder does.
+    private static void ValidateServedIssuer(
+        Uri issuer,
+        string tenantId,
+        string key,
+        string value,
+        DynamicByPathTenantOptions options,
+        List<string> failures
+    )
+    {
+        var routePath = (options.TenantPath.Value ?? string.Empty).Replace(
+            $"{{{options.TenantIdRouteParameterName}}}",
+            tenantId,
+            StringComparison.Ordinal
+        );
+
+        if (TenantAddressRules.IssuerEndsWithRoutePath(issuer, routePath))
+            return;
+
+        failures.Add(
+            $"{key} '{value}' must end with '{routePath}', the route the tenant '{tenantId}' is served under."
+        );
     }
 }

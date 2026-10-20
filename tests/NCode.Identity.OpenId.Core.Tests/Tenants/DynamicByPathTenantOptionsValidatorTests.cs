@@ -27,11 +27,13 @@ public sealed class DynamicByPathTenantOptionsValidatorTests
     private static DynamicByPathTenantOptionsValidator Validator { get; } = new();
 
     private static TenantResolutionOptions Selected(
-        DynamicByPathTenantOptions? dynamicByPath = null
+        DynamicByPathTenantOptions? dynamicByPath = null,
+        string? rootIssuer = null
     ) =>
         new()
         {
             StrategyCode = OpenIdConstants.TenantStrategyCodes.DynamicByPath,
+            Root = { Issuer = rootIssuer },
             DynamicByPath = dynamicByPath,
         };
 
@@ -45,24 +47,92 @@ public sealed class DynamicByPathTenantOptionsValidatorTests
     #region Validate Tests
 
     [Theory]
-    [InlineData("/{tenantId}")]
-    [InlineData("/tenants/{tenantId}")]
-    public void Validate_WhenRouteCarriesOnlyThePlainTenantParameter_Succeeds(string tenantPath)
+    [InlineData("/{tenantId}", "https://op.example/{tenantId}")]
+    [InlineData("/tenants/{tenantId}", "https://op.example/tenants/{tenantId}")]
+    [InlineData("/tenants/{tenantId}", "https://op.example/base/tenants/{tenantId}")]
+    public void Validate_WhenRouteCarriesOnlyThePlainTenantParameter_Succeeds(
+        string tenantPath,
+        string issuerTemplate
+    )
     {
         var result = Validator.Validate(
             name: null,
-            Selected(new DynamicByPathTenantOptions { TenantPath = tenantPath })
+            Selected(
+                new DynamicByPathTenantOptions
+                {
+                    TenantPath = tenantPath,
+                    IssuerTemplate = issuerTemplate,
+                }
+            )
         );
 
         Assert.True(result.Succeeded);
     }
 
     [Fact]
-    public void Validate_WhenDefaults_Succeeds()
+    public void Validate_WhenDefaults_FailsBecauseTheRootTenantHasNoAddress()
     {
-        var result = Validator.Validate(name: null, Selected());
+        var failures = Failures(Selected());
+
+        Assert.Contains("The root tenant needs an address", failures, StringComparison.Ordinal);
+        Assert.Contains("DynamicByPath:IssuerTemplate", failures, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_WhenOnlyTheRootIssuerIsConfigured_Succeeds()
+    {
+        var result = Validator.Validate(
+            name: null,
+            Selected(rootIssuer: "https://op.example/root")
+        );
 
         Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenRootIssuerDoesNotEndWithItsRoute_Fails()
+    {
+        var failures = Failures(Selected(rootIssuer: "https://op.example/control"));
+
+        Assert.Contains(
+            "Root:Issuer 'https://op.example/control' must end with '/root'",
+            failures,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Theory]
+    [InlineData("https://{tenantId}.example")]
+    [InlineData("https://op.example/{tenantId}/v1")]
+    [InlineData("https://op.example/t-{tenantId}")]
+    public void Validate_WhenIssuerTemplateDoesNotEndWithTheBoundRoute_Fails(string issuerTemplate)
+    {
+        var failures = Failures(
+            Selected(new DynamicByPathTenantOptions { IssuerTemplate = issuerTemplate })
+        );
+
+        Assert.Contains(
+            $"DynamicByPath:IssuerTemplate '{issuerTemplate}' must end with '/a'",
+            failures,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Theory]
+    [InlineData("https://op.example/root")]
+    [InlineData("https://op.example/{tenantId}/{tenantId}")]
+    [InlineData("op.example/{tenantId}")]
+    public void Validate_WhenIssuerTemplateIsMalformed_Fails(string issuerTemplate)
+    {
+        var failures = Failures(
+            Selected(new DynamicByPathTenantOptions { IssuerTemplate = issuerTemplate })
+        );
+
+        Assert.Contains(
+            $"DynamicByPath:IssuerTemplate '{issuerTemplate}' must be",
+            failures,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]

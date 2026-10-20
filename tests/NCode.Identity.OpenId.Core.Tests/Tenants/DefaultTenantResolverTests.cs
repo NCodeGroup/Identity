@@ -213,6 +213,12 @@ public sealed class DefaultTenantResolverTests
             .Verifiable();
         strategy
             .Setup(x =>
+                x.GetDefaultIssuerAsync(RootTenantOptions.DefaultTenantId, CancellationToken.None)
+            )
+            .ReturnsAsync("https://op.example/root")
+            .Verifiable();
+        strategy
+            .Setup(x =>
                 x.ValidateTenantAsync(
                     TenantId,
                     It.IsAny<Uri>(),
@@ -227,6 +233,128 @@ public sealed class DefaultTenantResolverTests
             .ValidateTenantAsync(TenantId, Issuer, storeManager.Object, CancellationToken.None);
 
         Assert.Empty(failures);
+        mocks.Verify();
+    }
+
+    [Theory]
+    [InlineData("https://op.example/root")]
+    [InlineData("HTTPS://OP.EXAMPLE/root")]
+    public async Task ValidateTenantAsync_WhenIssuerIsTheRootTenantsAddress_ReportsAConflict(
+        string issuer
+    )
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        var storeManager = mocks.Create<IStoreManager>();
+        var store = mocks.Create<ITenantStore>();
+
+        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
+        store
+            .Setup(x => x.GetOrDefaultByIssuerAsync(issuer, CancellationToken.None))
+            .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+        strategy
+            .Setup(x =>
+                x.GetDefaultIssuerAsync(RootTenantOptions.DefaultTenantId, CancellationToken.None)
+            )
+            .ReturnsAsync("https://op.example/root")
+            .Verifiable();
+        strategy
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    TenantId,
+                    It.IsAny<Uri>(),
+                    storeManager.Object,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+
+        var failures = await CreateResolver(strategy.Object)
+            .ValidateTenantAsync(TenantId, issuer, storeManager.Object, CancellationToken.None);
+
+        var failure = Assert.Single(failures);
+        Assert.True(failure.IsConflict);
+        Assert.Contains("reserved for the root tenant", failure.Detail, StringComparison.Ordinal);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenTheRootTenantTakesItsOwnAddress_Succeeds()
+    {
+        const string rootIssuer = "https://op.example/root";
+
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        var storeManager = mocks.Create<IStoreManager>();
+        var store = mocks.Create<ITenantStore>();
+
+        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
+        store
+            .Setup(x => x.GetOrDefaultByIssuerAsync(rootIssuer, CancellationToken.None))
+            .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+        strategy
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    RootTenantOptions.DefaultTenantId,
+                    It.IsAny<Uri>(),
+                    storeManager.Object,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+
+        var failures = await CreateResolver(strategy.Object)
+            .ValidateTenantAsync(
+                RootTenantOptions.DefaultTenantId,
+                rootIssuer,
+                storeManager.Object,
+                CancellationToken.None
+            );
+
+        Assert.Empty(failures);
+        mocks.Verify();
+    }
+
+    #endregion
+
+    #region GetDefaultIssuerAsync Tests
+
+    [Fact]
+    public async Task GetDefaultIssuerAsync_DelegatesToTheSelectedStrategy()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        strategy
+            .Setup(x => x.GetDefaultIssuerAsync(TenantId, CancellationToken.None))
+            .ReturnsAsync(Issuer)
+            .Verifiable();
+
+        var issuer = await CreateResolver(strategy.Object)
+            .GetDefaultIssuerAsync(TenantId, CancellationToken.None);
+
+        Assert.Equal(Issuer, issuer);
+        mocks.Verify();
+    }
+
+    [Theory]
+    [InlineData("Acme")]
+    [InlineData("acme corp")]
+    [InlineData("")]
+    public async Task GetDefaultIssuerAsync_WhenIdentifierIsInvalid_ReturnsNoneWithoutTheStrategy(
+        string tenantId
+    )
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = mocks.Create<ITenantStrategy>();
+
+        var issuer = await CreateResolver(strategy.Object)
+            .GetDefaultIssuerAsync(tenantId, CancellationToken.None);
+
+        Assert.Null(issuer);
         mocks.Verify();
     }
 

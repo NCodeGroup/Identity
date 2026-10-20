@@ -47,6 +47,14 @@ public sealed class DefaultRegistrationTests
     )
     {
         var hostBuilder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
+
+        // The static tenant is served only beneath its issuer, so a host that starts must configure one.
+        hostBuilder.Configuration.AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:TenantResolution:StaticSingle:Issuer"] = "https://op.example",
+            }
+        );
         hostBuilder.Configuration.AddInMemoryCollection(configurationData);
         hostBuilder.Services.AddIdentityServer().AddConfiguration(hostBuilder.Configuration);
 

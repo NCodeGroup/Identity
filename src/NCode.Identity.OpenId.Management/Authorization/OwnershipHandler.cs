@@ -72,7 +72,7 @@ internal class OwnershipHandler(
             return;
         }
 
-        var ancestorNodes = GetAncestorNodes(resource, OptionsAccessor.Value.RootTenantId);
+        var ancestorNodes = GetAncestorNodes(resource, OptionsAccessor.Value.Root.TenantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(
             CancellationToken.None

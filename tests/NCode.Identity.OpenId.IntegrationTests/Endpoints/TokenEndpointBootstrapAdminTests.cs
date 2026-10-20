@@ -55,6 +55,7 @@ public class TokenEndpointBootstrapAdminTests
                         {
                             ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                             ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
+                            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
                         }
                     )
             )
@@ -105,6 +106,7 @@ public class TokenEndpointBootstrapAdminTests
                         {
                             ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                             ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
+                            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
                             ["OpenId:Server:Settings:token_endpoint_auth_method"] = OpenIdConstants
                                 .ClientAuthenticationMethods
                                 .PrivateKeyJwt,
@@ -213,6 +215,7 @@ public class TokenEndpointBootstrapAdminTests
                         {
                             ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                             ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
+                            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
                         }
                     )
             );

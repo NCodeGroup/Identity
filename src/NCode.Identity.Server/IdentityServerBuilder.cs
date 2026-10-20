@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2026 NCode Group
 //
@@ -19,6 +19,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Dispatch;
 using NCode.Identity.Events;
 using NCode.Identity.Jose;
@@ -117,12 +118,19 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
             >()
         );
 
-        // The bootstrap administrator client is seeded into the workload tenant on the same tenant seed fan-out that
-        // seeds the system resource servers (ADR-0045); inert unless a bootstrap client is configured.
+        // The bootstrap administrator client is seeded into the one tenant its options name, on the same tenant seed
+        // fan-out that seeds the system resource servers (ADR-0045, ADR-0166); inert unless a bootstrap client is
+        // configured, and that configuration must name the tenant.
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<
                 ICommandHandler<SeedTenantCommand>,
                 BootstrapAdminSeedHandler
+            >()
+        );
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                IValidateOptions<BootstrapAdminOptions>,
+                BootstrapAdminOptionsValidator
             >()
         );
 

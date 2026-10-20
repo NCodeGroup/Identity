@@ -10,6 +10,18 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The JOSE library creates and validates DPoP proofs.** `IDPoPProofService`, registered by `AddJoseLibrary()`,
+  signs a `dpop+jwt` proof (RFC 9449) with any asymmetric `JoseSigningCredentials`. The proof embeds the public `jwk`
+  and carries the `htm`, `htu`, `jti`, `iat`, and optional `ath` and `nonce` claims. `TryValidateProof` checks the
+  structure, the `typ`, the absence of a `crit` header, an allow-listed asymmetric `alg` that matches the `jwk` key
+  type, the signature, the HTTP binding, `ath`, and `iat` freshness. It returns the `jkt` thumbprint, `jti`, and
+  `nonce`. The `jwk` is imported through the registered key types and verified by the registered signature algorithms,
+  so `EdDSA` proofs (Ed25519 and Ed448) work once the opt-in EdDSA package is registered. The OpenId DPoP validator
+  consumes the service and keeps the server-nonce challenge and the replay cache. **Breaking:**
+  `OpenIdConstants.DPoP.ProofJwtType`, `.HttpMethodClaim`, `.HttpUriClaim`, and `.AccessTokenHashClaim` are removed in
+  favor of `JoseTokenTypes.DPoPJwt` and the new `JoseClaimNames.Payload.Htm`, `.Htu`, and `.Ath`.
+  ([ADR-0176](docs/adr/0176-dpop-proofs-are-a-jose-building-block.md))
+
 - **The management console's address bar names its scope and surface.** The console routes by scope and surface:
   `/tenants` and `/servers` in the global scope, and `/tenants/{tenantId}/clients`, `…/resource-servers`, `…/grants`,
   and `…/settings` within a tenant. A tenant view can be bookmarked, shared, and reloaded, back and forward move

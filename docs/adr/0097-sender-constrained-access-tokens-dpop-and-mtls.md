@@ -63,9 +63,10 @@ Concretely:
   `dpop_signing_alg_values_supported` set (symmetric and `none` are never accepted), verifies the signature with the
   **embedded public JWK** (which must carry no private material), checks `htm`/`htu` against the request, bounds `iat`
   by `dpop_proof_lifetime`, and rejects replays by `jti` through the `IDPoPProofReplayCache` seam. The RFC 7638
-  thumbprint is computed from the canonical JWK and returned as `jkt`. Signature verification is done with the raw
-  `RSA`/`ECDsa` primitives against the JWK's public parameters because the `SecretKey` factory is private-key-oriented;
-  the asymmetric algorithm set this accepts is exactly what the JOSE catalog registers (RSA `RS*`/`PS*`, EC `ES*`).
+  thumbprint is computed from the canonical JWK and returned as `jkt`. The stateless part of this validation — structure,
+  signature, HTTP binding, freshness, and `ath` — is the JOSE `IDPoPProofService` building block, which imports the
+  embedded JWK through the registered key types and verifies with the registered JOSE signature algorithms
+  ([ADR-0176](0176-dpop-proofs-are-a-jose-building-block.md)).
 
 - **Server nonces (RFC 9449 §8)** are supported through the `IDPoPNonceService` seam (default **off** via
   `dpop_nonce_required`); when required and absent/invalid, the server emits `use_dpop_nonce` with a `DPoP-Nonce`

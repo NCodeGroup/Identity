@@ -16,12 +16,10 @@
 
 #endregion
 
-using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Moq;
-using NCode.Encoders;
+using NCode.Identity.Jose.DPoP;
+using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
@@ -30,7 +28,6 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Settings;
 using Xunit;
 
@@ -40,8 +37,14 @@ public class DefaultDPoPProofValidatorTests : BaseTests
 {
     private const string HttpMethod = "POST";
     private const string HttpUri = "https://op.test/token";
+    private const string ProofJwt = "header.payload.signature";
+    private const string Thumbprint = "thumbprint";
+    private const string Jti = "jti-1";
 
-    private Mock<IEccCurveCatalog> MockCurveCatalog { get; }
+    private static readonly DateTimeOffset IssuedAt = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    private static readonly TimeSpan Lifetime = TimeSpan.FromSeconds(60);
+
+    private Mock<IDPoPProofService> MockProofService { get; }
     private Mock<IDPoPProofReplayCache> MockReplayCache { get; }
     private Mock<IDPoPNonceService> MockNonceService { get; }
     private Mock<IReadOnlySettingCollection> MockSettings { get; }
@@ -52,7 +55,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
 
     public DefaultDPoPProofValidatorTests()
     {
-        MockCurveCatalog = CreateStrictMock<IEccCurveCatalog>();
+        MockProofService = CreateStrictMock<IDPoPProofService>();
         MockReplayCache = CreateStrictMock<IDPoPProofReplayCache>();
         MockNonceService = CreateStrictMock<IDPoPNonceService>();
         MockSettings = CreateLooseMock<IReadOnlySettingCollection>();
@@ -68,14 +71,11 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         MockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.DPoPSigningAlgValuesSupported))
             .Returns(["ES256"]);
-        MockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.DPoPProofLifetime))
-            .Returns(TimeSpan.FromSeconds(60));
+        MockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.DPoPProofLifetime)).Returns(Lifetime);
         MockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.DPoPNonceRequired)).Returns(false);
 
         Validator = new DefaultDPoPProofValidator(
-            TimeProvider.System,
-            MockCurveCatalog.Object,
+            MockProofService.Object,
             MockReplayCache.Object,
             MockNonceService.Object
         );
@@ -83,237 +83,120 @@ public class DefaultDPoPProofValidatorTests : BaseTests
 
     #region Scaffolding
 
-    private void SetupCurveCatalog(ECDsa ecdsa)
-    {
-        var parameters = ecdsa.ExportParameters(includePrivateParameters: false);
-        var specification = new EccCurveSpecification
+    private static DPoPProof CreateProof(string? nonce = null) =>
+        new()
         {
-            CurveName = "P-256",
-            CurveSizeBits = 256,
-            Curve = parameters.Curve,
+            Algorithm = "ES256",
+            PublicKey = new JsonWebKey(
+                JsonDocument.Parse("""{"kty":"EC","crv":"P-256","x":"x","y":"y"}""").RootElement
+            ),
+            JwkThumbprint = Thumbprint,
+            Jti = Jti,
+            IssuedAt = IssuedAt,
+            Nonce = nonce,
         };
-        MockCurveCatalog
-            .Setup(x => x.TryGetByName("P-256", out specification!))
-            .Returns(true)
+
+    private void SetupProofService(DPoPProof? proof, string? error = null)
+    {
+        MockProofService
+            .Setup(x =>
+                x.TryValidateProof(
+                    ProofJwt,
+                    It.Is<DPoPProofValidationParameters>(p =>
+                        p.HttpMethod == HttpMethod
+                        && p.HttpUri == HttpUri
+                        && p.AccessToken == "access-token"
+                        && p.Lifetime == Lifetime
+                        && p.AllowedAlgorithms.SequenceEqual(new[] { "ES256" })
+                    ),
+                    out proof,
+                    out error
+                )
+            )
+            .Returns(proof is not null)
             .Verifiable();
     }
 
-    private static string BuildProof(
-        ECDsa ecdsa,
-        string htm = HttpMethod,
-        string htu = HttpUri,
-        DateTimeOffset? iat = null,
-        string? jti = null,
-        string typ = "dpop+jwt",
-        string alg = "ES256",
-        object? iatClaim = null
-    )
-    {
-        var parameters = ecdsa.ExportParameters(includePrivateParameters: false);
-        var jwk = new Dictionary<string, object>
-        {
-            ["kty"] = "EC",
-            ["crv"] = "P-256",
-            ["x"] = Base64Url.Encode(parameters.Q.X!),
-            ["y"] = Base64Url.Encode(parameters.Q.Y!),
-        };
-        var header = new Dictionary<string, object>
-        {
-            ["typ"] = typ,
-            ["alg"] = alg,
-            ["jwk"] = jwk,
-        };
-        var payload = new Dictionary<string, object>
-        {
-            ["htm"] = htm,
-            ["htu"] = htu,
-            ["iat"] = iatClaim ?? (iat ?? DateTimeOffset.UtcNow).ToUnixTimeSeconds(),
-            ["jti"] = jti ?? Guid.NewGuid().ToString("N"),
-        };
+    private void SetupReplayCache(bool recorded) =>
+        MockReplayCache
+            .Setup(x =>
+                x.TryRecordAsync(
+                    MockContext.Object,
+                    Thumbprint,
+                    Jti,
+                    IssuedAt + Lifetime,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(recorded)
+            .Verifiable();
 
-        var encodedHeader = Base64Url.Encode(JsonSerializer.SerializeToUtf8Bytes(header));
-        var encodedPayload = Base64Url.Encode(JsonSerializer.SerializeToUtf8Bytes(payload));
-        var signingInput = $"{encodedHeader}.{encodedPayload}";
-        var signature = ecdsa.SignData(
-            Encoding.ASCII.GetBytes(signingInput),
-            HashAlgorithmName.SHA256,
-            DSASignatureFormat.IeeeP1363FixedFieldConcatenation
-        );
-        return $"{signingInput}.{Base64Url.Encode(signature)}";
-    }
-
-    private static string ComputeExpectedThumbprint(ECDsa ecdsa)
-    {
-        var parameters = ecdsa.ExportParameters(includePrivateParameters: false);
-        var x = Base64Url.Encode(parameters.Q.X!);
-        var y = Base64Url.Encode(parameters.Q.Y!);
-        var canonical = $$"""{"crv":"P-256","kty":"EC","x":"{{x}}","y":"{{y}}"}""";
-        return Base64Url.Encode(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
-    }
-
-    #endregion
-
-    #region ValidateAsync Tests
-
-    private ValueTask<string> InvokeValidateAsync(string proof) =>
+    private ValueTask<string> InvokeValidateAsync() =>
         Validator.ValidateAsync(
             MockContext.Object,
             new DPoPProofValidationRequest
             {
-                ProofJwt = proof,
+                ProofJwt = ProofJwt,
                 HttpMethod = HttpMethod,
                 HttpUri = HttpUri,
+                AccessToken = "access-token",
                 Settings = MockClient.Object.Settings,
             },
             CancellationToken.None
         );
 
+    #endregion
+
+    #region ValidateAsync Tests
+
     [Fact]
-    public async Task ValidateAsync_WhenValidEs256Proof_ReturnsJwkThumbprint()
+    public async Task ValidateAsync_WhenProofValid_RecordsJtiAndReturnsThumbprint()
     {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        SetupCurveCatalog(ecdsa);
-        MockReplayCache
-            .Setup(x =>
-                x.TryRecordAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<DateTimeOffset>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(true)
-            .Verifiable();
+        SetupProofService(CreateProof());
+        SetupReplayCache(recorded: true);
 
-        var proof = BuildProof(ecdsa);
+        var thumbprint = await InvokeValidateAsync();
 
-        var thumbprint = await InvokeValidateAsync(proof);
-
-        Assert.Equal(ComputeExpectedThumbprint(ecdsa), thumbprint);
+        Assert.Equal(Thumbprint, thumbprint);
     }
 
     [Fact]
-    public async Task ValidateAsync_WhenWrongTyp_Throws()
+    public async Task ValidateAsync_WhenProofRejected_ThrowsWithoutRecording()
     {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var proof = BuildProof(ecdsa, typ: "jwt");
+        SetupProofService(proof: null, error: "The DPoP proof signature is invalid.");
 
-        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
-    }
-
-    [Fact]
-    public async Task ValidateAsync_WhenDisallowedAlg_Throws()
-    {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var proof = BuildProof(ecdsa, alg: "HS256");
-
-        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
-    }
-
-    [Fact]
-    public async Task ValidateAsync_WhenHtuMismatch_Throws()
-    {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        SetupCurveCatalog(ecdsa);
-        var proof = BuildProof(ecdsa, htu: "https://op.test/other");
-
-        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
-    }
-
-    [Fact]
-    public async Task ValidateAsync_WhenStaleIat_Throws()
-    {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        SetupCurveCatalog(ecdsa);
-        var proof = BuildProof(ecdsa, iat: DateTimeOffset.UtcNow.AddMinutes(-10));
-
-        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
-    }
-
-    [Theory]
-    [InlineData(99_999_999_999_999L)]
-    [InlineData(long.MinValue)]
-    public async Task ValidateAsync_WhenIatOutOfRange_ThrowsInvalidProof(long iat)
-    {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        SetupCurveCatalog(ecdsa);
-        var proof = BuildProof(ecdsa, iatClaim: iat);
-
-        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
-    }
-
-    [Fact]
-    public async Task ValidateAsync_WhenIatIsString_ThrowsInvalidProof()
-    {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        SetupCurveCatalog(ecdsa);
-        var iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
-        var proof = BuildProof(ecdsa, iatClaim: iat);
-
-        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
-    }
-
-    [Fact]
-    public async Task ValidateAsync_WhenIatIsFractional_ReturnsJwkThumbprint()
-    {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        SetupCurveCatalog(ecdsa);
-        MockReplayCache
-            .Setup(x =>
-                x.TryRecordAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<DateTimeOffset>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(true)
-            .Verifiable();
-
-        var proof = BuildProof(ecdsa, iatClaim: DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 0.5);
-
-        var thumbprint = await InvokeValidateAsync(proof);
-
-        Assert.Equal(ComputeExpectedThumbprint(ecdsa), thumbprint);
+        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync().AsTask());
     }
 
     [Fact]
     public async Task ValidateAsync_WhenReplayed_Throws()
     {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        SetupCurveCatalog(ecdsa);
-        MockReplayCache
-            .Setup(x =>
-                x.TryRecordAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<DateTimeOffset>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(false)
-            .Verifiable();
+        SetupProofService(CreateProof());
+        SetupReplayCache(recorded: false);
 
-        var proof = BuildProof(ecdsa);
-
-        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(proof).AsTask());
+        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync().AsTask());
     }
 
     [Fact]
-    public async Task ValidateAsync_WhenSignatureTampered_Throws()
+    public async Task ValidateAsync_WhenNonceRequiredAndValid_ReturnsThumbprint()
     {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        SetupCurveCatalog(ecdsa);
-        var proof = BuildProof(ecdsa);
-        var lastDot = proof.LastIndexOf('.');
-        var signature = proof[(lastDot + 1)..];
-        var flipped = (signature[0] == 'A' ? 'B' : 'A') + signature[1..];
-        var tampered = proof[..(lastDot + 1)] + flipped;
+        MockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.DPoPNonceRequired)).Returns(true);
+        SetupProofService(CreateProof(nonce: "server-nonce"));
+        MockNonceService
+            .Setup(x =>
+                x.ValidateNonceAsync(
+                    MockContext.Object,
+                    "server-nonce",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+        SetupReplayCache(recorded: true);
 
-        await Assert.ThrowsAsync<OpenIdException>(() => InvokeValidateAsync(tampered).AsTask());
+        var thumbprint = await InvokeValidateAsync();
+
+        Assert.Equal(Thumbprint, thumbprint);
     }
 
     #endregion

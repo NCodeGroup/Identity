@@ -72,6 +72,7 @@ export {
   emptyInitialAccessTokenFormValues,
   type InitialAccessTokenFormDialogProps,
   type InitialAccessTokenFormValues,
+  type InitialAccessTokenResourceServerOption,
 } from './components/InitialAccessTokenFormDialog.js';
 export {
   RevealInitialAccessTokenDialog,

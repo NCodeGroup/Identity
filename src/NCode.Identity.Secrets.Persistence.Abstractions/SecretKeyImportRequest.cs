@@ -39,6 +39,12 @@ public sealed class SecretKeyImportRequest
     public required string SecretId { get; init; }
 
     /// <summary>
+    /// Gets the key identifier (<c>kid</c>) to select the imported key by, or <c>null</c> to identify the key by its
+    /// <see cref="SecretId"/>.
+    /// </summary>
+    public string? KeyId { get; init; }
+
+    /// <summary>
     /// Gets the secret type (crypto family) to import the material as, which selects the
     /// <c>ISecretKeyTypeDescriptor</c> that parses it. See <c>SecretKeyTypes</c>.
     /// </summary>

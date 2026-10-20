@@ -68,6 +68,7 @@ internal sealed class DefaultSecretImporter(
         return new PersistedSecret
         {
             SecretId = request.SecretId,
+            KeyId = request.KeyId,
             Use = request.Use,
             Algorithm = request.Algorithm,
             CreatedWhen = request.CreatedWhen,

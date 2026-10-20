@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Text.Json;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using Xunit;
@@ -303,18 +302,6 @@ public class OpenIdSettingRulesTests
     public void EmailAddress_AcceptsABareAddress(string value, bool expected)
     {
         Assert.Equal(expected, IsValid(OpenIdSettingRules.EmailAddress(), value));
-    }
-
-    [Theory]
-    [InlineData("""{"keys":[]}""", true)]
-    [InlineData("""{"keys":{}}""", false)]
-    [InlineData("""{"kty":"RSA"}""", false)]
-    [InlineData("""[]""", false)]
-    public void JwkSet_AcceptsAnObjectWithAKeysArray(string json, bool expected)
-    {
-        var value = JsonElement.Parse(json);
-
-        Assert.Equal(expected, IsValid(OpenIdSettingRules.JwkSet(), value));
     }
 
     #endregion

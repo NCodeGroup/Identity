@@ -250,6 +250,35 @@ public sealed class ClientStoreSecretsTests : IDisposable
         );
     }
 
+    [Fact]
+    public async Task AddSecretAsync_WhenKeyIdIsSet_RoundTripsKeyId()
+    {
+        await SeedClientAsync();
+
+        var added = new PersistedSecret
+        {
+            SecretId = "secret-2",
+            KeyId = "client-kid",
+            ConcurrencyToken = string.Empty,
+            Use = "sig",
+            Algorithm = "RS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            SecretType = SecretTypes.Rsa,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Spki,
+            KeySizeBits = 2048,
+            EncodedValue = "encoded-value",
+        };
+        await _store.AddSecretAsync(ClientId, added, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await GetSecretOrDefaultAsync("secret-2");
+
+        Assert.NotNull(reloaded);
+        Assert.Equal("client-kid", reloaded.KeyId);
+    }
+
     #endregion
 
     #region UpdateSecretAsync Tests

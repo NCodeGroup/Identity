@@ -55,9 +55,10 @@ internal abstract class MutualTlsClientAuthenticationHandler(
     /// <see cref="SecretKey"/> that represents the authenticating credential when it matches, or <see langword="null"/>
     /// when it does not.
     /// </summary>
-    protected abstract SecretKey? MatchCertificate(
+    protected abstract ValueTask<SecretKey?> MatchCertificateAsync(
         OpenIdClient openIdClient,
-        X509Certificate2 certificate
+        X509Certificate2 certificate,
+        CancellationToken cancellationToken
     );
 
     /// <inheritdoc />
@@ -141,7 +142,11 @@ internal abstract class MutualTlsClientAuthenticationHandler(
                 cancellationToken
             );
 
-        var credentialKey = MatchCertificate(publicClient, certificate);
+        var credentialKey = await MatchCertificateAsync(
+            publicClient,
+            certificate,
+            cancellationToken
+        );
         if (credentialKey is null)
             return await FailAsync(
                 openIdContext,

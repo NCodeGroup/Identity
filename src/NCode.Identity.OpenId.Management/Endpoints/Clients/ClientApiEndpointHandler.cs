@@ -16,15 +16,19 @@
 
 #endregion
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -37,10 +41,13 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
+using NCode.Json;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
@@ -74,7 +81,9 @@ internal class ClientApiEndpointHandler(
     IClientValidator clientValidator,
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
-    ISecretImporter secretImporter,
+    IClientKeyImporter clientKeyImporter,
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
+    IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretPublicKeyConverter secretPublicKeyConverter,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
@@ -92,7 +101,10 @@ internal class ClientApiEndpointHandler(
     private IClientValidator ClientValidator { get; } = clientValidator;
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
-    private ISecretImporter SecretImporter { get; } = secretImporter;
+    private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
+    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
+        algorithmCollectionProvider;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -682,12 +694,12 @@ internal class ClientApiEndpointHandler(
         var store = storeManager.GetStore<IClientStore>();
 
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
-        var clientSettings = client?.Settings;
-
-        if (clientSettings is null)
+        if (client is null)
         {
             return TypedResults.NotFound();
         }
+
+        var clientSettings = client.Settings;
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
@@ -733,6 +745,11 @@ internal class ClientApiEndpointHandler(
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);
+        }
+
+        if (HasJwksUri(settingsValue) && HasPublicKeys(client.Secrets.Value))
+        {
+            return KeySourceConflict();
         }
 
         clientSettings.Value = settingsValue;
@@ -830,6 +847,11 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(validationError);
         }
 
+        if (HasJwksUri(client.Settings.Value) && IsPublicKeyType(request.SecretType))
+        {
+            return KeySourceConflict();
+        }
+
         var secretId = CryptoService.GenerateResourceId();
 
         GeneratedSecret generatedSecret;
@@ -906,7 +928,13 @@ internal class ClientApiEndpointHandler(
     /// <summary>
     /// Imports a caller-supplied public key (JWK, PEM, or certificate) as a new client secret.
     /// </summary>
-    // See ADR-0104.
+    /// <remarks>
+    /// The key is imported under the client-key policy: it is a public key of the requested type whose declared
+    /// <c>kid</c>, <c>use</c>, and <c>alg</c> agree with the key and with the request. A key supplied as a JSON Web Key
+    /// keeps its <c>kid</c>; any other key is identified by its secret identifier. The <c>kid</c> must be unique among
+    /// the client's keys, and a client that publishes its keys at a <c>jwks_uri</c> cannot have keys registered for it.
+    /// </remarks>
+    // See ADR-0104 and ADR-0161.
     internal virtual async ValueTask<IResult> ImportSecretAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -949,31 +977,40 @@ internal class ClientApiEndpointHandler(
             );
         }
 
+        if (HasJwksUri(client.Settings.Value))
+        {
+            return KeySourceConflict();
+        }
+
         var secretId = CryptoService.GenerateResourceId();
 
-        PersistedSecret importedSecret;
-        try
+        var importRequest = new SecretKeyImportRequest
         {
-            importedSecret = SecretImporter.ImportSecret(
-                new SecretKeyImportRequest
-                {
-                    SecretId = secretId,
-                    SecretType = request.SecretType,
-                    Format = format,
-                    KeyMaterial = request.KeyMaterial,
-                    Use = request.Use,
-                    Algorithm = request.Algorithm,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
-                    ExpiresWhen = request.ExpiresWhen,
-                }
-            );
+            SecretId = secretId,
+            SecretType = request.SecretType,
+            Format = format,
+            KeyMaterial = request.KeyMaterial,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            CreatedWhen = TimeProvider.GetUtcNow(),
+            ExpiresWhen = request.ExpiresWhen,
+        };
+        if (!ClientKeyImporter.TryImportKey(importRequest, out var importedSecret, out var error))
+        {
+            return TypedResults.Problem(detail: error, statusCode: StatusCodes.Status400BadRequest);
         }
-        catch (ArgumentException exception)
+
+        // Keys are selected by kid, so two of a client's keys never share one.
+        var keyId = GetKeyId(importedSecret);
+        if (
+            client.Secrets.Value.Any(secret =>
+                string.Equals(GetKeyId(secret), keyId, StringComparison.Ordinal)
+            )
+        )
         {
-            Logger.SecretGenerationFailed(exception);
             return TypedResults.Problem(
-                detail: "The secret could not be imported from the supplied material.",
-                statusCode: StatusCodes.Status400BadRequest
+                detail: $"A key with the 'kid' value '{keyId}' is already registered for the client.",
+                statusCode: StatusCodes.Status409Conflict
             );
         }
 
@@ -1151,9 +1188,19 @@ internal class ClientApiEndpointHandler(
             return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
         }
 
+        var metadataError = ValidateKeyMetadata(secret, request.Use, request.Algorithm);
+        if (metadataError is not null)
+        {
+            return TypedResults.Problem(
+                detail: metadataError,
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
         var updated = new PersistedSecret
         {
             SecretId = secret.SecretId,
+            KeyId = secret.KeyId,
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = request.Use,
             Algorithm = request.Algorithm,
@@ -1316,4 +1363,58 @@ internal class ClientApiEndpointHandler(
     ) =>
         await storeManager.GetStore<IClientStore>().GetOrDefaultAsync(clientId, cancellationToken)
             is not null;
+
+    // A client's public keys come from one source, the keys registered for it or the keys it publishes at its
+    // jwks_uri (OpenID Connect Dynamic Client Registration 1.0 §2). See ADR-0161.
+    private static ProblemHttpResult KeySourceConflict() =>
+        TypedResults.Problem(
+            detail: "A client's public keys come from one source: the keys registered for it or the keys it "
+                + "publishes at its 'jwks_uri', never both.",
+            statusCode: StatusCodes.Status409Conflict
+        );
+
+    private static bool HasJwksUri(JsonElement settings) =>
+        settings.ValueKind == JsonValueKind.Object
+        && settings.TryGetPropertyValue<string>(OpenIdSettingNames.JwksUri, out var jwksUri)
+        && !string.IsNullOrEmpty(jwksUri);
+
+    private bool IsPublicKeyType(string secretType) =>
+        SecretKeyTypeCatalog.TryGet(secretType, out var descriptor) && descriptor.IsAsymmetric;
+
+    private bool HasPublicKeys(IEnumerable<PersistedSecret> secrets) =>
+        secrets.Any(secret => IsPublicKeyType(secret.SecretType));
+
+    // A key without its own kid is selected by its secret identifier.
+    private static string GetKeyId(PersistedSecret secret) => secret.KeyId ?? secret.SecretId;
+
+    /// <summary>
+    /// Validates the metadata an update declares for a client's key: the <c>use</c> is <c>sig</c> or <c>enc</c>, and
+    /// the <c>alg</c> agrees with the use and accepts the key's type and size. Returns a human-readable reason, or
+    /// <see langword="null"/> when the metadata is coherent.
+    /// </summary>
+    // See ADR-0161.
+    private string? ValidateKeyMetadata(PersistedSecret secret, string? use, string? algorithm)
+    {
+        if (use is not null && use is not (SecretKeyUses.Signature or SecretKeyUses.Encryption))
+        {
+            return $"The use '{use}' is not supported; expected '{SecretKeyUses.Signature}' or "
+                + $"'{SecretKeyUses.Encryption}'.";
+        }
+
+        if (algorithm is null)
+            return null;
+
+        if (!SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor))
+            return $"The secret type '{secret.SecretType}' is not supported.";
+
+        return AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
+            new KeyAlgorithmDeclaration
+            {
+                KeyType = descriptor.KeyClrType,
+                KeySizeBits = secret.KeySizeBits,
+                Use = use,
+                Algorithm = algorithm,
+            }
+        );
+    }
 }

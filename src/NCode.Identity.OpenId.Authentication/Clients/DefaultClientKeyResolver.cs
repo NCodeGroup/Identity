@@ -21,35 +21,34 @@ using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using NCode.Buffers;
-using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Collections;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// Provides the default implementation of <see cref="IClientKeyResolver"/>. It merges the client's stored
-/// <see cref="OpenIdClient.SecretKeys"/> with the public keys resolved at runtime from the client's <c>jwks_uri</c>
-/// setting. The <c>jwks_uri</c> fetch is guarded against server-side request forgery (the connection is pinned away
-/// from private/loopback/link-local addresses, redirects are not followed, an optional host allow-list applies, and
-/// both a wall-clock timeout and a response-size cap bound the request), and a successful fetch is cached for the
-/// configured duration. A fetch or parse failure falls back to the client's stored keys only, so an unreachable or
-/// malformed key set never grants access.
+/// Provides the default implementation of <see cref="IClientKeyResolver"/>. A client's public keys come from exactly
+/// one source: the keys it registered by value (its stored <see cref="OpenIdClient.SecretKeys"/>) or, when it has a
+/// <c>jwks_uri</c>, the keys it publishes there — never both. The secrets a client shares with the server (its
+/// symmetric keys) are always included. The <c>jwks_uri</c> fetch is guarded against server-side request forgery (the
+/// connection is pinned away from private/loopback/link-local addresses, redirects are not followed, an optional host
+/// allow-list applies, and both a wall-clock timeout and a response-size cap bound the request), the fetched set is
+/// imported under the client-key policy of <see cref="IClientKeyImporter"/>, and an accepted set is cached for the
+/// configured duration. A fetch that fails or a set that is refused leaves the client with no public keys, so an
+/// unreachable, malformed, or unsafe key set never grants access.
 /// </summary>
+// See ADR-0161.
 internal sealed class DefaultClientKeyResolver(
     ILogger<DefaultClientKeyResolver> logger,
     TimeProvider timeProvider,
-    ICryptoService cryptoService,
     IHttpClientFactory httpClientFactory,
     IOutboundHttpContentReader outboundHttpContentReader,
     IMemoryCache memoryCache,
-    ISecretImporter secretImporter,
+    IClientKeyImporter clientKeyImporter,
     ISecretSerializer secretSerializer,
     ISecretKeyCollectionFactory secretKeyCollectionFactory
 ) : IClientKeyResolver
@@ -58,12 +57,11 @@ internal sealed class DefaultClientKeyResolver(
 
     private ILogger<DefaultClientKeyResolver> Logger { get; } = logger;
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private ICryptoService CryptoService { get; } = cryptoService;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
     private IOutboundHttpContentReader OutboundHttpContentReader { get; } =
         outboundHttpContentReader;
     private IMemoryCache MemoryCache { get; } = memoryCache;
-    private ISecretImporter SecretImporter { get; } = secretImporter;
+    private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } =
         secretKeyCollectionFactory;
@@ -81,19 +79,20 @@ internal sealed class DefaultClientKeyResolver(
             || string.IsNullOrEmpty(jwksUri)
         )
         {
-            // The client published no jwks_uri; its stored keys are the whole set.
+            // The client registered its keys by value; its stored keys are the whole set.
             return openIdClient.SecretKeys;
         }
 
         var jwksKeys = await ResolveJwksKeysAsync(openIdClient, jwksUri, cancellationToken);
-        if (jwksKeys.Count == 0)
-        {
-            return openIdClient.SecretKeys;
-        }
 
-        // A new non-owning collection over both sources; neither the stored keys (owned by the client) nor the
-        // jwks_uri keys (owned by the cache) are disposed by this merged view.
-        return SecretKeyCollectionFactory.Create([.. openIdClient.SecretKeys, .. jwksKeys]);
+        // The keys published at the jwks_uri replace any public key stored for the client (OpenID Connect Dynamic Client
+        // Registration 1.0 §2), so only the secrets it shares with the server are kept beside them. A new non-owning
+        // collection: neither the stored keys (owned by the client) nor the jwks_uri keys (owned by the cache) are
+        // disposed by it.
+        var sharedKeys = openIdClient.SecretKeys.Where(secretKey =>
+            secretKey is not AsymmetricSecretKey
+        );
+        return SecretKeyCollectionFactory.Create([.. sharedKeys, .. jwksKeys]);
     }
 
     private async ValueTask<IReadOnlyList<SecretKey>> ResolveJwksKeysAsync(
@@ -215,7 +214,7 @@ internal sealed class DefaultClientKeyResolver(
                 return [];
             }
 
-            return ImportKeys(openIdClient, buffer.AsReadOnlySequence);
+            return ImportKeys(openIdClient, uri, buffer.AsReadOnlySequence);
         }
         catch (Exception exception)
             when (exception is HttpRequestException or OperationCanceledException)
@@ -225,107 +224,45 @@ internal sealed class DefaultClientKeyResolver(
         }
     }
 
-    private List<SecretKey> ImportKeys(OpenIdClient openIdClient, ReadOnlySequence<byte> content)
+    private List<SecretKey> ImportKeys(
+        OpenIdClient openIdClient,
+        Uri uri,
+        ReadOnlySequence<byte> content
+    )
     {
-        JsonElement keysElement;
+        JsonElement keySet;
         try
         {
             using var document = JsonDocument.Parse(content);
-            if (
-                document.RootElement.ValueKind != JsonValueKind.Object
-                || !document.RootElement.TryGetProperty("keys", out var keys)
-                || keys.ValueKind != JsonValueKind.Array
-            )
-            {
-                return [];
-            }
-
-            keysElement = keys.Clone();
+            keySet = document.RootElement.Clone();
         }
         catch (JsonException exception)
         {
-            Logger.ClientJwksFetchFailed(openIdClient.ClientId, "(parsed document)", exception);
+            Logger.ClientJwksFetchFailed(openIdClient.ClientId, uri.AbsoluteUri, exception);
             return [];
         }
 
         var createdWhen = TimeProvider.GetUtcNow();
-        var secretKeys = new List<SecretKey>();
-
-        foreach (var jwk in keysElement.EnumerateArray())
-        {
-            var secretKey = ImportKeyOrNull(openIdClient, jwk, createdWhen);
-            if (secretKey is not null)
-                secretKeys.Add(secretKey);
-        }
-
-        return secretKeys;
-    }
-
-    private SecretKey? ImportKeyOrNull(
-        OpenIdClient openIdClient,
-        JsonElement jwk,
-        DateTimeOffset createdWhen
-    )
-    {
         if (
-            jwk.ValueKind != JsonValueKind.Object
-            || !jwk.TryGetPropertyValue<string>("kty", out var kty)
+            !ClientKeyImporter.TryImportPublishedKeySet(
+                keySet,
+                createdWhen,
+                out var persistedSecrets,
+                out var error
+            )
         )
         {
-            return null;
-        }
-
-        var secretType = kty switch
-        {
-            "RSA" => SecretTypes.Rsa,
-            "EC" => SecretTypes.Ecc,
-            _ => null,
-        };
-        if (secretType is null)
-        {
-            return null;
-        }
-
-        var keyId = ReadStringMember(jwk, "kid");
-        if (string.IsNullOrEmpty(keyId))
-        {
-            keyId = CryptoService.GenerateResourceId();
-        }
-
-        try
-        {
-            var persistedSecret = SecretImporter.ImportSecret(
-                new SecretKeyImportRequest
-                {
-                    SecretId = keyId,
-                    SecretType = secretType,
-                    Format = SecretKeyImportFormat.Jwk,
-                    KeyMaterial = jwk.GetRawText(),
-                    Use = ReadStringMember(jwk, "use"),
-                    Algorithm = ReadStringMember(jwk, "alg"),
-                    CreatedWhen = createdWhen,
-                    ExpiresWhen = DateTimeOffset.MaxValue,
-                }
+            Logger.ClientJwksFetchFailed(
+                openIdClient.ClientId,
+                uri.AbsoluteUri,
+                new InvalidOperationException(error)
             );
+            return [];
+        }
 
-            return SecretSerializer.DeserializeSecret(persistedSecret);
-        }
-        catch (Exception exception)
-            when (exception
-                    is ArgumentException
-                        or InvalidOperationException
-                        or System.Security.Cryptography.CryptographicException
-            )
-        {
-            // A malformed key in an otherwise-usable set is skipped rather than failing the whole resolution.
-            Logger.ClientJwksKeyImportFailed(openIdClient.ClientId, exception);
-            return null;
-        }
+        return [.. persistedSecrets.Select(SecretSerializer.DeserializeSecret)];
     }
 
     private static string GetCacheKey(Uri uri) =>
         $"NCode.Identity.OpenId.Authentication.Clients.DefaultClientKeyResolver:{uri.AbsoluteUri}";
-
-    private static string? ReadStringMember(JsonElement element, string memberName) =>
-        element.TryGetPropertyValue<string>(memberName, out var value) ? value : null;
 }

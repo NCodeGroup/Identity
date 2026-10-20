@@ -49,6 +49,11 @@ public static class SecretMaxLengths
     public const int SecretEncoding = 100;
 
     /// <summary>
+    /// Specifies the maximum length of the <c>KeyId</c> field (a key's <c>kid</c>).
+    /// </summary>
+    public const int KeyId = 300;
+
+    /// <summary>
     /// Specifies the maximum length of the <c>EncodedValue</c> field.
     /// </summary>
     public const int EncodedValue = 8000;

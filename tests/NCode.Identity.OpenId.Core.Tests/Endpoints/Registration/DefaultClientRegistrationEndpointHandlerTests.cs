@@ -20,6 +20,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Routing;
 using Moq;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Jwk;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages;
 using NCode.Identity.OpenId.Authentication.Persistence;
@@ -28,7 +30,12 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -45,12 +52,25 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     private DefaultClientRegistrationEndpointHandler CreateHandler(
         IClientScopeService clientScopeService
     ) =>
+        CreateHandler(
+            clientScopeService,
+            CreateStrictMock<ISecretSerializer>().Object,
+            CreateStrictMock<ISecretKeyTypeCatalog>().Object
+        );
+
+    private DefaultClientRegistrationEndpointHandler CreateHandler(
+        IClientScopeService clientScopeService,
+        ISecretSerializer secretSerializer,
+        ISecretKeyTypeCatalog secretKeyTypeCatalog
+    ) =>
         new(
             TimeProvider.System,
             CreateStrictMock<LinkGenerator>().Object,
             CreateStrictMock<ICryptoService>().Object,
             CreateStrictMock<ISecretGenerator>().Object,
-            CreateStrictMock<ISecretImporter>().Object,
+            CreateStrictMock<IClientKeyImporter>().Object,
+            secretSerializer,
+            secretKeyTypeCatalog,
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<IPersistedGrantService>().Object,
             CreateStrictMock<IInitialAccessTokenValidator>().Object,
@@ -667,6 +687,124 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.Empty(response.ResponseTypes);
     }
 
+    [Fact]
+    public void BuildSettingsObject_WhenJwksIsRegistered_DoesNotStoreIt()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest { Jwks = CreateJwks() };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            ResponseTypes = [],
+            RedirectUris = [],
+        };
+
+        var settings = handler.BuildSettingsObject(request, resolved);
+
+        // The registered keys are the client's stored secrets, which the response projects back.
+        Assert.False(settings.ContainsKey("jwks"));
+    }
+
+    [Fact]
+    public void ToResponse_WhenPublicKeysAreStored_ProjectsThemAsJwks()
+    {
+        var publicKey = CreateSecret("public-key", SecretTypes.Rsa);
+        var sharedSecret = CreateSecret("shared-secret", SecretTypes.Symmetric);
+        var secretKey = CreateLooseMock<SecretKey>().Object;
+        var exportedJwk = JsonWebKey.Parse(
+            """{"kty":"RSA","kid":"client-kid","n":"AQAB","e":"AQAB"}"""
+        );
+
+        var mockRsaDescriptor = CreateStrictMock<ISecretKeyTypeDescriptor>();
+        mockRsaDescriptor.Setup(x => x.SupportsPublicKeyExport).Returns(true).Verifiable();
+        mockRsaDescriptor
+            .Setup(x => x.ExportPublicKey(secretKey))
+            .Returns(new ExportedPublicKey { Jwk = exportedJwk, Pem = "pem" })
+            .Verifiable();
+
+        var mockSymmetricDescriptor = CreateStrictMock<ISecretKeyTypeDescriptor>();
+        mockSymmetricDescriptor.Setup(x => x.SupportsPublicKeyExport).Returns(false).Verifiable();
+
+        ISecretKeyTypeDescriptor? rsaDescriptor = mockRsaDescriptor.Object;
+        ISecretKeyTypeDescriptor? symmetricDescriptor = mockSymmetricDescriptor.Object;
+        var mockCatalog = CreateStrictMock<ISecretKeyTypeCatalog>();
+        mockCatalog
+            .Setup(x => x.TryGet(SecretTypes.Rsa, out rsaDescriptor))
+            .Returns(true)
+            .Verifiable();
+        mockCatalog
+            .Setup(x => x.TryGet(SecretTypes.Symmetric, out symmetricDescriptor))
+            .Returns(true)
+            .Verifiable();
+
+        // The shared secret has no public key, so it is never deserialized.
+        var mockSerializer = CreateStrictMock<ISecretSerializer>();
+        mockSerializer.Setup(x => x.DeserializeSecret(publicKey)).Returns(secretKey).Verifiable();
+
+        var handler = CreateHandler(
+            CreateStrictMock<IClientScopeService>().Object,
+            mockSerializer.Object,
+            mockCatalog.Object
+        );
+        var client = CreateClient(
+            JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            sharedSecret,
+            publicKey
+        );
+
+        var response = handler.ToResponse(client);
+
+        Assert.NotNull(response.Jwks);
+        var keySet = new JsonWebKeySet(response.Jwks.Value);
+        var key = Assert.Single(keySet.Keys);
+        Assert.Equal("client-kid", key.KeyId);
+    }
+
+    [Fact]
+    public void ToResponse_WhenNoPublicKeyIsStored_OmitsJwks()
+    {
+        var sharedSecret = CreateSecret("shared-secret", SecretTypes.Symmetric);
+
+        var mockSymmetricDescriptor = CreateStrictMock<ISecretKeyTypeDescriptor>();
+        mockSymmetricDescriptor.Setup(x => x.SupportsPublicKeyExport).Returns(false).Verifiable();
+
+        ISecretKeyTypeDescriptor? symmetricDescriptor = mockSymmetricDescriptor.Object;
+        var mockCatalog = CreateStrictMock<ISecretKeyTypeCatalog>();
+        mockCatalog
+            .Setup(x => x.TryGet(SecretTypes.Symmetric, out symmetricDescriptor))
+            .Returns(true)
+            .Verifiable();
+
+        var handler = CreateHandler(
+            CreateStrictMock<IClientScopeService>().Object,
+            CreateStrictMock<ISecretSerializer>().Object,
+            mockCatalog.Object
+        );
+        var client = CreateClient(
+            JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            sharedSecret
+        );
+
+        var response = handler.ToResponse(client);
+
+        Assert.Null(response.Jwks);
+    }
+
+    private static PersistedSecret CreateSecret(string secretId, string secretType) =>
+        new()
+        {
+            SecretId = secretId,
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.MaxValue,
+            SecretType = secretType,
+            SecretEncoding = SecretEncodings.Spki,
+            KeySizeBits = 2048,
+            EncodedValue = "encoded",
+        };
+
     #endregion
 
     #region ValidateKeyMetadata
@@ -962,7 +1100,10 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.Null(response.Scope);
     }
 
-    private static PersistedClient CreateClient(JsonElement settings) =>
+    private static PersistedClient CreateClient(
+        JsonElement settings,
+        params PersistedSecret[] secrets
+    ) =>
         new()
         {
             TenantId = "tenant-1",
@@ -981,7 +1122,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
                 TenantId = "tenant-1",
                 ClientId = "client-1",
                 ConcurrencyToken = string.Empty,
-                Value = [],
+                Value = secrets,
             },
         };
 

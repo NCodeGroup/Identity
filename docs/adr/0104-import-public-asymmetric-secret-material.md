@@ -1,6 +1,8 @@
 # 104. Import of caller-supplied public asymmetric secret material (BYOK)
 
-- **Status:** Accepted
+- **Status:** Accepted (client keys amended by
+  [ADR-0161](0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md): a client's key is
+  imported under one client-key policy, keeps its own `kid`, and registration no longer stores the `jwks` document)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
 

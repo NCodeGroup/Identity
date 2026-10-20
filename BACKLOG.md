@@ -32,9 +32,10 @@ already-existing context, not as a "done" status).
 **Allocating an ID:** take the next free number for the group from the [ID ledger](#backlog-id-ledger--never-reuse-a-number)
 below and bump that group's high-water mark — **never reuse or backfill a number**, because ADRs, the changelog, and
 code comments reference it long after the entry is gone. Read the ledger at the moment you allocate, not from an earlier
-read: a change merged or rebased in the meantime may already have taken the number. The ledger is the quick reference;
-the authoritative upper bound for a group is the **maximum** of its high-water mark, the highest pending ID here, and the
-highest archived ID in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md) — allocate strictly above that.
+read: a change merged or rebased in the meantime may already have taken the number — fetch `origin/main` first,
+re-check the bound when you rebase, and renumber your new entries rather than collide. The ledger is the quick
+reference; the authoritative upper bound for a group is the **maximum** of its high-water mark, the highest pending ID
+here, and the highest archived ID in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md) — allocate strictly above that.
 
 ---
 
@@ -73,7 +74,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F72`     | `F71`      |
+| `F` — Feature gaps                    | `F74`     | `F73`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U23`     | `U22`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
@@ -472,19 +473,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
   `src/frontend/apps/auth`. Capture the design in an ADR.
 
-- **`F65` — Validate client key material at every entry point.** A client's `jwks` and the keys its `jwks_uri`
-  publishes are the keys the server verifies its signatures with and encrypts its ID tokens and UserInfo responses to
-  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), but only dynamic client
-  registration checks them, and only that `jwks` and `jwks_uri` are not both present. RFC 7591 §2 requires a registered
-  key set to hold public keys: reject a JWK that carries private or symmetric key material (`d`, `p`, `q`, `k`, …) at
-  registration, in the management API, in the seeders, and when a `jwks_uri` document is fetched; require a `kid` that is
-  unique within the set; reject a key whose `use` / `alg` / `key_ops` are inconsistent; and decide whether
-  `IClientKeyResolver` merges a stored `jwks` with a `jwks_uri` or uses only one (OpenID Connect Dynamic Client
-  Registration 1.0 §2 forbids registering both). Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientKeyResolver.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`, the
-  management client endpoints, and the development seeders.
-
 - **`F66` — Accept the remaining algorithm and CIBA metadata at dynamic client registration.** Registration accepts the
   ID token, UserInfo, and request-object algorithm metadata
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)) but not
@@ -561,6 +549,32 @@ entry and/or ADR that closed it.
   explicit issuer ([ADR-0160](docs/adr/0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)). A custom
   domain stays an explicit issuer. Touch points: `DynamicByHostTenantOptions`, `DynamicByPathTenantOptions` and their
   options validators, `ITenantStrategy`, `TenantApiEndpointHandler.CreateTenantAsync`, `DefaultTenantProvisioner`.
+
+- **`F72` — Match `self_signed_tls_client_auth` against the certificates in a client's JSON Web Key Set.** RFC 8705
+  §2.2 lets a client register its self-signed certificates through `jwks` or `jwks_uri`, as the `x5c` of its keys. The
+  handler matches the presented certificate against the client's keys resolved through `IClientKeyResolver`
+  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)), but a key
+  imported from a JSON Web Key is a bare public key — its `x5c` chain is dropped — so a client that publishes its keys at
+  a `jwks_uri`, or registers them as a `jwks`, cannot authenticate with `self_signed_tls_client_auth`; only a
+  certificate imported through the management API matches. Import the leaf certificate of a key's `x5c` in the
+  key-type descriptors' JSON Web Key import, after checking that it carries the key's public key, so a registered or
+  published certificate is matched by thumbprint. Touch points:
+  `src/NCode.Identity.Secrets/KeyTypes/AsymmetricSecretKeyTypeDescriptor.cs` (JSON Web Key import),
+  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientKeyImporter.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/SelfSignedTlsClientAuthClientAuthenticationHandler.cs`.
+
+- **`F73` — Apply the key policy to every secret owner in the management API, and report a key's `kid`.** A client's
+  keys are imported and updated under one policy
+  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)), but the
+  tenant, server, and resource-server secret endpoints keep their earlier checks: an imported key's `use` and `alg` are
+  not checked against each other or the key, an update can give a key an `alg` its type does not accept, and a JSON Web
+  Key's `kid` is discarded in favor of the secret identifier. Check those imports and updates with the same
+  key-to-algorithm rule (`IAlgorithmCollection.ValidateKeyAlgorithm`), keep a JSON Web Key's `kid` (unique among the
+  owner's keys), and report every key's `kid` (its `KeyId`, or its secret identifier) in the management
+  `SecretResource` and the admin console's secret tables, which show only the secret identifier. Touch points:
+  `src/NCode.Identity.OpenId.Management/Endpoints/{Tenants,Servers,ResourceServers}/*ApiEndpointHandler.cs`,
+  `src/NCode.Identity.OpenId.Management.Abstractions/Contracts/Secrets/SecretResource.cs`, and the `@ncode/api`
+  contracts and secret tables in `src/frontend`.
 
 ## Conformance & interop testing (group `T`)
 

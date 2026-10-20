@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Settings;
 
@@ -885,11 +884,6 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> Contacts =>
         new(OpenIdSettingNames.Contacts);
-
-    /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'jwks' setting (RFC 7591 §2).
-    /// </summary>
-    public static SettingKey<JsonElement> Jwks => new(OpenIdSettingNames.Jwks);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'software_id' setting (RFC 7591 §2).

@@ -1,4 +1,8 @@
 #nullable enable
+NCode.Identity.OpenId.Authentication.Clients.IClientKeyImporter
+NCode.Identity.OpenId.Authentication.Clients.IClientKeyImporter.TryImportKey(NCode.Identity.Secrets.Persistence.SecretKeyImportRequest! request, out NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret? secret, out string? error) -> bool
+NCode.Identity.OpenId.Authentication.Clients.IClientKeyImporter.TryImportPublishedKeySet(System.Text.Json.JsonElement keySet, System.DateTimeOffset createdWhen, out System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>? secrets, out string? error) -> bool
+NCode.Identity.OpenId.Authentication.Clients.IClientKeyImporter.TryImportRegisteredKeySet(System.Text.Json.JsonElement keySet, System.DateTimeOffset createdWhen, out System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>? secrets, out string? error) -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenEncryptedResponseAlg.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenEncryptedResponseAlg.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenEncryptedResponseEnc.get -> string?

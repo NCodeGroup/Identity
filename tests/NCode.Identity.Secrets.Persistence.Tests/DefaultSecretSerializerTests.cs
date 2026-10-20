@@ -68,11 +68,13 @@ public class DefaultSecretSerializerTests
         int keySizeBits,
         ReadOnlySpan<byte> rawBytes,
         string secretId = "secret-1",
-        DateTimeOffset? expiresWhen = null
+        DateTimeOffset? expiresWhen = null,
+        string? keyId = null
     ) =>
         new()
         {
             SecretId = secretId,
+            KeyId = keyId,
             Use = "sig",
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
@@ -108,6 +110,26 @@ public class DefaultSecretSerializerTests
         var writer = new ArrayBufferWriter<byte>();
         symmetric.ExportPrivateKey(ref writer);
         Assert.Equal(keyMaterial, writer.WrittenSpan.ToArray());
+    }
+
+    #endregion
+
+    #region DeserializeSecret KeyId Tests
+
+    [Fact]
+    public void DeserializeSecret_WhenKeyIdIsSet_SelectsKeyByKeyId()
+    {
+        byte[] keyMaterial = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        var persisted = CreatePersistedSecret(
+            SecretTypes.Symmetric,
+            keyMaterial.Length * 8,
+            keyMaterial,
+            keyId: "client-kid"
+        );
+
+        var secretKey = _serializer.DeserializeSecret(persisted);
+
+        Assert.Equal("client-kid", secretKey.KeyId);
     }
 
     #endregion

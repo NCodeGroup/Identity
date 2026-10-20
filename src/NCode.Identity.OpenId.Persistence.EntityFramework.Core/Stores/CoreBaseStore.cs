@@ -121,6 +121,7 @@ internal abstract class CoreBaseStore<TItem, TEntity> : BaseStore<TItem, TEntity
             Id = NextId(id),
             SecretId = secret.SecretId,
             NormalizedSecretId = Normalize(secret.SecretId),
+            KeyId = secret.KeyId,
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = secret.Use,
             Algorithm = secret.Algorithm,
@@ -141,6 +142,7 @@ internal abstract class CoreBaseStore<TItem, TEntity> : BaseStore<TItem, TEntity
         new()
         {
             SecretId = secret.SecretId,
+            KeyId = secret.KeyId,
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = secret.Use,
             Algorithm = secret.Algorithm,

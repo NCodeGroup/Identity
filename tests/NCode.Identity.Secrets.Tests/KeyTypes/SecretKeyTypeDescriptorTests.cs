@@ -62,6 +62,24 @@ public class SecretKeyTypeDescriptorTests
         Assert.True(descriptor.SupportsPublicKeyExport);
     }
 
+    [Fact]
+    public void Symmetric_JwkKeyType_IsOct()
+    {
+        Assert.Equal("oct", Symmetric().JwkKeyType);
+    }
+
+    [Fact]
+    public void Rsa_JwkKeyType_IsRsa()
+    {
+        Assert.Equal("RSA", Rsa().JwkKeyType);
+    }
+
+    [Fact]
+    public void Ecc_JwkKeyType_IsEc()
+    {
+        Assert.Equal("EC", Ecc().JwkKeyType);
+    }
+
     [Theory]
     [InlineData(128, true)]
     [InlineData(256, true)]

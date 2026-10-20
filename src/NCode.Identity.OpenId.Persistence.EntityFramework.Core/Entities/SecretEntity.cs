@@ -42,7 +42,6 @@ public sealed class SecretEntity : ISupportConcurrencyToken
 
     /// <summary>
     /// Gets the natural key for this entity.
-    /// Also known as <c>kid</c> or <c>Key ID</c>.
     /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.ResourceId)]
@@ -55,6 +54,13 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     [Unicode(false)]
     [MaxLength(MaxLengths.ResourceId)]
     public required string NormalizedSecretId { get; init; }
+
+    /// <summary>
+    /// Gets the key identifier (<c>kid</c>) the key is selected by, or <c>null</c> when the key is identified by its
+    /// <see cref="SecretId"/>. A <c>kid</c> is unique among its owner's keys, not across owners, so it is not indexed.
+    /// </summary>
+    [MaxLength(SecretMaxLengths.KeyId)]
+    public required string? KeyId { get; init; }
 
     //
 

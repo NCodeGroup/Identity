@@ -16,8 +16,11 @@
 
 #endregion
 
+using System.Buffers.Text;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -385,4 +388,205 @@ public class ClientRegistrationEndpointTests
             StringComparison.Ordinal
         );
     }
+
+    #region Registered Keys
+
+    private static Dictionary<string, object> CreateRsaJwk(
+        RSA rsa,
+        string? keyId,
+        bool includePrivateExponent = false
+    )
+    {
+        var parameters = rsa.ExportParameters(includePrivateExponent);
+        var jwk = new Dictionary<string, object>
+        {
+            ["kty"] = "RSA",
+            ["use"] = "sig",
+            ["alg"] = "RS256",
+            ["n"] = Base64Url.EncodeToString(parameters.Modulus),
+            ["e"] = Base64Url.EncodeToString(parameters.Exponent),
+        };
+        if (keyId is not null)
+            jwk["kid"] = keyId;
+        if (includePrivateExponent)
+            jwk["d"] = Base64Url.EncodeToString(parameters.D);
+        return jwk;
+    }
+
+    private static Dictionary<string, object> CreateKeyRegistration(
+        Dictionary<string, object> jwk
+    ) =>
+        new()
+        {
+            ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+            ["token_endpoint_auth_method"] = OpenIdConstants
+                .ClientAuthenticationMethods
+                .ClientSecretPost,
+            ["jwks"] = new Dictionary<string, object> { ["keys"] = new[] { jwk } },
+        };
+
+    private static string[] GetKeyIds(JsonElement root) =>
+        [
+            .. root.GetProperty("jwks")
+                .GetProperty("keys")
+                .EnumerateArray()
+                .Select(key => key.GetProperty("kid").GetString() ?? string.Empty),
+        ];
+
+    [Fact]
+    public async Task PostRegister_WhenJwksCarriesPrivateKeyMaterial_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(rsa, "client-key", includePrivateExponent: true))
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            "jwks"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenAJwksKeyHasNoKid_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(rsa, keyId: null))
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            "kid"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithJwks_ReportsTheRegisteredKeysByTheirKid()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(rsa, "client-key"))
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registration = JsonDocument.Parse(registrationBody);
+        var root = registration.RootElement;
+        Assert.Equal(["client-key"], GetKeyIds(root));
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        using var read = JsonDocument.Parse(readBody);
+        Assert.Equal(["client-key"], GetKeyIds(read.RootElement));
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTwoClientsRegisterTheSameKid_RegistersBoth()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var firstRsa = RSA.Create(2048);
+        using var secondRsa = RSA.Create(2048);
+
+        // A kid names a key among its own client's keys, so it is not a server-wide identifier.
+        using var firstResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(firstRsa, "key-1"))
+        );
+        using var secondResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(secondRsa, "key-1"))
+        );
+
+        Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+        var secondBody = await secondResponse.Content.ReadAsStringAsync();
+        Assert.True(secondResponse.StatusCode == HttpStatusCode.Created, secondBody);
+    }
+
+    [Fact]
+    public async Task PutRegistration_WhenJwksUriReplacesJwks_RemovesTheRegisteredKeys()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(rsa, "client-key"))
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registration = JsonDocument.Parse(registrationBody);
+        var root = registration.RootElement;
+
+        using var updateRequest = new HttpRequestMessage(
+            HttpMethod.Put,
+            root.GetProperty("registration_client_uri").GetString()
+        )
+        {
+            Content = JsonContent.Create(
+                new Dictionary<string, object>
+                {
+                    ["client_id"] = root.GetProperty("client_id").GetString() ?? string.Empty,
+                    ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                    ["token_endpoint_auth_method"] = OpenIdConstants
+                        .ClientAuthenticationMethods
+                        .ClientSecretPost,
+                    ["jwks_uri"] = "https://client.example/jwks",
+                }
+            ),
+        };
+        updateRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var updateResponse = await client.SendAsync(updateRequest);
+
+        // A client's keys come from one source, so publishing them at a jwks_uri replaces the registered ones.
+        var updateBody = await updateResponse.Content.ReadAsStringAsync();
+        Assert.True(updateResponse.StatusCode == HttpStatusCode.OK, updateBody);
+        using var update = JsonDocument.Parse(updateBody);
+        Assert.Equal(
+            "https://client.example/jwks",
+            update.RootElement.GetProperty("jwks_uri").GetString()
+        );
+        Assert.False(update.RootElement.TryGetProperty("jwks", out _));
+    }
+
+    #endregion
 }

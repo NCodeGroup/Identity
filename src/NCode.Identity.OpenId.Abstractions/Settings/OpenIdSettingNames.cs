@@ -883,13 +883,6 @@ public static class OpenIdSettingNames
     public const string Contacts = "contacts";
 
     /// <summary>
-    /// Contains the name of the per-client <c>jwks</c> setting (RFC 7591 §2): the JSON Web Key Set document the client
-    /// registered by value, kept as registered so a registration read returns it. Its keys are imported as the
-    /// client's secrets when the client registers.
-    /// </summary>
-    public const string Jwks = "jwks";
-
-    /// <summary>
     /// Contains the name of the per-client <c>software_id</c> setting (RFC 7591 §2): the identifier of the client
     /// software, stable across its instances and versions.
     /// </summary>

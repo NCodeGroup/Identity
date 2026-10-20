@@ -32,5 +32,7 @@
         <!-- The algorithm setting rules are evaluated against the real registered JOSE algorithms. -->
         <ProjectReference Include="..\..\src\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
+        <!-- The client-key importer is exercised over the real secret importer and serializer. -->
+        <ProjectReference Include="..\..\src\NCode.Identity.Secrets.Persistence\NCode.Identity.Secrets.Persistence.csproj" />
     </ItemGroup>
 </Project>

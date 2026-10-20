@@ -49,6 +49,15 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     [MaxLength(MaxLengths.ResourceId)]
     public required string SecretId { get; init; }
 
+    /// <summary>
+    /// Gets the key identifier (<c>kid</c>) the key is selected by, or <c>null</c> when the key is identified by its
+    /// <see cref="SecretId"/>. A key registered by its owner (for example a client's public key) keeps the
+    /// <c>kid</c> it was registered with, which is unique among its owner's keys but not across owners; a key the
+    /// server generates is identified by its <see cref="SecretId"/>.
+    /// </summary>
+    [MaxLength(SecretMaxLengths.KeyId)]
+    public string? KeyId { get; init; }
+
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ConcurrencyToken)]
     public string ConcurrencyToken { get; set; } = string.Empty;

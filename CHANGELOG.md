@@ -90,6 +90,32 @@ change to the public API is a **major** version bump.
   and `ITenantStrategy` gain `ValidateTenantAsync`, which returns `TenantValidationFailure`s; a custom strategy
   implements it. See [ADR-0160](docs/adr/0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md).
 
+- **A client's public keys have one source and are imported under one policy (breaking).** A client's keys are the
+  keys stored for it — registered by value at dynamic client registration or imported through the management API — or,
+  when it has a `jwks_uri`, the keys it publishes there; never both. The `jwks_uri` keys replace any stored public key at
+  runtime, every consumer (client assertions, request objects, CIBA requests, encryption to the client, and
+  `self_signed_tls_client_auth`) resolves the same set, and the management API refuses with `409` a settings write that
+  adds a `jwks_uri` while public keys are stored, or a public key added while a `jwks_uri` is set. A registration update
+  (RFC 7592) replaces the client's public keys with its `jwks`, or removes them when it switches to a `jwks_uri`.
+
+  The `jwks` setting is retired: registration imports the keys of a `jwks` as the client's secrets and every
+  registration response projects them back from the stored keys. `OpenIdSettingNames.Jwks`, `OpenIdSettingKeys.Jwks`,
+  and the setting's descriptor and rule are removed, and the `RetireClientJwksSetting` migration strips the setting from
+  stored documents.
+
+  One public seam, `IClientKeyImporter`, imports a client key at every entry point: dynamic registration (all or
+  nothing), the `jwks_uri` fetch (ignoring keys it cannot use, per RFC 7517 §5), and the management import. Every key of
+  a JSON Web Key Set needs a `kid` unique within the set; a key keeps the `kid` it was registered with, stored in the new
+  `KeyId` of `PersistedSecret`, `SecretKeyImportRequest`, and `SecretEntity` (the `AddSecretKeyId` migration adds the
+  nullable column; a key without one is selected by its secret identifier, as before). Key types are matched by their
+  JSON Web Key `kty` through the new `ISecretKeyTypeDescriptor.JwkKeyType` and
+  `ISecretKeyTypeCatalog.TryGetByJwkKeyType` (which replaces the protected
+  `AsymmetricSecretKeyTypeDescriptor.ExpectedJwkKeyType`), so a client may register `OKP` (EdDSA) and `AKP` (ML-DSA)
+  keys, not only RSA and EC. The key-to-algorithm rule is the new `IAlgorithmCollection.ValidateKeyAlgorithm`
+  (`KeyAlgorithmDeclaration`). The resolver's per-key `ClientJwksKeyImportFailed` log (event 2034) is replaced by
+  `ClientJwksKeyIgnored` (event 2038).
+  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md))
+
 - **The frontend runs on React 19 and Material UI 9.** This covers every surface, including the login and consent
   pages the OpenID Provider host serves. Material UI 9 removed the system-prop shorthands (`<Box display="flex">`)
   and the deprecated `inputProps`-style props, so components style through `sx` and pass input attributes through
@@ -541,6 +567,20 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **A client's key set could carry private or symmetric key material, and an inconsistent key was accepted.**
+  Registration stored the `jwks` document verbatim and echoed it back, so a key the import skipped — an `oct` key's `k`
+  or an `OKP` key's `d` — was kept in plaintext settings, and the management API stored any `jwks` it was given. A key
+  carrying any private or symmetric member (`d`, `p`, `q`, `dp`, `dq`, `qi`, `oth`, `k`, `priv`) is now refused at
+  registration, at the management import, and by every key-type descriptor, and a `jwks_uri` set that publishes one is
+  refused as a whole. A key's `use`, `key_ops`, and `alg` must now agree with each other and with the key at every
+  entry point, including the management update of a client key's metadata.
+  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md))
+
+- **A client's stored public keys stayed in force beside the keys at its `jwks_uri`.** The resolver merged both, so a
+  key the client had rotated out at its `jwks_uri` still verified its signatures. A `jwks_uri` now replaces the stored
+  public keys, and a `jwks_uri` that cannot be fetched or whose set is refused leaves the client with no public keys.
+  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md))
+
 - **A client's access-token encryption bounds stopped applying once its token targeted a resource server.** A single
   targeted resource server's settings governed the token's encryption in place of the client's, so a client — or a
   security profile it selects — that required encryption or narrowed the encryption algorithms was ignored, and the
@@ -587,6 +627,14 @@ change to the public API is a **major** version bump.
 - **The management console could not edit a tenant, and dropped its issuer when creating one.** The console still sent
   the tenant's former `domainName` field, so an edit failed with a JSON Patch error and a create silently dropped the
   value. It sends and shows the tenant's `issuer`.
+
+- **Two clients could not register a key with the same `kid`, and a key lost the `kid` it was imported with.**
+  Registration used a key's `kid` as its secret identifier, which is unique across every tenant, so a second client —
+  in any tenant — registering the same `kid` failed; the management import discarded a JSON Web Key's `kid`, so a client
+  that signed with it never matched its key. A `kid` is now the client's own name for its key, unique among that
+  client's keys. A registration update (RFC 7592) that changed `jwks` previously left the client's keys unchanged; it
+  now replaces them.
+  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md))
 
 - **An encrypted ID token was encrypted to the tenant's key, which the client cannot decrypt.** With
   `id_token_encryption_required`, the ID token was encrypted to a tenant key chosen from the server's lists. It is now

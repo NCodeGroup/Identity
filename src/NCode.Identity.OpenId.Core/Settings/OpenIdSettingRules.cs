@@ -21,10 +21,8 @@ using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text.Json;
 using NCode.Identity.Jose;
 using NCode.Identity.Settings;
-using NCode.Json;
 using MediaTypeHeaderValue = System.Net.Http.Headers.MediaTypeHeaderValue;
 
 namespace NCode.Identity.OpenId.Settings;
@@ -317,18 +315,6 @@ internal static class OpenIdSettingRules
             value =>
                 MailAddress.TryCreate(value, out var address)
                 && string.Equals(address.Address, value, StringComparison.Ordinal)
-        );
-
-    /// <summary>
-    /// Gets the rule for a JSON Web Key Set registered by value: an object with a <c>keys</c> array.
-    /// </summary>
-    public static SettingRule<JsonElement> JwkSet() =>
-        SettingRules.Must<JsonElement>(
-            "a JSON Web Key Set: an object with a 'keys' array",
-            value =>
-                value.ValueKind == JsonValueKind.Object
-                && value.TryGetPropertyValue<JsonElement>("keys", out var keys)
-                && keys.ValueKind == JsonValueKind.Array
         );
 
     /// <summary>

@@ -40,7 +40,7 @@ internal sealed class RsaSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFact
     public override Type KeyClrType => typeof(RsaSecretKey);
 
     /// <inheritdoc />
-    protected override string ExpectedJwkKeyType => "RSA";
+    public override string JwkKeyType => "RSA";
 
     /// <inheritdoc />
     public override string? ValidateGeneration(SecretKeyGenerationParameters parameters) =>

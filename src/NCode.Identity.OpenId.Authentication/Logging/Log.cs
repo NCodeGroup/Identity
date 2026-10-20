@@ -317,7 +317,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ClientJwksFetchFailed,
         Level = LogLevel.Warning,
-        Message = "The client 'jwks_uri' ('{JwksUri}') for client '{ClientId}' could not be fetched or parsed; falling back to the client's stored keys only."
+        Message = "The client 'jwks_uri' ('{JwksUri}') for client '{ClientId}' could not be fetched or its key set was refused; the client's published keys are unavailable."
     )]
     internal static partial void ClientJwksFetchFailed(
         this ILogger logger,
@@ -327,14 +327,15 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.ClientJwksKeyImportFailed,
+        EventId = EventIds.ClientJwksKeyIgnored,
         Level = LogLevel.Debug,
-        Message = "A key from the client 'jwks_uri' for client '{ClientId}' was skipped because it could not be imported."
+        Message = "A '{KeyType}' key (kid '{KeyId}') in a client's published JSON Web Key Set was ignored: {Reason}"
     )]
-    internal static partial void ClientJwksKeyImportFailed(
+    internal static partial void ClientJwksKeyIgnored(
         this ILogger logger,
-        string clientId,
-        Exception exception
+        string keyType,
+        string? keyId,
+        string reason
     );
 
     [LoggerMessage(

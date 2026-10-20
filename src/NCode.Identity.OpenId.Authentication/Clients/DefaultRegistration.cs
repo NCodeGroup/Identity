@@ -47,6 +47,8 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<IOpenIdClientResolver, DefaultOpenIdClientResolver>();
 
+            serviceCollection.TryAddSingleton<IClientKeyImporter, DefaultClientKeyImporter>();
+
             serviceCollection.TryAddSingleton<IClientKeyResolver, DefaultClientKeyResolver>();
 
             serviceCollection.TryAddSingleton<

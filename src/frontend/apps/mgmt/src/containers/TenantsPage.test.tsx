@@ -36,7 +36,7 @@ function renderPage(onOpenTenant = vi.fn()) {
 const acme = {
   tenantId: 'acme',
   displayName: 'Acme',
-  domainName: null,
+  issuer: null,
   isDisabled: false,
   concurrencyToken: 'c1',
 };
@@ -44,7 +44,7 @@ const acme = {
 const globex = {
   tenantId: 'globex',
   displayName: 'Globex',
-  domainName: 'globex.test',
+  issuer: 'https://globex.auth.test',
   isDisabled: true,
   concurrencyToken: 'c2',
 };
@@ -119,7 +119,7 @@ describe('TenantsPage (CRUD wiring)', () => {
   it('creates a tenant through the form dialog', async () => {
     const calls = installFetch((url, method) => {
       if (url.endsWith('/api/tenants') && method === 'POST') {
-        return jsonResponse({ ...acme, tenantId: 'new', displayName: 'New Co' }, 201);
+        return jsonResponse({ ...acme, tenantId: 'new-co', displayName: 'New Co' }, 201);
       }
       if (url.endsWith('/api/tenants')) {
         return jsonResponse({ items: [acme] });
@@ -131,6 +131,8 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(await screen.findByText('Acme')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('create-tenant'));
+    expect(screen.getByTestId('tenant-id')).toBeEnabled();
+    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'new-co' } });
     fireEvent.change(screen.getByTestId('tenant-display-name'), { target: { value: 'New Co' } });
     fireEvent.click(screen.getByTestId('tenant-form-submit'));
 
@@ -138,7 +140,8 @@ describe('TenantsPage (CRUD wiring)', () => {
     const post = calls.find((c) => c.method === 'POST');
     expect(post?.url).toBe('https://api.test/api/tenants');
     expect(JSON.parse(post?.body ?? '{}')).toEqual({
-      domainName: null,
+      tenantId: 'new-co',
+      issuer: null,
       displayName: 'New Co',
       isDisabled: false,
       settings: {},
@@ -164,15 +167,17 @@ describe('TenantsPage (CRUD wiring)', () => {
     fireEvent.click(await screen.findByTestId('tenant-edit-acme'));
 
     expect(screen.getByRole('dialog', { name: 'Edit tenant' })).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-id')).toHaveValue('acme');
+    expect(screen.getByTestId('tenant-id')).toBeDisabled();
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Acme');
-    expect(screen.getByTestId('tenant-domain-name')).toHaveValue('');
+    expect(screen.getByTestId('tenant-issuer')).toHaveValue('');
     expect(screen.getByTestId('tenant-form-submit')).toHaveTextContent('Save');
 
     fireEvent.change(screen.getByTestId('tenant-display-name'), {
       target: { value: 'Acme Corp' },
     });
-    fireEvent.change(screen.getByTestId('tenant-domain-name'), {
-      target: { value: 'id.acme.test' },
+    fireEvent.change(screen.getByTestId('tenant-issuer'), {
+      target: { value: 'https://acme.auth.test' },
     });
     fireEvent.click(screen.getByRole('switch', { name: 'Disabled' }));
     fireEvent.click(screen.getByTestId('tenant-form-submit'));
@@ -183,13 +188,13 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(patch?.url).toBe('https://api.test/api/tenants/acme');
     expect(patch?.ifMatch).toBe('c1');
     expect(JSON.parse(patch?.body ?? '[]')).toEqual([
-      { op: 'replace', path: '/domainName', value: 'id.acme.test' },
+      { op: 'replace', path: '/issuer', value: 'https://acme.auth.test' },
       { op: 'replace', path: '/displayName', value: 'Acme Corp' },
       { op: 'replace', path: '/isDisabled', value: true },
     ]);
   });
 
-  it('prefills the edit form from a tenant with a domain and discards it on cancel', async () => {
+  it('prefills the edit form from a tenant with an issuer and discards it on cancel', async () => {
     const calls = installFetch((url, method) => {
       if (url.endsWith('/api/tenants') && method === 'GET') {
         return jsonResponse({ items: [acme, globex] });
@@ -201,7 +206,7 @@ describe('TenantsPage (CRUD wiring)', () => {
     fireEvent.click(await screen.findByTestId('tenant-edit-globex'));
 
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Globex');
-    expect(screen.getByTestId('tenant-domain-name')).toHaveValue('globex.test');
+    expect(screen.getByTestId('tenant-issuer')).toHaveValue('https://globex.auth.test');
     expect(screen.getByRole('switch', { name: 'Disabled' })).toBeChecked();
 
     fireEvent.click(screen.getByTestId('tenant-form-cancel'));
@@ -222,6 +227,7 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(await screen.findByText('Acme')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('create-tenant'));
+    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'late-co' } });
     fireEvent.change(screen.getByTestId('tenant-display-name'), { target: { value: 'Late Co' } });
     fireEvent.click(screen.getByTestId('tenant-form-cancel'));
     // The dialog stays mounted for its exit transition; a stray click on it must not create anything.
@@ -304,7 +310,10 @@ describe('TenantsPage (CRUD wiring)', () => {
   it('surfaces a server error in the form and keeps it open', async () => {
     installFetch((url, method) => {
       if (url.endsWith('/api/tenants') && method === 'POST') {
-        return jsonResponse({ detail: 'A tenant with that domain already exists.' }, 409);
+        return jsonResponse(
+          { detail: 'A tenant with the specified identifier already exists.' },
+          409,
+        );
       }
       if (url.endsWith('/api/tenants')) {
         return jsonResponse({ items: [acme] });
@@ -316,11 +325,12 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(await screen.findByText('Acme')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('create-tenant'));
+    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'acme' } });
     fireEvent.change(screen.getByTestId('tenant-display-name'), { target: { value: 'Dup' } });
     fireEvent.click(screen.getByTestId('tenant-form-submit'));
 
     expect(await screen.findByTestId('tenant-form-error')).toHaveTextContent(
-      'A tenant with that domain already exists.',
+      'A tenant with the specified identifier already exists.',
     );
     expect(screen.getByTestId('tenant-form-submit')).toBeInTheDocument();
   });

@@ -1,6 +1,7 @@
 # 138. The protocol endpoints are served under the tenant route, and an issuer is its tenant's base address
 
-- **Status:** Accepted
+- **Status:** Accepted (extended by [ADR-0160](0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md):
+  a tenant written through the management API is held to the same tenant route)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 
@@ -68,8 +69,8 @@ base address exactly.**
   static issuer that does not end with the path stops the host instead of publishing an unusable discovery document.
 - The path strategy serves its protocol endpoints under `/{tenantId}`. The interactive login and consent surface is
   mounted at absolute routes with a fixed cookie login path, so interactive flows under the path strategy are not yet
-  supported (backlog `F50`). A tenant created through the management API is not yet checked for an issuer that ends
-  with its tenant route (backlog `F51`).
+  supported (backlog `F50`). A tenant written through the management API is held to the same rule: its issuer must end
+  with its tenant route ([ADR-0160](0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)).
 - Management endpoints keep their fixed `/api` prefix; they carry their own `{tenantId}` segment and do not resolve a
   protocol tenant ([ADR-0042](0042-management-api-route-driven-tenant-scope.md)).
 

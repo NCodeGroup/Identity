@@ -1253,10 +1253,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     #region CreateTenantAsync / UpdateTenantAsync Tests
 
-    private static CreateTenantRequest CreateTenantRequest() =>
+    private static CreateTenantRequest CreateTenantRequest(string? issuer = null) =>
         new()
         {
-            Issuer = null,
+            TenantId = "acme",
+            Issuer = issuer,
             DisplayName = "Tenant One",
             IsDisabled = false,
             Settings = EmptyObject(),
@@ -1267,7 +1268,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         SetupValidSettings();
         SetupStore();
-        SetupResourceId();
+        PersistedTenant? validated = null;
         MockTenantValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
@@ -1276,6 +1277,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
                 )
+            )
+            .Callback(
+                (ClaimsPrincipal _, PersistedTenant tenant, IStoreManager _, CancellationToken _) =>
+                    validated = tenant
             )
             .ReturnsAsync((ManagementError?)null)
             .Verifiable();
@@ -1292,11 +1297,15 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateTenantAsync(
             httpContext,
-            CreateTenantRequest(),
+            CreateTenantRequest(issuer: string.Empty),
             CancellationToken.None
         );
 
-        Assert.IsType<Created<TenantResource>>(result);
+        var created = Assert.IsType<Created<TenantResource>>(result);
+        Assert.Equal("/tenants/acme", created.Location);
+        Assert.NotNull(validated);
+        Assert.Equal("acme", validated.TenantId);
+        Assert.Null(validated.Issuer);
     }
 
     [Fact]
@@ -1304,7 +1313,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         SetupInvalidSettings();
         SetupStore();
-        SetupResourceId();
         MockTenantValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
@@ -1333,7 +1341,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task CreateTenantAsync_WhenValidatorReportsConflict_ReturnsProblem()
     {
         SetupStore();
-        SetupResourceId();
         MockTenantValidator
             .Setup(x =>
                 x.ValidateCreateAsync(

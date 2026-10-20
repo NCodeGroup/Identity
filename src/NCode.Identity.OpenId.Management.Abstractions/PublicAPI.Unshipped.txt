@@ -463,6 +463,8 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.IsDisable
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.IsDisabled.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Settings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.ConcurrencyToken.init -> void

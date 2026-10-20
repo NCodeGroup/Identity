@@ -47,6 +47,12 @@ page, failed tests and the failing stage are annotated, and coverage is uploaded
 ([ADR-0143](docs/adr/0143-ci-presents-test-results-and-coverage-in-github.md)). The frontend workspace's equivalent is
 `pnpm run test:report` (in `src/frontend`), which adds per-package JUnit and coverage output to `pnpm test`.
 
+The Definition of Done gates the .NET tier only. A change under `src/frontend` also runs that workspace's gates before
+it is pushed — `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` in `src/frontend` —
+the same gates CI's frontend workflow runs. Every text file is LF with a final newline (`.editorconfig`,
+`.gitattributes`), and the format gates read the working tree, not the normalized index: a file an editor or tool wrote
+with CRLF fails Prettier until it is converted.
+
 To preview the CI presentation (job summary + annotations) without pushing, run the gate with `GITHUB_ACTIONS=true` and
 point `GITHUB_STEP_SUMMARY`, `GITHUB_ENV`, and `GITHUB_OUTPUT` at empty temporary files, then read the summary file.
 Set all three: with `GITHUB_ACTIONS=true` Nerdbank.GitVersioning's cloud-build task writes to `GITHUB_ENV` during the

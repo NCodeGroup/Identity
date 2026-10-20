@@ -31,9 +31,10 @@ already-existing context, not as a "done" status).
 
 **Allocating an ID:** take the next free number for the group from the [ID ledger](#backlog-id-ledger--never-reuse-a-number)
 below and bump that group's high-water mark — **never reuse or backfill a number**, because ADRs, the changelog, and
-code comments reference it long after the entry is gone. The ledger is the quick reference; the authoritative upper
-bound for a group is the **maximum** of its high-water mark, the highest pending ID here, and the highest archived ID
-in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md) — allocate strictly above that.
+code comments reference it long after the entry is gone. Read the ledger at the moment you allocate, not from an earlier
+read: a change merged or rebased in the meantime may already have taken the number. The ledger is the quick reference;
+the authoritative upper bound for a group is the **maximum** of its high-water mark, the highest pending ID here, and the
+highest archived ID in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md) — allocate strictly above that.
 
 ---
 
@@ -72,9 +73,9 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F70`     | `F69`      |
+| `F` — Feature gaps                    | `F72`     | `F71`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
-| `U` — Frontend presentation platform  | `U22`     | `U21`      |
+| `U` — Frontend presentation platform  | `U23`     | `U22`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
 | `X` — Tooling & agent customization   | `X5`      | `X4`       |
 
@@ -471,16 +472,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
   `src/frontend/apps/auth`. Capture the design in an ADR.
 
-- **`F51` — Validate a tenant's issuer against the tenant route in the management API.** The static tenant's configured
-  issuer is checked when the host starts: an absolute `http`/`https` URL ending in the tenant path
-  ([ADR-0137](docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md)). A tenant created or updated
-  through the management API gets no such check, so it can be given an issuer that no endpoint is served under — a
-  `DynamicByPath` tenant `acme` whose issuer does not end in `/acme`, or any tenant with a query or fragment in its
-  issuer — and conforming clients reject its discovery document. Apply the same rules in the tenant validator, binding
-  the tenant route with the tenant's own identifier for the path strategy. Touch points:
-  `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`,
-  `src/NCode.Identity.OpenId.Core/Tenants/TenantResolutionOptionsValidator.cs` (share the issuer rule).
-
 - **`F65` — Validate client key material at every entry point.** A client's `jwks` and the keys its `jwks_uri`
   publishes are the keys the server verifies its signatures with and encrypts its ID tokens and UserInfo responses to
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), but only dynamic client
@@ -547,6 +538,29 @@ entry and/or ADR that closed it.
   default, so every issuer of a client-addressed JWT (ID token, logout token, UserInfo response) resolves the same
   selector. Touch points: `src/NCode.Identity.OpenId.Authentication/Clients/IClientJwtCredentialSelector.cs`,
   `ClientJwtCredentials.cs`, `ClientJwtProtectionSettings.cs`, and the Authentication.Abstractions public API.
+
+- **`F70` — Never reissue a retired tenant name or issuer.** A tenant is named by its creator
+  ([ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md)), and its issuer is its identity in every token it
+  mints ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)). Deleting a tenant frees
+  both, so a new tenant can take the name `acme` — and with it an issuer that relying parties configured to trust the old
+  tenant: they fetch the new tenant's JWKS and accept its tokens. Auth0 never reuses a deleted tenant's name. Keep a
+  tombstone of every retired tenant identifier and normalized issuer, reject both when a tenant is created or its issuer
+  changes (`409`), and decide whether an operator can release a retired issuer explicitly, with an audit record. Touch
+  points: `ITenantStore` and `TenantStore` (a tombstone entity and migration),
+  `src/NCode.Identity.OpenId.Core/Tenants/DefaultTenantResolver.cs` (`ValidateTenantAsync`),
+  `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`, `TenantApiEndpointHandler`
+  (`DeleteTenantAsync`).
+
+- **`F71` — Derive a tenant's issuer from a configured template.** A tenant served at a request-independent address
+  needs an issuer, and a production deployment must not rely on the request-derived fallback
+  ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md); the production-safety part of
+  `F46`). Auth0 derives a tenant's canonical domain from its name, and tenant names are readable host labels
+  ([ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md)), so a strategy can do the same: a configured issuer
+  template (for example `https://{tenantId}.auth.nidentity.io` for `DynamicByHost`, `https://op.example/{tenantId}` for
+  `DynamicByPath`) fills in, and persists, the issuer of a tenant created without one, judged by the same rules as an
+  explicit issuer ([ADR-0160](docs/adr/0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)). A custom
+  domain stays an explicit issuer. Touch points: `DynamicByHostTenantOptions`, `DynamicByPathTenantOptions` and their
+  options validators, `ITenantStrategy`, `TenantApiEndpointHandler.CreateTenantAsync`, `DefaultTenantProvisioner`.
 
 ## Conformance & interop testing (group `T`)
 
@@ -639,6 +653,14 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   [`pnpm-workspace.yaml`](src/frontend/pnpm-workspace.yaml), `pnpm-lock.yaml`,
   [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml),
   [`build/frontend-install.ps1`](build/frontend-install.ps1), the AppHost's `EnsurePinnedNodeOnPath`.
+- **`U22` — Put the management console's tenant scope in its URL.** The console keeps its active scope (global or one
+  tenant) and surface in React state, so a tenant view cannot be bookmarked, linked, or restored on reload, and the
+  browser's back button leaves the console. Auth0's dashboard addresses a tenant in its route
+  (`manage.auth0.com/dashboard/{region}/{tenant}/…`), and tenant identifiers are readable names
+  ([ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md)). Route the console by scope and surface (for example
+  `/tenants/{tenantId}/clients`), derive the `ManagementScope` from the route, and keep the global-versus-tenant security
+  boundary of [ADR-0064](docs/adr/0064-frontend-presentation-platform.md) explicit in the route structure. Touch points:
+  [`apps/mgmt/src/App.tsx`](src/frontend/apps/mgmt/src/App.tsx), `packages/api/src/scope.ts`.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
 - **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML

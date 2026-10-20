@@ -3,8 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { TenantTable, type TenantRow } from './TenantTable.js';
 
 const tenants: TenantRow[] = [
-  { tenantId: 'root', displayName: 'Root', domainName: 'id.example', isDisabled: false },
-  { tenantId: 'old', displayName: 'Legacy', domainName: null, isDisabled: true },
+  { tenantId: 'root', displayName: 'Root', issuer: 'https://id.example', isDisabled: false },
+  { tenantId: 'old', displayName: 'Legacy', issuer: null, isDisabled: true },
 ];
 
 describe('TenantTable', () => {
@@ -14,8 +14,9 @@ describe('TenantTable', () => {
     expect(screen.getByText('Legacy')).toBeInTheDocument();
   });
 
-  it('shows an em dash when the domain is null', () => {
+  it('shows the issuer, or an em dash when there is none', () => {
     render(<TenantTable tenants={tenants} />);
+    expect(screen.getByText('https://id.example')).toBeInTheDocument();
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 

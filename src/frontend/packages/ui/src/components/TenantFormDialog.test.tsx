@@ -2,6 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { TenantFormDialog, emptyTenantFormValues } from './TenantFormDialog.js';
 
+const acme = {
+  tenantId: 'acme',
+  displayName: 'Acme',
+  issuer: 'https://acme.auth.example',
+  isDisabled: false,
+};
+
 describe('TenantFormDialog', () => {
   it('seeds the fields from initialValues when opened', () => {
     render(
@@ -9,17 +16,36 @@ describe('TenantFormDialog', () => {
         open
         title="Edit tenant"
         submitLabel="Save"
-        initialValues={{ displayName: 'Acme', domainName: 'acme.example', isDisabled: true }}
+        initialValues={{ ...acme, isDisabled: true }}
+        isTenantIdLocked
         onSubmit={vi.fn()}
         onCancel={vi.fn()}
       />,
     );
+    expect(screen.getByTestId('tenant-id')).toHaveValue('acme');
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Acme');
-    expect(screen.getByTestId('tenant-domain-name')).toHaveValue('acme.example');
+    expect(screen.getByTestId('tenant-issuer')).toHaveValue('https://acme.auth.example');
     expect(screen.getByRole('switch', { name: 'Disabled' })).toBeChecked();
   });
 
-  it('disables submit until a display name is entered', () => {
+  it('locks the tenant ID of an existing tenant', () => {
+    render(
+      <TenantFormDialog
+        open
+        title="Edit tenant"
+        submitLabel="Save"
+        initialValues={acme}
+        isTenantIdLocked
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('tenant-id')).toBeDisabled();
+    expect(screen.getByText('A tenant ID cannot be changed.')).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-form-submit')).toBeEnabled();
+  });
+
+  it('disables submit until a valid tenant ID and a display name are entered', () => {
     render(
       <TenantFormDialog
         open
@@ -32,10 +58,30 @@ describe('TenantFormDialog', () => {
     );
     expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
     fireEvent.change(screen.getByTestId('tenant-display-name'), { target: { value: '   ' } });
+    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'acme' } });
     expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
     fireEvent.change(screen.getByTestId('tenant-display-name'), { target: { value: 'New' } });
     expect(screen.getByTestId('tenant-form-submit')).toBeEnabled();
   });
+
+  it.each(['Acme', '-acme', 'acme-', 'ac_me', 'a'.repeat(64)])(
+    'flags the tenant ID %s as invalid and blocks submit',
+    (tenantId) => {
+      render(
+        <TenantFormDialog
+          open
+          title="Create tenant"
+          submitLabel="Create"
+          initialValues={{ ...emptyTenantFormValues, displayName: 'Acme' }}
+          onSubmit={vi.fn()}
+          onCancel={vi.fn()}
+        />,
+      );
+      fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: tenantId } });
+      expect(screen.getByTestId('tenant-id')).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
+    },
+  );
 
   it('submits trimmed values', () => {
     const onSubmit = vi.fn();
@@ -49,14 +95,16 @@ describe('TenantFormDialog', () => {
         onCancel={vi.fn()}
       />,
     );
+    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: ' acme-dev ' } });
     fireEvent.change(screen.getByTestId('tenant-display-name'), { target: { value: '  Acme  ' } });
-    fireEvent.change(screen.getByTestId('tenant-domain-name'), {
-      target: { value: ' acme.example ' },
+    fireEvent.change(screen.getByTestId('tenant-issuer'), {
+      target: { value: ' https://acme-dev.auth.example ' },
     });
     fireEvent.click(screen.getByTestId('tenant-form-submit'));
     expect(onSubmit).toHaveBeenCalledWith({
+      tenantId: 'acme-dev',
       displayName: 'Acme',
-      domainName: 'acme.example',
+      issuer: 'https://acme-dev.auth.example',
       isDisabled: false,
     });
   });
@@ -68,7 +116,7 @@ describe('TenantFormDialog', () => {
         open
         title="Create tenant"
         submitLabel="Create"
-        initialValues={{ displayName: 'Acme', domainName: '', isDisabled: false }}
+        initialValues={{ ...acme, issuer: '' }}
         isSubmitting
         error="Boom"
         onSubmit={onSubmit}
@@ -88,7 +136,8 @@ describe('TenantFormDialog', () => {
         open
         title="Edit tenant"
         submitLabel="Save"
-        initialValues={{ displayName: 'Acme', domainName: '', isDisabled: false }}
+        initialValues={{ ...acme, issuer: '' }}
+        isTenantIdLocked
         onSubmit={onSubmit}
         onCancel={vi.fn()}
       />,
@@ -98,8 +147,9 @@ describe('TenantFormDialog', () => {
     expect(toggle).toBeChecked();
     fireEvent.click(screen.getByTestId('tenant-form-submit'));
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      tenantId: 'acme',
       displayName: 'Acme',
-      domainName: '',
+      issuer: '',
       isDisabled: true,
     });
   });
@@ -108,45 +158,29 @@ describe('TenantFormDialog', () => {
     const props = {
       title: 'Edit tenant',
       submitLabel: 'Save',
+      isTenantIdLocked: true,
       onSubmit: vi.fn(),
       onCancel: vi.fn(),
     };
-    const { rerender } = render(
-      <TenantFormDialog
-        {...props}
-        open
-        initialValues={{ displayName: 'Acme', domainName: 'acme.example', isDisabled: false }}
-      />,
-    );
+    const globex = {
+      tenantId: 'globex',
+      displayName: 'Globex',
+      issuer: 'https://globex.auth.example',
+      isDisabled: true,
+    };
+    const { rerender } = render(<TenantFormDialog {...props} open initialValues={acme} />);
     fireEvent.change(screen.getByTestId('tenant-display-name'), {
       target: { value: 'Unsaved edit' },
     });
 
-    rerender(
-      <TenantFormDialog
-        {...props}
-        open
-        initialValues={{ displayName: 'Acme', domainName: 'acme.example', isDisabled: false }}
-      />,
-    );
+    rerender(<TenantFormDialog {...props} open initialValues={{ ...acme }} />);
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Unsaved edit');
 
-    rerender(
-      <TenantFormDialog
-        {...props}
-        open={false}
-        initialValues={{ displayName: 'Acme', domainName: 'acme.example', isDisabled: false }}
-      />,
-    );
-    rerender(
-      <TenantFormDialog
-        {...props}
-        open
-        initialValues={{ displayName: 'Globex', domainName: 'globex.example', isDisabled: true }}
-      />,
-    );
+    rerender(<TenantFormDialog {...props} open={false} initialValues={acme} />);
+    rerender(<TenantFormDialog {...props} open initialValues={globex} />);
+    expect(screen.getByTestId('tenant-id')).toHaveValue('globex');
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Globex');
-    expect(screen.getByTestId('tenant-domain-name')).toHaveValue('globex.example');
+    expect(screen.getByTestId('tenant-issuer')).toHaveValue('https://globex.auth.example');
     expect(screen.getByRole('switch', { name: 'Disabled' })).toBeChecked();
   });
 

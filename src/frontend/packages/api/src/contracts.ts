@@ -14,17 +14,19 @@ export type CollectionResource<T> = {
 export type TenantResource = {
   readonly tenantId: string;
   readonly concurrencyToken: string;
-  readonly domainName: string | null;
+  readonly issuer: string | null;
   readonly isDisabled: boolean;
   readonly displayName: string;
 };
 
 /**
- * Mirror of `CreateTenantRequest`. The tenant id is server-generated (not supplied), and `settings`
- * is the initial JSON settings object (empty by default; settings have their own PATCH endpoint).
+ * Mirror of `CreateTenantRequest`. The tenant id is chosen by its creator and cannot change: 1 to 63
+ * lowercase letters, digits, or hyphens that starts and ends with a letter or digit. `settings` is
+ * the initial JSON settings object (empty by default; settings have their own PATCH endpoint).
  */
 export type CreateTenantRequest = {
-  readonly domainName: string | null;
+  readonly tenantId: string;
+  readonly issuer: string | null;
   readonly displayName: string;
   readonly isDisabled: boolean;
   readonly settings: Readonly<Record<string, unknown>>;
@@ -35,7 +37,7 @@ export type CreateTenantRequest = {
  * turns this into a `replace`-only JSON Patch document; keys match the server's wire property names.
  */
 export type UpdateTenantFields = {
-  readonly domainName: string | null;
+  readonly issuer: string | null;
   readonly displayName: string;
   readonly isDisabled: boolean;
 };

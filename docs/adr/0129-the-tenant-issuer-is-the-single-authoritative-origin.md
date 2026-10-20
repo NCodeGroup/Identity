@@ -1,6 +1,7 @@
 # 129. The tenant's issuer is the single authoritative origin
 
-- **Status:** Accepted
+- **Status:** Accepted (extended by [ADR-0160](0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md):
+  the issuer's form and host uniqueness under the host strategy are validated wherever a tenant is written)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

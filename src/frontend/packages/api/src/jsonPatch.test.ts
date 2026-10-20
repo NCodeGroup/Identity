@@ -11,8 +11,8 @@ describe('replacePatch', () => {
   });
 
   it('preserves null values (e.g. clearing an optional domain)', () => {
-    expect(replacePatch({ domainName: null })).toEqual([
-      { op: 'replace', path: '/domainName', value: null },
+    expect(replacePatch({ issuer: null })).toEqual([
+      { op: 'replace', path: '/issuer', value: null },
     ]);
   });
 

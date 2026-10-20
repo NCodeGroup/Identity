@@ -70,6 +70,26 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A tenant is named by whoever creates it.** `POST /api/tenants` takes the tenant's `tenantId` — 1 to 63 lowercase
+  letters, digits, or hyphens that starts and ends with a letter or digit — instead of minting an opaque one, and the
+  identifier never changes. It reads the same in the management API (`/api/tenants/acme`), in a path tenant's issuer
+  (`https://op.example/acme`), and in a host tenant's hostname (`acme.auth.example`), so a path tenant can be created
+  with its issuer in one request; `displayName` remains the editable label. The configured
+  `OpenId:TenantResolution:RootTenantId` and `StaticSingle:TenantId` must have the same form or the host does not
+  start. The management console asks for the tenant ID when it creates a tenant and locks it when it edits one.
+  **Breaking:** `CreateTenantRequest.TenantId` is required. A tenant created earlier with an opaque identifier remains
+  addressable, but changing its issuer fails validation, so recreate it.
+  See [ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md).
+
+- **Each tenant strategy validates its own options, by the same rules that judge the tenants it serves.** The shared
+  tenant-resolution validator no longer branches on the built-in strategy codes: each built-in strategy registers its
+  own options validator beside it, and a custom strategy does the same for its own section. The rules are tighter: a
+  configured `StaticSingle:Issuer` must use `https` (`http` only for a loopback host) and carry no user information,
+  and a `DynamicByPath:TenantPath` route may carry only the tenant parameter, with no constraint, default value,
+  optional marker, or catch-all, so a tenant's route follows from its identifier alone. **Breaking:** `ITenantResolver`
+  and `ITenantStrategy` gain `ValidateTenantAsync`, which returns `TenantValidationFailure`s; a custom strategy
+  implements it. See [ADR-0160](docs/adr/0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md).
+
 - **The frontend runs on React 19 and Material UI 9.** This covers every surface, including the login and consent
   pages the OpenID Provider host serves. Material UI 9 removed the system-prop shorthands (`<Box display="flex">`)
   and the deprecated `inputProps`-style props, so components style through `sx` and pass input attributes through
@@ -552,6 +572,21 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **The management API could give a tenant an issuer nothing is served under.** Only the static tenant's configured
+  issuer was checked, so a tenant created or updated through the management API could have an issuer with a query or
+  fragment, a path tenant `acme` an issuer that does not end in `/acme`, or two host-routed tenants the same host — and
+  conforming clients reject such a tenant's discovery document. Creating a tenant, and updating one's issuer, now
+  validates its identifier and issuer through the tenant strategy that serves it: the issuer is an absolute `https` URL
+  (`http` only for a loopback host) with no user information, query, or fragment, held by no other tenant, and ending
+  with the tenant's route; a host-routed tenant needs an issuer whose host the configured host pattern maps to itself
+  and no other tenant holds. An invalid value answers `400` and a conflict `409`. An empty issuer is stored as none,
+  rather than as an empty string that collided under the issuer's unique index.
+  ([ADR-0160](docs/adr/0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md))
+
+- **The management console could not edit a tenant, and dropped its issuer when creating one.** The console still sent
+  the tenant's former `domainName` field, so an edit failed with a JSON Patch error and a create silently dropped the
+  value. It sends and shows the tenant's `issuer`.
 
 - **An encrypted ID token was encrypted to the tenant's key, which the client cannot decrypt.** With
   `id_token_encryption_required`, the ID token was encrypted to a tenant key chosen from the server's lists. It is now

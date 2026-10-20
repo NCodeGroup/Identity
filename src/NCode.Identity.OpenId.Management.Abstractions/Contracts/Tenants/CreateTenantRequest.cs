@@ -30,9 +30,19 @@ namespace NCode.Identity.OpenId.Management.Contracts.Tenants;
 public sealed class CreateTenantRequest
 {
     /// <summary>
+    /// Gets the identifier for the tenant: a name its creator chooses, which cannot be changed once the tenant exists.
+    /// It is 1 to 63 lowercase letters, digits, or hyphens that starts and ends with a letter or digit, so it is equally
+    /// valid as a URL path segment and as a hostname label. It addresses the tenant in the management API and, when
+    /// tenants are served by path, is the final segment of the tenant's issuer.
+    /// </summary>
+    public required string TenantId { get; init; }
+
+    /// <summary>
     /// Gets the optional issuer identifier for the tenant — its request-independent identity, and therefore the origin
-    /// of every absolute URL the server publishes for it. When <c>null</c>, that origin is derived from the incoming
-    /// request, which is a development-only convenience.
+    /// of every absolute URL the server publishes for it. It must be an absolute <c>https</c> URL (<c>http</c> only for
+    /// a loopback host) with no user information, query, or fragment, that the configured tenant strategy serves the
+    /// tenant beneath. When <c>null</c>, that origin is derived from the incoming request, which is a development-only
+    /// convenience.
     /// </summary>
     public string? Issuer { get; init; }
 

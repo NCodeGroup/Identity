@@ -52,7 +52,8 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<ITenantResolver, DefaultTenantResolver>();
 
-            // A tenant-resolution configuration that cannot work stops the host when it starts (ADR-0137).
+            // A tenant-resolution configuration that cannot work stops the host when it starts (ADR-0137). The shared
+            // validator checks the strategy-independent members; each strategy's validator is registered beside it.
             serviceCollection.AddOptions<TenantResolutionOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
@@ -65,7 +66,8 @@ internal static class DefaultRegistration
             serviceCollection.AddMemoryCache();
             serviceCollection.TryAddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
 
-            // DefaultOpenIdTenantFactory binds the tenant base-address route via TemplateBinderFactory (from AddRouting).
+            // The tenant factory and the path-based strategy bind the tenant route via TemplateBinderFactory (from
+            // AddRouting).
             serviceCollection.AddRouting();
             serviceCollection.TryAddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
 
@@ -84,13 +86,31 @@ internal static class DefaultRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ITenantStrategy, StaticSingleTenantStrategy>()
             );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<TenantResolutionOptions>,
+                    StaticSingleTenantOptionsValidator
+                >()
+            );
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ITenantStrategy, DynamicByHostTenantStrategy>()
             );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<TenantResolutionOptions>,
+                    DynamicByHostTenantOptionsValidator
+                >()
+            );
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ITenantStrategy, DynamicByPathTenantStrategy>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<TenantResolutionOptions>,
+                    DynamicByPathTenantOptionsValidator
+                >()
             );
 
             return builder;

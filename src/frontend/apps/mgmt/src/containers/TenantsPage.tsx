@@ -76,19 +76,21 @@ export function TenantsPage({ onOpenTenant }: TenantsPageProps) {
   const formInitial: TenantFormValues =
     dialog.kind === 'edit'
       ? {
+          tenantId: dialog.tenant.tenantId,
           displayName: dialog.tenant.displayName,
-          domainName: dialog.tenant.domainName ?? '',
+          issuer: dialog.tenant.issuer ?? '',
           isDisabled: dialog.tenant.isDisabled,
         }
       : emptyTenantFormValues;
 
   const handleSubmit = async (values: TenantFormValues) => {
     setFormError(undefined);
-    const domainName = values.domainName.length > 0 ? values.domainName : null;
+    const issuer = values.issuer.length > 0 ? values.issuer : null;
     try {
       if (dialog.kind === 'create') {
         await createTenant({
-          domainName,
+          tenantId: values.tenantId,
+          issuer,
           displayName: values.displayName,
           isDisabled: values.isDisabled,
           settings: {},
@@ -98,7 +100,7 @@ export function TenantsPage({ onOpenTenant }: TenantsPageProps) {
           tenantId: dialog.tenant.tenantId,
           concurrencyToken: dialog.tenant.concurrencyToken,
           fields: {
-            domainName,
+            issuer,
             displayName: values.displayName,
             isDisabled: values.isDisabled,
           },
@@ -157,6 +159,7 @@ export function TenantsPage({ onOpenTenant }: TenantsPageProps) {
         title={dialog.kind === 'edit' ? 'Edit tenant' : 'Create tenant'}
         submitLabel={dialog.kind === 'edit' ? 'Save' : 'Create'}
         initialValues={formInitial}
+        isTenantIdLocked={dialog.kind === 'edit'}
         isSubmitting={isCreating || isUpdating}
         error={formError}
         onSubmit={handleSubmit}

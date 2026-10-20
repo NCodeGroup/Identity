@@ -32,8 +32,10 @@ public sealed class UpdateTenantRequest
 {
     /// <summary>
     /// Gets or sets the optional issuer identifier for the tenant — its request-independent identity, and therefore
-    /// the origin of every absolute URL the server publishes for it. When <c>null</c>, that origin is derived from the
-    /// incoming request, which is a development-only convenience.
+    /// the origin of every absolute URL the server publishes for it. It must be an absolute <c>https</c> URL
+    /// (<c>http</c> only for a loopback host) with no user information, query, or fragment, that the configured tenant
+    /// strategy serves the tenant beneath. When <c>null</c>, that origin is derived from the incoming request, which is
+    /// a development-only convenience.
     /// </summary>
     [JsonPropertyName("issuer")]
     public string? Issuer { get; set; }

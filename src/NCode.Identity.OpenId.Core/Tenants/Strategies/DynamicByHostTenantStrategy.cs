@@ -35,7 +35,13 @@ internal class DynamicByHostTenantStrategy(
     IOptions<TenantResolutionOptions> optionsAccessor
 ) : TenantStrategy(storeManagerFactory)
 {
-    private Regex? IssuerHostRegex { get; set; }
+    private Regex? IssuerHostRegexOrNull { get; set; }
+
+    private Regex IssuerHostRegex =>
+        IssuerHostRegexOrNull ??= new Regex(
+            Options.RegexPattern,
+            RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Singleline
+        );
 
     private DynamicByHostTenantOptions Options =>
         optionsAccessor.Value.DynamicByHost ?? new DynamicByHostTenantOptions();
@@ -52,18 +58,79 @@ internal class DynamicByHostTenantStrategy(
         CancellationToken cancellationToken
     )
     {
-        var options = Options;
+        var issuerHost = MapToIssuerHost(httpContext.Request.Host.Host);
+        return await GetTenantByIssuerHostAsync(issuerHost, cancellationToken);
+    }
 
-        var regex = IssuerHostRegex ??= new Regex(
-            options.RegexPattern,
-            RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Singleline
+    /// <inheritdoc />
+    /// <remarks>
+    /// A tenant is reached only through the host of its issuer, so it needs an issuer, the configured host pattern must
+    /// map that host to itself, and no other tenant may hold it — a request to a shared host could not tell the tenants
+    /// apart.
+    /// </remarks>
+    // See ADR-0129 (host uniqueness is a rule of the host strategy, not the schema) and ADR-0160.
+    public override async ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
+        string tenantId,
+        Uri? issuer,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        if (issuer is null)
+        {
+            return
+            [
+                new TenantValidationFailure
+                {
+                    Detail =
+                        "The tenant requires an issuer: requests reach a tenant only through the host of its issuer.",
+                },
+            ];
+        }
+
+        var failures = new List<TenantValidationFailure>(
+            await base.ValidateTenantAsync(tenantId, issuer, storeManager, cancellationToken)
         );
 
-        var host = httpContext.Request.Host.Host;
-        var match = regex.Match(host);
-        var issuerHost = match.Success ? match.Value : host;
+        var issuerHost = issuer.Host;
+        var mappedHost = MapToIssuerHost(issuerHost);
+        if (!string.Equals(mappedHost, issuerHost, StringComparison.OrdinalIgnoreCase))
+        {
+            failures.Add(
+                new TenantValidationFailure
+                {
+                    Detail =
+                        $"The issuer host '{issuerHost}' does not reach the tenant: the configured host pattern maps "
+                        + $"it to '{mappedHost}'.",
+                }
+            );
+        }
 
-        return await GetTenantByIssuerHostAsync(issuerHost, cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+        var holder = await store.GetOrDefaultByIssuerHostAsync(issuerHost, cancellationToken);
+        if (
+            holder is not null
+            && !string.Equals(holder.TenantId, tenantId, StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            failures.Add(
+                new TenantValidationFailure
+                {
+                    Detail =
+                        $"Another tenant already has an issuer on the host '{issuerHost}', and tenants served by "
+                        + "host must each have a host of their own.",
+                    IsConflict = true,
+                }
+            );
+        }
+
+        return failures;
+    }
+
+    private string MapToIssuerHost(string host)
+    {
+        var match = IssuerHostRegex.Match(host);
+        return match.Success ? match.Value : host;
     }
 
     // The host is matched against the host component of each tenant's issuer, which is derived from that issuer rather

@@ -17,6 +17,8 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing.Template;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId.Tenants;
@@ -26,16 +28,27 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tenants;
 
-public sealed class DynamicByPathTenantStrategyTests
+public sealed class DynamicByPathTenantStrategyTests : IDisposable
 {
-    private static DynamicByPathTenantStrategy CreateStrategy(
+    private ServiceProvider ServiceProvider { get; } =
+        new ServiceCollection().AddRouting().BuildServiceProvider();
+
+    public void Dispose()
+    {
+        ServiceProvider.Dispose();
+    }
+
+    private DynamicByPathTenantStrategy CreateStrategy(
         IStoreManagerFactory storeManagerFactory,
         DynamicByPathTenantOptions? options = null
     ) =>
         new(
             storeManagerFactory,
-            Options.Create(new TenantResolutionOptions { DynamicByPath = options })
+            Options.Create(new TenantResolutionOptions { DynamicByPath = options }),
+            ServiceProvider.GetRequiredService<TemplateBinderFactory>()
         );
+
+    #region TryGetTenantId Tests
 
     [Fact]
     public void TryGetTenantId_WhenRouteValuePresent_ReturnsTrueWithoutStore()
@@ -110,4 +123,101 @@ public sealed class DynamicByPathTenantStrategyTests
         Assert.Equal("tenant-2", tenantId);
         mocks.Verify();
     }
+
+    #endregion
+
+    #region ValidateTenantAsync Tests
+
+    [Theory]
+    [InlineData("https://op.example/acme")]
+    [InlineData("https://op.example/acme/")]
+    [InlineData("https://op.example/base/acme")]
+    public async Task ValidateTenantAsync_WhenIssuerEndsWithTheTenantsRoute_Succeeds(string issuer)
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks.Create<IStoreManagerFactory>().Object);
+
+        var failures = await strategy.ValidateTenantAsync(
+            "acme",
+            new Uri(issuer),
+            mocks.Create<IStoreManager>().Object,
+            CancellationToken.None
+        );
+
+        Assert.Empty(failures);
+        mocks.Verify();
+    }
+
+    [Theory]
+    [InlineData("https://op.example")]
+    [InlineData("https://op.example/globex")]
+    [InlineData("https://op.example/xacme")]
+    [InlineData("https://op.example/acme/v2")]
+    public async Task ValidateTenantAsync_WhenIssuerDoesNotEndWithTheTenantsRoute_Fails(
+        string issuer
+    )
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks.Create<IStoreManagerFactory>().Object);
+
+        var failures = await strategy.ValidateTenantAsync(
+            "acme",
+            new Uri(issuer),
+            mocks.Create<IStoreManager>().Object,
+            CancellationToken.None
+        );
+
+        var failure = Assert.Single(failures);
+        Assert.False(failure.IsConflict);
+        Assert.Contains("must end with '/acme'", failure.Detail, StringComparison.Ordinal);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenRouteIsNested_BindsTheWholeRoute()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new DynamicByPathTenantOptions { TenantPath = "/tenants/{tenantId}" }
+        );
+        var storeManager = mocks.Create<IStoreManager>().Object;
+
+        var nested = await strategy.ValidateTenantAsync(
+            "acme",
+            new Uri("https://op.example/tenants/acme"),
+            storeManager,
+            CancellationToken.None
+        );
+        var flat = await strategy.ValidateTenantAsync(
+            "acme",
+            new Uri("https://op.example/acme"),
+            storeManager,
+            CancellationToken.None
+        );
+
+        Assert.Empty(nested);
+        Assert.Single(flat);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenIssuerIsAbsent_Succeeds()
+    {
+        // Without an issuer the tenant's base address is derived from the request it is served under.
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks.Create<IStoreManagerFactory>().Object);
+
+        var failures = await strategy.ValidateTenantAsync(
+            "acme",
+            issuer: null,
+            mocks.Create<IStoreManager>().Object,
+            CancellationToken.None
+        );
+
+        Assert.Empty(failures);
+        mocks.Verify();
+    }
+
+    #endregion
 }

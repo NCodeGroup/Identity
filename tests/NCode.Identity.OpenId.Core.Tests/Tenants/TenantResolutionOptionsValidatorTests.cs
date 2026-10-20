@@ -66,225 +66,31 @@ public sealed class TenantResolutionOptionsValidatorTests
         );
     }
 
-    [Fact]
-    public void Validate_WhenStrategyIsCustom_SkipsBuiltInStrategyOptions()
+    [Theory]
+    [InlineData("Root")]
+    [InlineData("root_tenant")]
+    [InlineData("-root")]
+    public void Validate_WhenRootTenantIdIsNotATenantIdentifier_Fails(string rootTenantId)
     {
+        var failures = Failures(new TenantResolutionOptions { RootTenantId = rootTenantId });
+
+        Assert.Contains($"RootTenantId '{rootTenantId}'", failures, StringComparison.Ordinal);
+        Assert.Contains("lowercase letters", failures, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_WhenStrategyOptionsAreInvalid_LeavesThemToTheStrategy()
+    {
+        // Each strategy validates its own options beside it, so this validator never needs to know which exist.
         var options = new TenantResolutionOptions
         {
-            StrategyCode = "Custom",
+            StrategyCode = OpenIdConstants.TenantStrategyCodes.DynamicByPath,
             DynamicByPath = new DynamicByPathTenantOptions { TenantPath = "/fixed" },
         };
 
         var result = Validator.Validate(name: null, options);
 
         Assert.True(result.Succeeded);
-    }
-
-    [Fact]
-    public void Validate_WhenUnselectedStrategyOptionsAreInvalid_Succeeds()
-    {
-        // A layered configuration may carry another strategy's options; only the selected strategy's are in force.
-        var options = new TenantResolutionOptions
-        {
-            StrategyCode = OpenIdConstants.TenantStrategyCodes.StaticSingle,
-            DynamicByPath = new DynamicByPathTenantOptions { TenantPath = "/fixed" },
-        };
-
-        var result = Validator.Validate(name: null, options);
-
-        Assert.True(result.Succeeded);
-    }
-
-    [Theory]
-    [InlineData("/")]
-    [InlineData("/identity")]
-    [InlineData("/identity/v1")]
-    public void Validate_WhenStaticSingleTenantPathIsLiteral_Succeeds(string tenantPath)
-    {
-        var options = new TenantResolutionOptions
-        {
-            StaticSingle = new StaticSingleTenantOptions { TenantPath = tenantPath },
-        };
-
-        var result = Validator.Validate(name: null, options);
-
-        Assert.True(result.Succeeded);
-    }
-
-    [Fact]
-    public void Validate_WhenStaticSingleTenantPathHasParameter_Fails()
-    {
-        var options = new TenantResolutionOptions
-        {
-            StaticSingle = new StaticSingleTenantOptions { TenantPath = "/{tenantId}" },
-        };
-
-        var failures = Failures(options);
-
-        Assert.Contains("StaticSingle:TenantPath", failures, StringComparison.Ordinal);
-        Assert.Contains("literal path", failures, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Validate_WhenStaticSingleTenantPathIsMalformed_Fails()
-    {
-        var options = new TenantResolutionOptions
-        {
-            StaticSingle = new StaticSingleTenantOptions { TenantPath = "/{tenantId" },
-        };
-
-        var failures = Failures(options);
-
-        Assert.Contains("not a valid route pattern", failures, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("https://op.example", null)]
-    [InlineData("https://op.example", "/")]
-    [InlineData("https://op.example/identity", "/identity")]
-    [InlineData("https://op.example/identity/", "/identity")]
-    [InlineData("https://op.example/auth/identity", "/identity")]
-    [InlineData("https://op.example/Identity", "/identity")]
-    [InlineData("http://localhost:5000", null)]
-    public void Validate_WhenStaticSingleIssuerEndsWithTenantPath_Succeeds(
-        string issuer,
-        string? tenantPath
-    )
-    {
-        var options = new TenantResolutionOptions
-        {
-            StaticSingle = new StaticSingleTenantOptions
-            {
-                Issuer = issuer,
-                TenantPath = tenantPath,
-            },
-        };
-
-        var result = Validator.Validate(name: null, options);
-
-        Assert.True(result.Succeeded);
-    }
-
-    [Theory]
-    [InlineData("https://op.example", "/identity")]
-    [InlineData("https://op.example/myidentity", "/identity")]
-    [InlineData("https://op.example/identity/v2", "/identity")]
-    public void Validate_WhenStaticSingleIssuerDoesNotEndWithTenantPath_Fails(
-        string issuer,
-        string tenantPath
-    )
-    {
-        var options = new TenantResolutionOptions
-        {
-            StaticSingle = new StaticSingleTenantOptions
-            {
-                Issuer = issuer,
-                TenantPath = tenantPath,
-            },
-        };
-
-        var failures = Failures(options);
-
-        Assert.Contains("StaticSingle:Issuer", failures, StringComparison.Ordinal);
-        Assert.Contains("must end with the tenant path", failures, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("op.example")]
-    [InlineData("/identity")]
-    [InlineData("ftp://op.example")]
-    [InlineData("https://op.example?tenant=a")]
-    [InlineData("https://op.example#a")]
-    public void Validate_WhenStaticSingleIssuerIsNotAnHttpUrl_Fails(string issuer)
-    {
-        var options = new TenantResolutionOptions
-        {
-            StaticSingle = new StaticSingleTenantOptions { Issuer = issuer },
-        };
-
-        var failures = Failures(options);
-
-        Assert.Contains("absolute http or https URL", failures, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Validate_WhenDynamicByHostRegexIsInvalid_Fails()
-    {
-        var options = new TenantResolutionOptions
-        {
-            StrategyCode = OpenIdConstants.TenantStrategyCodes.DynamicByHost,
-            DynamicByHost = new DynamicByHostTenantOptions { RegexPattern = "([a-z" },
-        };
-
-        var failures = Failures(options);
-
-        Assert.Contains("DynamicByHost:RegexPattern", failures, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Validate_WhenDynamicByHostTenantPathHasParameter_Fails()
-    {
-        var options = new TenantResolutionOptions
-        {
-            StrategyCode = OpenIdConstants.TenantStrategyCodes.DynamicByHost,
-            DynamicByHost = new DynamicByHostTenantOptions { TenantPath = "/{tenantId}" },
-        };
-
-        var failures = Failures(options);
-
-        Assert.Contains("DynamicByHost:TenantPath", failures, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Validate_WhenDynamicByPathDefaults_Succeeds()
-    {
-        var options = new TenantResolutionOptions
-        {
-            StrategyCode = OpenIdConstants.TenantStrategyCodes.DynamicByPath,
-        };
-
-        var result = Validator.Validate(name: null, options);
-
-        Assert.True(result.Succeeded);
-    }
-
-    [Fact]
-    public void Validate_WhenDynamicByPathRouteLacksTheTenantParameter_Fails()
-    {
-        var options = new TenantResolutionOptions
-        {
-            StrategyCode = OpenIdConstants.TenantStrategyCodes.DynamicByPath,
-            DynamicByPath = new DynamicByPathTenantOptions
-            {
-                TenantPath = "/tenants/{id}",
-                TenantIdRouteParameterName = "tenantId",
-            },
-        };
-
-        var failures = Failures(options);
-
-        Assert.Contains("'{tenantId}'", failures, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Validate_WhenDynamicByPathParameterNameIsEmpty_Fails()
-    {
-        var options = new TenantResolutionOptions
-        {
-            StrategyCode = OpenIdConstants.TenantStrategyCodes.DynamicByPath,
-            DynamicByPath = new DynamicByPathTenantOptions
-            {
-                TenantIdRouteParameterName = string.Empty,
-            },
-        };
-
-        var failures = Failures(options);
-
-        Assert.Contains(
-            "DynamicByPath:TenantIdRouteParameterName",
-            failures,
-            StringComparison.Ordinal
-        );
     }
 
     #endregion

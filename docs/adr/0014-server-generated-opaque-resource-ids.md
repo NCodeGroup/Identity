@@ -1,6 +1,7 @@
 # 0014. Resource identifiers are server-generated and opaque
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0159](0159-a-tenant-is-named-by-its-creator.md): a tenant's identifier is a
+  name its creator chooses)
 - **Date:** 2026-09-29
 - **Deciders:** NCode.Identity maintainers
 

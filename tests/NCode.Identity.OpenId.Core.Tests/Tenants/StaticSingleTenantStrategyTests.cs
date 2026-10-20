@@ -114,4 +114,31 @@ public sealed class StaticSingleTenantStrategyTests
         Assert.Same(persistedTenant, result);
         mocks.Verify();
     }
+
+    [Theory]
+    [InlineData("https://op.example/identity", true)]
+    [InlineData("https://op.example/base/identity", true)]
+    [InlineData("https://op.example", false)]
+    [InlineData("https://op.example/other", false)]
+    public async Task ValidateTenantAsync_ChecksTheIssuerEndsWithTheTenantPath(
+        string issuer,
+        bool expectedValid
+    )
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions { TenantPath = "/identity" }
+        );
+
+        var failures = await strategy.ValidateTenantAsync(
+            "default",
+            new Uri(issuer),
+            mocks.Create<IStoreManager>().Object,
+            CancellationToken.None
+        );
+
+        Assert.Equal(expectedValid, failures.Count == 0);
+        mocks.Verify();
+    }
 }

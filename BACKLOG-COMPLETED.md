@@ -569,6 +569,21 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   and `src/NCode.Identity.Secrets/Logic/` were superseded by the standalone package so the core JOSE library gains no new
   dependency and no always-on algorithm._
 
+- **`F32` — DPoP sender-constrained proof-of-possession (RFC 9449), JOSE building block.** The highest-value modern,
+  non-algorithm JOSE addition and the OAuth 2.1 / FAPI 2.0 direction. Add a first-class capability to **create and
+  verify `dpop+jwt` proofs**: the `typ: dpop+jwt` header with an embedded public `jwk`, the `htm`/`htu`/`jti`/`iat`
+  claims, the `ath` access-token hash, the `nonce` challenge/replay flow, and the `jkt` (JWK SHA-256 thumbprint)
+  confirmation that binds a token to the proof key. This is the JOSE primitive the OpenId authentication stack then
+  consumes to issue and validate DPoP-bound access/refresh tokens; it complements the shipped `private_key_jwt`
+  client-authentication work ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)). The `F33` JWK thumbprint
+  (`jkt`) it needs is delivered. Touch points: [`src/NCode.Identity.Jose`](src/NCode.Identity.Jose),
+  [`src/NCode.Identity.Jose.Abstractions`](src/NCode.Identity.Jose.Abstractions),
+  [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication). Capture the design in an ADR.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0176](docs/adr/0176-dpop-proofs-are-a-jose-building-block.md) — `IDPoPProofService` creates and validates
+  proofs through the registered key types and signature algorithms (so `EdDSA` proofs work with the opt-in package),
+  and `DefaultDPoPProofValidator` keeps only the nonce challenge and the replay cache._
+
 - **`F33` — First-class JWK / JWKS types + JWK Thumbprint (RFC 7517 / 7638 / 9278).** Keys lived only as `SecretKey`,
   the JWK form existed only as a raw `JsonObject` produced by the descriptor seam, the JWKS endpoint hand-assembled a
   result of `JsonObject` keys, and the DPoP validator computed the `jkt` from a hand-rolled canonical JSON string —

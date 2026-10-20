@@ -1424,3 +1424,5 @@ NCode.Identity.OpenId.Authentication.Persistence.PersistedPayloadVersionAttribut
 NCode.Identity.OpenId.Authentication.Persistence.PersistedPayloadVersionAttribute.Version.get -> int
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ExtensionData.get -> System.Collections.Generic.IDictionary<string!, System.Text.Json.JsonElement>?
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ExtensionData.init -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateChainValidator
+NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateChainValidator.ValidateAsync(NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.ClientCertificates.PresentedClientCertificate! presentedCertificate, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>

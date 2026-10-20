@@ -50,6 +50,17 @@ internal abstract class MutualTlsClientAuthenticationHandler(
         clientCertificateResolver;
 
     /// <summary>
+    /// Determines whether the presented client <paramref name="certificate"/> is trusted as a credential at all, before
+    /// it is matched against the client's registration. The default trusts it, since the self-signed method's match is
+    /// itself the proof; a PKI method validates the chain to the client's trust anchors.
+    /// </summary>
+    protected virtual ValueTask<bool> IsCertificateTrustedAsync(
+        OpenIdClient openIdClient,
+        PresentedClientCertificate certificate,
+        CancellationToken cancellationToken
+    ) => ValueTask.FromResult(true);
+
+    /// <summary>
     /// Matches the presented client <paramref name="certificate"/> against the client's registration, returning the
     /// <see cref="SecretKey"/> that represents the authenticating credential when it matches, or <see langword="null"/>
     /// when it does not.
@@ -138,6 +149,19 @@ internal abstract class MutualTlsClientAuthenticationHandler(
                 openIdContext,
                 clientId,
                 "client_certificate_missing",
+                cancellationToken
+            );
+
+        var isTrusted = await IsCertificateTrustedAsync(
+            publicClient,
+            certificate,
+            cancellationToken
+        );
+        if (!isTrusted)
+            return await FailAsync(
+                openIdContext,
+                clientId,
+                "client_certificate_untrusted",
                 cancellationToken
             );
 

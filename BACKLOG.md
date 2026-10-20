@@ -354,23 +354,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/Handlers/DefaultLoadBackchannelAuthenticationRequestHandler.cs`,
   `OpenIdSettingKeys`, `Fapi2SecurityProfile`.
 
-- **`F43` — Validate `tls_client_auth` certificate chains in the server against configured trust anchors.**
-  `tls_client_auth` ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)) assumes the TLS terminator already
-  PKI-validated the certificate; the handler only matches subject DN / SAN. That forces the proxy to
-  `RequireAndVerifyClientCert` against a CA bundle, which (a) rejects `self_signed_tls_client_auth` certificates on the
-  same host, (b) cannot select a per-tenant CA when tenants share a hostname (TLS options bind per SNI, before the tenant
-  is known), and (c) becomes an **authentication bypass** if the proxy only requests the certificate
-  (`RequireAnyClientCert`) — a self-signed certificate carrying the registered subject DN would match. Add
-  tenant/client-scoped trust-anchor settings (CA bundle, optional intermediates from the forwarded chain, revocation
-  policy) and build the chain with `X509Chain` (custom root trust, `clientAuth` EKU, validity) before the identity match,
-  so the proxy only needs to request and forward the certificate. Found during the
-  [hosting analysis](docs/hosting-analysis.md#8-traefik-mtls-and-tenant-pki). Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/TlsClientAuthClientAuthenticationHandler.cs`,
-  `MutualTlsClientAuthenticationHandler`, `OpenIdSettingKeys`. `IClientCertificateResolver` already surfaces the chain
-  the client presented (`PresentedClientCertificate.Intermediates`,
-  [ADR-0172](docs/adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)). Capture the design in
-  an ADR.
-
 - **`F45` — Per-tenant rate limits and quotas.** Customers run their dev, test, and prod environments as separate
   tenants on the one production platform ([hosting analysis](docs/hosting-analysis.md#environment-model)), so a
   customer's load test against a `-dev` tenant shares hardware with every other tenant's production. Nothing limits a

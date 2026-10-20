@@ -859,6 +859,18 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.TlsClientCertificateBoundAccessTokens);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_auth_trust_anchors' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> TlsClientAuthTrustAnchors =>
+        new(OpenIdSettingNames.TlsClientAuthTrustAnchors);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_auth_revocation_mode' setting.
+    /// </summary>
+    public static SettingKey<string> TlsClientAuthRevocationMode =>
+        new(OpenIdSettingNames.TlsClientAuthRevocationMode);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_auth_subject_dn' setting (RFC 8705 §2.1.2).
     /// </summary>
     public static SettingKey<string> TlsClientAuthSubjectDn =>

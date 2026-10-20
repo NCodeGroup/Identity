@@ -34,9 +34,9 @@ internal static class DefaultRegistration
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
         /// <summary>
-        /// Configures the client-certificate resolver and the decoders of the known forwarded-certificate formats. The
-        /// forwarded-header settings are configured by the host; the server's <c>AddConfiguration</c> binds them from
-        /// <c>OpenId:MutualTls</c>.
+        /// Configures the client-certificate resolver, the chain validator, and the decoders of the known
+        /// forwarded-certificate formats. The forwarded-header settings are configured by the host; the server's
+        /// <c>AddConfiguration</c> binds them from <c>OpenId:MutualTls</c>.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
@@ -55,6 +55,11 @@ internal static class DefaultRegistration
             serviceCollection.TryAddSingleton<
                 IClientCertificateResolver,
                 DefaultClientCertificateResolver
+            >();
+
+            serviceCollection.TryAddSingleton<
+                IClientCertificateChainValidator,
+                DefaultClientCertificateChainValidator
             >();
 
             serviceCollection.TryAddEnumerable(

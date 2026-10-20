@@ -287,6 +287,27 @@ internal static class OpenIdSettingRules
         );
 
     /// <summary>
+    /// Gets the rule for a <c>tls_client_auth</c> trust anchor: exactly one PEM-encoded X.509 certificate whose basic
+    /// constraints mark it as a certification authority.
+    /// </summary>
+    public static SettingRule<string> CaCertificatePem() =>
+        SettingRules.Must<string>(
+            "a single PEM-encoded X.509 CA certificate ('-----BEGIN CERTIFICATE-----')",
+            IsCaCertificatePem
+        );
+
+    /// <summary>
+    /// Gets the rule for how a <c>tls_client_auth</c> certificate chain's revocation status is checked:
+    /// <c>online</c>, <c>offline</c>, or <c>none</c>.
+    /// </summary>
+    public static SettingRule<string> ClientCertificateRevocationMode() =>
+        SettingRules.OneOf(
+            OpenIdConstants.ClientCertificateRevocationMode.Online,
+            OpenIdConstants.ClientCertificateRevocationMode.Offline,
+            OpenIdConstants.ClientCertificateRevocationMode.None
+        );
+
+    /// <summary>
     /// Gets the rule for the DNS name a <c>tls_client_auth</c> client's certificate must carry as a subject alternative
     /// name; a leading <c>*.</c> label matches a wildcard name verbatim.
     /// </summary>
@@ -375,6 +396,28 @@ internal static class OpenIdSettingRules
     {
         var name = value.StartsWith("*.", StringComparison.Ordinal) ? value[2..] : value;
         return Uri.CheckHostName(name) == UriHostNameType.Dns;
+    }
+
+    private static bool IsCaCertificatePem(string value)
+    {
+        var certificates = new X509Certificate2Collection();
+        try
+        {
+            certificates.ImportFromPem(value);
+            return certificates is [var certificate]
+                && certificate
+                    .Extensions.OfType<X509BasicConstraintsExtension>()
+                    .Any(extension => extension.CertificateAuthority);
+        }
+        catch (CryptographicException)
+        {
+            return false;
+        }
+        finally
+        {
+            foreach (var certificate in certificates)
+                certificate.Dispose();
+        }
     }
 
     private static bool IsDistinguishedName(string value)

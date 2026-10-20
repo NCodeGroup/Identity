@@ -568,12 +568,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
     /// <summary>
     /// Ensures the tenant exists and seeds a confidential client registered for <c>tls_client_auth</c>
-    /// (RFC 8705 §2.1) whose expected certificate subject distinguished name is <paramref name="subjectDn"/>, so the
-    /// client authenticates by presenting a PKI certificate with that subject on the mutual-TLS connection.
+    /// (RFC 8705 §2.1) whose expected certificate subject distinguished name is <paramref name="subjectDn"/> and whose
+    /// certificate must chain to one of <paramref name="trustAnchors"/> (PEM), so the client authenticates by
+    /// presenting a certificate issued by that PKI with that subject on the mutual-TLS connection.
     /// </summary>
     public async Task SeedTlsClientAuthSubjectDnClientAsync(
         string clientId,
         string subjectDn,
+        IReadOnlyCollection<string> trustAnchors,
         params string[] grantTypes
     )
     {
@@ -588,6 +590,11 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 .ClientAuthenticationMethods
                 .TlsClientAuth,
             ["tls_client_auth_subject_dn"] = subjectDn,
+            ["tls_client_auth_trust_anchors"] = trustAnchors,
+            // The test PKI publishes no revocation data.
+            ["tls_client_auth_revocation_mode"] = OpenIdConstants
+                .ClientCertificateRevocationMode
+                .None,
         };
         if (grantTypes.Length > 0)
             settings["grant_types_supported"] = grantTypes;

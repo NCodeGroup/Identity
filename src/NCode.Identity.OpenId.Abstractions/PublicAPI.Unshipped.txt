@@ -1031,3 +1031,11 @@ NCode.Identity.OpenId.Tenants.RootTenantOptions.TenantId.get -> string!
 NCode.Identity.OpenId.Tenants.RootTenantOptions.TenantId.set -> void
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.Root.get -> NCode.Identity.OpenId.Tenants.RootTenantOptions!
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.Root.set -> void
+const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.None = "none" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.Offline = "offline" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.Online = "online" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthRevocationMode = "tls_client_auth_revocation_mode" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthTrustAnchors = "tls_client_auth_trust_anchors" -> string!
+NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientAuthRevocationMode.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientAuthTrustAnchors.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>

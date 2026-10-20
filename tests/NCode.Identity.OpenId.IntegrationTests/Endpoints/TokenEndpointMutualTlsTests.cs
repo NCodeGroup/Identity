@@ -28,8 +28,9 @@ namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
 /// <summary>
 /// Verifies mutual-TLS client authentication (RFC 8705 §2): <c>self_signed_tls_client_auth</c> matches the presented
-/// certificate against the client's registered certificate by thumbprint, and <c>tls_client_auth</c> matches its
-/// subject distinguished name against the client's registered metadata. The TestServer terminates no TLS, so the
+/// certificate against the client's registered certificate by thumbprint, and <c>tls_client_auth</c> validates its
+/// chain to the client's configured trust anchors and matches its subject distinguished name against the client's
+/// registered metadata. The TestServer terminates no TLS, so the
 /// certificate is forwarded in a header (the reverse-proxy path the default resolver supports).
 /// </summary>
 public class TokenEndpointMutualTlsTests
@@ -49,6 +50,94 @@ public class TokenEndpointMutualTlsTests
             DateTimeOffset.UtcNow.AddDays(-1),
             DateTimeOffset.UtcNow.AddYears(1)
         );
+    }
+
+    private static X509Certificate2 CreateAuthority(string commonName)
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            $"CN={commonName}",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+        request.CertificateExtensions.Add(
+            new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true)
+        );
+        request.CertificateExtensions.Add(
+            new X509SubjectKeyIdentifierExtension(request.PublicKey, false)
+        );
+        return request.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1),
+            DateTimeOffset.UtcNow.AddYears(1)
+        );
+    }
+
+    private static X509Certificate2 CreateIssuedCertificate(
+        X509Certificate2 issuer,
+        string commonName,
+        bool isAuthority = false
+    )
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            $"CN={commonName}",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+        request.CertificateExtensions.Add(
+            new X509BasicConstraintsExtension(isAuthority, false, 0, true)
+        );
+        request.CertificateExtensions.Add(
+            new X509SubjectKeyIdentifierExtension(request.PublicKey, false)
+        );
+        request.CertificateExtensions.Add(
+            X509AuthorityKeyIdentifierExtension.CreateFromCertificate(issuer, true, false)
+        );
+        if (!isAuthority)
+        {
+            request.CertificateExtensions.Add(
+                new X509EnhancedKeyUsageExtension(
+                    new OidCollection { new("1.3.6.1.5.5.7.3.2") },
+                    false
+                )
+            );
+        }
+
+        var serialNumber = new byte[8];
+        RandomNumberGenerator.Fill(serialNumber);
+        serialNumber[0] &= 0x7F;
+        using var certificate = request.Create(
+            issuer,
+            DateTimeOffset.UtcNow.AddHours(-1),
+            isAuthority ? DateTimeOffset.UtcNow.AddMonths(6) : DateTimeOffset.UtcNow.AddDays(30),
+            serialNumber
+        );
+        return certificate.CopyWithPrivateKey(rsa);
+    }
+
+    private static async Task<HostApplicationFactory> CreatePkiFactoryAsync(
+        string clientId,
+        string subjectDn,
+        IReadOnlyCollection<string> trustAnchors
+    )
+    {
+        var factory = new HostApplicationFactory();
+        await factory.SeedTlsClientAuthSubjectDnClientAsync(
+            clientId,
+            subjectDn,
+            trustAnchors,
+            OpenIdConstants.GrantTypes.ClientCredentials
+        );
+        await factory.SeedResourceServerWithClientGrantAsync(
+            clientId,
+            $"{clientId}-rs-api",
+            $"https://api.{clientId}.integration.test",
+            TestServerSettingsProvider.ApiScope
+        );
+        return factory;
     }
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
@@ -220,20 +309,13 @@ public class TokenEndpointMutualTlsTests
     public async Task PostToken_TlsClientAuth_WithMatchingSubjectDn_ReturnsAccessToken()
     {
         const string clientId = "it-mtls-pki";
-        using var certificate = CreateCertificate(clientId);
-        var subjectDn = certificate.SubjectName.Name;
+        using var authority = CreateAuthority("it-mtls-pki-root");
+        using var certificate = CreateIssuedCertificate(authority, clientId);
 
-        using var factory = new HostApplicationFactory();
-        await factory.SeedTlsClientAuthSubjectDnClientAsync(
+        using var factory = await CreatePkiFactoryAsync(
             clientId,
-            subjectDn,
-            OpenIdConstants.GrantTypes.ClientCredentials
-        );
-        await factory.SeedResourceServerWithClientGrantAsync(
-            clientId,
-            "it-mtls-pki-rs-api",
-            "https://api.mtls-pki.integration.test",
-            TestServerSettingsProvider.ApiScope
+            certificate.SubjectName.Name,
+            [authority.ExportCertificatePem()]
         );
 
         var client = CreateClient(factory);
@@ -249,22 +331,79 @@ public class TokenEndpointMutualTlsTests
     }
 
     [Fact]
+    public async Task PostToken_TlsClientAuth_WithForwardedIntermediate_ReturnsAccessToken()
+    {
+        const string clientId = "it-mtls-pki-chain";
+        using var authority = CreateAuthority("it-mtls-pki-chain-root");
+        using var intermediate = CreateIssuedCertificate(
+            authority,
+            "it-mtls-pki-chain-issuing",
+            isAuthority: true
+        );
+        using var certificate = CreateIssuedCertificate(intermediate, clientId);
+
+        using var factory = await CreatePkiFactoryAsync(
+            clientId,
+            certificate.SubjectName.Name,
+            [authority.ExportCertificatePem()]
+        );
+
+        // The forwarded chain is the client's own certificate first, then the intermediate that issued it.
+        var leaf = Convert.ToBase64String(certificate.RawData);
+        var issuing = Convert.ToBase64String(intermediate.RawData);
+        var client = CreateClient(factory);
+        using var response = await client.SendAsync(
+            BuildTokenRequest(clientId, $"{leaf},{issuing}")
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+    }
+
+    [Fact]
+    public async Task PostToken_TlsClientAuth_WithSelfSignedMatchingSubjectDn_ReturnsInvalidClient()
+    {
+        const string clientId = "it-mtls-pki-forged";
+        using var authority = CreateAuthority("it-mtls-pki-forged-root");
+        using var forged = CreateCertificate(clientId);
+
+        using var factory = await CreatePkiFactoryAsync(
+            clientId,
+            forged.SubjectName.Name,
+            [authority.ExportCertificatePem()]
+        );
+
+        var client = CreateClient(factory);
+        using var response = await client.SendAsync(BuildTokenRequest(clientId, forged));
+
+        await AssertInvalidClientAsync(response);
+    }
+
+    [Fact]
+    public async Task PostToken_TlsClientAuth_WithNoTrustAnchors_ReturnsInvalidClient()
+    {
+        const string clientId = "it-mtls-pki-noanchor";
+        using var authority = CreateAuthority("it-mtls-pki-noanchor-root");
+        using var certificate = CreateIssuedCertificate(authority, clientId);
+
+        using var factory = await CreatePkiFactoryAsync(clientId, certificate.SubjectName.Name, []);
+
+        var client = CreateClient(factory);
+        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+
+        await AssertInvalidClientAsync(response);
+    }
+
+    [Fact]
     public async Task PostToken_TlsClientAuth_WithNoCertificate_Returns400()
     {
         const string clientId = "it-mtls-pki-nocert";
-        using var certificate = CreateCertificate(clientId);
+        using var authority = CreateAuthority("it-mtls-pki-nocert-root");
 
-        using var factory = new HostApplicationFactory();
-        await factory.SeedTlsClientAuthSubjectDnClientAsync(
+        using var factory = await CreatePkiFactoryAsync(
             clientId,
-            certificate.SubjectName.Name,
-            OpenIdConstants.GrantTypes.ClientCredentials
-        );
-        await factory.SeedResourceServerWithClientGrantAsync(
-            clientId,
-            "it-mtls-pki-nc-rs-api",
-            "https://api.mtls-pki-nc.integration.test",
-            TestServerSettingsProvider.ApiScope
+            $"CN={clientId}",
+            [authority.ExportCertificatePem()]
         );
 
         var client = CreateClient(factory);
@@ -273,6 +412,15 @@ public class TokenEndpointMutualTlsTests
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    private static async Task AssertInvalidClientAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal("invalid_client", document.RootElement.GetProperty("error").GetString());
     }
 
     [Fact]

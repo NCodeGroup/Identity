@@ -32,8 +32,9 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// <summary>
 /// Provides an implementation of <see cref="IClientAuthenticationHandler"/> for the <c>tls_client_auth</c>
 /// client-authentication method (<see href="https://datatracker.ietf.org/doc/html/rfc8705">RFC 8705</see> §2.1): the
-/// presented mutual-TLS client certificate is PKI-validated by the TLS layer, and its subject distinguished name or a
-/// subject alternative name must match the single expected identity the client registered
+/// presented mutual-TLS client certificate must chain to one of the client's configured trust anchors (validated by
+/// <see cref="IClientCertificateChainValidator"/>, never by the TLS terminator alone), and its subject distinguished
+/// name or a subject alternative name must match the single expected identity the client registered
 /// (<c>tls_client_auth_subject_dn</c> or one of the <c>tls_client_auth_san_*</c> values).
 /// </summary>
 internal sealed class TlsClientAuthClientAuthenticationHandler(
@@ -42,6 +43,7 @@ internal sealed class TlsClientAuthClientAuthenticationHandler(
     IAuditEventRecorder auditEventRecorder,
     ILogger<TlsClientAuthClientAuthenticationHandler> logger,
     IClientCertificateResolver clientCertificateResolver,
+    IClientCertificateChainValidator clientCertificateChainValidator,
     ISecretKeyFactory secretKeyFactory
 )
     : MutualTlsClientAuthenticationHandler(
@@ -58,11 +60,22 @@ internal sealed class TlsClientAuthClientAuthenticationHandler(
     private const int Rfc822NameTag = 1;
     private const int UniformResourceIdentifierTag = 6;
 
+    private IClientCertificateChainValidator ClientCertificateChainValidator { get; } =
+        clientCertificateChainValidator;
+
     private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
 
     /// <inheritdoc />
     public override string AuthenticationMethod =>
         OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth;
+
+    /// <inheritdoc />
+    protected override ValueTask<bool> IsCertificateTrustedAsync(
+        OpenIdClient openIdClient,
+        PresentedClientCertificate certificate,
+        CancellationToken cancellationToken
+    ) =>
+        ClientCertificateChainValidator.ValidateAsync(openIdClient, certificate, cancellationToken);
 
     /// <inheritdoc />
     protected override ValueTask<SecretKey?> MatchCertificateAsync(

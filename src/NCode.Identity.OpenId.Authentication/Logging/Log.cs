@@ -109,6 +109,27 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.ClientCertificateTrustAnchorsMissing,
+        Level = LogLevel.Warning,
+        Message = "Client authentication failed: client '{ClientId}' uses tls_client_auth but no trust anchors are configured, so no certificate it presents can be trusted."
+    )]
+    internal static partial void ClientCertificateTrustAnchorsMissing(
+        this ILogger logger,
+        string clientId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientCertificateUntrusted,
+        Level = LogLevel.Information,
+        Message = "Client authentication failed: the certificate presented by client '{ClientId}' does not chain to a configured trust anchor for client authentication ({ChainStatus})."
+    )]
+    internal static partial void ClientCertificateUntrusted(
+        this ILogger logger,
+        string clientId,
+        string chainStatus
+    );
+
+    [LoggerMessage(
         EventId = EventIds.ClientAuthenticationSecretMismatch,
         Level = LogLevel.Information,
         Message = "Client authentication failed: the presented secret for client '{ClientId}' did not match any stored secret."

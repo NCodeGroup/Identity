@@ -22,6 +22,7 @@ const runtime: RuntimeConfig = {
 
 const rsaSecret: SecretResource = {
   secretId: 's-rsa',
+  keyId: 'rsa-kid',
   concurrencyToken: 'sc1',
   use: 'sig',
   algorithm: 'RS256',
@@ -34,6 +35,7 @@ const rsaSecret: SecretResource = {
 const symmetricSecret: SecretResource = {
   ...rsaSecret,
   secretId: 's-sym',
+  keyId: 's-sym',
   use: null,
   algorithm: null,
   secretType: 'symmetric',

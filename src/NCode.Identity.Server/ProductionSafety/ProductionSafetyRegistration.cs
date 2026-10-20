@@ -153,7 +153,8 @@ public static class ProductionSafetyRegistration
     )
     {
         const string remedy =
-            $"Set it to '{nameof(DeveloperKeyMode.None)}' and supply a stable, operator-managed signing key.";
+            $"Set it to '{nameof(DeveloperKeyMode.None)}'; every tenant is then provisioned with persisted signing "
+            + "keys, or holds the keys its operator imports.";
 
         DeveloperKeysOptions developerKeys;
         try
@@ -172,11 +173,12 @@ public static class ProductionSafetyRegistration
             return;
         }
 
-        // Developer keys are development-only in BOTH developer modes (ADR-0002, ADR-0021): Ephemeral regenerates the
-        // signing key on every restart, invalidating every token and JWKS cache the moment the process recycles, and
-        // PersistentSigningKey seeds a key the server generated for itself rather than one an operator controls.
-        // Absent configuration is not safe either, because the mode defaults to Ephemeral — so Production must state
-        // DeveloperKeyMode.None explicitly to assert that it supplies its own key.
+        // Developer keys are development-only in BOTH developer modes (ADR-0002, ADR-0021, ADR-0169): Ephemeral regenerates
+        // the signing key on every restart, invalidating every token and JWKS cache the moment the process recycles, and
+        // PersistentSigningKey discards a key the data-protection key ring can no longer unprotect and replaces it, which
+        // in production would hide a lost key ring behind a silent key change. Absent configuration is not safe either,
+        // because the mode defaults to Ephemeral — so Production must state DeveloperKeyMode.None explicitly, under which
+        // tenants hold the persisted keys they are provisioned with.
         if (developerKeys.Mode == DeveloperKeyMode.None)
             return;
 

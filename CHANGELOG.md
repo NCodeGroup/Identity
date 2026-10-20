@@ -10,6 +10,24 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Every tenant is provisioned with persisted keys, so a production deployment can sign from its first request.** On a
+  fresh production database no tenant had a key, so the JSON Web Key Set was empty and nothing could be signed. That
+  included the bootstrap administrator's first management token, which is the only credential that could import a key.
+  Now every tenant is given a persisted key, when it is seeded, for each configured algorithm it holds no usable key
+  for:
+  - **When:** the root tenant on its first request, a tenant created through the management API before the create
+    returns, and an existing tenant at its next seed.
+  - **Defaults:** `RS256` and `PS256` (3072-bit RSA) and `ES256` (P-256).
+  - **Configuration:** `OpenId:Tenant:KeyProvisioning:Keys` names any registered asymmetric signature or key-management
+    algorithm (with an optional `KeySizeBits`). Configuring it replaces the defaults, and it is validated when the host
+    starts. `OpenId:Tenant:KeyProvisioning:Enabled=false` turns provisioning off for a deployment that brings its own
+    keys.
+  - **Existing keys are never replaced.** A key the tenant already holds — imported or generated — suppresses generation
+    and is never replaced, rotated, or removed. A key the Data Protection key ring can no longer unprotect fails the
+    tenant with a message naming the tenant and the key ring, rather than being replaced.
+
+  See [ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md).
+
 - **A tenant can be created without an issuer, and is given the one its tenant strategy derives.** The host and path
   strategies take an issuer template — `OpenId:TenantResolution:DynamicByHost:IssuerTemplate =
   https://{tenantId}.auth.example`, `DynamicByPath:IssuerTemplate = https://op.example/{tenantId}` — and a tenant created
@@ -104,6 +122,16 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **The development key modes build on the keys every tenant is provisioned with.**
+  - **`PersistentSigningKey`** keeps the provisioned keys and only removes a key the development key ring can no
+    longer unprotect, so provisioning replaces it.
+  - **`Ephemeral`** turns provisioning off, because its in-memory keys replace the persisted ones.
+  - **`None`** behaves exactly as production.
+
+  **Breaking:** `AddDeveloperSigningKey()` is renamed `AddPersistentDeveloperKeys()`, and `OpenIdTenantOptions` gains
+  `KeyProvisioning`. A development database keeps its RS256 key and gains `PS256` and `ES256` keys. See
+  [ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md).
 
 - **Every tenant a strategy serves has an issuer, and nothing derives one from the request.** A tenant without an issuer
   used to publish URLs built from the incoming request — a development convenience that let a caller's `Host` header
@@ -702,6 +730,12 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **Concurrent first requests to a tenant failed one of them.** Two seeds of the same tenant — two replicas, or two
+  requests that missed the tenant cache together — raced to commit, and the loser's request failed. A seed whose commit
+  fails now runs once more in a fresh unit of work, and since seed contributors are idempotent it adds only what the
+  other seed did not, so concurrent seeds converge on one set of keys and resource servers.
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md))
 
 - **Creating a tenant through the management API failed.** The creator's ownership role assignment looks its tenant up
   in the database, but it was written in the same unit of work as the tenant row, before that row was committed, so

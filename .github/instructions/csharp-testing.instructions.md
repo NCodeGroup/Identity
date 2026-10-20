@@ -218,6 +218,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   launch profile's issuer and bootstrap administrator. Configure what a test depends on in the factory
   (`ConfigureAppConfiguration`) rather than assuming a launch profile's value, and expect an unhandled exception to reach
   the client as the developer exception page's `500`.
+- 👁 **Configuration the composition root reads while it registers services is a host setting in a test factory.** A
+  `ConfigureAppConfiguration` overlay reaches options bound later, but not a value `Program.cs` reads to decide what to
+  register — `DeveloperKeys:Mode`, read by `AddDevelopmentEnvironment`, keeps its default and the test silently runs
+  the wrong composition. Supply such a value with `builder.UseSetting(key, value)`, which reaches the host's entry point
+  the way `UseEnvironment` does, and assert on an effect only that composition has (the provisioned keys of
+  `TenantKeyProvisioningTests`), so a value that did not arrive fails the test.
 - 👁 **Drive the authorization endpoint the way a conforming client does.** Every authorization code is bound to an
   `S256` PKCE challenge by default ([ADR-0144](../../docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)),
   so an integration test that requests a code sends `TestPkce.QueryParameters` (or `TestPkce.FormFields` at the pushed

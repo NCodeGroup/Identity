@@ -59,7 +59,7 @@ public static class IdentityServerBuilderExtensions
         /// <item><description><c>Server</c> — <see cref="OpenIdServerOptions"/>, including the server's
         /// <c>Settings</c>.</description></item>
         /// <item><description><c>Tenant</c> — <see cref="OpenIdTenantOptions"/>: how a resolved tenant is
-        /// materialized and cached.</description></item>
+        /// materialized and cached, and which keys every tenant is provisioned with.</description></item>
         /// <item><description><c>TenantResolution</c> — <see cref="TenantResolutionOptions"/>: which tenant a request
         /// selects, and the route the tenant is served under.</description></item>
         /// <item><description><c>MutualTls</c> — <see cref="MutualTlsForwardingOptions"/>: how a forwarded mutual-TLS

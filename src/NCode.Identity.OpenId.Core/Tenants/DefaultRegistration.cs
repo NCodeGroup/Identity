@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Core.ResourceServers;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.OpenId.Tenants.Strategies;
 using NCode.Mediator;
 using NCode.Registration;
@@ -79,6 +80,23 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<
                     ICommandHandler<SeedTenantCommand>,
                     OpenIdIdentityResourceServerSeedHandler
+                >()
+            );
+
+            // Every tenant is provisioned with a persisted key for each configured algorithm it holds no usable key for,
+            // on the same seed path, and the configured keys are validated when the host starts (ADR-0169).
+            serviceCollection.TryAddSingleton<ITenantKeyPolicy, DefaultTenantKeyPolicy>();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<SeedTenantCommand>,
+                    TenantKeySeedHandler
+                >()
+            );
+            serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<OpenIdOptions>,
+                    TenantKeyProvisioningOptionsValidator
                 >()
             );
 

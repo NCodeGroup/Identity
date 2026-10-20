@@ -30,7 +30,21 @@ NCode.Identity.OpenId.OpenIdServerOptions.Settings.get -> Microsoft.Extensions.C
 NCode.Identity.OpenId.OpenIdServerOptions.Settings.set -> void
 NCode.Identity.OpenId.OpenIdServerOptions.SettingsPeriodicRefreshInterval.get -> System.TimeSpan
 NCode.Identity.OpenId.OpenIdServerOptions.SettingsPeriodicRefreshInterval.set -> void
+NCode.Identity.OpenId.OpenIdTenantKeyOptions
+NCode.Identity.OpenId.OpenIdTenantKeyOptions.Algorithm.get -> string!
+NCode.Identity.OpenId.OpenIdTenantKeyOptions.Algorithm.set -> void
+NCode.Identity.OpenId.OpenIdTenantKeyOptions.KeySizeBits.get -> int?
+NCode.Identity.OpenId.OpenIdTenantKeyOptions.KeySizeBits.set -> void
+NCode.Identity.OpenId.OpenIdTenantKeyOptions.OpenIdTenantKeyOptions() -> void
+NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions
+NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions.Enabled.get -> bool
+NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions.Enabled.set -> void
+NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions.Keys.get -> System.Collections.Generic.List<NCode.Identity.OpenId.OpenIdTenantKeyOptions!>!
+NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions.Keys.set -> void
+NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions.OpenIdTenantKeyProvisioningOptions() -> void
 NCode.Identity.OpenId.OpenIdTenantOptions
+NCode.Identity.OpenId.OpenIdTenantOptions.KeyProvisioning.get -> NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions!
+NCode.Identity.OpenId.OpenIdTenantOptions.KeyProvisioning.set -> void
 NCode.Identity.OpenId.OpenIdTenantOptions.OpenIdTenantOptions() -> void
 NCode.Identity.OpenId.OpenIdTenantOptions.SecretsPeriodicRefreshInterval.get -> System.TimeSpan
 NCode.Identity.OpenId.OpenIdTenantOptions.SecretsPeriodicRefreshInterval.set -> void

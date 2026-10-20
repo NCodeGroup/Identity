@@ -1512,6 +1512,28 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0067](docs/adr/0067-secret-type-capability-catalog-and-capabilities-discovery.md),
   [ADR-0068](docs/adr/0068-unified-extensible-elliptic-curve-catalog.md)._
+- **`S11` — Provision tenant signing keys in production.** A tenant's signing keys come only from its persisted secrets
+  (`DefaultOpenIdTenantFactory.GetTenantSecretsAsync`), and the only seeder that creates one is the development-only
+  `DeveloperSigningKeySeedHandler`. `AddProductionSafety` requires `DeveloperKeys:Mode=None` in Production, so on a
+  fresh production database no tenant has a signing key: the JWKS is empty, no token can be issued, and the
+  [ADR-0044](docs/adr/0044-management-api-authentication-and-globaladmin-bootstrap.md) bootstrap administrator cannot
+  obtain the management token it needs to create or import one through `POST api/tenants/{tenantId}/secrets` — a
+  cold-start deadlock that blocks the lab. Add production key provisioning (the open "first-class production
+  key-management registration" follow-up of [ADR-0002](docs/adr/0002-ephemeral-development-keys.md)): on tenant seed,
+  generate the tenant's asymmetric signing keys through the normal persistence path when none is usable — covering the
+  mandatory-to-implement `RS256` and the preferred `PS256` / `ES256`. Every tenant passes through the one seed pipeline
+  — the root tenant when it is first served, a management-created tenant before its create returns, and every tenant
+  again when it is next materialized
+  ([ADR-0166](docs/adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)) — so a
+  `SeedTenantCommand` handler reaches each one. Unlike the developer seeder, never prune
+  undecryptable secrets; fail loudly, since that signals a lost or changed Data Protection key ring. Rotation and
+  retirement follow in `S8`, external keystores in `S7`. Touch points:
+  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperSigningKeySeedHandler.cs`,
+  `src/NCode.Identity.Server/ProductionSafety/ProductionSafetyRegistration.cs`,
+  `src/NCode.Identity.OpenId.Core/Tenants/DefaultOpenIdTenantFactory.cs`. Capture the design in an ADR.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md). Follow-up: `S12` tailors the
+  provisioned algorithm set per tenant._
 
 ## Tooling & agent customization (group `X`)
 

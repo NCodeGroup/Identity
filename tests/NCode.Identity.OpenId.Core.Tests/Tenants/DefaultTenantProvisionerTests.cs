@@ -129,6 +129,27 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
             .Verifiable();
     }
 
+    // Each commit takes the next outcome: an exception fails it, null lets it succeed.
+    private void SetupSeedCommits(List<SeedTenantCommand> seeded, params Exception?[] outcomes)
+    {
+        SetupScope();
+        MockMediator
+            .Setup(x => x.SendAsync(It.IsAny<SeedTenantCommand>(), It.IsAny<CancellationToken>()))
+            .Callback((SeedTenantCommand command, CancellationToken _) => seeded.Add(command))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var commits = 0;
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+                outcomes[commits++] is { } failure
+                    ? ValueTask.FromException(failure)
+                    : ValueTask.CompletedTask
+            )
+            .Verifiable();
+    }
+
     #region EnsureCreatedAsync Tests
 
     [Fact]
@@ -408,6 +429,61 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         await Assert.ThrowsAsync<HttpResultException>(async () =>
             await Provisioner.SeedAsync(RootTenantId, CancellationToken.None)
         );
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenCommitLosesToAConcurrentSeed_SeedsAgainInAFreshUnitOfWork()
+    {
+        var first = CreateTenant(RootTenantId);
+        var second = CreateTenant(RootTenantId);
+        var seeded = new List<SeedTenantCommand>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, first, second);
+        SetupSeedCommits(seeded, new InvalidOperationException("concurrency conflict"), null);
+
+        var result = await Provisioner.SeedAsync(RootTenantId, CancellationToken.None);
+
+        Assert.Same(second, result);
+        Assert.Collection(
+            seeded,
+            command => Assert.Same(first, command.Context.Tenant),
+            command => Assert.Same(second, command.Context.Tenant)
+        );
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenCommitKeepsFailing_SurfacesTheLastFailure()
+    {
+        var root = CreateTenant(RootTenantId);
+        var seeded = new List<SeedTenantCommand>();
+        var firstFailure = new InvalidOperationException("concurrency conflict");
+        var lastFailure = new InvalidOperationException("database unavailable");
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, root);
+        SetupSeedCommits(seeded, firstFailure, lastFailure);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Provisioner.SeedAsync(RootTenantId, CancellationToken.None)
+        );
+
+        Assert.Same(lastFailure, exception);
+        Assert.Equal(2, seeded.Count);
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenCommitIsCanceled_DoesNotSeedAgain()
+    {
+        var root = CreateTenant(RootTenantId);
+        var seeded = new List<SeedTenantCommand>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, root);
+        SetupSeedCommits(seeded, new OperationCanceledException());
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Provisioner.SeedAsync(RootTenantId, CancellationToken.None)
+        );
+
+        Assert.Single(seeded);
     }
 
     #endregion

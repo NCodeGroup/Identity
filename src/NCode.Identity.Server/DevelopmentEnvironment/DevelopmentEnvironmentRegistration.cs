@@ -50,10 +50,11 @@ public static class DevelopmentEnvironmentRegistration
         /// section is absent, so a non-Production host that configures none of them still gets nothing beyond the
         /// ephemeral signing keys that make a zero-setup host work.
         /// <para>
-        /// In Production this returns without registering anything, including the signing keys — a Production
-        /// deployment supplies its own. That is a second line of defence rather than the primary one:
-        /// <c>AddProductionSafety</c> already refuses to start such a deployment, and it reports the problem instead
-        /// of silently changing behaviour. This guard matters when a host has not called it.
+        /// In Production this returns without registering anything, including the developer signing keys — a Production
+        /// deployment uses the persisted keys every tenant is provisioned with, or keys its operator imports. That is a
+        /// second line of defence rather than the primary one: <c>AddProductionSafety</c> already refuses to start such a
+        /// deployment, and it reports the problem instead of silently changing behaviour. This guard matters when a host
+        /// has not called it.
         /// </para>
         /// </remarks>
         public IServiceBuilder<IdentityServer> AddDevelopmentEnvironment(

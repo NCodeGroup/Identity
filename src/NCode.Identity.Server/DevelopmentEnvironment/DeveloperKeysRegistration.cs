@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Mediator;
@@ -27,13 +28,13 @@ using NCode.Registration;
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Provides an explicit, <strong>development-only</strong> opt-in that makes the OpenID server fully
-/// runnable without any configured or persisted secret keys by generating ephemeral in-memory signing
-/// keys.
+/// Provides the <strong>development-only</strong> signing-key setups: ephemeral in-memory keys for hermetic test hosts,
+/// and persisted keys that heal themselves when the development key ring is lost.
 /// </summary>
 /// <remarks>
-/// This is intentionally NOT part of the default registrations: production deployments must supply a
-/// stable, securely-managed signing key.
+/// Neither is needed for a server to have keys: every tenant is provisioned with persisted keys by default. These
+/// setups change only what development needs — keys with no database footprint, or keys that are replaced rather than
+/// failing the tenant when the data-protection key ring that protected them is gone. Neither may be used in production.
 /// </remarks>
 [PublicAPI]
 public static class DeveloperKeysRegistration
@@ -43,9 +44,10 @@ public static class DeveloperKeysRegistration
         /// <summary>
         /// Applies the development-only signing-key setup selected by <paramref name="mode"/>:
         /// <see cref="DeveloperKeyMode.Ephemeral"/> uses in-memory keys, while
-        /// <see cref="DeveloperKeyMode.PersistentSigningKey"/> seeds a persisted key through the normal persistence
-        /// path so it survives restarts. The host owns where the data-protection key ring is stored (the OpenID host
-        /// persists it in its dev database). Must not be used in production.
+        /// <see cref="DeveloperKeyMode.PersistentSigningKey"/> uses the persisted keys every tenant is provisioned with
+        /// and prunes those the data-protection key ring can no longer unprotect. <see cref="DeveloperKeyMode.None"/>
+        /// leaves the persisted keys exactly as production uses them. The host owns where the data-protection key ring
+        /// is stored (the OpenID host persists it in its database). Must not be used in production.
         /// </summary>
         /// <param name="mode">The <see cref="DeveloperKeyMode"/> that selects which setup to apply.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
@@ -54,7 +56,7 @@ public static class DeveloperKeysRegistration
             return mode switch
             {
                 DeveloperKeyMode.None => builder,
-                DeveloperKeyMode.PersistentSigningKey => builder.AddDeveloperSigningKey(),
+                DeveloperKeyMode.PersistentSigningKey => builder.AddPersistentDeveloperKeys(),
                 _ => builder.AddEphemeralDeveloperKeys(),
             };
         }
@@ -62,7 +64,8 @@ public static class DeveloperKeysRegistration
         /// <summary>
         /// Replaces the default tenant factory with one that generates an ephemeral in-memory
         /// <c>RSA</c> signing key, so that token signing and the JWKS endpoint work out-of-the-box for local
-        /// development and testing. Must not be used in production.
+        /// development and testing, and turns off tenant key provisioning, since the tenant's persisted keys are never
+        /// read. Must not be used in production.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<IdentityServer> AddEphemeralDeveloperKeys()
@@ -74,27 +77,35 @@ public static class DeveloperKeysRegistration
                 ServiceDescriptor.Singleton<IOpenIdTenantFactory, EphemeralOpenIdTenantFactory>()
             );
 
+            // The ephemeral factory never reads a tenant's persisted keys, so provisioning them would only spend key
+            // generation and storage on keys nothing uses (ADR-0169).
+            serviceCollection.PostConfigure<OpenIdOptions>(options =>
+                options.Tenant.KeyProvisioning.Enabled = false
+            );
+
             return builder;
         }
 
         /// <summary>
-        /// Replaces the default tenant factory with one that seeds a persisted <c>RSA</c> signing key through the
-        /// normal persistence path (so the runtime, JWKS, and the management API share a single source of truth).
-        /// The host is responsible for configuring data-protection key-ring persistence so the seeded secret can be
-        /// unprotected across restarts (the OpenID host persists the ring in its dev database). Intended for
-        /// local development only; must not be used in production.
+        /// Keeps the persisted keys every tenant is provisioned with — so the runtime, the JWKS endpoint, and the
+        /// management API share a single source of truth that survives restarts — and adds development-only self-healing:
+        /// a tenant secret the data-protection key ring can no longer unprotect is removed when the tenant is seeded, and
+        /// key provisioning generates a fresh key in its place. The host is responsible for configuring data-protection
+        /// key-ring persistence so the keys can be unprotected across restarts (the OpenID host persists the ring in its
+        /// database). Intended for local development only; must not be used in production, where an undecryptable key
+        /// fails the tenant instead of being discarded.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
-        public IServiceBuilder<IdentityServer> AddDeveloperSigningKey()
+        public IServiceBuilder<IdentityServer> AddPersistentDeveloperKeys()
         {
             var serviceCollection = builder.ServiceCollection;
 
-            // The production tenant factory reads secrets from the store; this development-only seed handler ensures a
-            // persisted RSA signing key exists (and heals an undecryptable one) on the tenant seed path (ADR-0045).
+            // The pruner runs on the tenant seed path ahead of key provisioning, which then replaces what it removed
+            // (ADR-0021, ADR-0045, ADR-0169).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<SeedTenantCommand>,
-                    DeveloperSigningKeySeedHandler
+                    DeveloperSecretPruningSeedHandler
                 >()
             );
 

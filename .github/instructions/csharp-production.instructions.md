@@ -320,6 +320,11 @@ rationale.
   a **service** (`TryAddSingleton<IFoo, DefaultFoo>`) for a capability you call for an answer; a **strategy collection**
   (`TryAddEnumerable`) for many implementations the caller iterates or selects; the **mediator** (`ICommandHandler<T>`)
   only for a genuine pipeline seam where the sender must stay ignorant of the handlers.
+- 👁 **Mediator handlers run in descending `ISupportMediatorPriority` order** — `DefaultMediatorPriorities.High` (100)
+  first, `Low` (-100) last. When one handler depends on another's effect, state it with priorities, never with
+  registration order. A handler that observes or repairs state for the rest runs `High` (the default validators, the
+  development secret pruner), and a handler that consumes what the others leave runs `Low` (tenant key provisioning,
+  [ADR-0169](../../docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)).
 - 👁 **Build a protocol endpoint to the canonical shape** per [ADR-0086](../../docs/adr/0086-canonical-openid-endpoint-shape.md):
   a **thin** `IEndpointProvider` whose `HandleRouteAsync` only orchestrates — verb/content-type guard →
   `IClientAuthenticationService.AuthenticateClientAsync` → load a **strongly-typed** `OpenIdMessage<T>` request

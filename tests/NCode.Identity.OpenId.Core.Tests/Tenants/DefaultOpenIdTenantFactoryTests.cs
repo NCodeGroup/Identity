@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -289,6 +290,33 @@ public sealed class DefaultOpenIdTenantFactoryTests
 
     #endregion
 
+    #region GetTenantSecretsAsync Tests
+
+    [Fact]
+    public async Task GetTenantSecretsAsync_WhenAKeyCannotBeUnprotected_FailsNamingTheTenantAndTheKeyRing()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var persistedTenant = CreatePersistedTenant("https://op.example/acme");
+        var keyRingFailure = new CryptographicException("The key was not found in the key ring.");
+        var secretSerializer = mocks.Create<ISecretSerializer>();
+        secretSerializer
+            .Setup(x => x.DeserializeSecrets(persistedTenant.Secrets.Value))
+            .Throws(keyRingFailure)
+            .Verifiable();
+        var factory = new TestableTenantFactory(mocks, secretSerializer.Object);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await factory.InvokeGetTenantSecretsAsync(persistedTenant)
+        );
+
+        Assert.Contains("tenant with id 'acme'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Data Protection key ring", exception.Message, StringComparison.Ordinal);
+        Assert.Same(keyRingFailure, exception.InnerException);
+        mocks.Verify();
+    }
+
+    #endregion
+
     private static DefaultHttpContext CreateHttpContext()
     {
         var httpContext = new DefaultHttpContext();
@@ -322,7 +350,10 @@ public sealed class DefaultOpenIdTenantFactoryTests
             },
         };
 
-    private sealed class TestableTenantFactory(MockRepository mocks)
+    private sealed class TestableTenantFactory(
+        MockRepository mocks,
+        ISecretSerializer? secretSerializer = null
+    )
         : DefaultOpenIdTenantFactory(
             mocks.Create<ITenantResolver>().Object,
             Options.Create(new OpenIdOptions()),
@@ -330,12 +361,27 @@ public sealed class DefaultOpenIdTenantFactoryTests
             mocks.Create<IOpenIdTenantCache>().Object,
             mocks.Create<IReadOnlySettingCollectionProviderFactory>().Object,
             mocks.Create<ISettingSerializer>().Object,
-            mocks.Create<ISecretSerializer>().Object,
+            secretSerializer ?? mocks.Create<ISecretSerializer>().Object,
             mocks.Create<ISecretKeyCollectionProviderFactory>().Object,
             mocks.Create<ICollectionDataSourceFactory>().Object,
             mocks.Create<ISecurityProfileCatalog>().Object
         )
     {
+        public ValueTask<
+            AsyncSharedReferenceLease<ISecretKeyCollectionProvider>
+        > InvokeGetTenantSecretsAsync(PersistedTenant persistedTenant) =>
+            GetTenantSecretsAsync(
+                CreateHttpContext(),
+                null!,
+                null!,
+                persistedTenant,
+                persistedTenant.Issuer ?? string.Empty,
+                default,
+                default,
+                Mock.Of<IPropertyBag>(),
+                CancellationToken.None
+            );
+
         public ValueTask<string> InvokeGetTenantIssuerAsync(
             HttpContext httpContext,
             PersistedTenant persistedTenant

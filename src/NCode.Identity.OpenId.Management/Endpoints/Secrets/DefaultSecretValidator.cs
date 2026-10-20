@@ -106,15 +106,27 @@ internal sealed class DefaultSecretValidator(
     /// <inheritdoc />
     public ManagementError? ValidateImport(ImportSecretRequest request)
     {
+        // Each key type declares the formats it parses, so a key type another package registers brings its own (ADR-0150).
+        var secretType = request.SecretType;
         if (
-            !string.Equals(request.Format, "jwk", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(request.Format, "pem", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(request.Format, "certificate", StringComparison.OrdinalIgnoreCase)
+            !SecretKeyTypeCatalog.TryGet(secretType, out var descriptor)
+            || descriptor.PublicKeyImportFormats.Count == 0
         )
         {
             return Error(
-                $"The import format '{request.Format}' is not supported; expected "
-                    + "'jwk', 'pem', or 'certificate'."
+                $"The secret type '{secretType}' is not supported or cannot be imported as public key material."
+            );
+        }
+
+        if (!descriptor.PublicKeyImportFormats.Contains(request.Format))
+        {
+            return Error(
+                $"The import format '{request.Format}' is not supported for the secret type '{secretType}'; expected "
+                    + string.Join(
+                        ", ",
+                        descriptor.PublicKeyImportFormats.Select(format => $"'{format}'")
+                    )
+                    + "."
             );
         }
 

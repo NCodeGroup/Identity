@@ -235,6 +235,17 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A secret import format is an open name that each key type declares.** The `SecretKeyImportFormat` enum is replaced
+  by `SecretKeyImportFormats`, a static class of `const string` names: `jwk`, `pem`, and `certificate`.
+  `SecretKeyImportParameters.Format` and `SecretKeyImportRequest.Format` are a `string`, and
+  `ISecretKeyTypeDescriptor.SupportsPublicKeyImport` is replaced by `PublicKeyImportFormats`, the names the type
+  imports, so a registered key type can bring a format such as PKCS #12. The management `POST …/secrets/import`
+  endpoints, the secret importer, and client-key import reject a format the secret type does not list, and the `400`
+  message lists the type's formats. The `format` member now compares ordinally, so `JWK` is rejected; OKP and AKP keys
+  accept `jwk` and `pem`. The capabilities `supportsPublicKeyImport` field is unchanged
+  ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md),
+  [ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)).
+
 - **A session's termination reason is an open vocabulary.** The `SessionTerminationReason` enum is replaced by
   `SessionTerminationReasons`, a static class of `const string` names: `logout`, `idle_timeout`, `absolute_expiry`,
   `concurrent_session_limit`, `administrative_revocation`, `global_sign_out`, and `user_initiated`. `ISessionService`,

@@ -40,7 +40,6 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -979,14 +978,6 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(validationError);
         }
 
-        if (!Enum.TryParse<SecretKeyImportFormat>(request.Format, ignoreCase: true, out var format))
-        {
-            return TypedResults.Problem(
-                detail: $"The import format '{request.Format}' is not supported.",
-                statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
         if (HasJwksUri(client.Settings.Value))
         {
             return KeySourceConflict();
@@ -998,7 +989,7 @@ internal class ClientApiEndpointHandler(
         {
             SecretId = secretId,
             SecretType = request.SecretType,
-            Format = format,
+            Format = request.Format,
             KeyMaterial = request.KeyMaterial,
             Use = request.Use,
             Algorithm = request.Algorithm,

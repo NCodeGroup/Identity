@@ -35,7 +35,7 @@ public sealed class CapabilitiesProvidersTests
         mockDescriptor.Setup(x => x.KeyType).Returns("rsa");
         mockDescriptor.Setup(x => x.IsAsymmetric).Returns(true);
         mockDescriptor.Setup(x => x.SupportsPublicKeyExport).Returns(true);
-        mockDescriptor.Setup(x => x.SupportsPublicKeyImport).Returns(true);
+        mockDescriptor.Setup(x => x.PublicKeyImportFormats).Returns(["jwk"]);
 
         var mockCatalog = new Mock<ISecretKeyTypeCatalog>(MockBehavior.Strict);
         mockCatalog.Setup(x => x.Descriptors).Returns([mockDescriptor.Object]);

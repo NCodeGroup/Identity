@@ -47,11 +47,20 @@ internal sealed class DefaultSecretImporter(
     {
         if (
             !SecretKeyTypeCatalog.TryGet(request.SecretType, out var descriptor)
-            || !descriptor.SupportsPublicKeyImport
+            || descriptor.PublicKeyImportFormats.Count == 0
         )
         {
             throw new ArgumentException(
                 $"The secret type '{request.SecretType}' does not support importing public key material.",
+                nameof(request)
+            );
+        }
+
+        if (!descriptor.PublicKeyImportFormats.Contains(request.Format))
+        {
+            throw new ArgumentException(
+                $"The secret type '{request.SecretType}' does not import public key material in the "
+                    + $"'{request.Format}' format.",
                 nameof(request)
             );
         }

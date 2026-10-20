@@ -50,14 +50,15 @@ public class DefaultSecretImporterTests
     private static SecretKeyImportRequest CreateRequest(
         string secretType,
         string keyMaterial,
-        string? keyId
+        string? keyId,
+        string format = SecretKeyImportFormats.Pem
     ) =>
         new()
         {
             SecretId = "secret-1",
             KeyId = keyId,
             SecretType = secretType,
-            Format = SecretKeyImportFormat.Pem,
+            Format = format,
             KeyMaterial = keyMaterial,
             Use = "sig",
             Algorithm = "RS256",
@@ -101,6 +102,22 @@ public class DefaultSecretImporterTests
         var request = CreateRequest(SecretTypes.Symmetric, "material", null);
 
         Assert.Throws<ArgumentException>(() => _importer.ImportSecret(request));
+    }
+
+    [Fact]
+    public void ImportSecret_WhenTheTypeDoesNotImportTheFormat_Throws()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = CreateRequest(
+            SecretTypes.Rsa,
+            rsa.ExportSubjectPublicKeyInfoPem(),
+            null,
+            format: "openssh"
+        );
+
+        var exception = Assert.Throws<ArgumentException>(() => _importer.ImportSecret(request));
+
+        Assert.Contains("'openssh'", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

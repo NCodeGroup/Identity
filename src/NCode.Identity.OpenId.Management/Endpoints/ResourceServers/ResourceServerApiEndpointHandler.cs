@@ -39,7 +39,6 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
@@ -1270,21 +1269,13 @@ internal class ResourceServerApiEndpointHandler(
             return ToErrorResult(validationError);
         }
 
-        if (!Enum.TryParse<SecretKeyImportFormat>(request.Format, ignoreCase: true, out var format))
-        {
-            return TypedResults.Problem(
-                detail: $"The import format '{request.Format}' is not supported.",
-                statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
         var secretId = CryptoService.GenerateResourceId();
 
         var importRequest = new SecretKeyImportRequest
         {
             SecretId = secretId,
             SecretType = request.SecretType,
-            Format = format,
+            Format = request.Format,
             KeyMaterial = request.KeyMaterial,
             Use = request.Use,
             Algorithm = request.Algorithm,

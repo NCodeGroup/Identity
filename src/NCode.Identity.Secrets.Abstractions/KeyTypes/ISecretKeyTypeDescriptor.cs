@@ -63,11 +63,12 @@ public interface ISecretKeyTypeDescriptor
     bool SupportsPublicKeyExport { get; }
 
     /// <summary>
-    /// Gets a value indicating whether keys of this type support importing caller-supplied public key material.
-    /// Always <c>false</c> for symmetric types.
+    /// Gets the formats in which this key type imports caller-supplied public key material, from
+    /// <see cref="SecretKeyImportFormats"/> or a key type's own names; empty when the type imports none. Always empty
+    /// for symmetric types.
     /// </summary>
     // See ADR-0104.
-    bool SupportsPublicKeyImport { get; }
+    IReadOnlyCollection<string> PublicKeyImportFormats { get; }
 
     /// <summary>
     /// Validates the requested generation parameters for this key type, returning <c>null</c> when valid or a
@@ -93,9 +94,9 @@ public interface ISecretKeyTypeDescriptor
     /// <summary>
     /// Parses and validates the caller-supplied <b>public</b> key material for this key type, invoking
     /// <paramref name="protect"/> to protect the canonical DER, and returns the result. Throws
-    /// <see cref="System.ArgumentException"/> when the material is malformed, carries a private key, or does not
-    /// match this key type; throws <see cref="System.NotSupportedException"/> when
-    /// <see cref="SupportsPublicKeyImport"/> is <c>false</c>.
+    /// <see cref="System.ArgumentException"/> when the material is malformed, carries a private key, does not match
+    /// this key type, or is in a format outside <see cref="PublicKeyImportFormats"/>; throws
+    /// <see cref="System.NotSupportedException"/> when <see cref="PublicKeyImportFormats"/> is empty.
     /// </summary>
     /// <param name="parameters">The caller-supplied material to import.</param>
     /// <param name="protect">Protects the canonical public-key bytes.</param>

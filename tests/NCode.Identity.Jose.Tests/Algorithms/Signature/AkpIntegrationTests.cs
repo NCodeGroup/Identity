@@ -82,7 +82,7 @@ public class AkpIntegrationTests
 
     private static AkpSecretKey ImportPublicKey(
         AkpSecretKeyTypeDescriptor descriptor,
-        SecretKeyImportFormat format,
+        string format,
         string keyMaterial
     )
     {
@@ -179,7 +179,7 @@ public class AkpIntegrationTests
 
         var publicKey = ImportPublicKey(
             descriptor,
-            SecretKeyImportFormat.Jwk,
+            SecretKeyImportFormats.Jwk,
             System.Text.Json.JsonSerializer.Serialize(exported.Jwk)
         );
 
@@ -207,7 +207,7 @@ public class AkpIntegrationTests
         var exported = descriptor.ExportPublicKey(privateKey);
         Assert.NotNull(exported);
 
-        var publicKey = ImportPublicKey(descriptor, SecretKeyImportFormat.Pem, exported.Pem);
+        var publicKey = ImportPublicKey(descriptor, SecretKeyImportFormats.Pem, exported.Pem);
 
         Assert.False(publicKey.HasPrivateKey);
         Assert.True(algorithm.Verify(publicKey, message, signature));
@@ -228,7 +228,7 @@ public class AkpIntegrationTests
         Assert.NotNull(exported);
         var publicKey = ImportPublicKey(
             descriptor,
-            SecretKeyImportFormat.Jwk,
+            SecretKeyImportFormats.Jwk,
             System.Text.Json.JsonSerializer.Serialize(exported.Jwk)
         );
 
@@ -254,7 +254,7 @@ public class AkpIntegrationTests
         var jwk = $$"""{"kty":"AKP","alg":"ML-DSA-44","pub":"AAAA","{{privateMember}}":"AAAA"}""";
         var parameters = new SecretKeyImportParameters
         {
-            Format = SecretKeyImportFormat.Jwk,
+            Format = SecretKeyImportFormats.Jwk,
             KeyMaterial = jwk,
         };
 

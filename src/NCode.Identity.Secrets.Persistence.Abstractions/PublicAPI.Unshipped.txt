@@ -100,7 +100,7 @@ NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.CreatedWhen.get -> Sys
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.CreatedWhen.init -> void
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.ExpiresWhen.init -> void
-NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Format.get -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Format.get -> string!
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Format.init -> void
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.KeyMaterial.get -> string!
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.KeyMaterial.init -> void

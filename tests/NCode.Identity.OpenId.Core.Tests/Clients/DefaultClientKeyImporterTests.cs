@@ -141,7 +141,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
             SecretId = "secret-1",
             KeyId = keyId,
             SecretType = SecretTypes.Rsa,
-            Format = Enum.Parse<SecretKeyImportFormat>(format),
+            Format = format,
             KeyMaterial = keyMaterial,
             Use = use,
             Algorithm = algorithm,
@@ -473,7 +473,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     public void TryImportKey_WhenJwkDeclaresMetadata_KeepsIt()
     {
         var jwk = With(With(RsaKey("client-kid"), "use", "sig"), "alg", "PS256");
-        var request = CreateImportRequest("Jwk", jwk.ToJsonString());
+        var request = CreateImportRequest(SecretKeyImportFormats.Jwk, jwk.ToJsonString());
 
         var imported = Importer.TryImportKey(request, out var secret, out var error);
 
@@ -490,7 +490,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     {
         var jwk = With(RsaKey("client-kid"), "alg", "RS256");
         var request = CreateImportRequest(
-            "Jwk",
+            SecretKeyImportFormats.Jwk,
             jwk.ToJsonString(),
             keyId: "client-kid",
             algorithm: "RS256"
@@ -513,7 +513,13 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     )
     {
         var jwk = With(With(RsaKey("client-kid"), "use", "sig"), "alg", "RS256");
-        var request = CreateImportRequest("Jwk", jwk.ToJsonString(), keyId, use, algorithm);
+        var request = CreateImportRequest(
+            SecretKeyImportFormats.Jwk,
+            jwk.ToJsonString(),
+            keyId,
+            use,
+            algorithm
+        );
 
         var imported = Importer.TryImportKey(request, out _, out var error);
 
@@ -525,7 +531,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     public void TryImportKey_WhenJwkCarriesPrivateMaterial_ReturnsError()
     {
         var jwk = With(RsaKey("client-kid"), "d", "AAAA");
-        var request = CreateImportRequest("Jwk", jwk.ToJsonString());
+        var request = CreateImportRequest(SecretKeyImportFormats.Jwk, jwk.ToJsonString());
 
         var imported = Importer.TryImportKey(request, out _, out var error);
 
@@ -537,7 +543,11 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     public void TryImportKey_WhenJwkKeyOperationsContradictTheRequestedUse_ReturnsError()
     {
         var jwk = With(RsaKey("client-kid"), "key_ops", new JsonArray("verify"));
-        var request = CreateImportRequest("Jwk", jwk.ToJsonString(), use: "enc");
+        var request = CreateImportRequest(
+            SecretKeyImportFormats.Jwk,
+            jwk.ToJsonString(),
+            use: "enc"
+        );
 
         var imported = Importer.TryImportKey(request, out _, out var error);
 
@@ -548,7 +558,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     [Fact]
     public void TryImportKey_WhenMaterialIsNotAJwk_ReturnsError()
     {
-        var request = CreateImportRequest("Jwk", "not json");
+        var request = CreateImportRequest(SecretKeyImportFormats.Jwk, "not json");
 
         var imported = Importer.TryImportKey(request, out _, out var error);
 
@@ -556,11 +566,25 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
         Assert.Contains("not a JSON Web Key", error, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("openssh")]
+    [InlineData("PEM")]
+    public void TryImportKey_WhenTheKeyTypeDoesNotImportTheFormat_ReturnsError(string format)
+    {
+        var request = CreateImportRequest(format, _rsa.ExportSubjectPublicKeyInfoPem());
+
+        var imported = Importer.TryImportKey(request, out _, out var error);
+
+        Assert.False(imported);
+        Assert.Contains($"'{format}'", error, StringComparison.Ordinal);
+        Assert.Contains("'jwk', 'pem', 'certificate'", error, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TryImportKey_WhenPem_UsesTheRequestedMetadata()
     {
         var request = CreateImportRequest(
-            "Pem",
+            SecretKeyImportFormats.Pem,
             _rsa.ExportSubjectPublicKeyInfoPem(),
             use: "sig",
             algorithm: "RS256"
@@ -578,7 +602,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     public void TryImportKey_WhenPemAlgorithmDoesNotFitTheKey_ReturnsError()
     {
         var request = CreateImportRequest(
-            "Pem",
+            SecretKeyImportFormats.Pem,
             _rsa.ExportSubjectPublicKeyInfoPem(),
             algorithm: "ES256"
         );
@@ -596,7 +620,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
         {
             SecretId = "secret-1",
             SecretType = "unknown",
-            Format = SecretKeyImportFormat.Pem,
+            Format = SecretKeyImportFormats.Pem,
             KeyMaterial = _rsa.ExportSubjectPublicKeyInfoPem(),
             Use = null,
             Algorithm = null,

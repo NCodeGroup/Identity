@@ -13,7 +13,7 @@ NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.JwkKeyType.get -> str
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.KeyType.get -> string!
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
-NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.PublicKeyImportFormats.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters) -> string?
 NCode.Identity.Secrets.KeyMaterial.DataProtectorExtensions
 NCode.Identity.Secrets.KeyMaterial.DataProtectorExtensions.extension(Microsoft.AspNetCore.DataProtection.IDataProtector!)
@@ -27,7 +27,7 @@ abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.JwkKeyType.get 
 abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.KeyType.get -> string!
 override abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.JwkKeyType.get -> string!
 virtual NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
-virtual NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
+virtual NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.PublicKeyImportFormats.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters) -> string?
 abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial!
 virtual NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial!
@@ -47,3 +47,4 @@ abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.TryGe
 abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.CreatePrivateKeyFromPkcs8(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> pkcs8) -> NCode.Identity.Secrets.Keys.SecretKey!
 abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.CreatePublicKeyFromSpki(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.ReadOnlySpan<byte> subjectPublicKeyInfo) -> NCode.Identity.Secrets.Keys.SecretKey!
 static NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.GetRequiredBase64UrlMember(System.Text.Json.JsonElement root, string! memberName) -> byte[]!
+override NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.PublicKeyImportFormats.get -> System.Collections.Generic.IReadOnlyCollection<string!>!

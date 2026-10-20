@@ -103,8 +103,8 @@ tenant's policy for that kind of token. A system resource server never holds key
   response or a logout token.
 - A token encrypted to a resource server's own key is read only where that resource server's keys are supplied — at
   introspection by that resource server. Token exchange cannot exchange it; it was meant for that resource server alone.
-- Moving management-API authentication to the control-plane tenant (backlog `F75`) passes that tenant's context to the
-  seam; the seam needs no change.
+- The management API authenticates against the control-plane tenant by passing that tenant's context to the seam,
+  which needed no change ([ADR-0191](0191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
 - **Breaking:** the new `IIssuedTokenValidator` and `AccessTokenValidationOptions`; `ResolvedResourceServer` requires
   `IsSystem` and `Scopes`; the management API returns `409` for a secret written to a system resource server; the
   retired `AccessTokenValidationError` log event's ID is not reused.

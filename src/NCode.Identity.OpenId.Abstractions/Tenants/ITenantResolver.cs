@@ -68,6 +68,18 @@ public interface ITenantResolver
     );
 
     /// <summary>
+    /// Resolves the control-plane tenant, which authenticates the management API whatever tenant the request addresses.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the control-plane
+    /// <see cref="PersistedTenant"/>.</returns>
+    ValueTask<PersistedTenant> ResolveControlPlaneTenantAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Gets the issuer the configured <see cref="ITenantStrategy"/> assigns a tenant that is written without one — its
     /// configured issuer or the expansion of its issuer template. Every place a tenant is written applies it before
     /// <see cref="ValidateTenantAsync"/>, which judges a derived issuer exactly like an explicit one.

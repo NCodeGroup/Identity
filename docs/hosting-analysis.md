@@ -224,9 +224,10 @@ Why this shape:
   issuer is given (and keeps) the one the template derives; a custom domain is set as an explicit issuer. The root tenant
   is created when the first request reaches `auth.nidentity.io`, with the bootstrap administrator named into it
   (`BootstrapAdmin:TenantId = root`,
-  [ADR-0166](adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). Serving `/api` on
-  `manage.nidentity.io`, which is no tenant's host, still needs the management API to authenticate against the root
-  tenant rather than the host it is called on (backlog `F75`).
+  [ADR-0166](adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). `/api` is served on
+  `manage.nidentity.io`, which is no tenant's host, because the management API authenticates against the root tenant
+  rather than the host it is called on
+  ([ADR-0191](adr/0191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
 
 **Environments.** Customer environments are just tenants on production (`acme-dev.auth.nidentity.io`), so they need no
 extra hostnames. The platform's private **lab** inserts a `lab` label after the function: `auth.lab.nidentity.io`,

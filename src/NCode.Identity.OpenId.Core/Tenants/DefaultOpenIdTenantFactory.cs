@@ -151,13 +151,71 @@ public class DefaultOpenIdTenantFactory(
         }
 
         persistedTenant ??= await TenantResolver.ResolveTenantAsync(httpContext, cancellationToken);
-        tenantId = persistedTenant.TenantId;
 
+        return await MaterializeTenantAsync(
+            httpContext,
+            openIdEnvironment,
+            openIdServer,
+            persistedTenant.TenantId,
+            propertyBag,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public virtual async ValueTask<
+        AsyncSharedReferenceLease<OpenIdTenant>
+    > CreateControlPlaneTenantAsync(
+        HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
+        // The control-plane tenant is resolved by configuration rather than from the request, and it is shared through
+        // the same cache as when a request addresses it.
+        var persistedTenant = await TenantResolver.ResolveControlPlaneTenantAsync(
+            httpContext,
+            cancellationToken
+        );
+        var tenantId = persistedTenant.TenantId;
+
+        await using var cachedTenantReference = await TenantCache.TryGetAsync(
+            tenantId,
+            propertyBag,
+            cancellationToken
+        );
+
+        if (cachedTenantReference.IsActive)
+        {
+            return cachedTenantReference.AddReference();
+        }
+
+        return await MaterializeTenantAsync(
+            httpContext,
+            openIdEnvironment,
+            openIdServer,
+            tenantId,
+            propertyBag,
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> MaterializeTenantAsync(
+        HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
+        string tenantId,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
         // A tenant is seeded whenever it is materialized: the bootstrap of a tenant created on demand, and the
         // reconciliation that brings an existing tenant up to date with the seed contributors (ADR-0166). The provisioner
         // is scoped (its mediator is request-scoped), so it is resolved from the request's services.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
-        persistedTenant = await provisioner.SeedAsync(tenantId, cancellationToken);
+        var persistedTenant = await provisioner.SeedAsync(tenantId, cancellationToken);
 
         var tenantPropertyBag = propertyBag.Clone();
 

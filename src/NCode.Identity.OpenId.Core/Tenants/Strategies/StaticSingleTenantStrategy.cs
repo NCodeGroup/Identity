@@ -86,6 +86,16 @@ internal class StaticSingleTenantStrategy(
     protected override bool RequiresIssuer(string tenantId) => IsConfiguredTenant(tenantId);
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The strategy serves only the configured tenant, so no other tenant can issue a token; the configured tenant is
+    /// therefore the control-plane tenant.
+    /// </remarks>
+    public override async ValueTask<PersistedTenant> ResolveControlPlaneTenantAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    ) => await ResolveTenantAsync(httpContext, cancellationToken);
+
+    /// <inheritdoc />
     public override async ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken

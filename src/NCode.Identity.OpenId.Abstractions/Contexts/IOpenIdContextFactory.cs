@@ -47,6 +47,23 @@ public interface IOpenIdContextFactory
     );
 
     /// <summary>
+    /// Creates an <see cref="OpenIdContext"/> whose tenant is the control-plane tenant, which authenticates the management
+    /// API whatever tenant the request addresses, and publishes it on the request like
+    /// <see cref="CreateForRequestAsync"/>.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> associated with the current request.</param>
+    /// <param name="mediator">The <see cref="IMediator"/> instance that is scoped with the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created
+    /// <see cref="OpenIdContext"/> instance.</returns>
+    ValueTask<OpenIdContext> CreateForControlPlaneAsync(
+        HttpContext httpContext,
+        IMediator mediator,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Creates an <see cref="OpenIdContext"/> whose tenant is the one addressed by an explicit identifier, decoupled
     /// from the request's own tenant-resolution strategy. Unlike <see cref="CreateForRequestAsync"/>, the returned
     /// context is <b>not</b> published on the request (it does not replace the ambient <see cref="OpenIdContext"/>); the

@@ -446,6 +446,38 @@ public sealed class DefaultTenantResolverTests
 
     #endregion
 
+    #region ResolveControlPlaneTenantAsync Tests
+
+    [Fact]
+    public async Task ResolveControlPlaneTenantAsync_DelegatesToTheSelectedStrategy()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        var httpContext = new DefaultHttpContext();
+        var tenant = new PersistedTenant
+        {
+            TenantId = RootTenantOptions.DefaultTenantId,
+            Issuer = Issuer,
+            ConcurrencyToken = "token",
+            IsDisabled = false,
+            DisplayName = RootTenantOptions.DefaultDisplayName,
+            Settings = null!,
+            Secrets = null!,
+        };
+        strategy
+            .Setup(x => x.ResolveControlPlaneTenantAsync(httpContext, CancellationToken.None))
+            .ReturnsAsync(tenant)
+            .Verifiable();
+
+        var result = await CreateResolver(strategy.Object)
+            .ResolveControlPlaneTenantAsync(httpContext, CancellationToken.None);
+
+        Assert.Same(tenant, result);
+        mocks.Verify();
+    }
+
+    #endregion
+
     #region GetDefaultIssuerAsync Tests
 
     [Fact]

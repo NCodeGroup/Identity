@@ -372,6 +372,63 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
 
     #endregion
 
+    #region ResolveControlPlaneTenantAsync Tests
+
+    [Fact]
+    public async Task ResolveControlPlaneTenantAsync_WhenTheRequestAddressesAnotherTenant_ReturnsTheRootTenant()
+    {
+        const string rootTenantId = RootTenantOptions.DefaultTenantId;
+
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var root = CreateTenant(rootTenantId, isDisabled: false);
+        var storeManagerFactory = SetupStore(mocks, rootTenantId, root);
+        var strategy = CreateStrategy(storeManagerFactory.Object);
+
+        var result = await strategy.ResolveControlPlaneTenantAsync(
+            CreateHttpContext("acme", provisioner: null),
+            CancellationToken.None
+        );
+
+        Assert.Same(root, result);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ResolveControlPlaneTenantAsync_WhenRootTenantIsMissing_CreatesItOnDemand()
+    {
+        const string rootTenantId = RootTenantOptions.DefaultTenantId;
+
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var storeManagerFactory = SetupStore(mocks, rootTenantId, tenant: null);
+        var provisioner = mocks.Create<ITenantProvisioner>();
+        var root = CreateTenant(rootTenantId, isDisabled: false);
+        provisioner
+            .Setup(x =>
+                x.EnsureCreatedAsync(
+                    rootTenantId,
+                    RootTenantOptions.DefaultDisplayName,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(root)
+            .Verifiable();
+        var strategy = CreateStrategy(storeManagerFactory.Object);
+
+        // A collection route such as POST /api/tenants carries no tenant route value at all.
+        var httpContext = CreateHttpContext("acme", provisioner.Object);
+        httpContext.Request.RouteValues.Clear();
+
+        var result = await strategy.ResolveControlPlaneTenantAsync(
+            httpContext,
+            CancellationToken.None
+        );
+
+        Assert.Same(root, result);
+        mocks.Verify();
+    }
+
+    #endregion
+
     private static Mock<IStoreManagerFactory> SetupStore(
         MockRepository mocks,
         string tenantId,

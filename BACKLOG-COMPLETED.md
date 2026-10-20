@@ -1946,6 +1946,28 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
 
 ## Tooling & agent customization (group `X`)
 
+- **`X1` — Chat commands duplicated as prompt + skill.** Every chat command exists **twice**: a VS Code prompt under
+  `.github/prompts/` and a Copilot CLI skill under `.github/skills/`, because the Agent Host / Copilot CLI does not load
+  prompt files and reads `SKILL.md` instead. There are two sets. The hand-written `audit-conventions`
+  [prompt](.github/prompts/audit-conventions.prompt.md) and [skill](.github/skills/audit-conventions/SKILL.md) must be
+  mirrored by hand — the bodies are identical apart from a `+1 ../` link-depth adjustment. The 16 plan-and-execute
+  commands are generated in pairs from one template each by the workflow installer
+  ([ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)),
+  so they cannot drift. VS Code lists both copies of each command in its slash menu. No skill carries
+  `disable-model-invocation: true`: the flag makes a skill **unreachable** in Copilot CLI, even on explicit invocation
+  (upstream bug github/copilot-cli#4438). **Trade-off accepted:** every skill is also model-auto-invocable, and its
+  `description` is the only guard on when the model reaches for it — including `execute-step`, which is meant to run
+  only on the executor model. A prompt's `agent:` and `model:` frontmatter have no skill equivalent; the generated
+  planning prompts select Opus through `model:`. **Runtime-validated (2026-10-10):** the `audit-conventions` skill was
+  discoverable and loadable in a live Agent Host / Copilot CLI session, with its relative links and LF line endings
+  intact. **Decision still deferred:** delete the prompts (Agent-Host-only) or keep both (VS Code chat + Agent Host).
+  Keep both for now, and restore `disable-model-invocation: true` once github/copilot-cli#4438 is fixed — by hand for
+  `audit-conventions`, and in the installer for the generated set.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md#dual-runtime-customization-contract).
+  The historical deferred decision and flag-restoration follow-up above are superseded: both runtimes and automatic
+  skill availability are intentionally supported, and the Definition-of-Done customization gate enforces parity for
+  all 17 pairs, including the hand-written audit workflow. No upstream fix or further X1 work is required._
 - **`X2` — Archive completed backlog items (full text) for reference.** Completed entries were **deleted** from
   [`BACKLOG.md`](BACKLOG.md) when their work landed, so their original wording survived only in git history and in the
   terse [`CHANGELOG.md`](CHANGELOG.md) line that closed them. Mine the history — `git log --follow -p -- BACKLOG.md` —

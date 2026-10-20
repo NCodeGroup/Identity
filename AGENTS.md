@@ -44,6 +44,68 @@ history or volatile agent memory ([ADR-0008](docs/adr/0008-conventions-and-lesso
 item is fully done, **move** its text to the completed-items archive [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)
 (don't just delete it) so completed work stays discoverable without git archaeology.
 
+## Plan-and-execute workflow
+
+Multi-step changes run as **plan-and-execute**
+([ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)):
+Claude Opus plans into a root `PLAN.md`, a lower-cost Copilot model (Auto) executes it one verified step at a time, and
+any step that needs a decision comes back to Opus to be re-planned.
+
+- **VS Code** (session target Local): pick the **Copilot Planner** agent **and Claude Opus 5.5 in the model picker** —
+  in a Local session, choosing an agent from the picker keeps the selected model (an agent file's `model` applies to it
+  only as a subagent, and each handoff button selects its own). Review `PLAN.md`, then either **Run all steps with
+  subagents** (the Copilot Orchestrator on Opus delegates each step to a Copilot Implementer subagent on Auto, runs the
+  step's check, and re-plans escalations itself — its agent file grants the subagent tool, so nothing needs enabling)
+  or step through with **Execute next step** and **Re-plan with the planner**. Finish with **Review the work** (Sonnet)
+  and execute the fix steps it queues. The planning prompts — `/plan-feature`, `/plan-bugfix`, `/plan-refactor`,
+  `/plan-tests`, `/plan-migration`, `/plan-performance`, `/plan-security`, `/plan-docs`, and `/handoff-plan` after
+  planning in conversation — select Opus themselves but run in the built-in Agent, which has no handoff buttons:
+  continue by picking **Copilot Orchestrator** with Opus and asking it to execute `PLAN.md`.
+- **Copilot CLI:** start on Opus — `copilot --model claude-opus-5.5 --reasoning-effort high` — then `/plan-feature …`,
+  `/orchestrate-plan` (delegates each step to the `plan-executor` agent on `auto`), and `/review-plan-diff`.
+- **VS Code (session target Copilot):** use the same skills as Copilot CLI. Select **Claude Opus 5.5** in the model
+  picker before `/plan-feature …` or `/orchestrate-plan`; a skill runs on the session's model and cannot switch it.
+  The orchestrator delegates execution as above. Select **Claude Sonnet 5.5** before `/review-plan-diff`, or the intended
+  execution model before running `/execute-step` yourself. Selecting Auto for the planning session does not become
+  Opus merely because the corresponding Local prompt selects it.
+  If this session cannot delegate to the configured Auto executor, select an available lower-cost execution model,
+  run `/execute-step` one step at a time, and switch back to the planning model for verification or re-planning.
+  Do not hand-edit generated agents to work around a session-specific model-availability error.
+- **Done-when commands** prove one step: the narrowest test that fails until the step is done, such as
+  `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>"` (xUnit v2 on VSTest).
+  `./build/dod.ps1 -Fast` stays the gate for the whole change.
+- **`PLAN.md` is transient:** the push protocol in [`copilot-instructions.md`](.github/copilot-instructions.md) promotes
+  its Decisions, deletes it, and squashes the `Plan step N` / `Re-plan step N` checkpoint commits before anything is
+  pushed.
+- The agents, prompts, and skills under `.github/` are **generated** (the installer command is in ADR-0170); change the
+  templates and re-install rather than hand-editing them. Repository rules belong in the instruction files, which every
+  agent in the loop already loads. The hand-written `audit-conventions` prompt and skill are the exception; edit both
+  together.
+
+### Local and Copilot customizations
+
+**Both session targets are intentionally supported.** Each workflow has a Local adapter under
+[`.github/prompts/`](.github/prompts/) and a Copilot adapter under [`.github/skills/`](.github/skills/).
+Local supports prompt-specific agent/model/tool selection; Copilot uses skills and the session's selected model.
+Both copies appearing in Local's slash menu is expected, not unfinished migration work.
+
+The [customization check](build/agent-customizations.ps1) enforces matching command names, descriptions and ordered
+workflow bodies, allowing only the argument syntax and relative-link depth differences between formats. It also
+rejects prompt-only settings and invocation-control flags in skills. Its
+[fixture tests](build/tests/agent-customizations.tests.ps1) run as the first Definition-of-Done stage, including checks
+against the real repository. Run them directly with `pwsh -NoProfile -File .\build\tests\agent-customizations.tests.ps1`.
+After changing templates and reinstalling, run this check; for `audit-conventions`, update both copies and run it.
+Skills may be selected automatically by the model; their descriptions and workflow instructions guide their use.
+Manual-only selection is not a requirement of this design.
+
+**Do not bulk-migrate these repository prompts.** Copilot's **Review Migrations** banner detects prompt files it
+cannot read, but this repository already provides their skill equivalents. Use **Ignore** for the workspace
+**Convert Prompt to Skills** group; **Show Ignored Migrations** restores it. This changes only the migration UI, not
+which files the runtime can read. Generic conversion loses prompt-specific agent/model/tool selection and adds
+`disable-model-invocation: true`, which is not part of our supported skill configuration. User-profile customizations
+are separate: review any such entries individually rather than assuming the repository skills cover them. See
+[ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md#dual-runtime-customization-contract).
+
 ## Build, test & contributing
 
 Run [`./build/dod.ps1`](build/dod.ps1) — the single Definition of Done (tool-restore, CSharpier check, restore,

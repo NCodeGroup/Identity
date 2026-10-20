@@ -14,8 +14,10 @@ change to the public API is a **major** version bump.
   `POST api/tenants/{tenantId}/grants/initial-access-tokens` accepts a `resourceServerId` that scopes the token to a
   resource server. The same checks apply as when the management API binds a client: the resource server exists in the
   tenant, is not a system resource server, and the caller may update it. A client registered with a scoped token is
-  bound to that resource server, must be confidential, and cannot be made public by an RFC 7592 update. The client
-  information response reports the binding as `resource_server_id`. **Breaking:**
+  bound to that resource server, must be confidential, and cannot be made public by an RFC 7592 update. A bound client
+  registers `introspection_signed_response_alg` and `introspection_encrypted_response_{alg,enc}` (RFC 9701 §6), which an
+  ordinary client is refused. The client information response reports the binding as `resource_server_id`.
+  **Breaking:**
   `IInitialAccessTokenValidator.ValidateAsync` returns the token's `InitialAccessTokenGrant` (or `null`) instead of a
   `bool`, and the registration endpoint validates a presented initial access token even when anonymous registration is
   allowed. See

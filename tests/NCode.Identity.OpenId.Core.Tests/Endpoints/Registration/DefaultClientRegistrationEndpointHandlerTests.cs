@@ -835,6 +835,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     [Theory]
     [InlineData("id_token")]
     [InlineData("userinfo")]
+    [InlineData("introspection")]
     [InlineData("request_object")]
     public void ValidateKeyMetadata_WhenEncRegisteredWithoutAlg_ReturnsInvalidClientMetadata(
         string kind
@@ -846,6 +847,10 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         {
             "id_token" => new RegisterClientRequest { IdTokenEncryptedResponseEnc = "A256GCM" },
             "userinfo" => new RegisterClientRequest { UserInfoEncryptedResponseEnc = "A256GCM" },
+            "introspection" => new RegisterClientRequest
+            {
+                IntrospectionEncryptedResponseEnc = "A256GCM",
+            },
             _ => new RegisterClientRequest { RequestObjectEncryptionEnc = "A256GCM" },
         };
 
@@ -861,6 +866,22 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var handler = CreateHandler();
         var (factory, capturedCode) = CreateErrorFactory();
         var request = new RegisterClientRequest { IdTokenEncryptedResponseAlg = "RSA-OAEP-256" };
+
+        var error = handler.ValidateKeyMetadata(factory, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateKeyMetadata_WhenEncryptedIntrospectionWithoutClientKeys_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            IntrospectionEncryptedResponseAlg = "RSA-OAEP-256",
+        };
 
         var error = handler.ValidateKeyMetadata(factory, request);
 
@@ -999,6 +1020,45 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             )
             .Returns(true);
         var request = new RegisterClientRequest { TokenEndpointAuthSigningAlg = "RS256" };
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Theory]
+    [InlineData("signing")]
+    [InlineData("encryption_alg")]
+    [InlineData("encryption_enc")]
+    public void ValidateAlgorithmMetadata_WhenTheIntrospectionAlgIsNotPermitted_ReturnsInvalidClientMetadata(
+        string kind
+    )
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
+        IReadOnlyCollection<string>? permitted = ["PS256", "RSA-OAEP-256", "A256GCM"];
+        var key = kind switch
+        {
+            "signing" => OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported,
+            "encryption_alg" => OpenIdSettingKeys.IntrospectionEncryptionAlgValuesSupported,
+            _ => OpenIdSettingKeys.IntrospectionEncryptionEncValuesSupported,
+        };
+        mockTenantSettings.Setup(x => x.TryGetValue(key, out permitted)).Returns(true);
+        var request = kind switch
+        {
+            "signing" => new RegisterClientRequest { IntrospectionSignedResponseAlg = "RS256" },
+            "encryption_alg" => new RegisterClientRequest
+            {
+                IntrospectionEncryptedResponseAlg = "ECDH-ES",
+            },
+            _ => new RegisterClientRequest
+            {
+                IntrospectionEncryptedResponseAlg = "RSA-OAEP-256",
+                IntrospectionEncryptedResponseEnc = "A128GCM",
+            },
+        };
 
         var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
 
@@ -1201,6 +1261,9 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             UserInfoSignedResponseAlg = "ES256",
             UserInfoEncryptedResponseAlg = "ECDH-ES",
             UserInfoEncryptedResponseEnc = "A128GCM",
+            IntrospectionSignedResponseAlg = "ES384",
+            IntrospectionEncryptedResponseAlg = "RSA-OAEP-256",
+            IntrospectionEncryptedResponseEnc = "A192GCM",
             RequestObjectSigningAlg = "PS256",
             RequestObjectEncryptionAlg = "RSA-OAEP-256",
             RequestObjectEncryptionEnc = "A256GCM",
@@ -1231,6 +1294,9 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.Equal("ES256", response.UserInfoSignedResponseAlg);
         Assert.Equal("ECDH-ES", response.UserInfoEncryptedResponseAlg);
         Assert.Equal("A128GCM", response.UserInfoEncryptedResponseEnc);
+        Assert.Equal("ES384", response.IntrospectionSignedResponseAlg);
+        Assert.Equal("RSA-OAEP-256", response.IntrospectionEncryptedResponseAlg);
+        Assert.Equal("A192GCM", response.IntrospectionEncryptedResponseEnc);
         Assert.Equal("PS256", response.RequestObjectSigningAlg);
         Assert.Equal("RSA-OAEP-256", response.RequestObjectEncryptionAlg);
         Assert.Equal("A256GCM", response.RequestObjectEncryptionEnc);

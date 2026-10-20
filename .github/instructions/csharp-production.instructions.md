@@ -901,3 +901,14 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
 - 👁 **Each strategy validates its own options.** An `IValidateOptions<T>` for a strategy's section is registered beside
   the strategy and skips when another strategy is selected; a shared validator never branches on the strategy code, so a
   strategy registered by another package brings its own validation (§2, open vocabularies).
+- 👁 **A default for runtime-written data is derived through the seam that judges it, then judged and stored like an
+  explicit value.** When configuration can supply a value a write omits — a tenant's issuer from its strategy's issuer
+  template — every write path asks the owning seam for the default (`ITenantResolver.GetDefaultIssuerAsync`) before it
+  validates, and persists the result, so a later configuration change never silently moves existing data. Never fill
+  the gap at read time from the request or other ambient state: that is a second, unvalidated source of the same value.
+  See [ADR-0165](../../docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md).
+- 👁 **A configuration seeder names exactly the target it seeds.** A seeder that writes credentials or accounts into a
+  tenant (`BootstrapAdmin`, `DeveloperInteractiveSeed`, `ConformanceSeed`) requires its `TenantId` whenever it has
+  something to seed, and an unset target never means "every tenant": every tenant created at runtime would inherit the
+  credential. Validate the requirement when the host starts. See
+  [ADR-0166](../../docs/adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md).

@@ -10,12 +10,38 @@ import Stack from '@mui/material/Stack';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 
-/** The tenant form's own field shape. `issuer` is a string here (empty means "no issuer"). */
+/**
+ * The tenant form's own field shape. `issuer` is a string here; empty means the tenant takes the issuer
+ * the server derives for it.
+ */
 export type TenantFormValues = {
   readonly tenantId: string;
   readonly displayName: string;
   readonly issuer: string;
   readonly isDisabled: boolean;
+};
+
+/** One reason the address being entered cannot be served, as the server reports it. */
+export type TenantAddressPreviewFailure = {
+  readonly detail: string;
+  readonly isConflict: boolean;
+};
+
+/**
+ * The server's preview of the address being entered (its tenant ID and issuer): the issuer the tenant
+ * would take, whether the ID is taken, and every reason the tenant could not be served there.
+ */
+export type TenantAddressPreview = {
+  readonly issuer: string | null;
+  readonly isIssuerDerived: boolean;
+  readonly exists: boolean;
+  readonly failures: readonly TenantAddressPreviewFailure[];
+};
+
+/** The address fields as entered, trimmed. */
+export type TenantAddressInput = {
+  readonly tenantId: string;
+  readonly issuer: string;
 };
 
 export type TenantFormDialogProps = {
@@ -27,6 +53,10 @@ export type TenantFormDialogProps = {
   readonly isTenantIdLocked?: boolean;
   readonly isSubmitting?: boolean;
   readonly error?: string | undefined;
+  /** The server's preview of the address currently entered, or `undefined` while none matches it. */
+  readonly addressPreview?: TenantAddressPreview | undefined;
+  /** Invoked with the address fields as they change while open, so the container can preview them. */
+  readonly onAddressChange?: (address: TenantAddressInput) => void;
   readonly onSubmit: (values: TenantFormValues) => void;
   readonly onCancel: () => void;
 };
@@ -44,11 +74,18 @@ export const emptyTenantFormValues: TenantFormValues = {
  */
 const tenantIdPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
+/** Whether the value is a well-formed tenant ID, the precondition for asking the server about it. */
+export function isValidTenantId(value: string): boolean {
+  return tenantIdPattern.test(value);
+}
+
 /**
  * Stateless tenant create/edit form rendered in a dialog. The field state is local because it is
  * intrinsic to the controlled inputs (it reseeds from {@link TenantFormDialogProps.initialValues}
  * each time the dialog opens), so the component still renders in isolation under Storybook/RTL. All
- * persistence and server-error handling lives in the container that wires the mutation.
+ * persistence and server-error handling lives in the container that wires the mutation, as does the
+ * address preview: the dialog reports the address as it is entered and renders the preview it is given
+ * — the issuer an empty field resolves to, a taken ID, and every reason the address cannot be served.
  */
 export function TenantFormDialog({
   open,
@@ -58,6 +95,8 @@ export function TenantFormDialog({
   isTenantIdLocked = false,
   isSubmitting = false,
   error,
+  addressPreview,
+  onAddressChange,
   onSubmit,
   onCancel,
 }: TenantFormDialogProps) {
@@ -75,9 +114,26 @@ export function TenantFormDialog({
 
   const tenantId = values.tenantId.trim();
   const displayName = values.displayName.trim();
-  const isTenantIdValid = isTenantIdLocked || tenantIdPattern.test(tenantId);
-  const showTenantIdError = !isTenantIdLocked && tenantId.length > 0 && !isTenantIdValid;
-  const canSubmit = isTenantIdValid && displayName.length > 0 && !isSubmitting;
+  const issuer = values.issuer.trim();
+  const isTenantIdValid = isTenantIdLocked || isValidTenantId(tenantId);
+  const isTenantIdTaken = !isTenantIdLocked && addressPreview?.exists === true;
+  const showTenantIdError =
+    !isTenantIdLocked && tenantId.length > 0 && (!isTenantIdValid || isTenantIdTaken);
+  const addressFailures = addressPreview?.failures ?? [];
+  const derivedIssuer =
+    addressPreview?.isIssuerDerived === true ? (addressPreview.issuer ?? undefined) : undefined;
+  const canSubmit =
+    isTenantIdValid &&
+    !isTenantIdTaken &&
+    addressFailures.length === 0 &&
+    displayName.length > 0 &&
+    !isSubmitting;
+
+  useEffect(() => {
+    if (open) {
+      onAddressChange?.({ tenantId, issuer });
+    }
+  }, [open, tenantId, issuer, onAddressChange]);
 
   const handleSubmit = () => {
     if (!canSubmit) {
@@ -86,7 +142,7 @@ export function TenantFormDialog({
     onSubmit({
       tenantId,
       displayName,
-      issuer: values.issuer.trim(),
+      issuer,
       isDisabled: values.isDisabled,
     });
   };
@@ -101,6 +157,13 @@ export function TenantFormDialog({
               {error}
             </Alert>
           )}
+          {addressFailures.length > 0 && (
+            <Alert severity="warning" data-testid="tenant-address-failures">
+              {addressFailures.map((failure) => (
+                <div key={failure.detail}>{failure.detail}</div>
+              ))}
+            </Alert>
+          )}
           <TextField
             label="Tenant ID"
             value={values.tenantId}
@@ -111,7 +174,9 @@ export function TenantFormDialog({
             helperText={
               isTenantIdLocked
                 ? 'A tenant ID cannot be changed.'
-                : 'Lowercase letters, digits, and hyphens, starting and ending with a letter or digit. It cannot be changed later.'
+                : isTenantIdTaken
+                  ? 'A tenant with this ID already exists.'
+                  : 'Lowercase letters, digits, and hyphens, starting and ending with a letter or digit. It cannot be changed later.'
             }
             placeholder="e.g. acme-dev"
             fullWidth
@@ -131,8 +196,12 @@ export function TenantFormDialog({
             label="Issuer"
             value={values.issuer}
             onChange={(event) => setValues((v) => ({ ...v, issuer: event.target.value }))}
-            helperText="The https URL the tenant is served under. Leave empty only for local development."
-            placeholder="e.g. https://acme.auth.example.com"
+            helperText={
+              derivedIssuer && issuer.length === 0
+                ? `Leave empty to use ${derivedIssuer}.`
+                : "The https URL the tenant is served under. Leave empty to use the deployment's default address."
+            }
+            placeholder={derivedIssuer ?? 'e.g. https://acme.auth.example.com'}
             fullWidth
             slotProps={{ htmlInput: { 'data-testid': 'tenant-issuer' } }}
           />

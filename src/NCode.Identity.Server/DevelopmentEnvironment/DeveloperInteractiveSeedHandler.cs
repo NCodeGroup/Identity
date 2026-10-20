@@ -35,9 +35,9 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 
 /// <summary>
 /// A <strong>development-only</strong> seed handler that provisions the configured public (PKCE-only)
-/// single-page-application clients and a deterministic administrator user into each workload tenant, so a local host
-/// can exercise the interactive authorization-code + PKCE flow and every frontend surface end to end. It is
-/// idempotent, inert unless its inputs are configured, and never targets the control-plane root tenant.
+/// single-page-application clients and a deterministic administrator user into the one tenant its options name, so a
+/// local host can exercise the interactive authorization-code + PKCE flow and every frontend surface end to end. It is
+/// idempotent and inert unless its inputs are configured.
 /// </summary>
 /// <remarks>
 /// A seeded client's settings come from configuration, so the document is validated against the registered setting
@@ -205,17 +205,8 @@ internal sealed class DeveloperInteractiveSeedHandler(
         await store.AddAsync(account, owner.Memory[..written], cancellationToken);
     }
 
-    private bool TargetsTenant(TenantSeedContext context)
-    {
-        // The SPA client and administrator user are workload-plane artifacts; never seed them into the control-plane
-        // root tenant.
-        if (context.Plane != TenantPlane.Workload)
-        {
-            return false;
-        }
-
-        var configuredTenantId = Options.TenantId;
-        return string.IsNullOrEmpty(configuredTenantId)
-            || string.Equals(context.TenantId, configuredTenantId, StringComparison.Ordinal);
-    }
+    private bool TargetsTenant(TenantSeedContext context) =>
+        // The registration requires the tenant whenever there is something to seed (ADR-0166): a tenant created at
+        // runtime must not inherit a well-known administrator.
+        string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 }

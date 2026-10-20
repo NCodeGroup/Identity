@@ -22,13 +22,13 @@ using Microsoft.Extensions.Configuration;
 namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// A <see cref="HostApplicationFactory"/> whose tenant has a pinned issuer, the way a deployment is configured.
+/// A <see cref="HostApplicationFactory"/> whose tenant has a pinned public issuer, the way a deployment is configured.
 /// </summary>
 /// <remarks>
 /// The issuer is the tenant's request-independent identity and therefore also its base address, so this is what lets a
 /// test prove the URLs the server publishes are anchored to that origin rather than to whatever <c>Host</c> header the
-/// caller supplied. The base fixture deliberately leaves it unset, because a developer's machine is reached under many
-/// hosts.
+/// caller supplied. Unlike the base fixture's issuer, it differs from the TestServer's own origin, so the anchoring is
+/// visible in every published URL.
 /// </remarks>
 public sealed class PinnedIssuerApplicationFactory : HostApplicationFactory
 {

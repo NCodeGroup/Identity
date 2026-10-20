@@ -587,3 +587,21 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.Issuer.get -> 
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.Issuer.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.Issuer.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.Issuer.set -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressFailure
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressFailure.Detail.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressFailure.Detail.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressFailure.IsConflict.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressFailure.IsConflict.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressFailure.TenantAddressFailure() -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Exists.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Exists.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Failures.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressFailure!>!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Failures.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.IsIssuerDerived.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.IsIssuerDerived.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Issuer.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Issuer.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.TenantAddressResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.TenantId.init -> void

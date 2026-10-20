@@ -4,7 +4,9 @@
   [ADR-0031](0031-control-plane-management-resource-server-and-root-tenant-seeding.md) and
   [ADR-0044](0044-management-api-authentication-and-globaladmin-bootstrap.md), and changes how the developer signing
   key of [ADR-0021](0021-developer-signing-keys-seeded-through-persistence.md) is realized; the _policies_ those ADRs
-  decided — plane partitioning, the GlobalAdmin bootstrap, a single developer-key source of truth — remain in force)
+  decided — plane partitioning, the GlobalAdmin bootstrap, a single developer-key source of truth — remain in force;
+  extended to every strategy by [ADR-0166](0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md),
+  which splits `ProvisionAsync` into `EnsureCreatedAsync` and `SeedAsync`)
 - **Date:** 2026-10-04
 - **Deciders:** NCode Group
 

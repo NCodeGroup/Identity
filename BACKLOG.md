@@ -74,7 +74,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F74`     | `F73`      |
+| `F` — Feature gaps                    | `F76`     | `F75`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U23`     | `U22`      |
 | `S` — Secrets management              | `S12`     | `S11`      |
@@ -398,9 +398,10 @@ entry and/or ADR that closed it.
   separated from liveness; no Helm chart (probes, `preStop` drain, PodDisruptionBudget, restricted security context,
   the `valkey` connection string required when `replicas > 1` — ADR-0164 leaves that rule to the chart); and
   `Host.MigrationService` (which has no image) should run as a pre-deploy Job with expand/contract schema changes so a
-  rolling update never breaks the running version. The production-safety gate should also refuse a tenant with no
-  configured issuer (the [ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)
-  follow-up) and an unprotected Data Protection key ring (`S10`). Plus the OpenTofu modules, bootstrap stack, and GitHub
+  rolling update never breaks the running version. The production-safety gate should also refuse an unprotected Data
+  Protection key ring (`S10`); a served tenant without an issuer already fails closed
+  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)). Plus the
+  OpenTofu modules, bootstrap stack, and GitHub
   Actions workflows in the public `NCodeGroup/identity-platform` repository
   ([ADR-0132](docs/adr/0132-platform-infrastructure-as-code-is-public-on-github.md); see the
   [hosting analysis](docs/hosting-analysis.md#11-iac-and-delivery)). Touch points:
@@ -414,10 +415,13 @@ entry and/or ADR that closed it.
   ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), so a request to the alias host
   resolves no tenant. Multi-tenant mTLS on per-tenant hostnames therefore cannot work today. Derive the alias host into
   the routing lookup the same way as the issuer host (never independently writable), decide whether the alias authority
-  becomes a first-class tenant property like the issuer, and enforce host uniqueness across issuer and alias hosts under
+  becomes a first-class tenant property like the issuer — if so, give the host strategy an alias template beside its
+  issuer template (`https://{tenantId}.mtls.example`) whose expansion is persisted and judged like the issuer
+  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)) — and enforce
+  host uniqueness across issuer and alias hosts under
   the host strategy. Found during the [hosting analysis](docs/hosting-analysis.md#domain-and-dns--nidentityio). Touch
   points: `src/NCode.Identity.OpenId.Core/Tenants/Strategies/DynamicByHostTenantStrategy.cs`, the tenant store's
-  issuer-host index, `DefaultDiscoverMetadataHandler`.
+  issuer-host index, `DefaultDiscoverMetadataHandler`, `TenantAddressRules`.
 
 - **`F48` — Publish the deployment artifacts the platform runs.** Per
   [ADR-0133](docs/adr/0133-we-ship-and-run-the-same-deployment-artifacts.md), the hosted platform consumes only the
@@ -521,22 +525,13 @@ entry and/or ADR that closed it.
   both, so a new tenant can take the name `acme` — and with it an issuer that relying parties configured to trust the old
   tenant: they fetch the new tenant's JWKS and accept its tokens. Auth0 never reuses a deleted tenant's name. Keep a
   tombstone of every retired tenant identifier and normalized issuer, reject both when a tenant is created or its issuer
-  changes (`409`), and decide whether an operator can release a retired issuer explicitly, with an audit record. Touch
-  points: `ITenantStore` and `TenantStore` (a tombstone entity and migration),
+  changes (`409`), and decide whether an operator can release a retired issuer explicitly, with an audit record. A
+  retired issuer is rejected for a derived issuer too: the template default is judged by the same
+  `ITenantResolver.ValidateTenantAsync`, and the address preview reports it.
+  Touch points: `ITenantStore` and `TenantStore` (a tombstone entity and migration),
   `src/NCode.Identity.OpenId.Core/Tenants/DefaultTenantResolver.cs` (`ValidateTenantAsync`),
   `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`, `TenantApiEndpointHandler`
-  (`DeleteTenantAsync`).
-
-- **`F71` — Derive a tenant's issuer from a configured template.** A tenant served at a request-independent address
-  needs an issuer, and a production deployment must not rely on the request-derived fallback
-  ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md); the production-safety part of
-  `F46`). Auth0 derives a tenant's canonical domain from its name, and tenant names are readable host labels
-  ([ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md)), so a strategy can do the same: a configured issuer
-  template (for example `https://{tenantId}.auth.nidentity.io` for `DynamicByHost`, `https://op.example/{tenantId}` for
-  `DynamicByPath`) fills in, and persists, the issuer of a tenant created without one, judged by the same rules as an
-  explicit issuer ([ADR-0160](docs/adr/0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)). A custom
-  domain stays an explicit issuer. Touch points: `DynamicByHostTenantOptions`, `DynamicByPathTenantOptions` and their
-  options validators, `ITenantStrategy`, `TenantApiEndpointHandler.CreateTenantAsync`, `DefaultTenantProvisioner`.
+  (`DeleteTenantAsync`, `GetAddressAsync`).
 
 - **`F72` — Match `self_signed_tls_client_auth` against the certificates in a client's JSON Web Key Set.** RFC 8705
   §2.2 lets a client register its self-signed certificates through `jwks` or `jwks_uri`, as the `x5c` of its keys. The
@@ -563,6 +558,35 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Management/Endpoints/{Tenants,Servers,ResourceServers}/*ApiEndpointHandler.cs`,
   `src/NCode.Identity.OpenId.Management.Abstractions/Contracts/Secrets/SecretResource.cs`, and the `@ncode/api`
   contracts and secret tables in `src/frontend`.
+
+- **`F74` — Derive the frontend bootstrap document's issuer and API base from the tenant, not the request.** Every
+  served tenant's issuer is now its stored, validated origin and nothing else derives one from the request
+  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), but
+  `/config/bootstrap.json` still defaults `issuer` and `apiBaseUrl` to the serving request's `scheme://host`
+  (`FrontendBootstrapOptions`, [ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). That
+  is a second, unvalidated source of the same value: under a forged or proxied `Host` (or a shared cache in front of
+  the host) the bundle discovers the wrong authority, and under `DynamicByHost` the console served at
+  `manage.<apex>` needs the root tenant's issuer (`https://auth.<apex>`), which the request origin is not. Default the
+  issuer to the issuer of the tenant that serves the surface (the root tenant's for the console), and the API base to
+  the configured management origin; keep explicit options as overrides. Touch points:
+  `src/NCode.Identity.Server/Frontend/FrontendBootstrapEndpointProvider.cs`, `FrontendBootstrapOptions.cs`,
+  `FrontendBootstrapDocument.cs`, `ITenantResolver.GetDefaultIssuerAsync`.
+
+- **`F75` — Authenticate the management API against the control plane, not the tenant the request resolves.** The
+  management `/api` surface materializes its OpenID context through `CreateForRequestAsync`, so the tenant that
+  validates the caller's access token is whichever tenant the protocol strategy resolves from the request. That holds
+  under `StaticSingle`, but under `DynamicByPath` a collection route such as `POST /api/tenants` has no `tenantId`
+  route value and fails, and `/api/tenants/{tenantId}/…` authenticates the caller against the target tenant rather
+  than the tenant that issued the token; under `DynamicByHost` the management host `manage.<apex>`
+  ([ADR-0131](docs/adr/0131-hosted-platform-environment-model-and-hostname-scheme.md)) is no tenant's host, so every
+  call is `404`. The
+  management plane should authenticate against a configured authenticating tenant — the root (control-plane) tenant
+  by default ([ADR-0024](docs/adr/0024-control-plane-and-per-tenant-planes.md),
+  [ADR-0042](docs/adr/0042-management-api-route-driven-tenant-scope.md)) — independent of the protocol strategy, and
+  the route's `tenantId` should only scope the data. Capture the design in an ADR and cover every strategy with
+  integration tests. Touch points:
+  `src/NCode.Identity.OpenId.Management/Endpoints/ManagementEnvironmentEndpointFilter.cs`, `IOpenIdContextFactory`,
+  `TenantScopeEndpointFilter`, `OwnershipHandler`.
 
 ## Conformance & interop testing (group `T`)
 
@@ -749,7 +773,11 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   cold-start deadlock that blocks the lab. Add production key provisioning (the open "first-class production
   key-management registration" follow-up of [ADR-0002](docs/adr/0002-ephemeral-development-keys.md)): on tenant seed,
   generate the tenant's asymmetric signing keys through the normal persistence path when none is usable — covering the
-  mandatory-to-implement `RS256` and the preferred `PS256` / `ES256`. Unlike the developer seeder, never prune
+  mandatory-to-implement `RS256` and the preferred `PS256` / `ES256`. Every tenant passes through the one seed pipeline
+  — the root tenant when it is first served, a management-created tenant before its create returns, and every tenant
+  again when it is next materialized
+  ([ADR-0166](docs/adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)) — so a
+  `SeedTenantCommand` handler reaches each one. Unlike the developer seeder, never prune
   undecryptable secrets; fail loudly, since that signals a lost or changed Data Protection key ring. Rotation and
   retirement follow in `S8`, external keystores in `S7`. Touch points:
   `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperSigningKeySeedHandler.cs`,

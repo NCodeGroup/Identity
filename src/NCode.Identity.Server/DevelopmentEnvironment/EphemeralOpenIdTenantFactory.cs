@@ -18,7 +18,6 @@
 
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Disposables;
@@ -54,7 +53,6 @@ namespace NCode.Identity.Server;
 /// </remarks>
 public sealed class EphemeralOpenIdTenantFactory(
     ITenantResolver tenantResolver,
-    TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
@@ -68,7 +66,6 @@ public sealed class EphemeralOpenIdTenantFactory(
 )
     : DefaultOpenIdTenantFactory(
         tenantResolver,
-        templateBinderFactory,
         optionsAccessor,
         storeManagerFactory,
         tenantCache,

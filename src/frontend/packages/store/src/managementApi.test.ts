@@ -939,6 +939,22 @@ const queryRequestCases: readonly QueryRequestCase[] = [
     run: (s) => s.dispatch(managementApi.endpoints.getTenant.initiate('acme/1')),
   },
   {
+    name: 'getTenantAddress (derived issuer)',
+    url: 'https://api.test/api/tenants/acme/address',
+    run: (s) => s.dispatch(managementApi.endpoints.getTenantAddress.initiate({ tenantId: 'acme' })),
+  },
+  {
+    name: 'getTenantAddress (proposed issuer)',
+    url: 'https://api.test/api/tenants/acme/address?issuer=https%3A%2F%2Facme.example',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getTenantAddress.initiate({
+          tenantId: 'acme',
+          issuer: 'https://acme.example',
+        }),
+      ),
+  },
+  {
     name: 'listServers',
     url: 'https://api.test/api/servers',
     run: (s) => s.dispatch(managementApi.endpoints.listServers.initiate()),

@@ -23,8 +23,9 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Carries the shared state for seeding a tenant: the tenant being seeded, the plane it belongs to, whether it was
-/// just provisioned, and the unit of work that every seed contributor enlists in so the whole seed commits atomically.
+/// Carries the shared state for seeding a tenant: the tenant being seeded, the plane it belongs to, and the unit of work
+/// that every seed contributor enlists in so the whole seed commits atomically. A tenant is seeded every time the server
+/// materializes it, so contributors are idempotent: they check for their data before writing it.
 /// </summary>
 [PublicAPI]
 public sealed class TenantSeedContext
@@ -39,12 +40,6 @@ public sealed class TenantSeedContext
     /// tenant) or the workload plane consistently, instead of each re-deriving it.
     /// </summary>
     public required TenantPlane Plane { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether the tenant row was created during this provisioning pass (as opposed to
-    /// already existing). Contributors may use this to distinguish first-time seeding from reconciliation.
-    /// </summary>
-    public required bool IsNewlyProvisioned { get; init; }
 
     /// <summary>
     /// Gets the unit of work that all seed contributors share. Contributors obtain their stores from it and must not

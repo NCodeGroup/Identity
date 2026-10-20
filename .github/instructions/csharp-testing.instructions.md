@@ -163,6 +163,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   saves via `SaveChangesAsync`; see
   [ADR-0012](../../docs/adr/0012-interceptor-managed-concurrency-tokens.md)). Keep both layers — mock the store for
   endpoint logic, and exercise the store itself against a real provider.
+- 👁 **A handler that writes through more than one store needs an end-to-end test.** A store resolves the tenant that
+  owns a row with a database query, not from the change tracker, so a row a tenant owns — its creator's ownership
+  assignment, a seeded resource — can be added only after the tenant row is committed. A store-mocked endpoint test
+  cannot see that order: the management API's tenant create added the ownership row in the same unit of work as the
+  tenant, failed on every call, and its unit tests passed. Cover such a handler through the host
+  (`TenantProvisioningTests` creates a tenant through the management API, then serves it).
 - 👁 **EF InMemory does not enforce `[ConcurrencyCheck]`.** It honors a change-tracker interceptor but does **not** put
   the token in the `UPDATE … WHERE` clause, so it cannot detect a concurrent-write conflict. A true
   optimistic-concurrency test uses a **relational** provider — SQLite in-memory (a shared, open `SqliteConnection` +
@@ -199,6 +205,19 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   handlers, which depend on `IStoreManagerFactory`. A configuration-only test registers a never-called strict
   `new Mock<IStoreManagerFactory>(MockBehavior.Strict).Object` rather than disabling DI validation or composing a
   database.
+- 👁 **A test host pins an issuer for every tenant it serves.** A tenant is served only beneath its stored issuer
+  ([ADR-0165](../../docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), so
+  `HostApplicationFactory` pins the static tenant to `HostApplicationFactory.TestServerIssuer` (`http://localhost`). A
+  test that changes the tenant path pins a matching `StaticSingle:Issuer`; a test that selects a dynamic strategy
+  configures its issuer template (or `Root:Issuer`, which the dynamic strategies require) and seeds tenants with an
+  issuer; and a directly built host that starts configures `StaticSingle:Issuer`. A tenant seeded without an issuer
+  fails closed when it is served.
+- 👁 **The integration host runs in the `Development` environment, without its launch profile.**
+  `HostApplicationFactory` sets `Development`, so the host loads `appsettings.Development.json` — the developer seed and
+  its `DeveloperInteractiveSeed:TenantId` — but never `launchSettings.json`, whose environment variables pin each
+  launch profile's issuer and bootstrap administrator. Configure what a test depends on in the factory
+  (`ConfigureAppConfiguration`) rather than assuming a launch profile's value, and expect an unhandled exception to reach
+  the client as the developer exception page's `500`.
 - 👁 **Drive the authorization endpoint the way a conforming client does.** Every authorization code is bound to an
   `S256` PKCE challenge by default ([ADR-0144](../../docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)),
   so an integration test that requests a code sends `TestPkce.QueryParameters` (or `TestPkce.FormFields` at the pushed

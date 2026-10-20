@@ -40,4 +40,12 @@ public sealed class DynamicByHostTenantOptions
     /// The default value is undefined (empty).
     /// </summary>
     public PathString TenantPath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the template a tenant's issuer is derived from when the tenant is written without one — an absolute
+    /// URL that carries <see cref="TenantResolutionOptions.TenantIdPlaceholder"/> in its host, for example
+    /// <c>https://{tenantId}.auth.example</c>. The derived issuer is stored with the tenant, so changing the template
+    /// never moves an existing tenant. When unset, every tenant must be given an issuer explicitly.
+    /// </summary>
+    public string? IssuerTemplate { get; set; }
 }

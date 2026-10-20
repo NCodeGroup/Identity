@@ -1,7 +1,9 @@
 # 138. The protocol endpoints are served under the tenant route, and an issuer is its tenant's base address
 
 - **Status:** Accepted (extended by [ADR-0160](0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md):
-  a tenant written through the management API is held to the same tenant route)
+  a tenant written through the management API is held to the same tenant route; decision 3's request-derived base
+  address is removed by [ADR-0165](0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md):
+  every served tenant has an issuer, which is its base address)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

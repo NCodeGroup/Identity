@@ -39,7 +39,8 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             new Dictionary<string, string?>
             {
                 ["OpenId:TenantResolution:StrategyCode"] = "StaticSingle",
-                ["OpenId:TenantResolution:RootTenantId"] = "control",
+                ["OpenId:TenantResolution:Root:TenantId"] = "control",
+                ["OpenId:TenantResolution:Root:DisplayName"] = "Control Plane",
                 ["OpenId:TenantResolution:StaticSingle:TenantId"] = "acme",
                 ["OpenId:TenantResolution:StaticSingle:TenantPath"] = "/identity",
                 ["OpenId:TenantResolution:StaticSingle:Issuer"] = "https://op.example/identity",
@@ -49,7 +50,8 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         var options = serviceProvider.GetRequiredService<IOptions<TenantResolutionOptions>>().Value;
 
         Assert.Equal("StaticSingle", options.StrategyCode);
-        Assert.Equal("control", options.RootTenantId);
+        Assert.Equal("control", options.Root.TenantId);
+        Assert.Equal("Control Plane", options.Root.DisplayName);
         Assert.NotNull(options.StaticSingle);
         Assert.Equal("acme", options.StaticSingle.TenantId);
         Assert.Equal("/identity", options.StaticSingle.TenantPath);

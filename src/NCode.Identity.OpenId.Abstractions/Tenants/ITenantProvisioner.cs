@@ -22,30 +22,41 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
-/// Ensures a tenant exists and is seeded, independent of how the tenant is later resolved. Provisioning the root
-/// tenant first and then the target tenant, it runs the seed contributors (via <see cref="SeedTenantCommand"/>)
-/// within a single unit of work. It is idempotent, so it may be invoked whenever a tenant must be brought into a
-/// seeded state — on the lazy resolution path of a static strategy, or by management tooling that creates tenants.
+/// Brings tenants into existence and into a seeded state, independent of how they are later resolved. It creates the
+/// tenants configuration defines (the root tenant, and a static strategy's own tenant) on demand, and it seeds any tenant
+/// by fanning out <see cref="SeedTenantCommand"/> to every registered handler within a single unit of work, after
+/// ensuring the root tenant exists and is seeded. Both operations are idempotent, so the server seeds every tenant it
+/// materializes and the management API seeds every tenant it creates.
 /// </summary>
 [PublicAPI]
 public interface ITenantProvisioner
 {
     /// <summary>
-    /// Ensures the tenant with the specified identifier exists and is seeded, provisioning the root tenant first when
-    /// the target tenant is not itself the root tenant.
+    /// Ensures the tenant with the specified identifier exists, creating it when it does not with its strategy's default
+    /// issuer (<see cref="ITenantResolver.GetDefaultIssuerAsync"/>), judged by
+    /// <see cref="ITenantResolver.ValidateTenantAsync"/> like any other tenant written. It does not seed the tenant.
     /// </summary>
-    /// <param name="tenantId">The identifier of the tenant to provision.</param>
-    /// <param name="displayName">The display name applied when the tenant is created for the first time.</param>
-    /// <param name="issuer">The issuer identifier applied when the tenant is created for the first time, or
-    /// <c>null</c> to leave the tenant without one (so its origin is derived from the request it is materialized for).
-    /// Applied on creation only; it does not update an existing tenant.</param>
+    /// <param name="tenantId">The identifier of the tenant to create.</param>
+    /// <param name="displayName">The display name applied when the tenant is created; an existing tenant keeps its own.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the provisioned
-    /// <see cref="PersistedTenant"/>.</returns>
-    ValueTask<PersistedTenant> ProvisionAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the existing or newly
+    /// created <see cref="PersistedTenant"/>.</returns>
+    /// <exception cref="InvalidOperationException">The tenant does not exist and cannot be created at its default
+    /// address.</exception>
+    ValueTask<PersistedTenant> EnsureCreatedAsync(
         string tenantId,
         string displayName,
-        string? issuer,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Brings the existing tenant with the specified identifier into a seeded state: it ensures the root tenant exists
+    /// and is seeded first when the tenant is not itself the root tenant, then runs every seed contributor for the tenant
+    /// within a single unit of work.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant to seed.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the seeded
+    /// <see cref="PersistedTenant"/>.</returns>
+    ValueTask<PersistedTenant> SeedAsync(string tenantId, CancellationToken cancellationToken);
 }

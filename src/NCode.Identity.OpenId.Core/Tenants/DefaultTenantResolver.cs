@@ -31,7 +31,8 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <summary>
 /// Provides a default implementation of the <see cref="ITenantResolver"/> abstraction that selects the configured
 /// <see cref="ITenantStrategy"/> by <see cref="TenantResolutionOptions.StrategyCode"/> and delegates to it. It validates
-/// the addressing rules every strategy shares itself, and the selected strategy validates its own.
+/// the addressing rules every strategy shares itself — the root tenant's address among them — and the selected strategy
+/// validates its own and derives a tenant's default issuer.
 /// </summary>
 internal class DefaultTenantResolver(
     IOptions<TenantResolutionOptions> optionsAccessor,
@@ -69,6 +70,19 @@ internal class DefaultTenantResolver(
         HttpContext httpContext,
         CancellationToken cancellationToken
     ) => await Selected.ResolveTenantAsync(httpContext, cancellationToken);
+
+    /// <inheritdoc />
+    public async ValueTask<string?> GetDefaultIssuerAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        // A strategy derives an issuer from a well-formed identifier only; a malformed one is reported by validation.
+        if (!TenantAddressRules.IsValidTenantId(tenantId))
+            return null;
+
+        return await Selected.GetDefaultIssuerAsync(tenantId, cancellationToken);
+    }
 
     /// <inheritdoc />
     public async ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
@@ -132,6 +146,18 @@ internal class DefaultTenantResolver(
                     }
                 );
             }
+            else if (await IsRootTenantAddressAsync(tenantId, issuerUri, cancellationToken))
+            {
+                // The root tenant is created on demand at its configured address, so a tenant written there first would
+                // take the control plane's address and leave the root tenant unable to be created (ADR-0165).
+                failures.Add(
+                    new TenantValidationFailure
+                    {
+                        Detail = $"The issuer '{issuer}' is reserved for the root tenant.",
+                        IsConflict = true,
+                    }
+                );
+            }
         }
 
         var strategyFailures = await Selected.ValidateTenantAsync(
@@ -143,5 +169,26 @@ internal class DefaultTenantResolver(
         failures.AddRange(strategyFailures);
 
         return failures;
+    }
+
+    private async ValueTask<bool> IsRootTenantAddressAsync(
+        string tenantId,
+        Uri issuer,
+        CancellationToken cancellationToken
+    )
+    {
+        var rootTenantId = Options.Root.TenantId;
+        if (string.Equals(tenantId, rootTenantId, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var rootIssuer = await Selected.GetDefaultIssuerAsync(rootTenantId, cancellationToken);
+        return Uri.TryCreate(rootIssuer, UriKind.Absolute, out var rootIssuerUri)
+            && Uri.Compare(
+                issuer,
+                rootIssuerUri,
+                UriComponents.AbsoluteUri,
+                UriFormat.UriEscaped,
+                StringComparison.OrdinalIgnoreCase
+            ) == 0;
     }
 }

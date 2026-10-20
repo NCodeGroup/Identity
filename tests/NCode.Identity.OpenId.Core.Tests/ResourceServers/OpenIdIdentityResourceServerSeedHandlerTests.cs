@@ -47,7 +47,6 @@ public sealed class OpenIdIdentityResourceServerSeedHandlerTests
                     Secrets = null!,
                 },
                 Plane = TenantPlane.Workload,
-                IsNewlyProvisioned = true,
                 StoreManager = storeManager,
             }
         );

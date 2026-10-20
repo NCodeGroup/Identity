@@ -24,6 +24,7 @@ import {
   type SecretsResource,
   type ServerResource,
   type SettingsResource,
+  type TenantAddressResource,
   type TenantResource,
   type UpdateClientFields,
   type UpdateResourceServerFields,
@@ -58,6 +59,15 @@ export const managementApi = createApi({
     getTenant: build.query<TenantResource, string>({
       query: (tenantId) => `api/tenants/${encodeURIComponent(tenantId)}`,
       providesTags: (_result, _error, tenantId) => [{ type: 'Tenant', id: tenantId }],
+    }),
+    // A preview of the address a tenant has or would have. It is never cached beyond its subscriber,
+    // so it always reflects the tenants that exist when it is asked.
+    getTenantAddress: build.query<TenantAddressResource, { tenantId: string; issuer?: string }>({
+      query: ({ tenantId, issuer }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/address`,
+        ...(issuer ? { params: { issuer } } : {}),
+      }),
+      keepUnusedDataFor: 0,
     }),
     listServers: build.query<CollectionResource<ServerResource>, void>({
       query: () => 'api/servers',
@@ -667,6 +677,7 @@ export const {
   useGetCapabilitiesQuery,
   useListTenantsQuery,
   useGetTenantQuery,
+  useGetTenantAddressQuery,
   useListServersQuery,
   useListClientsQuery,
   useListResourceServersQuery,

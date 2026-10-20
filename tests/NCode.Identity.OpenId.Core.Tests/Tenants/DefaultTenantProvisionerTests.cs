@@ -18,6 +18,7 @@
 
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -28,27 +29,52 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tenants;
 
-public sealed class DefaultTenantProvisionerTests
+public sealed class DefaultTenantProvisionerTests : IDisposable
 {
     private const string RootTenantId = "root";
+    private const string RootDisplayName = "Control Plane";
+    private const string WorkloadTenantId = "acme";
+    private const string WorkloadIssuer = "https://op.example/acme";
 
-    private static DefaultTenantProvisioner CreateProvisioner(
-        IStoreManagerFactory factory,
-        IAmbientTenantAccessor ambient,
-        IMediator mediator
-    ) =>
-        new(
-            factory,
-            ambient,
-            Options.Create(new TenantResolutionOptions { RootTenantId = RootTenantId }),
-            mediator
+    private MockRepository Mocks { get; } = new(MockBehavior.Strict);
+    private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
+    private Mock<IStoreManager> MockStoreManager { get; }
+    private Mock<ITenantStore> MockTenantStore { get; }
+    private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
+    private Mock<ITenantResolver> MockTenantResolver { get; }
+    private Mock<IMediator> MockMediator { get; }
+    private DefaultTenantProvisioner Provisioner { get; }
+
+    public DefaultTenantProvisionerTests()
+    {
+        MockStoreManagerFactory = Mocks.Create<IStoreManagerFactory>();
+        MockStoreManager = Mocks.Create<IStoreManager>();
+        MockTenantStore = Mocks.Create<ITenantStore>();
+        MockAmbientTenantAccessor = Mocks.Create<IAmbientTenantAccessor>();
+        MockTenantResolver = Mocks.Create<ITenantResolver>();
+        MockMediator = Mocks.Create<IMediator>();
+
+        Provisioner = new DefaultTenantProvisioner(
+            MockStoreManagerFactory.Object,
+            MockAmbientTenantAccessor.Object,
+            MockTenantResolver.Object,
+            Options.Create(
+                new TenantResolutionOptions
+                {
+                    Root = { TenantId = RootTenantId, DisplayName = RootDisplayName },
+                }
+            ),
+            MockMediator.Object
         );
+    }
 
-    private static PersistedTenant CreateTenant(string tenantId) =>
+    public void Dispose() => Mocks.Verify();
+
+    private static PersistedTenant CreateTenant(string tenantId, string? issuer = null) =>
         new()
         {
             TenantId = tenantId,
-            Issuer = null,
+            Issuer = issuer,
             ConcurrencyToken = "token",
             IsDisabled = false,
             DisplayName = tenantId,
@@ -56,159 +82,333 @@ public sealed class DefaultTenantProvisionerTests
             Secrets = null!,
         };
 
-    [Fact]
-    public async Task ProvisionAsync_WhenRootTenantIsNew_AddsRowSeedsAndSaves()
+    private void SetupStoreManager()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var factory = mocks.Create<IStoreManagerFactory>();
-        var manager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<ITenantStore>();
-        var ambient = mocks.Create<IAmbientTenantAccessor>();
-        var scope = mocks.Create<IDisposable>();
-        var mediator = mocks.Create<IMediator>();
-
-        ambient.Setup(x => x.BeginScope(RootTenantId)).Returns(scope.Object).Verifiable();
-        scope.Setup(x => x.Dispose()).Verifiable();
-        factory
+        MockStoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(manager.Object)
+            .ReturnsAsync(MockStoreManager.Object)
             .Verifiable();
-        manager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
-        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
-        store
-            .Setup(x => x.GetOrDefaultAsync(RootTenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedTenant?)null)
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
             .Verifiable();
-        store
-            .Setup(x => x.AddAsync(It.IsAny<PersistedTenant>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-
-        SeedTenantCommand captured = default;
-        mediator
-            .Setup(x => x.SendAsync(It.IsAny<SeedTenantCommand>(), It.IsAny<CancellationToken>()))
-            .Callback((SeedTenantCommand command, CancellationToken _) => captured = command)
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-        manager
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-
-        var provisioner = CreateProvisioner(factory.Object, ambient.Object, mediator.Object);
-
-        var result = await provisioner.ProvisionAsync(
-            RootTenantId,
-            "Root Tenant",
-            issuer: null,
-            CancellationToken.None
-        );
-
-        mocks.Verify();
-        Assert.Equal(RootTenantId, result.TenantId);
-        Assert.Equal(TenantPlane.Root, captured.Context.Plane);
-        Assert.True(captured.Context.IsNewlyProvisioned);
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
-    [Fact]
-    public async Task ProvisionAsync_WhenTenantAlreadyExists_DoesNotAddRow()
+    private void SetupGetTenant(string tenantId, params PersistedTenant?[] results)
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var factory = mocks.Create<IStoreManagerFactory>();
-        var manager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<ITenantStore>();
-        var ambient = mocks.Create<IAmbientTenantAccessor>();
-        var scope = mocks.Create<IDisposable>();
-        var mediator = mocks.Create<IMediator>();
+        var queue = new Queue<PersistedTenant?>(results);
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => queue.Count > 1 ? queue.Dequeue() : queue.Peek())
+            .Verifiable();
+    }
 
-        var existing = CreateTenant(RootTenantId);
-
-        ambient.Setup(x => x.BeginScope(RootTenantId)).Returns(scope.Object).Verifiable();
+    private Mock<IDisposable> SetupScope()
+    {
+        var scope = Mocks.Create<IDisposable>();
         scope.Setup(x => x.Dispose()).Verifiable();
-        factory
-            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(manager.Object)
+        MockAmbientTenantAccessor
+            .Setup(x => x.BeginScope(It.IsAny<string>()))
+            .Returns(scope.Object)
             .Verifiable();
-        manager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
-        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
-        store
-            .Setup(x => x.GetOrDefaultAsync(RootTenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existing)
-            .Verifiable();
+        return scope;
+    }
 
-        SeedTenantCommand captured = default;
-        mediator
+    private void SetupSeed(List<SeedTenantCommand> seeded)
+    {
+        SetupScope();
+        MockMediator
             .Setup(x => x.SendAsync(It.IsAny<SeedTenantCommand>(), It.IsAny<CancellationToken>()))
-            .Callback((SeedTenantCommand command, CancellationToken _) => captured = command)
+            .Callback((SeedTenantCommand command, CancellationToken _) => seeded.Add(command))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        manager
+        MockStoreManager
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+    }
 
-        var provisioner = CreateProvisioner(factory.Object, ambient.Object, mediator.Object);
+    #region EnsureCreatedAsync Tests
 
-        var result = await provisioner.ProvisionAsync(
-            RootTenantId,
-            "Root Tenant",
-            issuer: null,
+    [Fact]
+    public async Task EnsureCreatedAsync_WhenTenantExists_ReturnsItWithoutWriting()
+    {
+        var existing = CreateTenant(WorkloadTenantId, WorkloadIssuer);
+        SetupStoreManager();
+        SetupGetTenant(WorkloadTenantId, existing);
+
+        var result = await Provisioner.EnsureCreatedAsync(
+            WorkloadTenantId,
+            "Acme",
             CancellationToken.None
         );
 
-        mocks.Verify();
         Assert.Same(existing, result);
-        Assert.False(captured.Context.IsNewlyProvisioned);
     }
 
     [Fact]
-    public async Task ProvisionAsync_WhenWorkloadTenant_ProvisionsRootFirst()
+    public async Task EnsureCreatedAsync_WhenTenantIsNew_CreatesItAtItsDefaultIssuer()
     {
-        const string workloadTenantId = "default";
-
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var factory = mocks.Create<IStoreManagerFactory>();
-        var manager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<ITenantStore>();
-        var ambient = mocks.Create<IAmbientTenantAccessor>();
-        var scope = mocks.Create<IDisposable>();
-        var mediator = mocks.Create<IMediator>();
-
-        ambient.Setup(x => x.BeginScope(It.IsAny<string>())).Returns(scope.Object);
-        scope.Setup(x => x.Dispose());
-        factory
-            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(manager.Object);
-        manager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object);
-        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
-        store
-            .Setup(x => x.GetOrDefaultAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedTenant?)null);
-        store
+        SetupStoreManager();
+        SetupGetTenant(WorkloadTenantId, (PersistedTenant?)null);
+        MockTenantResolver
+            .Setup(x => x.GetDefaultIssuerAsync(WorkloadTenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WorkloadIssuer)
+            .Verifiable();
+        MockTenantResolver
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    WorkloadTenantId,
+                    WorkloadIssuer,
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+        PersistedTenant? added = null;
+        MockTenantStore
             .Setup(x => x.AddAsync(It.IsAny<PersistedTenant>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-        mediator
-            .Setup(x => x.SendAsync(It.IsAny<SeedTenantCommand>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-        manager
+            .Callback((PersistedTenant tenant, CancellationToken _) => added = tenant)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
-        var provisioner = CreateProvisioner(factory.Object, ambient.Object, mediator.Object);
-
-        var result = await provisioner.ProvisionAsync(
-            workloadTenantId,
-            "Default",
-            issuer: null,
+        var result = await Provisioner.EnsureCreatedAsync(
+            WorkloadTenantId,
+            "Acme",
             CancellationToken.None
         );
 
-        Assert.Equal(workloadTenantId, result.TenantId);
-        ambient.Verify(x => x.BeginScope(RootTenantId), Times.Once);
-        ambient.Verify(x => x.BeginScope(workloadTenantId), Times.Once);
-        store.Verify(
-            x => x.GetOrDefaultAsync(RootTenantId, It.IsAny<CancellationToken>()),
-            Times.Once
+        Assert.NotNull(added);
+        Assert.Same(added, result);
+        Assert.Equal(WorkloadTenantId, result.TenantId);
+        Assert.Equal(WorkloadIssuer, result.Issuer);
+        Assert.Equal("Acme", result.DisplayName);
+        Assert.False(result.IsDisabled);
+    }
+
+    [Fact]
+    public async Task EnsureCreatedAsync_WhenDefaultAddressCannotBeServed_ThrowsWithoutWriting()
+    {
+        SetupStoreManager();
+        SetupGetTenant(WorkloadTenantId, (PersistedTenant?)null);
+        MockTenantResolver
+            .Setup(x => x.GetDefaultIssuerAsync(WorkloadTenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null)
+            .Verifiable();
+        MockTenantResolver
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    WorkloadTenantId,
+                    null,
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([
+                new TenantValidationFailure { Detail = "The tenant requires an issuer." },
+            ])
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Provisioner.EnsureCreatedAsync(WorkloadTenantId, "Acme", CancellationToken.None)
+        );
+
+        Assert.Contains(
+            "The tenant requires an issuer.",
+            exception.Message,
+            StringComparison.Ordinal
         );
     }
+
+    [Fact]
+    public async Task EnsureCreatedAsync_WhenConcurrentCreatorWins_ReturnsTheirTenant()
+    {
+        var concurrent = CreateTenant(WorkloadTenantId, WorkloadIssuer);
+        SetupStoreManager();
+        SetupGetTenant(WorkloadTenantId, null, concurrent);
+        MockTenantResolver
+            .Setup(x => x.GetDefaultIssuerAsync(WorkloadTenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WorkloadIssuer)
+            .Verifiable();
+        MockTenantResolver
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    WorkloadTenantId,
+                    WorkloadIssuer,
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedTenant>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("duplicate key"))
+            .Verifiable();
+
+        var result = await Provisioner.EnsureCreatedAsync(
+            WorkloadTenantId,
+            "Acme",
+            CancellationToken.None
+        );
+
+        Assert.Same(concurrent, result);
+    }
+
+    [Fact]
+    public async Task EnsureCreatedAsync_WhenInsertFailsAndTenantIsStillMissing_Rethrows()
+    {
+        SetupStoreManager();
+        SetupGetTenant(WorkloadTenantId, (PersistedTenant?)null);
+        MockTenantResolver
+            .Setup(x => x.GetDefaultIssuerAsync(WorkloadTenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(WorkloadIssuer)
+            .Verifiable();
+        MockTenantResolver
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    WorkloadTenantId,
+                    WorkloadIssuer,
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedTenant>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var failure = new InvalidOperationException("database unavailable");
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(failure)
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Provisioner.EnsureCreatedAsync(WorkloadTenantId, "Acme", CancellationToken.None)
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    #endregion
+
+    #region SeedAsync Tests
+
+    [Fact]
+    public async Task SeedAsync_WhenRootTenant_SeedsItInTheRootPlaneOnly()
+    {
+        var root = CreateTenant(RootTenantId);
+        var seeded = new List<SeedTenantCommand>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, root);
+        SetupSeed(seeded);
+
+        var result = await Provisioner.SeedAsync(RootTenantId, CancellationToken.None);
+
+        Assert.Same(root, result);
+        var command = Assert.Single(seeded);
+        Assert.Same(root, command.Context.Tenant);
+        Assert.Equal(TenantPlane.Root, command.Context.Plane);
+        Assert.Same(MockStoreManager.Object, command.Context.StoreManager);
+        MockAmbientTenantAccessor.Verify(x => x.BeginScope(RootTenantId), Times.Once);
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenWorkloadTenant_EnsuresAndSeedsRootFirst()
+    {
+        var root = CreateTenant(RootTenantId);
+        var workload = CreateTenant(WorkloadTenantId, WorkloadIssuer);
+        var seeded = new List<SeedTenantCommand>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, root);
+        SetupGetTenant(WorkloadTenantId, workload);
+        SetupSeed(seeded);
+
+        var result = await Provisioner.SeedAsync(WorkloadTenantId, CancellationToken.None);
+
+        Assert.Same(workload, result);
+        Assert.Collection(
+            seeded,
+            command =>
+            {
+                Assert.Same(root, command.Context.Tenant);
+                Assert.Equal(TenantPlane.Root, command.Context.Plane);
+            },
+            command =>
+            {
+                Assert.Same(workload, command.Context.Tenant);
+                Assert.Equal(TenantPlane.Workload, command.Context.Plane);
+            }
+        );
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenWorkloadTenantAndRootIsMissing_CreatesRootWithItsConfiguredName()
+    {
+        const string rootIssuer = "https://op.example/root";
+        var workload = CreateTenant(WorkloadTenantId, WorkloadIssuer);
+        var seeded = new List<SeedTenantCommand>();
+        SetupStoreManager();
+        SetupGetTenant(WorkloadTenantId, workload);
+        MockTenantResolver
+            .Setup(x => x.GetDefaultIssuerAsync(RootTenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rootIssuer)
+            .Verifiable();
+        MockTenantResolver
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    RootTenantId,
+                    rootIssuer,
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+        PersistedTenant? added = null;
+        MockTenantStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedTenant>(), It.IsAny<CancellationToken>()))
+            .Callback((PersistedTenant tenant, CancellationToken _) => added = tenant)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(RootTenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => added)
+            .Verifiable();
+        SetupSeed(seeded);
+
+        await Provisioner.SeedAsync(WorkloadTenantId, CancellationToken.None);
+
+        Assert.NotNull(added);
+        Assert.Equal(RootTenantId, added.TenantId);
+        Assert.Equal(RootDisplayName, added.DisplayName);
+        Assert.Equal(rootIssuer, added.Issuer);
+        Assert.Equal(2, seeded.Count);
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenTenantIsMissing_ThrowsNotFound()
+    {
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, (PersistedTenant?)null);
+        SetupScope();
+
+        await Assert.ThrowsAsync<HttpResultException>(async () =>
+            await Provisioner.SeedAsync(RootTenantId, CancellationToken.None)
+        );
+    }
+
+    #endregion
 }

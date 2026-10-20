@@ -26,8 +26,9 @@ namespace NCode.Identity.Server;
 
 /// <summary>
 /// A token-issuance handler that stamps the <c>GlobalAdmin</c> role claim onto the access tokens of the configured
-/// bootstrap administrator client. This is the cold-start bridge: the claim-based
-/// <c>GlobalAdminHandler</c> is unchanged, and the role is conferred only on the one configured client.
+/// bootstrap administrator client in the configured bootstrap tenant. This is the cold-start bridge: the claim-based
+/// <c>GlobalAdminHandler</c> is unchanged, and the role is conferred only on the one configured client, so a client that
+/// shares its identifier in another tenant gains nothing.
 /// </summary>
 internal sealed class BootstrapAdminAccessTokenClaimsHandler(
     IOptions<BootstrapAdminOptions> optionsAccessor
@@ -47,8 +48,15 @@ internal sealed class BootstrapAdminAccessTokenClaimsHandler(
             return ValueTask.CompletedTask;
         }
 
-        var (_, openIdClient, _, payloadClaims) = command;
-        if (!string.Equals(openIdClient.ClientId, bootstrapClientId, StringComparison.Ordinal))
+        var (openIdContext, openIdClient, _, payloadClaims) = command;
+        var isBootstrapClient =
+            string.Equals(openIdClient.ClientId, bootstrapClientId, StringComparison.Ordinal)
+            && string.Equals(
+                openIdContext.Tenant.TenantId,
+                Options.TenantId,
+                StringComparison.Ordinal
+            );
+        if (!isBootstrapClient)
         {
             return ValueTask.CompletedTask;
         }

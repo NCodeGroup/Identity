@@ -22,11 +22,13 @@ namespace NCode.Identity.OpenId.Tenants.Strategies;
 
 /// <summary>
 /// Validates <see cref="TenantResolutionOptions.StaticSingle"/> when the static single-tenant strategy is selected: a
-/// literal tenant path, a valid tenant identifier, and an issuer that is valid and ends with the tenant path. The options
-/// of an unselected strategy are inert, and a layered configuration may legitimately carry them, so they are skipped.
+/// literal tenant path, a valid tenant identifier, and an issuer — required, because the tenant is served only beneath it
+/// — that is valid and ends with the tenant path. The strategy serves no other tenant, so a configured root tenant issuer
+/// would never be honored and is rejected. The options of an unselected strategy are inert, and a layered configuration
+/// may legitimately carry them, so they are skipped.
 /// </summary>
-// See ADR-0137 (fail at startup), ADR-0138 (the tenant route and the issuer), and ADR-0160 (the same rules apply to
-// tenants written at runtime).
+// See ADR-0137 (fail at startup), ADR-0138 (the tenant route and the issuer), ADR-0160 (the same rules apply to tenants
+// written at runtime), and ADR-0165 (every served tenant has an issuer).
 internal class StaticSingleTenantOptionsValidator : IValidateOptions<TenantResolutionOptions>
 {
     private const string Prefix = OpenIdConstants.TenantStrategyCodes.StaticSingle;
@@ -55,6 +57,15 @@ internal class StaticSingleTenantOptionsValidator : IValidateOptions<TenantResol
         if (TenantAddressRules.TryParseLiteralPath(tenantPath, tenantPathKey, failures))
             ValidateIssuer(staticSingle, failures);
 
+        if (!string.IsNullOrEmpty(options.Root?.Issuer))
+        {
+            failures.Add(
+                $"{nameof(options.Root)}:{nameof(RootTenantOptions.Issuer)} has no effect under the {Prefix} "
+                    + $"strategy, which serves only its own tenant; configure {Prefix}:{nameof(staticSingle.Issuer)} "
+                    + "instead."
+            );
+        }
+
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);
@@ -63,10 +74,16 @@ internal class StaticSingleTenantOptionsValidator : IValidateOptions<TenantResol
     private static void ValidateIssuer(StaticSingleTenantOptions options, List<string> failures)
     {
         var issuer = options.Issuer;
-        if (string.IsNullOrEmpty(issuer))
-            return;
-
         var issuerKey = $"{Prefix}:{nameof(options.Issuer)}";
+        if (string.IsNullOrEmpty(issuer))
+        {
+            failures.Add(
+                $"{issuerKey} is required: the tenant is served only beneath its issuer, the origin of every URL the "
+                    + "server publishes."
+            );
+            return;
+        }
+
         if (!TenantAddressRules.TryParseIssuer(issuer, out var issuerUri))
         {
             failures.Add($"{issuerKey} '{issuer}' must be {TenantAddressRules.IssuerRequirement}.");

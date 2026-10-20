@@ -21,12 +21,17 @@ is the single "run the OP for the external suite" entry point:
   interface, not loopback).
 - **Pins the issuer to the reached origin.** `OpenId__TenantResolution__StaticSingle__Issuer =
 https://host.docker.internal:5001` makes the discovery `issuer` byte-match the origin in the Appendix D
-  `server.discoveryUrl`, deterministically and independent of request host / proxy headers. The issuer is stored on
-  the static tenant when it is first provisioned, so a database that already holds the tenant keeps its stored issuer
-  until it is reset ([`build/dev-db-reset.ps1`](../../build/dev-db-reset.ps1)). The pin lives
-  in the launch profile (not `appsettings.Conformance.json`) because the shared `Conformance` environment
-  overlay is also loaded by the Aspire-orchestrated `ConformanceAspire` dashboard instance on `:5003`,
-  which must keep its own request-derived issuer.
+  `server.discoveryUrl`, deterministically and independent of request host / proxy headers. Every served tenant has an
+  issuer and nothing derives one from the request
+  ([ADR-0165](../adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), so the pin is
+  required, not optional. The issuer is stored on the static tenant when it is first provisioned, so a database that
+  already holds the tenant keeps its stored issuer until it is reset
+  ([`build/dev-db-reset.ps1`](../../build/dev-db-reset.ps1)). The pin lives in the launch profile (not
+  `appsettings.Conformance.json`) because the shared `Conformance` environment overlay is also loaded by the
+  Aspire-orchestrated `ConformanceAspire` dashboard instance on `:5003`, whose own launch profile pins
+  `https://localhost:5003`. Both conformance profiles serve their own `conformance` tenant (the overlay's
+  `StaticSingle:TenantId`), so the Aspire instance never shares the development host's `default` tenant — and its stored
+  issuer — in the shared Postgres.
 - **Reuses the conformance tenant/seed (`T4`) and the interactive UI (`T2`).** `ASPNETCORE_ENVIRONMENT =
 Conformance` loads `appsettings.Conformance.json` (the `ConformanceSeed` section → `AddConformanceSeed`),
   and `InteractiveAuthentication__BundleRootPath` serves the `apps/auth` login/consent bundle under
@@ -41,12 +46,11 @@ full orchestration script that also brings the suite up/down is `T1` Phase D, no
   [`HostApplicationFactory`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/HostApplicationFactory.cs)
   boots the host through `WebApplicationFactory`/`TestServer` — not a socket the suite's containers
   can reach. The `Conformance` launch profile is the reachable-host answer to that gap.
-- **Issuer is request-derived, with a pin available.** In
+- **Issuer is always the tenant's own.** In
   [`DefaultOpenIdTenantFactory`](../../src/NCode.Identity.OpenId.Core/Tenants/DefaultOpenIdTenantFactory.cs):
-    - `GetTenantBaseAddressAsync` returns the tenant's `Issuer` when it has one, and otherwise builds the base
-      address from `httpRequest.Scheme` + `httpRequest.Host` (plus the path base and tenant route).
-    - `GetTenantIssuerAsync` returns the tenant's `Issuer` when set, otherwise the base address. So the issuer can be
-      **pinned** through `OpenId:TenantResolution:StaticSingle:Issuer`, or left to follow the request host.
+    - `GetTenantIssuerAsync` returns the tenant's stored `Issuer` and fails closed when it has none.
+    - `GetTenantBaseAddressAsync` parses the base address from that issuer, so the request's `Host` never reaches a
+      published URL. The issuer is set through `OpenId:TenantResolution:StaticSingle:Issuer`.
 - **Discovery is anchored to the tenant.** Discovery endpoints are emitted via `GetTenantUriByName`
   in [`DefaultDiscoverMetadataHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Discovery/Handlers/DefaultDiscoverMetadataHandler.cs),
   which takes the authority from the tenant's base address, so pinning the issuer also pins every endpoint URL.
@@ -75,9 +79,9 @@ Expose the host on a single origin the suite containers can reach — on Windows
   `OpenId__TenantResolution__StaticSingle__Issuer` environment variable. The issuer is a property of the tenant
   ([ADR-0129](../adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), and every published URL is
   anchored to it. Deterministic and independent of proxy headers.
-- **Follow the request host (not chosen):** ensure the request `Host`/`Scheme` the OP sees equals the
-  reached origin — which means configuring forwarded-headers handling if anything terminates TLS or
-  rewrites the host in front of Kestrel. More moving parts; the pin is preferred.
+- **Follow the request host (no longer possible):** the request-derived issuer was removed
+  ([ADR-0165](../adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)); a tenant is
+  published only under its own issuer.
 
 ### TLS trust
 

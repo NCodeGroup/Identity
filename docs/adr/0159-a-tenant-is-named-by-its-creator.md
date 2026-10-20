@@ -53,7 +53,8 @@ domain (`{tenant}.{region}.auth0.com`); a separate friendly name is for display 
 - **Keep opaque identifiers and derive a path tenant's issuer from a configured base address** (the Microsoft Entra
   `/{tenant-guid}/v2.0` shape). Rejected as the model: issuers become unreadable, operators cannot address a tenant by a
   name they know, and the hosted platform's tenant hostnames are names anyway. Deriving an issuer from a template remains
-  worthwhile on top of names (backlog `F71`).
+  worthwhile on top of names (backlog `F71`, realized by
+  [ADR-0165](0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
 - **Create without an issuer, then set it once the identifier is known.** Rejected: the tenant exists for a while with no
   address, and every client of the API needs two calls for one intent.
 - **An opaque identifier plus a separate, unique, caller-chosen slug that path tenants are routed by** (the Keycloak realm

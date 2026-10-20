@@ -37,21 +37,51 @@ internal class TenantResolutionOptionsValidator : IValidateOptions<TenantResolut
         if (string.IsNullOrEmpty(options.StrategyCode))
             failures.Add($"{nameof(TenantResolutionOptions.StrategyCode)} is required.");
 
-        var rootTenantId = options.RootTenantId;
-        if (string.IsNullOrEmpty(rootTenantId))
-        {
-            failures.Add($"{nameof(TenantResolutionOptions.RootTenantId)} is required.");
-        }
-        else if (!TenantAddressRules.IsValidTenantId(rootTenantId))
-        {
-            failures.Add(
-                $"{nameof(TenantResolutionOptions.RootTenantId)} '{rootTenantId}' must be "
-                    + $"{TenantAddressRules.TenantIdRequirement}."
-            );
-        }
+        ValidateRoot(options.Root, failures);
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);
+    }
+
+    // The root tenant's address is judged by the selected strategy's validator, which knows the routes it serves; this
+    // validator checks only what holds under every strategy.
+    private static void ValidateRoot(RootTenantOptions? root, List<string> failures)
+    {
+        const string prefix = nameof(TenantResolutionOptions.Root);
+
+        if (root is null)
+        {
+            failures.Add($"{prefix} is required.");
+            return;
+        }
+
+        var rootTenantId = root.TenantId;
+        if (string.IsNullOrEmpty(rootTenantId))
+        {
+            failures.Add($"{prefix}:{nameof(root.TenantId)} is required.");
+        }
+        else if (!TenantAddressRules.IsValidTenantId(rootTenantId))
+        {
+            failures.Add(
+                $"{prefix}:{nameof(root.TenantId)} '{rootTenantId}' must be "
+                    + $"{TenantAddressRules.TenantIdRequirement}."
+            );
+        }
+
+        if (string.IsNullOrEmpty(root.DisplayName))
+            failures.Add($"{prefix}:{nameof(root.DisplayName)} is required.");
+
+        var rootIssuer = root.Issuer;
+        if (
+            !string.IsNullOrEmpty(rootIssuer)
+            && !TenantAddressRules.TryParseIssuer(rootIssuer, out _)
+        )
+        {
+            failures.Add(
+                $"{prefix}:{nameof(root.Issuer)} '{rootIssuer}' must be "
+                    + $"{TenantAddressRules.IssuerRequirement}."
+            );
+        }
     }
 }

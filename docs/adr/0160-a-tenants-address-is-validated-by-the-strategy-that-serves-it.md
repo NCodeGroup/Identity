@@ -1,6 +1,8 @@
 # 160. A tenant's address is validated by the strategy that serves it, wherever it is written
 
-- **Status:** Accepted
+- **Status:** Accepted (extended by
+  [ADR-0165](0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md): the seam also derives a
+  tenant's default issuer, a tenant a strategy serves needs an issuer, and the root tenant's address is reserved)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

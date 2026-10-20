@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Strategies;
@@ -73,47 +74,113 @@ public sealed class StaticSingleTenantStrategyTests
     }
 
     [Fact]
-    public async Task ResolveTenantAsync_DelegatesToProvisioner()
+    public async Task ResolveTenantAsync_EnsuresTheConfiguredTenantExists()
     {
         var mocks = new MockRepository(MockBehavior.Strict);
         var storeManagerFactory = mocks.Create<IStoreManagerFactory>();
         var provisioner = mocks.Create<ITenantProvisioner>();
 
-        var persistedTenant = new PersistedTenant
-        {
-            TenantId = "tenant-1",
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = "Tenant One",
-            Settings = null!,
-            Secrets = null!,
-        };
+        var persistedTenant = CreateTenant(isDisabled: false);
 
         provisioner
             .Setup(x =>
-                x.ProvisionAsync("tenant-1", "Tenant One", null, It.IsAny<CancellationToken>())
+                x.EnsureCreatedAsync("tenant-1", "Tenant One", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(persistedTenant)
             .Verifiable();
-
-        var services = new ServiceCollection();
-        services.AddSingleton(provisioner.Object);
-        var httpContext = new DefaultHttpContext
-        {
-            RequestServices = services.BuildServiceProvider(),
-        };
 
         var strategy = CreateStrategy(
             storeManagerFactory.Object,
             new StaticSingleTenantOptions { TenantId = "tenant-1", DisplayName = "Tenant One" }
         );
 
-        var result = await strategy.ResolveTenantAsync(httpContext, CancellationToken.None);
+        var result = await strategy.ResolveTenantAsync(
+            CreateHttpContext(provisioner.Object),
+            CancellationToken.None
+        );
 
         Assert.Same(persistedTenant, result);
         mocks.Verify();
     }
+
+    [Fact]
+    public async Task ResolveTenantAsync_WhenTenantIsDisabled_ThrowsNotFound()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var provisioner = mocks.Create<ITenantProvisioner>();
+
+        provisioner
+            .Setup(x =>
+                x.EnsureCreatedAsync("tenant-1", "Tenant One", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateTenant(isDisabled: true))
+            .Verifiable();
+
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions { TenantId = "tenant-1", DisplayName = "Tenant One" }
+        );
+
+        await Assert.ThrowsAsync<HttpResultException>(async () =>
+            await strategy.ResolveTenantAsync(
+                CreateHttpContext(provisioner.Object),
+                CancellationToken.None
+            )
+        );
+
+        mocks.Verify();
+    }
+
+    #region GetDefaultIssuerAsync Tests
+
+    [Fact]
+    public async Task GetDefaultIssuerAsync_WhenConfiguredTenant_ReturnsTheConfiguredIssuer()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions { TenantId = "tenant-1", Issuer = "https://op.example" }
+        );
+
+        var issuer = await strategy.GetDefaultIssuerAsync("tenant-1", CancellationToken.None);
+
+        Assert.Equal("https://op.example", issuer);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task GetDefaultIssuerAsync_WhenAnotherTenant_ReturnsNone()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        // Not even the root tenant's configured issuer: the strategy does not serve the root tenant.
+        var strategy = new StaticSingleTenantStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            Options.Create(
+                new TenantResolutionOptions
+                {
+                    Root = { Issuer = "https://auth.example" },
+                    StaticSingle = new StaticSingleTenantOptions
+                    {
+                        TenantId = "tenant-1",
+                        Issuer = "https://op.example",
+                    },
+                }
+            )
+        );
+
+        var issuer = await strategy.GetDefaultIssuerAsync(
+            RootTenantOptions.DefaultTenantId,
+            CancellationToken.None
+        );
+
+        Assert.Null(issuer);
+        mocks.Verify();
+    }
+
+    #endregion
+
+    #region ValidateTenantAsync Tests
 
     [Theory]
     [InlineData("https://op.example/identity", true)]
@@ -141,4 +208,69 @@ public sealed class StaticSingleTenantStrategyTests
         Assert.Equal(expectedValid, failures.Count == 0);
         mocks.Verify();
     }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenConfiguredTenantHasNoIssuer_Fails()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions { TenantId = "tenant-1" }
+        );
+
+        var failures = await strategy.ValidateTenantAsync(
+            "tenant-1",
+            issuer: null,
+            mocks.Create<IStoreManager>().Object,
+            CancellationToken.None
+        );
+
+        var failure = Assert.Single(failures);
+        Assert.Contains("requires an issuer", failure.Detail, StringComparison.Ordinal);
+        Assert.False(failure.IsConflict);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenUnservedTenantHasNoIssuer_Succeeds()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions { TenantId = "tenant-1" }
+        );
+
+        // The root tenant is not served by a static strategy whose tenant is another, so it needs no address.
+        var failures = await strategy.ValidateTenantAsync(
+            RootTenantOptions.DefaultTenantId,
+            issuer: null,
+            mocks.Create<IStoreManager>().Object,
+            CancellationToken.None
+        );
+
+        Assert.Empty(failures);
+        mocks.Verify();
+    }
+
+    #endregion
+
+    private static DefaultHttpContext CreateHttpContext(ITenantProvisioner provisioner) =>
+        new()
+        {
+            RequestServices = new ServiceCollection()
+                .AddSingleton(provisioner)
+                .BuildServiceProvider(),
+        };
+
+    private static PersistedTenant CreateTenant(bool isDisabled) =>
+        new()
+        {
+            TenantId = "tenant-1",
+            Issuer = "https://op.example",
+            ConcurrencyToken = "token",
+            IsDisabled = isDisabled,
+            DisplayName = "Tenant One",
+            Settings = null!,
+            Secrets = null!,
+        };
 }

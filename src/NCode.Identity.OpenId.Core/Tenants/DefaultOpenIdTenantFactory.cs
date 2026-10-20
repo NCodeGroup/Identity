@@ -19,8 +19,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.Routing.Template;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Collections.Providers.PeriodicPolling;
@@ -43,13 +42,13 @@ namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Provides the default implementation of the <see cref="IOpenIdTenantFactory"/> abstraction. Tenant selection is
-/// delegated to the shared <see cref="ITenantResolver"/>; this type materializes the <see cref="OpenIdTenant"/>
-/// (settings, secrets, issuer, base address) from the resolved <see cref="PersistedTenant"/> and caches it.
+/// delegated to the shared <see cref="ITenantResolver"/>; this type seeds the resolved <see cref="PersistedTenant"/>
+/// through the <see cref="ITenantProvisioner"/> and materializes the <see cref="OpenIdTenant"/> (settings, secrets,
+/// issuer, base address) from it, and caches it. A tenant is always published under its own issuer.
 /// </summary>
 [PublicAPI]
 public class DefaultOpenIdTenantFactory(
     ITenantResolver tenantResolver,
-    TemplateBinderFactory templateBinderFactory,
     IOptions<OpenIdOptions> optionsAccessor,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTenantCache tenantCache,
@@ -65,11 +64,6 @@ public class DefaultOpenIdTenantFactory(
     /// Gets the <see cref="ITenantResolver"/> used to resolve the ambient tenant for the current request.
     /// </summary>
     protected ITenantResolver TenantResolver { get; } = tenantResolver;
-
-    /// <summary>
-    /// Gets the <see cref="TemplateBinderFactory"/> used to bind route templates.
-    /// </summary>
-    protected TemplateBinderFactory TemplateBinderFactory { get; } = templateBinderFactory;
 
     /// <summary>
     /// Gets the <see cref="OpenIdOptions"/> used to configure OpenID.
@@ -158,6 +152,12 @@ public class DefaultOpenIdTenantFactory(
         persistedTenant ??= await TenantResolver.ResolveTenantAsync(httpContext, cancellationToken);
         tenantId = persistedTenant.TenantId;
 
+        // A tenant is seeded whenever it is materialized: the bootstrap of a tenant created on demand, and the
+        // reconciliation that brings an existing tenant up to date with the seed contributors (ADR-0166). The provisioner
+        // is scoped (its mediator is request-scoped), so it is resolved from the request's services.
+        var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
+        persistedTenant = await provisioner.SeedAsync(tenantId, cancellationToken);
+
         var tenantPropertyBag = propertyBag.Clone();
 
         await using var tenantSettings = await GetTenantSettingsAsync(
@@ -169,7 +169,7 @@ public class DefaultOpenIdTenantFactory(
             cancellationToken
         );
 
-        var tenantBaseAddress = await GetTenantBaseAddressAsync(
+        var tenantIssuer = await GetTenantIssuerAsync(
             httpContext,
             persistedTenant,
             tenantSettings,
@@ -177,10 +177,10 @@ public class DefaultOpenIdTenantFactory(
             cancellationToken
         );
 
-        var tenantIssuer = await GetTenantIssuerAsync(
+        var tenantBaseAddress = await GetTenantBaseAddressAsync(
             httpContext,
             persistedTenant,
-            tenantBaseAddress,
+            tenantIssuer,
             tenantSettings,
             tenantPropertyBag,
             cancellationToken
@@ -230,9 +230,8 @@ public class DefaultOpenIdTenantFactory(
     )
     {
         // Load the addressed tenant directly by identifier rather than resolving it from the request, since the request
-        // is not addressed to this tenant. The shared tenant cache is intentionally not consulted or written: it holds
-        // request-materialized tenants (whose base address derives from the request host), and an admin materialization
-        // derives its base address from the tenant's own issuer instead, so the two must not alias each other.
+        // is not addressed to this tenant. The shared tenant cache is intentionally not consulted or written, so an
+        // administrative operation acts on the tenant as it is stored now rather than as a request last cached it.
         var persistedTenant = await LoadPersistedTenantAsync(tenantId, cancellationToken);
 
         var tenantPropertyBag = propertyBag.Clone();
@@ -246,10 +245,23 @@ public class DefaultOpenIdTenantFactory(
             cancellationToken
         );
 
-        // The tenant's own issuer is its request-independent identity; it is both the issuer and the base address for
-        // an admin materialization, so the tenant must have one.
-        var tenantIssuer = GetConfiguredTenantIssuer(persistedTenant);
-        var tenantBaseAddress = ParseBaseAddress(tenantIssuer);
+        // Like every materialized tenant, it is published under its own issuer, which is also its base address.
+        var tenantIssuer = await GetTenantIssuerAsync(
+            httpContext,
+            persistedTenant,
+            tenantSettings,
+            tenantPropertyBag,
+            cancellationToken
+        );
+
+        var tenantBaseAddress = await GetTenantBaseAddressAsync(
+            httpContext,
+            persistedTenant,
+            tenantIssuer,
+            tenantSettings,
+            tenantPropertyBag,
+            cancellationToken
+        );
 
         await using var tenantSecrets = await GetTenantSecretsAsync(
             httpContext,
@@ -299,7 +311,7 @@ public class DefaultOpenIdTenantFactory(
         return persistedTenant;
     }
 
-    private static string GetConfiguredTenantIssuer(PersistedTenant persistedTenant)
+    private static string GetRequiredTenantIssuer(PersistedTenant persistedTenant)
     {
         var tenantIssuer = persistedTenant.Issuer;
         if (!string.IsNullOrEmpty(tenantIssuer))
@@ -307,9 +319,12 @@ public class DefaultOpenIdTenantFactory(
             return tenantIssuer;
         }
 
+        // Every tenant a strategy serves is written with an issuer (ADR-0165), so this is a tenant stored before that
+        // rule or written around it. It fails closed: deriving an origin from the request would let a caller's Host
+        // header choose where the server tells clients to send their credentials (ADR-0129).
         throw new InvalidOperationException(
-            $"The tenant with id '{persistedTenant.TenantId}' has no issuer and cannot be materialized "
-                + "outside of an inbound request addressed to it."
+            $"The tenant with id '{persistedTenant.TenantId}' has no issuer and cannot be served. Give it an issuer "
+                + "through the management API."
         );
     }
 
@@ -412,10 +427,35 @@ public class DefaultOpenIdTenantFactory(
     }
 
     /// <summary>
-    /// Used to get the tenant's <see cref="UriDescriptor"/> instance from the current HTTP request.
+    /// Used to get the tenant's <c>issuer identifier</c>: its request-independent identity, asserted in every token it
+    /// mints and the origin of every URL the server publishes for it. The default implementation returns the tenant's
+    /// stored issuer and fails closed when it has none, because nothing derives an issuer from the request.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="persistedTenant">The <see cref="PersistedTenant"/> for the current tenant.</param>
+    /// <param name="tenantSettings">The <see cref="IReadOnlySettingCollectionProvider"/> instance for the current tenant.</param>
+    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <c>issuer identifier</c>.</returns>
+    /// <exception cref="InvalidOperationException">The tenant has no issuer.</exception>
+    // See ADR-0129 (the issuer is the single authoritative origin) and ADR-0165 (every served tenant has an issuer).
+    protected virtual ValueTask<string> GetTenantIssuerAsync(
+        HttpContext httpContext,
+        PersistedTenant persistedTenant,
+        AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> tenantSettings,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    ) => ValueTask.FromResult(GetRequiredTenantIssuer(persistedTenant));
+
+    /// <summary>
+    /// Used to get the tenant's base address, the <see cref="UriDescriptor"/> every absolute URL the server publishes for
+    /// the tenant is built from — the discovery endpoint URLs, the <c>registration_client_uri</c>, the device
+    /// <c>verification_uri</c>. The default implementation parses it from the tenant's issuer, which names exactly where
+    /// the tenant is served, tenant route included (ADR-0138).
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
+    /// <param name="persistedTenant">The <see cref="PersistedTenant"/> for the current tenant.</param>
+    /// <param name="tenantIssuer">The <c>issuer identifier</c> for the current tenant.</param>
     /// <param name="tenantSettings">The <see cref="IReadOnlySettingCollectionProvider"/> instance for the current tenant.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -423,85 +463,11 @@ public class DefaultOpenIdTenantFactory(
     protected virtual ValueTask<UriDescriptor> GetTenantBaseAddressAsync(
         HttpContext httpContext,
         PersistedTenant persistedTenant,
+        string tenantIssuer,
         AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> tenantSettings,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
-    )
-    {
-        var httpRequest = httpContext.Request;
-
-        // The tenant's base address is what every absolute URL the server publishes is built from — the issuer, the
-        // discovery endpoint URLs, the registration_client_uri, the device verification_uri. A configured origin is
-        // therefore preferred over anything the caller sent: deriving it from the request lets a Host header decide
-        // where the server tells clients to send their credentials, which is only acceptable on a developer's machine.
-        // The tenant's own issuer is its request-independent identity and names exactly where the tenant is served,
-        // tenant route included, so it is the base address as-is — the explicit-tenant path above does the same (ADR-0138).
-        if (!string.IsNullOrEmpty(persistedTenant.Issuer))
-        {
-            var issuerBaseAddress = ParseBaseAddress(persistedTenant.Issuer);
-            return ValueTask.FromResult(issuerBaseAddress);
-        }
-
-        // The development fallback derives the base address from the request: its origin, the path base the host is
-        // mounted under, and the tenant route bound from the request's route values.
-        var basePath = httpRequest.PathBase;
-
-        var tenantRoute = TenantResolver.GetTenantRoute();
-
-        // Bind only the tenant route's own parameters, from a copy: the binder consumes the values it is given and
-        // writes any it does not use as a query string, so handing it the request's live route values would strip
-        // them from the request and leak the endpoint's other parameters into the base address.
-        var tenantRouteValues = new RouteValueDictionary();
-        foreach (var parameter in tenantRoute.Parameters)
-        {
-            if (httpRequest.RouteValues.TryGetValue(parameter.Name, out var value))
-                tenantRouteValues[parameter.Name] = value;
-        }
-
-        var templateBinder = TemplateBinderFactory.Create(tenantRoute);
-        var tenantRouteUrl = templateBinder.BindValues(tenantRouteValues);
-        if (!string.IsNullOrEmpty(tenantRouteUrl))
-        {
-            basePath = basePath.Add(tenantRouteUrl);
-        }
-
-        var baseAddress = new UriDescriptor
-        {
-            Scheme = httpRequest.Scheme,
-            Host = httpRequest.Host,
-            Path = basePath,
-        };
-
-        return ValueTask.FromResult(baseAddress);
-    }
-
-    /// <summary>
-    /// Used to get the tenant's <c>issuer identifier</c> from the current HTTP request.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
-    /// <param name="persistedTenant">The <see cref="PersistedTenant"/> for the current tenant.</param>
-    /// <param name="tenantBaseAddress">The <see cref="UriDescriptor"/> instance for the current tenant.</param>
-    /// <param name="tenantSettings">The <see cref="IReadOnlySettingCollectionProvider"/> instance for the current tenant.</param>
-    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <c>issuer identifier</c>.</returns>
-    protected virtual ValueTask<string> GetTenantIssuerAsync(
-        HttpContext httpContext,
-        PersistedTenant persistedTenant,
-        UriDescriptor tenantBaseAddress,
-        AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> tenantSettings,
-        IPropertyBag propertyBag,
-        CancellationToken cancellationToken
-    )
-    {
-        // The tenant's own issuer is its request-independent identity; the base address (which is derived from that
-        // issuer when one is set) is the development-only fallback.
-        var tenantIssuer = persistedTenant.Issuer;
-
-        return ValueTask.FromResult(
-            string.IsNullOrEmpty(tenantIssuer) ? tenantBaseAddress.ToString() : tenantIssuer
-        );
-    }
+    ) => ValueTask.FromResult(ParseBaseAddress(tenantIssuer));
 
     /// <summary>
     /// Used to get the tenant's <see cref="ISecretKeyCollectionProvider"/> instance.

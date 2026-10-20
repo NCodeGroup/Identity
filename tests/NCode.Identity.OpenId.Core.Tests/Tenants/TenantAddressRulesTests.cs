@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.RegularExpressions;
 using NCode.Identity.OpenId.Tenants;
 using Xunit;
 
@@ -112,6 +113,105 @@ public sealed class TenantAddressRulesTests
         var issuer = "https://op.example/" + new string('a', 1000);
 
         Assert.False(TenantAddressRules.TryParseIssuer(issuer, out _));
+    }
+
+    [Fact]
+    public void TryParseIssuer_WhenAHostLabelIsSixtyThreeCharacters_ReturnsTrue()
+    {
+        var issuer = $"https://{new string('a', 63)}.auth.example";
+
+        Assert.True(TenantAddressRules.TryParseIssuer(issuer, out _));
+    }
+
+    [Fact]
+    public void TryParseIssuer_WhenAHostLabelIsLongerThanSixtyThreeCharacters_ReturnsFalse()
+    {
+        // The shape a template produces when it embeds a long tenant identifier in a longer label.
+        var issuer = $"https://{new string('a', 63)}-dev.auth.example";
+
+        Assert.False(TenantAddressRules.TryParseIssuer(issuer, out _));
+    }
+
+    [Fact]
+    public void TryParseIssuer_WhenTheHostIsLongerThanTwoHundredFiftyThreeCharacters_ReturnsFalse()
+    {
+        var label = new string('a', 60);
+        var issuer = $"https://{label}.{label}.{label}.{label}.{label}.example";
+
+        Assert.False(TenantAddressRules.TryParseIssuer(issuer, out _));
+    }
+
+    #endregion
+
+    #region ExpandIssuerTemplate Tests
+
+    [Theory]
+    [InlineData("https://{tenantId}.auth.example", "https://acme.auth.example")]
+    [InlineData("https://op.example/{tenantId}", "https://op.example/acme")]
+    [InlineData("https://{tenantId}-dev.example/identity", "https://acme-dev.example/identity")]
+    public void ExpandIssuerTemplate_SubstitutesTheTenantIdentifier(
+        string issuerTemplate,
+        string expected
+    )
+    {
+        Assert.Equal(expected, TenantAddressRules.ExpandIssuerTemplate(issuerTemplate, "acme"));
+    }
+
+    #endregion
+
+    #region TryValidateIssuerTemplate Tests
+
+    [Theory]
+    [InlineData("https://{tenantId}.auth.example")]
+    [InlineData("https://op.example/{tenantId}")]
+    [InlineData("https://op.example/base/{tenantId}")]
+    [InlineData("http://localhost:5000/{tenantId}")]
+    public void TryValidateIssuerTemplate_WhenValid_ReturnsTrue(string issuerTemplate)
+    {
+        var failures = new List<string>();
+
+        var result = TenantAddressRules.TryValidateIssuerTemplate(issuerTemplate, "Key", failures);
+
+        Assert.True(result);
+        Assert.Empty(failures);
+    }
+
+    [Theory]
+    [InlineData("https://op.example")]
+    [InlineData("https://op.example/{tenantId}/{tenantId}")]
+    [InlineData("https://op.example/{tenant}")]
+    [InlineData("https://op.example/{tenantId}/{region}")]
+    [InlineData("https://op.example/{tenantId}?x=1")]
+    [InlineData("http://op.example/{tenantId}")]
+    [InlineData("op.example/{tenantId}")]
+    public void TryValidateIssuerTemplate_WhenInvalid_ReportsTheKey(string issuerTemplate)
+    {
+        var failures = new List<string>();
+
+        var result = TenantAddressRules.TryValidateIssuerTemplate(issuerTemplate, "Key", failures);
+
+        Assert.False(result);
+        var failure = Assert.Single(failures);
+        Assert.StartsWith($"Key '{issuerTemplate}' must be", failure, StringComparison.Ordinal);
+    }
+
+    #endregion
+
+    #region MapToIssuerHost Tests
+
+    [Theory]
+    [InlineData(".*", "acme.auth.example", "acme.auth.example")]
+    [InlineData("^[^.]+", "acme.auth.example", "acme")]
+    [InlineData("^tenant-", "acme.auth.example", "acme.auth.example")]
+    public void MapToIssuerHost_ReturnsTheMatchOrTheWholeHost(
+        string pattern,
+        string host,
+        string expected
+    )
+    {
+        var hostPattern = new Regex(pattern, RegexOptions.CultureInvariant);
+
+        Assert.Equal(expected, TenantAddressRules.MapToIssuerHost(hostPattern, host));
     }
 
     #endregion

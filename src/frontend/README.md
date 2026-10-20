@@ -359,6 +359,13 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   the resource still has dependents). Invalidate both the `LIST` tag and the per-id tag so the scoped
   caches reconcile. Server failures are RFC 7807 Problem Details; surface them through
   [`apiErrorMessage`](packages/store/src/apiError.ts) rather than re-deriving messages in each container.
+- **A query that checks live input shows its result only while the result describes that input.** RTK Query keeps
+  returning the previous `data` while a query for new arguments loads, and a debounced input lags the field it reads,
+  so a preview of the old input would be shown as the current one. Compare the hook's `originalArgs` with the input as
+  it is now and drop the result when they differ, as the tenant form's address preview in
+  [`TenantsPage`](apps/mgmt/src/containers/TenantsPage.tsx) does. Turn such a query off with the `{ skip }` option:
+  apps reach RTK Query only through `@ncode/store` and do not depend on `@reduxjs/toolkit`, so `skipToken` is not
+  importable there.
 - **A `data-testid` on a MUI control lands on the root, not the native input.** `<Switch data-testid=…>`
   (and friends) forward the attribute to the outer element, so `getByTestId(...)` returns a `<span>` and
   matchers like `.toBeChecked()` fail. `TextField`'s `slotProps.htmlInput` _does_ reach the input (its

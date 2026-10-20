@@ -27,16 +27,16 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Tenants.Strategies;
 
 /// <summary>
-/// Provides a tenant-selection strategy that always resolves the same single, statically-configured tenant,
-/// provisioning an empty tenant on first use when one does not yet exist.
+/// Provides a tenant-selection strategy that always resolves the same single, statically-configured tenant, creating it
+/// on first use when it does not yet exist.
 /// </summary>
 internal class StaticSingleTenantStrategy(
     IStoreManagerFactory storeManagerFactory,
     IOptions<TenantResolutionOptions> optionsAccessor
-) : TenantStrategy(storeManagerFactory)
+) : TenantStrategy(storeManagerFactory, optionsAccessor)
 {
     private StaticSingleTenantOptions Options =>
-        optionsAccessor.Value.StaticSingle ?? new StaticSingleTenantOptions();
+        ResolutionOptions.StaticSingle ?? new StaticSingleTenantOptions();
 
     /// <inheritdoc />
     public override string StrategyCode => OpenIdConstants.TenantStrategyCodes.StaticSingle;
@@ -52,6 +52,9 @@ internal class StaticSingleTenantStrategy(
             : tenantId;
     }
 
+    private bool IsConfiguredTenant(string tenantId) =>
+        string.Equals(tenantId, ResolveConfiguredTenantId(), StringComparison.Ordinal);
+
     /// <inheritdoc />
     public override bool TryGetTenantId(
         HttpContext httpContext,
@@ -63,29 +66,47 @@ internal class StaticSingleTenantStrategy(
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The configured tenant's default issuer is its configured issuer. The strategy serves no other tenant, so it
+    /// assigns no other tenant an issuer — the root tenant included, unless it is the configured tenant.
+    /// </remarks>
+    public override ValueTask<string?> GetDefaultIssuerAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var issuer = IsConfiguredTenant(tenantId) ? Options.Issuer : null;
+        return ValueTask.FromResult(string.IsNullOrEmpty(issuer) ? null : issuer);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The strategy serves only the configured tenant, so only it needs an issuer.
+    /// </remarks>
+    protected override bool RequiresIssuer(string tenantId) => IsConfiguredTenant(tenantId);
+
+    /// <inheritdoc />
     public override async ValueTask<PersistedTenant> ResolveTenantAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
     {
-        var options = Options;
-
         var tenantId = ResolveConfiguredTenantId();
 
-        var displayName = options.DisplayName;
+        var displayName = Options.DisplayName;
         if (string.IsNullOrEmpty(displayName))
             displayName = StaticSingleTenantOptions.DefaultDisplayName;
 
-        // Lazily provision and seed on first resolution. The provisioner ensures the root tenant first, then the
-        // workload tenant, and runs the seed fan-out for each within a single unit of work (ADR-0045). The mediator
-        // is request-scoped, so the provisioner is resolved from the request's service provider.
+        // The configured tenant is created on first resolution, with its configured issuer; the caller that
+        // materializes it seeds it (ADR-0166). The provisioner is scoped (its mediator is request-scoped), so it is
+        // resolved from the request's service provider.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
-
-        return await provisioner.ProvisionAsync(
+        var persistedTenant = await provisioner.EnsureCreatedAsync(
             tenantId,
             displayName,
-            options.Issuer,
             cancellationToken
         );
+
+        return ThrowIfDisabled(persistedTenant);
     }
 }

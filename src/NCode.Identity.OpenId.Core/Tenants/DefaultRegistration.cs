@@ -66,8 +66,7 @@ internal static class DefaultRegistration
             serviceCollection.AddMemoryCache();
             serviceCollection.TryAddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
 
-            // The tenant factory and the path-based strategy bind the tenant route via TemplateBinderFactory (from
-            // AddRouting).
+            // The path-based strategy binds the tenant route via TemplateBinderFactory (from AddRouting).
             serviceCollection.AddRouting();
             serviceCollection.TryAddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
 

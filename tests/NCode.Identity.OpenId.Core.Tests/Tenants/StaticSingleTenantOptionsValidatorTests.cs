@@ -43,11 +43,22 @@ public sealed class StaticSingleTenantOptionsValidatorTests
     #region Validate Tests
 
     [Fact]
-    public void Validate_WhenDefaults_Succeeds()
+    public void Validate_WhenDefaults_FailsBecauseTheTenantHasNoIssuer()
     {
-        var result = Validator.Validate(name: null, new TenantResolutionOptions());
+        var failures = Failures(new TenantResolutionOptions());
 
-        Assert.True(result.Succeeded);
+        Assert.Contains("StaticSingle:Issuer is required", failures, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_WhenRootIssuerIsConfigured_FailsBecauseItIsNeverHonored()
+    {
+        var options = Selected(new StaticSingleTenantOptions { Issuer = "https://op.example" });
+        options.Root.Issuer = "https://auth.example";
+
+        var failures = Failures(options);
+
+        Assert.Contains("Root:Issuer has no effect", failures, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -66,14 +77,14 @@ public sealed class StaticSingleTenantOptionsValidatorTests
     }
 
     [Theory]
-    [InlineData("/")]
-    [InlineData("/identity")]
-    [InlineData("/identity/v1")]
-    public void Validate_WhenTenantPathIsLiteral_Succeeds(string tenantPath)
+    [InlineData("/", "https://op.example")]
+    [InlineData("/identity", "https://op.example/identity")]
+    [InlineData("/identity/v1", "https://op.example/identity/v1")]
+    public void Validate_WhenTenantPathIsLiteral_Succeeds(string tenantPath, string issuer)
     {
         var result = Validator.Validate(
             name: null,
-            Selected(new StaticSingleTenantOptions { TenantPath = tenantPath })
+            Selected(new StaticSingleTenantOptions { TenantPath = tenantPath, Issuer = issuer })
         );
 
         Assert.True(result.Succeeded);
@@ -105,7 +116,13 @@ public sealed class StaticSingleTenantOptionsValidatorTests
     {
         var result = Validator.Validate(
             name: null,
-            Selected(new StaticSingleTenantOptions { TenantId = string.Empty })
+            Selected(
+                new StaticSingleTenantOptions
+                {
+                    TenantId = string.Empty,
+                    Issuer = "https://op.example",
+                }
+            )
         );
 
         Assert.True(result.Succeeded);

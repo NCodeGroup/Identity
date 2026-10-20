@@ -53,9 +53,9 @@ public interface IOpenIdTenantFactory
     /// Creates a new <see cref="OpenIdTenant"/> instance for the tenant addressed by an explicit identifier, decoupled
     /// from the request's own tenant-resolution strategy. This materializes a tenant the current request is not itself
     /// addressed to — for example, a management/admin operation acting on a route-addressed tenant that must run
-    /// protocol machinery (session termination, back-channel logout) in that tenant's security domain. The tenant's
-    /// issuer and base address are taken from its own configuration rather than the request, so the tenant must have a
-    /// configured issuer.
+    /// protocol machinery (session termination, back-channel logout) in that tenant's security domain. Like every
+    /// materialized tenant, its issuer and base address are taken from its own issuer, never from the request, so the
+    /// tenant must have one.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> instance associated with the current request.</param>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>

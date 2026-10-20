@@ -31,11 +31,11 @@ namespace NCode.Identity.OpenId.Management.Contracts.Tenants;
 public sealed class UpdateTenantRequest
 {
     /// <summary>
-    /// Gets or sets the optional issuer identifier for the tenant — its request-independent identity, and therefore
-    /// the origin of every absolute URL the server publishes for it. It must be an absolute <c>https</c> URL
-    /// (<c>http</c> only for a loopback host) with no user information, query, or fragment, that the configured tenant
-    /// strategy serves the tenant beneath. When <c>null</c>, that origin is derived from the incoming request, which is
-    /// a development-only convenience.
+    /// Gets or sets the issuer identifier for the tenant — its request-independent identity, and therefore the origin of
+    /// every absolute URL the server publishes for it. It must be an absolute <c>https</c> URL (<c>http</c> only for a
+    /// loopback host) with no user information, query, or fragment, that the configured tenant strategy serves the tenant
+    /// beneath. Setting it to <c>null</c> restores the issuer the tenant strategy derives for the tenant from its issuer
+    /// template.
     /// </summary>
     [JsonPropertyName("issuer")]
     public string? Issuer { get; set; }

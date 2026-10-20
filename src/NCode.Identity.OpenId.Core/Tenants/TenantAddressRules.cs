@@ -43,7 +43,26 @@ internal static partial class TenantAddressRules
     /// </summary>
     public static string IssuerRequirement { get; } =
         "an absolute https URL (http only for a loopback host) with no user information, query, fragment, or "
-        + $"whitespace, of at most {OpenIdMaxLengths.Issuer} characters";
+        + $"whitespace, of at most {OpenIdMaxLengths.Issuer} characters, whose host name labels are each 1 to 63 "
+        + "characters";
+
+    /// <summary>
+    /// Gets the requirement an issuer template must meet, phrased to complete a sentence such as "must be …".
+    /// </summary>
+    public static string IssuerTemplateRequirement { get; } =
+        $"an absolute URL that contains '{TenantResolutionOptions.TenantIdPlaceholder}' exactly once and no other "
+        + "template expression, and whose expansion for a tenant identifier is a valid issuer";
+
+    /// <summary>
+    /// Gets the tenant identifiers an issuer template is expanded with to prove it yields a valid issuer, and a distinct
+    /// one per tenant. An expansion that is valid for these can still be too long for a long identifier — a template that
+    /// embeds the identifier in a longer host label — which is reported when that tenant is written.
+    /// </summary>
+    public static IReadOnlyList<string> ProbeTenantIds { get; } = ["a", "b"];
+
+    private const int MaxHostLength = 253;
+
+    private const int MaxHostLabelLength = 63;
 
     // An RFC 1123 host label in lowercase, so a tenant's name is equally valid as a URL path segment and as the leftmost
     // label of a hostname. '\z' rather than '$', which also matches before a trailing newline.
@@ -87,11 +106,99 @@ internal static partial class TenantAddressRules
 
         var isAllowedScheme =
             uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback);
-        if (!isAllowedScheme || !string.IsNullOrEmpty(uri.UserInfo))
+        if (!isAllowedScheme || !string.IsNullOrEmpty(uri.UserInfo) || !IsValidHost(uri))
             return false;
 
         issuerUri = uri;
         return true;
+    }
+
+    // A host name whose labels exceed 63 characters, or whose whole exceeds 253, parses as a URI (the parser reports it as
+    // a basic rather than a DNS host) but cannot be resolved or certified — the shape a template produces when it embeds
+    // a long tenant identifier in a longer label.
+    private static bool IsValidHost(Uri uri)
+    {
+        if (uri.HostNameType is UriHostNameType.IPv4 or UriHostNameType.IPv6)
+            return true;
+
+        var host = uri.IdnHost;
+        if (host.Length > MaxHostLength)
+            return false;
+
+        foreach (var label in host.Split('.'))
+        {
+            if (label.Length is 0 or > MaxHostLabelLength)
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Expands the specified issuer template for the specified tenant. A tenant identifier is a lowercase host label, so
+    /// it needs no escaping in either the host or the path of a URL.
+    /// </summary>
+    /// <param name="issuerTemplate">The issuer template, carrying <see cref="TenantResolutionOptions.TenantIdPlaceholder"/>.</param>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <returns>The issuer for the tenant.</returns>
+    public static string ExpandIssuerTemplate(string issuerTemplate, string tenantId) =>
+        issuerTemplate.Replace(
+            TenantResolutionOptions.TenantIdPlaceholder,
+            tenantId,
+            StringComparison.Ordinal
+        );
+
+    /// <summary>
+    /// Validates that the specified configured issuer template is <see cref="IssuerTemplateRequirement"/>, recording a
+    /// failure under the specified configuration key when it is not. The rules of the strategy that uses the template
+    /// are checked separately, against its expansions.
+    /// </summary>
+    /// <param name="issuerTemplate">The configured issuer template.</param>
+    /// <param name="key">The configuration key the template was bound from, used in the failure message.</param>
+    /// <param name="failures">The failures to append to.</param>
+    /// <returns><see langword="true"/> when the template is valid; otherwise, <see langword="false"/>.</returns>
+    public static bool TryValidateIssuerTemplate(
+        string issuerTemplate,
+        string key,
+        List<string> failures
+    )
+    {
+        const string placeholder = TenantResolutionOptions.TenantIdPlaceholder;
+
+        var first = issuerTemplate.IndexOf(placeholder, StringComparison.Ordinal);
+        var isSinglePlaceholder =
+            first >= 0
+            && issuerTemplate.IndexOf(
+                placeholder,
+                first + placeholder.Length,
+                StringComparison.Ordinal
+            ) < 0;
+        var remainder = issuerTemplate.Replace(placeholder, string.Empty, StringComparison.Ordinal);
+        var isWellFormed =
+            isSinglePlaceholder
+            && remainder.AsSpan().IndexOfAny('{', '}') < 0
+            && ProbeTenantIds.All(tenantId =>
+                TryParseIssuer(ExpandIssuerTemplate(issuerTemplate, tenantId), out _)
+            );
+
+        if (isWellFormed)
+            return true;
+
+        failures.Add($"{key} '{issuerTemplate}' must be {IssuerTemplateRequirement}.");
+        return false;
+    }
+
+    /// <summary>
+    /// Maps the specified request host to the issuer host it routes to under the host strategy: the part of the host the
+    /// configured pattern matches, or the whole host when the pattern does not match.
+    /// </summary>
+    /// <param name="hostPattern">The configured host pattern.</param>
+    /// <param name="host">The request host.</param>
+    /// <returns>The issuer host the request routes to.</returns>
+    public static string MapToIssuerHost(Regex hostPattern, string host)
+    {
+        var match = hostPattern.Match(host);
+        return match.Success ? match.Value : host;
     }
 
     /// <summary>

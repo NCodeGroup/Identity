@@ -216,3 +216,4 @@ standards.
 | [0179](./0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md) | The host chart references its secrets and refuses a release the host would refuse | Accepted |
 | [0180](./0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md) | Migrations run before the rollout and keep the previous release working | Accepted |
 | [0181](./0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md) | Every issuer of a JWT addressed to a client resolves one public credential selector | Accepted |
+| [0182](./0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md) | The frontend bootstrap issuer is the serving tenant's, not the request's | Accepted |

@@ -4,7 +4,9 @@
   [ADR-0152](0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): pnpm is installed from
   its `packageManager` pin by its own tooling, because Node no longer ships Corepack; and by
   [ADR-0156](0156-shared-app-shell-containers-live-in-ncode-shell.md): stateful containers shared by more than one
-  surface live in `@ncode/shell`, the one package that may depend on both `@ncode/store` and `@ncode/ui`)
+  surface live in `@ncode/shell`, the one package that may depend on both `@ncode/store` and `@ncode/ui`; and by
+  [ADR-0182](0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md): the bootstrap document's
+  issuer defaults to the serving tenant's issuer, never the request origin)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

@@ -49,15 +49,16 @@ internal sealed record FrontendBootstrapDocument
     public FrontendBrandingDocument? Branding { get; init; }
 
     /// <summary>
-    /// Builds the bootstrap document from the configured <paramref name="options"/>, falling back to the serving
-    /// <paramref name="requestOrigin"/> (<c>scheme://host</c>) for the API base and issuer when they are not
-    /// configured, so a single-origin host needs no explicit configuration. When <paramref name="surface"/> names a
+    /// Builds the bootstrap document from the configured <paramref name="options"/> and the resolved
+    /// <paramref name="issuer"/>, falling back to the serving <paramref name="requestOrigin"/> (<c>scheme://host</c>) for
+    /// the API base when it is not configured: the bundle calls the API on the origin that serves it. When <paramref name="surface"/> names a
     /// configured <see cref="FrontendBootstrapOptions.Surfaces"/> entry, that surface's coordinates (client id,
     /// scopes, feature flags, branding) are published instead of the host default; an unknown or absent surface
     /// receives the default.
     /// </summary>
     public static FrontendBootstrapDocument Create(
         FrontendBootstrapOptions options,
+        string issuer,
         string requestOrigin,
         string? surface = null
     )
@@ -67,9 +68,7 @@ internal sealed record FrontendBootstrapDocument
         var apiBaseUrl = NormalizeOrigin(
             string.IsNullOrWhiteSpace(options.ApiBaseUrl) ? origin : options.ApiBaseUrl
         );
-        var issuer = NormalizeOrigin(
-            string.IsNullOrWhiteSpace(options.Issuer) ? origin : options.Issuer
-        );
+        var normalizedIssuer = NormalizeOrigin(issuer);
 
         var overrides =
             surface is not null && options.Surfaces.TryGetValue(surface, out var surfaceOptions)
@@ -110,7 +109,7 @@ internal sealed record FrontendBootstrapDocument
         return new FrontendBootstrapDocument
         {
             ApiBaseUrl = apiBaseUrl,
-            Issuer = issuer,
+            Issuer = normalizedIssuer,
             ClientId = NullIfEmpty(clientId),
             Scopes = scopes,
             Features = features,

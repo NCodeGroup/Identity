@@ -1388,6 +1388,26 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   amended). The JSON Web Key import keeps the leaf `x5c` certificate once its public key equals the key's, and refuses
   an empty, malformed, or mismatched `x5c`; the self-signed handler matches it by thumbprint unchanged._
 
+- **`F74` — Derive the frontend bootstrap document's issuer and API base from the tenant, not the request.** Every
+  served tenant's issuer is now its stored, validated origin and nothing else derives one from the request
+  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), but
+  `/config/bootstrap.json` still defaults `issuer` and `apiBaseUrl` to the serving request's `scheme://host`
+  (`FrontendBootstrapOptions`, [ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). That
+  is a second, unvalidated source of the same value: under a forged or proxied `Host` (or a shared cache in front of
+  the host) the bundle discovers the wrong authority, and under `DynamicByHost` the console served at
+  `manage.<apex>` needs the root tenant's issuer (`https://auth.<apex>`), which the request origin is not. Default the
+  issuer to the issuer of the tenant that serves the surface (the root tenant's for the console), and the API base to
+  the configured management origin; keep explicit options as overrides. Touch points:
+  `src/NCode.Identity.Server/Frontend/FrontendBootstrapEndpointProvider.cs`, `FrontendBootstrapOptions.cs`,
+  `FrontendBootstrapDocument.cs`, `ITenantResolver.GetDefaultIssuerAsync`.
+
+  _Closed: the issuer is the serving tenant's stored issuer — the tenant the request names (`StaticSingle`) or the
+  root tenant — then its strategy's default, and the endpoint answers `500` rather than fall back to the request. The
+  API base deliberately stays the serving origin: the management API is mapped at `/api` on every admitted host, so
+  same-origin needs no CORS and no second setting; the response is `Cache-Control: no-store`. See
+  [ADR-0182](docs/adr/0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md) and the
+  [`CHANGELOG.md`](CHANGELOG.md) entry "The frontend bootstrap document's issuer is the serving tenant's…"._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

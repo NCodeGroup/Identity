@@ -358,15 +358,12 @@ entry and/or ADR that closed it.
   separates liveness (`/health/live`, no checks) from readiness (`/health/ready`: the database, and Valkey when
   configured). The production image is done: chiseled, non-root on port 8080, built for amd64 and arm64, carrying the
   `apps/auth` bundle ([ADR-0178](docs/adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
-  Still missing for a rolling deployment behind Traefik, in three session-sized slices (chart, migration Job, image
-  publishing): no Helm chart (probes on `/health/live` and `/health/ready`, `preStop` drain, PodDisruptionBudget,
-  restricted security context, the `valkey` connection string required when `replicas > 1` — ADR-0164 leaves that rule
-  to the chart); `Host.MigrationService` (which has no image) should run as a pre-deploy Job with expand/contract schema
-  changes so a rolling update never breaks the running version; and a release workflow should publish the host image
-  to GHCR, signed, tagged with the version Nerdbank.GitVersioning computes (the image build has no `.git`, so the
-  assembly version inside comes from `version.json` alone). The chart mounts the `DataProtection:KeyProtection`
-  certificate that the production-safety gate requires
-  ([ADR-0177](docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)). A served tenant
+  The Helm chart [`charts/ncode-identity-host`](charts/ncode-identity-host) is done: restricted pods, probes, `preStop`
+  drain, PodDisruptionBudget, secrets by reference, and Valkey required for more than one replica
+  ([ADR-0179](docs/adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
+  Still missing, in one session-sized slice: `Host.MigrationService` (which has no image) should run as the chart's
+  pre-deploy Job (a Helm `pre-install`/`pre-upgrade` hook) with expand/contract schema changes, so a rolling update
+  never breaks the running version. Publishing the image and the chart is `F48`. A served tenant
   without an issuer already fails closed
   ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)). Plus the
   OpenTofu modules, bootstrap stack, and GitHub
@@ -374,7 +371,7 @@ entry and/or ADR that closed it.
   ([ADR-0132](docs/adr/0132-platform-infrastructure-as-code-is-public-on-github.md); see the
   [hosting analysis](docs/hosting-analysis.md#11-iac-and-delivery)). Touch points:
   `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.OpenId.Host/Dockerfile`,
-  `src/NCode.Identity.OpenId.Host.MigrationService`, `src/NCode.Identity.Server/ProductionSafety`,
+  `charts/ncode-identity-host`, `src/NCode.Identity.OpenId.Host.MigrationService`, `src/NCode.Identity.Server/ProductionSafety`,
   `src/frontend/apps/auth`.
 
 - **`F47` — Route a tenant's mTLS endpoint-alias host.** `mtls_endpoint_alias_authority` publishes the RFC 8705 §5
@@ -393,8 +390,11 @@ entry and/or ADR that closed it.
 
 - **`F48` — Publish the deployment artifacts the platform runs.** Per
   [ADR-0133](docs/adr/0133-we-ship-and-run-the-same-deployment-artifacts.md), the hosted platform consumes only the
-  artifacts offered to self-hosters. Deliver: the host's Helm chart in this repository (built on `F46`), released with
-  the host image as a signed OCI chart on GHCR with provenance and chart tests; in `NCodeGroup/identity-platform`, the
+  artifacts offered to self-hosters. Deliver: the host's Helm chart in this repository
+  ([`charts/ncode-identity-host`](charts/ncode-identity-host), built on `F46`), released with the host image as a signed
+  OCI chart on GHCR with provenance and chart tests, both tagged with the version Nerdbank.GitVersioning computes and
+  stamped into `Chart.yaml` (the image build has no `.git`, so the assembly version inside comes from `version.json`
+  alone); in `NCodeGroup/identity-platform`, the
   layered building blocks — OpenTofu component modules (`modules/`: Cloudflare zone and email routing, AWS state backend,
   backup bucket and GitHub OIDC, Akamai LKE and Postgres, OCI OKE, Flux bootstrap), in-cluster components
   (`kubernetes/components/`: Traefik, cert-manager, Valkey, `identity`), and the `akamai` and `oci` stacks that compose

@@ -213,3 +213,4 @@ standards.
 | [0176](./0176-dpop-proofs-are-a-jose-building-block.md) | DPoP proofs are a JOSE building block | Accepted |
 | [0177](./0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md) | The Data Protection key ring is encrypted at rest in Production | Accepted |
 | [0178](./0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md) | The host image is chiseled, non-root, multi-arch, and carries the login bundle | Accepted |
+| [0179](./0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md) | The host chart references its secrets and refuses a release the host would refuse | Accepted |

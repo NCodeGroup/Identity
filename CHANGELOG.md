@@ -10,6 +10,16 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The host has a Helm chart.** `charts/ncode-identity-host` deploys `NCode.Identity.OpenId.Host` under the
+  restricted Pod Security Standard: non-root, read-only root filesystem, no capabilities, and no service-account token.
+  The startup and liveness probes call `/health/live` and the readiness probe calls `/health/ready`, each sending an
+  allowed `Host` header. A `preStop` sleep drains each pod before shutdown. The chart also ships a PodDisruptionBudget
+  and an optional `Ingress`. The database, Valkey, and key-protection certificates are referenced as existing Secrets,
+  never passed as values. Rendering fails for a release the host would refuse to start, for more than one replica
+  without Valkey, and for unknown values. Without Valkey, updates never run two replicas at once. The new `Host chart`
+  CI workflow lints the chart, renders each example release, and checks that each unsafe release is refused.
+  ([ADR-0179](docs/adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md))
+
 - **The host ships a production container image.** `src/NCode.Identity.OpenId.Host/Dockerfile` builds the host on
   the chiseled `aspnet:10.0-noble-chiseled-extra` runtime. The image has no shell, runs as the non-root `app` user
   (UID 1654), and listens on port 8080. It builds the `apps/auth` interactive bundle and serves it from `/app/auth`, so

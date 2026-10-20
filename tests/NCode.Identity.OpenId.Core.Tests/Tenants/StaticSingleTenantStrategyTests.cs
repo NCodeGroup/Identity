@@ -131,6 +131,40 @@ public sealed class StaticSingleTenantStrategyTests
         mocks.Verify();
     }
 
+    #region ResolveControlPlaneTenantAsync Tests
+
+    [Fact]
+    public async Task ResolveControlPlaneTenantAsync_Always_ReturnsTheConfiguredTenant()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var provisioner = mocks.Create<ITenantProvisioner>();
+
+        var persistedTenant = CreateTenant(isDisabled: false);
+
+        provisioner
+            .Setup(x =>
+                x.EnsureCreatedAsync("tenant-1", "Tenant One", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(persistedTenant)
+            .Verifiable();
+
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions { TenantId = "tenant-1", DisplayName = "Tenant One" }
+        );
+
+        // The strategy serves no other tenant, so no other tenant can issue the caller's token.
+        var result = await strategy.ResolveControlPlaneTenantAsync(
+            CreateHttpContext(provisioner.Object),
+            CancellationToken.None
+        );
+
+        Assert.Same(persistedTenant, result);
+        mocks.Verify();
+    }
+
+    #endregion
+
     #region GetDefaultIssuerAsync Tests
 
     [Fact]

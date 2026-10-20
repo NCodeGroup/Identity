@@ -1569,6 +1569,34 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   encrypted ID token. The tenant's JSON Web Key Set already publishes the public keys a relying party re-encrypts to,
   as it does for request objects, so nothing new is advertised._
 
+- **`F75` — Authenticate the management API against the control plane, not the tenant the request resolves.** The
+  management `/api` surface materializes its OpenID context through `CreateForRequestAsync`, so the tenant that
+  validates the caller's access token is whichever tenant the protocol strategy resolves from the request. That holds
+  under `StaticSingle`, but under `DynamicByPath` a collection route such as `POST /api/tenants` has no `tenantId`
+  route value and fails, and `/api/tenants/{tenantId}/…` authenticates the caller against the target tenant rather
+  than the tenant that issued the token; under `DynamicByHost` the management host `manage.<apex>`
+  ([ADR-0131](docs/adr/0131-hosted-platform-environment-model-and-hostname-scheme.md)) is no tenant's host, so every
+  call is `404`. The
+  management plane should authenticate against a configured authenticating tenant — the root (control-plane) tenant
+  by default ([ADR-0024](docs/adr/0024-control-plane-and-per-tenant-planes.md),
+  [ADR-0042](docs/adr/0042-management-api-route-driven-tenant-scope.md)) — independent of the protocol strategy, and
+  the route's `tenantId` should only scope the data. Capture the design in an ADR and cover every strategy with
+  integration tests. The access token itself is validated through `IIssuedTokenValidator` against the `OpenIdContext`
+  it is given ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md)), so passing the
+  authenticating tenant's context is enough; the seam needs no change. Touch points:
+  `src/NCode.Identity.OpenId.Management/Endpoints/ManagementEnvironmentEndpointFilter.cs`, `IOpenIdContextFactory`,
+  `TenantScopeEndpointFilter`, `OwnershipHandler`,
+  `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultAuthenticateAccessTokenHandler.cs`.
+
+  _Closed: [ADR-0191](docs/adr/0191-the-management-api-authenticates-against-the-control-plane-tenant.md);
+  [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. `ITenantStrategy.ResolveControlPlaneTenantAsync` names the
+  control-plane tenant (the root tenant, created on demand; a static strategy's own tenant),
+  `IOpenIdTenantFactory.CreateControlPlaneTenantAsync` materializes it through the shared cache and seed, and
+  `ManagementEnvironmentEndpointFilter` publishes it through `IOpenIdContextFactory.CreateForControlPlaneAsync`.
+  `ManagementControlPlaneTests` drives `DynamicByHost` (the `manage.` host and a workload tenant's host) and
+  `DynamicByPath` (a collection route and a tenant route); every other management integration test drives
+  `StaticSingle`._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

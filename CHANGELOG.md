@@ -1063,6 +1063,16 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **The management API authenticated callers against the tenant the request addressed.** Under `DynamicByPath` a
+  collection route such as `POST /api/tenants` had no tenant to resolve, and `/api/tenants/{tenantId}/…` validated the
+  caller's token with the target tenant rather than the tenant that issued it; under `DynamicByHost` the
+  `manage.<apex>` host is no tenant's host, so every call returned `404`. The management API now authenticates every
+  caller against the control-plane tenant — the root tenant, or a static strategy's own tenant — whatever host or path
+  it is reached on, and the route's `tenantId` only scopes the data. `ITenantStrategy` and `ITenantResolver` gain
+  `ResolveControlPlaneTenantAsync`, `IOpenIdTenantFactory` gains `CreateControlPlaneTenantAsync`, and
+  `IOpenIdContextFactory` gains `CreateForControlPlaneAsync`
+  ([ADR-0191](docs/adr/0191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
+
 - **A `form_post` response delivered url-encoded values.** The `form_post` page url-encoded each hidden field's value,
   but the browser form-urlencodes the fields again when it submits the form, so a client received a `state` holding a
   space, `=`, `/`, or `+` as its escaped form (`%3D`, `+`, …) rather than the value it sent. Each value — and the form's

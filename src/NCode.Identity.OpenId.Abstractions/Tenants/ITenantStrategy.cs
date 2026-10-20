@@ -74,6 +74,20 @@ public interface ITenantStrategy
     );
 
     /// <summary>
+    /// Resolves the control-plane tenant, which authenticates the management API whatever tenant the request addresses:
+    /// the root tenant, created through <see cref="ITenantProvisioner.EnsureCreatedAsync"/> when it does not exist yet,
+    /// or, for a strategy that serves only its own tenant, that tenant.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the control-plane
+    /// <see cref="PersistedTenant"/>.</returns>
+    ValueTask<PersistedTenant> ResolveControlPlaneTenantAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Gets the issuer this strategy assigns a tenant that is written without one: the root tenant's configured issuer,
     /// a static strategy's configured issuer for its own tenant, or the expansion of the strategy's issuer template.
     /// The derived issuer is stored with the tenant and judged by <see cref="ValidateTenantAsync"/> like an explicit

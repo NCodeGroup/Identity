@@ -62,6 +62,53 @@ internal class DefaultOpenIdContextFactory(
             cancellationToken
         );
 
+        return PublishContext(
+            httpContext,
+            mediator,
+            openIdEnvironment,
+            openIdServer,
+            tenantReference
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<OpenIdContext> CreateForControlPlaneAsync(
+        HttpContext httpContext,
+        IMediator mediator,
+        CancellationToken cancellationToken
+    )
+    {
+        var openIdEnvironment = OpenIdEnvironmentProvider.Get();
+        var openIdServer = await OpenIdServerProvider.GetAsync(
+            openIdEnvironment,
+            cancellationToken
+        );
+
+        await using var tenantReference = await OpenIdTenantFactory.CreateControlPlaneTenantAsync(
+            httpContext,
+            openIdEnvironment,
+            openIdServer,
+            openIdServer.PropertyBag,
+            cancellationToken
+        );
+
+        return PublishContext(
+            httpContext,
+            mediator,
+            openIdEnvironment,
+            openIdServer,
+            tenantReference
+        );
+    }
+
+    private OpenIdContext PublishContext(
+        HttpContext httpContext,
+        IMediator mediator,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
+        AsyncSharedReferenceLease<OpenIdTenant> tenantReference
+    )
+    {
         var propertyBag = tenantReference.Value.PropertyBag.Clone();
 
         var openIdContext = CreateContext(

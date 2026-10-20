@@ -164,6 +164,109 @@ public sealed class DefaultOpenIdTenantFactoryTests
 
     #endregion
 
+    #region CreateControlPlaneTenantAsync Tests
+
+    [Fact]
+    public async Task CreateControlPlaneTenantAsync_WhenCached_ReturnsTheCachedControlPlaneTenant()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        var tenantResolver = mocks.Create<ITenantResolver>();
+        var tenantCache = mocks.Create<IOpenIdTenantCache>();
+
+        tenantResolver
+            .Setup(x =>
+                x.ResolveControlPlaneTenantAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreatePersistedTenant("https://op.example/root", tenantId: "root"))
+            .Verifiable();
+
+        var cachedTenant = Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == "root");
+        await using var cachedLease = cachedTenant.AsSharedReference();
+
+        tenantCache
+            .Setup(x =>
+                x.TryGetAsync("root", It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(cachedLease.AddReference())
+            .Verifiable();
+
+        var factory = CreateFactory(mocks, tenantResolver.Object, tenantCache.Object);
+
+        await using var result = await factory.CreateControlPlaneTenantAsync(
+            new DefaultHttpContext(),
+            Mock.Of<OpenIdEnvironment>(),
+            Mock.Of<OpenIdServer>(),
+            Mock.Of<IPropertyBag>(),
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsActive);
+        Assert.Equal("root", result.Value.TenantId);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task CreateControlPlaneTenantAsync_WhenCacheMisses_SeedsTheControlPlaneTenant()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        var tenantResolver = mocks.Create<ITenantResolver>();
+        var tenantCache = mocks.Create<IOpenIdTenantCache>();
+        var provisioner = mocks.Create<ITenantProvisioner>();
+
+        tenantResolver
+            .Setup(x =>
+                x.ResolveControlPlaneTenantAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreatePersistedTenant("https://op.example/root", tenantId: "root"))
+            .Verifiable();
+        tenantCache
+            .Setup(x =>
+                x.TryGetAsync("root", It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(default(AsyncSharedReferenceLease<OpenIdTenant>))
+            .Verifiable();
+
+        // The seed is the point of the test; failing it stops the materialization before the collaborators this test
+        // does not stub.
+        var seeded = new InvalidOperationException("seeded");
+        provisioner
+            .Setup(x => x.SeedAsync("root", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(seeded)
+            .Verifiable();
+
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = new ServiceCollection()
+                .AddSingleton(provisioner.Object)
+                .BuildServiceProvider(),
+        };
+
+        var factory = CreateFactory(mocks, tenantResolver.Object, tenantCache.Object);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await factory.CreateControlPlaneTenantAsync(
+                httpContext,
+                Mock.Of<OpenIdEnvironment>(),
+                Mock.Of<OpenIdServer>(),
+                Mock.Of<IPropertyBag>(),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Same(seeded, exception);
+        mocks.Verify();
+    }
+
+    #endregion
+
     #region CreateTenantByIdAsync Tests
 
     [Fact]
@@ -328,23 +431,26 @@ public sealed class DefaultOpenIdTenantFactoryTests
         return httpContext;
     }
 
-    private static PersistedTenant CreatePersistedTenant(string? issuer) =>
+    private static PersistedTenant CreatePersistedTenant(
+        string? issuer,
+        string tenantId = "acme"
+    ) =>
         new()
         {
-            TenantId = "acme",
+            TenantId = tenantId,
             Issuer = issuer,
             ConcurrencyToken = "token",
             IsDisabled = false,
-            DisplayName = "acme",
+            DisplayName = tenantId,
             Settings = new PersistedTenantSettings
             {
-                TenantId = "acme",
+                TenantId = tenantId,
                 ConcurrencyToken = "token",
                 Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },
             Secrets = new PersistedTenantSecrets
             {
-                TenantId = "acme",
+                TenantId = tenantId,
                 ConcurrencyToken = "token",
                 Value = [],
             },

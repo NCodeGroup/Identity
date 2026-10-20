@@ -367,25 +367,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
   `src/frontend/apps/auth`. Capture the design in an ADR.
 
-- **`F75` — Authenticate the management API against the control plane, not the tenant the request resolves.** The
-  management `/api` surface materializes its OpenID context through `CreateForRequestAsync`, so the tenant that
-  validates the caller's access token is whichever tenant the protocol strategy resolves from the request. That holds
-  under `StaticSingle`, but under `DynamicByPath` a collection route such as `POST /api/tenants` has no `tenantId`
-  route value and fails, and `/api/tenants/{tenantId}/…` authenticates the caller against the target tenant rather
-  than the tenant that issued the token; under `DynamicByHost` the management host `manage.<apex>`
-  ([ADR-0131](docs/adr/0131-hosted-platform-environment-model-and-hostname-scheme.md)) is no tenant's host, so every
-  call is `404`. The
-  management plane should authenticate against a configured authenticating tenant — the root (control-plane) tenant
-  by default ([ADR-0024](docs/adr/0024-control-plane-and-per-tenant-planes.md),
-  [ADR-0042](docs/adr/0042-management-api-route-driven-tenant-scope.md)) — independent of the protocol strategy, and
-  the route's `tenantId` should only scope the data. Capture the design in an ADR and cover every strategy with
-  integration tests. The access token itself is validated through `IIssuedTokenValidator` against the `OpenIdContext`
-  it is given ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md)), so passing the
-  authenticating tenant's context is enough; the seam needs no change. Touch points:
-  `src/NCode.Identity.OpenId.Management/Endpoints/ManagementEnvironmentEndpointFilter.cs`, `IOpenIdContextFactory`,
-  `TenantScopeEndpointFilter`, `OwnershipHandler`,
-  `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultAuthenticateAccessTokenHandler.cs`.
-
 - **`F77` — Register a resource-server client through dynamic client registration.** A resource server introspects
   through a client bound to it, and the binding is set only through the management API, by a caller allowed to update
   that resource server ([ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).

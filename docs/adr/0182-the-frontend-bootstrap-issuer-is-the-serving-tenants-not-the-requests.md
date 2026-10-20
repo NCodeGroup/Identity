@@ -66,7 +66,8 @@ agree with the first. To keep a shared cache from serving one host's document fo
   not cached.
 - Under `DynamicByHost` and `DynamicByPath` every surface served from the host's root signs in against the root
   tenant. A deployment whose surfaces sign in against another tenant sets `Frontend:Issuer`.
-- Which tenant authenticates the management API itself is a separate question (backlog `F75`).
+- Which tenant authenticates the management API itself is a separate question, answered by
+  [ADR-0191](0191-the-management-api-authenticates-against-the-control-plane-tenant.md): the control-plane tenant.
 
 ## References
 

@@ -20,6 +20,7 @@ abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.JsonSerializerOpti
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.KnownParameters.get -> NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollection!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 abstract NCode.Identity.OpenId.Messages.Parameters.KnownParameter.ValueType.get -> System.Type!
+abstract NCode.Identity.OpenId.Servers.OpenIdServer.ConfiguredSettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.SecretsProvider.get -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.ServerId.get -> string!

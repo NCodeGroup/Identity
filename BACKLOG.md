@@ -367,24 +367,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
   `src/frontend/apps/auth`. Capture the design in an ADR.
 
-- **`F68` — Check a client's registered response algorithms when the server's settings are written.** A client's
-  registered response algorithms must be in its effective `*_values_supported` lists
-  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). Dynamic client
-  registration, the management API's client create and settings update, and a tenant settings update check them
-  (`ClientResponseAlgorithmRule`), and a security profile supplies a compliant default
-  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md) decision 7). Seeded clients
-  register no response algorithm, so they inherit a mismatch only from the settings above them. A server settings
-  write that narrows a list beneath a client's registered value is still accepted, so the mismatch surfaces only when
-  issuance fails with `server_error`. The server's effective settings merge its persisted document onto the settings
-  it derives from defaults and configuration (`RootSettingsCollectionDataSource`), which `OpenIdServer` does not
-  expose apart from the merged collection, so the handler cannot compute the effective settings a new document would
-  produce. Deliver: expose the configured settings on `OpenIdServer` (a provider over the same root data source the
-  merged provider owns); extract the tenant handler's per-client before/after diff
-  (`TenantApiEndpointHandler.ValidateClientResponseAlgorithmsAsync`) into a shared service; and have
-  `ServerApiEndpointHandler.UpdateSettingsAsync` page every tenant, merge each tenant's document onto the current and
-  new server settings, and run the shared diff for its clients. Touch points: `OpenIdServer`, `DefaultOpenIdServer`,
-  `DefaultOpenIdServerFactory`, `TenantApiEndpointHandler`, `ServerApiEndpointHandler`.
-
 - **`F75` — Authenticate the management API against the control plane, not the tenant the request resolves.** The
   management `/api` surface materializes its OpenID context through `CreateForRequestAsync`, so the tenant that
   validates the caller's access token is whichever tenant the protocol strategy resolves from the request. That holds

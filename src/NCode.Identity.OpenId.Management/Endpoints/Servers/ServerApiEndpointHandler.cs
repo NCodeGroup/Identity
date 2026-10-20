@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -31,6 +32,7 @@ using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Servers;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -80,10 +82,15 @@ internal class ServerApiEndpointHandler(
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IOpenIdServerProvider serverProvider,
+    ISecurityProfileCatalog securityProfileCatalog,
+    IClientResponseAlgorithmValidator clientResponseAlgorithmValidator,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ServerApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
+    // The number of tenants read per page when a settings write is checked against every tenant's clients.
+    private const int TenantPageSize = 100;
+
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IServerValidator ServerValidator { get; } = serverValidator;
     private ISecretValidator SecretValidator { get; } = secretValidator;
@@ -96,6 +103,10 @@ internal class ServerApiEndpointHandler(
     private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
         settingScopeCollectionProvider;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
+    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+
+    private IClientResponseAlgorithmValidator ClientResponseAlgorithmValidator { get; } =
+        clientResponseAlgorithmValidator;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private ILogger<ServerApiEndpointHandler> Logger { get; } = logger;
 
@@ -627,6 +638,18 @@ internal class ServerApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
+        var algorithmErrors = await ValidateClientResponseAlgorithmsAsync(
+            httpContext.GetOpenIdContext(),
+            serverSettings.Value,
+            settingsValue,
+            storeManager,
+            cancellationToken
+        );
+        if (algorithmErrors.Count > 0)
+        {
+            return SettingsValidationProblem(algorithmErrors);
+        }
+
         serverSettings.Value = settingsValue;
 
         await store.UpdateSettingsAsync(serverSettings, cancellationToken);
@@ -636,6 +659,80 @@ internal class ServerApiEndpointHandler(
         httpContext.Response.Headers.ETag = serverSettings.ConcurrencyToken;
 
         return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Verifies that replacing the server's settings document leaves every algorithm each client of every tenant
+    /// registers for the JWTs addressed to it permitted (<see cref="IClientResponseAlgorithmValidator"/>). The current
+    /// and new documents are each merged onto the server's configured settings, and each tenant's document onto both.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="currentSettings">The server's current settings document.</param>
+    /// <param name="newSettings">The server's new settings document.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the tenants and their clients.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="SettingError"/> instances, keyed by the server setting that excludes each algorithm, or an
+    /// empty list.</returns>
+    // See ADR-0155.
+    internal virtual async ValueTask<
+        IReadOnlyList<SettingError>
+    > ValidateClientResponseAlgorithmsAsync(
+        OpenIdContext openIdContext,
+        JsonElement currentSettings,
+        JsonElement newSettings,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
+        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
+        var configuredSettings = server.ConfiguredSettingsProvider.Collection;
+        var currentServerSettings = configuredSettings.Merge(
+            SecurityProfileCatalog.Expand(currentSettings, OpenIdSettingScopes.Server, jsonOptions)
+        );
+        var newServerSettings = configuredSettings.Merge(
+            SecurityProfileCatalog.Expand(newSettings, OpenIdSettingScopes.Server, jsonOptions)
+        );
+
+        List<SettingError> errors = [];
+        var tenantStore = storeManager.GetStore<ITenantStore>();
+
+        var page = new PageRequest { Limit = TenantPageSize };
+        do
+        {
+            var result = await tenantStore.GetPageAsync(page, cancellationToken);
+            foreach (var tenant in result.Items)
+            {
+                var tenantSettings = SecurityProfileCatalog.Expand(
+                    tenant.Settings.Value,
+                    OpenIdSettingScopes.Tenant,
+                    jsonOptions
+                );
+
+                var findings = await ClientResponseAlgorithmValidator.FindIntroducedViolationsAsync(
+                    storeManager,
+                    tenant.TenantId,
+                    currentServerSettings.Merge(tenantSettings),
+                    newServerSettings.Merge(tenantSettings),
+                    jsonOptions,
+                    cancellationToken
+                );
+
+                errors.AddRange(
+                    findings.Select(finding => new SettingError(
+                        finding.Violation.PermittedKey.SettingName,
+                        $"The client '{finding.ClientId}' of tenant '{tenant.TenantId}' registers "
+                            + $"'{finding.Violation.RegisteredKey.SettingName}' value '{finding.Violation.Value}', "
+                            + "which the server's effective "
+                            + $"'{finding.Violation.PermittedKey.SettingName}' would not permit."
+                    ))
+                );
+            }
+
+            page = page with { Cursor = result.NextCursor };
+        } while (page.Cursor is not null);
+
+        return errors;
     }
 
     /// <summary>

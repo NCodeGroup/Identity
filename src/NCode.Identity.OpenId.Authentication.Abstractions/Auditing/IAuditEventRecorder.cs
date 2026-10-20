@@ -234,7 +234,8 @@ public interface IAuditEventRecorder
     /// Records that a server-side end-user session (or every session a subject holds) was terminated.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
-    /// <param name="reason">The reason the session was terminated.</param>
+    /// <param name="reason">The reason the session was terminated: one of <see cref="SessionTerminationReasons"/> or an
+    /// extension's own name.</param>
     /// <param name="subjectId">The identifier of the subject whose session was terminated, when known.</param>
     /// <param name="sessionId">The opaque session identifier (<c>sid</c>) that was terminated, or <see langword="null"/>
     /// for a subject-wide termination.</param>
@@ -246,7 +247,7 @@ public interface IAuditEventRecorder
     /// </returns>
     ValueTask RecordSessionTerminatedAsync(
         OpenIdContext openIdContext,
-        SessionTerminationReason reason,
+        string reason,
         string? subjectId,
         string? sessionId,
         CancellationToken cancellationToken

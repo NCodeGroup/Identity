@@ -81,7 +81,7 @@ internal class DefaultEndSessionHandler(
             new OnSessionTerminatedCommand(
                 openIdContext,
                 new SessionTermination(
-                    SessionTerminationReason.Logout,
+                    SessionTerminationReasons.Logout,
                     subject.SubjectId,
                     subject.SessionId,
                     subject.ParticipatingClientIds

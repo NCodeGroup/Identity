@@ -115,13 +115,14 @@ public interface ISessionService
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="sessionId">The opaque session identifier (<c>sid</c>) to terminate.</param>
-    /// <param name="reason">The reason the session is being terminated.</param>
+    /// <param name="reason">The reason the session is being terminated: one of <see cref="SessionTerminationReasons"/> or
+    /// an extension's own name.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask RevokeAsync(
         OpenIdContext openIdContext,
         string sessionId,
-        SessionTerminationReason reason,
+        string reason,
         CancellationToken cancellationToken
     );
 
@@ -132,13 +133,14 @@ public interface ISessionService
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="subjectId">The stable, server-owned principal identifier whose sessions are terminated.</param>
-    /// <param name="reason">The reason the sessions are being terminated.</param>
+    /// <param name="reason">The reason the sessions are being terminated: one of <see cref="SessionTerminationReasons"/> or
+    /// an extension's own name.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask RevokeAllAsync(
         OpenIdContext openIdContext,
         string subjectId,
-        SessionTerminationReason reason,
+        string reason,
         CancellationToken cancellationToken
     );
 
@@ -151,14 +153,15 @@ public interface ISessionService
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="subjectId">The stable, server-owned principal identifier whose sessions are terminated.</param>
     /// <param name="exceptSessionId">The opaque session identifier (<c>sid</c>) to retain.</param>
-    /// <param name="reason">The reason the sessions are being terminated.</param>
+    /// <param name="reason">The reason the sessions are being terminated: one of <see cref="SessionTerminationReasons"/> or
+    /// an extension's own name.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask RevokeAllExceptAsync(
         OpenIdContext openIdContext,
         string subjectId,
         string exceptSessionId,
-        SessionTerminationReason reason,
+        string reason,
         CancellationToken cancellationToken
     );
 }

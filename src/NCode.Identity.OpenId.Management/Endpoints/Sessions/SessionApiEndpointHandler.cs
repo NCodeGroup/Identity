@@ -213,7 +213,7 @@ internal class SessionApiEndpointHandler(
         await SessionService.RevokeAllAsync(
             tenantContext,
             subjectId,
-            SessionTerminationReason.AdministrativeRevocation,
+            SessionTerminationReasons.AdministrativeRevocation,
             cancellationToken
         );
 
@@ -277,7 +277,7 @@ internal class SessionApiEndpointHandler(
         await SessionService.RevokeAsync(
             tenantContext,
             sessionId,
-            SessionTerminationReason.AdministrativeRevocation,
+            SessionTerminationReasons.AdministrativeRevocation,
             cancellationToken
         );
 

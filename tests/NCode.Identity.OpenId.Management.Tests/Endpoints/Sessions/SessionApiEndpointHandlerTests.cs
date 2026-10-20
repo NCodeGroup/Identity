@@ -242,7 +242,7 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
                 x.RevokeAllAsync(
                     It.IsAny<OpenIdContext>(),
                     SubjectId,
-                    SessionTerminationReason.AdministrativeRevocation,
+                    SessionTerminationReasons.AdministrativeRevocation,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -339,7 +339,7 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
                 x.RevokeAsync(
                     It.IsAny<OpenIdContext>(),
                     "s1",
-                    SessionTerminationReason.AdministrativeRevocation,
+                    SessionTerminationReasons.AdministrativeRevocation,
                     It.IsAny<CancellationToken>()
                 )
             )

@@ -149,7 +149,7 @@ internal class DefaultSessionService(
         {
             await TerminateAsync(
                 openIdContext,
-                SessionTerminationReason.ConcurrentSessionLimit,
+                SessionTerminationReasons.ConcurrentSessionLimit,
                 session.SubjectId,
                 session.SessionId,
                 session.Grant.ClientIds,
@@ -163,7 +163,7 @@ internal class DefaultSessionService(
     // application extensions) so every termination path is handled consistently.
     private static ValueTask TerminateAsync(
         OpenIdContext openIdContext,
-        SessionTerminationReason reason,
+        string reason,
         string? subjectId,
         string? sessionId,
         IReadOnlyList<string> participatingClientIds,
@@ -256,7 +256,7 @@ internal class DefaultSessionService(
         {
             await TerminateAsync(
                 openIdContext,
-                SessionTerminationReason.IdleTimeout,
+                SessionTerminationReasons.IdleTimeout,
                 active.SubjectId,
                 sessionId,
                 payload.ClientIds,
@@ -358,7 +358,7 @@ internal class DefaultSessionService(
     public async ValueTask RevokeAsync(
         OpenIdContext openIdContext,
         string sessionId,
-        SessionTerminationReason reason,
+        string reason,
         CancellationToken cancellationToken
     )
     {
@@ -381,7 +381,7 @@ internal class DefaultSessionService(
     public async ValueTask RevokeAllAsync(
         OpenIdContext openIdContext,
         string subjectId,
-        SessionTerminationReason reason,
+        string reason,
         CancellationToken cancellationToken
     )
     {
@@ -408,7 +408,7 @@ internal class DefaultSessionService(
         OpenIdContext openIdContext,
         string subjectId,
         string exceptSessionId,
-        SessionTerminationReason reason,
+        string reason,
         CancellationToken cancellationToken
     )
     {

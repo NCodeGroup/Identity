@@ -20,7 +20,6 @@ using System.Diagnostics;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
@@ -281,7 +280,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
     /// <inheritdoc />
     public ValueTask RecordSessionTerminatedAsync(
         OpenIdContext openIdContext,
-        SessionTerminationReason reason,
+        string reason,
         string? subjectId,
         string? sessionId,
         CancellationToken cancellationToken
@@ -296,7 +295,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             Source = openIdContext.EndpointName,
             SubjectId = subjectId,
             Outcome = AuditOutcome.Success,
-            Reason = reason.ToString(),
+            Reason = reason,
             SessionId = sessionId,
             TerminationReason = reason,
         };

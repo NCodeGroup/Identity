@@ -235,6 +235,16 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A session's termination reason is an open vocabulary.** The `SessionTerminationReason` enum is replaced by
+  `SessionTerminationReasons`, a static class of `const string` names: `logout`, `idle_timeout`, `absolute_expiry`,
+  `concurrent_session_limit`, `administrative_revocation`, `global_sign_out`, and `user_initiated`. `ISessionService`,
+  `IAuditEventRecorder.RecordSessionTerminatedAsync`, `SessionTermination.Reason`, and
+  `SessionTerminatedAuditEvent.TerminationReason` take and carry a `string`, so an extension can end a session for its
+  own reason, such as a password change. The `session.terminated` audit event's `reason` is now the name, for example
+  `global_sign_out` instead of `GlobalSignOut`
+  ([ADR-0098](docs/adr/0098-session-lifecycle-termination-seam.md),
+  [ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)).
+
 - **The whole-second time helpers move to the new dependency-free `NCode.Time` package.** `DateTimeExtensions`,
   `DateTimeOffsetExtensions`, and `TimeProviderExtensions` (`WithPrecisionInSeconds`, `GetUtcNowWithPrecisionInSeconds`,
   `GetTimestampWithPrecisionInSeconds`) leave `NCode.Identity.Jose.Abstractions` and the `NCode.Identity.Jose.Extensions`

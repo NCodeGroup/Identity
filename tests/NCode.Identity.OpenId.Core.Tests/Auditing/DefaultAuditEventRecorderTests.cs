@@ -547,8 +547,12 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal("sid-1", captured.SessionId);
     }
 
-    [Fact]
-    public async Task RecordSessionTerminatedAsync_PublishesSessionTerminatedAuditEventWithReason()
+    [Theory]
+    [InlineData(SessionTerminationReasons.GlobalSignOut)]
+    [InlineData("password_changed")]
+    public async Task RecordSessionTerminatedAsync_PublishesSessionTerminatedAuditEventWithReason(
+        string reason
+    )
     {
         var mockContext = MockRepository.Create<OpenIdContext>();
         var mockTenant = MockRepository.Create<OpenIdTenant>();
@@ -577,7 +581,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         await recorder.RecordSessionTerminatedAsync(
             mockContext.Object,
-            SessionTerminationReason.GlobalSignOut,
+            reason,
             "subject-1",
             sessionId: null,
             CancellationToken.None
@@ -589,8 +593,8 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
         Assert.Null(captured.SessionId);
-        Assert.Equal(SessionTerminationReason.GlobalSignOut, captured.TerminationReason);
-        Assert.Equal(nameof(SessionTerminationReason.GlobalSignOut), captured.Reason);
+        Assert.Equal(reason, captured.TerminationReason);
+        Assert.Equal(reason, captured.Reason);
     }
 
     #endregion

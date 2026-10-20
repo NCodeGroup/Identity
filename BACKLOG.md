@@ -487,14 +487,12 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   string per request. The family already has the lower-allocation idiom — `IBufferWriter<char>` / `Sequence<char>` +
   `SecureEncoding.UTF8` written straight to `HttpResponse.BodyWriter` (`NCode.Buffers`, as `CommonJoseEncoder` /
   `JoseSerializer` use it). Deliverables: render each page into an `IBufferWriter<char>` (pooled `Sequence<char>`)
-  instead of returning a `string`; split the bundle `index.html` **once** at the `<div id="root"></div>` marker into
-  head/tail `ReadOnlyMemory<char>` slices and write `head → form → tail` segments to the response pipe (no combined
-  document string); apply the same seam to the login, consent, and error renderers **and** the form-post executor so the
-  whole interactive render surface is consistent. Independently, **cache the bundle `index.html`** (it is re-read from
-  disk per request today via `InteractiveBundleReader`, with a file-watcher/`IChangeToken` invalidation for dev
-  hot-reload) — the per-request disk read dominates any string-allocation cost, so this is the larger win. Not hot-path
-  critical for the `F31` error page (a cold error path), but login/consent are warmer and the cohesion/allocation
-  benefit applies surface-wide. Touch points:
+  instead of returning a `string`; split the cached bundle `index.html` (`InteractiveBundleReader`) **once** per
+  version at the `<div id="root"></div>` marker into head/tail `ReadOnlyMemory<char>` slices and write
+  `head → form → tail` segments to the response pipe (no combined document string); apply the same seam to the login,
+  consent, and error renderers **and** the form-post executor so the whole interactive render surface is consistent.
+  Not hot-path critical for the `F31` error page (a cold error path), but login/consent are warmer and the
+  cohesion/allocation benefit applies surface-wide. Touch points:
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveBundleReader.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveOpenIdErrorResponseFormatter.cs`,

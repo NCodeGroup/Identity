@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Local and Copilot workflow formats are intentionally supported together (`X1` closed).** Keep the Local prompts
+  and Copilot skills; no bulk prompt migration is needed. A new first Definition-of-Done stage checks every pair's
+  name, description, and ordered workflow body, with fixture tests proving that missing adapters, drift, and unsupported
+  skill settings fail. This covers the generated workflows and the hand-written audit pair. Skills use the session's
+  selected model and remain available for automatic selection; Local prompts retain their model-selection metadata.
+  [AGENTS.md](AGENTS.md#local-and-copilot-customizations) explains model selection and the migration banner, and
+  [ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md#dual-runtime-customization-contract)
+  records the completed dual-runtime decision without an upstream-fix dependency.
+
 - **A resource server can introspect through a client that acts for it, and receive the answer as a signed JWT.** A
   client created with `CreateClientRequest.resourceServerId` acts for that resource server: it authenticates like any
   confidential client but is accepted only at the introspection endpoint, and the binding never changes. The resource

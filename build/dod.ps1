@@ -132,6 +132,11 @@ function Write-StageSummary {
 
 Push-Location $repoRoot
 try {
+    Invoke-Step 'agent customizations' {
+        & (Join-Path $PSScriptRoot 'tests\agent-customizations.tests.ps1')
+        $global:LASTEXITCODE = 0
+    }
+
     Invoke-Step 'tool-restore' { dotnet tool restore }
     Invoke-Step 'format (csharpier check)' { dotnet csharpier check . }
 

@@ -208,3 +208,4 @@ standards.
 | [0169](./0169-every-tenant-is-provisioned-with-persisted-keys.md) | Every tenant is provisioned with persisted keys | Accepted |
 | [0172](./0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md) | Forwarded client certificates are decoded by a registered format | Accepted |
 | [0173](./0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md) | `tls_client_auth` certificates chain to configured trust anchors | Accepted |
+| [0174](./0174-the-management-consoles-url-is-its-navigation-state.md) | The management console's URL is its navigation state | Accepted |

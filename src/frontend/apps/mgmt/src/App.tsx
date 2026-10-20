@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { Fragment } from 'react';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import { GLOBAL_SCOPE, tenantScope, type ManagementScope } from '@ncode/api';
 import { signedOut, useAppDispatch, useAppSelector } from '@ncode/store';
 import { AppLayout } from './components/AppLayout.js';
 import { TenantsPage } from './containers/TenantsPage.js';
@@ -11,16 +10,21 @@ import { ResourceServersPage } from './containers/ResourceServersPage.js';
 import { GrantsPage } from './containers/GrantsPage.js';
 import { TenantDetailPage } from './containers/TenantDetailPage.js';
 import { endSessionUrlFromRuntime } from './auth.js';
-
-type GlobalSurface = 'tenants' | 'servers';
-type TenantSurface = 'clients' | 'resource-servers' | 'grants' | 'tenant';
+import { useConsoleRoute, navigateTo } from './navigation.js';
+import {
+  globalRoute,
+  routeScope,
+  tenantRoute,
+  type GlobalSurface,
+  type TenantSurface,
+} from './routes.js';
 
 /**
- * Stateful shell. Owns the active {@link ManagementScope} (the global vs tenant security boundary) and,
- * within each boundary, the active surface. In the global scope that is tenants vs the server (a
- * system-level settings/secret owner); within a tenant it is clients, resource servers, grants, or the
- * tenant's own secrets/settings. All data fetching lives in the child containers; this component only
- * wires scope/surface state and navigation.
+ * Stateful shell. The address bar owns the navigation state (ADR-0174): the route names the active
+ * management scope (the global vs tenant security boundary) and, within it, the active surface. In the
+ * global scope that is tenants vs the server (a system-level settings/secret owner); within a tenant it
+ * is clients, resource servers, grants, or the tenant's own secrets/settings. All data fetching lives in
+ * the child containers; this component only maps the route to a surface and tab changes to navigation.
  */
 export function App() {
   const dispatch = useAppDispatch();
@@ -29,14 +33,10 @@ export function App() {
   const idToken = useAppSelector((state) => state.auth.idToken);
   const isSignedIn = useAppSelector((state) => state.auth.accessToken !== null);
 
-  const [scope, setScope] = useState<ManagementScope>(GLOBAL_SCOPE);
-  const [globalSurface, setGlobalSurface] = useState<GlobalSurface>('tenants');
-  const [tenantSurface, setTenantSurface] = useState<TenantSurface>('clients');
+  const route = useConsoleRoute();
+  const scope = routeScope(route);
 
-  const openTenant = (tenantId: string) => {
-    setTenantSurface('clients');
-    setScope(tenantScope(tenantId));
-  };
+  const openTenant = (tenantId: string) => navigateTo(tenantRoute(tenantId));
 
   // Clear local tokens, then hand off to the OP's RP-Initiated Logout so the server session and its
   // participating relying parties are also ended; when no end_session_endpoint is advertised, clearing
@@ -54,31 +54,37 @@ export function App() {
       title="Management"
       scopeKind={scope.kind}
       {...(scope.kind === 'tenant' ? { scopeLabel: scope.tenantId } : {})}
-      {...(scope.kind === 'tenant' ? { onExitTenant: () => setScope(GLOBAL_SCOPE) } : {})}
+      {...(scope.kind === 'tenant'
+        ? { onExitTenant: () => navigateTo(globalRoute('tenants')) }
+        : {})}
       {...(isSignedIn && subject ? { subject } : {})}
       {...(isSignedIn ? { onSignOut: handleSignOut } : {})}
     >
-      {scope.kind === 'global' ? (
+      {route.kind === 'global' ? (
         <>
           <Tabs
-            value={globalSurface}
-            onChange={(_event, value: GlobalSurface) => setGlobalSurface(value)}
+            value={route.surface}
+            onChange={(_event, value: GlobalSurface) => navigateTo(globalRoute(value))}
             sx={{ mb: 2 }}
           >
             <Tab value="tenants" label="Tenants" data-testid="global-tab-tenants" />
             <Tab value="servers" label="Servers" data-testid="global-tab-servers" />
           </Tabs>
-          {globalSurface === 'tenants' ? (
+          {route.surface === 'tenants' ? (
             <TenantsPage onOpenTenant={openTenant} />
           ) : (
             <ServersPage />
           )}
         </>
       ) : (
-        <>
+        // Keyed by tenant: moving between tenants (e.g. back/forward) remounts the surface, so no per-tenant UI
+        // state such as an open detail view leaks across the boundary.
+        <Fragment key={route.tenantId}>
           <Tabs
-            value={tenantSurface}
-            onChange={(_event, value: TenantSurface) => setTenantSurface(value)}
+            value={route.surface}
+            onChange={(_event, value: TenantSurface) =>
+              navigateTo(tenantRoute(route.tenantId, value))
+            }
             sx={{ mb: 2 }}
           >
             <Tab value="clients" label="Clients" data-testid="tenant-tab-clients" />
@@ -88,18 +94,18 @@ export function App() {
               data-testid="tenant-tab-resource-servers"
             />
             <Tab value="grants" label="Grants" data-testid="tenant-tab-grants" />
-            <Tab value="tenant" label="Tenant" data-testid="tenant-tab-tenant" />
+            <Tab value="settings" label="Settings" data-testid="tenant-tab-settings" />
           </Tabs>
-          {tenantSurface === 'clients' ? (
+          {route.surface === 'clients' ? (
             <ClientsPage scope={scope} />
-          ) : tenantSurface === 'resource-servers' ? (
+          ) : route.surface === 'resource-servers' ? (
             <ResourceServersPage scope={scope} />
-          ) : tenantSurface === 'grants' ? (
-            <GrantsPage tenantId={scope.tenantId} />
+          ) : route.surface === 'grants' ? (
+            <GrantsPage tenantId={route.tenantId} />
           ) : (
-            <TenantDetailPage tenantId={scope.tenantId} />
+            <TenantDetailPage tenantId={route.tenantId} />
           )}
-        </>
+        </Fragment>
       )}
     </AppLayout>
   );

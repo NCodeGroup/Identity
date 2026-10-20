@@ -21,7 +21,7 @@ export function tenantScope(tenantId: string): ManagementScope {
   return { kind: 'tenant', tenantId };
 }
 
-/** A stable, human/URL-friendly key for a scope (used for routing; cache tags use {@link scopeTagId}). */
+/** A stable, human-readable key for a scope (cache tags use {@link scopeTagId}; console routes are in apps/mgmt). */
 export function scopeKey(scope: ManagementScope): string {
   return scope.kind === 'global' ? 'global' : `tenant:${scope.tenantId}`;
 }

@@ -8,7 +8,12 @@ import {
 } from '@ncode/auth';
 import { signedIn, signedOut, useAppDispatch, useAppSelector, useAppStore } from '@ncode/store';
 import { SignInScreen } from '@ncode/ui';
-import { authConfigFromRuntime, createAuthDeps } from './auth.js';
+import {
+  authConfigFromRuntime,
+  createAuthDeps,
+  rememberReturnPath,
+  takeReturnPath,
+} from './auth.js';
 
 /**
  * Stateful auth gate. When a client id is discovered, it enforces an authorization-code + PKCE login:
@@ -55,6 +60,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
         // The access token is opaque to this client (RFC 9068 §6: a client must not inspect it) and is
         // never parsed: the subject comes from the ID token alone.
         const subject = (tokens.idToken && getSubject(tokens.idToken)) || 'unknown';
+        // Restore the console path the sign-in started from before the console mounts, so it opens on the remembered
+        // scope and surface rather than on the callback path.
+        window.history.replaceState({}, document.title, takeReturnPath(deps.storage));
         dispatch(
           signedIn({
             accessToken: tokens.accessToken,
@@ -66,7 +74,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
             ...(tokens.idToken ? { idToken: tokens.idToken } : {}),
           }),
         );
-        window.history.replaceState({}, document.title, `${window.location.origin}/`);
       })
       .catch((cause: unknown) => {
         setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
@@ -122,7 +129,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setError(null);
     setIsBusy(true);
     beginAuthorization(authConfig, deps)
-      .then((url) => window.location.assign(url))
+      .then((url) => {
+        rememberReturnPath(deps.storage, window.location.pathname);
+        window.location.assign(url);
+      })
       .catch((cause: unknown) => {
         setError(cause instanceof Error ? cause.message : 'Unable to start sign-in.');
         setIsBusy(false);

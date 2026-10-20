@@ -643,14 +643,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml),
   [`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml),
   [`build/frontend-install.ps1`](build/frontend-install.ps1), the AppHost's `EnsurePinnedNodeOnPath`.
-- **`U22` — Put the management console's tenant scope in its URL.** The console keeps its active scope (global or one
-  tenant) and surface in React state, so a tenant view cannot be bookmarked, linked, or restored on reload, and the
-  browser's back button leaves the console. Auth0's dashboard addresses a tenant in its route
-  (`manage.auth0.com/dashboard/{region}/{tenant}/…`), and tenant identifiers are readable names
-  ([ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md)). Route the console by scope and surface (for example
-  `/tenants/{tenantId}/clients`), derive the `ManagementScope` from the route, and keep the global-versus-tenant security
-  boundary of [ADR-0064](docs/adr/0064-frontend-presentation-platform.md) explicit in the route structure. Touch points:
-  [`apps/mgmt/src/App.tsx`](src/frontend/apps/mgmt/src/App.tsx), `packages/api/src/scope.ts`.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
 - **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML

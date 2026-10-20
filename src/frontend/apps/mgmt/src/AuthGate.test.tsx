@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { createAppStore, type AuthState } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
 import { AuthGate } from './AuthGate.js';
+import { RETURN_PATH_KEY } from './auth.js';
 
 const runtime: RuntimeConfig = {
   apiBaseUrl: 'https://api.test',
@@ -111,7 +112,13 @@ describe('AuthGate', () => {
       const assign = vi.fn();
       Object.defineProperty(window, 'location', {
         configurable: true,
-        value: { origin: 'https://ui.test', href: 'https://ui.test/', search: '', assign },
+        value: {
+          origin: 'https://ui.test',
+          href: 'https://ui.test/tenants/acme/clients',
+          pathname: '/tenants/acme/clients',
+          search: '',
+          assign,
+        },
       });
       return assign;
     }
@@ -131,6 +138,8 @@ describe('AuthGate', () => {
       expect(target.searchParams.get('scope')).toBe('openid read:clients');
       expect(target.searchParams.get('code_challenge_method')).toBe('S256');
       expect(target.searchParams.get('code_challenge')).toBeTruthy();
+      // The page the sign-in started from is remembered so the callback can return to it.
+      expect(window.sessionStorage.getItem(RETURN_PATH_KEY)).toBe('/tenants/acme/clients');
       const transaction = JSON.parse(window.sessionStorage.getItem(TRANSACTION_KEY) ?? '{}') as {
         state?: string;
       };
@@ -256,9 +265,28 @@ describe('AuthGate', () => {
         idToken,
         expiresAt: null,
       });
-      // The single-use code is dropped from the address bar once it has been exchanged.
-      expect(window.location.pathname).toBe('/');
+      // The single-use code is dropped from the address bar once it has been exchanged, landing on the console's
+      // default route when no return path was remembered.
+      expect(window.location.pathname).toBe('/tenants');
       expect(window.location.search).toBe('');
+    });
+
+    it('restores the console path remembered before the sign-in redirect', async () => {
+      seedCallback();
+      window.sessionStorage.setItem(RETURN_PATH_KEY, '/tenants/acme/grants');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () =>
+          tokenResponse({ access_token: OPAQUE_ACCESS_TOKEN, token_type: 'Bearer' }),
+        ),
+      );
+
+      renderGate(withClient);
+
+      expect(await screen.findByTestId('protected')).toBeInTheDocument();
+      expect(window.location.pathname).toBe('/tenants/acme/grants');
+      expect(window.location.search).toBe('');
+      expect(window.sessionStorage.getItem(RETURN_PATH_KEY)).toBeNull();
     });
 
     it('records an unknown subject without reading the access token when no ID token is issued', async () => {

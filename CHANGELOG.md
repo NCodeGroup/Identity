@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The management console's address bar names its scope and surface.** The console routes by scope and surface:
+  `/tenants` and `/servers` in the global scope, and `/tenants/{tenantId}/clients`, `…/resource-servers`, `…/grants`,
+  and `…/settings` within a tenant. A tenant view can be bookmarked, shared, and reloaded, back and forward move
+  between surfaces and scopes, and a deep link that lands on the sign-in screen returns to the same page once signed
+  in. The management scope is derived from the route. **Breaking:** the tenant's secrets and settings tab is now
+  "Settings" (`tenant-tab-settings`), and a host that serves the console must answer every console path with
+  `index.html`. ([ADR-0174](docs/adr/0174-the-management-consoles-url-is-its-navigation-state.md))
+
 - **`self_signed_tls_client_auth` matches the certificates in a client's JSON Web Key Set.** Importing a JSON Web Key
   keeps the first certificate of its `x5c` (RFC 7517 §4.7) after checking that it carries the key's public key, so a
   client that registers its keys as `jwks` or publishes them at a `jwks_uri` authenticates with a certificate listed

@@ -121,8 +121,10 @@ never compresses.**
   one; otherwise registration and a management write are refused. A security profile supplies a permitted default
   ([ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md) decision 7), so a client under FAPI 2.0
   that registers none gets `PS256`. A tenant write that narrows a list beneath a client's registered value is refused,
-  at the cost of reading every client of the tenant on each tenant settings write. A server settings write and a
-  seeded or configured client are not checked until issuance (backlog `F68`).
+  at the cost of reading every client of the tenant on each tenant settings write. A seeded client — including one the
+  conformance seeder reads from configuration — registers no response algorithm, so it can only inherit a mismatch
+  from the tenant or server settings above it, which their writes check. A server settings write, and a change to the
+  host's configured settings, are not checked until issuance (backlog `F68`).
 - A relying party that called UserInfo with only the end-user's session cookie must present an access token.
 - A dynamically registered client can narrow its assertion algorithm and use CIBA without the management API. Its
   `backchannel_token_delivery_mode` is checked against the tenant's `backchannel_token_delivery_modes_supported`; its
@@ -136,8 +138,7 @@ never compresses.**
   stores settings documents in its own database applies the same migration there.
 - Follow-ups: request-object audience, typing, and lifetime (backlog `F40`); validating client key material at every
   entry point (`F65`); the server validating access tokens it encrypted
-  (`F67`); and checking a client's registered response algorithms when the server's settings are written and when it is
-  seeded or configured (`F68`).
+  (`F67`); and checking a client's registered response algorithms when the server's settings are written (`F68`).
 
 ## References
 
